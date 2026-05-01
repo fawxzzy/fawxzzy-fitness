@@ -19,7 +19,7 @@ export type RunnableDayExercise = {
   target_distance?: number | null;
   target_distance_unit?: "mi" | "km" | "m" | null;
   target_calories?: number | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;
 };
 

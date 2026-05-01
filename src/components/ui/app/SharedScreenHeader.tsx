@@ -9,6 +9,7 @@ export function SharedScreenHeader({
   recipe,
   eyebrow,
   title,
+  titleClassName,
   subtitle,
   subtitleRight,
   meta,
@@ -17,11 +18,13 @@ export function SharedScreenHeader({
   className,
   actionClassName,
   subtitleClassName,
+  align = "left",
   withPanel = true,
 }: {
   recipe: ScreenContractName;
   eyebrow?: ReactNode;
   title: ReactNode;
+  titleClassName?: string;
   subtitle?: ReactNode;
   subtitleRight?: ReactNode;
   meta?: ReactNode;
@@ -30,6 +33,7 @@ export function SharedScreenHeader({
   className?: string;
   actionClassName?: string;
   subtitleClassName?: string;
+  align?: "left" | "center";
   withPanel?: boolean;
 }) {
   const screenRecipe = resolveScreenRecipe(recipe);
@@ -42,9 +46,10 @@ export function SharedScreenHeader({
         subtitleRight={subtitleRight}
         meta={meta}
         action={action}
+        align={align}
         className={standaloneHeaderFamily.headerClassName}
         actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}
-        titleClassName={standaloneHeaderFamily.titleClassName}
+        titleClassName={cn(standaloneHeaderFamily.titleClassName, titleClassName)}
         subtitleClassName={subtitleClassName}
       />
       {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
@@ -55,7 +60,7 @@ export function SharedScreenHeader({
     return (
       <div
         data-shared-screen-header="true"
-        className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}
+        className={cn(screenRecipe.headerPanelClassName, className)}
       >
         {headerNode}
       </div>

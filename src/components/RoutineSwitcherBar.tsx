@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 
 type RoutineItem = {
   id: string;
@@ -68,7 +69,12 @@ export function RoutineSwitcherBar({
         <span className="min-w-0">
           <span className="block overflow-hidden truncate whitespace-nowrap text-sm leading-5 text-text" title={activeRoutineSummary ? `${activeRoutineName} | ${activeRoutineSummary}` : activeRoutineName}>
             <span className="font-semibold">{activeRoutineName}</span>
-            {activeRoutineSummary ? <span className="font-medium text-muted">{` | ${activeRoutineSummary}`}</span> : null}
+            {activeRoutineSummary ? (
+              <span className="inline-flex items-center gap-2 font-medium text-muted">
+                <SignatureMiniPipe className="translate-y-[1px]" />
+                <span>{activeRoutineSummary}</span>
+              </span>
+            ) : null}
           </span>
         </span>
         <span className={`text-xs text-muted transition-transform ${open ? "rotate-180" : "rotate-0"}`} aria-hidden="true">
@@ -114,7 +120,7 @@ export function RoutineSwitcherBar({
                     {routine.summary ? <span className="block truncate pt-0.5 text-xs text-muted/80">{routine.summary}</span> : null}
                   </span>
                   {isCurrent ? (
-                    <span className="ml-3 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                    <span className="ml-3 rounded-full border border-[rgb(var(--selection-rgb)/0.28)] bg-[rgb(var(--selection-rgb)/0.14)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--selection-rgb)/0.96)]">
                       Active
                     </span>
                   ) : null}

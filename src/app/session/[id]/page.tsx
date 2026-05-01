@@ -1,12 +1,14 @@
 import { SessionPageClient } from "@/components/SessionPageClient";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
-import { formatExerciseGoal } from "@/lib/exercise-goal-format";
-import { isCardioExercise } from "@/lib/exercise-metadata";
+import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
+import { isCardioExercise, isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { splitSessionHeaderTitle } from "@/lib/header-meta";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
@@ -20,7 +22,7 @@ import { getSessionPageData } from "./queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
 
 function buildSessionExerciseTarget(exercise: {
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   target_sets_min?: number | null;
   target_sets_max?: number | null;
   target_reps_min?: number | null;
@@ -90,7 +92,7 @@ function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "
     prefill.weightUnit = target.weightUnit ?? fallbackWeightUnit;
   }
 
-  const prefillReps = target.repsMin ?? target.repsMax;
+  const prefillReps = target.repsMax ?? target.repsMin;
   if (prefillReps !== undefined) {
     prefill.reps = prefillReps;
   }
@@ -102,22 +104,20 @@ function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "
   return Object.keys(prefill).length > 0 ? prefill : undefined;
 }
 
-function formatSessionGoalLabel(target: DisplayTarget | undefined, fallbackWeightUnit: "lbs" | "kg") {
-  const repsMin = target?.repsMin ?? target?.repsMax ?? null;
-  const repsMax = target?.repsMax ?? target?.repsMin ?? null;
+function resolveSessionExerciseDefaultDistanceUnit(defaultUnit: string | null | undefined): "mi" | "km" | "m" | null {
+  if (defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m") {
+    return defaultUnit;
+  }
 
-  return formatExerciseGoal({
-    target_sets: target?.setsMin ?? target?.setsMax ?? null,
-    target_reps: repsMin,
-    target_reps_min: repsMin,
-    target_reps_max: repsMax,
-    target_weight: target?.weightMin ?? target?.weightMax ?? null,
-    target_weight_unit: target?.weightUnit ?? fallbackWeightUnit,
-    target_duration_seconds: target?.durationSeconds ?? null,
-    target_distance: target?.distance ?? null,
-    target_distance_unit: target?.distanceUnit ?? null,
-    target_calories: target?.calories ?? null,
-  });
+  if (defaultUnit === "miles") {
+    return "mi";
+  }
+
+  if (defaultUnit === "meters") {
+    return "m";
+  }
+
+  return null;
 }
 
 type PageProps = {
@@ -132,6 +132,7 @@ type PageProps = {
 };
 
 export default async function SessionPage({ params, searchParams }: PageProps) {
+  const diagnostics = new LoadingDiagnosticsCollector(`/session/${params.id}`);
   const {
     sessionRow,
     routine,
@@ -140,7 +141,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     sessionTargets,
     exerciseOptions,
     exerciseNameMap,
-  } = await getSessionPageData(params.id);
+  } = await getSessionPageData(params.id, { diagnostics });
 
   const unitLabel = routine?.weight_unit ?? "kg";
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
@@ -163,13 +164,22 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         movement_pattern: canonicalExercise?.movement_pattern ?? null,
         primary_muscle: canonicalExercise?.primary_muscle ?? null,
         isCardio: canonicalExercise ? isCardioExercise(canonicalExercise) : null,
+        kind: null,
+        type: null,
+        tags: null,
+        categories: null,
       };
     }),
   );
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
+  const requestedExerciseId = typeof searchParams?.exerciseId === "string"
+    && sessionExercises.some((exercise) => exercise.id === searchParams.exerciseId)
+    ? searchParams.exerciseId
+    : null;
 
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
+        <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <SessionPageClient
           userId={sessionRow.user_id}
           sessionId={params.id}
@@ -184,11 +194,14 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             const displayTarget = buildSessionExerciseTarget(exercise) ?? sessionTargets.get(exercise.id);
             const canonicalExercise = exerciseById.get(exercise.exercise_id);
             const exerciseMetadata = {
+              name: exercise.exercise_name ?? canonicalExercise?.name ?? null,
               measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
               equipment: canonicalExercise?.equipment ?? null,
               movement_pattern: canonicalExercise?.movement_pattern ?? null,
+              primary_muscle: canonicalExercise?.primary_muscle ?? null,
             };
             const isCardio = isCardioExercise(exerciseMetadata);
+            const isMeasurementOptional = isMeasurementOptionalExercise(exerciseMetadata);
             const useIntervalLanguage = usesIntervalLanguage({
               intervalMode: false,
             });
@@ -196,11 +209,15 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             return {
               id: exercise.id,
               exerciseId: exercise.exercise_id,
-              name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
+              name: normalizeExerciseDisplayName({
+                exerciseId: exercise.exercise_id,
+                name: exercise.exercise_name ?? null,
+                fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? canonicalExercise?.name ?? null,
+              }),
               isSkipped: exercise.is_skipped,
-              defaultUnit: exercise.default_unit ?? null,
+              defaultUnit: resolveSessionExerciseDefaultDistanceUnit(exercise.default_unit),
               isCardio,
-              measurementType: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
+              measurementType: isMeasurementOptional ? "none" : (exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null),
               primary_muscle: canonicalExercise?.primary_muscle ?? null,
               equipment: canonicalExercise?.equipment ?? null,
               movement_pattern: canonicalExercise?.movement_pattern ?? null,
@@ -220,6 +237,10 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   .join("");
               })(),
               initialEnabledMetrics: (() => {
+                if (isMeasurementOptional) {
+                  return { reps: false, weight: false, time: false, distance: false, calories: false };
+                }
+
                 const fromPlan = exercise.enabled_metrics;
                 if (fromPlan && [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories].some((value) => value === true)) {
                   return {
@@ -237,20 +258,47 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
                 return { reps: true, weight: true, time: false, distance: false, calories: false };
               })(),
-              goalLabel: formatSessionGoalLabel(displayTarget, unitLabel),
+              goalLabel: formatExerciseGoalSummary({
+                sets: displayTarget?.setsMin ?? displayTarget?.setsMax ?? null,
+                reps: displayTarget?.repsMin ?? displayTarget?.repsMax ?? null,
+                repsMax: displayTarget?.repsMax ?? displayTarget?.repsMin ?? null,
+                weight: displayTarget?.weightMin ?? displayTarget?.weightMax ?? null,
+                weightUnit: displayTarget?.weightUnit ?? unitLabel,
+                durationSeconds: displayTarget?.durationSeconds ?? null,
+                distance: displayTarget?.distance ?? null,
+                distanceUnit: displayTarget?.distanceUnit ?? null,
+                calories: displayTarget?.calories ?? null,
+                emptyLabel: "Goal missing",
+              }),
               prefill: getGoalPrefill(displayTarget, unitLabel),
-              quickLogTarget: displayTarget ? {
-                repsMin: displayTarget.repsMin,
-                repsMax: displayTarget.repsMax,
-                weightMin: displayTarget.weightMin,
-                weightMax: displayTarget.weightMax,
-                weightUnit: displayTarget.weightUnit,
-                durationSeconds: displayTarget.durationSeconds,
-                distance: displayTarget.distance,
-                distanceUnit: displayTarget.distanceUnit,
-                calories: displayTarget.calories,
-                measurementType: displayTarget.measurementType,
-              } : undefined,
+              quickLogTarget: isMeasurementOptional
+                ? {
+                    repsMin: displayTarget?.repsMin,
+                    repsMax: displayTarget?.repsMax,
+                    weightMin: displayTarget?.weightMin,
+                    weightMax: displayTarget?.weightMax,
+                    weightUnit: displayTarget?.weightUnit,
+                    durationSeconds: displayTarget?.durationSeconds,
+                    distance: displayTarget?.distance,
+                    distanceUnit: displayTarget?.distanceUnit,
+                    calories: displayTarget?.calories,
+                    measurementType: displayTarget?.measurementType ?? "none",
+                    allowMeasurementlessLog: true,
+                  }
+                : (
+                  displayTarget ? {
+                    repsMin: displayTarget.repsMin,
+                    repsMax: displayTarget.repsMax,
+                    weightMin: displayTarget.weightMin,
+                    weightMax: displayTarget.weightMax,
+                    weightUnit: displayTarget.weightUnit,
+                    durationSeconds: displayTarget.durationSeconds,
+                    distance: displayTarget.distance,
+                    distanceUnit: displayTarget.distanceUnit,
+                    calories: displayTarget.calories,
+                    measurementType: displayTarget.measurementType,
+                  } : undefined
+                ),
               targetSetsMin: displayTarget?.setsMin ?? null,
               targetSetsMax: displayTarget?.setsMax ?? null,
               initialSets: setsByExercise.get(exercise.id) ?? [],
@@ -259,6 +307,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           })}
           saveSessionAction={saveSessionAction}
           requestedReturnTo={requestedReturnTo}
+          initialSelectedExerciseId={requestedExerciseId}
           quickAddAction={(
             <QuickAddExerciseSheet
               sessionId={params.id}

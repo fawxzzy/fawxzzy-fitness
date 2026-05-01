@@ -8,9 +8,12 @@ export type SessionSummary = {
   startedAt: string;
   routineTitle: string;
   dayTitle?: string;
+  exerciseNames?: string[];
+  prExerciseNames?: string[];
   durationSec?: number;
   exerciseCount: number;
   setCount: number;
+  repCount: number;
   prCounts: PrCountByCategory;
   prLabel: string;
   topSet?: {
@@ -22,6 +25,7 @@ export type SessionSummary = {
     display: string;
   };
   totalVolume: number;
+  volumeUnit?: "lbs" | "kg" | "lb";
   completionRate?: number;
   hasNote: boolean;
   hasSetData: boolean;
@@ -49,6 +53,7 @@ type BuildSummaryInput = {
   setsBySessionExerciseId: Map<string, SessionSetSummaryRow[]>;
   exerciseNameById: Map<string, string>;
   prCounts: PrCountByCategory;
+  prExerciseNames?: string[];
 };
 
 export function buildSessionSummary({
@@ -59,6 +64,7 @@ export function buildSessionSummary({
   setsBySessionExerciseId,
   exerciseNameById,
   prCounts,
+  prExerciseNames,
 }: BuildSummaryInput): SessionSummary {
   const exerciseCount = sessionExercises.length;
   const analytics = deriveSessionAnalytics(
@@ -95,20 +101,41 @@ export function buildSessionSummary({
   const durationSec = typeof sessionRow.duration_seconds === "number" && sessionRow.duration_seconds > 0
     ? sessionRow.duration_seconds
     : undefined;
+  let repCount = 0;
+  let volumeUnit: SessionSummary["volumeUnit"];
+  for (const exercise of sessionExercises) {
+    for (const set of setsBySessionExerciseId.get(exercise.id) ?? []) {
+      repCount += Number.isFinite(set.reps) && set.reps > 0 ? Math.floor(set.reps) : 0;
+      if (!volumeUnit && (set.weight_unit === "lbs" || set.weight_unit === "lb" || set.weight_unit === "kg")) {
+        volumeUnit = set.weight_unit;
+      }
+    }
+  }
+  const exerciseNames = Array.from(
+    new Set(
+      sessionExercises
+        .map((exercise) => exerciseNameById.get(exercise.exercise_id)?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
 
   return {
     id: sessionRow.id,
     startedAt: sessionRow.performed_at,
     routineTitle: (routineTitle ?? sessionRow.name ?? "").trim() || "Unknown routine",
     dayTitle: dayTitle?.trim() || undefined,
+    exerciseNames,
+    prExerciseNames: prExerciseNames?.filter((value, index, values) => Boolean(value?.trim()) && values.indexOf(value) === index),
     durationSec,
     exerciseCount,
     setCount: analytics.setCount,
+    repCount,
     prCounts,
     prLabel: formatPrBreakdown(prCounts),
     topSet,
     bestLift: topSet,
     totalVolume: analytics.totalVolume,
+    volumeUnit,
     completionRate: analytics.completionRate,
     hasNote: Boolean(sessionRow.notes?.trim()),
     hasSetData: analytics.hasSetData,

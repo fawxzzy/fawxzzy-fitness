@@ -8,32 +8,38 @@ import { cn } from "@/lib/cn";
 export function DetailHeader({
   eyebrow,
   title,
+  titleClassName,
   subtitle,
   meta,
   action,
   children,
   className,
   actionClassName,
+  align = "left",
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
+  titleClassName?: string;
   subtitle?: ReactNode;
   meta?: ReactNode;
   action?: ReactNode;
   children?: ReactNode;
   className?: string;
   actionClassName?: string;
+  align?: "left" | "center";
 }) {
   return (
     <SharedScreenHeader
       recipe="exerciseDetail"
       eyebrow={eyebrow}
       title={title}
+      titleClassName={titleClassName}
       subtitle={subtitle}
       action={action}
       meta={meta}
       className={className}
       actionClassName={actionClassName}
+      align={align}
     >
       {children}
     </SharedScreenHeader>

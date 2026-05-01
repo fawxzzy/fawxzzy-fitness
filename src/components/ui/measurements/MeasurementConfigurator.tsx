@@ -20,8 +20,13 @@ export function MeasurementConfigurator({
   showHeader = false,
   leadingContent,
   trailingContent,
+  footerContent,
   topField,
+  repRangeLabels,
   visibleMetrics,
+  metricOrder,
+  layoutMode,
+  labelTreatment,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -38,12 +43,27 @@ export function MeasurementConfigurator({
   showHeader?: boolean;
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
+  footerContent?: ReactNode;
   topField?: {
     title: string;
     suffix?: string;
     input: ReactNode;
+    inlineLabel?: string;
+    showEmptyValue?: boolean;
+    hasValue?: boolean;
+    labelClassName?: string;
+    valueLabelClassName?: string;
+    emptyValueClassName?: string;
+    renderInput?: (options: { inputClassName: string }) => ReactNode;
+  };
+  repRangeLabels?: {
+    min: string;
+    max: string;
   };
   visibleMetrics?: Array<keyof MeasurementMetrics>;
+  metricOrder?: Array<keyof MeasurementMetrics>;
+  layoutMode?: "grid" | "horizontal-scroll";
+  labelTreatment?: "inline" | "floating-border";
 }) {
   return (
     <MeasurementPanelV2
@@ -62,8 +82,13 @@ export function MeasurementConfigurator({
       showHeader={showHeader}
       leadingContent={leadingContent}
       trailingContent={trailingContent}
+      footerContent={footerContent}
       topField={topField}
+      repRangeLabels={repRangeLabels}
       visibleMetrics={visibleMetrics}
+      metricOrder={metricOrder}
+      layoutMode={layoutMode}
+      labelTreatment={labelTreatment}
     />
   );
 }

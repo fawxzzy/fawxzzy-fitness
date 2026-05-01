@@ -1,29 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { deriveGoalMeasurementSelections, getVisibleMetricsForModality, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
-
-function getDefaultMeasurements(modality: GoalModality): MeasurementSelection[] {
-  switch (modality) {
-    case "bodyweight":
-      return ["reps"];
-    case "cardio_time":
-      return ["time"];
-    case "cardio_distance":
-      return ["distance"];
-    case "cardio_time_distance":
-      return ["time", "distance"];
-    case "strength":
-    default:
-      return ["reps", "weight"];
-  }
-}
+import { deriveGoalMeasurementSelections, getDefaultMeasurementsForGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
 export function inferGoalModeFromState(state: ExerciseGoalFormState): GoalModality {
   const selections = deriveGoalMeasurementSelections("cardio_time_distance", {
     repsMin: state.repsMin,
+    repsMax: state.repsMax,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
@@ -45,6 +31,11 @@ export function SharedExerciseGoalForm({
   emptySummaryLabel,
   showValidationMessage,
   hideEmptySummary,
+  hideSummary,
+  footerContent,
+  visibleMetrics,
+  visibleMetricOrder,
+  measurementLayoutMode,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -54,10 +45,16 @@ export function SharedExerciseGoalForm({
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
   hideEmptySummary?: boolean;
+  hideSummary?: boolean;
+  footerContent?: ReactNode;
+  visibleMetrics?: Array<keyof MeasurementMetrics>;
+  visibleMetricOrder?: Array<keyof MeasurementMetrics>;
+  measurementLayoutMode?: "grid" | "horizontal-scroll";
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
     : modality;
+  const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
 
   const goalModeChoices = useMemo(() => {
     if (modality !== "cardio_time_distance") return [];
@@ -69,7 +66,7 @@ export function SharedExerciseGoalForm({
   }, [modality]);
 
   return (
-    <div className="space-y-3">
+    <div className={stackClassName}>
       {goalModeChoices.length ? (
         <div className="space-y-1">
           <p className="px-0.5 text-xs text-muted">Goal mode</p>
@@ -83,7 +80,7 @@ export function SharedExerciseGoalForm({
               const nextMode = nextValue as GoalModality;
               onStateChange({
                 ...state,
-                measurements: getDefaultMeasurements(nextMode),
+                measurements: getDefaultMeasurementsForGoalModality(nextMode),
                 duration: nextMode === "cardio_distance" ? "" : state.duration,
                 distance: nextMode === "cardio_time" ? "" : state.distance,
               });
@@ -101,9 +98,14 @@ export function SharedExerciseGoalForm({
         emptySummaryLabel={emptySummaryLabel}
         showValidationMessage={showValidationMessage}
         hideEmptySummary={hideEmptySummary}
+        hideSummary={hideSummary}
+        footerContent={footerContent}
+        visibleMetrics={visibleMetrics}
+        visibleMetricOrder={visibleMetricOrder}
+        measurementLayoutMode={measurementLayoutMode}
       />
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
-      <input type="hidden" name="defaultUnit" value={getVisibleMetricsForModality(effectiveGoalModality).includes("distance") ? state.distanceUnit : "mi"} />
+      <input type="hidden" name="defaultUnit" value={state.distanceUnit} />
     </div>
   );
 }

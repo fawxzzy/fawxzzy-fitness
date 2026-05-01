@@ -1,5 +1,6 @@
 import { appTokens } from "@/components/ui/app/tokens";
-import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
+import { formatGoalInlineSummaryText, formatGoalSummaryItems } from "@/lib/measurement-display";
 import { cn } from "@/lib/cn";
 
 export function GoalSummaryInline({
@@ -25,6 +26,7 @@ export function GoalSummaryInline({
   hideWhenEmpty?: boolean;
 }) {
   const summary = formatGoalInlineSummaryText(includeSets ? values : { ...values, sets: null });
+  const summaryItems = formatGoalSummaryItems(includeSets ? values : { ...values, sets: null });
   const isMissing = summary === (values.emptyLabel ?? "Goal missing");
   if (hideWhenEmpty && isMissing) return null;
 
@@ -35,7 +37,10 @@ export function GoalSummaryInline({
           {summary}
         </span>
       ) : (
-        <p className={appTokens.measurementInlineSummary}>{summary}</p>
+        <SignatureInlineList
+          items={summaryItems.map((item) => item.label)}
+          className={cn(appTokens.measurementInlineSummary, "justify-center text-center")}
+        />
       )}
     </div>
   );

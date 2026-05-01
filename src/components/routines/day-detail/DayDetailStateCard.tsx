@@ -6,10 +6,10 @@ import { cn } from "@/lib/cn";
 type DayDetailStateTone = "rest" | "warning" | "blocking" | "neutral";
 
 const toneClassNames: Record<DayDetailStateTone, string> = {
-  rest: "border-[rgb(var(--warning-rgb)/0.28)] bg-[rgb(var(--warning-rgb)/0.1)] text-[rgb(255_242_220)]",
-  warning: "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]",
-  blocking: "border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]",
-  neutral: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.52)] text-[rgb(var(--text-secondary)/0.96)]",
+  rest: appTokens.detailStateRest,
+  warning: appTokens.detailStateWarning,
+  blocking: appTokens.detailStateBlocking,
+  neutral: appTokens.detailStateNeutral,
 };
 
 export function DayDetailStateCard({

@@ -20,6 +20,8 @@ import {
   type FitnessWeightUnit,
 } from "@/lib/migration/fitness-legacy-contract";
 
+export type { FitnessLegacySnapshot } from "@/lib/migration/fitness-legacy-contract";
+
 type SupabaseLikeClient = any;
 type JsonRecord = Record<string, unknown>;
 

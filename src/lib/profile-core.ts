@@ -23,6 +23,43 @@ export type ProfileSupabaseClient = {
   from(table: "profiles"): ProfileTableQuery;
 };
 
+const PROFILE_RECOVERABLE_ERROR_CODES = new Set([
+  "08000",
+  "08001",
+  "08003",
+  "08004",
+  "08006",
+  "08P01",
+  "40001",
+  "40P01",
+  "53300",
+  "53400",
+  "57014",
+  "57P01",
+  "57P02",
+  "57P03",
+  "58000",
+  "PGRST000",
+  "PGRST001",
+  "PGRST002",
+  "PGRST003",
+]);
+const PROFILE_BOOTSTRAP_ATTEMPT_LIMIT = 3;
+
+type ReadProfileResult = {
+  hasPreferenceColumns: boolean | null;
+  profile: ProfileRow | null;
+  error: ProfileQueryError;
+};
+
+type InsertProfileResult = {
+  hasPreferenceColumns: boolean;
+  profile: ProfileRow | null;
+  error: ProfileQueryError;
+};
+
+type EntryBootstrapLogger = (message: string, details: Record<string, unknown>) => void;
+
 function isMissingProfilePreferenceColumnError(error: ProfileQueryError) {
   const message = error?.message?.toLowerCase() ?? "";
   const referencesPreferenceColumn =
@@ -64,7 +101,11 @@ async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
     .maybeSingle();
 
   if (error && !isMissingProfilePreferenceColumnError(error)) {
-    throw new Error(error.message ?? "Unable to load profile");
+    return {
+      hasPreferenceColumns: null,
+      profile: null,
+      error,
+    } satisfies ReadProfileResult;
   }
 
   if (error && isMissingProfilePreferenceColumnError(error)) {
@@ -76,13 +117,18 @@ async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
       .maybeSingle();
 
     if (legacyError) {
-      throw new Error(legacyError.message ?? "Unable to load profile");
+      return {
+        hasPreferenceColumns,
+        profile: null,
+        error: legacyError,
+      } satisfies ReadProfileResult;
     }
 
     if (legacyData) {
       return {
         hasPreferenceColumns,
         profile: hydrateProfile(legacyData as LegacyProfileShape),
+        error: null,
       };
     }
   }
@@ -91,12 +137,14 @@ async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
     return {
       hasPreferenceColumns,
       profile: hydrateProfile(data as LegacyProfileShape),
+      error: null,
     };
   }
 
   return {
     hasPreferenceColumns,
     profile: null,
+    error: null,
   };
 }
 
@@ -112,47 +160,199 @@ function isProfileAlreadyExistsError(error: ProfileQueryError) {
   );
 }
 
-export async function ensureProfileWithClient(userId: string, supabase: ProfileSupabaseClient) {
-  const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Toronto";
-  const existingProfile = await readProfile(userId, supabase);
-
-  if (existingProfile.profile) {
-    return existingProfile.profile;
+function isRecoverableProfileError(error: ProfileQueryError) {
+  if (!error) {
+    return false;
   }
 
-  const insertPayload: {
-    id: string;
-    timezone: string;
-    preferred_weight_unit?: NonNullable<ProfileRow["preferred_weight_unit"]>;
-    preferred_distance_unit?: NonNullable<ProfileRow["preferred_distance_unit"]>;
-  } = {
-    id: userId,
-    timezone: defaultTimeZone,
+  if (isMissingProfilePreferenceColumnError(error) || isProfileAlreadyExistsError(error)) {
+    return false;
+  }
+
+  if (typeof error.code === "string" && PROFILE_RECOVERABLE_ERROR_CODES.has(error.code)) {
+    return true;
+  }
+
+  const message = error.message?.toLowerCase() ?? "";
+  const details = error.details?.toLowerCase() ?? "";
+  const combined = `${message} ${details}`;
+
+  return (
+    combined.includes("fetch failed")
+    || combined.includes("network")
+    || combined.includes("timed out")
+    || combined.includes("timeout")
+    || combined.includes("connection")
+    || combined.includes("temporar")
+    || combined.includes("try again")
+  );
+}
+
+function toProfileError(error: ProfileQueryError, fallbackMessage: string) {
+  return new Error(error?.message ?? fallbackMessage);
+}
+
+function getEntryBootstrapErrorDetails(error: unknown) {
+  if (error instanceof Error) {
+    const details: Record<string, unknown> = {
+      errorMessage: error.message,
+      errorName: error.name,
+    };
+
+    const maybeError = error as Error & { code?: string; details?: string };
+    if (typeof maybeError.code === "string") {
+      details.errorCode = maybeError.code;
+    }
+    if (typeof maybeError.details === "string") {
+      details.errorDetails = maybeError.details;
+    }
+    if (process.env.NODE_ENV !== "production" && typeof error.stack === "string") {
+      details.errorStack = error.stack;
+    }
+
+    return details;
+  }
+
+  return {
+    errorMessage: typeof error === "string" ? error : "Unknown profile bootstrap failure",
   };
-  const insertSelect = existingProfile.hasPreferenceColumns ? PROFILE_SELECT_WITH_PREFERENCES : PROFILE_SELECT_LEGACY;
+}
 
-  if (existingProfile.hasPreferenceColumns) {
-    insertPayload.preferred_weight_unit = DEFAULT_WEIGHT_UNIT;
-    insertPayload.preferred_distance_unit = DEFAULT_DISTANCE_UNIT;
+async function insertProfile(
+  userId: string,
+  supabase: ProfileSupabaseClient,
+  hasPreferenceColumnsHint: boolean | null,
+): Promise<InsertProfileResult> {
+  const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Toronto";
+
+  async function attemptInsert(hasPreferenceColumns: boolean): Promise<InsertProfileResult> {
+    const insertPayload: {
+      id: string;
+      timezone: string;
+      preferred_weight_unit?: NonNullable<ProfileRow["preferred_weight_unit"]>;
+      preferred_distance_unit?: NonNullable<ProfileRow["preferred_distance_unit"]>;
+    } = {
+      id: userId,
+      timezone: defaultTimeZone,
+    };
+
+    if (hasPreferenceColumns) {
+      insertPayload.preferred_weight_unit = DEFAULT_WEIGHT_UNIT;
+      insertPayload.preferred_distance_unit = DEFAULT_DISTANCE_UNIT;
+    }
+
+    const insertSelect = hasPreferenceColumns ? PROFILE_SELECT_WITH_PREFERENCES : PROFILE_SELECT_LEGACY;
+    const { data: inserted, error } = await supabase
+      .from("profiles")
+      .insert(insertPayload)
+      .select(insertSelect)
+      .single();
+
+    if (error || !inserted) {
+      return {
+        hasPreferenceColumns,
+        profile: null,
+        error: error ?? { message: "Unable to create profile" },
+      };
+    }
+
+    return {
+      hasPreferenceColumns,
+      profile: hydrateProfile(inserted as LegacyProfileShape),
+      error: null,
+    };
   }
 
-  const { data: inserted, error: insertError } = await supabase
-    .from("profiles")
-    .insert(insertPayload)
-    .select(insertSelect)
-    .single();
+  if (hasPreferenceColumnsHint === false) {
+    return attemptInsert(false);
+  }
 
-  if (insertError || !inserted) {
-    if (isProfileAlreadyExistsError(insertError)) {
+  const preferredInsert = await attemptInsert(true);
+  if (preferredInsert.error && isMissingProfilePreferenceColumnError(preferredInsert.error)) {
+    return attemptInsert(false);
+  }
+
+  return preferredInsert;
+}
+
+export async function ensureProfileWithClient(userId: string, supabase: ProfileSupabaseClient) {
+  let lastRecoverableError: ProfileQueryError = null;
+
+  for (let attempt = 0; attempt < PROFILE_BOOTSTRAP_ATTEMPT_LIMIT; attempt += 1) {
+    const existingProfile = await readProfile(userId, supabase);
+
+    if (existingProfile.profile) {
+      return existingProfile.profile;
+    }
+
+    if (existingProfile.error && !isRecoverableProfileError(existingProfile.error)) {
+      throw toProfileError(existingProfile.error, "Unable to load profile");
+    }
+
+    const insertedProfile = await insertProfile(userId, supabase, existingProfile.hasPreferenceColumns);
+    if (insertedProfile.profile) {
+      return insertedProfile.profile;
+    }
+
+    if (insertedProfile.error && isProfileAlreadyExistsError(insertedProfile.error)) {
       const conflictedProfile = await readProfile(userId, supabase);
 
       if (conflictedProfile.profile) {
         return conflictedProfile.profile;
       }
+
+      if (conflictedProfile.error && !isRecoverableProfileError(conflictedProfile.error)) {
+        throw toProfileError(conflictedProfile.error, "Unable to load profile");
+      }
+
+      lastRecoverableError = conflictedProfile.error ?? insertedProfile.error ?? existingProfile.error;
+      continue;
     }
 
-    throw new Error(insertError?.message ?? "Unable to create profile");
+    if (insertedProfile.error && !isRecoverableProfileError(insertedProfile.error)) {
+      throw toProfileError(insertedProfile.error, "Unable to create profile");
+    }
+
+    const recoveredProfile = await readProfile(userId, supabase);
+    if (recoveredProfile.profile) {
+      return recoveredProfile.profile;
+    }
+
+    if (recoveredProfile.error && !isRecoverableProfileError(recoveredProfile.error)) {
+      throw toProfileError(recoveredProfile.error, "Unable to load profile");
+    }
+
+    lastRecoverableError = recoveredProfile.error ?? insertedProfile.error ?? existingProfile.error;
   }
 
-  return hydrateProfile(inserted as LegacyProfileShape);
+  throw toProfileError(lastRecoverableError, "Unable to create profile");
+}
+
+export async function ensureProfileForEntryBootstrap(
+  userId: string,
+  options: {
+    ensureProfileImpl: (userId: string) => Promise<ProfileRow>;
+    logError?: EntryBootstrapLogger;
+  },
+) {
+  const logError = options.logError ?? console.error;
+
+  try {
+    return {
+      ok: true as const,
+      profile: await options.ensureProfileImpl(userId),
+    };
+  } catch (error) {
+    logError("[entry] profile bootstrap failed; continuing with authenticated fallback", {
+      route: "/entry",
+      stage: "ensureProfile",
+      userId,
+      ...getEntryBootstrapErrorDetails(error),
+    });
+
+    return {
+      ok: false as const,
+      profile: null,
+    };
+  }
 }

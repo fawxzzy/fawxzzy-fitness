@@ -20,8 +20,8 @@ import {
   readStoredAppThemeLibrary,
   readStoredAppThemeSelection,
   sanitizeAppThemeName,
-  type AppThemeSettings as AppThemeConfig,
   type CustomAppThemeSlotId,
+  type AppThemeSettings,
   type SavedAppThemeSlot,
   writeStoredAppTheme,
   writeStoredAppThemeLibrary,
@@ -79,7 +79,7 @@ const THEME_COLOR_GROUPS = [
 ] as const satisfies ReadonlyArray<{
   title: string;
   description: string;
-  fields: ReadonlyArray<{ key: keyof AppThemeConfig; label: string }>;
+  fields: ReadonlyArray<{ key: keyof AppThemeSettings; label: string }>;
 }>;
 
 function ThemePanelSection({
@@ -236,7 +236,7 @@ export function AppThemeSettings({
   preferredWeightUnit: "lbs" | "kg";
   preferredDistanceUnit: "mi" | "km";
 }) {
-  const [theme, setTheme] = useState<AppThemeConfig>(DEFAULT_APP_THEME);
+  const [theme, setTheme] = useState<AppThemeSettings>(DEFAULT_APP_THEME);
   const [savedThemes, setSavedThemes] = useState<SavedAppThemeSlot[]>([]);
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeSelectionId>("default");
   const [themeName, setThemeName] = useState("");
@@ -285,12 +285,12 @@ export function AppThemeSettings({
     writeStoredAppTheme(theme);
   }, [hasLoaded, theme]);
 
-  const updateTheme = (updater: (currentTheme: AppThemeConfig) => AppThemeConfig) => {
+  const updateTheme = (updater: (currentTheme: AppThemeSettings) => AppThemeSettings) => {
     setSaveMessage(null);
     setTheme((currentTheme) => updater(currentTheme));
   };
 
-  const updateColor = (key: keyof AppThemeConfig, nextValue: string) => {
+  const updateColor = (key: keyof AppThemeSettings, nextValue: string) => {
     updateTheme((currentTheme) => ({
       ...currentTheme,
       [key]: nextValue,
@@ -356,7 +356,7 @@ export function AppThemeSettings({
       }
 
       if (canSaveTheme) {
-        const nextName = sanitizeAppThemeName(themeName);
+        const normalizedName = sanitizeAppThemeName(themeName);
         const targetSlotId = isDefaultThemeSelected
           ? getNextAvailableAppThemeSlotId(savedThemes)
           : selectedThemeId;
@@ -366,16 +366,16 @@ export function AppThemeSettings({
         } else {
           const nextSavedThemes = [...savedThemes.filter((savedTheme) => savedTheme.id !== targetSlotId), {
             id: targetSlotId,
-            name: nextName,
+            name: normalizedName,
             theme,
           }].sort((left, right) => APP_THEME_CUSTOM_SLOT_IDS.indexOf(left.id) - APP_THEME_CUSTOM_SLOT_IDS.indexOf(right.id));
 
           writeStoredAppThemeLibrary(nextSavedThemes);
           setSavedThemes(nextSavedThemes);
           setSelectedThemeId(targetSlotId);
-          setThemeName(nextName);
+          setThemeName(normalizedName);
           writeStoredAppThemeSelection(targetSlotId);
-          successMessages.push(`"${nextName}" saved.`);
+          successMessages.push(`"${normalizedName}" saved.`);
         }
       } else if (hasActiveThemeChange) {
         errorMessages.push(`Theme name is required and must be ${APP_THEME_NAME_MAX_LENGTH} characters or fewer.`);

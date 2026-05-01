@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import {
@@ -15,13 +18,14 @@ type BottomDockButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "chil
   intent?: BottomActionIntent;
   variant?: BottomDockButtonVariant;
   loading?: boolean;
+  loadingLabel?: string;
   fullWidth?: boolean;
 };
 
-export function BottomDockButton({ children, intent, variant, className, loading = false, fullWidth = true, ...props }: BottomDockButtonProps) {
+export function BottomDockButton({ children, intent, variant, className, loading = false, loadingLabel: configuredLoadingLabel, fullWidth = true, ...props }: BottomDockButtonProps) {
   const resolvedIntent = resolveBottomActionIntent({ intent, variant });
   const isDisabled = Boolean(props.disabled || loading);
-  const loadingLabel = typeof children === "string" && children.trim().length > 0 ? `${children}...` : "Loading...";
+  const loadingLabel = configuredLoadingLabel ?? (typeof children === "string" && children.trim().length > 0 ? `${children}...` : "Loading...");
 
   return (
     <button
@@ -33,9 +37,9 @@ export function BottomDockButton({ children, intent, variant, className, loading
     >
       <span className={cn("bottom-action__label", loading ? "opacity-0" : "")}>{children}</span>
       {loading ? (
-        <span className="absolute inset-0 flex items-center justify-center gap-2">
+        <span className="absolute inset-0 flex items-center justify-center">
           <span aria-hidden="true" className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-r-transparent" />
-          <span className="bottom-action__label flex-none">{loadingLabel}</span>
+          <span className="sr-only">{loadingLabel}</span>
         </span>
       ) : null}
     </button>
@@ -57,11 +61,14 @@ export function BottomDockLink({
   fullWidth?: boolean;
   className?: string;
 }) {
+  const pathname = usePathname();
   const resolvedIntent = resolveBottomActionIntent({ intent, variant });
+  const shouldPrefetch = !(pathname === "/dev" || pathname?.startsWith("/dev/"));
 
   return (
     <Link
       href={href}
+      prefetch={shouldPrefetch}
       data-bottom-action-intent={resolvedIntent}
       className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >

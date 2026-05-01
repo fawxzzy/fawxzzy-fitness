@@ -1,14 +1,10 @@
-import Link from "next/link";
-import { updatePasswordAction } from "@/app/reset-password/actions";
 import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridge";
-import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthActionBar, AuthCard, AuthField, AuthFooter, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
-import { PrimaryButton } from "@/components/ui/AppButton";
-import { ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
+import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
+import { AuthCard, AuthDock, AuthIntro, AuthShell, AuthStatusText } from "@/components/auth/AuthShell";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { appTokens } from "@/components/ui/app/tokens";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/cn";
+import { ToastFeedbackBridge } from "@/components/ui/ToastFeedbackBridge";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -23,73 +19,50 @@ type ResetPasswordPageProps = {
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const error = searchParams?.error;
   const isRecoveryAttempt = searchParams?.recovery === "1";
+
+  if (isRecoveryAttempt) {
+    return (
+      <AuthShell>
+        <AuthCard className={appTokens.authInteractiveCard}>
+          <AuthIntro eyebrow="" title="Reset password" subtitle="" />
+          <RecoverySessionBridge initialError={error} />
+        </AuthCard>
+        <AuthDock>
+          <BottomActionSingle>
+            <BottomDockLink href="/login" intent="positive">
+              Log In
+            </BottomDockLink>
+          </BottomActionSingle>
+        </AuthDock>
+      </AuthShell>
+    );
+  }
+
   const supabase = supabaseServer();
   const { data } = await supabase.auth.getUser();
-  const copy = AUTH_MODE_COPY["reset-password"];
 
   if (!data.user) {
     return (
       <AuthShell>
+        <ToastFeedbackBridge error={error ?? "Reset link expired."} />
         <AuthCard className={appTokens.authInteractiveCard}>
-          <AuthIntro
-            eyebrow={copy.eyebrow}
-            title="Set new password"
-            subtitle="Use your recovery link to choose a new password."
-          />
-          {isRecoveryAttempt ? (
-            <RecoverySessionBridge initialError={error} />
-          ) : (
-            <AuthStack>
-              <AuthMessage tone="error">Reset link expired. Request a new password reset.</AuthMessage>
-              <AuthActionBar>
-                <Link
-                  href="/forgot-password"
-                  data-action-chrome-intent="positive"
-                  className={getAppButtonClassName({
-                    variant: "primary",
-                    fullWidth: true,
-                    className: cn(ACTION_CHROME_SEGMENTED_CLASS_NAME, appTokens.authActionButton),
-                  })}
-                >
-                  Request new reset link
-                </Link>
-              </AuthActionBar>
-            </AuthStack>
-          )}
+          <AuthIntro eyebrow="" title="Reset password" subtitle="" />
+          <AuthStatusText>{error ?? "Reset link expired."}</AuthStatusText>
         </AuthCard>
+        <AuthDock>
+          <BottomActionSingle>
+            <BottomDockLink href="/login" intent="positive">
+              Log In
+            </BottomDockLink>
+          </BottomActionSingle>
+        </AuthDock>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell>
-      <AuthCard className={appTokens.authInteractiveCard}>
-        <AuthIntro eyebrow={copy.eyebrow} title="Set new password" subtitle="Choose and confirm a new password for your account." />
-        <AuthForm action={updatePasswordAction}>
-          <AuthStack>
-            <AuthField label="New password">
-              <Input type="password" name="password" minLength={6} required autoComplete="new-password" placeholder="Enter new password" />
-            </AuthField>
-            <AuthField label="Confirm new password">
-              <Input type="password" name="confirmPassword" minLength={6} required autoComplete="new-password" placeholder="Confirm new password" />
-            </AuthField>
-          </AuthStack>
-          {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
-          <AuthActionBar>
-            <PrimaryButton
-              type="submit"
-              fullWidth
-              data-action-chrome-segmented="true"
-              className={appTokens.authActionButton}
-            >
-              Save new password
-            </PrimaryButton>
-          </AuthActionBar>
-        </AuthForm>
-        <AuthFooter>
-          <p className={appTokens.authHelperTextMuted}>{copy.helper}</p>
-        </AuthFooter>
-      </AuthCard>
+      <ResetPasswordForm error={error} />
     </AuthShell>
   );
 }

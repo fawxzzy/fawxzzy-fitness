@@ -11,11 +11,14 @@ import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
+import { cn } from "@/lib/cn";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { SetRow } from "@/types/db";
 
@@ -62,7 +65,7 @@ function formatDurationClock(totalSeconds: number) {
   const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function getElapsedDuration(baseDurationSeconds: number, performedAt: string) {
@@ -105,6 +108,7 @@ export function SessionPageClient({
   sessionSummaryCounts: {
     strength: number;
     cardio: number;
+    bodyweight: number;
     unknown: number;
   };
   searchError?: string;
@@ -127,6 +131,7 @@ export function SessionPageClient({
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [hasMountedTimer, setHasMountedTimer] = useState(false);
   const toast = useToast();
+  useToastMessageEffect("error", searchError, { id: "session-search-error" });
   const fallbackReturnHref = useMemo(
     () => getReturnNavigationHref({ fallbackHref: "/today", currentPath: `/session/${sessionId}`, requestedReturnTo }),
     [requestedReturnTo, sessionId],
@@ -161,7 +166,7 @@ export function SessionPageClient({
   ) : null;
 
   const emptyState = useMemo(
-    () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises yet.</p>),
+    () => (hasExercises ? null : <p className={appTokens.currentSessionEmptyState}>No exercises yet.</p>),
     [hasExercises],
   );
 
@@ -189,11 +194,16 @@ export function SessionPageClient({
           secondary={quickAddAction}
           tertiary={(
             <div
-              className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[rgb(var(--border-subtle)/0.18)] bg-[rgb(var(--surface-muted)/0.92)] px-3.25 py-1.5 text-[0.925rem] font-semibold tabular-nums text-[rgb(var(--text-secondary)/0.96)]"
+              className={cn(
+                appTokens.currentSessionDurationPill,
+                "min-h-[44px] bg-[linear-gradient(180deg,rgba(26,31,42,0.98),rgba(12,16,24,0.98))] px-0 text-[1.44rem] font-black tracking-[0.04em] text-[rgb(236_247_255/0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(125,211,252,0.08)] [font-variant-numeric:tabular-nums] [text-shadow:0_0_10px_rgba(220,240,255,0.12)]",
+              )}
               suppressHydrationWarning
               aria-live={hasMountedTimer ? "off" : undefined}
             >
-              {formatDurationClock(hasMountedTimer ? durationSeconds : baseDurationSeconds)}
+              <span className="inline-flex w-full items-center justify-center font-mono">
+                {formatDurationClock(hasMountedTimer ? durationSeconds : 0)}
+              </span>
             </div>
           )}
           primary={(
@@ -205,33 +215,33 @@ export function SessionPageClient({
             </BottomDockButton>
           )}
           className="w-full"
-          tertiaryClassName="px-0.5 [&>*]:max-w-[6.1rem]"
+          tertiaryClassName="px-0"
+          tertiaryFill
         />
       </form>
     ),
-    [baseDurationSeconds, durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, toast],
+    [durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, toast],
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip" floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip")} floatingHeader={floatingHeader}>
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
 
-      <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+      <ContentRail className={appTokens.currentSessionContentRail}>
         <section
           data-screen-scaffold={sessionRecipe.scaffold}
           data-section-chrome={sessionRecipe.sectionChrome}
           data-footer-dock={sessionRecipe.footerDock}
           data-row-interaction={sessionRecipe.rowInteraction}
-          className="flex flex-col gap-3"
+          className={appTokens.currentSessionSectionStack}
         >
           {!isExerciseOpen ? (
             <div className="flex justify-end">
               <OfflineSyncBadge userId={userId} />
             </div>
           ) : null}
-          {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
           <ActionFeedbackToasts />
 
           {hasExercises ? (

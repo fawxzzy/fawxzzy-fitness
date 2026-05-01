@@ -1,23 +1,32 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
-import Link from "next/link";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { appTokens } from "@/components/ui/app/tokens";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { requireUser } from "@/lib/auth";
 import {
   getHistoryPreviewSessionsPageData,
 } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
 import {
+  type HistorySessionsPageData,
   loadHistorySessionsPageData,
   resolveHistorySessionsRouteState,
   type HistorySearchParams,
 } from "@/lib/history-sessions-page-loader";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { supabaseServer } from "@/lib/supabase/server";
 import { HistorySessionsClient } from "./HistorySessionsClient";
 
 export const dynamic = "force-dynamic";
+
+function getSingleSearchParam(value: string | string[] | null | undefined) {
+  if (Array.isArray(value)) {
+    return typeof value[0] === "string" ? value[0] : undefined;
+  }
+
+  return typeof value === "string" ? value : undefined;
+}
 
 function HistoryRouteMessage({
   title,
@@ -39,6 +48,16 @@ export default async function HistoryPage({
 }: {
   searchParams?: HistorySearchParams;
 }) {
+  const diagnostics = new LoadingDiagnosticsCollector("/history");
+  const viewParam = getSingleSearchParam(searchParams?.view);
+  const initialViewMode = viewParam === "detailed" ? "detailed" : "compact";
+  const initialFiltersOpen = getSingleSearchParam(searchParams?.filters) === "open";
+  const initialQuery = getSingleSearchParam(searchParams?.q) ?? "";
+  const initialSelectedTags = (getSingleSearchParam(searchParams?.tags) ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
   try {
     const state = await resolveHistorySessionsRouteState({
       fallback: {
@@ -53,11 +72,23 @@ export default async function HistoryPage({
           });
         }
 
-        const user = await requireUser();
-        return loadHistorySessionsPageData({
+        const user = await requireUser({
+          gate: "history.auth.session",
+          route: "/history",
+          blockingReason: "Waiting for authenticated session before loading history.",
+          timeoutMs: 5000,
+          collector: diagnostics,
+        });
+        return diagnostics.measure<HistorySessionsPageData>("history.sessions.fetch", () => loadHistorySessionsPageData({
           supabase: supabaseServer(),
           userId: user.id,
           searchParams,
+        }), {
+          blockingReason: "Waiting for history sessions page data.",
+          metadata: {
+            userId: user.id,
+          },
+          timeoutMs: 7000,
         });
       },
       shouldPassthroughError: (error) => isRedirectError(error) || isNotFoundError(error),
@@ -70,10 +101,11 @@ export default async function HistoryPage({
       return (
         <HistoryRouteScaffold
           mode="overview"
-          title="History"
-          subtitle={state.fallback.subtitle}
+          title=""
           activeTab="sessions"
+          headerChrome="controlsOnly"
         >
+          <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
           <HistoryRouteMessage
             title={state.fallback.errorTitle}
             caption={state.fallback.errorCaption}
@@ -85,26 +117,19 @@ export default async function HistoryPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle={state.data.subtitle}
+        title=""
         activeTab="sessions"
-        floatingHeaderSlot={<div id="history-sessions-floating-header" />}
+        headerChrome="controlsOnly"
       >
+        <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistorySessionsClient
           sessions={state.data.sessionItems}
           selectedSessionId={state.data.selectedSessionId}
+          initialViewMode={initialViewMode}
+          initialFiltersOpen={initialFiltersOpen}
+          initialQuery={initialQuery}
+          initialSelectedTags={initialSelectedTags}
         />
-
-        {state.data.nextCursor ? (
-          <div className="flex justify-center">
-            <Link
-              href={`/history?tab=sessions&cursor=${encodeURIComponent(state.data.nextCursor)}`}
-              className={getAppButtonClassName({ variant: "secondary", size: "md" })}
-            >
-              Load more
-            </Link>
-          </div>
-        ) : null}
       </HistoryRouteScaffold>
     );
   } catch (error) {
@@ -117,10 +142,11 @@ export default async function HistoryPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle="Session history unavailable"
+        title=""
         activeTab="sessions"
+        headerChrome="controlsOnly"
       >
+        <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryRouteMessage
           title="Unable to render session history right now."
           caption="Please try again in a moment."

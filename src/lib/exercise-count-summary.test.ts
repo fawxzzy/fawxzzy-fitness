@@ -14,16 +14,28 @@ test("formatExerciseCountSummary renders mixed strength and cardio totals canoni
     { measurement_type: "time" },
   ]);
 
-  assert.equal(summary.label, "3 total • 2 strength • 1 cardio");
+  assert.equal(summary.label, "3 total \u2022 2 strength \u2022 1 cardio");
 });
 
 test("formatExerciseCountSummary renders single-type days without total prefix", () => {
   assert.equal(formatExerciseCountSummary([{ measurement_type: "reps" }, { measurement_type: "reps" }]).label, "2 strength");
   assert.equal(formatExerciseCountSummary([{ measurement_type: "time" }, { measurement_type: "distance" }]).label, "2 cardio");
+  assert.equal(formatExerciseCountSummary([{ equipment: "bodyweight" }, { tags: ["bodyweight"] }]).label, "2 bodyweight");
 });
 
 test("formatExerciseCountSummary honors normalized isCardio metadata over fallback reps classification", () => {
   assert.equal(formatExerciseCountSummary([{ measurement_type: "reps", isCardio: true }]).label, "1 cardio");
+});
+
+test("formatExerciseCountSummary breaks out bodyweight without double counting it as strength", () => {
+  assert.equal(
+    formatExerciseCountSummary([
+      { measurement_type: "reps" },
+      { measurement_type: "reps", equipment: "bodyweight" },
+      { measurement_type: "time" },
+    ]).label,
+    "3 total \u2022 1 strength \u2022 1 cardio \u2022 1 bodyweight",
+  );
 });
 
 test("formatExerciseCountSummary treats normalized non-cardio rows as strength when metadata is otherwise sparse", () => {
@@ -37,7 +49,7 @@ test("formatExerciseCountSummary degrades gracefully for unknown-only metadata",
 test("formatExerciseCountSummary uses unknown taxonomy label in mixed summaries", () => {
   assert.equal(
     formatExerciseCountSummary([{ measurement_type: "reps" }, { equipment: "sled" }]).label,
-    "2 total • 1 strength • 1 unknown",
+    "2 total \u2022 1 strength \u2022 1 unknown",
   );
 });
 
@@ -48,7 +60,7 @@ test("formatExerciseCountSummary preserves taxonomy-aware mixed labels for resto
       { measurement_type: "time", isCardio: true },
       { equipment: "bike", isCardio: true },
     ]).label,
-    "3 total • 1 strength • 2 cardio",
+    "3 total \u2022 1 strength \u2022 2 cardio",
   );
 });
 

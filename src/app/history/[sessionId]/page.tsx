@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
@@ -9,6 +10,7 @@ import {
   getHistoryPreviewDetailPageData,
 } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
@@ -21,7 +23,12 @@ type PageProps = {
   params: { sessionId: string };
 };
 
+function toClientPlainObject<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export default async function HistoryLogDetailsPage({ params }: PageProps) {
+  const diagnostics = new LoadingDiagnosticsCollector(`/history/${params.sessionId}`);
   try {
     if (isHistoryPreviewActiveForRequest()) {
       const previewData = getHistoryPreviewDetailPageData(params.sessionId);
@@ -45,16 +52,32 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       );
     }
 
-    const user = await requireUser();
+    const user = await requireUser({
+      gate: "history.detail.auth.session",
+      route: `/history/${params.sessionId}`,
+      blockingReason: "Waiting for authenticated session before loading history detail.",
+      timeoutMs: 5000,
+      collector: diagnostics,
+    });
     const supabase = supabaseServer();
 
-    const { data: session } = await supabase
+    const sessionResult = await diagnostics.measure<{ data: unknown }>("history.detail.session.fetch", async () => await supabase
       .from("sessions")
       .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, day_name_override, duration_seconds, status, routines(name, weight_unit)")
       .eq("id", params.sessionId)
       .eq("user_id", user.id)
       .eq("status", "completed")
-      .single();
+      .single(), {
+      blockingReason: "Waiting for the completed history session record.",
+      metadata: {
+        sessionId: params.sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    });
+    const session = sessionResult.data as SessionRow & {
+      routines?: Array<{ name: string; weight_unit: "lbs" | "kg" | null }> | { name: string; weight_unit: "lbs" | "kg" | null } | null;
+    } | null;
 
     if (!session) {
       notFound();
@@ -85,7 +108,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       setsByExercise.set(set.session_exercise_id, current);
     }
 
-    const sessionRow = session as SessionRow & { routines?: Array<{ name: string; weight_unit: "lbs" | "kg" | null }> | { name: string; weight_unit: "lbs" | "kg" | null } | null };
+    const sessionRow = session;
 
     const { data: routineDay } = sessionRow.routine_id && sessionRow.routine_day_index
       ? await supabase
@@ -97,7 +120,14 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         .maybeSingle()
       : { data: null };
 
-    const exerciseNameMap = await getExerciseNameMap();
+    const exerciseNameMap = await diagnostics.measure("history.detail.exercise-names.fetch", () => getExerciseNameMap(), {
+      blockingReason: "Waiting for exercise names for history detail.",
+      metadata: {
+        sessionId: params.sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    });
     const exerciseNameRecord = Object.fromEntries(exerciseNameMap.entries());
     const routineField = sessionRow.routines;
     const routineName = Array.isArray(routineField)
@@ -159,7 +189,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         reps: row.reps,
       }];
     });
-    const { sessionCountsById } = evaluatePrSummaries(prEvaluationSets);
+    const { sessionCountsById, sessionPrExerciseIdsById } = evaluatePrSummaries(prEvaluationSets);
 
     const sessionSummary = buildSessionSummary({
       sessionRow,
@@ -173,50 +203,57 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       setsBySessionExerciseId: new Map(Array.from(setsByExercise.entries())),
       exerciseNameById: exerciseNameMap,
       prCounts: sessionCountsById.get(sessionRow.id) ?? { ...EMPTY_PR_COUNTS },
+      prExerciseNames: Array.from(sessionPrExerciseIdsById.get(sessionRow.id) ?? [])
+        .map((exerciseId) => exerciseNameMap.get(exerciseId) ?? "")
+        .filter(Boolean),
     });
+    const clientExercises = toClientPlainObject(orderedSessionExercises.map((exercise) => {
+      const exerciseId = String(exercise.exercise_id);
+      const metadata = exerciseMetadataById.get(exerciseId);
+      const resolvedExerciseName = resolveHistoryExerciseName({
+        metadataName: metadata?.name,
+        rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
+        rowName: (exercise as { name?: string | null }).name,
+        mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
+      });
+      return ({
+        id: exercise.id,
+        exercise_id: exerciseId,
+        exercise_name: resolvedExerciseName,
+        exercise_slug: metadata?.slug ?? null,
+        exercise_image_path: metadata?.image_path ?? null,
+        exercise_image_icon_path: metadata?.image_icon_path ?? null,
+        exercise_image_howto_path: metadata?.image_howto_path ?? null,
+        notes: exercise.notes,
+        measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
+        default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
+        sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
+          id: set.id,
+          set_index: set.set_index,
+          weight: set.weight,
+          reps: set.reps,
+          duration_seconds: set.duration_seconds,
+          distance: set.distance,
+          distance_unit: set.distance_unit,
+          calories: set.calories,
+          weight_unit: set.weight_unit,
+        })),
+      });
+    }));
+    const clientSessionSummary = toClientPlainObject(sessionSummary);
+
     return (
       <HistoryRouteScaffold mode="detail" floatingHeader={<div id="history-log-floating-header" />}>
+        <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryLogPageClient
           logId={sessionRow.id}
           initialDayName={effectiveDayName}
           initialNotes={sessionRow.notes}
           unitLabel={unitLabel}
           exerciseNameMap={exerciseNameRecord}
-          sessionSummary={sessionSummary}
+          sessionSummary={clientSessionSummary}
           backHref={backHref}
-          exercises={orderedSessionExercises.map((exercise) => {
-            const exerciseId = String(exercise.exercise_id);
-            const metadata = exerciseMetadataById.get(exerciseId);
-            const resolvedExerciseName = resolveHistoryExerciseName({
-              metadataName: metadata?.name,
-              rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
-              rowName: (exercise as { name?: string | null }).name,
-              mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
-            });
-            return ({
-              id: exercise.id,
-              exercise_id: exerciseId,
-              exercise_name: resolvedExerciseName,
-              exercise_slug: metadata?.slug ?? null,
-              exercise_image_path: metadata?.image_path ?? null,
-              exercise_image_icon_path: metadata?.image_icon_path ?? null,
-              exercise_image_howto_path: metadata?.image_howto_path ?? null,
-              notes: exercise.notes,
-              measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
-              default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
-              sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
-                id: set.id,
-                set_index: set.set_index,
-                weight: set.weight,
-                reps: set.reps,
-                duration_seconds: set.duration_seconds,
-                distance: set.distance,
-                distance_unit: set.distance_unit,
-                calories: set.calories,
-                weight_unit: set.weight_unit,
-              })),
-            });
-          })}
+          exercises={clientExercises}
         />
       </HistoryRouteScaffold>
     );
@@ -232,6 +269,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
     return (
       <HistoryRouteScaffold mode="detail" floatingHeader={<div id="history-log-floating-header" />}>
+        <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryRouteErrorShell
           title="Unable to load this session right now."
           caption="Please go back to History and try again in a moment."

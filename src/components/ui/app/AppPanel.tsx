@@ -11,5 +11,17 @@ export function AppPanel({
   children: ReactNode;
   clip?: boolean;
 }) {
-  return <div className={cn(appTokens.panelBase, clip ? "overflow-hidden" : undefined, className)} {...props}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        appTokens.panelBase,
+        "rounded-[var(--card-radius)]",
+        clip ? "overflow-hidden" : "overflow-visible",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 }

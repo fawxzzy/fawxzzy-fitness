@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
@@ -10,6 +10,7 @@ export function PickerListViewport({
   constrainOnDesktop = false,
   plainOnMobile = false,
   mobileTray = false,
+  viewportProps,
 }: {
   children: ReactNode;
   className?: string;
@@ -18,6 +19,7 @@ export function PickerListViewport({
   constrainOnDesktop?: boolean;
   plainOnMobile?: boolean;
   mobileTray?: boolean;
+  viewportProps?: Omit<ComponentPropsWithoutRef<"div">, "children" | "className">;
 }) {
   const shouldShowDesktopFade = showFade && constrainOnDesktop;
   const shouldShowMobileFade = showFade && mobileTray;
@@ -28,6 +30,7 @@ export function PickerListViewport({
   return (
     <div
       className={cn(
+        "min-h-0",
         shellClassName,
         mobileTray
           ? appTokens.exercisePickerViewportTray
@@ -36,8 +39,9 @@ export function PickerListViewport({
       )}
     >
       <div
+        {...viewportProps}
         className={cn(
-          "picker-scroll-viewport",
+          "picker-scroll-viewport h-full min-h-0 w-full min-w-0",
           plainOnMobile ? "overflow-visible pr-0 md:overflow-y-auto md:overscroll-contain md:pr-1" : "pr-1",
           mobileTray ? "max-md:max-h-[var(--picker-mobile-tray-max-h,12.75rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:pr-0.5" : undefined,
           constrainOnDesktop ? "md:max-h-[19rem] md:overflow-y-auto md:overscroll-contain" : undefined,

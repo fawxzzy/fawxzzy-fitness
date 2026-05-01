@@ -20,6 +20,7 @@ const historyPreviewSessions: SessionSummary[] = [
     durationSec: 3540,
     exerciseCount: 4,
     setCount: 14,
+    repCount: 56,
     prCounts: { reps: 1, weight: 1, total: 2 },
     prLabel: "2 PRs",
     topSet: {
@@ -43,6 +44,7 @@ const historyPreviewSessions: SessionSummary[] = [
     durationSec: 3000,
     exerciseCount: 3,
     setCount: 11,
+    repCount: 41,
     prCounts: { reps: 1, weight: 0, total: 1 },
     prLabel: "1 PR",
     topSet: {
@@ -66,6 +68,7 @@ const historyPreviewSessions: SessionSummary[] = [
     durationSec: 1980,
     exerciseCount: 2,
     setCount: 5,
+    repCount: 0,
     prCounts: { reps: 0, weight: 0, total: 0 },
     prLabel: "",
     topSet: {

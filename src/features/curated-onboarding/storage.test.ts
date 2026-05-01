@@ -28,6 +28,7 @@ test("curated onboarding storage loads a valid saved lifecycle state", () => {
   const storage = createMemoryStorage();
   const state = createCuratedOnboardingState({
     draft: {
+      version: 2,
       draftId: "draft-5",
       stepId: "schedule",
       updatedAt: "2026-01-04T00:00:00.000Z",

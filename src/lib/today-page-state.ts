@@ -10,6 +10,12 @@ export function getTodayGlobalErrorMessage(args: {
   return error;
 }
 
+export function formatTodayHeaderTitle(routineName: string | null | undefined, dayName: string | null | undefined) {
+  const normalizedRoutineName = routineName?.trim() || "Routine";
+  const normalizedDayName = dayName?.trim();
+  return normalizedDayName ? `${normalizedRoutineName} | ${normalizedDayName}` : normalizedRoutineName;
+}
+
 type SessionDaySnapshot = {
   routine_day_index: number | null;
   routine_day_name: string | null;
@@ -51,6 +57,55 @@ export function resolveTodayDisplayDay(args: {
     routineDay: fallbackDay,
     dayName: fallbackDay ? fallbackDay.name ?? `Day ${fallbackDay.day_index}` : null,
     source: "calendar" as const,
+  };
+}
+
+type ActiveRoutineIdentity = {
+  id: string;
+  name: string | null;
+};
+
+export type TodayRoutinePayloadState = {
+  id: string;
+  name: string;
+  dayIndex: number;
+  dayName: string;
+  isRest: boolean;
+  state: TodayPickerDayState;
+  routineId: string;
+  routineDayId: string | null;
+};
+
+export function buildTodayRoutinePayloadState(args: {
+  activeRoutine: ActiveRoutineIdentity | null;
+  effectiveDayIndex: number | null;
+  routineDayName: string | null;
+  isRest: boolean;
+  state: TodayPickerDayState;
+  routineDayId: string | null;
+  fallbackDayIndex: number | null;
+}): TodayRoutinePayloadState | null {
+  if (!args.activeRoutine) {
+    return null;
+  }
+
+  const dayIndex = args.effectiveDayIndex ?? args.fallbackDayIndex;
+  if (dayIndex === null) {
+    return null;
+  }
+
+  const dayName = args.routineDayName?.trim() || `Day ${dayIndex}`;
+  const routineName = args.activeRoutine.name?.trim() || "Routine";
+
+  return {
+    id: args.activeRoutine.id,
+    name: routineName,
+    dayIndex,
+    dayName,
+    isRest: args.isRest,
+    state: args.state,
+    routineId: args.activeRoutine.id,
+    routineDayId: args.routineDayId,
   };
 }
 
@@ -117,9 +172,9 @@ export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
   summaryVisible: boolean;
   cta: {
     showPrimary: boolean;
-    primaryLabel: "Resume" | "Begin" | null;
+    primaryLabel: "Resume" | "Start" | null;
     showSecondarySelectDay: boolean;
-    secondaryLabel: "Days" | "Hide";
+    secondaryLabel: "Switch" | "Hide";
   };
 };
 
@@ -164,9 +219,9 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
     summaryVisible,
     cta: {
       showPrimary: hasInProgressSession || Boolean(runnableSelection),
-      primaryLabel: hasInProgressSession ? "Resume" : runnableSelection ? "Begin" : null,
+      primaryLabel: hasInProgressSession ? "Resume" : runnableSelection ? "Start" : null,
       showSecondarySelectDay: true,
-      secondaryLabel: args.dayPickerOpen ? "Hide" : "Days",
+      secondaryLabel: args.dayPickerOpen ? "Hide" : "Switch",
     },
   };
 }

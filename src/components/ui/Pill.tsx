@@ -11,7 +11,7 @@ const toneClassNames: Record<NonNullable<SharedProps["tone"]>, string> = {
   default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.9)] text-[rgb(var(--text-primary)/0.88)]",
   success: "border-[rgb(var(--success-rgb)/0.32)] bg-[rgb(var(--success-rgb)/0.14)] text-[rgb(var(--text-primary))]",
   warning: "border-[rgb(var(--warning-rgb)/0.34)] bg-[rgb(var(--warning-rgb)/0.14)] text-[rgb(255_242_220)]",
-  destructive: "border-[rgb(var(--danger-rgb)/0.34)] bg-[rgb(var(--danger-rgb)/0.12)] text-[rgb(255_228_233)]",
+  destructive: "border-[rgb(var(--danger-rgb)/0.22)] bg-[rgb(var(--surface-3-rgb)/0.92)] text-[rgb(var(--danger-rgb)/0.96)]",
 };
 
 export function Pill({ active, tone = "default", className, ...props }: HTMLAttributes<HTMLSpanElement> & SharedProps) {

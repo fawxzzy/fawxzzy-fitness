@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { getRunnableDayState, getSessionStartErrorMessage, normalizeRunnableDayExercises } from "./runnable-day";
 import { loadCanonicalExerciseCatalog } from "./routine-day-loader";
+import type { RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
 
 type ExerciseRow = {
   id: string;
@@ -14,7 +15,7 @@ type ExerciseRow = {
   image_path?: string | null;
   image_icon_path?: string | null;
   image_howto_path?: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;
 };
 
@@ -106,7 +107,7 @@ async function buildSingleExerciseSummary(args: {
   exercise: ExerciseRow;
   missingColumns?: string[];
 }) {
-  const routineDay = {
+  const routineDay: RoutineDayRow = {
     id: `day-${args.exercise.id}`,
     user_id: "user-1",
     routine_id: "routine-1",
@@ -114,8 +115,8 @@ async function buildSingleExerciseSummary(args: {
     name: "Day 1",
     is_rest: false,
     notes: null,
-  } as never;
-  const dayExercise = {
+  };
+  const dayExercise: RoutineDayExerciseRow = {
     id: `row-${args.exercise.id}`,
     user_id: "user-1",
     routine_day_id: routineDay.id,
@@ -123,9 +124,18 @@ async function buildSingleExerciseSummary(args: {
     position: 1,
     notes: null,
     target_sets: 3,
+    target_reps: null,
+    target_reps_min: null,
+    target_reps_max: null,
+    target_weight: null,
+    target_weight_unit: null,
+    target_duration_seconds: null,
+    target_distance: null,
+    target_distance_unit: null,
+    target_calories: null,
     measurement_type: "reps" as const,
-    default_unit: "reps",
-  } as never;
+    default_unit: null,
+  };
   const { buildCanonicalDaySummaries } = await import("./routine-day-loader");
   const { summaries } = await buildCanonicalDaySummaries({
     supabase: createSupabaseStub([args.exercise], [], args.missingColumns ?? []) as never,
@@ -145,7 +155,16 @@ function assertNullableImageValue(value: string | null | undefined) {
 }
 
 test("buildCanonicalDaySummaries keeps a safe nullable image contract across schema variants", async (t) => {
-  const scenarios = [
+  const scenarios: Array<{
+    name: string;
+    exercise: ExerciseRow;
+    missingColumns?: string[];
+    expected: {
+      displayName: string;
+      image_icon_path: string | null;
+      image_howto_path: string | null;
+    };
+  }> = [
     {
       name: "schema has image columns",
       exercise: {
@@ -187,7 +206,7 @@ test("buildCanonicalDaySummaries keeps a safe nullable image contract across sch
         image_howto_path: null,
       },
     },
-  ] as const;
+  ];
 
   for (const scenario of scenarios) {
     await t.test(scenario.name, async () => {

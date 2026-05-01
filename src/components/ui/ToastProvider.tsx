@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ToastMessageCard } from "@/components/ui/ToastMessageCard";
 
 type ToastTone = "info" | "success" | "warning" | "error";
 
@@ -29,22 +30,9 @@ type ToastOptions = {
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
-const EXIT_ANIMATION_MS = 240;
-const DEFAULT_DURATION_MS = 2800;
+const EXIT_ANIMATION_MS = 300;
+const DEFAULT_DURATION_MS = 2200;
 const MAX_TOASTS = 3;
-
-function toneClassName(tone: ToastTone) {
-  if (tone === "info") {
-    return "border-white/16 bg-[rgb(var(--surface-rgb)/0.84)] text-[rgb(var(--text)/0.92)]";
-  }
-  if (tone === "success") {
-    return "border-emerald-300/40 bg-emerald-500/20 text-emerald-100";
-  }
-  if (tone === "warning") {
-    return "border-amber-300/40 bg-amber-500/20 text-amber-100";
-  }
-  return "border-red-300/40 bg-red-500/20 text-red-100";
-}
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -121,30 +109,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed right-3 top-[calc(var(--app-top-offset)+var(--app-top-chrome-content-gap,0px)+0.35rem)] z-50 flex w-[min(100%-1.5rem,22rem)] flex-col items-end gap-2 sm:right-4">
+      <div className="pointer-events-none fixed right-3 top-[calc(var(--app-top-offset)+var(--app-top-chrome-content-gap,0px)+0.6rem)] z-50 flex w-[min(calc(100%-1rem),19.5rem)] flex-col items-stretch gap-2 sm:right-4 sm:w-[19.5rem]">
         {toasts.map((toast) => (
-          <div
+          <ToastMessageCard
             key={toast.id}
-            className={`pointer-events-auto w-full rounded-lg border px-3 py-2 text-sm shadow-xl backdrop-blur-md transition-all duration-200 ${
-              toast.isExiting ? "translate-y-1 opacity-0" : "translate-y-0 opacity-100"
-            } ${toneClassName(toast.tone)}`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span>{toast.message}</span>
-              {toast.action ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    toast.action?.onClick();
-                    dismiss(toast.id);
-                  }}
-                  className="rounded border border-current/35 px-2 py-0.5 text-xs font-semibold"
-                >
-                  {toast.action.label}
-                </button>
-              ) : null}
-            </div>
-          </div>
+            tone={toast.tone}
+            message={toast.message}
+            action={toast.action ? { label: toast.action.label } : undefined}
+            onAction={toast.action ? () => {
+              toast.action?.onClick();
+              dismiss(toast.id);
+            } : undefined}
+            onDismiss={() => dismiss(toast.id)}
+            isExiting={toast.isExiting}
+          />
         ))}
       </div>
     </ToastContext.Provider>

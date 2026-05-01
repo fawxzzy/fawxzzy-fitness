@@ -3,8 +3,8 @@
 import { ContentRail } from "@/components/layout/ContentRail";
 import { getSettingsSectionMeta, SettingsAccordionTrigger } from "@/components/settings/SettingsAccordionClient";
 import { SettingsHeaderIdentity } from "@/components/settings/SettingsHeaderIdentity";
-import { useSettingsScreenState } from "@/components/settings/SettingsScreenState";
 import { appTokens } from "@/components/ui/app/tokens";
+import { useSettingsScreenState } from "@/components/settings/SettingsScreenState";
 
 export function SettingsFloatingHeader({
   email,

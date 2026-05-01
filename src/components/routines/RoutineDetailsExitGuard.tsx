@@ -4,15 +4,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useBackNavigation } from "@/components/ui/useBackNavigation";
 
 type RoutineDetailsExitGuardContextValue = {
   hasUnsavedChanges: boolean;
   isConfirmingDiscard: boolean;
+  headerTitle: ReactNode;
   setHasUnsavedChanges: (nextValue: boolean) => void;
+  setHeaderTitle: (nextValue: ReactNode) => void;
   requestExit: () => void;
   stayOnScreen: () => void;
   discardChanges: () => void;
@@ -24,20 +26,29 @@ export function RoutineDetailsScreenShellClient({
   children,
   backHref,
   title = "Routine Details",
+  subtitle,
+  align = "left",
 }: {
   children: ReactNode;
   backHref: string;
   title?: ReactNode;
+  subtitle?: ReactNode;
+  align?: "left" | "center";
 }) {
   const { navigateBack } = useBackNavigation({ fallbackHref: backHref, historyBehavior: "fallback-only" });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
+  const [headerTitle, setHeaderTitle] = useState<ReactNode>(title);
 
   useEffect(() => {
     if (!hasUnsavedChanges) {
       setIsConfirmingDiscard(false);
     }
   }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    setHeaderTitle(title);
+  }, [title]);
 
   const requestExit = useCallback(() => {
     if (!hasUnsavedChanges) {
@@ -60,11 +71,13 @@ export function RoutineDetailsScreenShellClient({
   const contextValue = useMemo<RoutineDetailsExitGuardContextValue>(() => ({
     hasUnsavedChanges,
     isConfirmingDiscard,
+    headerTitle,
     setHasUnsavedChanges,
+    setHeaderTitle,
     requestExit,
     stayOnScreen,
     discardChanges,
-  }), [discardChanges, hasUnsavedChanges, isConfirmingDiscard, requestExit, stayOnScreen]);
+  }), [discardChanges, hasUnsavedChanges, headerTitle, isConfirmingDiscard, requestExit, stayOnScreen]);
 
   return (
     <RoutineDetailsExitGuardContext.Provider value={contextValue}>
@@ -74,7 +87,9 @@ export function RoutineDetailsScreenShellClient({
             <div className="px-1">
               <SharedScreenHeader
                 recipe="editDay"
-                title={title}
+                title={headerTitle}
+                subtitle={subtitle}
+                align={align}
                 action={(
                   <TopRightBackButton
                     href={backHref}
@@ -113,6 +128,14 @@ export function useRoutineDetailsDirtyState(hasUnsavedChanges: boolean) {
   }, [hasUnsavedChanges, setHasUnsavedChanges]);
 }
 
+export function useRoutineDetailsHeaderTitle(title: ReactNode) {
+  const { setHeaderTitle } = useRoutineDetailsExitGuard();
+
+  useEffect(() => {
+    setHeaderTitle(title);
+  }, [setHeaderTitle, title]);
+}
+
 export function RoutineDetailsDiscardConfirmationDock() {
   const { stayOnScreen, discardChanges } = useRoutineDetailsExitGuard();
 
@@ -120,7 +143,6 @@ export function RoutineDetailsDiscardConfirmationDock() {
     <ConfirmDestructiveModal
       open
       title="Discard changes?"
-      consequenceText="Your unsaved routine changes will be lost."
       confirmLabel="Discard"
       onCancel={stayOnScreen}
       onConfirm={discardChanges}

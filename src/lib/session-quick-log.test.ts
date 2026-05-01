@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { formatQuickLogPreviewLabel } from "./session-quick-log.ts";
+import { formatQuickLogPreviewLabel, resolveQuickLogFromTarget } from "./session-quick-log.ts";
 
 test("formatQuickLogPreviewLabel omits unconfigured zero-valued metrics", () => {
   const label = formatQuickLogPreviewLabel({
@@ -19,7 +19,7 @@ test("formatQuickLogPreviewLabel omits unconfigured zero-valued metrics", () => 
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "10–15 reps");
+  assert.equal(label, "15 reps");
 });
 
 test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", () => {
@@ -38,10 +38,10 @@ test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", ()
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "5–8 reps • 225 lbs");
+  assert.equal(label, "8 reps • 225 lbs");
 });
 
-test("formatQuickLogPreviewLabel falls back to set progression when no real metrics exist", () => {
+test("formatQuickLogPreviewLabel falls back to blank when no real metrics exist", () => {
   const label = formatQuickLogPreviewLabel({
     target: {
       repsMin: 0,
@@ -56,9 +56,8 @@ test("formatQuickLogPreviewLabel falls back to set progression when no real metr
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "Set 2 of 3");
+  assert.equal(label, "");
 });
-
 
 test("formatQuickLogPreviewLabel uses metric-based cardio summary when metrics exist", () => {
   const label = formatQuickLogPreviewLabel({
@@ -75,5 +74,75 @@ test("formatQuickLogPreviewLabel uses metric-based cardio summary when metrics e
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "12:00 • 2 mi • 250 cal");
+  assert.equal(label, "12:00 s • 2 mi • 250 cal");
+});
+
+test("measurement-optional quick log resolves without reps or time", () => {
+  const result = resolveQuickLogFromTarget({ measurementType: "none" }, "lbs");
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    throw new Error("Expected quick log resolution to succeed.");
+  }
+
+  assert.deepEqual(result.payload, {
+    weight: 0,
+    reps: 0,
+    durationSeconds: null,
+    distance: null,
+    distanceUnit: null,
+    calories: null,
+    weightUnit: "lbs",
+  });
+});
+
+test("measurement-optional quick log preview stays empty", () => {
+  const preview = formatQuickLogPreviewLabel({
+    target: { measurementType: "none" },
+    loggedSetCount: 0,
+    targetSetsMin: null,
+    targetSetsMax: null,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(preview, "");
+});
+
+test("measurementless quick log override keeps preview empty even when targets exist", () => {
+  const preview = formatQuickLogPreviewLabel({
+    target: {
+      measurementType: "time",
+      durationSeconds: 30,
+      allowMeasurementlessLog: true,
+    },
+    loggedSetCount: 0,
+    targetSetsMin: 1,
+    targetSetsMax: 1,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(preview, "");
+});
+
+test("measurementless quick log override resolves without target metrics", () => {
+  const result = resolveQuickLogFromTarget({
+    measurementType: "time",
+    durationSeconds: 30,
+    allowMeasurementlessLog: true,
+  }, "lbs");
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    throw new Error("Expected quick log resolution to succeed.");
+  }
+
+  assert.deepEqual(result.payload, {
+    weight: 0,
+    reps: 0,
+    durationSeconds: null,
+    distance: null,
+    distanceUnit: null,
+    calories: null,
+    weightUnit: "lbs",
+  });
 });

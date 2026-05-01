@@ -3,6 +3,8 @@ import {
   ACTION_CHROME_RAIL_CLASS_NAME,
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
 } from "@/components/ui/actionChrome";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
@@ -17,17 +19,25 @@ export function AuthShell({
 }) {
   return (
     <main
-      className="hide-scrollbar relative isolate min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-transparent touch-pan-y overscroll-y-contain"
+      className={cn(appTokens.authShell, "bg-transparent", "[caret-color:transparent]")}
       data-testid="auth-shell"
     >
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
+      <div aria-hidden="true" className={appTokens.authShellBackdrop}>
+        <div className={appTokens.authShellBackdropGrid} />
+        <div className={appTokens.authShellBackdropGlowLeading} />
+        <div className={appTokens.authShellBackdropGlowTrailing} />
+        <div className={appTokens.authShellBackdropRuleTop} />
+        <div className={appTokens.authShellBackdropRuleBottom} />
+      </div>
+
+      <div className={appTokens.authShellFrame}>
         {topAction ? (
-          <div className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] z-20 flex justify-end">
+          <div className={appTokens.authShellTopAction}>
             {topAction}
           </div>
         ) : null}
         <div
-          className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? "pt-14" : "", appTokens.authShellContent, className)}
+          className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? appTokens.authShellContentOffset : "", appTokens.authShellContent, className)}
           data-testid="auth-shell-content"
         >
           {children}
@@ -37,14 +47,17 @@ export function AuthShell({
   );
 }
 
-export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
   return (
-    <header className={appTokens.authIntro} data-testid="auth-intro">
-      <p className={appTokens.authIntroEyebrow}>{eyebrow}</p>
-      <div className={appTokens.authIntroTitleStack}>
-        <h1 className={appTokens.authIntroTitle}>{title}</h1>
-        <p className={appTokens.authIntroSubtitle}>{subtitle}</p>
-      </div>
+    <header className={cn(appTokens.authIntro, appTokens.authIntroFrame)} data-testid="auth-intro">
+      <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
+      {eyebrow ? <p className={appTokens.authIntroEyebrow}>{eyebrow}</p> : null}
+      {title || subtitle ? (
+        <div className={appTokens.authIntroTitleStack}>
+          {title ? <h1 className={appTokens.authIntroTitle}>{title}</h1> : null}
+          {subtitle ? <p className={cn(appTokens.authIntroSubtitle, "mx-auto")}>{subtitle}</p> : null}
+        </div>
+      ) : null}
     </header>
   );
 }
@@ -74,10 +87,18 @@ export function AuthMessage({ tone = "default", children }: { tone?: "default" |
   return <p className={cn(appTokens.authMessage, toneClassName)}>{children}</p>;
 }
 
-export function AuthField({ label, children }: { label: string; children: ReactNode }) {
+export function AuthField({
+  label,
+  children,
+  hideLabel = false,
+}: {
+  label: string;
+  children: ReactNode;
+  hideLabel?: boolean;
+}) {
   return (
     <label className={appTokens.authField}>
-      <span className={appTokens.authFieldLabel}>{label}</span>
+      <span className={hideLabel ? "sr-only" : appTokens.authFieldLabel}>{label}</span>
       {children}
     </label>
   );
@@ -91,11 +112,25 @@ export function AuthForm({
   return (
     <form
       {...props}
-      className={cn("space-y-5", className)}
+      className={cn(appTokens.authFormStack, className)}
     >
       {children}
     </form>
   );
+}
+
+export function AuthFormFields({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={cn("mx-auto w-full max-w-[23rem] space-y-3 px-0.5 pt-1.5 sm:space-y-4 sm:px-0 sm:pt-2", className)}>{children}</div>;
+}
+
+export function AuthStatusText({ children, className }: { children: ReactNode; className?: string }) {
+  return <p className={cn(appTokens.authStatusMessage, className)}>{children}</p>;
 }
 
 export function AuthStack({
@@ -146,12 +181,41 @@ export function AuthActionBar({
   );
 }
 
-export function AuthFooter({ children }: { children: ReactNode }) {
-  return <div className={appTokens.authFooter}>{children}</div>;
+export function AuthFooter({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn(appTokens.authFooter, className)}>{children}</div>;
+}
+
+export function AuthFooterSeparator() {
+  return <SignatureMiniPipe className={appTokens.authFooterSeparator} />;
 }
 
 export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("text-center leading-6", className)}>{children}</p>;
+  return <p className={cn("flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center leading-6", className)}>{children}</p>;
+}
+
+export function AuthInlineLinkButton({
+  children,
+  className,
+  type = "button",
+  ...props
+}: ComponentPropsWithoutRef<"button">) {
+  return (
+    <button
+      {...props}
+      type={type}
+      className={cn(
+        "!border-0 !bg-transparent !px-1 !py-0.5 !text-[rgb(var(--accent))] !shadow-none !outline-none select-none hover:!text-[rgb(var(--accent-strong))] focus:!outline-none focus-visible:!outline-none focus:!shadow-none focus-visible:!shadow-none focus:!ring-0 focus-visible:!ring-0",
+        appTokens.authInlineButton,
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function AuthDock({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn(appTokens.authDock, className)}>{children}</div>;
 }
 
 export function AuthStatusCard({

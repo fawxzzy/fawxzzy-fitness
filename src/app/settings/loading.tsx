@@ -1,5 +1,5 @@
-import { RouteLoading } from "@/components/RouteLoading";
+import { RouteTabLoading } from "@/components/RouteLoading";
 
 export default function RouteSegmentLoading() {
-  return <RouteLoading label="Loading tab..." />;
+  return <RouteTabLoading />;
 }

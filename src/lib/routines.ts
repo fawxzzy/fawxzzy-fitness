@@ -113,6 +113,10 @@ function getWeekdayNameFromUtcDate(date: Date, weekday: "long" | "short" = "long
   return new Intl.DateTimeFormat("en-US", { weekday, timeZone: "UTC" }).format(date);
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function getRoutineStartWeekdayFromDate(startDate: string | null | undefined): RoutineStartWeekday | null {
   if (!startDate) {
     return null;
@@ -212,13 +216,39 @@ export function isRoutineDayDefaultName(args: {
     || normalizedName === shortWeekday;
 }
 
-export function getRoutineDayEditableName(args: {
+function stripRoutineDayWeekdayPrefix(args: {
   name: string | null | undefined;
   dayIndex: number;
   startDate: string | null | undefined;
 }) {
   const trimmedName = args.name?.trim() ?? "";
-  return isRoutineDayDefaultName(args) ? "" : trimmedName;
+  if (trimmedName.length === 0) {
+    return "";
+  }
+
+  const weekdayLabels = [
+    getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "short"),
+    getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "long"),
+  ];
+
+  for (const weekdayLabel of weekdayLabels) {
+    const prefixedLabelMatch = trimmedName.match(new RegExp(`^${escapeRegExp(weekdayLabel)}\\s*(?:\\u00B7|\\|)\\s*(.+)$`, "i"));
+    const remainder = prefixedLabelMatch?.[1]?.trim();
+    if (remainder) {
+      return remainder;
+    }
+  }
+
+  return trimmedName;
+}
+
+export function getRoutineDayEditableName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+}) {
+  const trimmedName = stripRoutineDayWeekdayPrefix(args);
+  return isRoutineDayDefaultName({ ...args, name: trimmedName }) ? "" : trimmedName;
 }
 
 export function formatRoutineDayDisplayName(args: {

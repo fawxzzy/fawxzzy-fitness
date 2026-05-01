@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="tri-accent" x1="164" y1="70" x2="362" y2="386" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#73E6D8"/>
+      <stop offset="1" stop-color="#33B39E"/>
+    </linearGradient>
+    <linearGradient id="tri-body" x1="179" y1="118" x2="317" y2="378" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5FCFB"/>
+      <stop offset="1" stop-color="#A8C1BF"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="256" cy="436" rx="122" ry="22" fill="#071018" fill-opacity=".72"/>
+  <circle cx="255" cy="106" r="34" fill="#091521" stroke="url(#tri-accent)" stroke-width="14"/>
+  <path d="M255 146L255 242" stroke="url(#tri-body)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M255 191L217 255" stroke="url(#tri-body)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M255 191L293 255" stroke="url(#tri-body)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M255 238L230 344" stroke="url(#tri-body)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M255 238L282 344" stroke="url(#tri-body)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M255 150L255 76" stroke="url(#tri-accent)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M255 76L226 135" stroke="url(#tri-accent)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M255 76L285 135" stroke="url(#tri-accent)" stroke-width="18" stroke-linecap="round"/>
+  <rect x="200" y="52" width="112" height="20" rx="10" fill="#DDF6F2"/>
+  <rect x="216" y="42" width="22" height="40" rx="11" fill="url(#tri-accent)"/>
+  <rect x="274" y="42" width="22" height="40" rx="11" fill="url(#tri-accent)"/>
+  <path d="M230 344L206 415" stroke="url(#tri-accent)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M282 344L305 415" stroke="url(#tri-accent)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M187 418H229" stroke="#F3FBF9" stroke-opacity=".88" stroke-width="16" stroke-linecap="round"/>
+  <path d="M286 418H326" stroke="#F3FBF9" stroke-opacity=".88" stroke-width="16" stroke-linecap="round"/>
+</svg>

@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
+import { labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
-import { deriveGoalMeasurementSelections, getVisibleMetricsForModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
 export type ExerciseGoalFormState = {
   sets: string;
@@ -29,6 +32,10 @@ function parseDurationInput(value: string) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function sanitizeIntegerInput(value: string) {
+  return value.replace(/[^\d]/g, "");
+}
+
 export function ExerciseGoalForm({
   modality,
   state,
@@ -38,7 +45,12 @@ export function ExerciseGoalForm({
   emptySummaryLabel = "Goal missing",
   showValidationMessage = false,
   hideEmptySummary,
+  hideSummary = false,
   validationOverride,
+  footerContent,
+  visibleMetrics,
+  visibleMetricOrder,
+  measurementLayoutMode = "grid",
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -48,24 +60,27 @@ export function ExerciseGoalForm({
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
   hideEmptySummary?: boolean;
+  hideSummary?: boolean;
   validationOverride?: string;
+  footerContent?: ReactNode;
+  visibleMetrics?: Array<keyof MeasurementMetrics>;
+  visibleMetricOrder?: Array<keyof MeasurementMetrics>;
+  measurementLayoutMode?: "grid" | "horizontal-scroll";
 }) {
   const [expanded, setExpanded] = useState(true);
-  const visibleMetrics = useMemo(() => getVisibleMetricsForModality(modality), [modality]);
+  const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
+  const resolvedMetricOrder = useMemo(
+    () => visibleMetricOrder ?? getGoalMeasurementOrder(modality),
+    [modality, visibleMetricOrder],
+  );
   const derivedSelections = useMemo(() => deriveGoalMeasurementSelections(modality, {
     repsMin: state.repsMin,
+    repsMax: state.repsMax,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
     calories: state.calories,
-  }), [modality, state.calories, state.distance, state.duration, state.repsMin, state.weight]);
-
-  useEffect(() => {
-    const current = [...state.measurements].sort().join("|");
-    const derived = [...derivedSelections].sort().join("|");
-    if (current === derived) return;
-    onStateChange({ ...state, measurements: derivedSelections });
-  }, [derivedSelections, onStateChange, state]);
+  }), [modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.weight]);
 
   const activeMetrics = {
     reps: derivedSelections.includes("reps"),
@@ -95,9 +110,10 @@ export function ExerciseGoalForm({
     calories: state.calories ? Number(state.calories) : null,
   });
   const shouldHideEmptySummary = hideEmptySummary ?? showValidationMessage;
+  const setsHasValue = Boolean(state.sets.trim());
 
   return (
-    <div className="space-y-3">
+    <div className={stackClassName}>
       {derivedSelections.map((metric) => <input key={`selected-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
       <MeasurementConfigurator
         values={{
@@ -136,37 +152,50 @@ export function ExerciseGoalForm({
           distanceUnit: names.distanceUnit,
         }}
         showHeader={false}
+        footerContent={footerContent}
+        repRangeLabels={{ min: "MIN REPS", max: "MAX REPS" }}
+        metricOrder={resolvedMetricOrder}
         visibleMetrics={visibleMetrics}
+        layoutMode={measurementLayoutMode}
+        labelTreatment="floating-border"
         topField={{
           title: "Sets",
           suffix: "target",
-          input: (
+          inlineLabel: "SETS",
+          showEmptyValue: false,
+          hasValue: setsHasValue,
+          labelClassName: cn(labeledEditorFieldFloatingLabelClassName, "top-0 -translate-y-[46%] bg-transparent px-0 py-px leading-[1.24] antialiased [text-shadow:0_0_1px_rgb(var(--surface-2-rgb)/0.98),0_-0.5px_0_rgb(var(--surface-2-rgb)/0.98)]"),
+          valueLabelClassName: cn(labeledEditorFieldFloatingLabelClassName, "top-0 -translate-y-[46%] bg-transparent px-0 py-px leading-[1.24] antialiased [text-shadow:0_0_1px_rgb(var(--surface-2-rgb)/0.98),0_-0.5px_0_rgb(var(--surface-2-rgb)/0.98)]"),
+          input: null,
+          renderInput: ({ inputClassName }) => (
             <input
-              type="number"
-              min={1}
+              type="text"
+              inputMode="text"
               name={names.sets}
               value={state.sets}
-              onChange={(event) => onStateChange({ ...state, sets: event.target.value })}
-              placeholder="Sets"
+              onChange={(event) => onStateChange({ ...state, sets: sanitizeIntegerInput(event.target.value) })}
+              placeholder=""
               required
-              className={appTokens.measurementInput}
+              className={cn(appTokens.measurementInput, inputClassName)}
             />
           ),
         }}
       />
 
-      <GoalSummaryInline
-        hideWhenEmpty={shouldHideEmptySummary}
-        includeSets={includeSetsInSummary}
-        values={{
-          ...summaryValues,
-          sets: state.sets ? Number(state.sets) : null,
-          repsMax: activeMetrics.reps && state.repsMax ? Number(state.repsMax) : null,
-          weightUnit: state.weightUnit,
-          distanceUnit: state.distanceUnit,
-          emptyLabel: emptySummaryLabel,
-        }}
-      />
+      {hideSummary ? null : (
+        <GoalSummaryInline
+          hideWhenEmpty={shouldHideEmptySummary}
+          includeSets={includeSetsInSummary}
+          values={{
+            ...summaryValues,
+            sets: state.sets ? Number(state.sets) : null,
+            repsMax: activeMetrics.reps && state.repsMax ? Number(state.repsMax) : null,
+            weightUnit: state.weightUnit,
+            distanceUnit: state.distanceUnit,
+            emptyLabel: emptySummaryLabel,
+          }}
+        />
+      )}
 
       {showValidationMessage ? (
         goalValidation.isValid ? null : (

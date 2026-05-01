@@ -2,9 +2,7 @@
 
 import { createContext, useContext, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
-import { BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
-
-const BOTTOM_ACTION_SHELL_CLASSNAME = "mx-auto w-full max-w-[720px] px-4";
+import { BOTTOM_ACTION_SHELL_CLASSNAME, BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 
 type BottomActionRegistration = symbol;
 

@@ -198,11 +198,11 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   routinesOverview: {
     ...screenContracts.routinesOverview,
     headerInsetMode: "topChrome",
-    scaffoldClassName: "space-y-4",
-    headerPanelClassName: `space-y-2.5 ${topChromeHeaderPanelClassName}`,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: `space-y-2 ${headerTokens.horizontalPadding} pb-[${spacing["1.5"]}] pt-[${spacing["1"]}]`,
     sectionClassName: sectionTokens.sectionShellStandardClassName,
-    sectionShellClassName: sectionTokens.sectionShellSpaciousClassName,
-    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyDenseClassName,
   },
   todayOverview: {
     ...screenContracts.todayOverview,

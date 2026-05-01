@@ -4,7 +4,6 @@ import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/li
 import { buildSessionSummary, type SessionSummary } from "@/app/history/session-summary";
 import type { SessionExerciseRow, SessionRow } from "@/types/db";
 
-const PAGE_SIZE = 20;
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
 
 export type HistoryCursor = {
@@ -16,6 +15,10 @@ export type HistorySearchParams = {
   cursor?: string | string[] | null;
   selected?: string | string[] | null;
   tab?: string | string[] | null;
+  view?: string | string[] | null;
+  q?: string | string[] | null;
+  tags?: string | string[] | null;
+  filters?: string | string[] | null;
 };
 
 export type HistorySessionsPageData = {
@@ -350,8 +353,7 @@ export async function loadHistorySessionsPageData({
     .eq("user_id", userId)
     .eq("status", "completed")
     .order("performed_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(PAGE_SIZE + 1);
+    .order("id", { ascending: false });
 
   if (isSafeCursor(cursor)) {
     query = query.or(
@@ -367,18 +369,14 @@ export async function loadHistorySessionsPageData({
   const fetchedSessions = (Array.isArray(data) ? data : [])
     .map(normalizeSessionRow)
     .filter((session): session is SessionRow => Boolean(session));
-  const hasMore = fetchedSessions.length > PAGE_SIZE;
-  const sessions = hasMore ? fetchedSessions.slice(0, PAGE_SIZE) : fetchedSessions;
+  const sessions = fetchedSessions;
   const sessionIds = sessions.map((session) => session.id);
   const routineIds = Array.from(new Set(
     sessions
       .map((session) => session.routine_id)
       .filter((routineId): routineId is string => Boolean(routineId)),
   ));
-  const lastSession = sessions[sessions.length - 1];
-  const nextCursor = hasMore && lastSession
-    ? encodeHistoryCursor({ performedAt: lastSession.performed_at, id: lastSession.id })
-    : null;
+  const nextCursor = null;
 
   const [routineRows, routineDayRows, sessionExerciseRows] = await Promise.all([
     loadOptionalRows({
@@ -457,7 +455,7 @@ export async function loadHistorySessionsPageData({
   const routineDayNameByKey = normalizeRoutineDayNames(routineDayRows);
   const exerciseNameById = normalizeExerciseNameRows(exerciseNameRows);
   const prEvaluationSets = normalizePrEvaluationSets(historicalSetRows);
-  const { sessionCountsById } = evaluatePrSummaries(prEvaluationSets);
+  const { sessionCountsById, sessionPrExerciseIdsById } = evaluatePrSummaries(prEvaluationSets);
 
   const exercisesBySessionId = new Map<string, SessionExerciseSummaryRow[]>();
   for (const row of sessionExercises) {
@@ -492,6 +490,9 @@ export async function loadHistorySessionsPageData({
       setsBySessionExerciseId,
       exerciseNameById,
       prCounts: sessionCountsById.get(session.id) ?? { ...EMPTY_PR_COUNTS },
+      prExerciseNames: Array.from(sessionPrExerciseIdsById.get(session.id) ?? [])
+        .map((exerciseId) => exerciseNameById.get(exerciseId) ?? "")
+        .filter(Boolean),
     });
   });
 

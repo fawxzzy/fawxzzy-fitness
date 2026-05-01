@@ -5,14 +5,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { TodayOverviewHeader, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import {
   DayCard,
   DayList,
   formatLoggedSetCount,
-  REST_DAY_CARD_COPY,
   resolveDayCardBadgeText,
   resolveDayCardState,
 } from "@/components/day-list/DayList";
@@ -20,15 +19,17 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+import { formatRoutineDayDisplayName } from "@/lib/routines";
 import {
   deriveTodayScreenMode,
   getTodayDaySummary,
@@ -46,7 +47,7 @@ type TodayExercise = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   isCardio?: boolean | null;
   kind?: string | null;
   type?: string | null;
@@ -77,6 +78,7 @@ export function TodayDayPicker({
   inSessionDayIndex,
   loggedSetCountsByDayIndex,
   routineName,
+  startDate,
   floatingHeaderSlotId,
   exerciseDensity = "compact",
 }: {
@@ -87,6 +89,7 @@ export function TodayDayPicker({
   inSessionDayIndex?: number | null;
   loggedSetCountsByDayIndex?: Record<number, number>;
   routineName: string;
+  startDate: string | null;
   floatingHeaderSlotId?: string;
   exerciseDensity?: "compact" | "detailed";
 }) {
@@ -146,6 +149,13 @@ export function TodayDayPicker({
   }, []);
 
   const selectedDay = mode.selectedDay;
+  const selectedDayDisplayName = selectedDay
+    ? formatRoutineDayDisplayName({
+        name: selectedDay.name,
+        dayIndex: selectedDay.dayIndex,
+        startDate,
+      })
+    : null;
   const getDayExerciseSummaryLabel = useCallback((day: TodayDay) => (
     getRestDayExerciseCountSummaryFromInputs(day.exercises, day.state === "rest").label
   ), []);
@@ -155,7 +165,11 @@ export function TodayDayPicker({
       return daySummary || getDayExerciseSummaryLabel(day) || undefined;
     }
 
-    return getDayExerciseSummaryLabel(day) || undefined;
+    return getDayTaxonomyHeaderSummaryParts({
+      dayName: day.name,
+      summary: getRestDayExerciseCountSummaryFromInputs(day.exercises, day.isRest),
+      isRest: day.isRest,
+    }).countsSummary || undefined;
   }, [getDayExerciseSummaryLabel]);
   const daySummary = selectedDay
     ? getTodayDaySummary(selectedDay)
@@ -166,19 +180,16 @@ export function TodayDayPicker({
   const selectedDaySummaryToneClassName = daySummaryTone === "blocking"
     ? "border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
     : "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]";
+  const selectedDayHeaderSubtitle = selectedDay && !selectedDay.isRest
+    ? getDayTaxonomyHeaderSummaryParts({
+        dayName: selectedDay.name,
+        summary: getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest),
+        isRest: selectedDay.isRest,
+      }).countsSummary
+    : null;
   const selectedDayStateCard = useMemo(() => {
     if (!selectedDay || mode.dayPickerOpen) {
       return null;
-    }
-
-    if (selectedDay.state === "rest") {
-      return (
-        <DayDetailStateCard
-          tone="rest"
-          title="Rest day"
-          body={REST_DAY_CARD_COPY}
-        />
-      );
     }
 
     if (selectedDay.state === "empty" && selectedDay.invalidExerciseCount === 0) {
@@ -213,16 +224,22 @@ export function TodayDayPicker({
   const shouldCenterSelectedDayState = Boolean(!mode.dayPickerOpen && selectedDayStateCard && !hasSelectedDayRows);
 
   const headerNode = selectedDay ? (
-    <SharedScreenHeader
-      recipe="todayOverview"
-      title={routineName}
-      subtitle={(
-        <DayTaxonomyHeaderSummary
-          dayName={selectedDay.name}
-          summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)}
-          isRest={selectedDay.isRest}
+    <TodayOverviewHeader
+      title={mode.dayPickerOpen
+        ? (routineName.trim() || "Routine")
+        : (
+          <RoutineDayHeaderTitle
+            leadingItems={[routineName.trim() || "Routine"]}
+            dayLabel={selectedDayDisplayName}
+          />
+        )}
+      align="center"
+      subtitle={selectedDayHeaderSubtitle ? (
+        <AccentDotSeparatedText
+          text={selectedDayHeaderSubtitle}
+          separatorClassName="h-[3.5px] w-[3.5px]"
         />
-      )}
+      ) : undefined}
       action={inProgressSessionId
         ? <AppBadge tone="success">In Session</AppBadge>
         : completedDayIndexSet.has(selectedDay.dayIndex)
@@ -236,7 +253,7 @@ export function TodayDayPicker({
       <BottomDockButton
         id="today-day-picker"
         type="button"
-        intent={mode.dayPickerOpen ? "toggleActive" : "toggleInactive"}
+        intent="toggleActive"
         onClick={togglePicker}
         aria-expanded={mode.dayPickerOpen}
         aria-controls="today-day-selector-list"
@@ -245,7 +262,7 @@ export function TodayDayPicker({
       </BottomDockButton>
     );
 
-    if (!mode.cta.showPrimary) {
+    if (mode.dayPickerOpen || !mode.cta.showPrimary) {
       return <BottomActionSingle>{selectDayButton}</BottomActionSingle>;
     }
 
@@ -279,7 +296,7 @@ export function TodayDayPicker({
       {headerNode && floatingHeaderTarget ? createPortal(headerNode, floatingHeaderTarget) : null}
       <div className="flex min-h-0 flex-col">
         {!mode.noRoutine && selectedDay ? (
-          <ScreenScaffold recipe="todayOverview" className="w-full">
+          <TodayOverviewScaffold>
             {mode.contentShellVisible ? (
               <div className="flex flex-col gap-[0.625rem]">
                 {mode.dayPickerOpen ? (
@@ -289,7 +306,11 @@ export function TodayDayPicker({
                       return (
                         <DayCard
                           key={day.id}
-                          title={`Day ${day.dayIndex} | ${day.name}`}
+                          title={formatRoutineDayDisplayName({
+                            name: day.name,
+                            dayIndex: day.dayIndex,
+                            startDate,
+                          })}
                           subtitle={resolveDayCardSubtitle(day)}
                           onPress={() => {
                             setSelectedDayIndex(day.dayIndex);
@@ -302,12 +323,8 @@ export function TodayDayPicker({
                             isCompleted: completedDayIndexSet.has(day.dayIndex),
                             isInSession: inSessionDayIndex === day.dayIndex,
                           })}
-                          badgeText={resolveDayCardBadgeText({
-                            isToday: day.dayIndex === currentDayIndex,
-                            isRest: day.isRest,
-                            isCompleted: completedDayIndexSet.has(day.dayIndex),
-                            isInSession: inSessionDayIndex === day.dayIndex,
-                          })}
+                          showAccentRail={false}
+                          subtitleTone="plain"
                           metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
                           rightIcon={null}
                         />
@@ -325,7 +342,11 @@ export function TodayDayPicker({
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
                   <ul className="flex flex-col gap-[0.375rem]">
                     {selectedDay.exercises.map((exercise) => {
+                      const isStretchHub = isStretchHubExercise(exercise);
+                      const resolvedSummary = isStretchHub ? null : exercise.targets;
                       const detailedMetrics = buildPlannedExerciseDetailMetrics({
+                        name: exercise.name,
+                        slug: exercise.slug,
                         measurementType: exercise.measurement_type,
                         isCardio: exercise.isCardio,
                         kind: exercise.kind,
@@ -350,8 +371,9 @@ export function TodayDayPicker({
                             exercise={exercise}
                             variant="interactive"
                             density={exerciseDensity}
-                            summary={exercise.targets}
-                            summaryLabel="Goal"
+                            summary={resolvedSummary}
+                            subtitleTone="plain"
+                            contentClassName="pl-3"
                             onPress={() => {
                               if (process.env.NODE_ENV === "development") {
                                 console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
@@ -359,6 +381,8 @@ export function TodayDayPicker({
                               setSelectedExerciseId(exercise.exerciseId);
                             }}
                             showLeadingVisual={policy.showMedia}
+                            showAccentRail={!isStretchHub}
+                            hideEmptySummary={isStretchHub}
                           >
                             <WorkoutExerciseCardDetails
                               density={exerciseDensity}
@@ -373,7 +397,7 @@ export function TodayDayPicker({
                 ) : null}
               </div>
             ) : null}
-          </ScreenScaffold>
+          </TodayOverviewScaffold>
         ) : null}
 
         <ExerciseInfo

@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createCuratedOnboardingState } from "./fixtures.ts";
+import { createCuratedOnboardingDraft, createCuratedOnboardingState } from "./fixtures.ts";
 import { curatedOnboardingReducer } from "./reducer.ts";
 
 test("curatedOnboardingReducer advances through the ordered onboarding steps", () => {
   const initialState = createCuratedOnboardingState({
-    draft: {
+    draft: createCuratedOnboardingDraft({
       stepId: "goals",
       updatedAt: "2026-01-01T00:00:00.000Z",
-    },
+    }),
   });
 
   const nextState = curatedOnboardingReducer(initialState, {
@@ -23,10 +23,10 @@ test("curatedOnboardingReducer advances through the ordered onboarding steps", (
 
 test("curatedOnboardingReducer moves backwards without falling past intro", () => {
   const initialState = createCuratedOnboardingState({
-    draft: {
+    draft: createCuratedOnboardingDraft({
       stepId: "intro",
       updatedAt: "2026-01-01T00:00:00.000Z",
-    },
+    }),
   });
 
   const previousState = curatedOnboardingReducer(initialState, {
@@ -56,9 +56,9 @@ test("curatedOnboardingReducer patches onboarding data without losing the rest o
 
 test("curatedOnboardingReducer marks intake completion separately from generation status", () => {
   const initialState = createCuratedOnboardingState({
-    draft: {
+    draft: createCuratedOnboardingDraft({
       stepId: "review",
-    },
+    }),
   });
 
   const completedState = curatedOnboardingReducer(initialState, {
@@ -68,7 +68,7 @@ test("curatedOnboardingReducer marks intake completion separately from generatio
 
   assert.equal(completedState.draft.stepId, "generation-handoff");
   assert.equal(completedState.lifecycle.intakeStatus, "completed");
-  assert.equal(completedState.lifecycle.generationStatus, "idle");
+  assert.equal(completedState.lifecycle.generationStatus, "not-implemented");
   assert.equal(completedState.lifecycle.completedAt, "2026-01-04T00:00:00.000Z");
 });
 
@@ -77,6 +77,8 @@ test("curatedOnboardingReducer resolves placeholder generation without implying 
     lifecycle: {
       intakeStatus: "completed",
       generationStatus: "queued",
+      planId: null,
+      completedAt: null,
     },
   });
 

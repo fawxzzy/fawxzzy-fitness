@@ -25,7 +25,7 @@ export type EditorExerciseOption = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
@@ -45,6 +45,7 @@ export function RoutineEditorPageHeader({
   children,
   className,
   recipe = "editDay",
+  align = "left",
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -56,6 +57,7 @@ export function RoutineEditorPageHeader({
   children?: ReactNode;
   className?: string;
   recipe?: ScreenContractName;
+  align?: "left" | "center";
 }) {
   return (
     <SharedScreenHeader
@@ -66,6 +68,7 @@ export function RoutineEditorPageHeader({
       meta={meta}
       subtitleRight={subtitleRight}
       action={action}
+      align={align}
       className={className}
       actionClassName={actionClassName}
     >
@@ -78,12 +81,20 @@ export function RoutineDetailsScreenShell({
   children,
   backHref,
   title = "Routine Details",
+  subtitle,
+  align = "left",
 }: {
   children: ReactNode;
   backHref: string;
   title?: ReactNode;
+  subtitle?: ReactNode;
+  align?: "left" | "center";
 }) {
-  return <RoutineDetailsScreenShellClient backHref={backHref} title={title}>{children}</RoutineDetailsScreenShellClient>;
+  return (
+    <RoutineDetailsScreenShellClient backHref={backHref} title={title} subtitle={subtitle} align={align}>
+      {children}
+    </RoutineDetailsScreenShellClient>
+  );
 }
 
 export function RoutineEditorSection({
@@ -209,11 +220,11 @@ export function RoutineEditorFullRowToggle({
         enabled ? appTokens.routineEditorToggleRowEnabled : appTokens.routineEditorToggleRowDefault,
       )}
     >
-      <span className="flex min-w-0 items-center gap-2">
-        <span className={cn("truncate text-xs font-semibold uppercase tracking-[0.14em]", enabled ? appTokens.accentText : appTokens.metaText)}>{label}</span>
-        {description ? <span className={cn("text-sm", enabled ? "text-[rgb(var(--text-primary)/0.92)]" : appTokens.metaText)}>{description}</span> : null}
+      <span className={cn(appTokens.routineEditorModeActions, "min-w-0")}>
+        <span className={cn(appTokens.routineEditorToggleLabel, enabled ? appTokens.accentText : appTokens.metaText)}>{label}</span>
+        {description ? <span className={cn(appTokens.routineEditorToggleDescription, enabled ? "text-[rgb(var(--text-primary)/0.92)]" : appTokens.metaText)}>{description}</span> : null}
       </span>
-      <span className={cn("text-sm", enabled ? "font-semibold text-[rgb(var(--text-primary)/0.98)]" : "font-medium text-[rgb(var(--text-primary)/0.96)]")}>{enabled ? enabledLabel : disabledLabel}</span>
+      <span className={cn(appTokens.routineEditorToggleValue, enabled ? "font-semibold text-[rgb(var(--text-primary)/0.98)]" : "font-medium text-[rgb(var(--text-primary)/0.96)]")}>{enabled ? enabledLabel : disabledLabel}</span>
     </button>
   );
 }
@@ -232,7 +243,7 @@ export function RoutineEditorModeToggleRow({
   return (
     <div className={cn(appTokens.routineEditorModeRow, className)}>
       <SubtitleText className={appTokens.routineEditorModeSummary}>{summary}</SubtitleText>
-      <div className="flex items-center gap-2">
+      <div className={appTokens.routineEditorModeActions}>
         {actions ?? action}
       </div>
     </div>
@@ -257,7 +268,7 @@ export function RoutineEditorListModeControlRow({
       summary={summary}
       className={className}
       actions={(
-        <div className="min-w-[12rem] flex-1 sm:flex-none">
+        <div className={appTokens.routineEditorModeToggleSlot}>
           <SegmentedControl
             options={actions.map((action) => ({
               label: action.label,
@@ -265,7 +276,7 @@ export function RoutineEditorListModeControlRow({
             }))}
             value={actions.find((action) => action.active)?.label ?? actions[0]?.label ?? ""}
             size="sm"
-            activeIntent="info"
+            activeIntent="positive"
             ariaLabel="Routine editor list mode"
             onChange={(nextValue) => actions.find((action) => action.label === nextValue)?.onClick()}
           />
@@ -324,8 +335,8 @@ export function RoutineEditorInlineSection({
 }) {
   return (
     <section className={cn(appTokens.routineEditorInlineSection, className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
+      <div className={appTokens.routineEditorInlineHeaderRow}>
+        <div className={appTokens.routineEditorInlineHeaderStack}>
           <p className={appTokens.routineEditorInlineTitle}>{title}</p>
           {description ? <p className={appTokens.routineEditorInlineDescription}>{description}</p> : null}
         </div>
@@ -361,7 +372,7 @@ export function RoutineEditorDayRow({
       state={state}
       variant="interactive"
       rightIcon={rightLabel ?? <span aria-hidden="true" className={appTokens.metaText}>›</span>}
-      className={cn("items-center", className)}
+      className={cn(appTokens.routineEditorDayRow, className)}
     />
   );
 
@@ -389,7 +400,7 @@ export function RoutineEditorStickyActions({
             {secondary ?? <div aria-hidden="true" />}
           </>
         )}
-        primary={<div className="space-y-2">{primary}</div>}
+        primary={<div className={appTokens.routineEditorStickyPrimaryStack}>{primary}</div>}
       />
     </PublishBottomActions>
   );

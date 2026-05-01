@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 export const REST_DAY_CARD_COPY = "Recover, move lightly, and come back ready for the next workout.";
@@ -83,7 +84,29 @@ export function formatLoggedSetCount(loggedSetCount?: number | null): string | u
 }
 
 export function DayList({ children }: { children: ReactNode }) {
-  return <ul className="space-y-1.5 sm:space-y-2">{children}</ul>;
+  return <ul className={appTokens.dayListStack}>{children}</ul>;
+}
+
+function resolveDayCardSubtitle(subtitle: ReactNode, metaText?: string) {
+  if (!metaText) {
+    return subtitle;
+  }
+
+  if (subtitle === null || subtitle === undefined || subtitle === false) {
+    return metaText;
+  }
+
+  if (typeof subtitle === "string" || typeof subtitle === "number") {
+    return `${subtitle} \u00B7 ${metaText}`;
+  }
+
+  return (
+    <>
+      {subtitle}
+      <span aria-hidden="true"> {"\u00B7"} </span>
+      <span>{metaText}</span>
+    </>
+  );
 }
 
 function DayListItem({ children }: { children: ReactNode }) {
@@ -92,31 +115,59 @@ function DayListItem({ children }: { children: ReactNode }) {
 
 export type DayCardProps = {
   onPress?: () => void;
-  title: string;
-  subtitle?: string;
+  title: ReactNode;
+  titleMeta?: ReactNode;
+  subtitle?: ReactNode;
   subtitleLabel?: string;
+  subtitleTone?: "panel" | "plain";
   badgeText?: string;
   metaText?: string;
   state?: DayListState;
   rightIcon?: ReactNode;
+  showAccentRail?: boolean;
   wrapper?: (child: ReactNode) => ReactNode;
+  bodyClassName?: string;
+  contentClassName?: string;
+  titleClassName?: string;
+  subtitleClassName?: string;
+  className?: string;
 };
 
-export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, subtitleLabel, ...cardProps }: DayCardProps) {
-  const resolvedSubtitle = [subtitle, metaText].filter(Boolean).join(" · ") || undefined;
+export function DayCard({
+  onPress,
+  wrapper,
+  state = "default",
+  metaText,
+  subtitle,
+  subtitleLabel,
+  subtitleTone = "panel",
+  showAccentRail = true,
+  bodyClassName,
+  contentClassName,
+  titleClassName,
+  subtitleClassName,
+  className,
+  titleMeta,
+  ...cardProps
+}: DayCardProps) {
+  const resolvedSubtitle = resolveDayCardSubtitle(subtitle, metaText);
 
   const card = (
     <ExerciseCard
       {...cardProps}
+      titleMeta={titleMeta}
       subtitle={resolvedSubtitle}
       subtitleLabel={subtitleLabel}
+      subtitleTone={subtitleTone}
       onPress={onPress}
       state={toExerciseCardState(state)}
-      className={cn("shadow-none")}
-      contentClassName="space-y-0.5 sm:space-y-1"
-      titleClassName="[text-wrap:pretty]"
-      subtitleClassName="[text-wrap:pretty] line-clamp-2"
+      className={cn(appTokens.routinesOverviewCardFlat, className)}
+      bodyClassName={bodyClassName}
+      contentClassName={cn(appTokens.dayCardContent, contentClassName)}
+      titleClassName={cn(appTokens.dayCardTitle, titleClassName)}
+      subtitleClassName={cn(appTokens.dayCardSubtitle, subtitleClassName)}
       variant="list"
+      showAccentRail={showAccentRail}
     />
   );
 

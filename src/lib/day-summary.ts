@@ -9,7 +9,7 @@ import {
 import { isCardioExercise } from "@/lib/exercise-metadata";
 
 type ExerciseCountSummaryInputSource =
-  | Pick<ExerciseCountSummaryInput, "measurement_type" | "equipment" | "movement_pattern" | "primary_muscle" | "isCardio" | "kind" | "type" | "tags" | "categories">
+  | Pick<ExerciseCountSummaryInput, "name" | "measurement_type" | "equipment" | "movement_pattern" | "primary_muscle" | "isCardio" | "kind" | "type" | "tags" | "categories">
   | null
   | undefined;
 
@@ -17,6 +17,7 @@ export function toExerciseCountSummaryInput(
   exercise: ExerciseCountSummaryInputSource,
 ): ExerciseCountSummaryInput {
   const input: ExerciseCountSummaryInput = {
+    name: exercise?.name ?? null,
     measurement_type: exercise?.measurement_type ?? null,
     equipment: exercise?.equipment ?? null,
     movement_pattern: exercise?.movement_pattern ?? null,
@@ -49,6 +50,7 @@ export function getRestDayExerciseCountSummaryFromInputs(
 
 function toCanonicalExerciseCountSummaryInput(exercise: CanonicalDayExercise): ExerciseCountSummaryInputSource {
   return {
+    name: exercise.displayName ?? null,
     measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
     equipment: exercise.details?.equipment ?? null,
     movement_pattern: exercise.details?.movement_pattern ?? null,
@@ -91,19 +93,20 @@ export function getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(
   return getRestDayExerciseCountSummaryFromCanonicalDay(day);
 }
 
-function formatHeaderTaxonomyParts(summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">): string {
+function formatHeaderTaxonomyParts(summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "bodyweight" | "unknown">): string {
   const parts: string[] = [];
 
   if (summary.strength > 0) parts.push(`${summary.strength} strength`);
   if (summary.cardio > 0) parts.push(`${summary.cardio} cardio`);
+  if (summary.bodyweight > 0) parts.push(`${summary.bodyweight} bodyweight`);
   if (summary.unknown > 0) parts.push(`${summary.unknown} unknown`);
 
-  return parts.length > 0 ? parts.join(" • ") : EMPTY_EXERCISE_SUMMARY_LABEL;
+  return parts.length > 0 ? parts.join(" \u2022 ") : EMPTY_EXERCISE_SUMMARY_LABEL;
 }
 
 export function getDayTaxonomyHeaderSummaryParts(args: {
   dayName: string;
-  summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">;
+  summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "bodyweight" | "unknown">;
   isRest: boolean;
 }): {
   dayName: string;
@@ -122,22 +125,23 @@ export function getDayTaxonomyHeaderSummaryParts(args: {
 
 export function formatDayTaxonomyHeaderSummaryFromCounts(args: {
   dayName: string;
-  summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">;
+  summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "bodyweight" | "unknown">;
   isRest: boolean;
 }): string {
   return getDayTaxonomyHeaderSummaryParts(args).compactSummary;
 }
 
-export function formatExerciseSplitSummary(summary: Pick<ExerciseCountSummary, "total" | "strength" | "cardio" | "unknown">): string {
+export function formatExerciseSplitSummary(summary: Pick<ExerciseCountSummary, "total" | "strength" | "cardio" | "bodyweight" | "unknown">): string {
   if (summary.total <= 0) {
     return EMPTY_EXERCISE_SUMMARY_LABEL;
   }
 
   const parts: string[] = [];
 
-  if (summary.strength > 0) parts.push(`Str ${summary.strength}`);
-  if (summary.cardio > 0) parts.push(`Cardio ${summary.cardio}`);
-  if (summary.unknown > 0) parts.push(`Other ${summary.unknown}`);
+  if (summary.strength > 0) parts.push(`${summary.strength} strength`);
+  if (summary.cardio > 0) parts.push(`${summary.cardio} cardio`);
+  if (summary.bodyweight > 0) parts.push(`${summary.bodyweight} bodyweight`);
+  if (summary.unknown > 0) parts.push(`${summary.unknown} other`);
 
-  return parts.length > 0 ? parts.join(" • ") : EMPTY_EXERCISE_SUMMARY_LABEL;
+  return parts.length > 0 ? parts.join(" \u2022 ") : EMPTY_EXERCISE_SUMMARY_LABEL;
 }

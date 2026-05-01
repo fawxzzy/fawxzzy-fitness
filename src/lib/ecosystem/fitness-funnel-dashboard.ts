@@ -45,6 +45,13 @@ type MetricsPack = {
     denominator_id: string;
     funnel_id: string;
   }>;
+  dashboard_acceptance_checks: Array<{
+    check_id: string;
+    description: string;
+    funnel_ids: string[];
+    kpi_ids: string[];
+    criteria: string[];
+  }>;
 };
 
 type DashboardFilter = {

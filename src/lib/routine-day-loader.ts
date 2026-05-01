@@ -10,8 +10,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const EXERCISE_DETAILS_SELECT =
   "id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_icon_path, image_howto_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories";
 const EXERCISE_DETAILS_SELECT_LEGACY =
-  "id, exercise_id, name, primary_muscle, equipment, movement_pattern, measurement_type, default_unit";
+  "id, name, primary_muscle, equipment, movement_pattern, measurement_type, default_unit";
 const EXERCISE_DETAILS_OPTIONAL_COLUMNS = [
+  "exercise_id",
   "image_path",
   "image_icon_path",
   "image_howto_path",
@@ -35,7 +36,7 @@ type ExerciseDetailsRow = {
   image_icon_path: string | null;
   slug: string | null;
   how_to_short: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;
   kind?: string | null;
   type?: string | null;
@@ -289,12 +290,12 @@ export async function buildCanonicalDaySummaries(args: {
     exercises: allDayExercises,
   });
 
-  const normalizedDayExercises = allDayExercises.map((exercise) => ({
+  const normalizedDayExercises: RoutineDayExerciseRow[] = allDayExercises.map((exercise) => ({
     ...exercise,
     exercise_id: canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id,
   }));
 
-  const summaries = routineDays.map((day) => {
+  const summaries: CanonicalDaySummary[] = routineDays.map((day) => {
     const dayExercises = normalizedDayExercises.filter((exercise) => exercise.routine_day_id === day.id);
     const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIdSet, {
       logSource: "buildCanonicalDaySummaries",

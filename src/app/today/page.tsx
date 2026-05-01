@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
@@ -8,24 +7,34 @@ import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import {
+  TodayFloatingHeaderRail,
+  TodayFloatingHeaderSlot,
+  TodayOverviewContent,
+  TodayOverviewHeader,
+  TodayOverviewScaffold,
+  TodayRouteScaffold,
+} from "@/components/today/TodayScreenFamily";
 import { requireUser } from "@/lib/auth";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-page-state";
-import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import {
+  buildTodayRoutinePayloadState,
+  getTodayGlobalErrorMessage,
+  resolveTodayDisplayDay,
+} from "@/lib/today-page-state";
+import { formatRoutineDayDisplayName, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
 import {
@@ -34,6 +43,7 @@ import {
 } from "@/lib/ecosystem/fitness-integration-server";
 import { prepareTodayRecoveryShadowPlacement } from "@/lib/ecosystem/fitness-shadow-placement";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
+import { loadTodayRecoveryShadowPlacementSafely } from "@/app/today/recovery-shadow-placement.server";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +80,49 @@ function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabas
         : null;
     },
   };
+}
+
+type TodayBootstrapStep =
+  | "routine fetch"
+  | "routine days fetch"
+  | "exercises fetch"
+  | "completion fetch"
+  | "in-progress fetch"
+  | "optional enrichments fetch";
+
+function getTodayBootstrapErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+  }
+
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+
+  return "Unknown Today bootstrap error";
+}
+
+function logTodayBootstrapFailure(args: {
+  step: TodayBootstrapStep;
+  userId: string;
+  routineId?: string | null;
+  activeRoutineId?: string | null;
+  error: unknown;
+}) {
+  console.error("[today/bootstrap] failed to load Today state", {
+    step: args.step,
+    userId: args.userId,
+    routineId: args.routineId ?? null,
+    activeRoutineId: args.activeRoutineId ?? null,
+    message: getTodayBootstrapErrorMessage(args.error),
+  });
 }
 
 
@@ -166,8 +219,21 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
 }
 
 export default async function TodayPage({ searchParams }: { searchParams?: { error?: string } }) {
-  const user = await requireUser();
-  const profile = await ensureProfile(user.id);
+  const diagnostics = new LoadingDiagnosticsCollector("/today");
+  const user = await requireUser({
+    gate: "today.auth.session",
+    route: "/today",
+    blockingReason: "Waiting for authenticated session before loading Today.",
+    timeoutMs: 5000,
+    collector: diagnostics,
+  });
+  const profile = await diagnostics.measure("today.profile.bootstrap", () => ensureProfile(user.id), {
+    blockingReason: "Waiting for Today profile bootstrap.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 5000,
+  });
   const supabase = supabaseServer();
 
   let activeRoutine: RoutineRow | null = null;
@@ -181,53 +247,125 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let inProgressExerciseProgressByRoutineExerciseId: Record<string, { loggedSetCount: number; isSkipped: boolean; targetSetsMin: number | null; targetSetsMax: number | null }> = {};
   let inProgressExerciseProgressByExerciseId: Record<string, { loggedSetCount: number; isSkipped: boolean; targetSetsMin: number | null; targetSetsMax: number | null }> = {};
   let fetchFailed = false;
+  let detailedRoutineStateFailed = false;
   let routineDays: RoutineDayRow[] = [];
+
+  const markBootstrapFailure = (step: TodayBootstrapStep, error: unknown, routineId = activeRoutine?.id ?? null) => {
+    fetchFailed = true;
+    if (step === "routine days fetch" || step === "exercises fetch" || step === "optional enrichments fetch") {
+      detailedRoutineStateFailed = true;
+    }
+    logTodayBootstrapFailure({
+      step,
+      userId: user.id,
+      routineId,
+      activeRoutineId: profile.active_routine_id,
+      error,
+    });
+  };
 
   if (profile.active_routine_id) {
     try {
-      const { data: routine } = await supabase
-        .from("routines")
-        .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
-        .eq("id", profile.active_routine_id)
-        .eq("user_id", user.id)
-        .maybeSingle();
+      activeRoutine = await diagnostics.measure("today.active-routine.fetch", async () => {
+        const { data: routine, error: routineError } = await supabase
+          .from("routines")
+          .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+          .eq("id", profile.active_routine_id)
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-      activeRoutine = (routine as RoutineRow | null) ?? null;
+        if (routineError) {
+          throw routineError;
+        }
 
-      if (activeRoutine) {
-        const { dayIndex } = getRoutineDayComputation({
-          cycleLengthDays: activeRoutine.cycle_length_days,
-          startDate: activeRoutine.start_date,
-          profileTimeZone: activeRoutine.timezone || profile.timezone,
-        });
+        return (routine as RoutineRow | null) ?? null;
+      }, {
+        blockingReason: "Waiting for Today active routine lookup.",
+        metadata: {
+          activeRoutineId: profile.active_routine_id,
+          userId: user.id,
+        },
+        timeoutMs: 7000,
+      });
+    } catch (error) {
+      markBootstrapFailure("routine fetch", error, profile.active_routine_id);
+    }
+  }
 
-        todayDayIndex = dayIndex;
+  if (activeRoutine) {
+    try {
+      const { dayIndex } = getRoutineDayComputation({
+        cycleLengthDays: activeRoutine.cycle_length_days,
+        startDate: activeRoutine.start_date,
+        profileTimeZone: activeRoutine.timezone || profile.timezone,
+      });
 
-        const { data: routineDayRows } = await supabase
+      todayDayIndex = dayIndex;
+    } catch (error) {
+      markBootstrapFailure("routine days fetch", error);
+      todayDayIndex = 1;
+    }
+
+    try {
+      routineDays = await diagnostics.measure("today.routine-days.fetch", async () => {
+        const { data: routineDayRows, error: routineDaysError } = await supabase
           .from("routine_days")
           .select("id, user_id, routine_id, day_index, name, is_rest, notes")
           .eq("routine_id", activeRoutine.id)
           .eq("user_id", user.id)
           .order("day_index", { ascending: true });
 
-        routineDays = (routineDayRows ?? []) as RoutineDayRow[];
-        todayRoutineDay = routineDays.find((day) => day.day_index === todayDayIndex) ?? null;
+        if (routineDaysError) {
+          throw routineDaysError;
+        }
 
-        if (routineDays.length > 0) {
-          const { data: allExercises } = await supabase
+        return (routineDayRows ?? []) as RoutineDayRow[];
+      }, {
+        blockingReason: "Waiting for Today routine-day rows.",
+        metadata: {
+          activeRoutineId: activeRoutine.id,
+          userId: user.id,
+        },
+        timeoutMs: 7000,
+      });
+      todayRoutineDay = routineDays.find((day) => day.day_index === todayDayIndex) ?? null;
+    } catch (error) {
+      markBootstrapFailure("routine days fetch", error);
+    }
+
+    if (routineDays.length > 0) {
+      try {
+        allDayExercises = await diagnostics.measure("today.day-exercises.fetch", async () => {
+          const { data: allExercises, error: exercisesError } = await supabase
             .from("routine_day_exercises")
             .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
             .in("routine_day_id", routineDays.map((day) => day.id))
             .eq("user_id", user.id)
             .order("position", { ascending: true });
 
-          allDayExercises = (allExercises ?? []) as RoutineDayExerciseRow[];
-        }
+          if (exercisesError) {
+            throw exercisesError;
+          }
 
+          return (allExercises ?? []) as RoutineDayExerciseRow[];
+        }, {
+          blockingReason: "Waiting for Today routine-day exercises.",
+          metadata: {
+            routineDayCount: routineDays.length,
+            userId: user.id,
+          },
+          timeoutMs: 7000,
+        });
+      } catch (error) {
+        markBootstrapFailure("exercises fetch", error);
+      }
+    }
 
+    try {
+      const completionSummary = await diagnostics.measure("today.completed-sessions.fetch", async () => {
         const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
 
-        const { count: completedTodayCountValue } = await supabase
+        const { count: completedTodayCountValue, error: completedTodayCountError } = await supabase
           .from("sessions")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
@@ -237,9 +375,11 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           .lt("performed_at", endIso)
           .limit(1);
 
-        completedTodayCount = completedTodayCountValue ?? 0;
+        if (completedTodayCountError) {
+          throw completedTodayCountError;
+        }
 
-        const { data: completedTodaySessions } = await supabase
+        const { data: completedTodaySessions, error: completedTodaySessionsError } = await supabase
           .from("sessions")
           .select("routine_day_index")
           .eq("user_id", user.id)
@@ -248,13 +388,36 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           .gte("performed_at", startIso)
           .lt("performed_at", endIso);
 
-        completedDayIndexes = [...new Set(
-          (completedTodaySessions ?? [])
-            .map((session) => session.routine_day_index)
-            .filter((value): value is number => Number.isFinite(value)),
-        )];
+        if (completedTodaySessionsError) {
+          throw completedTodaySessionsError;
+        }
 
-        const { data: inProgress } = await supabase
+        return {
+          completedTodayCountValue: completedTodayCountValue ?? 0,
+          completedDayIndexes: [...new Set(
+            (completedTodaySessions ?? [])
+              .map((session) => session.routine_day_index)
+              .filter((value): value is number => Number.isFinite(value)),
+          )],
+        };
+      }, {
+        blockingReason: "Waiting for Today completed-session summary.",
+        metadata: {
+          activeRoutineId: activeRoutine.id,
+          userId: user.id,
+        },
+        timeoutMs: 7000,
+      });
+
+      completedTodayCount = completionSummary.completedTodayCountValue;
+      completedDayIndexes = completionSummary.completedDayIndexes;
+    } catch (error) {
+      markBootstrapFailure("completion fetch", error);
+    }
+
+    try {
+      inProgressSession = await diagnostics.measure("today.in-progress-session.fetch", async () => {
+        const { data: inProgress, error: inProgressError } = await supabase
           .from("sessions")
           .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
           .eq("user_id", user.id)
@@ -264,64 +427,102 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           .limit(1)
           .maybeSingle();
 
-        inProgressSession = (inProgress as SessionRow | null) ?? null;
+        if (inProgressError) {
+          throw inProgressError;
+        }
 
-        if (inProgressSession?.id) {
-          const { data: sessionExercises } = await supabase
-            .from("session_exercises")
-            .select("id, exercise_id, routine_day_exercise_id, is_skipped, target_sets_min, target_sets_max")
-            .eq("session_id", inProgressSession.id)
-            .eq("user_id", user.id);
+        return (inProgress as SessionRow | null) ?? null;
+      }, {
+        blockingReason: "Waiting for Today in-progress session hint.",
+        metadata: {
+          activeRoutineId: activeRoutine.id,
+          userId: user.id,
+        },
+        timeoutMs: 7000,
+      });
+    } catch (error) {
+      markBootstrapFailure("in-progress fetch", error);
+    }
 
+    if (inProgressSession?.id) {
+      try {
+        const { data: sessionExercises, error: sessionExercisesError } = await supabase
+          .from("session_exercises")
+          .select("id, exercise_id, routine_day_exercise_id, is_skipped, target_sets_min, target_sets_max")
+          .eq("session_id", inProgressSession.id)
+          .eq("user_id", user.id);
+
+        if (sessionExercisesError) {
+          markBootstrapFailure("in-progress fetch", sessionExercisesError);
+        } else {
           const sessionExerciseIds = (sessionExercises ?? []).map((row) => row.id);
           if (sessionExerciseIds.length > 0) {
-            const { data: setRows } = await supabase
+            const { data: setRows, error: setsError } = await supabase
               .from("sets")
               .select("session_exercise_id")
               .eq("user_id", user.id)
               .in("session_exercise_id", sessionExerciseIds);
 
-            const setCountsBySessionExerciseId = (setRows ?? []).reduce<Record<string, number>>((acc, row) => {
-              const key = row.session_exercise_id;
-              if (!key) return acc;
-              acc[key] = (acc[key] ?? 0) + 1;
-              return acc;
-            }, {});
+            if (setsError) {
+              markBootstrapFailure("in-progress fetch", setsError);
+            } else {
+              const setCountsBySessionExerciseId = (setRows ?? []).reduce<Record<string, number>>((acc, row) => {
+                const key = row.session_exercise_id;
+                if (!key) return acc;
+                acc[key] = (acc[key] ?? 0) + 1;
+                return acc;
+              }, {});
 
-            inProgressSessionLoggedSetCount = Object.values(setCountsBySessionExerciseId).reduce((sum, count) => sum + count, 0);
+              inProgressSessionLoggedSetCount = Object.values(setCountsBySessionExerciseId).reduce((sum, count) => sum + count, 0);
 
-            inProgressExerciseProgressByRoutineExerciseId = {};
-            inProgressExerciseProgressByExerciseId = {};
+              inProgressExerciseProgressByRoutineExerciseId = {};
+              inProgressExerciseProgressByExerciseId = {};
 
-            for (const sessionExercise of sessionExercises ?? []) {
-              const progress = {
-                loggedSetCount: setCountsBySessionExerciseId[sessionExercise.id] ?? 0,
-                isSkipped: sessionExercise.is_skipped === true,
-                targetSetsMin: sessionExercise.target_sets_min,
-                targetSetsMax: sessionExercise.target_sets_max,
-              };
+              for (const sessionExercise of sessionExercises ?? []) {
+                const progress = {
+                  loggedSetCount: setCountsBySessionExerciseId[sessionExercise.id] ?? 0,
+                  isSkipped: sessionExercise.is_skipped === true,
+                  targetSetsMin: sessionExercise.target_sets_min,
+                  targetSetsMax: sessionExercise.target_sets_max,
+                };
 
-              if (sessionExercise.routine_day_exercise_id) {
-                inProgressExerciseProgressByRoutineExerciseId[sessionExercise.routine_day_exercise_id] = progress;
-              }
+                if (sessionExercise.routine_day_exercise_id) {
+                  inProgressExerciseProgressByRoutineExerciseId[sessionExercise.routine_day_exercise_id] = progress;
+                }
 
-              if (sessionExercise.exercise_id && !(sessionExercise.exercise_id in inProgressExerciseProgressByExerciseId)) {
-                inProgressExerciseProgressByExerciseId[sessionExercise.exercise_id] = progress;
+                if (sessionExercise.exercise_id && !(sessionExercise.exercise_id in inProgressExerciseProgressByExerciseId)) {
+                  inProgressExerciseProgressByExerciseId[sessionExercise.exercise_id] = progress;
+                }
               }
             }
           }
         }
+      } catch (error) {
+        markBootstrapFailure("in-progress fetch", error);
       }
-    } catch {
-      fetchFailed = true;
     }
   }
 
-  const { summaries: normalizedDaySummaries } = await buildCanonicalDaySummaries({
-    supabase,
-    routineDays,
-    allDayExercises,
-  });
+  let normalizedDaySummaries: Awaited<ReturnType<typeof buildCanonicalDaySummaries>>["summaries"] = [];
+  if (routineDays.length > 0) {
+    try {
+      const { summaries } = await diagnostics.measure("today.canonical-day-summaries.fetch", async () => buildCanonicalDaySummaries({
+        supabase,
+        routineDays,
+        allDayExercises,
+      }), {
+        blockingReason: "Waiting for Today canonical day summaries.",
+        metadata: {
+          routineDayCount: routineDays.length,
+          userId: user.id,
+        },
+        timeoutMs: 7000,
+      });
+      normalizedDaySummaries = summaries;
+    } catch (error) {
+      markBootstrapFailure("optional enrichments fetch", error);
+    }
+  }
   const normalizedDayByIndex = new Map(normalizedDaySummaries.map((entry) => [entry.day.day_index, entry]));
   // Manual QA checklist:
   // - Start from the default day, back out, and confirm Resume still targets that same day.
@@ -336,27 +537,32 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   const effectiveDayIndex = displayDay.dayIndex;
   const effectiveRoutineDay = displayDay.routineDay;
   const effectiveDaySummary = effectiveRoutineDay ? normalizedDayByIndex.get(effectiveRoutineDay.day_index) ?? null : null;
-  const routineName = activeRoutine?.name ?? null;
-  const routineDayName = displayDay.dayName;
+  const routineDayName = effectiveDayIndex !== null
+    ? formatRoutineDayDisplayName({
+        name: displayDay.dayName,
+        dayIndex: effectiveDayIndex,
+        startDate: activeRoutine?.start_date ?? null,
+      })
+    : displayDay.dayName;
+  const routinePayloadState = buildTodayRoutinePayloadState({
+    activeRoutine,
+    effectiveDayIndex,
+    routineDayName,
+    isRest: effectiveRoutineDay?.is_rest ?? false,
+    state: effectiveDaySummary?.state ?? getRunnableDayState({
+      isRest: effectiveRoutineDay?.is_rest ?? false,
+      runnableExerciseCount: 0,
+      invalidExerciseCount: 0,
+    }),
+    routineDayId: effectiveRoutineDay?.id ?? null,
+    fallbackDayIndex: todayDayIndex,
+  });
+  const hasDetailedRoutineState = Boolean(
+    routinePayloadState && normalizedDaySummaries.length > 0 && !detailedRoutineStateFailed,
+  );
 
   const todayPayload = {
-    routine:
-      activeRoutine && effectiveDayIndex !== null && routineDayName
-        ? {
-            id: activeRoutine.id,
-            name: routineName ?? "Routine",
-            dayIndex: effectiveDayIndex,
-            dayName: routineDayName,
-            isRest: effectiveRoutineDay?.is_rest ?? false,
-            state: effectiveDaySummary?.state ?? getRunnableDayState({
-              isRest: effectiveRoutineDay?.is_rest ?? false,
-              runnableExerciseCount: 0,
-              invalidExerciseCount: 0,
-            }),
-            routineId: activeRoutine.id,
-            routineDayId: effectiveRoutineDay?.id ?? null,
-          }
-        : null,
+    routine: routinePayloadState,
     exercises: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => {
       const progress = inProgressExerciseProgressByRoutineExerciseId[exercise.id]
         ?? inProgressExerciseProgressByExerciseId[exercise.details?.id ?? exercise.exercise_id]
@@ -399,6 +605,16 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     completedTodayCount,
     inProgressSessionId: inProgressSession?.id ?? null,
   };
+  const todayHeaderSummary = todayPayload.routine
+    ? getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)
+    : null;
+  const todayHeaderSummaryParts = todayPayload.routine && todayHeaderSummary
+    ? getDayTaxonomyHeaderSummaryParts({
+        dayName: todayPayload.routine.dayName,
+        summary: todayHeaderSummary,
+        isRest: todayPayload.routine.isRest,
+      })
+    : null;
 
   const todayGlobalError = getTodayGlobalErrorMessage({
     searchParamError: searchParams?.error,
@@ -422,161 +638,169 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
   const recoveryShadowPlacement = fetchFailed
     ? null
-    : await prepareTodayRecoveryShadowPlacement({
-        memberId: user.id,
-      });
+    : await diagnostics.measure("today.recovery-shadow.fetch", () => loadTodayRecoveryShadowPlacementSafely({
+      memberId: user.id,
+      loadPlacement: prepareTodayRecoveryShadowPlacement,
+    }), {
+      blockingReason: "Waiting for Today recovery shadow placement.",
+      metadata: {
+        userId: user.id,
+      },
+      timeoutMs: 5000,
+    });
+  const todayHeaderSubtitle = todayPayload.routine && !todayPayload.routine.isRest && todayHeaderSummaryParts?.countsSummary
+    ? (
+      <AccentDotSeparatedText
+        text={todayHeaderSummaryParts.countsSummary}
+        separatorClassName="h-[3.5px] w-[3.5px]"
+      />
+    )
+    : undefined;
 
   return (
-    <MainTabScreen topNavMode="none" ambientPreset="today">
-      <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={todayPayload.routine ? (
-          todayPayload.inProgressSessionId ? (
-            <ContentRail>
-              <SharedScreenHeader
-                recipe="todayOverview"
-                title={todayPayload.routine.name}
-                subtitle={(
-                  <DayTaxonomyHeaderSummary
-                    dayName={todayPayload.routine.dayName}
-                    summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
-                    isRest={todayPayload.routine.isRest}
+    <TodayRouteScaffold
+      floatingHeader={todayPayload.routine ? (
+          todayPayload.inProgressSessionId || !hasDetailedRoutineState ? (
+            <TodayFloatingHeaderRail>
+              <TodayOverviewHeader
+                title={(
+                  <RoutineDayHeaderTitle
+                    leadingItems={[todayPayload.routine.name]}
+                    dayLabel={todayPayload.routine.dayName}
                   />
                 )}
-                action={todayPayload.inProgressSessionId
-                  ? <AppBadge tone="success">In Session</AppBadge>
-                  : completedDayIndexes.includes(todayPayload.routine.dayIndex)
-                    ? <AppBadge tone="success">Completed</AppBadge>
-                    : undefined}
+                align="center"
+                subtitle={todayHeaderSubtitle}
+                action={completedDayIndexes.includes(todayPayload.routine.dayIndex)
+                  ? <AppBadge tone="success">Completed</AppBadge>
+                  : undefined}
               />
-            </ContentRail>
+            </TodayFloatingHeaderRail>
           ) : (
-            <ContentRail>
-              <div id="today-floating-header-slot" className="w-full" />
-            </ContentRail>
+            <TodayFloatingHeaderSlot id="today-floating-header-slot" />
           )
         ) : !todayPayload.routine ? (
-          <ContentRail>
-            <SharedScreenHeader
-              recipe="todayOverview"
+          <TodayFloatingHeaderRail>
+            <TodayOverviewHeader
               title="No active routine"
               subtitle="Select a routine to plan your session."
             />
-          </ContentRail>
+          </TodayFloatingHeaderRail>
         ) : undefined}
-      >
-          <TodayRouteRevalidator />
-          {todayPayload.routine && !fetchFailed ? (
-          <ContentRail className="flex flex-col gap-[0.75rem]">
-              <OfflineSyncBadge userId={user.id} />
-              {recoveryShadowPlacement ? (
-                <TodayRecoveryShadowPlacement
-                  placementId={recoveryShadowPlacement.placementId}
-                  surfaceId={recoveryShadowPlacement.surfaceId}
-                  sourceOutboundId={recoveryShadowPlacement.sourceOutboundId}
-                  cohortId={recoveryShadowPlacement.cohortId}
-                  destinationHref={recoveryShadowPlacement.destinationHref}
-                  destinationPath={recoveryShadowPlacement.destinationPath}
-                />
-              ) : null}
-              {todayPayload.inProgressSessionId ? (
-              <ScreenScaffold recipe="todayOverview" className="w-full">
-                <div className="flex flex-col gap-[0.625rem]">
-                    <TodayExerciseRows
-                      exercises={todayPayload.exercises}
-                      emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
-                    />
-                  </div>
-                </ScreenScaffold>
-              ) : (
-                <TodayDayPicker
-                  days={normalizedDaySummaries.map(({ day, state, runnableExercises, invalidExercises }) => ({
-                    id: day.id,
-                    dayIndex: day.day_index,
-                    name: day.name || `Day ${day.day_index}`,
-                    isRest: day.is_rest,
-                    state,
-                    invalidExerciseCount: invalidExercises.length,
-                    exercises: runnableExercises.map((exercise) => ({
-                      id: exercise.id,
-                      exerciseId: exercise.details?.id ?? exercise.exercise_id,
-                      name: exercise.displayName,
-                      targets: exercise.goalLine,
-                      targetSetsMin: exercise.target_sets ?? null,
-                      targetSetsMax: exercise.target_sets ?? null,
-                      primary_muscle: exercise.details?.primary_muscle ?? null,
-                      equipment: exercise.details?.equipment ?? null,
-                      movement_pattern: exercise.details?.movement_pattern ?? null,
-                      measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
-                      kind: exercise.details?.kind ?? null,
-                      type: exercise.details?.type ?? null,
-                      tags: exercise.details?.tags ?? null,
-                      categories: exercise.details?.categories ?? null,
-                      isCardio: toExerciseCountSummaryInput({
-                        measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
-                        equipment: exercise.details?.equipment ?? null,
-                        movement_pattern: exercise.details?.movement_pattern ?? null,
-                        primary_muscle: exercise.details?.primary_muscle ?? null,
-                        kind: exercise.details?.kind ?? null,
-                        type: exercise.details?.type ?? null,
-                        tags: exercise.details?.tags ?? null,
-                        categories: exercise.details?.categories ?? null,
-                      }).isCardio,
-                      image_howto_path: exercise.details?.image_howto_path ?? null,
-                      image_icon_path: exercise.details?.image_icon_path ?? null,
-                      slug: exercise.details?.slug ?? null,
-                      how_to_short: exercise.details?.how_to_short ?? null,
-                    })),
-                  }))}
-                  currentDayIndex={todayPayload.routine.dayIndex}
-                  inProgressSessionId={todayPayload.inProgressSessionId}
-                  completedDayIndexes={completedDayIndexes}
-                  inSessionDayIndex={inProgressSession?.routine_day_index ?? null}
-                  loggedSetCountsByDayIndex={inProgressSession?.routine_day_index
-                    ? { [inProgressSession.routine_day_index]: inProgressSessionLoggedSetCount }
-                    : {}}
-                  routineName={todayPayload.routine.name}
-                  floatingHeaderSlotId="today-floating-header-slot"
-                  />
-                )}
-            </ContentRail>
-          ) : (
-            <TodayClientShell userId={user.id} payload={todayPayload} fetchFailed={fetchFailed} />
-          )}
-
-          {todayPayload.routine && todayPayload.inProgressSessionId && !fetchFailed ? (
-            <PublishBottomActions>
-              <BottomActionSplit
-                primary={(
-                  <TodayStartButton
-                    sessionId={todayPayload.inProgressSessionId}
-                    returnTo="/today"
-                    fullWidth
-                    className="w-full"
-                    label="Resume"
-                  />
-                )}
-                secondary={(
-                  <ConfirmedServerFormButton
-                    action={discardInProgressSessionAction}
-                    hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                    triggerLabel="Discard"
-                    triggerIntent="danger"
-                    triggerClassName="h-full w-full"
-                    size="md"
-                    modalTitle="Discard workout?"
-                    modalConsequenceText="Current workout will be removed."
-                    confirmLabel="Discard"
-                  />
-                )}
-              />
-            </PublishBottomActions>
+    >
+      <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
+      <TodayRouteRevalidator />
+      {todayPayload.routine && hasDetailedRoutineState ? (
+        <TodayOverviewContent>
+          <OfflineSyncBadge userId={user.id} />
+          {recoveryShadowPlacement ? (
+            <TodayRecoveryShadowPlacement
+              placementId={recoveryShadowPlacement.placementId}
+              surfaceId={recoveryShadowPlacement.surfaceId}
+              sourceOutboundId={recoveryShadowPlacement.sourceOutboundId}
+              cohortId={recoveryShadowPlacement.cohortId}
+              destinationHref={recoveryShadowPlacement.destinationHref}
+              destinationPath={recoveryShadowPlacement.destinationPath}
+            />
           ) : null}
+          {todayPayload.inProgressSessionId ? (
+            <TodayOverviewScaffold>
+              <div className="flex flex-col gap-[0.625rem]">
+                <TodayExerciseRows
+                  exercises={todayPayload.exercises}
+                  emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
+                />
+              </div>
+            </TodayOverviewScaffold>
+          ) : (
+            <TodayDayPicker
+              days={normalizedDaySummaries.map(({ day, state, runnableExercises, invalidExercises }) => ({
+                id: day.id,
+                dayIndex: day.day_index,
+                name: day.name || `Day ${day.day_index}`,
+                isRest: day.is_rest,
+                state,
+                invalidExerciseCount: invalidExercises.length,
+                exercises: runnableExercises.map((exercise) => ({
+                  id: exercise.id,
+                  exerciseId: exercise.details?.id ?? exercise.exercise_id,
+                  name: exercise.displayName,
+                  targets: exercise.goalLine,
+                  targetSetsMin: exercise.target_sets ?? null,
+                  targetSetsMax: exercise.target_sets ?? null,
+                  primary_muscle: exercise.details?.primary_muscle ?? null,
+                  equipment: exercise.details?.equipment ?? null,
+                  movement_pattern: exercise.details?.movement_pattern ?? null,
+                  measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+                  kind: exercise.details?.kind ?? null,
+                  type: exercise.details?.type ?? null,
+                  tags: exercise.details?.tags ?? null,
+                  categories: exercise.details?.categories ?? null,
+                  isCardio: toExerciseCountSummaryInput({
+                    measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+                    equipment: exercise.details?.equipment ?? null,
+                    movement_pattern: exercise.details?.movement_pattern ?? null,
+                    primary_muscle: exercise.details?.primary_muscle ?? null,
+                    kind: exercise.details?.kind ?? null,
+                    type: exercise.details?.type ?? null,
+                    tags: exercise.details?.tags ?? null,
+                    categories: exercise.details?.categories ?? null,
+                  }).isCardio,
+                  image_howto_path: exercise.details?.image_howto_path ?? null,
+                  image_icon_path: exercise.details?.image_icon_path ?? null,
+                  slug: exercise.details?.slug ?? null,
+                  how_to_short: exercise.details?.how_to_short ?? null,
+                })),
+              }))}
+              currentDayIndex={todayPayload.routine.dayIndex}
+              inProgressSessionId={todayPayload.inProgressSessionId}
+              completedDayIndexes={completedDayIndexes}
+              inSessionDayIndex={inProgressSession?.routine_day_index ?? null}
+              loggedSetCountsByDayIndex={inProgressSession?.routine_day_index
+                ? { [inProgressSession.routine_day_index]: inProgressSessionLoggedSetCount }
+                : {}}
+              routineName={todayPayload.routine.name}
+              startDate={activeRoutine?.start_date ?? null}
+              floatingHeaderSlotId="today-floating-header-slot"
+            />
+          )}
+        </TodayOverviewContent>
+      ) : (
+        <TodayClientShell userId={user.id} payload={todayPayload} fetchFailed={fetchFailed} />
+      )}
 
-          <TodayOfflineBridge snapshot={todaySnapshot} />
+      {todayPayload.routine && todayPayload.inProgressSessionId && hasDetailedRoutineState ? (
+        <PublishBottomActions>
+          <BottomActionSplit
+            primary={(
+              <TodayStartButton
+                sessionId={todayPayload.inProgressSessionId}
+                returnTo="/today"
+                fullWidth
+                className="w-full"
+                label="Resume"
+              />
+            )}
+            secondary={(
+              <ConfirmedServerFormButton
+                action={discardInProgressSessionAction}
+                hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
+                triggerLabel="Discard"
+                triggerIntent="danger"
+                triggerClassName="h-full w-full"
+                size="md"
+                modalTitle="Discard workout?"
+                modalConsequenceText="Current workout will be removed."
+                confirmLabel="Discard"
+              />
+            )}
+          />
+        </PublishBottomActions>
+      ) : null}
 
-          {todayGlobalError ? <p className="rounded-[var(--radius-md)] border border-[rgb(var(--danger-rgb)/0.18)] bg-[rgb(var(--danger-rgb)/0.08)] px-3 py-2 text-sm text-[rgb(var(--danger-rgb))]">{todayGlobalError}</p> : null}
-      </ScrollScreenWithBottomActions>
-    </MainTabScreen>
+      <TodayOfflineBridge snapshot={todaySnapshot} />
+
+      {todayGlobalError ? <p className="rounded-[var(--radius-md)] border border-[rgb(var(--danger-rgb)/0.18)] bg-[rgb(var(--danger-rgb)/0.08)] px-3 py-2 text-sm text-[rgb(var(--danger-rgb))]">{todayGlobalError}</p> : null}
+    </TodayRouteScaffold>
   );
 }

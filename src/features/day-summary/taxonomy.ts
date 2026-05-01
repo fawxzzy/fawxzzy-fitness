@@ -1,6 +1,6 @@
-export type DaySummaryTaxonomy = "strength" | "cardio" | "rest" | "unknown";
+export type DaySummaryTaxonomy = "strength" | "cardio" | "bodyweight" | "rest" | "unknown";
 
-export const DAY_SUMMARY_TAXONOMY: readonly DaySummaryTaxonomy[] = ["strength", "cardio", "rest", "unknown"];
+export const DAY_SUMMARY_TAXONOMY: readonly DaySummaryTaxonomy[] = ["strength", "cardio", "bodyweight", "rest", "unknown"];
 
 export function formatDaySummaryTaxonomyLabel(taxonomy: Exclude<DaySummaryTaxonomy, "rest">, count: number): string {
   return `${count} ${taxonomy}`;

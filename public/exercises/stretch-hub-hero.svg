@@ -1,0 +1,41 @@
+<svg width="960" height="720" viewBox="0 0 960 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="720" rx="48" fill="#08161B"/>
+  <rect x="36" y="36" width="888" height="648" rx="34" fill="url(#bg)"/>
+  <circle cx="188" cy="160" r="118" fill="url(#orbA)" opacity="0.92"/>
+  <circle cx="780" cy="160" r="104" fill="url(#orbB)" opacity="0.76"/>
+  <circle cx="738" cy="558" r="142" fill="url(#orbC)" opacity="0.7"/>
+  <path d="M176 560C284 490 382 452 504 434C620 418 720 432 816 470" stroke="#55D9C8" stroke-width="16" stroke-linecap="round" opacity="0.25"/>
+  <path d="M268 532C352 498 440 476 530 470C630 462 710 476 792 514" stroke="#F2A46D" stroke-width="9" stroke-linecap="round" opacity="0.22"/>
+  <g opacity="0.98">
+    <circle cx="482" cy="214" r="42" fill="#FFE4C1"/>
+    <path d="M468 266C486 262 506 263 523 272C549 285 566 311 570 342L576 392C579 407 570 421 556 427L530 438L519 514C517 529 505 540 490 540H482C467 540 455 529 454 514L449 442L411 470C396 480 377 478 364 466L337 441C322 427 322 404 336 390L392 337L422 282C430 268 448 260 468 266Z" fill="#0B2B36"/>
+    <path d="M570 344L646 302C662 293 682 298 692 313L706 333C718 350 713 373 695 383L607 430C593 439 575 436 564 424C552 411 551 390 562 376L570 344Z" fill="#113946"/>
+    <path d="M451 443L398 531C389 547 370 554 353 546L328 535C309 526 301 503 311 485L374 375L451 443Z" fill="#1D5562"/>
+    <path d="M376 375L334 353C319 345 311 329 313 312L317 279C320 260 336 246 355 246H387C405 246 420 258 424 275L438 333L376 375Z" fill="#55D9C8"/>
+    <path d="M415 287C443 292 464 309 474 337L487 373L454 383L421 318L392 300L415 287Z" fill="#0F7C86"/>
+    <path d="M578 394L640 454C653 466 657 485 651 501L643 522C636 539 619 549 601 546L510 530L518 444L552 430L578 394Z" fill="#F2A46D"/>
+  </g>
+  <g opacity="0.92">
+    <rect x="96" y="88" width="238" height="62" rx="31" fill="#0A242D" stroke="#55D9C8" stroke-opacity="0.25"/>
+    <text x="128" y="128" fill="#D9FFF8" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="2.4">STRETCH HUB</text>
+  </g>
+  <defs>
+    <linearGradient id="bg" x1="108" y1="72" x2="826" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D232B"/>
+      <stop offset="0.56" stop-color="#0C161B"/>
+      <stop offset="1" stop-color="#11181F"/>
+    </linearGradient>
+    <radialGradient id="orbA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(188 160) rotate(90) scale(118)">
+      <stop stop-color="#55D9C8"/>
+      <stop offset="1" stop-color="#55D9C8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orbB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(780 160) rotate(90) scale(104)">
+      <stop stop-color="#F2A46D"/>
+      <stop offset="1" stop-color="#F2A46D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orbC" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(738 558) rotate(90) scale(142)">
+      <stop stop-color="#1C4A5A"/>
+      <stop offset="1" stop-color="#1C4A5A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

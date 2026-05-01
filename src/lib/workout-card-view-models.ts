@@ -3,6 +3,10 @@ import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import { isCardioExercise } from "@/lib/exercise-metadata";
+import {
+  getStretchHubChipLabels,
+  isStretchHubExercise,
+} from "@/lib/stretch-library";
 import { formatDistance, formatDurationShort as formatWorkoutDuration, formatPace, positive } from "@/lib/exercise-stats-formatting";
 import { formatCount, formatDateShort, formatDurationShort, formatSetDisplay, formatWeight } from "@/lib/formatting";
 
@@ -26,6 +30,7 @@ export type HistoryExerciseCardViewModel = {
   summaryLabel: string;
   summary: string;
   chips: WorkoutCardChip[];
+  badgeText?: string;
   detailedMetrics: MetricDatum[];
   semanticTone: CardSemanticTone;
 };
@@ -39,6 +44,8 @@ export type HistorySessionCardViewModel = {
 };
 
 type ExerciseIdentityChipArgs = {
+  name?: string | null;
+  slug?: string | null;
   measurementType?: string | null;
   isCardio?: boolean | null;
   kind?: string | null;
@@ -86,8 +93,12 @@ function formatLoad(value: number) {
 }
 
 function formatLoadWithUnit(value: number, unit?: string | null) {
-  const normalizedUnit = unit === "kg" ? "kg" : unit === "lb" || unit === "lbs" ? "lb" : null;
+  const normalizedUnit = unit === "kg" ? "kg" : unit === "lb" || unit === "lbs" ? "lbs" : null;
   return normalizedUnit ? `${Math.round(value).toLocaleString()} ${normalizedUnit}` : formatLoad(value);
+}
+
+function formatIntegerValue(value: number) {
+  return Math.max(0, Math.round(value)).toLocaleString();
 }
 
 function formatPercent(value: number) {
@@ -220,6 +231,13 @@ export function buildExerciseIdentityChips(
     maxChips?: number;
   },
 ): WorkoutCardChip[] {
+  if (isStretchHubExercise(args)) {
+    return clampChips(
+      getStretchHubChipLabels().map((label) => ({ label })),
+      options?.maxChips ?? 3,
+    );
+  }
+
   const presentationKind = resolveExplicitPresentationKind(args);
   const chips: WorkoutCardChip[] = [];
 
@@ -343,6 +361,10 @@ export function buildPlannedExerciseDetailMetrics(args: ExerciseIdentityChipArgs
   targetSetsMax?: number | null;
   useIntervalLanguage?: boolean;
 }): MetricDatum[] {
+  if (isStretchHubExercise(args)) {
+    return [];
+  }
+
   const presentationKind = resolveExplicitPresentationKind(args) ?? "strength";
   const metrics: MetricDatum[] = [];
   const loggedSetCount = Math.max(0, Math.floor(args.loggedSetCount ?? 0));
@@ -427,10 +449,29 @@ function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, presentati
 }
 
 export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): HistoryExerciseCardViewModel {
+  if (isStretchHubExercise(row)) {
+    return {
+      presentationKind: "timed",
+      summaryLabel: "",
+      summary: "",
+      chips: buildExerciseIdentityChips({
+        name: row.name,
+        slug: row.slug,
+        equipment: row.equipment,
+        movementPattern: row.movement_pattern,
+        primaryMuscle: row.primary_muscle,
+      }),
+      badgeText: row.activityRank ? `Rank ${row.activityRank}` : undefined,
+      detailedMetrics: [],
+      semanticTone: "current",
+    };
+  }
+
   const basePresentationKind = row.kind === "cardio"
     ? "cardio"
     : resolveStrengthPresentationKind(row);
-  const semanticTone: CardSemanticTone = row.prCount > 0 ? "pr" : "neutral";
+  const hasLoggedHistory = positive(row.setCount) > 0 || row.sessionCount > 0;
+  const semanticTone: CardSemanticTone = hasLoggedHistory ? "logged" : "attention";
 
   return {
     presentationKind: basePresentationKind,
@@ -443,12 +484,15 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
           : "No lifting history yet."
     ),
     chips: buildExerciseIdentityChips({
+      name: row.name,
+      slug: row.slug,
       kind: basePresentationKind,
       equipment: row.equipment,
       movementPattern: row.movement_pattern,
       primaryMuscle: row.primary_muscle,
     }),
-    detailedMetrics: buildHistoryExerciseDetailedMetrics(row, basePresentationKind),
+    badgeText: row.activityRank ? `Rank ${row.activityRank}` : undefined,
+    detailedMetrics: row.detailedMetrics ?? buildHistoryExerciseDetailedMetrics(row, basePresentationKind),
     semanticTone,
   };
 }
@@ -516,47 +560,33 @@ function buildSessionCompactChips(session: SessionSummary, progress: string | nu
   return clampChips(chips);
 }
 
-function buildSessionDetailedMetrics(session: SessionSummary, progress: string | null): MetricDatum[] {
-  const metrics: MetricDatum[] = [];
-
-  if (session.bestLift) {
-    metrics.push({
-      label: "Top Set",
-      value: session.bestLift.display,
-      timeframe: session.bestLift.exerciseName,
-    });
-  }
-
-  if (session.totalVolume > 0) {
-    metrics.push({
+function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
+  return [
+    {
+      label: "Exercise",
+      value: formatIntegerValue(session.exerciseCount),
+    },
+    {
+      label: "Sets",
+      value: formatIntegerValue(session.setCount),
+    },
+    {
+      label: "Reps",
+      value: formatIntegerValue(session.repCount),
+    },
+    {
+      label: "Duration",
+      value: formatDurationShort(session.durationSec) ?? "0m",
+    },
+    {
       label: "Volume",
-      value: formatLoad(session.totalVolume),
-    });
-  }
-
-  if (session.completionRate !== undefined) {
-    metrics.push({
+      value: session.totalVolume > 0 ? formatLoadWithUnit(session.totalVolume, session.volumeUnit) : "0",
+    },
+    {
       label: "Completion",
-      value: formatPercent(session.completionRate),
-      timeframe: `${session.exerciseCount} ${session.exerciseCount === 1 ? "exercise" : "exercises"}`,
-    });
-  }
-
-  if (session.prCounts.total > 0) {
-    metrics.push({
-      label: "PRs",
-      value: `${session.prCounts.total}`,
-      timeframe: session.prLabel || null,
-    });
-  } else if (progress) {
-    metrics.push({
-      label: "Progress",
-      value: progress,
-      timeframe: "vs previous",
-    });
-  }
-
-  return metrics.slice(0, 4);
+      value: session.completionRate !== undefined ? formatPercent(session.completionRate) : (session.hasSetData ? "Logged" : "Open"),
+    },
+  ];
 }
 
 export function buildHistorySessionCardViewModel(session: SessionSummary, previousSession?: SessionSummary | null): HistorySessionCardViewModel {
@@ -566,8 +596,8 @@ export function buildHistorySessionCardViewModel(session: SessionSummary, previo
     outcome: buildSessionOutcome(session),
     progress,
     compactChips: buildSessionCompactChips(session, progress),
-    detailedMetrics: buildSessionDetailedMetrics(session, progress),
-    tone: session.prCounts.total > 0 ? "pr" : "neutral",
+    detailedMetrics: buildSessionDetailedMetrics(session),
+    tone: "current",
   };
 }
 

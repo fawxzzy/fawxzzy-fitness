@@ -13,17 +13,21 @@ export function HistoryPageHeader({
   title,
   subtitle,
   children,
+  withPanel = true,
 }: {
   title: string;
   subtitle?: string;
   children?: ReactNode;
+  withPanel?: boolean;
 }) {
   return (
     <SharedScreenHeader
       recipe="historyDetail"
       title={title}
       subtitle={subtitle}
-      className="pl-1"
+      className="px-1"
+      align="center"
+      withPanel={withPanel}
     >
       {children}
     </SharedScreenHeader>
@@ -32,30 +36,39 @@ export function HistoryPageHeader({
 
 export function HistoryDetailHeader({
   title,
+  titleClassName,
   subtitle,
   eyebrow = "History",
   meta,
   action,
   children,
   className,
+  actionClassName,
+  align = "left",
 }: {
   title: ReactNode;
+  titleClassName?: string;
   subtitle?: ReactNode;
   eyebrow?: ReactNode;
   meta?: ReactNode;
   action?: ReactNode;
   children?: ReactNode;
   className?: string;
+  actionClassName?: string;
+  align?: "left" | "center";
 }) {
   return (
     <SharedScreenHeader
       recipe="historyDetail"
       eyebrow={eyebrow}
       title={title}
+      titleClassName={titleClassName}
       subtitle={subtitle}
       action={action}
       meta={meta}
+      align={align}
       className={cn("pl-1", className)}
+      actionClassName={actionClassName}
     >
       {children}
     </SharedScreenHeader>
@@ -133,33 +146,38 @@ export function HistoryTitleControlShell({
   children?: ReactNode;
   className?: string;
 }) {
+  const hasChrome = Boolean(label || caption || showViewModeToggle);
+
+  if (!hasChrome) {
+    return children ? <div className={className}>{children}</div> : null;
+  }
+
   return (
     <HistoryControlPanel className={cn(appTokens.historyTitleControlStack, className)}>
-      {(label || caption || showViewModeToggle) ? (
-        <div className={appTokens.historyTitleControlRow}>
-          {(label || caption) ? (
-            <div className="min-w-0">
-              {label ? <p className={appTokens.historyTitleControlLabel}>{label}</p> : null}
-              {caption ? <p className={appTokens.historyTitleControlCaption}>{caption}</p> : null}
-            </div>
-          ) : null}
-          {showViewModeToggle ? (
-            <div className={appTokens.historyTitleControlToggleSlot}>
-              <SegmentedControl
-                options={[
-                  { label: "Compact", value: "compact" },
-                  { label: "Detailed", value: "detailed" },
-                ]}
-                value={viewMode}
-                size="sm"
-                activeIntent="info"
-                ariaLabel="History view mode"
-                onChange={(nextValue) => onViewModeChange(nextValue as "compact" | "detailed")}
-              />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      <div className={appTokens.historyTitleControlRow}>
+        {(label || caption) ? (
+          <div className="min-w-0">
+            {label ? <p className={appTokens.historyTitleControlLabel}>{label}</p> : null}
+            {caption ? <p className={appTokens.historyTitleControlCaption}>{caption}</p> : null}
+          </div>
+        ) : null}
+        {showViewModeToggle ? (
+          <div className={appTokens.historyTitleControlToggleSlot}>
+            <SegmentedControl
+              options={[
+                { label: "Compact", value: "compact" },
+                { label: "Detailed", value: "detailed" },
+              ]}
+              value={viewMode}
+              size="sm"
+              activeIntent="toggleActive"
+              inactiveIntent="toggleInactive"
+              ariaLabel="History view mode"
+              onChange={(nextValue) => onViewModeChange(nextValue as "compact" | "detailed")}
+            />
+          </div>
+        ) : null}
+      </div>
       {children}
     </HistoryControlPanel>
   );

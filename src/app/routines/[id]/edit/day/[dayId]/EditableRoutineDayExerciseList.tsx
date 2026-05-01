@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
-import { BottomActionSingle, BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionDock } from "@/components/layout/BottomActionDock";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
@@ -31,14 +31,14 @@ import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
-import { publishScreenFocusMode } from "@/lib/screen-focus-mode";
+import { publishEditDayCloseExpandedCard, publishScreenFocusMode, publishScreenMode, subscribeEditDayCloseExpandedCard } from "@/lib/screen-focus-mode";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
   exerciseId: string;
   orderNumber: number;
   name: string;
-  measurementType: "reps" | "time" | "distance" | "time_distance";
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none";
   primary_muscle?: string | null;
   equipment: string | null;
   movement_pattern?: string | null;
@@ -77,7 +77,6 @@ type Props = {
   reorderAction: (formData: FormData) => Promise<ActionResult>;
   initialIsRest: boolean;
   addExerciseHref: string;
-  headerActionSlotId?: string;
 };
 
 type DragState = {
@@ -93,8 +92,12 @@ function clampOrderValue(rawValue: number, listLength: number) {
   return normalized;
 }
 
-function resolveInlineModality(measurementType: "reps" | "time" | "distance" | "time_distance", equipment: string | null): GoalModality {
-  return resolveGoalModality({ measurementType, equipment, tags: undefined });
+function resolveInlineModality(
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none",
+  equipment: string | null,
+  name?: string | null,
+): GoalModality {
+  return resolveGoalModality({ measurementType: measurementType === "none" ? "reps" : measurementType, equipment, name, tags: undefined });
 }
 
 function RoutineTargetInputs({
@@ -124,10 +127,20 @@ function RoutineTargetInputs({
           distanceUnit: "targetDistanceUnit",
         }}
         emptySummaryLabel="Goal missing"
+        hideSummary
+        measurementLayoutMode="horizontal-scroll"
       />
     </div>
   );
 }
+
+const INLINE_VIEW_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "toggleActive",
+});
+
+const INLINE_DELETE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "danger",
+});
 
 export function EditableRoutineDayExerciseList({
   routineId,
@@ -139,7 +152,6 @@ export function EditableRoutineDayExerciseList({
   reorderAction,
   initialIsRest,
   addExerciseHref,
-  headerActionSlotId,
 }: Props) {
   const toast = useToast();
   const router = useRouter();
@@ -152,7 +164,6 @@ export function EditableRoutineDayExerciseList({
   const [reorderMode, setReorderMode] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [autosaveError, setAutosaveError] = useState<string | null>(null);
   const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
@@ -330,12 +341,13 @@ export function EditableRoutineDayExerciseList({
 
   const handleToggleReorderMode = () => {
     if (isRestDay) return;
+    flushAutosave();
     setExpandedId(null);
     setSelectedExerciseId(null);
     setReorderMode((current) => !current);
   };
 
-  const createDraftSnapshot = (formData: FormData) => {
+  const createDraftSnapshot = useCallback((formData: FormData) => {
     const trackedKeys = [
       "targetSets",
       "targetRepsMin",
@@ -346,16 +358,15 @@ export function EditableRoutineDayExerciseList({
       "targetCalories",
       "targetWeightUnit",
       "targetDistanceUnit",
-      "manualOrder",
     ];
     const snapshotPayload = {
       fields: Object.fromEntries(trackedKeys.map((key) => [key, String(formData.get(key) ?? "").trim()])),
       measurementSelections: formData.getAll("measurementSelections").map((value) => String(value)).sort(),
     };
     return JSON.stringify(snapshotPayload);
-  };
+  }, []);
 
-  const flushAutosave = () => {
+  const flushAutosave = useCallback(() => {
     if (!expandedId || !activeEditFormRef.current) return;
     if (autosaveTimeoutRef.current) {
       clearTimeout(autosaveTimeoutRef.current);
@@ -370,9 +381,15 @@ export function EditableRoutineDayExerciseList({
     }
     pendingSnapshotRef.current = snapshot;
     activeEditFormRef.current.requestSubmit();
-  };
+  }, [createDraftSnapshot, expandedId]);
 
-  const scheduleAutosave = () => {
+  useEffect(() => subscribeEditDayCloseExpandedCard(() => {
+    flushAutosave();
+    setSelectedExerciseId(null);
+    setExpandedId(null);
+  }), [flushAutosave]);
+
+  const scheduleAutosave = useCallback(() => {
     if (!expandedId || !activeEditFormRef.current) return;
     const formData = new FormData(activeEditFormRef.current);
     const snapshot = createDraftSnapshot(formData);
@@ -387,7 +404,7 @@ export function EditableRoutineDayExerciseList({
     autosaveTimeoutRef.current = setTimeout(() => {
       activeEditFormRef.current?.requestSubmit();
     }, 500);
-  };
+  }, [createDraftSnapshot, expandedId]);
 
   const editModeActive = expandedId !== null;
   const modeViewModel = getDayEditorModeViewModel({
@@ -405,7 +422,7 @@ export function EditableRoutineDayExerciseList({
     weightUnit,
     distanceUnit: exercise.defaultDistanceUnit,
     orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
-    modality: resolveInlineModality(exercise.measurementType, exercise.equipment),
+    modality: resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name),
   }), [canonicalOrderById, weightUnit]);
   const getExerciseDraft = useCallback(
     (exercise: EditableRoutineDayExerciseItem) => draftsById[exercise.id] ?? buildExerciseDraft(exercise),
@@ -424,10 +441,7 @@ export function EditableRoutineDayExerciseList({
     [buildExerciseDraft],
   );
   const hasExercises = items.length > 0;
-  const visibleItems = useMemo(() => {
-    if (!editModeActive || !expandedId) return items;
-    return items.filter((exercise) => exercise.id === expandedId);
-  }, [editModeActive, expandedId, items]);
+  const visibleItems = items;
 
   useEffect(() => {
     publishScreenFocusMode({ screen: "edit-day", active: editModeActive });
@@ -436,53 +450,44 @@ export function EditableRoutineDayExerciseList({
     };
   }, [editModeActive]);
 
-  const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
-
   useEffect(() => {
-    if (!headerActionSlotId) return;
-    const syncSlot = () => setHeaderActionTarget(document.getElementById(headerActionSlotId));
-    syncSlot();
-    const observer = new MutationObserver(syncSlot);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-    window.addEventListener("resize", syncSlot);
+    publishScreenMode({ screen: "edit-day", mode: modeViewModel.mode });
     return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", syncSlot);
+      publishScreenMode({ screen: "edit-day", mode: "default" });
     };
-  }, [headerActionSlotId]);
-
-  const headerAction = modeViewModel.headerAction === "reorder_toggle" && hasExercises ? (
-    <BottomActionUtilityCluster className="mx-0.5">
-      <BottomDockButton
-        type="button"
-        intent={reorderMode ? "toggleActive" : "toggleInactive"}
-        onClick={handleToggleReorderMode}
-        aria-pressed={reorderMode}
-        disabled={isRestDay}
-        className={cn(
-          appTokens.routineEditorHeaderActionButton,
-          isRestDay ? appTokens.routineEditorHeaderActionButtonDisabled : undefined,
-        )}
-      >
-        {reorderMode ? "Done" : "Reorder"}
-      </BottomDockButton>
-      </BottomActionUtilityCluster>
-  ) : null;
+  }, [modeViewModel.mode]);
 
   const addExerciseLabel = NORMALIZED_ACTION_LABELS.add;
+  const reorderButton = modeViewModel.headerAction === "reorder_toggle" ? (
+    <BottomDockButton
+      type="button"
+      intent={reorderMode ? "toggleActive" : "toggleInactive"}
+      onClick={handleToggleReorderMode}
+      aria-pressed={reorderMode}
+      disabled={isRestDay || !hasExercises}
+      className={cn(
+        isRestDay || !hasExercises ? appTokens.routineEditorHeaderActionButtonDisabled : undefined,
+      )}
+    >
+      {reorderMode ? "Done" : "Reorder"}
+    </BottomDockButton>
+  ) : null;
 
   const handleAddExercisePress = () => {
     if (addExerciseNavigationLockedRef.current) return;
+    flushAutosave();
+    publishEditDayCloseExpandedCard();
+    setSelectedExerciseId(null);
     addExerciseNavigationLockedRef.current = true;
     router.push(addExerciseHref);
   };
 
-  const dockWithRestToggleSlot = <BottomActionSingle><div id="edit-day-rest-toggle-slot" className="w-full" /></BottomActionSingle>;
-
-  const addExerciseDock = (
-        <BottomActionDock
-          left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
-          right={(
+  const addExerciseDock = editModeActive ? (
+    reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
+  ) : (
+    <BottomActionDock
+      left={reorderButton ?? <div />}
+      right={(
         <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress}>
           {addExerciseLabel}
         </BottomDockButton>
@@ -493,7 +498,6 @@ export function EditableRoutineDayExerciseList({
   if (items.length === 0 || modeViewModel.sections.restDayCardVisible) {
     return (
       <>
-        {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
         <SharedSectionShell recipe="editDay" bodyClassName={appTokens.routineEditorCompactStack}>
           {modeViewModel.sections.restDayCardVisible ? (
             <DayDetailStateCard
@@ -511,23 +515,12 @@ export function EditableRoutineDayExerciseList({
           )}
         </SharedSectionShell>
         <PublishBottomActions>
-          {ctaDockState.variant === "edit_exercise" && activeExercise ? (
-            <BottomActionDock
-              left={(
-                <DockButton type="button" intent="info" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
-                  {NORMALIZED_ACTION_LABELS.view}
-                </DockButton>
-              )}
-              right={(
-                <DockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
-                  Delete
-                </DockButton>
-              )}
-            />
-          ) : ctaDockState.variant === "add_exercise" ? (
+          {ctaDockState.variant === "add_exercise" || ctaDockState.variant === "edit_exercise" ? (
             addExerciseDock
-        ) : ctaDockState.variant === "rest_toggle_only" ? (
-            dockWithRestToggleSlot
+          ) : ctaDockState.variant === "reorder_only" ? (
+            reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
+          ) : ctaDockState.variant === "rest_toggle_only" ? (
+            reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
           ) : null}
         </PublishBottomActions>
       </>
@@ -536,25 +529,13 @@ export function EditableRoutineDayExerciseList({
 
   return (
     <>
-      {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
       <PublishBottomActions>
-        {ctaDockState.variant === "edit_exercise" && activeExercise ? (
-          <BottomActionDock
-            left={(
-              <DockButton type="button" intent="info" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
-                {NORMALIZED_ACTION_LABELS.view}
-              </DockButton>
-            )}
-            right={(
-              <DockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
-                Delete
-              </DockButton>
-              )}
-            />
-        ) : ctaDockState.variant === "add_exercise" ? (
+        {ctaDockState.variant === "add_exercise" || ctaDockState.variant === "edit_exercise" ? (
           addExerciseDock
+        ) : ctaDockState.variant === "reorder_only" ? (
+          reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
         ) : ctaDockState.variant === "rest_toggle_only" ? (
-          dockWithRestToggleSlot
+          reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
         ) : null}
       </PublishBottomActions>
       <form
@@ -614,6 +595,7 @@ export function EditableRoutineDayExerciseList({
         ) : (
           <DayDetailExerciseList
             mode="editable"
+            showOrderBadges={false}
             items={visibleItems.map((exercise) => ({
               ...resolveEditDayExercisePreview({
                 savedSummary: exercise.targetSummary,
@@ -648,20 +630,37 @@ export function EditableRoutineDayExerciseList({
               if (!isExpanded) return null;
               const draft = getExerciseDraft(exercise);
               return (
-                <form
-                  ref={(node) => {
-                    if (isExpanded) activeEditFormRef.current = node;
-                  }}
-                  action={async (formData) => {
+                <div className={appTokens.routineEditorCompactStack}>
+                  <AttachedCardActionStripFrame gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
+                      <button
+                        type="button"
+                        data-bottom-action-intent="toggleActive"
+                        className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--border-strong)/0.18)]")}
+                        onClick={() => setSelectedExerciseId(exercise.exerciseId)}
+                      >
+                        <span className="bottom-action__label">{NORMALIZED_ACTION_LABELS.view}</span>
+                      </button>
+                      <button
+                        type="button"
+                        data-bottom-action-intent="danger"
+                        className={INLINE_DELETE_ACTION_BUTTON_CLASS_NAME}
+                        onClick={() => setDeleteConfirmOpen(true)}
+                      >
+                        <span className="bottom-action__label">Delete</span>
+                      </button>
+                  </AttachedCardActionStripFrame>
+                  <form
+                    ref={(node) => {
+                      if (isExpanded) activeEditFormRef.current = node;
+                    }}
+                    action={async (formData) => {
                           const result = await updateAction(formData);
                           if (!result.ok) {
                             const nextError = result.error ?? "Could not update exercise.";
-                            setAutosaveError(nextError);
                             toast.error(nextError);
                             return;
                           }
 
-                          setAutosaveError(null);
                           if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
                           if (result.ok) {
                             const snapshot = pendingSnapshotRef.current ?? createDraftSnapshot(formData);
@@ -669,18 +668,18 @@ export function EditableRoutineDayExerciseList({
                             lastSavedSnapshotRef.current[exercise.id] = snapshot;
                             pendingSnapshotRef.current = null;
                             const targetSets = Number(formData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
-                            const parseOptionalNumber = (value: FormDataEntryValue | null) => {
+                            const parseFormOptionalNumber = (value: FormDataEntryValue | null) => {
                               const raw = String(value ?? "").trim();
                               if (!raw) return null;
                               const parsed = Number(raw);
                               return Number.isFinite(parsed) ? parsed : null;
                             };
-                            const targetRepsMin = parseOptionalNumber(formData.get("targetRepsMin"));
-                            const targetRepsMax = parseOptionalNumber(formData.get("targetRepsMax"));
-                            const targetWeight = parseOptionalNumber(formData.get("targetWeight"));
+                            const targetRepsMin = parseFormOptionalNumber(formData.get("targetRepsMin"));
+                            const targetRepsMax = parseFormOptionalNumber(formData.get("targetRepsMax"));
+                            const targetWeight = parseFormOptionalNumber(formData.get("targetWeight"));
                             const targetDuration = String(formData.get("targetDuration") ?? "");
-                            const targetDistance = parseOptionalNumber(formData.get("targetDistance"));
-                            const targetCalories = parseOptionalNumber(formData.get("targetCalories"));
+                            const targetDistance = parseFormOptionalNumber(formData.get("targetDistance"));
+                            const targetCalories = parseFormOptionalNumber(formData.get("targetCalories"));
                             const targetWeightUnit = String(formData.get("targetWeightUnit") ?? weightUnit);
                             const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? exercise.defaultDistanceUnit);
                             const measurementSelections = new Set(formData.getAll("measurementSelections").map((value) => String(value)));
@@ -710,48 +709,26 @@ export function EditableRoutineDayExerciseList({
                                 targetCalories: measurementSelections.has("calories") ? targetCalories : null,
                               },
                             }));
-                            const manualOrderValue = Number(formData.get("manualOrder") ?? canonicalOrderById.get(exercise.id) ?? 1);
-                            const clampedManualOrder = clampOrderValue(manualOrderValue, items.length);
-                            applyManualOrderValue(exercise.id, clampedManualOrder);
                             router.refresh();
                           }
                         }}
-                  className={appTokens.routineEditorCompactStack}
-                  onChangeCapture={scheduleAutosave}
-                  onBlurCapture={flushAutosave}
-                >
-                  <input type="hidden" name="routineId" value={routineId} />
-                  <input type="hidden" name="routineDayId" value={routineDayId} />
-                  <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                  <div className="space-y-1">
-                    <label htmlFor={`exercise-order-${exercise.id}`} className={appTokens.routineEditorOrderLabel}>
-                      Order
-                    </label>
-                    <input
-                      id={`exercise-order-${exercise.id}`}
-                      name="manualOrder"
-                      type="number"
-                      min={1}
-                      max={items.length}
-                      inputMode="numeric"
-                      value={draft.manualOrder}
-                      onChange={(event) => updateExerciseDraft(exercise, (current) => ({
+                    className={cn(appTokens.routineEditorCompactStack, "pt-[2px]")}
+                    onChangeCapture={scheduleAutosave}
+                    onBlurCapture={flushAutosave}
+                  >
+                    <input type="hidden" name="routineId" value={routineId} />
+                    <input type="hidden" name="routineDayId" value={routineDayId} />
+                    <input type="hidden" name="exerciseRowId" value={exercise.id} />
+                    <RoutineTargetInputs
+                      state={draft.goalState}
+                      onStateChange={(nextState) => updateExerciseDraft(exercise, (current) => ({
                         ...current,
-                        manualOrder: event.target.value,
+                        goalState: nextState,
                       }))}
-                      className={appTokens.routineEditorOrderInput}
+                      modality={resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name)}
                     />
-                  </div>
-                  <RoutineTargetInputs
-                    state={draft.goalState}
-                    onStateChange={(nextState) => updateExerciseDraft(exercise, (current) => ({
-                      ...current,
-                      goalState: nextState,
-                    }))}
-                    modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
-                  />
-                  {autosaveError ? <p className={appTokens.routineEditorAutosaveErrorText}>{autosaveError}</p> : null}
-                </form>
+                  </form>
+                </div>
               );
             }}
           />
