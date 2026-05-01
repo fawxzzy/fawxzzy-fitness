@@ -99,6 +99,10 @@ Hard rules:
 - `npm run verify:strict` passed
 - `npm run build` passed
 - `npm run migration:validate` failed with expected drift because local migrations `038` through `041` are now ahead of the remote baseline that still reports them as missing
+- Migration gate result: `B`
+  - Current runtime does not newly depend on migrations `038` through `041` for this recovery wave.
+  - Evidence: the normalized quarantine audit reduced the app/runtime trees under `src/app`, `src/components`, `src/lib`, and `src/features` to CRLF-only parity, so the promoted recovery diff is support-layer tooling, catalog data, tracked migrations, and audit documentation rather than new runtime code paths.
+  - Conclusion: these migrations remain intentional schema/catalog alignment work that should still be applied deliberately, but they do not block shipping this GitHub-backed support-layer recovery branch.
 
 ## 7. Visual Smoke Evidence
 - HTTP smoke from canonical local dev server:
