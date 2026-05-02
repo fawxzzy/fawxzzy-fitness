@@ -512,3 +512,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents auth and recovery flows from quietly diverging in card density, CTA posture, and helper/message treatment even when they already share the same shell and form structure.
 - Evidence: src/components/auth/AuthShell.tsx, src/app/login/LoginScreen.tsx, src/components/auth/SignupForm.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx, src/app/reset-password/page.tsx, src/app/reset-password/RecoverySessionBridge.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
 - Status: Proposed
+
+## 2026-05-02 - Canonical exercise data repairs should ship as idempotent upserts
+- Type: Pattern
+- Summary: When production global exercise data drifts behind the canonical catalog, the repair migration should upsert the full canonical set by normalized global exercise name instead of relying on update-only refresh statements.
+- Suggested Playbook File: docs/PATTERNS/exercise-catalog-data-sync.md
+- Rationale: Prevents catalog app deploys from going live while production Supabase still misses new global exercises or curation tags, and avoids destructive row replacement that could break references to existing global exercise IDs.
+- Evidence: supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql, supabase/migrations/042_global_exercises_canonical_upsert.sql, supabase/data/global_exercises_canonical.json
+- Status: Proposed
