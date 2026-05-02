@@ -65,12 +65,22 @@ WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Arnold Press'));
 
 UPDATE public.exercises SET
+  equipment = 'Machine',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set the assistance so you can control the rep, start from a full reach, drive the elbows toward the ribs until the bar comes to you, then lower smoothly without dropping into the bottom.',
+  curation_tags = '{"pattern_detail":["vertical_pull"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["hanging"],"training_goal":["strength","hypertrophy","skill"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["vertical_pull"],"spine_demand":["low_spinal_load"],"grip_constraint":["hanging","shoulder_depression"]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Assisted Pull-Up'));
+
+UPDATE public.exercises SET
   equipment = 'Bodyweight',
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
   how_to_short = 'Brace, drive through the heels, extend the hips until the ribs stay stacked, and lower without arching the low back.',
-  curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["prone"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Back Extension'));
 
@@ -83,6 +93,16 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["squat"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["strength","hypertrophy"],"difficulty":["intermediate"],"setup_cost":["high_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["knee_dominant"],"spine_demand":["high_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Back Squat'));
+
+UPDATE public.exercises SET
+  equipment = 'Sled',
+  measurement_type = 'distance',
+  default_unit = 'm',
+  calories_estimation_method = NULL,
+  how_to_short = 'Face the sled, lean back slightly with the torso braced, take short backward steps, and keep the knees driving smoothly without snapping into lockout.',
+  curation_tags = '{"pattern_detail":["sled_drag"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["standing"],"training_goal":["conditioning","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["sled_loaded"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Backward Sled Drag'));
 
 UPDATE public.exercises SET
   equipment = 'Barbell',
@@ -115,6 +135,76 @@ WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Barbell Row'));
 
 UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Start on hands and knees, brace the ribs down, reach opposite arm and leg long without rotating the hips, then return slowly and switch sides.',
+  curation_tags = '{"pattern_detail":["anti_rotation"],"plane_of_motion":["transverse"],"exercise_utility":["auxiliary"],"body_position":["kneeling"],"training_goal":["core_stability","skill"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["balance_demanding"],"unilateral_profile":["alternating"],"loading_profile":["bodyweight"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Bird Dog'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Lie on your back with knees bent, brace the ribs down, drive through the heels to lift the hips, squeeze the glutes at the top, and lower without arching the low back.',
+  curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["supine"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Bodyweight Glute Bridge'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Step one leg back, lower until the front leg controls the load and the back knee approaches the floor, then drive through the front foot to return tall.',
+  curation_tags = '{"pattern_detail":["split_squat_lunge"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["split_stance"],"training_goal":["hypertrophy","skill"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["balance_demanding"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Bodyweight Reverse Lunge'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Stand tall with feet set under you, sit the hips down between the knees while keeping the torso braced, then drive through the whole foot to stand without bouncing.',
+  curation_tags = '{"pattern_detail":["squat"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["hypertrophy","skill"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Bodyweight Squat'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Place the whole lead foot on the box or step, drive through that leg to stand tall, then lower with control instead of pushing off the trailing foot.',
+  curation_tags = '{"pattern_detail":["split_squat_lunge"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["split_stance"],"training_goal":["hypertrophy","skill"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["balance_demanding"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Bodyweight Step-Up'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Step forward into a long stance, lower under control until the lead leg owns the rep, then push through the front foot and bring the next step forward smoothly.',
+  curation_tags = '{"pattern_detail":["split_squat_lunge"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["split_stance"],"training_goal":["hypertrophy","conditioning","skill"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["balance_demanding"],"unilateral_profile":["alternating"],"loading_profile":["bodyweight"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Bodyweight Walking Lunge'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Load the hips with a quick dip, jump onto the box with quiet full-foot contact, stand tall to finish, and step down under control before the next rep.',
+  curation_tags = '{"pattern_detail":["plyometric_jump"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["standing"],"training_goal":["power","conditioning","skill"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["balance_demanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Box Jump'));
+
+UPDATE public.exercises SET
   equipment = 'Dumbbell',
   measurement_type = 'reps',
   default_unit = 'reps',
@@ -125,12 +215,22 @@ WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Bulgarian Split Squat'));
 
 UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Drop to the floor under control, kick back to a strong plank, return the feet under you, then stand or jump tall while keeping the trunk braced.',
+  curation_tags = '{"pattern_detail":["full_body_conditioning"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","endurance","power"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["cyclical_conditioning"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Burpee'));
+
+UPDATE public.exercises SET
   equipment = 'Cable',
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
   how_to_short = 'Brace first, curl the ribcage toward the pelvis through the abs, and return without yanking through the neck or hips.',
-  curation_tags = '{"pattern_detail":["trunk_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["trunk_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["trunk_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["kneeling"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["trunk_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Cable Crunch'));
 
@@ -159,6 +259,26 @@ UPDATE public.exercises SET
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
+  how_to_short = 'Attach the cuff low, stand tall with the working leg free, move the leg out from the hip without twisting the pelvis, then return slowly under control.',
+  curation_tags = '{"pattern_detail":["hip_abduction"],"plane_of_motion":["frontal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["single_leg"],"unilateral_profile":["unilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["hip_abduction"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Cable Hip Abduction'));
+
+UPDATE public.exercises SET
+  equipment = 'Cable',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Attach the cuff low, stand beside the stack, sweep the working leg across the body from the hip, and return slowly without leaning or rotating the torso.',
+  curation_tags = '{"pattern_detail":["hip_adduction"],"plane_of_motion":["frontal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["single_leg"],"unilateral_profile":["unilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["hip_adduction"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Cable Hip Adduction'));
+
+UPDATE public.exercises SET
+  equipment = 'Cable',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
   how_to_short = 'Brace, drive through the heels, extend the hips until the ribs stay stacked, and lower without arching the low back.',
   curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
@@ -179,10 +299,30 @@ UPDATE public.exercises SET
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
+  how_to_short = 'Face away from the low cable, hinge the hips back while keeping the rope close, then drive the hips forward and squeeze the glutes without leaning back.',
+  curation_tags = '{"pattern_detail":["hinge"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Cable Pull-Through'));
+
+UPDATE public.exercises SET
+  equipment = 'Cable',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
   how_to_short = 'Set the shoulders down, sweep the arms out and back in line with the rear delts, and return without shrugging or jutting the ribs forward.',
   curation_tags = '{"pattern_detail":["shoulder_horizontal_abduction"],"plane_of_motion":["transverse"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["shoulder_horizontal_abduction"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Cable Rear Delt Fly'));
+
+UPDATE public.exercises SET
+  equipment = 'Cable',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set the cable high, brace the ribs over the pelvis, rotate the handle down across the body as one unit, then return slowly without letting the hips or low back twist freely.',
+  curation_tags = '{"pattern_detail":["trunk_rotation"],"plane_of_motion":["transverse"],"exercise_utility":["auxiliary"],"body_position":["standing"],"training_goal":["core_stability","accessory"],"difficulty":["intermediate"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["trunk_rotation"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Cable Woodchop'));
 
 UPDATE public.exercises SET
   equipment = 'Machine',
@@ -203,6 +343,26 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["plantar_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["plantar_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Calf Raise (Standing)'));
+
+UPDATE public.exercises SET
+  equipment = 'Machine',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set the shoulders back and down, lower the load to the chest or handles with stacked wrists, and press to full elbow extension under control.',
+  curation_tags = '{"pattern_detail":["horizontal_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["horizontal_press"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Chest Press'));
+
+UPDATE public.exercises SET
+  equipment = 'Dumbbell',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Lie chest-down on an incline bench, let the dumbbells hang to full reach, row toward the lower ribs, squeeze the upper back, and lower without lifting the chest.',
+  curation_tags = '{"pattern_detail":["horizontal_pull"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["prone"],"training_goal":["strength","hypertrophy"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["horizontal_pull"],"spine_demand":["chest_supported"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Chest-Supported Dumbbell Row'));
 
 UPDATE public.exercises SET
   equipment = 'Machine',
@@ -350,7 +510,7 @@ UPDATE public.exercises SET
   default_unit = 'reps',
   calories_estimation_method = NULL,
   how_to_short = 'Move through a full ankle stretch, rise onto the ball of the foot, pause at the top, and lower under control.',
-  curation_tags = '{"pattern_detail":["plantar_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["plantar_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["plantar_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["supported"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["plantar_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Donkey Calf Raise'));
 
@@ -475,6 +635,26 @@ WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Hack Squat'));
 
 UPDATE public.exercises SET
+  equipment = 'Cable',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set a half-kneeling base, brace the trunk, pull the cable diagonally across the body, and control the return without shifting the hips or arching the back.',
+  curation_tags = '{"pattern_detail":["trunk_rotation"],"plane_of_motion":["transverse"],"exercise_utility":["auxiliary"],"body_position":["kneeling"],"training_goal":["core_stability","accessory"],"difficulty":["intermediate"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["trunk_rotation"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Half-Kneeling Cable Chop'));
+
+UPDATE public.exercises SET
+  equipment = 'Cable',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Kneel side-on to the cable, brace the glutes and trunk, press the handle straight out from the chest, and resist rotation before bringing it back in.',
+  curation_tags = '{"pattern_detail":["anti_rotation"],"plane_of_motion":["transverse"],"exercise_utility":["auxiliary"],"body_position":["kneeling"],"training_goal":["core_stability","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Half-Kneeling Pallof Press'));
+
+UPDATE public.exercises SET
   equipment = 'Dumbbell',
   measurement_type = 'reps',
   default_unit = 'reps',
@@ -483,6 +663,16 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["elbow_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["elbow_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Hammer Curl'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'time',
+  default_unit = 's',
+  calories_estimation_method = NULL,
+  how_to_short = 'Hinge from the hips with a soft knee bend, reach only as far as you can keep a long spine, breathe steadily, and avoid forcing the stretch.',
+  curation_tags = '{"pattern_detail":["mobility_drill"],"plane_of_motion":["sagittal"],"exercise_utility":["preparatory"],"body_position":["standing"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Hamstring Stretch'));
 
 UPDATE public.exercises SET
   equipment = 'Bodyweight',
@@ -515,6 +705,16 @@ WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('High-to-Low Cable Fly'));
 
 UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'time',
+  default_unit = 's',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set a half-kneeling stance, tuck the pelvis slightly, squeeze the rear-side glute, and ease forward until you feel a controlled stretch in the front of the hip.',
+  curation_tags = '{"pattern_detail":["mobility_drill"],"plane_of_motion":["sagittal"],"exercise_utility":["preparatory"],"body_position":["kneeling"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Hip Flexor Stretch'));
+
+UPDATE public.exercises SET
   equipment = 'Barbell',
   measurement_type = 'reps',
   default_unit = 'reps',
@@ -530,7 +730,7 @@ UPDATE public.exercises SET
   default_unit = 's',
   calories_estimation_method = NULL,
   how_to_short = 'Brace the trunk, keep the ribs stacked over the pelvis, and hold the position without letting the low back arch or the torso rotate.',
-  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","endurance"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cardio_machine"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["supine"],"training_goal":["core_stability","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Hollow Body Hold'));
 
@@ -586,11 +786,21 @@ WHERE is_global = TRUE
 
 UPDATE public.exercises SET
   equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set your body in a straight line under the bar or straps, pull the chest toward the handles while keeping the ribs down, then lower to full reach without the hips sagging.',
+  curation_tags = '{"pattern_detail":["horizontal_pull"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["supine"],"training_goal":["strength","hypertrophy","skill"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["horizontal_pull"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Inverted Row'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
   measurement_type = 'time',
   default_unit = 's',
   calories_estimation_method = NULL,
   how_to_short = 'Stay tall, jump only high enough to clear the rope, and turn it from the wrists while keeping a steady rhythm.',
-  curation_tags = '{"pattern_detail":["rope_skip"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","endurance"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cardio_machine"],"joint_emphasis":["cyclical_conditioning"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["rope_skip"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","endurance"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["cyclical_conditioning"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Jump Rope'));
 
@@ -639,8 +849,8 @@ UPDATE public.exercises SET
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
-  how_to_short = 'Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.',
-  curation_tags = '{"pattern_detail":["vertical_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["vertical_press"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  how_to_short = 'Brace the trunk, descend by sitting between the hips while keeping pressure through the whole foot, and drive up through mid-foot.',
+  curation_tags = '{"pattern_detail":["squat"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Leg Press'));
 
@@ -670,7 +880,7 @@ UPDATE public.exercises SET
   default_unit = 'reps',
   calories_estimation_method = NULL,
   how_to_short = 'Set the hips firmly into the pad, curl the heels toward you without lifting the pelvis, and lower slowly through the full range.',
-  curation_tags = '{"pattern_detail":["knee_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["knee_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["prone"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Lying Leg Curl'));
 
@@ -709,6 +919,16 @@ UPDATE public.exercises SET
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
+  how_to_short = 'Sit tall with the pads secure, set the shoulders down, pull the handles toward the upper chest by driving the elbows down, and return to full reach without shrugging.',
+  curation_tags = '{"pattern_detail":["vertical_pull"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["vertical_pull"],"spine_demand":["low_spinal_load"],"grip_constraint":["shoulder_depression"]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Machine Pulldown'));
+
+UPDATE public.exercises SET
+  equipment = 'Machine',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
   how_to_short = 'Brace the torso, pull the load toward the lower ribs or hip, squeeze the upper back, and return without letting the shoulders dump forward.',
   curation_tags = '{"pattern_detail":["horizontal_pull"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["strength","hypertrophy"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["horizontal_pull"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
@@ -723,6 +943,16 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["vertical_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["vertical_press"],"spine_demand":["low_spinal_load"],"grip_constraint":["overhead_lockout"]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Machine Shoulder Press'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'time',
+  default_unit = 's',
+  calories_estimation_method = NULL,
+  how_to_short = 'Hold a strong plank, drive one knee toward the chest at a time, switch smoothly, and keep the hips from bouncing or sagging as the pace increases.',
+  curation_tags = '{"pattern_detail":["locomotion_drill"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["prone"],"training_goal":["conditioning","endurance"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["alternating"],"loading_profile":["bodyweight"],"joint_emphasis":["cyclical_conditioning"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Mountain Climber'));
 
 UPDATE public.exercises SET
   equipment = 'Bodyweight',
@@ -836,11 +1066,21 @@ WHERE is_global = TRUE
 
 UPDATE public.exercises SET
   equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Start in a piked position with hips high, lower the head toward the floor between the hands, then press back up while keeping the shoulders active and the trunk braced.',
+  curation_tags = '{"pattern_detail":["vertical_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["strength","hypertrophy","skill"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["vertical_press"],"spine_demand":["low_spinal_load"],"grip_constraint":["overhead_lockout"]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Pike Push-Up'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
   measurement_type = 'time',
   default_unit = 's',
   calories_estimation_method = NULL,
   how_to_short = 'Brace the trunk, keep the ribs stacked over the pelvis, and hold the position without letting the low back arch or the torso rotate.',
-  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","endurance"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cardio_machine"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["prone"],"training_goal":["core_stability","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Plank'));
 
@@ -853,6 +1093,26 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["shoulder_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["shoulder_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Plate Front Raise'));
+
+UPDATE public.exercises SET
+  equipment = 'Plate',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Hold the plate close, circle it slowly around the head while keeping the ribs down, and reverse direction without shrugging or leaning back.',
+  curation_tags = '{"pattern_detail":["shoulder_circumduction"],"plane_of_motion":["multi_planar"],"exercise_utility":["preparatory"],"body_position":["standing"],"training_goal":["mobility","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["shoulder_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Plate Halo'));
+
+UPDATE public.exercises SET
+  equipment = 'Plate',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Sit tall with the plate close to the chest, rotate the ribcage side to side under control, and keep the hips quiet instead of throwing the load with the arms.',
+  curation_tags = '{"pattern_detail":["trunk_rotation"],"plane_of_motion":["transverse"],"exercise_utility":["auxiliary"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["trunk_rotation"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Plate Russian Twist'));
 
 UPDATE public.exercises SET
   equipment = 'Machine',
@@ -920,7 +1180,7 @@ UPDATE public.exercises SET
   default_unit = 'reps',
   calories_estimation_method = NULL,
   how_to_short = 'Brace, drive through the heels, extend the hips until the ribs stay stacked, and lower without arching the low back.',
-  curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["prone"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Reverse Hyperextension'));
 
@@ -1040,9 +1300,19 @@ UPDATE public.exercises SET
   default_unit = 's',
   calories_estimation_method = NULL,
   how_to_short = 'Brace the trunk, keep the ribs stacked over the pelvis, and hold the position without letting the low back arch or the torso rotate.',
-  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["frontal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","endurance"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cardio_machine"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["frontal"],"exercise_utility":["auxiliary"],"body_position":["side_lying"],"training_goal":["core_stability","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Side Plank'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Hold a strong side plank, reach the top arm under the torso with controlled rotation, then open back up without dropping the hips.',
+  curation_tags = '{"pattern_detail":["trunk_rotation"],"plane_of_motion":["transverse"],"exercise_utility":["auxiliary"],"body_position":["side_lying"],"training_goal":["core_stability","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["balance_demanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["trunk_rotation"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Side Plank Reach-Through'));
 
 UPDATE public.exercises SET
   equipment = 'Cable',
@@ -1089,6 +1359,16 @@ UPDATE public.exercises SET
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
+  how_to_short = 'Balance on one foot, lower the heel into a full stretch, rise onto the ball of the foot, pause briefly, and lower slowly without rolling the ankle.',
+  curation_tags = '{"pattern_detail":["plantar_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["balance_demanding"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["plantar_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Single-Leg Calf Raise'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
   how_to_short = 'Brace, drive through the heels, extend the hips until the ribs stay stacked, and lower without arching the low back.',
   curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["supine"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
@@ -1099,8 +1379,8 @@ UPDATE public.exercises SET
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
-  how_to_short = 'Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.',
-  curation_tags = '{"pattern_detail":["vertical_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["unilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["vertical_press"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  how_to_short = 'Brace the trunk, descend by sitting between the hips while keeping pressure through the whole foot, and drive up through mid-foot.',
+  curation_tags = '{"pattern_detail":["squat"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["unilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Single-Leg Press'));
 
@@ -1129,8 +1409,18 @@ UPDATE public.exercises SET
   measurement_type = 'distance',
   default_unit = 'm',
   calories_estimation_method = NULL,
+  how_to_short = 'Hold the straps with a braced torso, walk with steady powerful steps, keep tension on the sled, and finish the target distance without jerking through the arms.',
+  curation_tags = '{"pattern_detail":["sled_drag"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","strength"],"difficulty":["beginner"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["sled_loaded"],"joint_emphasis":["cyclical_conditioning"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Sled Drag'));
+
+UPDATE public.exercises SET
+  equipment = 'Sled',
+  measurement_type = 'distance',
+  default_unit = 'm',
+  calories_estimation_method = NULL,
   how_to_short = 'Lean into the handles with a rigid trunk, drive the sled with short powerful steps, and keep the feet pushing straight through the floor.',
-  curation_tags = '{"pattern_detail":["sled_drive"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","power"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cardio_machine"],"joint_emphasis":["cyclical_conditioning"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["sled_drive"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","power"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["sled_loaded"],"joint_emphasis":["cyclical_conditioning"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Sled Push'));
 
@@ -1143,6 +1433,36 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["horizontal_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["supine"],"training_goal":["strength","hypertrophy"],"difficulty":["beginner"],"setup_cost":["high_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["horizontal_press"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Smith Machine Bench Press'));
+
+UPDATE public.exercises SET
+  equipment = 'Smith Machine',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set the upper back on the bench under the Smith bar, brace the ribs down, drive through the heels to extend the hips, pause with glutes squeezed, and lower under control.',
+  curation_tags = '{"pattern_detail":["hip_extension"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["supine"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["high_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Smith Machine Hip Thrust'));
+
+UPDATE public.exercises SET
+  equipment = 'Smith Machine',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Set the bench to a low incline under the Smith bar, pack the shoulders, lower the bar to the upper chest, and press to lockout without letting the elbows flare excessively.',
+  curation_tags = '{"pattern_detail":["horizontal_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["supine"],"training_goal":["strength","hypertrophy"],"difficulty":["beginner"],"setup_cost":["high_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["horizontal_press"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Smith Machine Incline Bench Press'));
+
+UPDATE public.exercises SET
+  equipment = 'Smith Machine',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Stand with the bar close, unlock the knees, hinge the hips back while keeping the spine braced, then drive the hips forward to stand tall without leaning back.',
+  curation_tags = '{"pattern_detail":["hinge"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["strength","hypertrophy"],"difficulty":["beginner"],"setup_cost":["high_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["hip_dominant"],"spine_demand":["moderate_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Smith Machine Romanian Deadlift'));
 
 UPDATE public.exercises SET
   equipment = 'Smith Machine',
@@ -1173,6 +1493,16 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["hinge"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["strength","hypertrophy"],"difficulty":["advanced"],"setup_cost":["high_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["hip_dominant"],"spine_demand":["high_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Snatch-Grip Deadlift'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Dip into a controlled squat, jump straight up with full hip and knee extension, land softly with knees tracking over the feet, and reset before the next rep.',
+  curation_tags = '{"pattern_detail":["plyometric_jump"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["standing"],"training_goal":["power","conditioning"],"difficulty":["intermediate"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["knee_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Squat Jump'));
 
 UPDATE public.exercises SET
   equipment = 'Cardio Machine',
@@ -1230,7 +1560,7 @@ UPDATE public.exercises SET
   default_unit = 's',
   calories_estimation_method = NULL,
   how_to_short = 'Move through the intended stretch or mobility drill under control, breathe steadily, and stop short of any position that forces pain or joint compensation.',
-  curation_tags = '{"pattern_detail":["mobility_drill"],"plane_of_motion":["multi_planar"],"exercise_utility":["preparatory"],"body_position":["variable"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cardio_machine"],"joint_emphasis":["general_strength"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["mobility_drill"],"plane_of_motion":["multi_planar"],"exercise_utility":["preparatory"],"body_position":["variable"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["general_strength"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Stretch'));
 
@@ -1273,6 +1603,16 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["hinge"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["strength","skill"],"difficulty":["advanced"],"setup_cost":["high_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["hip_dominant"],"spine_demand":["high_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Tempo Deadlift'));
+
+UPDATE public.exercises SET
+  equipment = 'Bodyweight',
+  measurement_type = 'reps',
+  default_unit = 'reps',
+  calories_estimation_method = NULL,
+  how_to_short = 'Lie on your side with knees stacked, rotate the top arm and ribcage open toward the floor behind you, breathe into the end range, and return without forcing the low back.',
+  curation_tags = '{"pattern_detail":["mobility_drill"],"plane_of_motion":["transverse"],"exercise_utility":["preparatory"],"body_position":["side_lying"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["trunk_rotation"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+WHERE is_global = TRUE
+  AND lower(btrim(name)) = lower(btrim('Thoracic Open Book'));
 
 UPDATE public.exercises SET
   equipment = 'Cardio Machine',
@@ -1320,7 +1660,7 @@ UPDATE public.exercises SET
   default_unit = 's',
   calories_estimation_method = NULL,
   how_to_short = 'Brace the trunk, keep the ribs stacked over the pelvis, and hold the position without letting the low back arch or the torso rotate.',
-  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["conditioning","endurance"],"difficulty":["advanced"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cardio_machine"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
+  curation_tags = '{"pattern_detail":["trunk_bracing"],"plane_of_motion":["sagittal"],"exercise_utility":["auxiliary"],"body_position":["prone"],"training_goal":["core_stability","accessory"],"difficulty":["advanced"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["trunk_bracing"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Weighted Plank'));
 
@@ -1363,16 +1703,6 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["horizontal_pull"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["standing"],"training_goal":["strength","hypertrophy"],"difficulty":["intermediate"],"setup_cost":["high_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["horizontal_pull"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('Yates Row'));
-
-UPDATE public.exercises SET
-  equipment = 'Machine',
-  measurement_type = 'reps',
-  default_unit = 'reps',
-  calories_estimation_method = NULL,
-  how_to_short = 'Set the shoulders back and down, lower the load to the chest or handles with stacked wrists, and press to full elbow extension under control.',
-  curation_tags = '{"pattern_detail":["horizontal_push"],"plane_of_motion":["sagittal"],"exercise_utility":["basic"],"body_position":["seated"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["machine_loaded"],"joint_emphasis":["horizontal_press"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
-WHERE is_global = TRUE
-  AND lower(btrim(name)) = lower(btrim('Chest Press'));
 
 -- Verification:
 -- SELECT name, jsonb_object_keys(curation_tags) FROM public.exercises WHERE is_global = TRUE LIMIT 20;

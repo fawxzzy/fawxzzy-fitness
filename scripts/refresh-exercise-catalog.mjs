@@ -86,6 +86,56 @@ const BEGINNER_NAME_HINTS = [
   "stretch",
 ];
 
+const CURATION_GROUP_KEYS = Object.keys(CURATION_GROUP_LABELS);
+
+const PRESERVE_CANONICAL_METADATA_NAMES = new Set([
+  "bodyweight squat",
+  "bodyweight reverse lunge",
+  "bodyweight walking lunge",
+  "bodyweight step-up",
+  "single-leg calf raise",
+  "bodyweight glute bridge",
+  "inverted row",
+  "pike push-up",
+  "assisted pull-up",
+  "cable pull-through",
+  "cable hip abduction",
+  "cable hip adduction",
+  "chest-supported dumbbell row",
+  "cable woodchop",
+  "half-kneeling cable chop",
+  "half-kneeling pallof press",
+  "bird dog",
+  "side plank reach-through",
+  "hip flexor stretch",
+  "hamstring stretch",
+  "thoracic open book",
+  "box jump",
+  "squat jump",
+  "burpee",
+  "mountain climber",
+  "sled drag",
+  "backward sled drag",
+  "plate halo",
+  "plate russian twist",
+  "smith machine incline bench press",
+  "smith machine romanian deadlift",
+  "smith machine hip thrust",
+  "machine pulldown",
+]);
+
+const CARDIO_PATTERN_DETAILS = new Set([
+  "running",
+  "walking",
+  "cycling",
+  "rowing",
+  "step_cardio",
+  "rope_skip",
+  "sled_drive",
+  "full_body_conditioning",
+  "locomotion_drill",
+]);
+
 function readCanonicalExercises() {
   return JSON.parse(fs.readFileSync(CANONICAL_PATH, "utf8"));
 }
@@ -105,6 +155,31 @@ function slugify(value) {
 
 function uniq(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function normalizeList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return uniq(value.map((item) => String(item ?? "").trim()).filter(Boolean));
+}
+
+function normalizeExistingCurationTags(value) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return Object.fromEntries(CURATION_GROUP_KEYS.map((key) => [key, normalizeList(source[key])]));
+}
+
+function hasCompleteCurationTags(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return CURATION_GROUP_KEYS.every((key) => Array.isArray(value[key]));
+}
+
+function shouldPreserveCanonicalMetadata(name) {
+  return PRESERVE_CANONICAL_METADATA_NAMES.has(name);
 }
 
 function normalizeEquipment(value) {
@@ -134,17 +209,24 @@ function hasAnyToken(name, tokens) {
 }
 
 function isCardioExercise(row, name) {
-  return row.measurement_type === "time"
-    || row.measurement_type === "distance"
-    || row.measurement_type === "time_distance"
-    || String(row.primary_muscle ?? "").trim().toLowerCase() === "cardio"
+  return String(row.primary_muscle ?? "").trim().toLowerCase() === "cardio"
     || String(row.equipment ?? "").trim().toLowerCase() === "cardio machine"
     || name === "sled push"
-    || name === "jump rope";
+    || name === "jump rope"
+    || name === "burpee"
+    || name === "mountain climber";
 }
 
 function resolvePatternDetail(row, name) {
   if (name === "stretch") return "mobility_drill";
+  if (hasAnyToken(name, ["hip flexor stretch", "hamstring stretch", "thoracic open book"])) return "mobility_drill";
+  if (hasAnyToken(name, ["bird dog", "half-kneeling pallof press"])) return "anti_rotation";
+  if (hasAnyToken(name, ["cable woodchop", "half-kneeling cable chop", "side plank reach-through", "plate russian twist"])) return "trunk_rotation";
+  if (hasAnyToken(name, ["box jump", "squat jump"])) return "plyometric_jump";
+  if (name === "burpee") return "full_body_conditioning";
+  if (name === "mountain climber") return "locomotion_drill";
+  if (hasAnyToken(name, ["sled drag", "backward sled drag"])) return "sled_drag";
+  if (name === "plate halo") return "shoulder_circumduction";
   if (hasAnyToken(name, ["treadmill run", "incline walk"])) return name === "treadmill run" ? "running" : "walking";
   if (hasAnyToken(name, ["stationary bike", "air bike sprint"])) return "cycling";
   if (name === "rowing machine") return "rowing";
@@ -171,13 +253,13 @@ function resolvePatternDetail(row, name) {
   if (hasAnyToken(name, ["pushdown", "skullcrusher", "triceps extension"]) || (name.includes("kickback") && String(row.primary_muscle ?? "").toLowerCase().includes("tricep"))) return "elbow_extension";
   if (hasAnyToken(name, ["pull-up", "chin-up", "pulldown"])) return "vertical_pull";
   if (hasAnyToken(name, ["row", "face pull"])) return "horizontal_pull";
+  if (hasAnyToken(name, ["split squat", "lunge", "step-up"])) return "split_squat_lunge";
+  if (hasAnyToken(name, ["squat", "leg press"])) return "squat";
+  if (hasAnyToken(name, ["deadlift", "rack pull", "romanian", "stiff-leg", "pull-through"])) return "hinge";
   if (hasAnyToken(name, ["press"])) {
     if (hasAnyToken(name, ["bench", "chest press", "push-up", "dips"])) return "horizontal_push";
     return "vertical_push";
   }
-  if (hasAnyToken(name, ["split squat", "lunge", "step-up"])) return "split_squat_lunge";
-  if (hasAnyToken(name, ["squat", "leg press"])) return "squat";
-  if (hasAnyToken(name, ["deadlift", "rack pull", "romanian", "stiff-leg"])) return "hinge";
 
   if (row.movement_pattern === "pull") return "horizontal_pull";
   if (row.movement_pattern === "squat") return "squat";
@@ -219,6 +301,8 @@ function resolvePlaneOfMotion(row, name, patternDetail) {
     case "chest_fly":
     case "shoulder_horizontal_abduction":
       return "transverse";
+    case "shoulder_circumduction":
+      return "multi_planar";
     case "mobility_drill":
       return "multi_planar";
     default:
@@ -237,6 +321,9 @@ function resolveExerciseUtility(row, name, patternDetail, cardio) {
     "vertical_pull",
     "hinge",
     "squat",
+    "full_body_conditioning",
+    "locomotion_drill",
+    "sled_drag",
   ].includes(patternDetail)) {
     return "basic";
   }
@@ -263,6 +350,13 @@ function resolveExerciseUtility(row, name, patternDetail, cardio) {
 
 function resolveBodyPosition(row, name, patternDetail) {
   if (name === "stretch") return "variable";
+  if (name === "plank" || name === "weighted plank") return "prone";
+  if (name === "side plank") return "side_lying";
+  if (hasAnyToken(name, ["hollow body hold", "dead bug", "lying leg raise"])) return "supine";
+  if (name === "cable crunch") return "kneeling";
+  if (hasAnyToken(name, ["back extension", "reverse hyperextension", "lying leg curl"])) return "prone";
+  if (name === "seated leg curl") return "seated";
+  if (name === "donkey calf raise") return "supported";
   if (hasAnyToken(name, ["pull-up", "chin-up", "hanging leg raise"])) return "hanging";
   if (name === "ab wheel rollout") return "kneeling";
   if (hasAnyToken(name, ["walking lunge", "reverse lunge", "bulgarian split squat", "split squat", "step-up"])) return "split_stance";
@@ -324,11 +418,11 @@ function resolveUnilateralProfile(name, patternDetail) {
 
 function resolveLoadingProfile(row, cardio) {
   const equipment = String(row.equipment ?? "").toLowerCase();
-  if (cardio) return "cardio_machine";
+  if (equipment === "cardio machine") return "cardio_machine";
+  if (equipment === "sled") return "sled_loaded";
   if (equipment === "bodyweight") return "bodyweight";
   if (equipment === "cable") return "cable_loaded";
   if (equipment === "machine" || equipment === "smith machine") return "machine_loaded";
-  if (equipment === "sled") return "sled_loaded";
   return "free_weight";
 }
 
@@ -382,7 +476,14 @@ function resolveJointEmphasis(patternDetail) {
     case "step_cardio":
     case "rope_skip":
     case "sled_drive":
+    case "full_body_conditioning":
+    case "locomotion_drill":
+    case "sled_drag":
       return "cyclical_conditioning";
+    case "plyometric_jump":
+      return "knee_dominant";
+    case "shoulder_circumduction":
+      return "shoulder_flexion";
     default:
       return "general_strength";
   }
@@ -416,8 +517,133 @@ function resolveGripConstraints(name, patternDetail) {
   return uniq(constraints);
 }
 
+function buildMuscleMetadata(primary_muscle, primary_muscles, secondary_muscles) {
+  return {
+    primary_muscle,
+    primary_muscles,
+    secondary_muscles,
+  };
+}
+
+function normalizeExistingMuscleMetadata(row) {
+  const primaryMuscles = normalizeList(row.primary_muscles);
+  const secondaryMuscles = normalizeList(row.secondary_muscles);
+  const primaryMuscle = String(row.primary_muscle ?? "").trim() || primaryMuscles.join(", ");
+
+  return buildMuscleMetadata(primaryMuscle, primaryMuscles, secondaryMuscles);
+}
+
+function resolveCardioSecondaryMuscles(name, patternDetail) {
+  if (patternDetail === "rope_skip") return ["calves"];
+  if (patternDetail === "running") return ["quads", "calves"];
+  if (patternDetail === "walking") return ["glutes", "quads"];
+  if (patternDetail === "cycling" || patternDetail === "step_cardio") return ["quads", "glutes"];
+  if (patternDetail === "rowing") return ["lats", "quads"];
+  if (patternDetail === "sled_drive") return ["quads", "glutes"];
+  if (name === "burpee") return ["chest", "triceps", "quads", "glutes", "core"];
+  if (name === "mountain climber") return ["core", "hip flexors", "shoulders"];
+  return [];
+}
+
+function resolveMuscleMetadata(row, name, patternDetail, curationTags) {
+  if (shouldPreserveCanonicalMetadata(name)) {
+    return normalizeExistingMuscleMetadata(row);
+  }
+
+  if (name === "stretch") {
+    return normalizeExistingMuscleMetadata(row);
+  }
+
+  if (patternDetail === "horizontal_pull" && hasAnyToken(name, ["face pull", "upright row"])) {
+    return normalizeExistingMuscleMetadata(row);
+  }
+
+  const loadingProfile = curationTags.loading_profile?.[0] ?? resolveLoadingProfile(row, false);
+  const bodyPosition = curationTags.body_position?.[0] ?? resolveBodyPosition(row, name, patternDetail);
+  const freeOrBodyweightLower = loadingProfile === "free_weight" || loadingProfile === "bodyweight";
+
+  switch (patternDetail) {
+    case "elbow_flexion":
+      return buildMuscleMetadata(
+        "biceps",
+        ["biceps"],
+        hasAnyToken(name, ["hammer curl", "cross-body hammer curl"]) ? ["forearms"] : [],
+      );
+    case "elbow_extension":
+      return buildMuscleMetadata("triceps", ["triceps"], []);
+    case "horizontal_push":
+      return buildMuscleMetadata("chest, triceps", ["chest", "triceps"], ["front delts"]);
+    case "chest_fly":
+      return buildMuscleMetadata("chest", ["chest"], ["front delts"]);
+    case "vertical_push":
+      return buildMuscleMetadata(
+        "front delts, triceps",
+        ["front delts", "triceps"],
+        row.equipment === "Barbell" && bodyPosition !== "seated" ? ["side delts", "core"] : ["side delts"],
+      );
+    case "shoulder_abduction":
+      return buildMuscleMetadata("side delts", ["side delts"], ["upper traps"]);
+    case "shoulder_horizontal_abduction":
+      return buildMuscleMetadata("rear delts", ["rear delts"], ["upper back"]);
+    case "shoulder_flexion":
+      return buildMuscleMetadata("front delts", ["front delts"], ["upper traps"]);
+    case "vertical_pull":
+      return buildMuscleMetadata(
+        "lats, upper back",
+        ["lats", "upper back"],
+        row.equipment === "Bodyweight" && bodyPosition === "hanging" ? ["biceps", "core"] : ["biceps"],
+      );
+    case "horizontal_pull":
+      return buildMuscleMetadata("lats, mid back", ["lats", "mid back"], ["rear delts", "biceps"]);
+    case "squat":
+      return buildMuscleMetadata(
+        "quads, glutes",
+        ["quads", "glutes"],
+        freeOrBodyweightLower ? ["core", "adductors"] : ["adductors"],
+      );
+    case "split_squat_lunge":
+      return buildMuscleMetadata("quads, glutes", ["quads", "glutes"], ["adductors", "core"]);
+    case "hinge":
+      return buildMuscleMetadata("glutes, hamstrings, lower back", ["glutes", "hamstrings", "lower back"], ["core"]);
+    case "hip_extension":
+      return buildMuscleMetadata("glutes", ["glutes"], ["hamstrings", "core"]);
+    case "knee_extension":
+      return buildMuscleMetadata("quads", ["quads"], []);
+    case "knee_flexion":
+      return buildMuscleMetadata("hamstrings", ["hamstrings"], ["calves"]);
+    case "hip_abduction":
+      return buildMuscleMetadata("abductors, glutes", ["abductors", "glutes"], ["core"]);
+    case "hip_adduction":
+      return buildMuscleMetadata("adductors", ["adductors"], ["core"]);
+    case "plantar_flexion":
+      return buildMuscleMetadata("calves", ["calves"], []);
+    case "trunk_bracing":
+    case "anti_rotation":
+      return buildMuscleMetadata(
+        "core",
+        ["core"],
+        hasAnyToken(name, ["hollow body hold", "dead bug", "ab wheel rollout"]) ? ["hip flexors"] : [],
+      );
+    case "trunk_flexion":
+    case "trunk_rotation":
+      return buildMuscleMetadata("core", ["core"], []);
+    case "leg_raise":
+      return buildMuscleMetadata("core", ["core"], ["hip flexors"]);
+    default:
+      if (CARDIO_PATTERN_DETAILS.has(patternDetail)) {
+        return buildMuscleMetadata("cardio", ["cardio"], resolveCardioSecondaryMuscles(name, patternDetail));
+      }
+
+      return normalizeExistingMuscleMetadata(row);
+  }
+}
+
 function buildCurationTags(row) {
   const name = toNameKey(row.name);
+  if (shouldPreserveCanonicalMetadata(name) && hasCompleteCurationTags(row.curation_tags)) {
+    return normalizeExistingCurationTags(row.curation_tags);
+  }
+
   const cardio = isCardioExercise(row, name);
   const patternDetail = resolvePatternDetail(row, name);
 
@@ -440,6 +666,14 @@ function buildCurationTags(row) {
 
 function resolveMeasurementMetadata(row, curationTags) {
   const name = toNameKey(row.name);
+  if (shouldPreserveCanonicalMetadata(name) && row.measurement_type && row.default_unit) {
+    return {
+      measurement_type: String(row.measurement_type).trim(),
+      default_unit: String(row.default_unit).trim(),
+      calories_estimation_method: row.calories_estimation_method ?? null,
+    };
+  }
+
   const patternDetail = curationTags.pattern_detail[0];
   const isTimedHold = name === "stretch"
     || name.includes("plank")
@@ -479,6 +713,10 @@ function resolveMeasurementMetadata(row, curationTags) {
 
 function buildHowTo(row, curationTags) {
   const name = toNameKey(row.name);
+  if (shouldPreserveCanonicalMetadata(name) && String(row.how_to_short ?? "").trim()) {
+    return String(row.how_to_short).trim();
+  }
+
   const patternDetail = curationTags.pattern_detail[0];
   const loadingProfile = curationTags.loading_profile[0];
 
@@ -669,16 +907,24 @@ function normalizeExerciseRow(row) {
   const equipment = normalizeEquipment(row.equipment);
   const curationTags = buildCurationTags({ ...row, equipment });
   const measurementMetadata = resolveMeasurementMetadata({ ...row, equipment }, curationTags);
+  const muscleMetadata = resolveMuscleMetadata({ ...row, equipment }, toNameKey(row.name), curationTags.pattern_detail[0], curationTags);
 
   return {
     ...row,
     equipment,
+    primary_muscle: muscleMetadata.primary_muscle,
+    primary_muscles: muscleMetadata.primary_muscles,
+    secondary_muscles: muscleMetadata.secondary_muscles,
     measurement_type: measurementMetadata.measurement_type,
     default_unit: measurementMetadata.default_unit,
     calories_estimation_method: measurementMetadata.calories_estimation_method,
     curation_tags: curationTags,
     how_to_short: buildHowTo({ ...row, equipment }, curationTags),
   };
+}
+
+function sortExercises(exercises) {
+  return [...exercises].sort((left, right) => left.name.localeCompare(right.name));
 }
 
 function sqlString(value) {
@@ -720,7 +966,7 @@ function buildMigration(exercises) {
 
 function main() {
   const source = readCanonicalExercises();
-  const next = source.map(normalizeExerciseRow);
+  const next = sortExercises(source.map(normalizeExerciseRow));
   writeCanonicalExercises(next);
   fs.writeFileSync(MIGRATION_PATH, buildMigration(next));
 
