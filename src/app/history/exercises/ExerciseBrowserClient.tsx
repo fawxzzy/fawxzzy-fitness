@@ -105,6 +105,7 @@ function HistoryExerciseFilters({
       resultPluralLabel="exercises"
       clearSearchAriaLabel="Clear exercise search"
       toggleFiltersAriaLabel="Toggle exercise filters"
+      chromeVariant="history"
     />
   );
 }

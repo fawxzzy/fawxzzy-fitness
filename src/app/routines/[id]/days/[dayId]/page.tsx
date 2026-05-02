@@ -12,9 +12,9 @@ import {
   TodayRouteScaffold,
 } from "@/components/today/TodayScreenFamily";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isCardioExercise } from "@/lib/exercise-metadata";
@@ -22,6 +22,7 @@ import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "@/lib/routines";
+import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -90,9 +91,21 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     startDate: routineRow.start_date,
   });
   const hasExerciseRows = Boolean(canonicalDay && isRunnableDayState(canonicalDay.state));
+  const daySummaryCounts = getRestDayExerciseCountSummaryFromCanonicalExercises(
+    canonicalDay?.runnableExercises ?? [],
+    dayRow.is_rest,
+  );
+  const { countsSummary } = getDayTaxonomyHeaderSummaryParts({
+    dayName: dayLabel,
+    summary: daySummaryCounts,
+    isRest: dayRow.is_rest,
+  });
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
   const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
+  const headerTitleNode = (
+    <RoutineDayHeaderTitle leadingItems={[routineRow.name.trim() || "Routine"]} dayLabel={dayLabel} />
+  );
 
   return (
     <TodayRouteScaffold
@@ -100,8 +113,9 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
         <ContentRail className="py-1">
           <ScreenScaffold recipe="viewDay" className="w-full">
             <SharedScreenHeader
-              recipe="historyDetail"
-              title={<RoutineDayHeaderTitle leadingItems={[routineRow.name.trim() || "Routine"]} dayLabel={dayLabel} />}
+              recipe="viewDay"
+              title={headerTitleNode}
+              subtitle={countsSummary}
               action={<TopRightBackButton href={backHref} ariaLabel="Back to routines" historyBehavior="fallback-only" />}
               align="center"
               className="pl-1"

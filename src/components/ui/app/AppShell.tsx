@@ -13,6 +13,7 @@ type AppShellProps = {
   className?: string;
   topNavMode?: "main" | "none";
   ambientPreset?: AmbientPreset;
+  showEdgeFrame?: boolean;
 };
 
 export function AppShell({
@@ -20,6 +21,7 @@ export function AppShell({
   className,
   topNavMode = "main",
   ambientPreset = "viewDay",
+  showEdgeFrame = true,
 }: AppShellProps) {
   const pathname = usePathname();
   const shouldRenderLocalChrome = shouldRenderLocalAppChrome(pathname);
@@ -46,7 +48,7 @@ export function AppShell({
       style={shellStyle}
     >
       {shouldRenderLocalChrome ? <AppAmbientBackdrop preset={ambientPreset} /> : null}
-      {shouldRenderLocalChrome ? <AppEdgeFrame preset={ambientPreset} /> : null}
+      {shouldRenderLocalChrome && showEdgeFrame ? <AppEdgeFrame preset={ambientPreset} /> : null}
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
         {children}
       </div>

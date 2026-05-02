@@ -14,7 +14,12 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { updateRoutineAction } from "@/app/routines/actions";
-import { buildRoutineDetailsSnapshot, type RoutineDetailsDraft, validateRoutineDetailsDraft } from "@/lib/routine-details-form";
+import {
+  buildRoutineDetailsSnapshot,
+  commitRoutineCycleLengthInput,
+  type RoutineDetailsDraft,
+  validateRoutineDetailsDraft,
+} from "@/lib/routine-details-form";
 
 type Props = {
   routineId: string;
@@ -30,14 +35,7 @@ type Props = {
   deleteAction?: ReactNode;
 };
 
-function resolveRoutineDraftFieldValue(field: string, value: string, previousCycleLength: number) {
-  if (field === "cycleLengthDays") {
-    const nextCycleLength = Math.floor(Number(value));
-    return Number.isFinite(nextCycleLength)
-      ? Math.max(1, Math.min(365, nextCycleLength))
-      : previousCycleLength;
-  }
-
+function resolveRoutineDraftFieldValue(field: string, value: string) {
   if (field === "name") {
     return value.slice(0, 15);
   }
@@ -57,6 +55,7 @@ export function EditRoutineAutosaveForm(props: Props) {
     weightUnit: props.weightUnit,
     distanceUnit,
   });
+  const [cycleLengthInput, setCycleLengthInput] = useState(() => String(props.cycleLengthDays));
   const [isSaving, startTransition] = useTransition();
 
   useToastMessageEffect("error", props.error, { id: "edit-routine-route-error" });
@@ -77,6 +76,10 @@ export function EditRoutineAutosaveForm(props: Props) {
   useEffect(() => {
     setLastSavedSnapshot(initialSnapshot);
   }, [initialSnapshot]);
+
+  useEffect(() => {
+    setCycleLengthInput(String(draft.cycleLengthDays));
+  }, [draft.cycleLengthDays]);
 
   const currentSnapshot = useMemo(() => buildRoutineDetailsSnapshot(draft), [draft]);
   const baselineSnapshot = lastSavedSnapshot || initialSnapshot;
@@ -99,9 +102,25 @@ export function EditRoutineAutosaveForm(props: Props) {
     };
   }, [isDirty]);
 
+  const commitCycleLengthInput = () => {
+    const committedCycleLength = commitRoutineCycleLengthInput(cycleLengthInput, draft.cycleLengthDays);
+    const nextDraft =
+      committedCycleLength.cycleLengthDays === draft.cycleLengthDays
+        ? draft
+        : { ...draft, cycleLengthDays: committedCycleLength.cycleLengthDays };
+
+    setCycleLengthInput(committedCycleLength.inputValue);
+    if (nextDraft !== draft) {
+      setDraft(nextDraft);
+    }
+
+    return nextDraft;
+  };
+
   const saveChanges = () => {
     startTransition(async () => {
-      const nextValidation = validateRoutineDetailsDraft(draft);
+      const nextDraft = commitCycleLengthInput();
+      const nextValidation = validateRoutineDetailsDraft(nextDraft);
       if (!nextValidation.valid) {
         const nextError = nextValidation.error ?? "Please complete all required routine fields.";
         toast.error(nextError);
@@ -115,12 +134,12 @@ export function EditRoutineAutosaveForm(props: Props) {
       const formData = new FormData();
       formData.set("routineId", props.routineId);
       formData.set("existingStartDate", props.existingStartDate);
-      formData.set("name", draft.name.trim());
-      formData.set("cycleLengthDays", String(draft.cycleLengthDays));
-      formData.set("startWeekday", draft.startWeekday);
-      formData.set("timezone", draft.timezone);
-      formData.set("weightUnit", draft.weightUnit);
-      formData.set("distanceUnit", draft.distanceUnit);
+      formData.set("name", nextDraft.name.trim());
+      formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+      formData.set("startWeekday", nextDraft.startWeekday);
+      formData.set("timezone", nextDraft.timezone);
+      formData.set("weightUnit", nextDraft.weightUnit);
+      formData.set("distanceUnit", nextDraft.distanceUnit);
       formData.set("returnTo", props.returnHref);
 
       const result = await updateRoutineAction(formData);
@@ -130,7 +149,7 @@ export function EditRoutineAutosaveForm(props: Props) {
         return;
       }
 
-      setLastSavedSnapshot(buildRoutineDetailsSnapshot(draft));
+      setLastSavedSnapshot(buildRoutineDetailsSnapshot(nextDraft));
       toast.success("Routine changes saved");
     });
   };
@@ -145,16 +164,19 @@ export function EditRoutineAutosaveForm(props: Props) {
           <div className="pt-4">
             <RoutineEditorFormFields
               titleInput
+              cycleLengthInputValue={cycleLengthInput}
               cycleLengthDefaultValue={draft.cycleLengthDays}
               startWeekdayDefaultValue={draft.startWeekday}
               timezoneDefaultValue={draft.timezone}
               weightUnitDefaultValue={draft.weightUnit}
               distanceUnitDefaultValue={draft.distanceUnit}
               values={draft}
+              onCycleLengthInputChange={setCycleLengthInput}
+              onCycleLengthInputCommit={commitCycleLengthInput}
               onFieldChange={(field, value) => {
                 setDraft((current) => ({
                   ...current,
-                  [field]: resolveRoutineDraftFieldValue(field, value, current.cycleLengthDays),
+                  [field]: resolveRoutineDraftFieldValue(field, value),
                 }));
               }}
             />

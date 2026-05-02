@@ -25,6 +25,7 @@ export function EditDayAddExerciseScreen({
   routineId,
   routineDayId,
   exercises,
+  initialSelectedId,
   weightUnit,
   addExerciseAction,
   exerciseStats,
@@ -33,6 +34,7 @@ export function EditDayAddExerciseScreen({
   routineId: string;
   routineDayId: string;
   exercises: ExerciseOption[];
+  initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
   exerciseStats: ExerciseStatsOption[];
@@ -43,6 +45,7 @@ export function EditDayAddExerciseScreen({
       formId="routine-day-add-exercise-form"
       hiddenFields={{ routineId, routineDayId }}
       exercises={exercises}
+      initialSelectedId={initialSelectedId}
       weightUnit={weightUnit}
       exerciseStats={exerciseStats}
       backHref={backHref}

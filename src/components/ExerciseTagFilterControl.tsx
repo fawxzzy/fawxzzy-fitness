@@ -110,8 +110,13 @@ export function ExerciseTagFilterControl({
       )}
 
       {isOpen ? (
-        <div className={cn(compact ? appTokens.exercisePickerFilterPanel : "space-y-2", panelClassName)}>
-          <div className="relative overflow-hidden rounded-[0.95rem]">
+        <div
+          className={cn(
+            compact ? appTokens.exercisePickerFilterPanel : "space-y-2",
+            panelClassName,
+          )}
+        >
+          <div className="relative overflow-hidden rounded-[0.95rem] bg-[rgb(var(--surface-1-rgb)/0.28)]">
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-5 bg-gradient-to-b from-[rgb(var(--surface-1-rgb)/0.86)] via-[rgb(var(--surface-1-rgb)/0.42)] to-transparent" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-7 bg-gradient-to-t from-[rgb(var(--surface-1-rgb)/0.92)] via-[rgb(var(--surface-1-rgb)/0.56)] to-transparent" />
             <div
@@ -122,7 +127,16 @@ export function ExerciseTagFilterControl({
             >
               {groups.map((group) => (
                 <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
-                  <p className={cn(compact ? appTokens.exercisePickerFilterGroupLabel : "text-[11px] font-medium uppercase tracking-wide text-muted", "pl-[4px] pt-[4px]")}>{group.label}</p>
+                  <p
+                    className={cn(
+                      compact
+                        ? appTokens.exercisePickerFilterGroupLabel
+                        : "text-[11px] font-medium uppercase tracking-wide",
+                      "pl-[4px] pt-[4px]",
+                    )}
+                  >
+                    {group.label}
+                  </p>
                   <div className={cn("hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1", compact ? "pt-0.5" : undefined)}>
                     <div className={compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1"}>
                       {[...group.tags].sort((left, right) => {

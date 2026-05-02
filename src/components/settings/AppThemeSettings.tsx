@@ -8,14 +8,17 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { appTokens } from "@/components/ui/app/tokens";
+import { SignatureSectionBar } from "@/components/ui/app/SignatureSeparator";
 import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_NAME_MAX_LENGTH,
   applyAppTheme,
   areAppThemesEqual,
   clearStoredAppThemeSelection,
+  countAppThemeCustomizations,
   DEFAULT_APP_THEME,
   getNextAvailableAppThemeSlotId,
+  getAppThemeSummary,
   readStoredAppTheme,
   readStoredAppThemeLibrary,
   readStoredAppThemeSelection,
@@ -105,7 +108,7 @@ function ThemePanelSection({
 function ThemeSectionDivider() {
   return (
     <div className="flex items-center justify-center py-1.5">
-      <div className="h-[4px] w-3/4 rounded-full bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.3),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.3))] shadow-[0_0_16px_rgb(var(--accent-divider-rgb)/0.5)]" />
+      <SignatureSectionBar />
     </div>
   );
 }
@@ -304,12 +307,29 @@ export function AppThemeSettings({
   const normalizedThemeName = sanitizeAppThemeName(themeName);
   const selectedThemeBaseName = selectedSavedTheme?.name ?? "";
   const selectedThemeBase = selectedSavedTheme?.theme ?? DEFAULT_APP_THEME;
+  const nextAvailableThemeSlotId = getNextAvailableAppThemeSlotId(savedThemes);
+  const themeSummary = getAppThemeSummary(theme);
+  const themeCustomizationCount = countAppThemeCustomizations(theme);
   const hasThemeContentChange = !areAppThemesEqual(theme, selectedThemeBase);
   const hasThemeNameChange = normalizedThemeName !== selectedThemeBaseName;
   const hasActiveThemeChange = hasThemeContentChange || hasThemeNameChange;
-  const canSaveTheme = !isDefaultThemeSelected && normalizedThemeName.length > 0 && hasActiveThemeChange;
+  const showThemeNameField = !isDefaultThemeSelected || hasThemeContentChange || normalizedThemeName.length > 0;
+  const canSaveTheme = normalizedThemeName.length > 0
+    && hasActiveThemeChange
+    && (!isDefaultThemeSelected || nextAvailableThemeSlotId !== null);
   const hasUnitPreferenceChange = weightUnit !== savedWeightUnit || distanceUnit !== savedDistanceUnit;
   const canSaveAnyChange = canSaveTheme || hasUnitPreferenceChange;
+  const themeDraftMessage = isDefaultThemeSelected
+    ? hasThemeContentChange
+      ? nextAvailableThemeSlotId
+        ? "Name this draft to save it into the next open slot."
+        : "All theme slots are full. Select a slot first if you want to overwrite it."
+      : "Default stays live until you make a custom change."
+    : selectedSavedTheme
+      ? hasActiveThemeChange
+        ? `Saving will overwrite ${selectedSavedTheme.name}.`
+        : `${selectedSavedTheme.name} already matches the active theme.`
+      : "Choose a name to save this slot.";
 
   const selectDefaultTheme = () => {
     setSelectedThemeId("default");
@@ -471,7 +491,18 @@ export function AppThemeSettings({
             </div>
           </div>
 
-          {!isDefaultThemeSelected ? (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="rounded-full border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.28)] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-primary)/0.94)]">
+              {themeSummary.title}
+            </span>
+            <span className="rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.24)] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-secondary)/0.9)]">
+              {themeCustomizationCount === 0 ? "No custom changes" : `${themeCustomizationCount} custom ${themeCustomizationCount === 1 ? "change" : "changes"}`}
+            </span>
+          </div>
+
+          <p className={appTokens.settingsStatusMuted}>{themeDraftMessage}</p>
+
+          {showThemeNameField ? (
             <div className={cn(appTokens.settingsFieldStack, "mx-auto w-fit")}>
               <LabeledEditorField
                 label="Theme name"

@@ -8,6 +8,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
+import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -394,9 +395,11 @@ export function SessionExerciseFocus({
               subtitleClassName={isCompletedRow ? "!text-[rgb(var(--success-rgb)/0.98)]" : undefined}
               className={isExpanded ? "overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
               shellClassName={[
-                isExpanded ? "sticky top-0 z-20 shadow-[0_14px_28px_rgb(0_0_0/0.3)]" : "rounded-none shadow-none ring-0",
+                isExpanded
+                  ? "sticky top-0 z-20 !border-0 shadow-[0_14px_28px_rgb(0_0_0/0.3)] [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
+                  : "rounded-none !border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]",
                 rowState.cardState === "completed"
-      ? "border-[rgb(var(--success-rgb)/0.96)] bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.76),rgb(var(--surface-2-rgb)/0.99))] ring-1 ring-[rgb(var(--success-rgb)/0.42)]"
+                  ? "!border-0 bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.76),rgb(var(--surface-2-rgb)/0.99))] ring-0"
                   : undefined,
               ].filter(Boolean).join(" ")}
               shellStyle={isExpanded ? {
@@ -405,7 +408,11 @@ export function SessionExerciseFocus({
                 borderTopRightRadius: "var(--card-radius)",
                 borderBottomRightRadius: "0px",
               }}
-              cardClassName={!isExpanded ? "rounded-none shadow-none ring-0" : undefined}
+              cardClassName={
+                !isExpanded
+                  ? "rounded-none !border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
+                  : "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
+              }
               contentClassName="pl-3"
               mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
               titleMeta={titleMeta}
@@ -526,7 +533,7 @@ export function SessionExerciseFocus({
               <SessionExerciseBlock>
                 <div className={cn(!isExpanded ? "mx-auto w-full min-[360px]:max-w-[22.75rem]" : undefined)}>
                   {shouldRenderCompactSkippedRow ? (
-                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)]">
+                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border-0 bg-[rgb(var(--surface-1-rgb)/0.86)]">
                       <div className="flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2.5">
                         <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
                           {exercise.name}
@@ -543,7 +550,16 @@ export function SessionExerciseFocus({
                               setCount,
                             );
                           }}
-                          className="shrink-0 rounded-[999px] border border-[rgb(var(--danger-rgb)/0.24)] bg-[rgb(var(--danger-rgb)/0.14)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--button-destructive-text))] transition-colors hover:bg-[rgb(var(--danger-rgb)/0.22)] disabled:cursor-not-allowed disabled:opacity-60"
+                          data-bottom-action-intent="danger"
+                          className={cn(
+                            getBottomActionButtonClassName({
+                              intent: "danger",
+                              fullWidth: false,
+                              className: "!min-h-0 h-auto rounded-[999px] px-3 py-1.5 text-[11px] uppercase tracking-[0.14em]",
+                            }),
+                            "shrink-0",
+                            rowViewModel.isSkipPending ? "shadow-none" : undefined,
+                          )}
                         >
                           {rowViewModel.isSkipPending ? "Saving..." : "Unskip"}
                         </button>
@@ -554,7 +570,7 @@ export function SessionExerciseFocus({
                       {disclosureCard}
                     </SessionExerciseCard>
                   ) : (
-                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-transparent">
+                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border-0 bg-transparent">
                       {disclosureCard}
                       {quickActionStrip}
                     </div>

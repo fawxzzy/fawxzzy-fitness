@@ -23,7 +23,7 @@ export function DetailScreenScaffold({
   return (
     <ScrollScreenWithBottomActions
       floatingHeader={(
-        <ContentRail className={cn("py-1", floatingHeaderRailClassName)}>
+        <ContentRail className={cn("py-1 pt-3", floatingHeaderRailClassName)}>
           <ScreenScaffold recipe={recipe} className="w-full">
             {floatingHeader}
           </ScreenScaffold>

@@ -180,6 +180,7 @@ function RoutineEditorTextField({
 export function RoutineEditorFormFields({
   nameDefaultValue,
   cycleLengthDefaultValue,
+  cycleLengthInputValue,
   startWeekdayDefaultValue,
   timezoneDefaultValue,
   weightUnitDefaultValue,
@@ -187,10 +188,13 @@ export function RoutineEditorFormFields({
   titleInput = false,
   values,
   onFieldChange,
+  onCycleLengthInputChange,
+  onCycleLengthInputCommit,
   fields,
 }: {
   nameDefaultValue?: string;
   cycleLengthDefaultValue: number;
+  cycleLengthInputValue?: string;
   startWeekdayDefaultValue: string;
   timezoneDefaultValue: string;
   weightUnitDefaultValue: string;
@@ -198,6 +202,8 @@ export function RoutineEditorFormFields({
   titleInput?: boolean;
   values?: Partial<{ name: string; cycleLengthDays: number; startWeekday: string; timezone: string; weightUnit: string; distanceUnit: string }>;
   onFieldChange?: (field: string, value: string) => void;
+  onCycleLengthInputChange?: (value: string) => void;
+  onCycleLengthInputCommit?: () => void;
   fields?: readonly RoutineEditorFieldName[];
 }) {
   const visibleFields = new Set<RoutineEditorFieldName>(fields ?? ["name", "cycleLengthDays", "startWeekday", "timezone", "weightUnit", "distanceUnit"]);
@@ -239,14 +245,32 @@ export function RoutineEditorFormFields({
             <div className={showName ? "col-span-5" : undefined}>
               <RoutineEditorTextField label="Length">
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  enterKeyHint="done"
+                  pattern="[0-9]*"
                   name="cycleLengthDays"
                   min={1}
                   max={365}
                   required
-                  defaultValue={cycleLengthDefaultValue}
-                  value={values?.cycleLengthDays ?? undefined}
-                  onChange={(event) => onFieldChange?.("cycleLengthDays", event.target.value)}
+                  value={cycleLengthInputValue ?? String(values?.cycleLengthDays ?? cycleLengthDefaultValue)}
+                  onChange={(event) => {
+                    if (onCycleLengthInputChange) {
+                      onCycleLengthInputChange(event.target.value);
+                      return;
+                    }
+
+                    onFieldChange?.("cycleLengthDays", event.target.value);
+                  }}
+                  onBlur={() => onCycleLengthInputCommit?.()}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    onCycleLengthInputCommit?.();
+                  }}
                   className={cn(labeledEditorFieldControlClassName, "min-h-[2.65rem] px-3.5 pt-3.5")}
                 />
               </RoutineEditorTextField>

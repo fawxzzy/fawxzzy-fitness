@@ -18,9 +18,12 @@ type PageProps = {
     id: string;
     dayId: string;
   };
+  searchParams?: {
+    exerciseId?: string;
+  };
 };
 
-export default async function EditDayAddExercisePage({ params }: PageProps) {
+export default async function EditDayAddExercisePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -68,6 +71,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
         routineId={params.id}
         routineDayId={params.dayId}
         exercises={exercises}
+        initialSelectedId={searchParams?.exerciseId}
         weightUnit={routine.weight_unit}
         addExerciseAction={addRoutineDayExerciseAction}
         exerciseStats={exerciseStats}

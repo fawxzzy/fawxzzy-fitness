@@ -15,6 +15,7 @@ import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppBadge } from "@/components/ui/app/AppBadge";
@@ -1539,7 +1540,7 @@ function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
 
 function renderSettingsScenario(scenario: MobileFixtureScenario) {
   return (
-    <MainTabScreen topNavMode="none" ambientPreset="modal">
+    <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
@@ -1556,15 +1557,17 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className={appTokens.settingsContentRail}>
           <SurfaceCard>
-            <div className="pointer-events-none">
-              <SettingsAccordionClient
-                email="dev-regression@example.com"
-                username="dev-regression"
-                legacyBridgeConfigured={false}
-                preferredWeightUnit="lbs"
-                preferredDistanceUnit="mi"
-              />
-            </div>
+            <SettingsScreenStateProvider>
+              <div className="pointer-events-none">
+                <SettingsAccordionClient
+                  email="dev-regression@example.com"
+                  username="dev-regression"
+                  legacyBridgeConfigured={false}
+                  preferredWeightUnit="lbs"
+                  preferredDistanceUnit="mi"
+                />
+              </div>
+            </SettingsScreenStateProvider>
           </SurfaceCard>
         </ContentRail>
 

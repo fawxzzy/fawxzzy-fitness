@@ -37,7 +37,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       }
 
       return (
-        <HistoryRouteScaffold mode="detail" floatingHeader={<div id="history-log-floating-header" />}>
+        <HistoryRouteScaffold mode="detail" showTopChrome={false} floatingHeader={<div id="history-log-floating-header" />}>
           <HistoryLogPageClient
             logId={previewData.sessionSummary.id}
             initialDayName={previewData.initialDayName}
@@ -243,7 +243,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     const clientSessionSummary = toClientPlainObject(sessionSummary);
 
     return (
-      <HistoryRouteScaffold mode="detail" floatingHeader={<div id="history-log-floating-header" />}>
+      <HistoryRouteScaffold mode="detail" showTopChrome={false} floatingHeader={<div id="history-log-floating-header" />}>
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryLogPageClient
           logId={sessionRow.id}
@@ -268,7 +268,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     });
 
     return (
-      <HistoryRouteScaffold mode="detail" floatingHeader={<div id="history-log-floating-header" />}>
+      <HistoryRouteScaffold mode="detail" showTopChrome={false} floatingHeader={<div id="history-log-floating-header" />}>
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistoryRouteErrorShell
           title="Unable to load this session right now."

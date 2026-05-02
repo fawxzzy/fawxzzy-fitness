@@ -9,8 +9,14 @@ const SettingsScreenStateContext = createContext<{
   setExpandedSection: React.Dispatch<React.SetStateAction<SettingsSectionKey>>;
 } | null>(null);
 
-export function SettingsScreenStateProvider({ children }: { children: ReactNode }) {
-  const [expandedSection, setExpandedSection] = useState<SettingsSectionKey>(null);
+export function SettingsScreenStateProvider({
+  children,
+  initialExpandedSection = null,
+}: {
+  children: ReactNode;
+  initialExpandedSection?: SettingsSectionKey;
+}) {
+  const [expandedSection, setExpandedSection] = useState<SettingsSectionKey>(initialExpandedSection);
 
   return (
     <SettingsScreenStateContext.Provider value={{ expandedSection, setExpandedSection }}>

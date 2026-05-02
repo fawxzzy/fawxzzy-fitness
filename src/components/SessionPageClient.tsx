@@ -11,6 +11,7 @@ import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -156,12 +157,14 @@ export function SessionPageClient({
   const hasExercises = exercises.length > 0;
   const floatingHeader = !isExerciseOpen ? (
     <ContentRail>
-      <SessionHeaderControls
-        routineName={routineName}
-        sessionDayName={sessionDayName}
-        sessionSummaryCounts={sessionSummaryCounts}
-        backHref={fallbackReturnHref ?? "/today"}
-      />
+      <ScreenScaffold recipe="todayOverview" className="w-full">
+        <SessionHeaderControls
+          routineName={routineName}
+          sessionDayName={sessionDayName}
+          sessionSummaryCounts={sessionSummaryCounts}
+          backHref={fallbackReturnHref ?? "/today"}
+        />
+      </ScreenScaffold>
     </ContentRail>
   ) : null;
 
@@ -214,7 +217,7 @@ export function SessionPageClient({
               Finish
             </BottomDockButton>
           )}
-          className="w-full"
+          className="w-full grid-cols-[minmax(0,1fr)_minmax(5.75rem,7.25rem)_minmax(0,1fr)]"
           tertiaryClassName="px-0"
           tertiaryFill
         />

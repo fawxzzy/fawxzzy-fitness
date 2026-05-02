@@ -31,15 +31,16 @@ export function ExerciseChooserRouteScaffold({
   backButtonClassName?: string;
 }) {
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet">
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet" showEdgeFrame={false}>
       <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <ContentRail className={cn("py-1", floatingHeaderRailClassName)}>
+      floatingHeader={(
+          <ContentRail className={cn("py-1 pt-3", floatingHeaderRailClassName)}>
             <ScreenScaffold recipe={recipe} className={appTokens.routineEditorFill}>
               <RoutineEditorPageHeader
                 recipe={recipe}
                 title={title}
                 align={headerAlign}
+                withPanel={false}
                 action={(
                   <TopRightBackButton
                     href={backHref}

@@ -2,6 +2,17 @@ import type { AmbientPreset } from "@/lib/ambient/tuning";
 
 const LOCAL_CHROME_PATH_PREFIX = "/dev/mobile-regression";
 
+function isExerciseChooserPath(pathname: string | null) {
+  if (!pathname) return false;
+  return pathname.startsWith("/session/") && pathname.includes("/add-exercise")
+    || (pathname.startsWith("/routines/") && pathname.includes("/edit/day/") && pathname.includes("/add-exercise"));
+}
+
+function isBareSessionPath(pathname: string | null) {
+  if (!pathname) return false;
+  return /^\/session\/[^/]+$/.test(pathname);
+}
+
 export function resolveAmbientPresetForPathname(pathname: string | null): AmbientPreset | null {
   if (pathname?.startsWith(LOCAL_CHROME_PATH_PREFIX)) {
     return null;
@@ -35,7 +46,11 @@ export function resolveAmbientPresetForPathname(pathname: string | null): Ambien
   }
 
   if (pathname.startsWith("/settings")) {
-    return "modal";
+    return "today";
+  }
+
+  if (isBareSessionPath(pathname)) {
+    return "today";
   }
 
   if (pathname.startsWith("/session/")) {
@@ -55,4 +70,8 @@ export function resolveAmbientPresetForPathname(pathname: string | null): Ambien
 
 export function shouldRenderLocalAppChrome(pathname: string | null) {
   return Boolean(pathname?.startsWith(LOCAL_CHROME_PATH_PREFIX));
+}
+
+export function shouldRenderPersistentEdgeFrame(pathname: string | null) {
+  return !isExerciseChooserPath(pathname);
 }

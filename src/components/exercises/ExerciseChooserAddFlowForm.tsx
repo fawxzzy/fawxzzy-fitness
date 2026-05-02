@@ -62,6 +62,7 @@ export function ExerciseChooserAddFlowForm({
         exercises={exercises}
         name="exerciseId"
         initialSelectedId={initialSelectedId ?? exercises[0]?.id}
+        selectionSearchParam="exerciseId"
         weightUnit={weightUnit}
         exerciseStats={exerciseStats}
         renderFooter={({ goalValidation, selectedCanonicalExerciseId, openExerciseInfo }) => (

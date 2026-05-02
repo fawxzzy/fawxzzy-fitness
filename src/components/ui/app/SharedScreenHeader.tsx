@@ -18,8 +18,10 @@ export function SharedScreenHeader({
   className,
   actionClassName,
   subtitleClassName,
+  separatorClassName,
   align = "left",
   withPanel = true,
+  showSeparator = true,
 }: {
   recipe: ScreenContractName;
   eyebrow?: ReactNode;
@@ -33,8 +35,10 @@ export function SharedScreenHeader({
   className?: string;
   actionClassName?: string;
   subtitleClassName?: string;
+  separatorClassName?: string;
   align?: "left" | "center";
   withPanel?: boolean;
+  showSeparator?: boolean;
 }) {
   const screenRecipe = resolveScreenRecipe(recipe);
   const headerNode = (
@@ -47,6 +51,8 @@ export function SharedScreenHeader({
         meta={meta}
         action={action}
         align={align}
+        showSeparator={showSeparator}
+        separatorClassName={separatorClassName}
         className={standaloneHeaderFamily.headerClassName}
         actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}
         titleClassName={cn(standaloneHeaderFamily.titleClassName, titleClassName)}

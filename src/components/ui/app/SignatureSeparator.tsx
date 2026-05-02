@@ -19,7 +19,19 @@ export function SignatureMiniPipe({
 }
 
 export function SignatureDot({ className }: { className?: string }) {
-  return <span aria-hidden="true" className={cn("h-[6px] w-[6px] shrink-0 rounded-full bg-[rgb(var(--accent-divider-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-divider-rgb)/0.46)]", className)} />;
+  return <span aria-hidden="true" className={cn("h-[5px] w-[5px] shrink-0 rounded-full bg-[rgb(var(--accent-divider-rgb)/1)] shadow-[0_0_8px_rgb(var(--accent-divider-rgb)/0.42)]", className)} />;
+}
+
+export function SignatureSectionBar({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "h-[4px] w-3/4 rounded-full bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.3),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.3))] shadow-[0_0_16px_rgb(var(--accent-divider-rgb)/0.5)]",
+        className,
+      )}
+    />
+  );
 }
 
 export function SignatureMetaTag({

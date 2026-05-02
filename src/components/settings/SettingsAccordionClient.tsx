@@ -3,6 +3,7 @@
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 
@@ -40,17 +41,20 @@ export function SettingsAccordionTrigger({
       type="button"
       aria-expanded={expanded}
       onClick={onClick}
-      className="relative flex min-h-[4.5rem] w-full items-center rounded-[var(--radius-md)] border border-transparent bg-[rgb(var(--surface-2)/0.22)] px-4 py-4 shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+      className="group relative block w-full appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 text-left shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <span className={`min-w-0 flex-1 pr-7 ${expanded ? "text-center" : "text-left"}`}>
-        <span className="block text-[1.05rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</span>
-        {summary ? (
-          <span className="mt-1 block text-sm leading-5 text-[rgb(var(--text-secondary)/0.88)]">{summary}</span>
-        ) : null}
+      <span className="relative flex min-h-[2rem] items-end justify-center px-4 pr-12 pb-3">
+        <span className="min-w-0 w-fit max-w-full text-center">
+          <span className="block text-[1.05rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</span>
+          {summary ? (
+            <span className="mt-1 block text-sm leading-5 text-[rgb(var(--text-secondary)/0.88)]">{summary}</span>
+          ) : null}
+        </span>
+        <span className="absolute bottom-3 right-4 shrink-0 text-[rgb(var(--text-muted)/0.84)] transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]">
+          {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+        </span>
       </span>
-      <span className="absolute bottom-3 right-3 shrink-0 text-[rgb(var(--text-muted)/0.84)]">
-        {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-      </span>
+      <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />
     </button>
   );
 }

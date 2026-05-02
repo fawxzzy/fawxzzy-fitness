@@ -8,6 +8,7 @@ type GlassProps = {
   style?: CSSProperties;
   children: ReactNode;
   interactive?: boolean;
+  disablePressScale?: boolean;
 };
 
 const variantClassMap: Record<NonNullable<GlassProps["variant"]>, string> = {
@@ -17,10 +18,10 @@ const variantClassMap: Record<NonNullable<GlassProps["variant"]>, string> = {
   solid: "glass-solid [--glass-blur:var(--glass-blur-off)] [--glass-shadow:var(--glass-shadow-base)] [--glass-current-tint-alpha:0.9]",
 };
 
-export function Glass({ variant = "base", className, style, children, interactive = false }: GlassProps) {
+export function Glass({ variant = "base", className, style, children, interactive = false, disablePressScale = false }: GlassProps) {
   return (
     <div
-      className={`glass-surface ${variantClassMap[variant]} ${variant !== "solid" ? "glass-sheen" : ""} ${interactive ? "glass-interactive" : ""} ${className ?? ""}`}
+      className={`glass-surface ${variantClassMap[variant]} ${variant !== "solid" ? "glass-sheen" : ""} ${interactive ? (disablePressScale ? "glass-interactive-no-scale" : "glass-interactive") : ""} ${className ?? ""}`}
       style={style}
     >
       <div className="relative z-[1]">{children}</div>

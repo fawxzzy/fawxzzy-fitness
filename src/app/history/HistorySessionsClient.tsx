@@ -75,6 +75,7 @@ function HistorySessionFilters({
       clearSearchAriaLabel="Clear session search"
       toggleFiltersAriaLabel="Toggle session filters"
       defaultFilterOpen={initialOpen}
+      chromeVariant="history"
     />
   );
 }

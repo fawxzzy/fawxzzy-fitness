@@ -45,7 +45,7 @@ export default async function SettingsPage() {
   );
 
   return (
-    <MainTabScreen topNavMode="none" ambientPreset="modal">
+    <MainTabScreen topNavMode="none" ambientPreset="today">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <SettingsScreenStateProvider>
         <ScrollScreenWithBottomActions

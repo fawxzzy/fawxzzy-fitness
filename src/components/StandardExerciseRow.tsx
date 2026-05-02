@@ -42,6 +42,7 @@ type StandardExerciseRowProps = {
   titleClassName?: string;
   titleMeta?: ReactNode;
   subtitleClassName?: string;
+  headerDivider?: ReactNode;
   summaryLabel?: string;
   subtitleTone?: "panel" | "plain";
   variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
@@ -81,6 +82,7 @@ export function StandardExerciseRow({
   titleClassName,
   titleMeta,
   subtitleClassName,
+  headerDivider,
   summaryLabel,
   subtitleTone,
   variant = "standard",
@@ -154,6 +156,7 @@ export function StandardExerciseRow({
       titleContainerClassName={titleContainerClassName}
       titleClassName={titleClassName}
       subtitleClassName={subtitleClassName}
+      headerDivider={headerDivider}
       subtitleLabel={summaryLabel}
       subtitleTone={subtitleTone}
       showAccentRail={showAccentRail}

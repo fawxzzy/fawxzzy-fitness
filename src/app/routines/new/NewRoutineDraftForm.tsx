@@ -18,7 +18,13 @@ import {
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
-import { buildRoutineDetailsSnapshot, normalizeRoutineDetailsDraft, validateRoutineDetailsDraft, type RoutineDetailsDraft } from "@/lib/routine-details-form";
+import {
+  buildRoutineDetailsSnapshot,
+  commitRoutineCycleLengthInput,
+  normalizeRoutineDetailsDraft,
+  validateRoutineDetailsDraft,
+  type RoutineDetailsDraft,
+} from "@/lib/routine-details-form";
 import { RoutineDetailsSaveState } from "@/components/routines/RoutineDetailsFormState";
 import { cn } from "@/lib/cn";
 
@@ -28,14 +34,7 @@ type NewRoutineDraftDefaults = Omit<RoutineDetailsDraft, "distanceUnit"> & {
   distanceUnit?: string;
 };
 
-function resolveRoutineDraftFieldValue(field: string, value: string, previousCycleLength: number) {
-  if (field === "cycleLengthDays") {
-    const nextCycleLength = Math.floor(Number(value));
-    return Number.isFinite(nextCycleLength)
-      ? Math.max(1, Math.min(365, nextCycleLength))
-      : previousCycleLength;
-  }
-
+function resolveRoutineDraftFieldValue(field: string, value: string) {
   if (field === "name") {
     return value.slice(0, 15);
   }
@@ -55,6 +54,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     distanceUnit: defaults.distanceUnit === "km" ? "km" : "mi",
   });
   const [draft, setDraft] = useState<RoutineDetailsDraft>(normalizedDefaults);
+  const [cycleLengthInput, setCycleLengthInput] = useState(() => String(normalizedDefaults.cycleLengthDays));
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,11 +70,13 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
         const shouldResetStartWeekday =
           normalizedParsed.name.trim().length === 0
           && normalizedParsed.cycleLengthDays === normalizedDefaults.cycleLengthDays;
-
-        setDraft({
+        const nextDraft = {
           ...normalizedParsed,
           startWeekday: shouldResetStartWeekday ? normalizedDefaults.startWeekday : normalizedParsed.startWeekday,
-        });
+        };
+
+        setDraft(nextDraft);
+        setCycleLengthInput(String(nextDraft.cycleLengthDays));
       }
     } catch {
       // ignore malformed local drafts
@@ -99,6 +101,10 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [draft, loadedDraft, toast]);
+
+  useEffect(() => {
+    setCycleLengthInput(String(draft.cycleLengthDays));
+  }, [draft.cycleLengthDays]);
 
   const validation = validateRoutineDetailsDraft(draft);
   const initialSnapshot = buildRoutineDetailsSnapshot(normalizedDefaults);
@@ -125,6 +131,22 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     };
   }, [hasDirtyChanges]);
 
+  const commitCycleLengthInput = () => {
+    const committedCycleLength = commitRoutineCycleLengthInput(cycleLengthInput, draft.cycleLengthDays);
+    const nextDraft =
+      committedCycleLength.cycleLengthDays === draft.cycleLengthDays
+        ? draft
+        : { ...draft, cycleLengthDays: committedCycleLength.cycleLengthDays };
+
+    setCycleLengthInput(committedCycleLength.inputValue);
+    if (nextDraft !== draft) {
+      setHasUserEdited(true);
+      setDraft(nextDraft);
+    }
+
+    return nextDraft;
+  };
+
   return (
     <>
       <RoutineEditorPageBody className={appTokens.routineEditorSectionStack}>
@@ -132,17 +154,23 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           <RoutineEditorFormFields
             titleInput
             fields={["name", "cycleLengthDays"]}
+            cycleLengthInputValue={cycleLengthInput}
             cycleLengthDefaultValue={draft.cycleLengthDays}
             startWeekdayDefaultValue={draft.startWeekday}
             timezoneDefaultValue={draft.timezone}
             weightUnitDefaultValue={draft.weightUnit}
             distanceUnitDefaultValue={draft.distanceUnit}
             values={draft}
+            onCycleLengthInputChange={(value) => {
+              setHasUserEdited(true);
+              setCycleLengthInput(value);
+            }}
+            onCycleLengthInputCommit={commitCycleLengthInput}
             onFieldChange={(field, value) => {
               setHasUserEdited(true);
               setDraft((current) => ({
                 ...current,
-                [field]: resolveRoutineDraftFieldValue(field, value, current.cycleLengthDays),
+                [field]: resolveRoutineDraftFieldValue(field, value),
               }));
             }}
           />
@@ -161,7 +189,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
               setHasUserEdited(true);
               setDraft((current) => ({
                 ...current,
-                [field]: resolveRoutineDraftFieldValue(field, value, current.cycleLengthDays),
+                [field]: resolveRoutineDraftFieldValue(field, value),
               }));
             }}
           />
@@ -182,7 +210,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
               onClick={() => {
                 setError(null);
                 startTransition(async () => {
-                  const nextValidation = validateRoutineDetailsDraft(draft);
+                  const nextDraft = commitCycleLengthInput();
+                  const nextValidation = validateRoutineDetailsDraft(nextDraft);
                   if (!nextValidation.valid) {
                     const nextError = nextValidation.error ?? "Please complete all required routine fields.";
                     setError(nextError);
@@ -192,11 +221,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
 
                   const formData = new FormData();
                   formData.set("name", trimmedRoutineName);
-                  formData.set("cycleLengthDays", String(draft.cycleLengthDays));
-                  formData.set("startWeekday", draft.startWeekday);
-                  formData.set("timezone", draft.timezone);
-                  formData.set("weightUnit", draft.weightUnit);
-                  formData.set("distanceUnit", draft.distanceUnit);
+                  formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+                  formData.set("startWeekday", nextDraft.startWeekday);
+                  formData.set("timezone", nextDraft.timezone);
+                  formData.set("weightUnit", nextDraft.weightUnit);
+                  formData.set("distanceUnit", nextDraft.distanceUnit);
                   const result = await createRoutineAction(formData);
                   if (!result.ok) {
                     const nextError = result.error ?? "Could not create routine.";

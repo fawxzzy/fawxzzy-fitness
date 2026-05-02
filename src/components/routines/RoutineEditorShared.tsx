@@ -46,6 +46,7 @@ export function RoutineEditorPageHeader({
   className,
   recipe = "editDay",
   align = "left",
+  withPanel = true,
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -58,6 +59,7 @@ export function RoutineEditorPageHeader({
   className?: string;
   recipe?: ScreenContractName;
   align?: "left" | "center";
+  withPanel?: boolean;
 }) {
   return (
     <SharedScreenHeader
@@ -71,6 +73,7 @@ export function RoutineEditorPageHeader({
       align={align}
       className={className}
       actionClassName={actionClassName}
+      withPanel={withPanel}
     >
       {children}
     </SharedScreenHeader>
@@ -289,6 +292,7 @@ export function RoutineEditorListModeControlRow({
 export function RoutineEditorAddExerciseFlowShell({
   exercises,
   initialSelectedId,
+  selectionSearchParam,
   weightUnit,
   exerciseStats,
   onSelectedExerciseChange,
@@ -298,6 +302,7 @@ export function RoutineEditorAddExerciseFlowShell({
 }: {
   exercises: EditorExerciseOption[];
   initialSelectedId?: string;
+  selectionSearchParam?: ComponentProps<typeof ExercisePicker>["selectionSearchParam"];
   weightUnit?: "lbs" | "kg";
   exerciseStats?: ExerciseStatsOption[];
   onSelectedExerciseChange?: ComponentProps<typeof ExercisePicker>["onSelectedExerciseChange"];
@@ -310,6 +315,7 @@ export function RoutineEditorAddExerciseFlowShell({
       exercises={exercises}
       name={name}
       initialSelectedId={initialSelectedId}
+      selectionSearchParam={selectionSearchParam}
       onSelectedExerciseChange={onSelectedExerciseChange}
       routineTargetConfig={weightUnit ? { weightUnit } : undefined}
       exerciseStats={exerciseStats}

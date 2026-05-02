@@ -178,7 +178,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     : null;
 
   return (
-    <AppShell topNavMode="none" ambientPreset="logSet">
+    <AppShell topNavMode="none" ambientPreset="today">
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <SessionPageClient
           userId={sessionRow.user_id}

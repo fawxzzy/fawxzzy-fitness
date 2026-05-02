@@ -18,14 +18,15 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
-import { buildSessionCompactTitleText, HistorySessionCard } from "@/components/history/HistorySessionCard";
+import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
-import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
+import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -90,7 +91,17 @@ const DELETE_ACTION_BUTTON_CLASS_NAME = getBottomActionButtonClassName({
 });
 
 const SESSION_HEADER_TITLE_CLASS_NAME = "text-[0.79rem] font-semibold leading-[1.12] tracking-[-0.01em]";
-const SET_CARD_SHELL_CLASS_NAME = "w-full overflow-hidden rounded-[1.05rem] border border-[rgb(var(--accent-divider-rgb)/0.2)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none";
+const SET_CARD_SHELL_CLASS_NAME = "w-full overflow-hidden rounded-[1.05rem] border-0 bg-[rgb(var(--surface-1-rgb)/0.88)] bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0] shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0] [--glass-shadow:none]";
+
+function formatWeekdayShort(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date);
+}
+
 const metricsForMeasurementType = (measurementType: AuditExercise["measurement_type"]): MeasurementMetrics => {
   if (measurementType === "reps") return { reps: true, weight: true, time: false, distance: false, calories: false };
   if (measurementType === "none") return { reps: false, weight: false, time: false, distance: false, calories: false };
@@ -584,13 +595,10 @@ export function LogAuditClient({
     }
 
     return {
-      caption: renderSignatureMeta([
-        `${displayExercises.length} ${displayExercises.length === 1 ? "exercise" : "exercises"}`,
-        "Tap a card to focus",
-      ]),
+      caption: null,
       prNames: sessionSummary.prExerciseNames ?? [],
     };
-  }, [displayExercises.length, expandedExercise, focusedSessionSummary.prExerciseNames, sessionSummary.prExerciseNames]);
+  }, [expandedExercise, focusedSessionSummary.prExerciseNames, sessionSummary.prExerciseNames]);
 
   useEffect(() => {
     if (expandedExerciseId && !expandedExercise) {
@@ -845,7 +853,22 @@ export function LogAuditClient({
     });
   };
 
-  const headerTitleNode = buildSessionCompactTitleText(sessionSummary, { showChevron: false, centeredTitle: true });
+  const sessionHeaderWeekday = formatWeekdayShort(sessionSummary.startedAt);
+  const sessionHeaderDayLabel = [sessionHeaderWeekday, sessionSummary.dayTitle?.trim() || null].filter(Boolean).join(" \u00B7 ");
+  const sessionHeaderTitle = (
+    <RoutineDayHeaderTitle
+      leadingItems={[sessionSummary.routineTitle]}
+      dayLabel={sessionHeaderDayLabel || undefined}
+    />
+  );
+  const sessionHeaderAction = (
+    <div className="flex items-center gap-2">
+      <SignatureMetaTag className="text-[10px] tracking-[0.08em]">
+        {formatDateShort(sessionSummary.startedAt).toUpperCase()}
+      </SignatureMetaTag>
+      <TopRightBackButton href={backHref} ariaLabel="Back to sessions" />
+    </div>
+  );
 
   return (
     <>
@@ -854,9 +877,9 @@ export function LogAuditClient({
           <>
             <HistoryDetailHeader
               eyebrow={null}
-              title={headerTitleNode}
+              title={sessionHeaderTitle}
               titleClassName={SESSION_HEADER_TITLE_CLASS_NAME}
-              action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
+              action={sessionHeaderAction}
               align="center"
               className={isEditing ? appTokens.historyEditorHeaderActive : undefined}
               actionClassName="-ml-1 -mr-1 gap-0"
@@ -900,7 +923,7 @@ export function LogAuditClient({
           prExerciseNames={exerciseViewportMeta.prNames}
           detailedMetrics={focusedDetailedMetrics}
           detailedHeaderMode="hidden"
-          showDetailedDivider
+          showDetailedDivider={false}
         />
       ) : null}
 
@@ -918,7 +941,7 @@ export function LogAuditClient({
         )}
       >
         <div
-          className="relative flex min-h-[18rem] w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(18,32,46,0.94),rgba(7,14,24,0.985))] md:rounded-[1.5rem] md:border md:border-[rgb(var(--accent)/0.16)]"
+          className="relative flex min-h-[18rem] w-full flex-col overflow-hidden border-0 bg-transparent md:rounded-[1.5rem]"
           style={exerciseViewportHeight ? { height: `${exerciseViewportHeight}px` } : undefined}
         >
           {exerciseViewportMeta.caption ? (
@@ -938,14 +961,14 @@ export function LogAuditClient({
             <PickerListViewport
               plainOnMobile
               showFade={false}
-              className="h-full min-h-0"
+              className="h-full min-h-0 !border-0 !bg-transparent !p-0"
               viewportClassName={cn(
-                "hide-scrollbar h-full min-h-0 overscroll-contain",
-                expandedExercise ? "px-2 pb-1" : "px-4 pb-2",
+                "hide-scrollbar h-full min-h-0 overscroll-contain !pr-0",
+                expandedExercise ? "px-0 pb-1" : "px-0 pb-2",
                 expandedExercise ? "overflow-hidden" : "overflow-y-scroll",
               )}
             >
-              <div className={cn(expandedExercise ? "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1" : "min-h-full space-y-[0.5rem] pb-3")}>
+              <div className={cn(expandedExercise ? "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1" : "min-h-full space-y-[0.5rem] px-0 pb-3")}>
                 {displayExercises.length === 0 ? (
                   <p className={appTokens.historyEmptyState}>
                     No exercises logged for this session yet.
@@ -963,7 +986,7 @@ export function LogAuditClient({
             <article
               key={exercise.id}
               className={cn(
-                isExpanded ? "grid h-full min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] space-y-0" : appTokens.historyExerciseDisclosureStack,
+                isExpanded ? "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden space-y-0" : appTokens.historyExerciseDisclosureStack,
               )}
             >
               {!(isEditing && isExpanded && expandedSet) ? (
@@ -981,12 +1004,23 @@ export function LogAuditClient({
                   onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
                   expanded={isExpanded}
                   showLeadingVisual={surfacePolicy.showMedia}
-                  className={isEditing && isExpanded ? "-mb-px rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
+                  className={cn(
+                    "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0] [--glass-shadow:none] before:!bg-transparent after:!shadow-none hover:!border-transparent",
+                    isEditing && isExpanded ? "-mb-px rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined,
+                  )}
+                  mediaClassName="!border-r-0"
+                  shellStyle={{
+                    borderWidth: 0,
+                    boxShadow: "none",
+                    ["--glass-current-border-alpha" as string]: "0",
+                    ["--glass-current-sheen-strength" as string]: "0",
+                    ["--glass-shadow" as string]: "none",
+                  }}
                 />
               ) : null}
 
               {isExpanded ? (
-                <div className={cn(appTokens.historyExerciseDisclosureBody, "flex min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 pt-0")}>
+                <div className={cn(appTokens.historyExerciseDisclosureBody, "flex h-full min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 pt-0")}>
                   {isEditing && !expandedSet ? (
                     <AttachedQuickActionStrip
                       rowContract={{
@@ -1010,7 +1044,6 @@ export function LogAuditClient({
 
                   {isEditing && expandedSet ? (
                     <div className={cn("w-full shrink-0", SET_CARD_SHELL_CLASS_NAME)}>
-                      <MetricAccentBar className="mt-0" />
                       <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId(null)}>
                         <LoggedSetSummaryRow
                           label={formatSetPositionLabel(setsForExercise.findIndex((set) => set.id === expandedSet.id) + 1)}
@@ -1040,8 +1073,8 @@ export function LogAuditClient({
                     </div>
                   ) : null}
 
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                  <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
                       {expandedSet && isEditing ? (
                         <div className="px-0 pb-0 pt-2">
                           <ModifyMeasurements
@@ -1086,7 +1119,6 @@ export function LogAuditClient({
                               return (
                                 <li key={set.id}>
                                   <div className={SET_CARD_SHELL_CLASS_NAME}>
-                                    <MetricAccentBar className="mt-0" />
                                     <button type="button" className="block w-full text-left" onClick={() => isEditing ? setExpandedSetId((current) => (current === set.id ? null : set.id)) : undefined}>
                                       <LoggedSetSummaryRow
                                         label={setLabel}
@@ -1121,7 +1153,7 @@ export function LogAuditClient({
                     </div>
 
                     {isEditing ? (
-                      <div className="-mx-4 mt-auto shrink-0 bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0)_0%,rgba(var(--surface-rgb),0.78)_26%,rgba(var(--surface-rgb),0.96)_100%)] px-4 pb-1 pt-0.5">
+                      <div className="-mx-4 mt-auto shrink-0 bg-transparent px-4 pb-1 pt-0.5">
                         {!expandedSet ? (
                           <label className="block">
                             <LabeledEditorField label="Exercise notes">

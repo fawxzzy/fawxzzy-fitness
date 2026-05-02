@@ -62,6 +62,24 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-02 - Thin separators must not live inside animated or filtered interactive layers
+- Type: Guardrail
+- Summary: Shared `1px` separators should not be rendered as standalone siblings inside press-animated or filter-brightened interactive surfaces. When a route needs a thin divider inside a tappable card, paint it as part of the owning section shell or keep it outside the animated/filtering layer.
+- Suggested Playbook File: docs/GUARDRAILS/interactive-separator-rasterization.md
+- Rationale: Prevents route-specific flicker and disappearing divider bugs where one card looks broken only because a thin line lands on a fractional pixel or gets re-rasterized inside a filtered composite layer.
+- Failure Mode: Tappable cards keep their transform or brightness feedback, but the divider appears to blink, disappear, or fail on only some cards because the separator is still a fragile `1px` child of the animated layer.
+- Evidence: src/components/ExerciseCard.tsx, src/components/ui/Glass.tsx, src/app/globals.css, src/components/ui/MetricItem.tsx, src/components/history/HistoryExerciseCard.tsx, src/components/history/HistorySessionCard.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed
+
+## 2026-05-02 - Parallel local Next lanes must isolate build output by lane
+- Type: Guardrail
+- Summary: When the same Next repo runs multiple local live-edit lanes at once, each lane must use its own build output directory instead of sharing `.next`.
+- Suggested Playbook File: docs/GUARDRAILS/local-multi-lane-next-builds.md
+- Rationale: Prevents dual-dev workflows from corrupting webpack/module state and producing false UI regressions or route crashes that are not caused by the code under test.
+- Failure Mode: Two localhost lanes appear healthy at startup, but shared build artifacts create `500`s, stale UI, or `__webpack_modules__[moduleId] is not a function` crashes that masquerade as application bugs.
+- Evidence: next.config.mjs, scripts/dev.mjs, tsconfig.json
+- Status: Proposed
+
 ## 2026-05-01 - Ambient ownership must be global, not shell-local
 - Type: Pattern
 - Summary: Route shells and auth shells should not paint competing full-screen backgrounds once a global app ambient exists. Shells may set route intent and presets, but the persistent ambient owner should render once near the app root.
@@ -505,10 +523,69 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/components/ExercisePicker.tsx, src/components/ExerciseTagFilterControl.tsx, src/components/exercises/ExerciseSearchFilters.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
 - Status: Proposed
 
+## 2026-05-01 - Exercise chooser rows should collapse by default and expand only when selected
+- Type: Pattern
+- Summary: Add-exercise choosers should render unselected exercise rows as the same thin list-shell used by skipped workout rows, then expand the selected row into the richer media-and-metadata card so browsing stays dense without losing the detailed confirmation state.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents exercise choosers from feeling heavier than neighboring workout lists, keeps scanning density high while browsing large libraries, and preserves one clear “selected means expanded” interaction model across chooser-family screens.
+- Evidence: src/components/ExercisePicker.tsx, src/app/today/TodayExerciseRows.tsx, src/components/ExerciseCard.tsx, src/components/StandardExerciseRow.tsx
+- Status: Proposed
+
+## 2026-05-01 - Exercise catalog refreshes should document filter coverage and curation-contract changes
+- Type: Pattern
+- Summary: When the canonical exercise catalog, catalog indexes, or curation-tag migrations are refreshed, the repo should record what filter coverage changed and why so chooser/history search surfaces can evolve against an explicit catalog contract instead of a silent data refresh.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents search/filter regressions from looking like random UI drift when the real cause is a catalog or curation-data change that altered available tags, scoped labels, or exercise coverage underneath shared chooser surfaces.
+- Evidence: supabase/data/global_exercises_canonical.json, supabase/data/global_exercises_catalog_index.csv, supabase/data/global_exercises_catalog_index.json, supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql, docs/exercise-filter-gap-audit.md
+- Status: Proposed
+
 ## 2026-04-21 - Auth and recovery surfaces should publish shell, message, and action chrome through shared tokens
 - Type: Pattern
 - Summary: Login, signup, forgot-password, and reset-password routes should reuse one auth shell language by publishing intro copy rhythm, card chrome, messages, links, account panels, and primary action states through the shared token bridge instead of keeping route-local auth literals in each screen.
 - Suggested Playbook File: docs/PATTERNS/mobile-card-hierarchy.md
 - Rationale: Prevents auth and recovery flows from quietly diverging in card density, CTA posture, and helper/message treatment even when they already share the same shell and form structure.
 - Evidence: src/components/auth/AuthShell.tsx, src/app/login/LoginScreen.tsx, src/components/auth/SignupForm.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx, src/app/reset-password/page.tsx, src/app/reset-password/RecoverySessionBridge.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
+- Status: Proposed
+
+## 2026-05-02 - Canonical exercise data repairs should ship as idempotent upserts
+- Type: Pattern
+- Summary: When production global exercise data drifts behind the canonical catalog, the repair migration should upsert the full canonical set by normalized global exercise name instead of relying on update-only refresh statements.
+- Suggested Playbook File: docs/PATTERNS/exercise-catalog-data-sync.md
+- Rationale: Prevents catalog app deploys from going live while production Supabase still misses new global exercises or curation tags, and avoids destructive row replacement that could break references to existing global exercise IDs.
+- Evidence: supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql, supabase/migrations/042_global_exercises_canonical_upsert.sql, supabase/data/global_exercises_canonical.json
+- Status: Proposed
+
+## 2026-05-02 - Production data mirrors must be one-way and localhost-only
+- Type: Guardrail
+- Summary: Production-to-local database refresh tooling should be pull-only, require a dedicated env file, and hard-refuse any destination that is not localhost so local recovery workflows cannot mutate production by accident.
+- Suggested Playbook File: docs/GUARDRAILS/prod-to-local-data-mirror.md
+- Rationale: Prevents convenience sync scripts from turning into hidden local-to-production write paths, especially when a repo already supports local startup against production-style env overrides.
+- Evidence: scripts/sync-prod-to-local.mjs, docs/prod-to-local-db-mirror.md, .env.prod-local-mirror.example, docs/LOCAL-PROD-DATA-SYNC.md
+- Status: Proposed
+
+## 2026-05-02 - Centered headers should keep their separator in the shared inline header flow
+- Type: Pattern
+- Summary: Centered mobile headers with title, subtitle, and a top-right action should stay on the normal `AppHeader` inline separator path whenever possible instead of rendering the divider through a child slot or route-local fallback block.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents sibling screens like Today, View Day, Edit Day, and Session from drifting into different subtitle-to-divider spacing just because one route moved the bar outside the shared header stack.
+- Failure Mode: A route-local fallback makes the separator look missing, too low, or detached from the subtitle even though the title/subtitle copy is otherwise using the shared header family.
+- Evidence: src/components/ui/app/AppHeader.tsx, src/components/ui/app/SharedScreenHeader.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/components/SessionHeaderControls.tsx, src/components/today/TodayScreenFamily.tsx
+- Status: Proposed
+
+## 2026-05-02 - Chooser and history search rails should share one anchored overlay pattern
+- Type: Pattern
+- Summary: Exercise chooser and history search bars should publish the same anchored right-side filter action, transparent inner input chrome, and absolute filter-dropdown overlay so opening filters never pushes the list or creates route-specific search shells.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents add-exercise, history sessions, and history exercises from looking like separate products when the same search/filter interaction exists in all three places.
+- Failure Mode: One route renders a darker inset rectangle, the filter pill drifts outside the input rail, or opening filters shifts the result list because the screen is bypassing the shared search/filter host.
+- Evidence: src/components/exercises/ExerciseSearchFilters.tsx, src/components/ExerciseTagFilterControl.tsx, src/components/ExercisePicker.tsx, src/app/history/HistorySessionsClient.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx, src/components/ui/app/designSystem.ts
+- Status: Proposed
+
+## 2026-05-02 - Add-exercise selection state should survive refresh through canonical URL state
+- Type: Guardrail
+- Summary: Add-exercise flows should persist the selected exercise identity in canonical URL state so refreshes restore the same selected row, goal dock, and preview summary instead of silently resetting the chooser to a different default exercise.
+- Suggested Playbook File: docs/GUARDRAILS/navigation-return-contract.md
+- Rationale: Prevents refresh-only regressions where the bottom goal dock appears inconsistent or “broken” simply because the page lost its selected exercise context on reload.
+- Failure Mode: The user refreshes inside an add-exercise route and the selected exercise changes, making the footer preview, measurement defaults, and detail state feel nondeterministic.
+- Evidence: src/components/ExercisePicker.tsx, src/components/exercises/ExerciseChooserAddFlowForm.tsx, src/components/routines/RoutineEditorShared.tsx, src/app/routines/[id]/edit/day/[dayId]/add-exercise/page.tsx, src/app/session/[id]/add-exercise/page.tsx
 - Status: Proposed

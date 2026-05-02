@@ -81,6 +81,7 @@ const fileEnv = parseDotenvFile(envPath);
 const childEnv = { ...process.env };
 const overriddenKeys = [];
 const devArgs = stripCustomArgs(rawDevArgs);
+const nextBuildRoot = path.resolve(repoRoot, childEnv.NEXT_DIST_DIR?.trim() || ".next");
 
 function getLanIPv4Addresses() {
   const addresses = [];
@@ -118,7 +119,7 @@ function printLanHint() {
 }
 
 function ensureMiddlewareManifestStub() {
-  const serverDir = path.join(repoRoot, ".next", "server");
+  const serverDir = path.join(nextBuildRoot, "server");
   const manifestPath = path.join(serverDir, "middleware-manifest.json");
   const hasRealMiddlewareSource = fs.existsSync(path.join(repoRoot, "middleware.ts"))
     || fs.existsSync(path.join(repoRoot, "middleware.js"))

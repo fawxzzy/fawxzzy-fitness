@@ -123,7 +123,8 @@ function resolveStatusBadgeClassName(badgeText: string | undefined, state: Exerc
   return cn(badgeStateClassNames[state], cardBadgeToneClassNames[semanticTone]);
 }
 const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
-const cardPressClassName = "transition-[transform,filter] duration-75 ease-out active:scale-[0.992] active:brightness-[1.02] motion-reduce:transform-none motion-reduce:transition-none";
+const cardPressClassName = "motion-reduce:transition-none";
+const cardPressNoScaleClassName = "motion-reduce:transition-none";
 
 function resolveDefaultSemanticTone(state: ExerciseCardState): CardSemanticTone {
   if (state === "selected" || state === "active") {
@@ -197,6 +198,9 @@ export function ExerciseCard({
   titleContainerClassName,
   titleClassName,
   subtitleClassName,
+  headerDivider,
+  disablePressScale = false,
+  disableSurfacePressScale = true,
   subtitleLabel,
   subtitleTone = "panel",
   buttonProps,
@@ -231,6 +235,9 @@ export function ExerciseCard({
   titleContainerClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
+  headerDivider?: ReactNode;
+  disablePressScale?: boolean;
+  disableSurfacePressScale?: boolean;
   subtitleLabel?: string;
   subtitleTone?: "panel" | "plain";
   buttonProps?: ExerciseCardButtonProps;
@@ -255,7 +262,7 @@ export function ExerciseCard({
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
   const hasTitleMeta = titleMeta !== null && titleMeta !== undefined && titleMeta !== false;
   const hasBadgeText = Boolean(badgeText?.trim());
-  const hasSupportingContent = Boolean(subtitle) || Boolean(children);
+  const hasSupportingContent = Boolean(subtitle) || Boolean(headerDivider) || Boolean(children);
   const resolvedSubtitleLabel = typeof subtitleLabel === "string" && subtitleLabel.trim().toLowerCase() === "goal"
     ? undefined
     : subtitleLabel;
@@ -406,6 +413,11 @@ export function ExerciseCard({
                 </div>
               )
             ) : null}
+            {headerDivider ? (
+              <div className={cn("min-w-0", styles.childrenSpacing)} data-exercise-card-header-divider="true">
+                {headerDivider}
+              </div>
+            ) : null}
             {children ? (
               <div className={cn("min-w-0", styles.childrenSpacing)} data-exercise-card-supporting="true">
                 {children}
@@ -460,16 +472,17 @@ export function ExerciseCard({
     disabled ? "cursor-not-allowed opacity-60" : undefined,
     className,
   );
+  const resolvedPressClassName = disablePressScale ? cardPressNoScaleClassName : cardPressClassName;
 
   if (actions) {
       return (
-      <Glass variant="base" interactive={!disabled} className={shellClassName} style={resolvedShellStyle}>
+      <Glass variant="base" interactive={!disabled} disablePressScale={disableSurfacePressScale} className={shellClassName} style={resolvedShellStyle}>
         <div className="flex w-full items-stretch gap-2">
           {onPress ? (
             <button
               type="button"
               {...buttonProps}
-              className={cn("min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", cardPressClassName)}
+              className={cn("min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", resolvedPressClassName)}
               onClick={onPress}
               disabled={disabled}
             >
@@ -486,11 +499,11 @@ export function ExerciseCard({
 
   if (onPress) {
     return (
-      <Glass variant="base" interactive={!disabled} className={shellClassName} style={resolvedShellStyle}>
+      <Glass variant="base" interactive={!disabled} disablePressScale={disableSurfacePressScale} className={shellClassName} style={resolvedShellStyle}>
         <button
           type="button"
           {...buttonProps}
-          className={cn("block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", cardPressClassName)}
+          className={cn("block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", resolvedPressClassName)}
           onClick={onPress}
           disabled={disabled}
         >

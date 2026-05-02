@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCard";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
@@ -32,6 +32,8 @@ type HistoryDetailExerciseCardProps = {
   density?: "compact" | "detailed";
   tone?: CardSemanticTone;
   className?: string;
+  mediaClassName?: string;
+  shellStyle?: CSSProperties;
   expanded: boolean;
   onPress: () => void;
   showLeadingVisual?: boolean;
@@ -47,15 +49,23 @@ export function HistoryDetailExerciseCard({
   density = "compact",
   tone = "neutral",
   className,
+  mediaClassName,
+  shellStyle,
   expanded,
   onPress,
   showLeadingVisual = true,
 }: HistoryDetailExerciseCardProps) {
   const hasMetrics = density === "detailed" && (metrics?.length ?? 0) > 0;
+  const shouldRenderTopAccentBar = density === "detailed" ? hasMetrics : expanded;
   const resolvedMetaBadge = density === "compact" ? null : (badgeText ? renderMetaBadge(badgeText) : null);
   const compactTrailingMeta = density === "compact" && badgeText
-    ? <SignatureMetaTag className="text-[9px] tracking-[0.14em]">{badgeText}</SignatureMetaTag>
+    ? <SignatureMetaTag className="text-[10.5px] tracking-[0.14em]">{badgeText}</SignatureMetaTag>
     : null;
+  const resolvedSummary = density === "compact" && summaryLabel.trim().length > 0
+    ? `${summaryLabel} | ${summary}`
+    : summary;
+  const topAccentBar = shouldRenderTopAccentBar ? <MetricAccentBar variant="thin" /> : null;
+  const hasSupportingStack = Boolean(metadata) || hasMetrics;
   const resolvedRightIcon = density === "compact" && compactTrailingMeta
     ? (
         <div className="flex items-center justify-end gap-2">
@@ -78,11 +88,12 @@ export function HistoryDetailExerciseCard({
     >
       <StandardExerciseRow
         exercise={exercise}
-        summary={summary}
-        summaryLabel={summaryLabel}
+        summary={resolvedSummary}
+        summaryLabel={density === "compact" ? undefined : summaryLabel}
         titleMeta={resolvedMetaBadge}
         onPress={onPress}
         className={cn("w-full", appTokens.historyExerciseCardShell, className)}
+        shellStyle={shellStyle}
         rightIcon={resolvedRightIcon}
         variant="interactive"
         density={density}
@@ -95,11 +106,14 @@ export function HistoryDetailExerciseCard({
         titleContainerClassName={density === "compact" ? "pr-[5.3rem]" : "pr-[2.35rem] space-y-0.5"}
         rightRailClassName={density === "compact" ? "right-[0.78rem] bottom-[0.58rem] top-auto translate-y-0" : "right-[0.85rem] top-1/2 -translate-y-1/2"}
         trailingStackClassName={density === "compact" ? "items-end justify-end" : "h-4.5 w-4.5"}
+        mediaClassName={mediaClassName}
         contentClassName="pl-1.5"
         titleClassName="max-[380px]:line-clamp-3 [text-wrap:pretty]"
         subtitleClassName="[text-wrap:pretty] text-[rgb(var(--text-secondary)/0.9)]"
+        headerDivider={topAccentBar}
+        shellClassName="[--glass-shadow:none] before:!bg-transparent after:!shadow-none"
       >
-        {metadata || hasMetrics ? (
+        {hasSupportingStack ? (
           <div className={cn(density === "compact" ? appTokens.historyExerciseCardCompactStack : appTokens.historyExerciseCardDetailedStack, density === "detailed" ? "space-y-2.5 pt-1" : undefined)}>
             {metadata ? (
               <div
@@ -114,8 +128,13 @@ export function HistoryDetailExerciseCard({
             ) : null}
             {hasMetrics ? (
               <>
-                {density === "detailed" ? <MetricAccentBar className="h-[4px] shadow-[0_0_16px_rgb(var(--accent-divider-rgb)/0.5)]" /> : null}
-                <MetricGrid items={(metrics ?? []).slice(0, 4)} compact className="sm:grid-cols-3" itemClassName="min-h-[2.8rem] px-2.5 py-1" />
+                <MetricGrid
+                  items={(metrics ?? []).slice(0, 4)}
+                  compact
+                  className="sm:grid-cols-3"
+                  itemClassName="min-h-[2.8rem] px-2.5 py-1"
+                  accentBarVariant="thin"
+                />
               </>
             ) : null}
           </div>

@@ -7,7 +7,7 @@ import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCar
 import { cardAccentRailClassNames, cardShellToneClassNames, type CardSemanticTone } from "@/components/cardSemanticTones";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
-import { MetricAccentBar, MetricGrid } from "@/components/ui/MetricItem";
+import { MetricAccentBar, type MetricDatum, MetricGrid } from "@/components/ui/MetricItem";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -26,6 +26,60 @@ const densityStyles = {
     variant: "standard" as ExerciseCardVariant,
   },
 };
+
+const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
+
+function getAutoMetricSpanClassName(totalItems: number, index: number) {
+  if (totalItems <= 1) return "col-span-6";
+  if (totalItems === 2) return "col-span-3";
+  if (totalItems === 3) return "col-span-2";
+
+  const remainder = totalItems % 3;
+  const tailStart = totalItems - remainder;
+
+  if (remainder === 1 && index === totalItems - 1) {
+    return "col-span-2 col-start-3";
+  }
+
+  if (remainder === 2 && index >= tailStart) {
+    return "col-span-3";
+  }
+
+  return "col-span-2";
+}
+
+function HistorySessionDetailedMetricGrid({ items }: { items: MetricDatum[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-6 gap-1.25">
+      {items.map((item, index) => (
+        <div
+          key={`${item.label}-${item.value}-${index}`}
+          className={cn(
+            getAutoMetricSpanClassName(items.length, index),
+            appTokens.workoutMetricChrome,
+            appTokens.workoutMetricCompact,
+            "flex min-h-[2.8rem] flex-col items-center justify-start overflow-hidden border-transparent bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%] px-2.75 py-1 shadow-none ring-0 backdrop-blur-0",
+          )}
+        >
+          <p className="block w-full px-px pt-px text-center text-[10px] font-semibold leading-[1.02] tracking-[0.03em] text-[rgb(var(--accent-divider-rgb)/0.92)]">
+            {item.label}
+          </p>
+          <div className="mt-[2px] flex w-full min-h-0 justify-center self-start pb-[0.7rem]">
+            <div className="flex w-fit min-w-0 max-w-full flex-col items-center justify-start text-center">
+              <p className={cn(appTokens.workoutMetricValue, appTokens.workoutMetricValueCompact, "mt-0 block px-px leading-[0.98] text-[rgb(var(--text-primary)/0.96)]")}>
+                {item.value}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function formatWeekdayShort(value: string) {
   const date = new Date(value);
@@ -155,8 +209,7 @@ function renderPrExerciseList(exerciseNames: string[]) {
   }
 
   return (
-    <div className="w-full space-y-1.5 pt-0.5">
-      <MetricAccentBar className="h-[4px] shadow-[0_0_16px_rgb(var(--accent-divider-rgb)/0.5)]" />
+    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
       <div className="w-full space-y-1">
         <p className={cn(appTokens.workoutMetricLabel, "px-px text-left text-[rgb(var(--accent-divider-rgb)/0.92)]")}>PRs</p>
         <div className="flex w-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pl-px">
@@ -288,16 +341,9 @@ export function HistorySessionCard({
     <div className={cn(styles.content, usesHeaderlessDetailedLayout ? "gap-2.5 pl-px" : "gap-2.5 pl-px pt-1")}>
       {viewMode === "detailed" ? (
         <>
-          {showDetailedDivider ? <MetricAccentBar className="h-[4px] shadow-[0_0_16px_rgb(var(--accent-divider-rgb)/0.5)]" /> : null}
-          <MetricGrid
-            items={resolvedDetailedMetrics}
-            compact
-            autoColumns
-            className="gap-1.25"
-            labelPlacement="top"
-            labelClassName="text-[10px] tracking-[0.03em] text-[rgb(var(--accent-divider-rgb)/0.92)]"
-            itemClassName="min-h-[2.8rem] px-2.75 py-1"
-          />
+          <div className={cn("pt-[0.45rem]", showDetailedDivider ? THIN_SECTION_TOP_DIVIDER_CLASS_NAME : undefined)}>
+            <HistorySessionDetailedMetricGrid items={resolvedDetailedMetrics} />
+          </div>
           {renderPrExerciseList(resolvedPrExerciseNames)}
         </>
       ) : null}

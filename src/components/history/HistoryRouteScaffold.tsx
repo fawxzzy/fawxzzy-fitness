@@ -15,6 +15,7 @@ type HistoryOverviewRouteScaffoldProps = {
   subtitle?: string;
   activeTab: "sessions" | "exercises";
   children: ReactNode;
+  showTopChrome?: boolean;
   floatingHeaderSlot?: ReactNode;
   headerChrome?: "titleOnly" | "tabsWithControls" | "controlsOnly";
   contentRailClassName?: string;
@@ -26,6 +27,7 @@ type HistoryDetailRouteScaffoldProps = {
   mode: "detail";
   floatingHeader: ReactNode;
   children: ReactNode;
+  showTopChrome?: boolean;
   contentRailClassName?: string;
   contentClassName?: string;
   floatingHeaderRailClassName?: string;
@@ -36,6 +38,7 @@ type HistoryRouteScaffoldProps =
   | HistoryDetailRouteScaffoldProps;
 
 export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
+  const showTopChrome = props.showTopChrome ?? true;
   const floatingHeader = props.mode === "overview"
     ? (() => {
         const headerChrome = props.headerChrome ?? "tabsWithControls";
@@ -73,7 +76,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
       })()
       : (
         <FloatingHeaderSlot
-          railClassName={cn(appTokens.historyDetailFloatingHeaderRail, props.floatingHeaderRailClassName)}
+          railClassName={cn(appTokens.historyDetailFloatingHeaderRail, !showTopChrome ? "pt-3" : undefined, props.floatingHeaderRailClassName)}
           data-history-floating-header
         >
           {props.floatingHeader}
@@ -83,7 +86,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="history">
       <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
+        topChrome={showTopChrome ? <AppNav mode="topChrome" /> : undefined}
         floatingHeader={floatingHeader}
       >
         <ContentRail
