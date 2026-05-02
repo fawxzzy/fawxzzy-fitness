@@ -32,6 +32,7 @@
     "icons:normalize": "node scripts/normalizeExerciseIcons.mjs",
     "gen:exercise-icons": "node scripts/generate-exercise-icon-manifest.mjs",
     "analyze:exercise-catalog": "node scripts/analyze-exercise-catalog.mjs",
+    "audit:exercise-filter-gaps": "node scripts/audit-exercise-filter-gaps.mjs",
     "release:preflight": "npm run verify && npm run typecheck && npm run build",
     "validate:exercise-info-endpoint": "node scripts/validate-exercise-info-endpoint.mjs",
     "release:patch": "node scripts/release.mjs patch",

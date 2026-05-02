@@ -187,7 +187,10 @@
     "primary_muscles": [
       "cardio"
     ],
-    "secondary_muscles": [],
+    "secondary_muscles": [
+      "quads",
+      "glutes"
+    ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "measurement_type": "time_distance",
@@ -242,12 +245,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -296,17 +296,17 @@
   },
   {
     "name": "Arnold Press",
-    "primary_muscle": "front delts, side delts",
+    "primary_muscle": "front delts, triceps",
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
+      "front delts",
       "triceps"
     ],
     "secondary_muscles": [
-      "front delts"
+      "side delts"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -355,18 +355,83 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Assisted Pull-Up",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Set the assistance so you can control the rep, start from a full reach, drive the elbows toward the ribs until the bar comes to you, then lower smoothly without dropping into the bottom.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "upper back"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "vertical_pull"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "hanging"
+      ],
+      "training_goal": [
+        "strength",
+        "hypertrophy",
+        "skill"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "machine_loaded"
+      ],
+      "joint_emphasis": [
+        "vertical_pull"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": [
+        "hanging",
+        "shoulder_depression"
+      ]
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Back Extension",
-    "primary_muscle": "lower back",
+    "primary_muscle": "glutes",
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Brace, drive through the heels, extend the hips until the ribs stay stacked, and lower without arching the low back.",
     "movement_pattern": "hinge",
     "primary_muscles": [
-      "lower back"
+      "glutes"
     ],
     "secondary_muscles": [
-      "glutes",
-      "hamstrings"
+      "hamstrings",
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -381,7 +446,7 @@
         "auxiliary"
       ],
       "body_position": [
-        "standing"
+        "prone"
       ],
       "training_goal": [
         "hypertrophy",
@@ -476,6 +541,67 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Backward Sled Drag",
+    "primary_muscle": "quads",
+    "equipment": "Sled",
+    "is_global": true,
+    "how_to_short": "Face the sled, lean back slightly with the torso braced, take short backward steps, and keep the knees driving smoothly without snapping into lockout.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "quads"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "calves",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "sled_drag"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "conditioning",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "sled_loaded"
+      ],
+      "joint_emphasis": [
+        "knee_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "distance",
+    "default_unit": "m",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Barbell Bench Press",
     "primary_muscle": "chest, triceps",
     "equipment": "Barbell",
@@ -545,9 +671,7 @@
     "primary_muscles": [
       "biceps"
     ],
-    "secondary_muscles": [
-      "forearms"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -656,6 +780,434 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Bird Dog",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Start on hands and knees, brace the ribs down, reach opposite arm and leg long without rotating the hips, then return slowly and switch sides.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "shoulders"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "anti_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "kneeling"
+      ],
+      "training_goal": [
+        "core_stability",
+        "skill"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "balance_demanding"
+      ],
+      "unilateral_profile": [
+        "alternating"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_bracing"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Bodyweight Glute Bridge",
+    "primary_muscle": "glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Lie on your back with knees bent, brace the ribs down, drive through the heels to lift the hips, squeeze the glutes at the top, and lower without arching the low back.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_extension"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Bodyweight Reverse Lunge",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Step one leg back, lower until the front leg controls the load and the back knee approaches the floor, then drive through the front foot to return tall.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "split_squat_lunge"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "split_stance"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "skill"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "balance_demanding"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "knee_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Bodyweight Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Stand tall with feet set under you, sit the hips down between the knees while keeping the torso braced, then drive through the whole foot to stand without bouncing.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core",
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "squat"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "skill"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "knee_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Bodyweight Step-Up",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Place the whole lead foot on the box or step, drive through that leg to stand tall, then lower with control instead of pushing off the trailing foot.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors",
+      "core",
+      "calves"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "split_squat_lunge"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "split_stance"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "skill"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "balance_demanding"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "knee_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Bodyweight Walking Lunge",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Step forward into a long stance, lower under control until the lead leg owns the rep, then push through the front foot and bring the next step forward smoothly.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "split_squat_lunge"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "split_stance"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "conditioning",
+        "skill"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "balance_demanding"
+      ],
+      "unilateral_profile": [
+        "alternating"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "knee_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Box Jump",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Load the hips with a quick dip, jump onto the box with quiet full-foot contact, stand tall to finish, and step down under control before the next rep.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "plyometric_jump"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "power",
+        "conditioning",
+        "skill"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "balance_demanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "knee_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Bulgarian Split Squat",
     "primary_muscle": "quads, glutes",
     "equipment": "Dumbbell",
@@ -717,6 +1269,70 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Burpee",
+    "primary_muscle": "cardio",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Drop to the floor under control, kick back to a strong plank, return the feet under you, then stand or jump tall while keeping the trunk braced.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "chest",
+      "triceps",
+      "quads",
+      "glutes",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "full_body_conditioning"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "conditioning",
+        "endurance",
+        "power"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "cyclical_conditioning"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Cable Crunch",
     "primary_muscle": "core",
     "equipment": "Cable",
@@ -726,9 +1342,7 @@
     "primary_muscles": [
       "core"
     ],
-    "secondary_muscles": [
-      "hip flexors"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -742,7 +1356,7 @@
         "isolation"
       ],
       "body_position": [
-        "standing"
+        "kneeling"
       ],
       "training_goal": [
         "hypertrophy",
@@ -783,12 +1397,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -884,6 +1495,125 @@
       ],
       "joint_emphasis": [
         "shoulder_horizontal_adduction"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Cable Hip Abduction",
+    "primary_muscle": "abductors, glutes",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Attach the cuff low, stand tall with the working leg free, move the leg out from the hip without twisting the pelvis, then return slowly under control.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "abductors",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_abduction"
+      ],
+      "plane_of_motion": [
+        "frontal"
+      ],
+      "exercise_utility": [
+        "isolation"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "single_leg"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "cable_loaded"
+      ],
+      "joint_emphasis": [
+        "hip_abduction"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Cable Hip Adduction",
+    "primary_muscle": "adductors",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Attach the cuff low, stand beside the stack, sweep the working leg across the body from the hip, and return slowly without leaning or rotating the torso.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "adductors"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_adduction"
+      ],
+      "plane_of_motion": [
+        "frontal"
+      ],
+      "exercise_utility": [
+        "isolation"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "single_leg"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "cable_loaded"
+      ],
+      "joint_emphasis": [
+        "hip_adduction"
       ],
       "spine_demand": [
         "low_spinal_load"
@@ -1014,6 +1744,67 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Cable Pull-Through",
+    "primary_muscle": "glutes, hamstrings",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Face away from the low cable, hinge the hips back while keeping the rope close, then drive the hips forward and squeeze the glutes without leaning back.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "core",
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hinge"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "cable_loaded"
+      ],
+      "joint_emphasis": [
+        "hip_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Cable Rear Delt Fly",
     "primary_muscle": "rear delts",
     "equipment": "Cable",
@@ -1062,6 +1853,66 @@
       ],
       "joint_emphasis": [
         "shoulder_horizontal_abduction"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Cable Woodchop",
+    "primary_muscle": "core",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Set the cable high, brace the ribs over the pelvis, rotate the handle down across the body as one unit, then return slowly without letting the hips or low back twist freely.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "shoulders"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "core_stability",
+        "accessory"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "cable_loaded"
+      ],
+      "joint_emphasis": [
+        "trunk_rotation"
       ],
       "spine_demand": [
         "low_spinal_load"
@@ -1187,6 +2038,127 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Chest Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Set the shoulders back and down, lower the load to the chest or handles with stacked wrists, and press to full elbow extension under control.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "horizontal_push"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "seated"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "machine_loaded"
+      ],
+      "joint_emphasis": [
+        "horizontal_press"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Chest-Supported Dumbbell Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Lie chest-down on an incline bench, let the dumbbells hang to full reach, row toward the lower ribs, squeeze the upper back, and lower without lifting the chest.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "rear delts",
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "horizontal_pull"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "prone"
+      ],
+      "training_goal": [
+        "strength",
+        "hypertrophy"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "free_weight"
+      ],
+      "joint_emphasis": [
+        "horizontal_pull"
+      ],
+      "spine_demand": [
+        "chest_supported"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Chest-Supported Row",
     "primary_muscle": "lats, mid back",
     "equipment": "Machine",
@@ -1249,17 +2221,17 @@
   },
   {
     "name": "Chin-Up",
-    "primary_muscle": "lats, biceps",
+    "primary_muscle": "lats, upper back",
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Start from a full hang or reach, pull the elbows toward the ribs until the bar comes to you, and lower to full extension under control.",
     "movement_pattern": "pull",
     "primary_muscles": [
       "lats",
-      "biceps"
+      "upper back"
     ],
     "secondary_muscles": [
-      "upper back",
+      "biceps",
       "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -1313,7 +2285,7 @@
   },
   {
     "name": "Close-Grip Bench Press",
-    "primary_muscle": "triceps, chest",
+    "primary_muscle": "chest, triceps",
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Set the shoulders back and down, lower the load to the chest or handles with stacked wrists, and press to full elbow extension under control.",
@@ -1375,14 +2347,14 @@
   },
   {
     "name": "Close-Grip Lat Pulldown",
-    "primary_muscle": "lats",
+    "primary_muscle": "lats, upper back",
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Set the shoulders down first, pull the bar toward the upper chest by driving the elbows to your sides, and return to full reach without shrugging.",
     "movement_pattern": "pull",
     "primary_muscles": [
       "lats",
-      "mid back"
+      "upper back"
     ],
     "secondary_muscles": [
       "biceps"
@@ -1438,7 +2410,7 @@
   },
   {
     "name": "Close-Grip Push-Up",
-    "primary_muscle": "triceps, chest",
+    "primary_muscle": "chest, triceps",
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Brace from head to heels, lower under control through your available range, and press back up without losing shoulder or trunk position.",
@@ -1506,12 +2478,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -1560,17 +2529,16 @@
   },
   {
     "name": "Cross-Body Hammer Curl",
-    "primary_muscle": "biceps, forearms",
+    "primary_muscle": "biceps",
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
+      "biceps"
     ],
     "secondary_muscles": [
-      "biceps"
+      "forearms"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -1686,10 +2654,10 @@
     "movement_pattern": "hinge",
     "primary_muscles": [
       "glutes",
-      "hamstrings"
+      "hamstrings",
+      "lower back"
     ],
     "secondary_muscles": [
-      "lower back",
       "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -1980,7 +2948,7 @@
   },
   {
     "name": "Dips (Triceps)",
-    "primary_muscle": "triceps",
+    "primary_muscle": "chest, triceps",
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Support your body with the shoulders packed, lower until the upper arm reaches your controlled depth, and press back to lockout without swinging.",
@@ -2046,12 +3014,9 @@
     "how_to_short": "Move through a full ankle stretch, rise onto the ball of the foot, pause at the top, and lower under control.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
-      "triceps"
+      "calves"
     ],
-    "secondary_muscles": [
-      "front delts"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -2065,7 +3030,7 @@
         "isolation"
       ],
       "body_position": [
-        "seated"
+        "supported"
       ],
       "training_goal": [
         "hypertrophy",
@@ -2166,12 +3131,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -2226,8 +3188,7 @@
     "how_to_short": "Keep a soft elbow bend, open through the chest until the shoulders stay packed, then bring the handles or bells back together with control.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
-      "triceps"
+      "chest"
     ],
     "secondary_muscles": [
       "front delts"
@@ -2286,12 +3247,9 @@
     "how_to_short": "Pin the upper arm in place, extend the elbow to full lockout, and return with control instead of letting the weight yank you back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
       "triceps"
     ],
-    "secondary_muscles": [
-      "front delts"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -2350,6 +3308,7 @@
       "mid back"
     ],
     "secondary_muscles": [
+      "rear delts",
       "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -2406,12 +3365,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -2822,18 +3778,137 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Half-Kneeling Cable Chop",
+    "primary_muscle": "core",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Set a half-kneeling base, brace the trunk, pull the cable diagonally across the body, and control the return without shifting the hips or arching the back.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "shoulders"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "kneeling"
+      ],
+      "training_goal": [
+        "core_stability",
+        "accessory"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "cable_loaded"
+      ],
+      "joint_emphasis": [
+        "trunk_rotation"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Half-Kneeling Pallof Press",
+    "primary_muscle": "core",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Kneel side-on to the cable, brace the glutes and trunk, press the handle straight out from the chest, and resist rotation before bringing it back in.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "shoulders"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "anti_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "kneeling"
+      ],
+      "training_goal": [
+        "core_stability",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "cable_loaded"
+      ],
+      "joint_emphasis": [
+        "trunk_bracing"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Hammer Curl",
-    "primary_muscle": "biceps, forearms",
+    "primary_muscle": "biceps",
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
+      "biceps"
     ],
     "secondary_muscles": [
-      "biceps"
+      "forearms"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -2882,17 +3957,78 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Hamstring Stretch",
+    "primary_muscle": "recovery",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Hinge from the hips with a soft knee bend, reach only as far as you can keep a long spine, breathe steadily, and avoid forcing the stretch.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "mobility_drill"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "preparatory"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "mobility",
+        "recovery"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Hanging Leg Raise",
-    "primary_muscle": "core, hip flexors",
+    "primary_muscle": "core",
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Posteriorly tilt the pelvis, raise the legs without swinging, and lower only as far as you can keep the trunk braced.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "hip flexors",
       "core"
     ],
-    "secondary_muscles": [],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -2953,6 +4089,7 @@
       "glutes"
     ],
     "secondary_muscles": [
+      "core",
       "adductors"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -3009,8 +4146,7 @@
     "how_to_short": "Keep a soft elbow bend, open through the chest until the shoulders stay packed, then bring the handles or bells back together with control.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
-      "triceps"
+      "chest"
     ],
     "secondary_muscles": [
       "front delts"
@@ -3059,6 +4195,66 @@
     },
     "measurement_type": "reps",
     "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Hip Flexor Stretch",
+    "primary_muscle": "recovery",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Set a half-kneeling stance, tuck the pelvis slightly, squeeze the rear-side glute, and ease forward until you feel a controlled stretch in the front of the hip.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "hip flexors"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "quads"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "mobility_drill"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "preparatory"
+      ],
+      "body_position": [
+        "kneeling"
+      ],
+      "training_goal": [
+        "mobility",
+        "recovery"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
     "calories_estimation_method": null
   },
   {
@@ -3144,17 +4340,17 @@
         "sagittal"
       ],
       "exercise_utility": [
-        "basic"
+        "auxiliary"
       ],
       "body_position": [
-        "standing"
+        "supine"
       ],
       "training_goal": [
-        "conditioning",
-        "endurance"
+        "core_stability",
+        "accessory"
       ],
       "difficulty": [
-        "beginner"
+        "intermediate"
       ],
       "setup_cost": [
         "quick_setup"
@@ -3166,7 +4362,7 @@
         "bilateral"
       ],
       "loading_profile": [
-        "cardio_machine"
+        "bodyweight"
       ],
       "joint_emphasis": [
         "trunk_bracing"
@@ -3182,7 +4378,7 @@
   },
   {
     "name": "Incline Barbell Bench Press",
-    "primary_muscle": "chest, front delts",
+    "primary_muscle": "chest, triceps",
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Set the shoulders back and down, lower the load to the chest or handles with stacked wrists, and press to full elbow extension under control.",
@@ -3242,7 +4438,7 @@
   },
   {
     "name": "Incline Dumbbell Bench Press",
-    "primary_muscle": "chest, front delts",
+    "primary_muscle": "chest, triceps",
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Set the shoulders back and down, lower the load to the chest or handles with stacked wrists, and press to full elbow extension under control.",
@@ -3308,12 +4504,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -3368,8 +4561,7 @@
     "how_to_short": "Keep a soft elbow bend, open through the chest until the shoulders stay packed, then bring the handles or bells back together with control.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
-      "triceps"
+      "chest"
     ],
     "secondary_muscles": [
       "front delts"
@@ -3430,7 +4622,10 @@
     "primary_muscles": [
       "cardio"
     ],
-    "secondary_muscles": [],
+    "secondary_muscles": [
+      "glutes",
+      "quads"
+    ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "measurement_type": "time_distance",
@@ -3476,6 +4671,69 @@
       ],
       "grip_constraint": []
     }
+  },
+  {
+    "name": "Inverted Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Set your body in a straight line under the bar or straps, pull the chest toward the handles while keeping the ribs down, then lower to full reach without the hips sagging.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "rear delts",
+      "biceps",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "horizontal_pull"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "strength",
+        "hypertrophy",
+        "skill"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "horizontal_pull"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
   },
   {
     "name": "Jump Rope",
@@ -3525,7 +4783,7 @@
         "bilateral"
       ],
       "loading_profile": [
-        "cardio_machine"
+        "bodyweight"
       ],
       "joint_emphasis": [
         "cyclical_conditioning"
@@ -3538,17 +4796,17 @@
   },
   {
     "name": "Lat Pulldown",
-    "primary_muscle": "lats",
+    "primary_muscle": "lats, upper back",
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Set the shoulders down first, pull the bar toward the upper chest by driving the elbows to your sides, and return to full reach without shrugging.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats"
+      "lats",
+      "upper back"
     ],
     "secondary_muscles": [
-      "biceps",
-      "upper back"
+      "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -3665,11 +4923,10 @@
     "how_to_short": "Raise the load out to shoulder height with a soft elbow, keep the shoulders down, and lower without swinging.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
-      "triceps"
+      "side delts"
     ],
     "secondary_muscles": [
-      "front delts"
+      "upper traps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -3779,7 +5036,7 @@
     "primary_muscle": "quads, glutes",
     "equipment": "Machine",
     "is_global": true,
-    "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
+    "how_to_short": "Brace the trunk, descend by sitting between the hips while keeping pressure through the whole foot, and drive up through mid-foot.",
     "movement_pattern": "squat",
     "primary_muscles": [
       "quads",
@@ -3792,7 +5049,7 @@
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
       "pattern_detail": [
-        "vertical_push"
+        "squat"
       ],
       "plane_of_motion": [
         "sagittal"
@@ -3823,7 +5080,7 @@
         "machine_loaded"
       ],
       "joint_emphasis": [
-        "vertical_press"
+        "knee_dominant"
       ],
       "spine_demand": [
         "low_spinal_load"
@@ -3836,7 +5093,7 @@
   },
   {
     "name": "Low-Bar Back Squat",
-    "primary_muscle": "glutes, quads",
+    "primary_muscle": "quads, glutes",
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Brace the trunk, descend by sitting between the hips while keeping pressure through the whole foot, and drive up through mid-foot.",
@@ -3846,6 +5103,7 @@
       "glutes"
     ],
     "secondary_muscles": [
+      "core",
       "adductors"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -3902,8 +5160,7 @@
     "how_to_short": "Keep a soft elbow bend, open through the chest until the shoulders stay packed, then bring the handles or bells back together with control.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
-      "triceps"
+      "chest"
     ],
     "secondary_muscles": [
       "front delts"
@@ -3980,7 +5237,7 @@
         "isolation"
       ],
       "body_position": [
-        "seated"
+        "prone"
       ],
       "training_goal": [
         "hypertrophy",
@@ -4015,16 +5272,17 @@
   },
   {
     "name": "Lying Leg Raise",
-    "primary_muscle": "core, hip flexors",
+    "primary_muscle": "core",
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Posteriorly tilt the pelvis, raise the legs without swinging, and lower only as far as you can keep the trunk braced.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "hip flexors",
       "core"
     ],
-    "secondary_muscles": [],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -4079,12 +5337,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -4141,9 +5396,7 @@
     "primary_muscles": [
       "core"
     ],
-    "secondary_muscles": [
-      "hip flexors"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -4191,6 +5444,68 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Machine Pulldown",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Sit tall with the pads secure, set the shoulders down, pull the handles toward the upper chest by driving the elbows down, and return to full reach without shrugging.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "upper back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "vertical_pull"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "seated"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "machine_loaded"
+      ],
+      "joint_emphasis": [
+        "vertical_pull"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": [
+        "shoulder_depression"
+      ]
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Machine Row",
     "primary_muscle": "lats, mid back",
     "equipment": "Machine",
@@ -4202,8 +5517,8 @@
       "mid back"
     ],
     "secondary_muscles": [
-      "biceps",
-      "rear delts"
+      "rear delts",
+      "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -4259,11 +5574,11 @@
     "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
+      "front delts",
       "triceps"
     ],
     "secondary_muscles": [
-      "front delts"
+      "side delts"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -4314,6 +5629,67 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Mountain Climber",
+    "primary_muscle": "cardio",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Hold a strong plank, drive one knee toward the chest at a time, switch smoothly, and keep the hips from bouncing or sagging as the pace increases.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "core",
+      "hip flexors",
+      "shoulders"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "locomotion_drill"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "prone"
+      ],
+      "training_goal": [
+        "conditioning",
+        "endurance"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "alternating"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "cyclical_conditioning"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Neutral-Grip Pull-Up",
     "primary_muscle": "lats, upper back",
     "equipment": "Bodyweight",
@@ -4322,10 +5698,11 @@
     "movement_pattern": "pull",
     "primary_muscles": [
       "lats",
-      "mid back"
+      "upper back"
     ],
     "secondary_muscles": [
-      "biceps"
+      "biceps",
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -4387,7 +5764,7 @@
       "hamstrings"
     ],
     "secondary_muscles": [
-      "glutes"
+      "calves"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -4506,12 +5883,9 @@
     "how_to_short": "Pin the upper arm in place, extend the elbow to full lockout, and return with control instead of letting the weight yank you back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
       "triceps"
     ],
-    "secondary_muscles": [
-      "front delts"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -4568,9 +5942,7 @@
     "primary_muscles": [
       "core"
     ],
-    "secondary_muscles": [
-      "upper back"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -4629,6 +6001,7 @@
       "glutes"
     ],
     "secondary_muscles": [
+      "core",
       "adductors"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -4746,10 +6119,11 @@
     "movement_pattern": "hinge",
     "primary_muscles": [
       "glutes",
-      "hamstrings"
+      "hamstrings",
+      "lower back"
     ],
     "secondary_muscles": [
-      "lower back"
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -4809,6 +6183,7 @@
       "glutes"
     ],
     "secondary_muscles": [
+      "core",
       "adductors"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -4867,9 +6242,11 @@
     "how_to_short": "Keep a soft elbow bend, open through the chest until the shoulders stay packed, then bring the handles or bells back together with control.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "core"
+      "chest"
     ],
-    "secondary_muscles": [],
+    "secondary_muscles": [
+      "front delts"
+    ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -4928,6 +6305,7 @@
       "mid back"
     ],
     "secondary_muscles": [
+      "rear delts",
       "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -4977,23 +6355,25 @@
     "calories_estimation_method": null
   },
   {
-    "name": "Plank",
-    "primary_muscle": "core",
+    "name": "Pike Push-Up",
+    "primary_muscle": "front delts, triceps",
     "equipment": "Bodyweight",
     "is_global": true,
-    "how_to_short": "Brace the trunk, keep the ribs stacked over the pelvis, and hold the position without letting the low back arch or the torso rotate.",
+    "how_to_short": "Start in a piked position with hips high, lower the head toward the floor between the hands, then press back up while keeping the shoulders active and the trunk braced.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "core"
+      "front delts",
+      "triceps"
     ],
     "secondary_muscles": [
-      "glutes"
+      "side delts",
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
       "pattern_detail": [
-        "trunk_bracing"
+        "vertical_push"
       ],
       "plane_of_motion": [
         "sagittal"
@@ -5005,11 +6385,12 @@
         "standing"
       ],
       "training_goal": [
-        "conditioning",
-        "endurance"
+        "strength",
+        "hypertrophy",
+        "skill"
       ],
       "difficulty": [
-        "beginner"
+        "intermediate"
       ],
       "setup_cost": [
         "quick_setup"
@@ -5021,7 +6402,66 @@
         "bilateral"
       ],
       "loading_profile": [
-        "cardio_machine"
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "vertical_press"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": [
+        "overhead_lockout"
+      ]
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Brace the trunk, keep the ribs stacked over the pelvis, and hold the position without letting the low back arch or the torso rotate.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_bracing"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "prone"
+      ],
+      "training_goal": [
+        "core_stability",
+        "accessory"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
       ],
       "joint_emphasis": [
         "trunk_bracing"
@@ -5095,6 +6535,126 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Plate Halo",
+    "primary_muscle": "shoulders",
+    "equipment": "Plate",
+    "is_global": true,
+    "how_to_short": "Hold the plate close, circle it slowly around the head while keeping the ribs down, and reverse direction without shrugging or leaning back.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "front delts",
+      "side delts"
+    ],
+    "secondary_muscles": [
+      "upper back",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "shoulder_circumduction"
+      ],
+      "plane_of_motion": [
+        "multi_planar"
+      ],
+      "exercise_utility": [
+        "preparatory"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "mobility",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "free_weight"
+      ],
+      "joint_emphasis": [
+        "shoulder_flexion"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Plate Russian Twist",
+    "primary_muscle": "core",
+    "equipment": "Plate",
+    "is_global": true,
+    "how_to_short": "Sit tall with the plate close to the chest, rotate the ribcage side to side under control, and keep the hips quiet instead of throwing the load with the arms.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "seated"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "free_weight"
+      ],
+      "joint_emphasis": [
+        "trunk_rotation"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Preacher Curl",
     "primary_muscle": "biceps",
     "equipment": "Machine",
@@ -5102,12 +6662,9 @@
     "how_to_short": "Keep the upper arm quiet, curl the load toward shoulder height, and lower without letting the torso sway or the shoulders roll forward.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats",
-      "mid back"
-    ],
-    "secondary_muscles": [
       "biceps"
     ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -5229,7 +6786,7 @@
       "triceps"
     ],
     "secondary_muscles": [
-      "quads",
+      "side delts",
       "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -5292,8 +6849,7 @@
       "triceps"
     ],
     "secondary_muscles": [
-      "front delts",
-      "core"
+      "front delts"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -5343,18 +6899,18 @@
   },
   {
     "name": "Rack Pull",
-    "primary_muscle": "upper back, upper traps, glutes",
+    "primary_muscle": "glutes, hamstrings, lower back",
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Brace hard, pull the bar from the pins with it kept close to the body, and lock out the hips without leaning back.",
     "movement_pattern": "hinge",
     "primary_muscles": [
       "glutes",
-      "hamstrings"
+      "hamstrings",
+      "lower back"
     ],
     "secondary_muscles": [
-      "lower back",
-      "upper back"
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -5463,17 +7019,17 @@
   },
   {
     "name": "Reverse Hyperextension",
-    "primary_muscle": "glutes, hamstrings, lower back",
+    "primary_muscle": "glutes",
     "equipment": "Machine",
     "is_global": true,
     "how_to_short": "Brace, drive through the heels, extend the hips until the ribs stay stacked, and lower without arching the low back.",
     "movement_pattern": "hinge",
     "primary_muscles": [
-      "glutes",
-      "hamstrings"
+      "glutes"
     ],
     "secondary_muscles": [
-      "lower back"
+      "hamstrings",
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -5488,7 +7044,7 @@
         "auxiliary"
       ],
       "body_position": [
-        "seated"
+        "prone"
       ],
       "training_goal": [
         "hypertrophy",
@@ -5590,9 +7146,11 @@
     "how_to_short": "Set the shoulders down, sweep the arms out and back in line with the rear delts, and return without shrugging or jutting the ribs forward.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "core"
+      "rear delts"
     ],
-    "secondary_muscles": [],
+    "secondary_muscles": [
+      "upper back"
+    ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -5647,7 +7205,7 @@
     "how_to_short": "Pin the upper arm in place, extend the elbow to full lockout, and return with control instead of letting the weight yank you back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "core"
+      "triceps"
     ],
     "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -5700,17 +7258,18 @@
   },
   {
     "name": "Romanian Deadlift",
-    "primary_muscle": "hamstrings, glutes",
+    "primary_muscle": "glutes, hamstrings, lower back",
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Unlock the knees, hinge the hips back with the load close to the body, and extend through the hips to stand tall.",
     "movement_pattern": "hinge",
     "primary_muscles": [
+      "glutes",
       "hamstrings",
-      "glutes"
+      "lower back"
     ],
     "secondary_muscles": [
-      "lower back"
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -5766,7 +7325,7 @@
     "how_to_short": "Pin the upper arm in place, extend the elbow to full lockout, and return with control instead of letting the weight yank you back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "core"
+      "triceps"
     ],
     "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -5885,9 +7444,7 @@
     "primary_muscles": [
       "core"
     ],
-    "secondary_muscles": [
-      "hip flexors"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -5942,11 +7499,11 @@
     "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
+      "front delts",
       "triceps"
     ],
     "secondary_muscles": [
-      "front delts"
+      "side delts"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -6008,8 +7565,8 @@
       "mid back"
     ],
     "secondary_muscles": [
-      "biceps",
-      "rear delts"
+      "rear delts",
+      "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -6065,11 +7622,11 @@
     "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
+      "front delts",
       "triceps"
     ],
     "secondary_muscles": [
-      "front delts"
+      "side delts"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -6188,9 +7745,7 @@
     "primary_muscles": [
       "core"
     ],
-    "secondary_muscles": [
-      "abductors"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -6201,17 +7756,17 @@
         "frontal"
       ],
       "exercise_utility": [
-        "basic"
+        "auxiliary"
       ],
       "body_position": [
-        "standing"
+        "side_lying"
       ],
       "training_goal": [
-        "conditioning",
-        "endurance"
+        "core_stability",
+        "accessory"
       ],
       "difficulty": [
-        "beginner"
+        "intermediate"
       ],
       "setup_cost": [
         "quick_setup"
@@ -6223,7 +7778,7 @@
         "bilateral"
       ],
       "loading_profile": [
-        "cardio_machine"
+        "bodyweight"
       ],
       "joint_emphasis": [
         "trunk_bracing"
@@ -6238,6 +7793,66 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Side Plank Reach-Through",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Hold a strong side plank, reach the top arm under the torso with controlled rotation, then open back up without dropping the hips.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "side_lying"
+      ],
+      "training_goal": [
+        "core_stability",
+        "accessory"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "balance_demanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_rotation"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Single-Arm Cable Row",
     "primary_muscle": "lats, mid back",
     "equipment": "Cable",
@@ -6249,6 +7864,7 @@
       "mid back"
     ],
     "secondary_muscles": [
+      "rear delts",
       "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -6369,6 +7985,7 @@
       "mid back"
     ],
     "secondary_muscles": [
+      "rear delts",
       "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -6419,14 +8036,14 @@
   },
   {
     "name": "Single-Arm Lat Pulldown",
-    "primary_muscle": "lats",
+    "primary_muscle": "lats, upper back",
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Set the shoulders down first, pull the bar toward the upper chest by driving the elbows to your sides, and return to full reach without shrugging.",
     "movement_pattern": "pull",
     "primary_muscles": [
       "lats",
-      "mid back"
+      "upper back"
     ],
     "secondary_muscles": [
       "biceps"
@@ -6474,6 +8091,65 @@
       "grip_constraint": [
         "shoulder_depression"
       ]
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Single-Leg Calf Raise",
+    "primary_muscle": "calves",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Balance on one foot, lower the heel into a full stretch, rise onto the ball of the foot, pause briefly, and lower slowly without rolling the ankle.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "plantar_flexion"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "isolation"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "balance_demanding"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "plantar_flexion"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
     },
     "measurement_type": "reps",
     "default_unit": "reps",
@@ -6544,7 +8220,7 @@
     "primary_muscle": "quads, glutes",
     "equipment": "Machine",
     "is_global": true,
-    "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
+    "how_to_short": "Brace the trunk, descend by sitting between the hips while keeping pressure through the whole foot, and drive up through mid-foot.",
     "movement_pattern": "squat",
     "primary_muscles": [
       "quads",
@@ -6557,7 +8233,7 @@
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
       "pattern_detail": [
-        "vertical_push"
+        "squat"
       ],
       "plane_of_motion": [
         "sagittal"
@@ -6588,7 +8264,7 @@
         "machine_loaded"
       ],
       "joint_emphasis": [
-        "vertical_press"
+        "knee_dominant"
       ],
       "spine_demand": [
         "low_spinal_load"
@@ -6601,14 +8277,15 @@
   },
   {
     "name": "Single-Leg Romanian Deadlift",
-    "primary_muscle": "hamstrings, glutes",
+    "primary_muscle": "glutes, hamstrings, lower back",
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Unlock the knees, hinge the hips back with the load close to the body, and extend through the hips to stand tall.",
     "movement_pattern": "hinge",
     "primary_muscles": [
+      "glutes",
       "hamstrings",
-      "glutes"
+      "lower back"
     ],
     "secondary_muscles": [
       "core"
@@ -6667,7 +8344,7 @@
     "how_to_short": "Pin the upper arm in place, extend the elbow to full lockout, and return with control instead of letting the weight yank you back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "core"
+      "triceps"
     ],
     "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -6714,6 +8391,68 @@
     },
     "measurement_type": "reps",
     "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Sled Drag",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Sled",
+    "is_global": true,
+    "how_to_short": "Hold the straps with a braced torso, walk with steady powerful steps, keep tension on the sled, and finish the target distance without jerking through the arms.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "calves",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "sled_drag"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "conditioning",
+        "strength"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "moderate_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "sled_loaded"
+      ],
+      "joint_emphasis": [
+        "cyclical_conditioning"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "distance",
+    "default_unit": "m",
     "calories_estimation_method": null
   },
   {
@@ -6765,7 +8504,7 @@
         "bilateral"
       ],
       "loading_profile": [
-        "cardio_machine"
+        "sled_loaded"
       ],
       "joint_emphasis": [
         "cyclical_conditioning"
@@ -6837,11 +8576,71 @@
     "calories_estimation_method": null
   },
   {
-    "name": "Smith Machine Shoulder Press",
-    "primary_muscle": "front delts, triceps",
+    "name": "Smith Machine Hip Thrust",
+    "primary_muscle": "glutes",
     "equipment": "Smith Machine",
     "is_global": true,
-    "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
+    "how_to_short": "Set the upper back on the bench under the Smith bar, brace the ribs down, drive through the heels to extend the hips, pause with glutes squeezed, and lower under control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_extension"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "hypertrophy",
+        "accessory"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "high_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "machine_loaded"
+      ],
+      "joint_emphasis": [
+        "hip_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Smith Machine Incline Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Smith Machine",
+    "is_global": true,
+    "how_to_short": "Set the bench to a low incline under the Smith bar, pack the shoulders, lower the bar to the upper chest, and press to lockout without letting the elbows flare excessively.",
     "movement_pattern": "push",
     "primary_muscles": [
       "chest",
@@ -6849,6 +8648,127 @@
     ],
     "secondary_muscles": [
       "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "horizontal_push"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "strength",
+        "hypertrophy"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "high_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "machine_loaded"
+      ],
+      "joint_emphasis": [
+        "horizontal_press"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Smith Machine Romanian Deadlift",
+    "primary_muscle": "glutes, hamstrings",
+    "equipment": "Smith Machine",
+    "is_global": true,
+    "how_to_short": "Stand with the bar close, unlock the knees, hinge the hips back while keeping the spine braced, then drive the hips forward to stand tall without leaning back.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lower back",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hinge"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "strength",
+        "hypertrophy"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "high_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "machine_loaded"
+      ],
+      "joint_emphasis": [
+        "hip_dominant"
+      ],
+      "spine_demand": [
+        "moderate_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Smith Machine Shoulder Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Smith Machine",
+    "is_global": true,
+    "how_to_short": "Brace the trunk, press the load overhead on a controlled path, and finish with the ribs stacked over the hips instead of leaning back.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "front delts",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "side delts"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -6910,8 +8830,7 @@
       "glutes"
     ],
     "secondary_muscles": [
-      "adductors",
-      "core"
+      "adductors"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -6961,17 +8880,18 @@
   },
   {
     "name": "Snatch-Grip Deadlift",
-    "primary_muscle": "glutes, hamstrings, upper back",
+    "primary_muscle": "glutes, hamstrings, lower back",
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Brace hard, keep the load close as you hinge and drive through the floor, and lock out the hips without overextending the low back.",
     "movement_pattern": "hinge",
     "primary_muscles": [
       "glutes",
-      "hamstrings"
+      "hamstrings",
+      "lower back"
     ],
     "secondary_muscles": [
-      "lower back"
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -7012,6 +8932,67 @@
       ],
       "spine_demand": [
         "high_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Squat Jump",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Dip into a controlled squat, jump straight up with full hip and knee extension, land softly with knees tracking over the feet, and reset before the next rep.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "calves",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "plyometric_jump"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "auxiliary"
+      ],
+      "body_position": [
+        "standing"
+      ],
+      "training_goal": [
+        "power",
+        "conditioning"
+      ],
+      "difficulty": [
+        "intermediate"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "knee_dominant"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
       ],
       "grip_constraint": []
     },
@@ -7091,7 +9072,7 @@
     ],
     "secondary_muscles": [
       "quads",
-      "hamstrings"
+      "glutes"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -7151,7 +9132,7 @@
       "glutes"
     ],
     "secondary_muscles": [
-      "hamstrings",
+      "adductors",
       "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -7202,17 +9183,18 @@
   },
   {
     "name": "Stiff-Leg Deadlift",
-    "primary_muscle": "hamstrings, glutes",
+    "primary_muscle": "glutes, hamstrings, lower back",
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Unlock the knees, hinge the hips back with the load close to the body, and extend through the hips to stand tall.",
     "movement_pattern": "hinge",
     "primary_muscles": [
+      "glutes",
       "hamstrings",
-      "glutes"
+      "lower back"
     ],
     "secondary_muscles": [
-      "lower back"
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -7262,16 +9244,17 @@
   },
   {
     "name": "Straight-Arm Pulldown",
-    "primary_muscle": "lats",
+    "primary_muscle": "lats, upper back",
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Start from a full hang or reach, pull the elbows toward the ribs until the bar comes to you, and lower to full extension under control.",
     "movement_pattern": "pull",
     "primary_muscles": [
-      "lats"
+      "lats",
+      "upper back"
     ],
     "secondary_muscles": [
-      "core"
+      "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -7366,7 +9349,7 @@
         "bilateral"
       ],
       "loading_profile": [
-        "cardio_machine"
+        "bodyweight"
       ],
       "joint_emphasis": [
         "general_strength"
@@ -7390,6 +9373,7 @@
       "mid back"
     ],
     "secondary_muscles": [
+      "rear delts",
       "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -7450,6 +9434,7 @@
       "glutes"
     ],
     "secondary_muscles": [
+      "core",
       "adductors"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -7567,10 +9552,11 @@
     "movement_pattern": "hinge",
     "primary_muscles": [
       "glutes",
-      "hamstrings"
+      "hamstrings",
+      "lower back"
     ],
     "secondary_muscles": [
-      "lower back"
+      "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
@@ -7611,6 +9597,66 @@
       ],
       "spine_demand": [
         "high_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Thoracic Open Book",
+    "primary_muscle": "recovery",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Lie on your side with knees stacked, rotate the top arm and ribcage open toward the floor behind you, breathe into the end range, and return without forcing the low back.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "upper back"
+    ],
+    "secondary_muscles": [
+      "core",
+      "shoulders"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "mobility_drill"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "preparatory"
+      ],
+      "body_position": [
+        "side_lying"
+      ],
+      "training_goal": [
+        "mobility",
+        "recovery"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "supported"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_rotation"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
       ],
       "grip_constraint": []
     },
@@ -7686,12 +9732,9 @@
     "how_to_short": "Pin the upper arm in place, extend the elbow to full lockout, and return with control instead of letting the weight yank you back.",
     "movement_pattern": "push",
     "primary_muscles": [
-      "chest",
       "triceps"
     ],
-    "secondary_muscles": [
-      "front delts"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -7810,7 +9853,7 @@
       "glutes"
     ],
     "secondary_muscles": [
-      "hamstrings",
+      "adductors",
       "core"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -7869,9 +9912,7 @@
     "primary_muscles": [
       "core"
     ],
-    "secondary_muscles": [
-      "glutes"
-    ],
+    "secondary_muscles": [],
     "image_howto_path": "/exercises/placeholders/howto.svg",
     "image_muscles_path": "/exercises/placeholders/muscles.svg",
     "curation_tags": {
@@ -7882,14 +9923,14 @@
         "sagittal"
       ],
       "exercise_utility": [
-        "basic"
+        "auxiliary"
       ],
       "body_position": [
-        "standing"
+        "prone"
       ],
       "training_goal": [
-        "conditioning",
-        "endurance"
+        "core_stability",
+        "accessory"
       ],
       "difficulty": [
         "advanced"
@@ -7904,7 +9945,7 @@
         "bilateral"
       ],
       "loading_profile": [
-        "cardio_machine"
+        "bodyweight"
       ],
       "joint_emphasis": [
         "trunk_bracing"
@@ -8116,6 +10157,7 @@
       "mid back"
     ],
     "secondary_muscles": [
+      "rear delts",
       "biceps"
     ],
     "image_howto_path": "/exercises/placeholders/howto.svg",
@@ -8154,66 +10196,6 @@
       ],
       "joint_emphasis": [
         "horizontal_pull"
-      ],
-      "spine_demand": [
-        "low_spinal_load"
-      ],
-      "grip_constraint": []
-    },
-    "measurement_type": "reps",
-    "default_unit": "reps",
-    "calories_estimation_method": null
-  },
-  {
-    "name": "Chest Press",
-    "primary_muscle": "chest, triceps",
-    "equipment": "Machine",
-    "is_global": true,
-    "how_to_short": "Set the shoulders back and down, lower the load to the chest or handles with stacked wrists, and press to full elbow extension under control.",
-    "movement_pattern": "push",
-    "primary_muscles": [
-      "chest",
-      "triceps"
-    ],
-    "secondary_muscles": [
-      "front delts"
-    ],
-    "image_howto_path": "/exercises/placeholders/howto.svg",
-    "image_muscles_path": "/exercises/placeholders/muscles.svg",
-    "curation_tags": {
-      "pattern_detail": [
-        "horizontal_push"
-      ],
-      "plane_of_motion": [
-        "sagittal"
-      ],
-      "exercise_utility": [
-        "basic"
-      ],
-      "body_position": [
-        "seated"
-      ],
-      "training_goal": [
-        "hypertrophy",
-        "accessory"
-      ],
-      "difficulty": [
-        "beginner"
-      ],
-      "setup_cost": [
-        "quick_setup"
-      ],
-      "stability_requirement": [
-        "supported"
-      ],
-      "unilateral_profile": [
-        "bilateral"
-      ],
-      "loading_profile": [
-        "machine_loaded"
-      ],
-      "joint_emphasis": [
-        "horizontal_press"
       ],
       "spine_demand": [
         "low_spinal_load"

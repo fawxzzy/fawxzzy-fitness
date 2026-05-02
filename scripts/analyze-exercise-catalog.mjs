@@ -92,6 +92,12 @@ function buildSearchText(exercise) {
     .trim();
 }
 
+function isIntentionalRepHold(exercise) {
+  const name = exercise.name.toLowerCase();
+  const patternDetail = exercise.curation_tags.pattern_detail?.[0] ?? "";
+  return name.includes("reach-through") || patternDetail === "trunk_rotation";
+}
+
 function buildReviewFlags(exercise) {
   const flags = [];
   const name = exercise.name.toLowerCase();
@@ -100,7 +106,7 @@ function buildReviewFlags(exercise) {
   const measurementType = exercise.measurement_type;
   const caloriesMethod = exercise.calories_estimation_method;
 
-  const timedHold = name.includes("plank") || name.includes("hold") || name === "stretch";
+  const timedHold = (name.includes("plank") || name.includes("hold") || name === "stretch") && !isIntentionalRepHold(exercise);
   const cardioPattern = new Set(["running", "walking", "cycling", "rowing", "step_cardio", "rope_skip", "sled_drive"]);
 
   if (!measurementType) {
