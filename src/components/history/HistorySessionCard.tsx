@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import type { SessionSummary } from "@/app/history/session-summary";
 import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCard";
-import { cardAccentRailClassNames, cardShellToneClassNames, type CardSemanticTone } from "@/components/cardSemanticTones";
+import { cardAccentRailClassNames, type CardSemanticTone } from "@/components/cardSemanticTones";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { MetricAccentBar, type MetricDatum, MetricGrid } from "@/components/ui/MetricItem";
@@ -289,23 +289,28 @@ export function HistorySessionCard({
 
   if (viewMode === "compact") {
     const compactContent = (
-      <Glass
-        variant="base"
+      <div
         className={cn(
-          "w-full max-w-none overflow-hidden rounded-[var(--card-radius)] border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none",
-          appTokens.historyExerciseCardShell,
-          cardShellToneClassNames[resolvedTone],
-          selected ? appTokens.historySessionSelected : undefined,
+          "relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[0.2rem] py-[0.12rem]",
           className,
         )}
       >
         <div
-          className="relative flex min-h-[1.84rem] items-center px-[0.8rem] py-[0.12rem]"
+          className={cn(
+            "relative flex min-h-[1.84rem] items-center rounded-[0.9rem] px-[0.8rem] py-[0.18rem] transition-colors",
+            selected ? "bg-[rgb(var(--surface-1-rgb)/0.16)]" : "bg-transparent hover:bg-[rgb(var(--surface-1-rgb)/0.1)]",
+          )}
         >
           <span
             aria-hidden="true"
             className={cn(
-              "pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full",
+              "pointer-events-none absolute inset-x-[0.8rem] bottom-0 h-px bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))]",
+            )}
+          />
+          <span
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute bottom-0 left-[0.8rem] h-px w-12 rounded-full",
               cardAccentRailClassNames[resolvedTone],
             )}
           />
@@ -313,7 +318,7 @@ export function HistorySessionCard({
             {title ?? buildSessionCompactTitleText(session)}
           </div>
         </div>
-      </Glass>
+      </div>
     );
 
     if (!href) {

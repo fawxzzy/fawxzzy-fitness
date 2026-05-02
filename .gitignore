@@ -1,9 +1,12 @@
 node_modules
 .next
+.next-*
 dist
 build
 coverage
 .env*
+.env.prod-local-mirror
+!.env.prod-local-mirror.example
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -19,6 +22,7 @@ public/splash/*.png
 .playbook/
 .vercel
 .env*.local
+.tmp/prod-mirror/
 
 # Codex local runtime artifacts
 .codex/logs/

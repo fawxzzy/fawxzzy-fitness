@@ -21,6 +21,7 @@
     "qa:boards": "python scripts/build-mobile-regression-boards.py",
     "migration:validate": "node scripts/migration/validate-supabase-chain.mjs",
     "migration:parity": "node scripts/migration/parity-report.mjs",
+    "db:mirror:prod-to-local": "node scripts/sync-prod-to-local.mjs",
     "lint": "node scripts/next-cli.mjs lint",
     "lint:ci": "node scripts/next-cli.mjs lint --no-cache",
     "typecheck": "node scripts/tsc-cli.mjs -p tsconfig.json --pretty false",

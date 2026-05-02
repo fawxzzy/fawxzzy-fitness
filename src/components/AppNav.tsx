@@ -134,7 +134,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
       <ContentRail className="pointer-events-auto min-w-0">
         <Glass
           variant="raised"
-          className="relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--glass-tint-rgb)/0.68)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.22)] [--glass-current-border-alpha:0] [--glass-current-tint-alpha:0.62] [--glass-blur:calc(var(--glass-current-blur-raised)*0.6)] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.5)]"
+          className="relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--glass-tint-rgb)/0.16)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.18)] [--glass-current-border-alpha:0.06] [--glass-current-sheen-strength:0.2] [--glass-current-tint-alpha:0.18] [--glass-blur:calc(var(--glass-current-blur-raised)*0.6)] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.08)]"
           interactive={false}
         >
           <div className="flex h-[var(--header-h)] items-center justify-center pt-0.5">
