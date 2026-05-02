@@ -134,7 +134,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
       <ContentRail className="pointer-events-auto min-w-0">
         <Glass
           variant="raised"
-          className="relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"
+          className="relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--glass-tint-rgb)/0.16)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.18)] [--glass-current-border-alpha:0.06] [--glass-current-sheen-strength:0.2] [--glass-current-tint-alpha:0.18] [--glass-blur:calc(var(--glass-current-blur-raised)*0.6)] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.08)]"
           interactive={false}
         >
           <div className="flex h-[var(--header-h)] items-center justify-center pt-0.5">
@@ -162,12 +162,6 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
                       <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[rgb(var(--accent)/0.98)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
                       <span className="inline-flex flex-col items-center gap-0.5">
                         <span>{link.label}</span>
-                        <span
-                          aria-hidden="true"
-                          className={`h-[3px] w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.3),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.3))] shadow-[0_0_10px_rgb(var(--accent-divider-rgb)/0.4)] transition-opacity ${
-                            isActive ? "opacity-100" : "opacity-80"
-                          }`}
-                        />
                       </span>
                     </span>
                     {isPending ? (
