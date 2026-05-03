@@ -7,7 +7,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
-import type { ExerciseCardButtonProps, ExerciseCardDensity, ExerciseCardMediaLeftCornerMode, ExerciseCardRightIconMode, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
+import type { ExerciseCardButtonProps, ExerciseCardContentVerticalAlign, ExerciseCardDensity, ExerciseCardMediaLeftCornerMode, ExerciseCardRightIconMode, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
 import type { ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
@@ -55,6 +55,7 @@ export function ExerciseDisclosureCard({
   mediaLeftCornerMode,
   rightIconMode,
   hideEmptySummary = false,
+  contentVerticalAlign,
 }: {
   scope: DisclosureScope;
   itemId: string;
@@ -87,6 +88,7 @@ export function ExerciseDisclosureCard({
   mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
   rightIconMode?: ExerciseCardRightIconMode;
   hideEmptySummary?: boolean;
+  contentVerticalAlign?: ExerciseCardContentVerticalAlign;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
@@ -132,6 +134,7 @@ export function ExerciseDisclosureCard({
         showAccentRail={showAccentRail}
         hideEmptySummary={hideEmptySummary}
         rightIconMode={resolvedRightIconMode}
+        contentVerticalAlign={contentVerticalAlign}
         rightIcon={(
           expanded
             ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />

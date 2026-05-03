@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardMediaLeftCornerMode, type ExerciseCardRightIconMode } from "@/components/ExerciseCard";
+import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardContentVerticalAlign, type ExerciseCardMediaLeftCornerMode, type ExerciseCardRightIconMode } from "@/components/ExerciseCard";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import {
@@ -59,6 +59,7 @@ type StandardExerciseRowProps = {
   mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
   hideEmptySummary?: boolean;
   rightIconMode?: ExerciseCardRightIconMode;
+  contentVerticalAlign?: ExerciseCardContentVerticalAlign;
 };
 
 export function StandardExerciseRow({
@@ -99,6 +100,7 @@ export function StandardExerciseRow({
   mediaLeftCornerMode,
   hideEmptySummary = false,
   rightIconMode,
+  contentVerticalAlign,
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const hasMeaningfulSummary = hasMeaningfulExerciseGoalSummary(resolvedSummary);
@@ -161,6 +163,7 @@ export function StandardExerciseRow({
       subtitleTone={subtitleTone}
       showAccentRail={showAccentRail}
       buttonProps={buttonProps}
+      contentVerticalAlign={contentVerticalAlign}
     >
       {children}
     </ExerciseCard>

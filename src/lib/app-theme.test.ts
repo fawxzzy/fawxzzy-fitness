@@ -6,13 +6,16 @@ import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_LIBRARY_STORAGE_KEY,
   APP_THEME_NAME_MAX_LENGTH,
+  APP_THEME_PRESETS,
   APP_THEME_SELECTION_STORAGE_KEY,
   countAppThemeCustomizations,
   getAppThemeSummary,
   APP_THEME_STORAGE_KEY,
   clearStoredAppThemeSelection,
   DEFAULT_APP_THEME,
+  ROSE_APP_THEME,
   TEST_APP_THEME,
+  getAppThemePresetLabel,
   getNextAvailableAppThemeSlotId,
   getAppThemeCssVariables,
   getAppThemePresetMatch,
@@ -20,6 +23,7 @@ import {
   readStoredAppTheme,
   readStoredAppThemeLibrary,
   readStoredAppThemeSelection,
+  resolveStoredAppTheme,
   sanitizeAppThemeName,
   writeStoredAppTheme,
   writeStoredAppThemeLibrary,
@@ -104,6 +108,28 @@ test("getAppThemeCssVariables derives shared accent and surface variables", () =
   assert.equal(cssVariables["--card-radius"], "32px");
 });
 
+test("rose theme preset is registered as a first-class preset", () => {
+  assert.equal(ROSE_APP_THEME.preset, "rose");
+  assert.equal(ROSE_APP_THEME.primaryActionColor, "#ff4fa3");
+  assert.equal(ROSE_APP_THEME.accentDividerColor, "#ff5fb3");
+  assert.equal(ROSE_APP_THEME.metricAccentColor, "#ff5fb3");
+  assert.equal(ROSE_APP_THEME.cardOutlineColor, "#ff5fb3");
+  assert.equal(APP_THEME_PRESETS.rose, ROSE_APP_THEME);
+  assert.equal(getAppThemePresetLabel("rose"), "Rose Circuit");
+  assert.equal(getAppThemePresetMatch(ROSE_APP_THEME), "rose");
+});
+
+test("rose theme CSS variables keep metric strips and outlines aligned", () => {
+  const cssVariables = getAppThemeCssVariables(ROSE_APP_THEME);
+
+  assert.equal(cssVariables["--accent-divider-rgb"], "255 95 179");
+  assert.equal(cssVariables["--metric-accent-rgb"], "255 95 179");
+  assert.equal(cssVariables["--stroke-soft"], "255 95 179");
+  assert.equal(cssVariables["--stroke-strong"], "255 95 179");
+  assert.equal(cssVariables["--selection-rgb"], "255 79 163");
+  assert.equal(cssVariables["--success-rgb"], "255 123 192");
+});
+
 test("default app theme keeps metric and outline accents aligned to the crisp green", () => {
   assert.equal(DEFAULT_APP_THEME.primaryActionColor, "#20974e");
   assert.equal(DEFAULT_APP_THEME.accentDividerColor, "#20974e");
@@ -147,6 +173,14 @@ test("stored default theme clears the persisted harness state", () => {
 
   assert.equal(storage.getItem(APP_THEME_STORAGE_KEY), null);
   assert.equal(getAppThemePresetMatch(DEFAULT_APP_THEME), "default");
+});
+
+test("resolved stored theme falls back to the selected rose preset when active custom theme state is empty", () => {
+  const storage = createStorageStub();
+
+  writeStoredAppThemeSelection("rose", storage);
+
+  assert.deepEqual(resolveStoredAppTheme(storage), ROSE_APP_THEME);
 });
 
 test("stored non-default theme round-trips through storage", () => {
@@ -232,6 +266,13 @@ test("theme summary reports preset and customization state", () => {
     title: "Default theme",
     detail: "Custom colors off",
     basePreset: "default",
+    customizationCount: 0,
+  });
+
+  assert.deepEqual(getAppThemeSummary(ROSE_APP_THEME), {
+    title: "Rose Circuit",
+    detail: "Custom colors off",
+    basePreset: "rose",
     customizationCount: 0,
   });
 

@@ -323,6 +323,7 @@ body {
 }
 
 .app-edge-frame {
+  display: none;
   pointer-events: none;
   position: fixed;
   inset: 0;

@@ -16,6 +16,7 @@ export type ExerciseCardButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElemen
 export type ExerciseCardMediaLayout = "rail" | "inline";
 export type ExerciseCardMediaLeftCornerMode = "sharp" | "top-rounded";
 export type ExerciseCardRightIconMode = "rail" | "overlay";
+export type ExerciseCardContentVerticalAlign = "auto" | "top";
 
 const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
   standard: "detailed",
@@ -214,6 +215,7 @@ export function ExerciseCard({
   shellStyle,
   mediaLeftCornerMode = "sharp",
   rightIconMode = "rail",
+  contentVerticalAlign = "auto",
 }: {
   title: ReactNode;
   titleMeta?: ReactNode;
@@ -251,6 +253,7 @@ export function ExerciseCard({
   shellStyle?: CSSProperties;
   mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
   rightIconMode?: ExerciseCardRightIconMode;
+  contentVerticalAlign?: ExerciseCardContentVerticalAlign;
 }) {
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
@@ -339,7 +342,7 @@ export function ExerciseCard({
           <div
             className={cn(
               "flex min-h-full min-w-0 flex-col",
-              hasSupportingContent ? "justify-start" : "justify-center",
+              contentVerticalAlign === "top" || hasSupportingContent ? "justify-start" : "justify-center",
               styles.contentGap,
               hasBadgeText && !hasTitleMeta ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
               titleContainerClassName,

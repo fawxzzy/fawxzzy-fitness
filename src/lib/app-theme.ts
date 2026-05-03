@@ -1,5 +1,6 @@
-export type AppThemePreset = "default" | "test";
+export type AppThemePreset = "default" | "rose" | "test";
 export type CustomAppThemeSlotId = "custom-1" | "custom-2" | "custom-3";
+export type AppThemeSelectionId = AppThemePreset | CustomAppThemeSlotId;
 
 export type AppThemeSettings = {
   preset: AppThemePreset;
@@ -37,6 +38,7 @@ export const APP_THEME_LIBRARY_STORAGE_KEY = "fawxzzy:app-theme-library";
 export const APP_THEME_SELECTION_STORAGE_KEY = "fawxzzy:app-theme-selection";
 export const APP_THEME_NAME_MAX_LENGTH = 15;
 export const APP_THEME_CUSTOM_SLOT_IDS = ["custom-1", "custom-2", "custom-3"] as const;
+export const APP_THEME_USER_VISIBLE_PRESET_IDS = ["default", "rose"] as const satisfies ReadonlyArray<AppThemePreset>;
 
 const DEFAULT_PRIMARY_ACTION_COLOR = "#20974e";
 const DEFAULT_SECONDARY_ACTION_COLOR = "#cd9742";
@@ -54,6 +56,22 @@ const DEFAULT_SURFACE_CARD_COLOR = "#0a0b0f";
 const DEFAULT_CARD_OUTLINE_COLOR = "#20974e";
 const DEFAULT_BUTTON_RADIUS = 20;
 const DEFAULT_CARD_RADIUS = 20;
+const ROSE_PRIMARY_ACTION_COLOR = "#ff4fa3";
+const ROSE_SECONDARY_ACTION_COLOR = "#f5a84f";
+const ROSE_TEXT_PRIMARY_COLOR = "#fff4fb";
+const ROSE_TEXT_SECONDARY_COLOR = "#f5c9df";
+const ROSE_TEXT_MUTED_COLOR = "#bb7f9e";
+const ROSE_ACCENT_DIVIDER_COLOR = "#ff5fb3";
+const ROSE_METRIC_ACCENT_COLOR = "#ff5fb3";
+const ROSE_SUCCESS_COMPLETE_COLOR = "#ff7bc0";
+const ROSE_SELECTION_ACTIVE_COLOR = "#ff4fa3";
+const ROSE_LOADER_SCAN_COLOR = "#ff7bc0";
+const ROSE_WARNING_COLOR = "#f5a84f";
+const ROSE_DANGER_COLOR = "#ff5c7a";
+const ROSE_SURFACE_CARD_COLOR = "#130711";
+const ROSE_CARD_OUTLINE_COLOR = "#ff5fb3";
+const ROSE_BUTTON_RADIUS = 20;
+const ROSE_CARD_RADIUS = 24;
 
 export const DEFAULT_APP_THEME: AppThemeSettings = {
   preset: "default",
@@ -73,6 +91,26 @@ export const DEFAULT_APP_THEME: AppThemeSettings = {
   cardOutlineColor: DEFAULT_CARD_OUTLINE_COLOR,
   buttonRadius: DEFAULT_BUTTON_RADIUS,
   cardRadius: DEFAULT_CARD_RADIUS,
+};
+
+export const ROSE_APP_THEME: AppThemeSettings = {
+  preset: "rose",
+  textPrimaryColor: ROSE_TEXT_PRIMARY_COLOR,
+  textSecondaryColor: ROSE_TEXT_SECONDARY_COLOR,
+  textMutedColor: ROSE_TEXT_MUTED_COLOR,
+  primaryActionColor: ROSE_PRIMARY_ACTION_COLOR,
+  secondaryActionColor: ROSE_SECONDARY_ACTION_COLOR,
+  accentDividerColor: ROSE_ACCENT_DIVIDER_COLOR,
+  metricAccentColor: ROSE_METRIC_ACCENT_COLOR,
+  successCompleteColor: ROSE_SUCCESS_COMPLETE_COLOR,
+  selectionActiveColor: ROSE_SELECTION_ACTIVE_COLOR,
+  loaderScanColor: ROSE_LOADER_SCAN_COLOR,
+  warningColor: ROSE_WARNING_COLOR,
+  dangerColor: ROSE_DANGER_COLOR,
+  surfaceCardColor: ROSE_SURFACE_CARD_COLOR,
+  cardOutlineColor: ROSE_CARD_OUTLINE_COLOR,
+  buttonRadius: ROSE_BUTTON_RADIUS,
+  cardRadius: ROSE_CARD_RADIUS,
 };
 
 export const TEST_APP_THEME: AppThemeSettings = {
@@ -97,6 +135,7 @@ export const TEST_APP_THEME: AppThemeSettings = {
 
 export const APP_THEME_PRESETS: Record<AppThemePreset, AppThemeSettings> = {
   default: DEFAULT_APP_THEME,
+  rose: ROSE_APP_THEME,
   test: TEST_APP_THEME,
 };
 export const APP_THEME_CHANGE_EVENT = "atlas:app-theme-change";
@@ -218,8 +257,23 @@ function isCustomAppThemeSlotId(value: unknown): value is CustomAppThemeSlotId {
   return typeof value === "string" && APP_THEME_CUSTOM_SLOT_IDS.includes(value as CustomAppThemeSlotId);
 }
 
-function isThemeSelectionId(value: unknown): value is "default" | CustomAppThemeSlotId {
-  return value === "default" || isCustomAppThemeSlotId(value);
+function isAppThemePreset(value: unknown): value is AppThemePreset {
+  return value === "default" || value === "rose" || value === "test";
+}
+
+function isThemeSelectionId(value: unknown): value is AppThemeSelectionId {
+  return isAppThemePreset(value) || isCustomAppThemeSlotId(value);
+}
+
+export function getAppThemePresetLabel(preset: AppThemePreset) {
+  switch (preset) {
+    case "rose":
+      return "Rose Circuit";
+    case "test":
+      return "Test Theme";
+    default:
+      return "Default theme";
+  }
 }
 
 export function sanitizeAppThemeName(value: unknown) {
@@ -287,7 +341,7 @@ function deriveButtonRadiusScale(buttonRadius: number) {
 }
 
 export function normalizeAppTheme(value: Partial<AppThemeSettings> | null | undefined): AppThemeSettings {
-  const preset = value?.preset === "test" ? "test" : "default";
+  const preset = value?.preset === "test" ? "test" : value?.preset === "rose" ? "rose" : "default";
 
   return {
     preset,
@@ -335,6 +389,10 @@ export function areAppThemesEqual(left: AppThemeSettings, right: AppThemeSetting
 export function getAppThemePresetMatch(theme: AppThemeSettings): AppThemePreset | null {
   if (areAppThemesEqual(theme, DEFAULT_APP_THEME)) {
     return "default";
+  }
+
+  if (areAppThemesEqual(theme, ROSE_APP_THEME)) {
+    return "rose";
   }
 
   if (areAppThemesEqual(theme, TEST_APP_THEME)) {
@@ -451,7 +509,7 @@ export function countAppThemeCustomizations(theme: AppThemeSettings) {
     return 0;
   }
 
-  const basePreset = theme.preset === "test" ? "test" : "default";
+  const basePreset = isAppThemePreset(theme.preset) ? theme.preset : "default";
   const baseTheme = APP_THEME_PRESETS[basePreset];
 
   return APP_THEME_CUSTOMIZATION_KEYS.reduce((count, key) => (
@@ -461,12 +519,12 @@ export function countAppThemeCustomizations(theme: AppThemeSettings) {
 
 export function getAppThemeSummary(theme: AppThemeSettings) {
   const presetMatch = getAppThemePresetMatch(theme);
-  const basePreset = theme.preset === "test" ? "test" : "default";
-  const baseLabel = basePreset === "test" ? "Test Theme" : "Default theme";
+  const basePreset = isAppThemePreset(theme.preset) ? theme.preset : "default";
+  const baseLabel = getAppThemePresetLabel(basePreset);
 
   if (presetMatch) {
     return {
-      title: presetMatch === "test" ? "Test Theme" : "Default theme",
+      title: getAppThemePresetLabel(presetMatch),
       detail: "Custom colors off",
       basePreset,
       customizationCount: 0,
@@ -598,7 +656,7 @@ export function readStoredAppThemeSelection(storage?: StorageLike | null) {
   }
 }
 
-export function writeStoredAppThemeSelection(selection: "default" | CustomAppThemeSlotId, storage?: StorageLike | null) {
+export function writeStoredAppThemeSelection(selection: AppThemeSelectionId, storage?: StorageLike | null) {
   const resolvedStorage = getBrowserStorage(storage);
   if (!resolvedStorage) {
     return;
@@ -639,6 +697,25 @@ export function readStoredAppTheme(storage?: StorageLike | null) {
     resolvedStorage.removeItem(APP_THEME_STORAGE_KEY);
     return null;
   }
+}
+
+export function resolveStoredAppTheme(storage?: StorageLike | null) {
+  const storedTheme = readStoredAppTheme(storage);
+  if (storedTheme) {
+    return storedTheme;
+  }
+
+  const selection = readStoredAppThemeSelection(storage);
+  if (!selection) {
+    return DEFAULT_APP_THEME;
+  }
+
+  if (isAppThemePreset(selection)) {
+    return APP_THEME_PRESETS[selection];
+  }
+
+  const savedTheme = readStoredAppThemeLibrary(storage).find((theme) => theme.id === selection);
+  return savedTheme?.theme ?? DEFAULT_APP_THEME;
 }
 
 export function writeStoredAppTheme(theme: AppThemeSettings, storage?: StorageLike | null) {

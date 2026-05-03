@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { applyAppTheme, DEFAULT_APP_THEME, readStoredAppTheme } from "@/lib/app-theme";
+import { applyAppTheme, resolveStoredAppTheme } from "@/lib/app-theme";
 import { startLoadingDiagnosticGate } from "@/lib/loading-diagnostics";
 
 export function AppThemeBootstrap() {
@@ -15,7 +15,7 @@ export function AppThemeBootstrap() {
     });
 
     try {
-      applyAppTheme(readStoredAppTheme() ?? DEFAULT_APP_THEME);
+      applyAppTheme(resolveStoredAppTheme());
       gate.resolve();
     } catch (error) {
       gate.error(error, {

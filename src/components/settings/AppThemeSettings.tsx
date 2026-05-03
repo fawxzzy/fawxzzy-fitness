@@ -12,14 +12,20 @@ import { appTokens } from "@/components/ui/app/tokens";
 import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_NAME_MAX_LENGTH,
+  APP_THEME_PRESETS,
+  APP_THEME_USER_VISIBLE_PRESET_IDS,
   applyAppTheme,
   areAppThemesEqual,
   DEFAULT_APP_THEME,
+  ROSE_APP_THEME,
+  getAppThemePresetLabel,
   getNextAvailableAppThemeSlotId,
-  readStoredAppTheme,
   readStoredAppThemeLibrary,
   readStoredAppThemeSelection,
+  resolveStoredAppTheme,
   sanitizeAppThemeName,
+  type AppThemePreset,
+  type AppThemeSelectionId,
   type CustomAppThemeSlotId,
   type AppThemeSettings,
   type SavedAppThemeSlot,
@@ -206,8 +212,6 @@ function ThemeRangeField({
   );
 }
 
-type ThemeSelectionId = "default" | CustomAppThemeSlotId;
-
 function ThemeSlotButton({
   label,
   active,
@@ -253,7 +257,7 @@ export function AppThemeSettings({
 }) {
   const [theme, setTheme] = useState<AppThemeSettings>(DEFAULT_APP_THEME);
   const [savedThemes, setSavedThemes] = useState<SavedAppThemeSlot[]>([]);
-  const [selectedThemeId, setSelectedThemeId] = useState<ThemeSelectionId>("default");
+  const [selectedThemeId, setSelectedThemeId] = useState<AppThemeSelectionId>("default");
   const [themeName, setThemeName] = useState("");
   const [saveMessage, setSaveMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -265,15 +269,15 @@ export function AppThemeSettings({
   const [isThemeNameFocused, setIsThemeNameFocused] = useState(false);
 
   useEffect(() => {
-    const storedTheme = readStoredAppTheme() ?? DEFAULT_APP_THEME;
+    const storedTheme = resolveStoredAppTheme();
     const storedThemes = readStoredAppThemeLibrary();
     const storedSelection = readStoredAppThemeSelection();
     const matchingTheme = storedThemes.find((storedSlot) => areAppThemesEqual(storedSlot.theme, storedTheme));
 
     setTheme(storedTheme);
     setSavedThemes(storedThemes);
-    if (storedSelection === "default") {
-      setSelectedThemeId("default");
+    if (storedSelection === "default" || storedSelection === "rose" || storedSelection === "test") {
+      setSelectedThemeId(storedSelection);
       setThemeName("");
     } else if (storedSelection) {
       const selectedSlot = storedThemes.find((storedSlot) => storedSlot.id === storedSelection) ?? null;
@@ -282,6 +286,9 @@ export function AppThemeSettings({
     } else if (matchingTheme) {
       setSelectedThemeId(matchingTheme.id);
       setThemeName(matchingTheme.name);
+    } else if (areAppThemesEqual(storedTheme, ROSE_APP_THEME)) {
+      setSelectedThemeId("rose");
+      setThemeName("");
     } else if (areAppThemesEqual(storedTheme, DEFAULT_APP_THEME)) {
       setSelectedThemeId("default");
       setThemeName("");
@@ -314,30 +321,34 @@ export function AppThemeSettings({
   };
 
   const isDefaultThemeSelected = selectedThemeId === "default";
-  const selectedSavedTheme = isDefaultThemeSelected
-    ? null
-    : savedThemes.find((savedTheme) => savedTheme.id === selectedThemeId) ?? null;
+  const isCustomThemeSlotSelected = APP_THEME_CUSTOM_SLOT_IDS.includes(selectedThemeId as CustomAppThemeSlotId);
+  const selectedSavedTheme = isCustomThemeSlotSelected
+    ? savedThemes.find((savedTheme) => savedTheme.id === selectedThemeId) ?? null
+    : null;
+  const selectedPresetTheme = !isCustomThemeSlotSelected
+    ? APP_THEME_PRESETS[selectedThemeId as AppThemePreset] ?? DEFAULT_APP_THEME
+    : null;
   const normalizedThemeName = sanitizeAppThemeName(themeName);
   const selectedThemeBaseName = selectedSavedTheme?.name ?? "";
-  const selectedThemeBase = selectedSavedTheme?.theme ?? DEFAULT_APP_THEME;
+  const selectedThemeBase = selectedSavedTheme?.theme ?? selectedPresetTheme ?? DEFAULT_APP_THEME;
   const nextAvailableThemeSlotId = getNextAvailableAppThemeSlotId(savedThemes);
   const hasThemeContentChange = !areAppThemesEqual(theme, selectedThemeBase);
   const hasThemeNameChange = normalizedThemeName !== selectedThemeBaseName;
   const hasActiveThemeChange = hasThemeContentChange || hasThemeNameChange;
-  const showThemeEditor = !isDefaultThemeSelected;
+  const showThemeEditor = isCustomThemeSlotSelected;
   const showThemeNameField = showThemeEditor && (!selectedSavedTheme || hasThemeContentChange || normalizedThemeName.length > 0);
   const canSaveTheme = normalizedThemeName.length > 0
     && hasActiveThemeChange
-    && (!isDefaultThemeSelected || nextAvailableThemeSlotId !== null);
+    && (isCustomThemeSlotSelected || nextAvailableThemeSlotId !== null);
   const hasUnitPreferenceChange = weightUnit !== savedWeightUnit || distanceUnit !== savedDistanceUnit;
   const canSaveAnyChange = canSaveTheme || hasUnitPreferenceChange;
 
-  const selectDefaultTheme = () => {
-    setSelectedThemeId("default");
+  const selectPresetTheme = (preset: AppThemePreset) => {
+    setSelectedThemeId(preset);
     setThemeName("");
     setSaveMessage(null);
-    setTheme(DEFAULT_APP_THEME);
-    writeStoredAppThemeSelection("default");
+    setTheme(APP_THEME_PRESETS[preset]);
+    writeStoredAppThemeSelection(preset);
   };
 
   const selectSavedTheme = (savedTheme: SavedAppThemeSlot) => {
@@ -378,9 +389,9 @@ export function AppThemeSettings({
 
       if (canSaveTheme) {
         const normalizedName = sanitizeAppThemeName(themeName);
-        const targetSlotId = isDefaultThemeSelected
-          ? getNextAvailableAppThemeSlotId(savedThemes)
-          : selectedThemeId;
+        const targetSlotId: CustomAppThemeSlotId | null = isCustomThemeSlotSelected
+          ? selectedThemeId as CustomAppThemeSlotId
+          : getNextAvailableAppThemeSlotId(savedThemes);
 
         if (!targetSlotId) {
           errorMessages.push("Select a saved theme slot to overwrite.");
@@ -442,7 +453,7 @@ export function AppThemeSettings({
 
   return (
     <div className="space-y-4 pt-2">
-      {!isDefaultThemeSelected ? (
+      {isCustomThemeSlotSelected ? (
         <PublishBottomActions>
           <BottomActionSplit
             secondary={(
@@ -500,11 +511,14 @@ export function AppThemeSettings({
           ) : null}
           <div className={appTokens.settingsFieldStack}>
             <div className="flex flex-wrap justify-center gap-2">
-              <ThemeSlotButton
-                label="Default"
-                active={selectedThemeId === "default"}
-                onClick={selectDefaultTheme}
-              />
+              {APP_THEME_USER_VISIBLE_PRESET_IDS.map((presetId) => (
+                <ThemeSlotButton
+                  key={presetId}
+                  label={getAppThemePresetLabel(presetId)}
+                  active={selectedThemeId === presetId}
+                  onClick={() => selectPresetTheme(presetId)}
+                />
+              ))}
               {APP_THEME_CUSTOM_SLOT_IDS.map((slotId, index) => {
                 const savedTheme = savedThemes.find((entry) => entry.id === slotId);
                 return (

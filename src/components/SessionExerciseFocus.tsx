@@ -421,6 +421,7 @@ export function SessionExerciseFocus({
               titleMeta={titleMeta}
               showAccentRail={!isStretchHub}
               hideEmptySummary={isStretchHub}
+              contentVerticalAlign={isStretchHub ? "top" : "auto"}
             >
               <>
                 <SetLoggerCard
