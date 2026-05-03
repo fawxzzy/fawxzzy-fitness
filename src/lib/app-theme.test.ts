@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_LIBRARY_STORAGE_KEY,
@@ -100,6 +102,42 @@ test("getAppThemeCssVariables derives shared accent and surface variables", () =
   assert.equal(cssVariables["--surface-2-rgb"], "31 53 70");
   assert.equal(cssVariables["--button-radius"], "10px");
   assert.equal(cssVariables["--card-radius"], "32px");
+});
+
+test("default app theme keeps metric and outline accents aligned to the crisp green", () => {
+  assert.equal(DEFAULT_APP_THEME.primaryActionColor, "#20974e");
+  assert.equal(DEFAULT_APP_THEME.accentDividerColor, "#20974e");
+  assert.equal(DEFAULT_APP_THEME.metricAccentColor, "#20974e");
+  assert.equal(DEFAULT_APP_THEME.successCompleteColor, "#20974e");
+  assert.equal(DEFAULT_APP_THEME.selectionActiveColor, "#20974e");
+  assert.equal(DEFAULT_APP_THEME.cardOutlineColor, "#20974e");
+
+  const cssVariables = getAppThemeCssVariables(DEFAULT_APP_THEME);
+  assert.equal(cssVariables["--accent-divider-rgb"], "32 151 78");
+  assert.equal(cssVariables["--metric-accent-rgb"], "32 151 78");
+  assert.equal(cssVariables["--success-rgb"], "32 151 78");
+  assert.equal(cssVariables["--selection-rgb"], "32 151 78");
+  assert.equal(cssVariables["--stroke-soft"], "32 151 78");
+  assert.equal(cssVariables["--stroke-strong"], "32 151 78");
+});
+
+test("normalizeAppTheme falls back to the crisp green for metric accent and card outline", () => {
+  const theme = normalizeAppTheme({
+    metricAccentColor: "not-a-color",
+    cardOutlineColor: null as never,
+  });
+
+  assert.equal(theme.metricAccentColor, "#20974e");
+  assert.equal(theme.cardOutlineColor, "#20974e");
+});
+
+test("root CSS defines the default metric and card stroke tokens for default theme mode", () => {
+  const globalsPath = path.resolve(process.cwd(), "src/app/globals.css");
+  const globalsCss = readFileSync(globalsPath, "utf8");
+
+  assert.match(globalsCss, /--metric-accent-rgb:\s*32 151 78;/);
+  assert.match(globalsCss, /--stroke-soft:\s*32 151 78;/);
+  assert.match(globalsCss, /--stroke-strong:\s*32 151 78;/);
 });
 
 test("stored default theme clears the persisted harness state", () => {

@@ -12,8 +12,8 @@
   --surface-2-rgb: 10 11 15;
   --surface-3-rgb: 40 40 44;
 
-  --stroke-soft: 190 214 238;
-  --stroke-strong: 190 214 238;
+  --stroke-soft: 32 151 78;
+  --stroke-strong: 32 151 78;
   --text-primary: 244 248 252;
   --text-secondary: 205 217 232;
   --text-muted: 144 164 188;
@@ -22,6 +22,7 @@
   --accent-blue: 32 151 78;
   --secondary-action-rgb: 205 151 66;
   --accent-divider-rgb: 32 151 78;
+  --metric-accent-rgb: 32 151 78;
   --selection-rgb: 32 151 78;
   --loader-scan-rgb: 32 121 78;
   --accent-yellow-off: 240 178 78;
