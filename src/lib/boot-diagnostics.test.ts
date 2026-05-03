@@ -38,17 +38,25 @@ test("recordClientBootDiagnostic stores the last sanitized client event", () => 
     source: "client",
     route: "/today",
     stage: "version-mismatch",
-    authState: "refreshed",
+    authState: "authenticated",
     displayMode: "standalone",
     serviceWorkerControlled: true,
+    gateStage: "redirecting",
+    remoteBuildId: "build-456",
+    stageDurationMs: 2400,
+    targetHref: "/today",
     errorMessage: "build drift for athlete@example.com",
   }, {
     storage,
   });
 
   assert.equal(payload.displayMode, "standalone");
-  assert.equal(payload.authState, "refreshed");
+  assert.equal(payload.authState, "authenticated");
   assert.equal(payload.serviceWorkerControlled, true);
+  assert.equal(payload.gateStage, "redirecting");
+  assert.equal(payload.remoteBuildId, "build-456");
+  assert.equal(payload.stageDurationMs, 2400);
+  assert.equal(payload.targetHref, "/today");
   assert.equal(writes.has(LAST_BOOT_DIAGNOSTIC_STORAGE_KEY), true);
   assert.equal(writes.get(LAST_BOOT_DIAGNOSTIC_STORAGE_KEY)?.includes("athlete@example.com"), false);
 });
@@ -62,6 +70,10 @@ test("sanitizeBootDiagnosticEvent preserves safe route and stage fields", () => 
       stage: "routine-hint",
       buildId: "build-123",
       authState: "has-refresh-cookie",
+      gateStage: "checking-session",
+      remoteBuildId: "build-456",
+      stageDurationMs: 1500,
+      targetHref: "/login?error=session_expired",
     }),
     {
       tag: "[boot.entry]",
@@ -74,6 +86,10 @@ test("sanitizeBootDiagnosticEvent preserves safe route and stage fields", () => 
       authState: "has-refresh-cookie",
       errorName: null,
       errorMessage: null,
+      gateStage: "checking-session",
+      remoteBuildId: "build-456",
+      stageDurationMs: 1500,
+      targetHref: "/login?error=session_expired",
     },
   );
 });

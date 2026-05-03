@@ -2,6 +2,8 @@ const APP_UPDATE_RELOAD_STATE_MAX_AGE_MS = 5 * 60 * 1000;
 
 export const APP_UPDATE_RELOAD_STATE_KEY = "fawxzzy:fitness:app-update:reload-state";
 export const APP_UPDATE_NOTICE_KEY = "fawxzzy:fitness:app-update:notice";
+export const APP_UPDATE_STATUS_EVENT = "fawxzzy:fitness:app-update-status";
+export const APP_UPDATE_STATUS_WINDOW_KEY = "__FAWXZZY_APP_UPDATE_STATUS__";
 
 export type StoredAppUpdateReloadState = {
   href: string;
@@ -11,7 +13,24 @@ export type StoredAppUpdateReloadState = {
   updatedAt: number;
 };
 
+export type AppUpdatePhase = "idle" | "checking" | "update-queued" | "applying-update" | "error";
+
+export type AppUpdateStatus = {
+  currentBuildId: string;
+  phase: AppUpdatePhase;
+  remoteBuildId: string | null;
+  route: string | null;
+  serviceWorkerControlled: boolean | null;
+  updatedAt: number;
+};
+
 type ParsedRecord = Record<string, unknown>;
+
+declare global {
+  interface Window {
+    __FAWXZZY_APP_UPDATE_STATUS__?: AppUpdateStatus;
+  }
+}
 
 function isRecord(value: unknown): value is ParsedRecord {
   return typeof value === "object" && value !== null;
@@ -100,4 +119,24 @@ export function shouldShowAppUpdateNotice(
   } catch {
     return false;
   }
+}
+
+export function publishAppUpdateStatus(status: AppUpdateStatus) {
+  if (typeof window === "undefined") {
+    return status;
+  }
+
+  window[APP_UPDATE_STATUS_WINDOW_KEY] = status;
+  window.dispatchEvent(new CustomEvent<AppUpdateStatus>(APP_UPDATE_STATUS_EVENT, {
+    detail: status,
+  }));
+  return status;
+}
+
+export function readPublishedAppUpdateStatus() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window[APP_UPDATE_STATUS_WINDOW_KEY] ?? null;
 }

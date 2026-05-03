@@ -7,6 +7,7 @@ import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import {
   APP_UPDATE_NOTICE_KEY,
   APP_UPDATE_RELOAD_STATE_KEY,
+  publishAppUpdateStatus,
   parseStoredAppUpdateReloadState,
   serializeStoredAppUpdateReloadState,
   shouldRestoreReloadState,
@@ -19,6 +20,23 @@ const UPDATE_IDLE_THRESHOLD_MS = 12_000;
 const UPDATE_RELOAD_FALLBACK_MS = 1_400;
 const SCROLL_RESTORE_ATTEMPTS = 8;
 const SCROLL_RESTORE_RETRY_MS = 120;
+
+function shouldPrioritizeImmediateUpdate(route: string) {
+  if (route === "/" || route === "/entry") {
+    return true;
+  }
+
+  try {
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      return true;
+    }
+  } catch {
+    // Fall through to navigator standalone detection.
+  }
+
+  return (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
 export function ServiceWorkerBootstrap() {
   const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
   const toast = useToast();
@@ -103,6 +121,19 @@ export function ServiceWorkerBootstrap() {
     let reloadTimerId: number | null = null;
     let teardown: (() => void) | null = null;
 
+    const publishStatus = (phase: "idle" | "checking" | "update-queued" | "applying-update" | "error", remoteBuildId?: string | null) => {
+      publishAppUpdateStatus({
+        currentBuildId: CURRENT_APP_BUILD_ID,
+        phase,
+        remoteBuildId: remoteBuildId ?? pendingBuildId ?? null,
+        route: window.location.pathname,
+        serviceWorkerControlled: "serviceWorker" in navigator ? Boolean(navigator.serviceWorker.controller) : null,
+        updatedAt: Date.now(),
+      });
+    };
+
+    publishStatus("checking", null);
+
     const clearIdleTimer = () => {
       if (idleTimerId !== null) {
         window.clearTimeout(idleTimerId);
@@ -152,6 +183,7 @@ export function ServiceWorkerBootstrap() {
         return;
       }
 
+      publishStatus("applying-update");
       recordClientBootDiagnostic({
         tag: "[boot.service-worker]",
         source: "client",
@@ -174,12 +206,14 @@ export function ServiceWorkerBootstrap() {
       clearIdleTimer();
       clearReloadTimer();
       rememberReloadState(pendingBuildId);
+      publishStatus("applying-update", pendingBuildId);
       recordClientBootDiagnostic({
         tag: "[boot.service-worker]",
         source: "client",
         route: window.location.pathname,
         stage: "begin-update-transition",
         buildId: CURRENT_APP_BUILD_ID,
+        remoteBuildId: pendingBuildId,
       });
 
       if (document.visibilityState === "visible") {
@@ -222,9 +256,10 @@ export function ServiceWorkerBootstrap() {
     const queueUpdate = (registration: ServiceWorkerRegistration, targetBuildId: string | null) => {
       pendingRegistration = registration;
       pendingBuildId = targetBuildId ?? pendingBuildId;
+      publishStatus("update-queued", pendingBuildId);
       requestRegistrationUpdate(registration);
 
-      if (document.visibilityState === "hidden") {
+      if (document.visibilityState === "hidden" || shouldPrioritizeImmediateUpdate(window.location.pathname)) {
         beginUpdateTransition(registration, pendingBuildId);
         return;
       }
@@ -270,6 +305,7 @@ export function ServiceWorkerBootstrap() {
         const manifest = await response.json() as { buildId?: string | null };
         const remoteBuildId = manifest.buildId?.trim();
         if (!remoteBuildId || remoteBuildId === CURRENT_APP_BUILD_ID) {
+          publishStatus("idle", remoteBuildId ?? null);
           return;
         }
 
@@ -278,7 +314,8 @@ export function ServiceWorkerBootstrap() {
           source: "client",
           route: window.location.pathname,
           stage: "remote-build-mismatch",
-          buildId: remoteBuildId,
+          buildId: CURRENT_APP_BUILD_ID,
+          remoteBuildId,
         });
         queueUpdate(registration, remoteBuildId);
       } catch {
@@ -300,6 +337,7 @@ export function ServiceWorkerBootstrap() {
       }
 
       setIsApplyingUpdate(document.visibilityState === "visible");
+      publishStatus("applying-update", pendingBuildId);
       reloadApp();
     };
 
@@ -336,6 +374,7 @@ export function ServiceWorkerBootstrap() {
         }
 
         bindRegistration(registration);
+        publishStatus("idle");
         requestRegistrationUpdate(registration);
         void checkVersionManifest(registration);
 
@@ -379,6 +418,7 @@ export function ServiceWorkerBootstrap() {
         teardown = cleanup;
       })
       .catch((error) => {
+        publishStatus("error");
         recordClientBootDiagnostic({
           tag: "[boot.service-worker]",
           source: "client",

@@ -7,6 +7,7 @@ export type BootDiagnosticTag =
   | "[boot.service-worker]"
   | "[entry.boot.unexpected]";
 export type BootDiagnosticAuthState =
+  | "authenticated"
   | "auth-error"
   | "has-access-cookie"
   | "has-refresh-cookie"
@@ -21,11 +22,15 @@ export type BootDiagnosticEvent = {
   displayMode?: BootDiagnosticDisplayMode;
   errorMessage?: string | null;
   errorName?: string | null;
+  gateStage?: string | null;
+  remoteBuildId?: string | null;
   route?: string | null;
   serviceWorkerControlled?: boolean | null;
   source: BootDiagnosticSource;
   stage: string;
+  stageDurationMs?: number | null;
   tag: BootDiagnosticTag;
+  targetHref?: string | null;
 };
 
 type BootDiagnosticLevel = "error" | "info" | "warn";
@@ -111,6 +116,13 @@ export function sanitizeBootDiagnosticEvent(event: BootDiagnosticEvent) {
     authState: event.authState ?? null,
     errorName: sanitizeText(event.errorName ?? null, 48),
     errorMessage: sanitizeText(event.errorMessage ?? null),
+    gateStage: sanitizeText(event.gateStage ?? null, 96),
+    targetHref: sanitizeText(event.targetHref ?? null, 180),
+    remoteBuildId: sanitizeText(event.remoteBuildId ?? null, 96),
+    stageDurationMs:
+      typeof event.stageDurationMs === "number" && Number.isFinite(event.stageDurationMs)
+        ? event.stageDurationMs
+        : null,
   };
 }
 
