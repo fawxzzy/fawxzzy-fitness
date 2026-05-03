@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import type { MouseEvent, SVGProps } from "react";
 import { useEffect, useState } from "react";
 import { ContentRail } from "@/components/layout/ContentRail";
-import { Glass } from "@/components/ui/Glass";
 
 type NavLink = {
   href: string;
@@ -18,6 +17,8 @@ type AppNavProps = {
 };
 
 const NAV_PENDING_HINT_DELAY_MS = 140;
+const DISCARD_CONFIRM_BAR_SURFACE_CLASSNAME =
+  "relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.14)] px-2 pb-1 shadow-[0_20px_44px_rgba(0,0,0,0.16)] supports-[backdrop-filter]:bg-[rgb(var(--surface-1-rgb)/0.08)]";
 
 const links: NavLink[] = [
   {
@@ -132,11 +133,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
       }`}
     >
       <ContentRail className="pointer-events-auto min-w-0">
-        <Glass
-          variant="raised"
-          className="relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--glass-tint-rgb)/0.16)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.18)] [--glass-current-border-alpha:0.06] [--glass-current-sheen-strength:0.2] [--glass-current-tint-alpha:0.18] [--glass-blur:calc(var(--glass-current-blur-raised)*0.6)] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.08)]"
-          interactive={false}
-        >
+        <div className={DISCARD_CONFIRM_BAR_SURFACE_CLASSNAME}>
           <div className="flex h-[var(--header-h)] items-center justify-center pt-0.5">
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {
@@ -175,7 +172,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
               })}
             </nav>
           </div>
-        </Glass>
+        </div>
       </ContentRail>
     </div>
   );

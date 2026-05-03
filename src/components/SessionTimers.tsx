@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -23,11 +24,12 @@ import { getBottomActionButtonClassName } from "@/components/layout/bottomAction
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
+import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
+import { selectionChromeStyle } from "@/components/ui/selectionChromeStyle";
 import { useUndoAction } from "@/components/ui/useUndoAction";
+import { MeasurementDockSummary, measurementDockSurfaceClassName } from "@/components/ui/measurements/MeasurementDock";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
-import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
@@ -927,16 +929,115 @@ export function SetLoggerCard({
     });
   }
 
+  const currentSummary = (
+    <div data-testid="set-logger-current-summary">
+      <MeasurementDockSummary
+        className={cn(
+          appTokens.currentSessionLoggerSummaryCard,
+          "border-0 bg-transparent px-0 py-0 shadow-none transition-all duration-200 ease-out",
+        )}
+        lead={(
+          <div className={cn(appTokens.currentSessionLoggerSummaryText, "inline-flex items-center gap-x-2 text-[14px] leading-[1.25] transition-all duration-200 ease-out")}>
+            <span className={cn(appTokens.currentSessionSetSummaryLabel, "shrink-0")}>{currentSetLabel}</span>
+            <SignatureMiniPipe />
+          </div>
+        )}
+        summary={(
+          <SignatureInlineList
+            items={liveSummaryItems}
+            separator="dot"
+            className={cn(
+              appTokens.currentSessionLoggerSummaryText,
+              "justify-center whitespace-normal break-words text-center text-[14px] leading-[1.25] transition-all duration-200 ease-out",
+            )}
+          />
+        )}
+      />
+    </div>
+  );
+
+  const loggedSetList = sets.length > 0 ? (
+    <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
+      <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
+        {animatedSets.map((set, index) => (
+          <li
+            key={set.stableId}
+            className={[
+              "origin-top transition-all duration-150 motion-reduce:transition-none",
+              set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
+            ].join(" ")}
+          >
+            <LoggedSetSummaryRow
+              label={set.is_warmup ? "Warm-up" : (useIntervalLanguage ? `Interval ${index + 1}` : `Set ${index + 1}`)}
+              summary=""
+              balanceActionSpace
+              showBottomSeparator
+              summaryItems={getSessionSummaryItems({
+                reps: set.reps,
+                weight: set.weight,
+                weightUnit: set.weight_unit ?? unitLabel,
+                durationSeconds: set.duration_seconds,
+                distance: set.distance,
+                distanceUnit: set.distance_unit,
+                calories: set.calories,
+                rpe: set.rpe,
+                isWarmup: set.is_warmup,
+                queueStatus: set.queueStatus,
+                pending: set.pending,
+                emptyLabel: "No measurements",
+                includeWarmupTag: false,
+              })}
+              actionClassName="items-center self-center bg-transparent pl-2 pr-0"
+              action={(
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDeleteSet(set);
+                  }}
+                  aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
+                  data-bottom-action-intent="danger"
+                  className={cn(
+                    getBottomActionButtonClassName({
+                      intent: "danger",
+                      fullWidth: false,
+                      className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
+                    }),
+                    "shrink-0 self-center",
+                    tapFeedbackClass,
+                  )}
+                >
+                  <span className="bottom-action__label">Delete</span>
+                </button>
+              )}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
   return (
-    <div className={appTokens.currentSessionLoggerStack} data-testid="set-logger-card">
+    <div
+      className={cn(
+        appTokens.currentSessionLoggerStack,
+        "relative flex min-h-[calc(100dvh-var(--bottom-actions-height,0px)-10rem)] flex-col",
+      )}
+      data-testid="set-logger-card"
+    >
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes
           - No Set Timer UI remains; duration logging still works via mm:ss
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
+      {loggedSetList}
+
       <WorkoutEntrySection
-        className={cn(appTokens.currentSessionLoggerPanel, "mt-2.5")}
+        className={cn(
+          appTokens.currentSessionLoggerPanel,
+          measurementDockSurfaceClassName,
+          "sticky bottom-[calc(var(--bottom-actions-height,0px)+0.625rem)] z-20 mt-auto shadow-[0_-12px_28px_rgba(2,8,16,0.2)] pt-2.5",
+        )}
         contentClassName="space-y-0"
       >
         <MeasurementPanelV2
@@ -972,112 +1073,43 @@ export function SetLoggerCard({
           showInnerHeader={false}
           layoutMode="horizontal-scroll"
           labelTreatment="floating-border"
+          topField={{
+            title: "Warm up",
+            input: null,
+            inlineLabel: "",
+            useInlineFieldShell: false,
+            hasValue: resolvedIsWarmup,
+            labelClassName: "hidden",
+            valueLabelClassName: "hidden",
+            renderInput: ({ inputClassName }) => (
+              <button
+                type="button"
+                className={cn(
+                  ACTION_CHROME_CONTROL_CLASS_NAME,
+                  inputClassName,
+                  appTokens.currentSessionWarmupToggle,
+                  "flex !h-11 !min-h-11 w-full translate-y-[2px] flex-col items-center justify-center !rounded-[1rem] !border-0 !bg-transparent !px-3 !py-2 text-center leading-none !shadow-none focus-visible:ring-[var(--button-focus-ring)]",
+                )}
+                data-action-chrome-intent="ghost"
+                style={{
+                  ...selectionChromeStyle,
+                  "--action-chrome-text-color": resolvedIsWarmup
+                    ? "rgb(var(--text-primary) / 0.96)"
+                    : "rgb(var(--text-muted) / 0.92)",
+                } as CSSProperties}
+                aria-pressed={resolvedIsWarmup}
+                aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
+                onClick={() => setWarmupValue(!resolvedIsWarmup)}
+              >
+                <span className="text-xs font-semibold uppercase tracking-[0.06em]">Warm</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.06em]">Up</span>
+              </button>
+            ),
+          }}
           visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
-          belowRpeContent={(
-            <button
-              type="button"
-              className={cn(
-                appTokens.measurementInput,
-                appTokens.currentSessionWarmupToggle,
-                "flex h-11 min-h-11 w-full flex-col items-center justify-center px-3 py-2 text-center leading-none",
-                resolvedIsWarmup
-                  ? "border-[rgb(var(--accent)/0.36)] bg-[linear-gradient(180deg,rgb(var(--accent)/0.22),rgb(var(--accent)/0.14))] text-[rgb(var(--text-primary)/0.98)] shadow-[0_0_0_1px_rgb(var(--accent)/0.08),0_0_18px_rgb(var(--accent)/0.12)]"
-                  : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] text-[rgb(var(--text-muted)/0.9)]",
-              )}
-              aria-pressed={resolvedIsWarmup}
-              aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
-              onClick={() => setWarmupValue(!resolvedIsWarmup)}
-            >
-              <span className="text-xs font-semibold uppercase tracking-[0.06em]">Warm</span>
-              <span className="text-xs font-semibold uppercase tracking-[0.06em]">Up</span>
-            </button>
-          )}
-          belowRpeField={{ width: "compact" }}
           rpe={rpe}
           onRpeChange={setRpe}
-          footerContent={(
-            <div className={cn(appTokens.currentSessionFocusStack, "gap-px")}>
-              <div data-testid="set-logger-current-summary">
-                <CompactLogRow
-                  className={cn(
-                    appTokens.currentSessionLoggerSummaryCard,
-                    "border-0 bg-transparent px-0 py-0 shadow-none transition-all duration-200 ease-out",
-                  )}
-                  summary={(
-                    <div className="flex min-h-[52px] flex-col items-center justify-center gap-2 text-center">
-                      <div className={cn(appTokens.currentSessionLoggerSummaryText, "inline-flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[14px] leading-[1.25] transition-all duration-200 ease-out")}>
-                        <span className={cn(appTokens.currentSessionSetSummaryLabel, "shrink-0")}>{currentSetLabel}</span>
-                        <SignatureMiniPipe />
-                        <SignatureInlineList
-                          items={liveSummaryItems}
-                          separator="dot"
-                          className="justify-center whitespace-normal break-words"
-                        />
-                      </div>
-            <MetricAccentBar className="mt-0 h-[4px] w-20 shadow-[0_0_16px_rgb(var(--accent-divider-rgb)/0.5)]" />
-                    </div>
-                  )}
-                />
-              </div>
-              {sets.length > 0 ? (
-                <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
-                  <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
-                    {animatedSets.map((set, index) => (
-                      <li
-                        key={set.stableId}
-                        className={[
-                          "origin-top transition-all duration-150 motion-reduce:transition-none",
-                          set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
-                        ].join(" ")}
-                        >
-                          <LoggedSetSummaryRow
-                          label={set.is_warmup ? "Warm-up" : (useIntervalLanguage ? `Interval ${index + 1}` : `Set ${index + 1}`)}
-                            summary=""
-                          summaryItems={getSessionSummaryItems({
-                              reps: set.reps,
-                              weight: set.weight,
-                              weightUnit: set.weight_unit ?? unitLabel,
-                            durationSeconds: set.duration_seconds,
-                            distance: set.distance,
-                            distanceUnit: set.distance_unit,
-                            calories: set.calories,
-                              rpe: set.rpe,
-                              isWarmup: set.is_warmup,
-                              queueStatus: set.queueStatus,
-                              pending: set.pending,
-                              emptyLabel: "No measurements",
-                              includeWarmupTag: false,
-                            })}
-                          actionClassName="items-center self-center bg-transparent pl-2 pr-0"
-                          action={(
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void handleDeleteSet(set);
-                              }}
-                              aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
-                              data-bottom-action-intent="danger"
-                              className={cn(
-                                getBottomActionButtonClassName({
-                                  intent: "danger",
-                                  fullWidth: false,
-                                  className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-                                }),
-                                "shrink-0 self-center",
-                                tapFeedbackClass,
-                              )}
-                            >
-                              <span className="bottom-action__label">Delete</span>
-                            </button>
-                          )}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          )}
+          footerContent={currentSummary}
         />
         {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
       </WorkoutEntrySection>

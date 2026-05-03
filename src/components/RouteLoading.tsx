@@ -134,11 +134,11 @@ export function RouteLoading({
 
   return (
     <section className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgb(var(--loader-scan-rgb)/0.1),transparent_22%),linear-gradient(180deg,rgba(3,9,16,0.08),rgba(3,9,16,0.22))]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,rgb(var(--loader-scan-rgb)/0.18),transparent_22%),linear-gradient(180deg,rgba(3,9,16,0.08),rgba(3,9,16,0.22))]" />
       <div className="route-loading__grid" />
       <div className="route-loading__scan" />
-      <div className="route-loading__glow left-[12%] top-[14%] h-44 w-44 bg-[rgb(var(--ambient-orb-one)/0.16)] [--route-loading-dx:14px] [--route-loading-dy:10px]" />
-      <div className="route-loading__glow right-[12%] bottom-[14%] h-40 w-40 bg-[rgb(var(--ambient-orb-two)/0.14)] [--route-loading-dx:-12px] [--route-loading-dy:-10px]" style={{ animationDelay: "2200ms" }} />
+      <div className="route-loading__glow left-[12%] top-[14%] h-44 w-44 bg-[rgb(var(--loader-scan-rgb)/0.24)] [--route-loading-dx:14px] [--route-loading-dy:10px]" />
+      <div className="route-loading__glow right-[12%] bottom-[14%] h-40 w-40 bg-[rgb(var(--loader-scan-rgb)/0.18)] [--route-loading-dx:-12px] [--route-loading-dy:-10px]" style={{ animationDelay: "2200ms" }} />
       {LOADING_PARTICLES.map((particle) => (
         <span
           key={`${particle.left}-${particle.top}-${variant}`}

@@ -28,8 +28,8 @@ export function MetricAccentBar({
       aria-hidden="true"
       className={cn(
         variant === "thin"
-          ? "block h-px w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] shadow-[0_0_14px_rgb(var(--accent-divider-rgb)/0.16)]"
-          : "mt-[0.32rem] block h-[4px] w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.55),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.55))] shadow-[0_0_16px_rgb(var(--accent-divider-rgb)/0.5)]",
+          ? "block h-px w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] shadow-[0_0_14px_rgb(var(--metric-accent-rgb)/0.16)]"
+          : "mt-[0.32rem] block h-[4px] w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.55),rgb(var(--metric-accent-rgb)/1),rgb(var(--metric-accent-rgb)/0.55))] shadow-[0_0_16px_rgb(var(--metric-accent-rgb)/0.5)]",
         className,
       )}
     />
@@ -114,7 +114,7 @@ function MetricChrome({
       <div
         className={cn(
           appTokens.workoutMetricChrome,
-          "relative flex min-h-0 flex-col items-start justify-start overflow-hidden border-transparent bg-transparent shadow-none ring-0 backdrop-blur-0 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:block after:h-px after:rounded-full after:bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] after:shadow-[0_0_14px_rgb(var(--accent-divider-rgb)/0.16)]",
+          "relative flex min-h-0 flex-col items-start justify-start overflow-hidden border-transparent bg-transparent shadow-none ring-0 backdrop-blur-0 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:block after:h-px after:rounded-full after:bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] after:shadow-[0_0_14px_rgb(var(--metric-accent-rgb)/0.16)]",
           className,
         )}
       >

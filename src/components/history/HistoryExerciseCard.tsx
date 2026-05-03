@@ -97,7 +97,7 @@ function HistoryExerciseDetailedMetricGrid({ items }: { items: MetricDatum[] }) 
               getAutoMetricSpanClassName(items.length, index),
               appTokens.workoutMetricChrome,
               appTokens.workoutMetricCompact,
-              "flex min-h-[2.8rem] flex-col items-center justify-start overflow-hidden border-transparent bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%] px-2.75 py-1 shadow-none ring-0 backdrop-blur-0",
+              "flex min-h-[2.8rem] flex-col items-center justify-start overflow-hidden border-transparent bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%] px-2.75 py-1 shadow-none ring-0 backdrop-blur-0",
             )}
           >
             <p className={cn(appTokens.workoutMetricLabel, "block w-full px-px pt-px text-center leading-[1.02] text-[rgb(var(--accent-divider-rgb)/0.92)]")}>

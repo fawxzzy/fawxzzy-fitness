@@ -7,7 +7,6 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -193,13 +192,19 @@ export function SessionPageClient({
       >
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-        <BottomActionTriad
-          secondary={quickAddAction}
-          tertiary={(
+        <div
+          role="group"
+          aria-label="Bottom actions"
+          className="grid w-full grid-cols-[minmax(0,1fr)_minmax(6.15rem,6.15rem)_minmax(0,1fr)] items-stretch gap-2"
+        >
+          <div className="flex min-w-0 items-stretch [&>*]:w-full">
+            {quickAddAction}
+          </div>
+          <div className="flex min-w-0 items-stretch justify-center">
             <div
               className={cn(
                 appTokens.currentSessionDurationPill,
-                "min-h-[44px] bg-[linear-gradient(180deg,rgba(26,31,42,0.98),rgba(12,16,24,0.98))] px-0 text-[1.44rem] font-black tracking-[0.04em] text-[rgb(236_247_255/0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(125,211,252,0.08)] [font-variant-numeric:tabular-nums] [text-shadow:0_0_10px_rgba(220,240,255,0.12)]",
+                "flex min-h-[44px] w-full items-center justify-center bg-[linear-gradient(180deg,rgba(26,31,42,0.98),rgba(12,16,24,0.98))] px-0 text-[1.44rem] font-black tracking-[0.04em] text-[rgb(236_247_255/0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(125,211,252,0.08)] [font-variant-numeric:tabular-nums] [text-shadow:0_0_10px_rgba(220,240,255,0.12)]",
               )}
               suppressHydrationWarning
               aria-live={hasMountedTimer ? "off" : undefined}
@@ -208,19 +213,17 @@ export function SessionPageClient({
                 {formatDurationClock(hasMountedTimer ? durationSeconds : 0)}
               </span>
             </div>
-          )}
-          primary={(
+          </div>
+          <div className="flex min-w-0 items-stretch [&>*]:w-full">
             <BottomDockButton
               type="submit"
               intent="positive"
+              className="!min-h-[44px]"
             >
               Finish
             </BottomDockButton>
-          )}
-          className="w-full grid-cols-[minmax(0,1fr)_minmax(5.75rem,7.25rem)_minmax(0,1fr)]"
-          tertiaryClassName="px-0"
-          tertiaryFill
-        />
+          </div>
+        </div>
       </form>
     ),
     [durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, toast],

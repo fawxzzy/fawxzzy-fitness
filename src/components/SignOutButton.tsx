@@ -15,6 +15,7 @@ export function SignOutButton() {
     clearPersistedWorkoutClientState();
     await supabase.auth.signOut();
     document.cookie = "sb-access-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "sb-refresh-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     router.replace(AUTH_ENTRY_PATH);
     window.location.assign(AUTH_ENTRY_PATH);
   };

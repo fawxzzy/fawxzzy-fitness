@@ -393,7 +393,7 @@ export function SessionExerciseFocus({
               showLeadingVisual={surfacePolicy.showMedia}
               subtitleTone="plain"
               subtitleClassName={isCompletedRow ? "!text-[rgb(var(--success-rgb)/0.98)]" : undefined}
-              className={isExpanded ? "overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
+              className={isExpanded ? "flex min-h-[calc(100dvh-var(--bottom-actions-height,0px)-var(--app-safe-top)-1.5rem)] flex-col overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
               shellClassName={[
                 isExpanded
                   ? "sticky top-0 z-20 !border-0 shadow-[0_14px_28px_rgb(0_0_0/0.3)] [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
@@ -414,7 +414,10 @@ export function SessionExerciseFocus({
                   : "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
               }
               contentClassName="pl-3"
+              panelClassName={isExpanded ? "flex flex-1 flex-col" : undefined}
               mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
+              rightIconMode={isExpanded ? "overlay" : undefined}
+              rightRailClassName={isExpanded ? "!top-auto bottom-[0.9rem] !translate-y-0" : undefined}
               titleMeta={titleMeta}
               showAccentRail={!isStretchHub}
               hideEmptySummary={isStretchHub}

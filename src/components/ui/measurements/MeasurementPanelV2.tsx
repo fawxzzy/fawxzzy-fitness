@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
-import { labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
+import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
@@ -29,9 +29,10 @@ const compactTopRowInlineLabelClassName = cn(lowerBottomRightInlineLabelClassNam
 const topRightInlineLabelClassName = "top-2.5 right-2.5 translate-y-0 text-[8px] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
 const floatingBorderLabelClassName = cn(
   labeledEditorFieldFloatingLabelClassName,
-  "top-0 -translate-y-[46%] bg-transparent px-0 py-px leading-[1.24] antialiased [text-shadow:0_0_1px_rgb(var(--surface-2-rgb)/0.98),0_-0.5px_0_rgb(var(--surface-2-rgb)/0.98)]",
+  "px-1 py-0 leading-none",
 );
 const topRightInlineLabelBaseClassName = "pointer-events-none absolute whitespace-nowrap text-right text-[8px] font-semibold uppercase leading-[1.02] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
+const floatingBorderFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 
 function sanitizeIntegerInput(value: string) {
   return value.replace(/[^\d]/g, "");
@@ -189,6 +190,33 @@ function InlineFieldControl({
   valueLabelClassName?: string;
   labelPlacement?: InlineFieldLabelPlacement;
 }) {
+  if (labelPlacement === "floating-border") {
+    return (
+      <fieldset className={floatingBorderFieldShellClassName}>
+        <legend
+          className={cn(
+            floatingBorderLabelClassName,
+            hasValue ? valueLabelClassName : labelClassName,
+          )}
+        >
+          {label}
+        </legend>
+        {children}
+        {showEmptyValue ? (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-0 flex items-center justify-start pl-3.5 pr-14 text-left text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
+              emptyValueClassName,
+            )}
+          >
+            -
+          </span>
+        ) : null}
+      </fieldset>
+    );
+  }
+
   return (
     <div className="relative min-w-0">
       {children}
@@ -244,13 +272,24 @@ function getInputClassName({
   tripleRow = false,
   hasValue = false,
   topRightLabel = false,
+  floatingBorder = false,
   extraClassName,
 }: {
   tripleRow?: boolean;
   hasValue?: boolean;
   topRightLabel?: boolean;
+  floatingBorder?: boolean;
   extraClassName?: string;
 }) {
+  if (floatingBorder) {
+    return cn(
+      valueInputClassName,
+      labeledEditorFieldControlClassName,
+      "h-11 rounded-[inherit] !border-0 !bg-transparent px-3 py-0 text-center !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+      extraClassName,
+    );
+  }
+
   if (topRightLabel) {
     return cn(
       valueInputClassName,
@@ -289,6 +328,7 @@ export function MeasurementPanelV2({
   rpe,
   onRpeChange,
   footerContent,
+  footerClassName,
   showInnerHeader = false,
   topField,
   repRangeLabels,
@@ -321,12 +361,14 @@ export function MeasurementPanelV2({
   rpe?: string;
   onRpeChange?: (value: string) => void;
   footerContent?: ReactNode;
+  footerClassName?: string;
   showInnerHeader?: boolean;
   topField?: {
     title: string;
     suffix?: string;
     input: ReactNode;
     inlineLabel?: string;
+    useInlineFieldShell?: boolean;
     showEmptyValue?: boolean;
     hasValue?: boolean;
     labelClassName?: string;
@@ -365,19 +407,42 @@ export function MeasurementPanelV2({
   const shareSingleMetricRowWithRpe = hasRpeInput && standardMetrics.length === 1;
   const useThreeAcrossMetrics = visibleInlineFieldCount >= 3 && !belowRpeContent;
   const useFloatingBorderLabels = labelTreatment === "floating-border";
+  const useCenteredLowerLabels = false;
   const useTopRightInlineLabels = !useFloatingBorderLabels;
-  const useTopAnchoredLabels = useTopRightInlineLabels || useFloatingBorderLabels;
+  const useTopAnchoredLabels = !useCenteredLowerLabels && (useTopRightInlineLabels || useFloatingBorderLabels);
   const gridColumnCount: 2 | 3 = useThreeAcrossMetrics ? 3 : 2;
   const metricFields: Array<{ id: string; node: ReactNode }> = [];
+  const resolvedFloatingLabelPlacement: InlineFieldLabelPlacement = useCenteredLowerLabels
+    ? "top-right"
+    : useFloatingBorderLabels
+      ? "floating-border"
+      : useTopRightInlineLabels
+        ? "top-right"
+        : "side";
+  const resolveInlineLabelClassName = (fallback?: string) => (
+    useFloatingBorderLabels
+      ? floatingBorderLabelClassName
+      : useTopRightInlineLabels
+        ? topRightInlineLabelClassName
+        : fallback
+  );
+  const resolveValueLabelClassName = (fallback?: string) => (
+    useFloatingBorderLabels
+      ? floatingBorderLabelClassName
+      : useTopRightInlineLabels
+        ? topRightInlineLabelClassName
+        : fallback
+  );
 
   if (topField) {
+    const useInlineFieldShell = topField.useInlineFieldShell ?? true;
     metricFields.push({
       id: "top-field",
       node: renderMetricCard({
         testId: "measurement-field-summary",
         width: useThreeAcrossMetrics ? "compact" : "standard",
         gridColumnCount,
-        children: topField.inlineLabel ? (
+        children: topField.inlineLabel !== undefined && useInlineFieldShell ? (
           <InlineFieldControl
             label={topField.inlineLabel}
             showEmptyValue={topField.showEmptyValue}
@@ -385,7 +450,7 @@ export function MeasurementPanelV2({
             labelClassName={topField.labelClassName}
             valueLabelClassName={topField.valueLabelClassName}
             emptyValueClassName={topField.emptyValueClassName}
-            labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+            labelPlacement={resolvedFloatingLabelPlacement}
           >
             {topField.renderInput
               ? topField.renderInput({
@@ -393,10 +458,24 @@ export function MeasurementPanelV2({
                   tripleRow: useThreeAcrossMetrics,
                   hasValue: topField.hasValue,
                   topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
                 }),
               })
               : topField.input}
           </InlineFieldControl>
+        ) : topField.inlineLabel !== undefined ? (
+          <div className="flex h-full items-center justify-center">
+            {topField.renderInput
+              ? topField.renderInput({
+                inputClassName: getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: topField.hasValue,
+                  topRightLabel: false,
+                  floatingBorder: false,
+                }),
+              })
+              : topField.input}
+          </div>
         ) : (
           <>
             <StatFieldLabel title={topField.title} suffix={topField.suffix} emphasis="target" />
@@ -418,12 +497,12 @@ export function MeasurementPanelV2({
           children: (
             <InlineFieldControl
               label={resolvedRepRangeLabels.min}
-              showEmptyValue={false}
+              showEmptyValue={!values.reps.trim()}
               hasValue={Boolean(values.reps.trim())}
-              labelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : compactTopRowInlineLabelClassName)}
-              valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : compactTopRowInlineLabelClassName)}
+              labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
+              valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
               emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-              labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+              labelPlacement={resolvedFloatingLabelPlacement}
             >
               <input
                 name={names?.reps}
@@ -437,6 +516,7 @@ export function MeasurementPanelV2({
                   tripleRow: useThreeAcrossMetrics,
                   hasValue: Boolean(values.reps.trim()),
                   topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
                 })}
                 placeholder=""
               />
@@ -453,12 +533,12 @@ export function MeasurementPanelV2({
           children: (
             <InlineFieldControl
               label={resolvedRepRangeLabels.max}
-              showEmptyValue={false}
+              showEmptyValue={!(values.repsMax ?? "").trim()}
               hasValue={Boolean((values.repsMax ?? "").trim())}
-              labelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : compactTopRowInlineLabelClassName)}
-              valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : compactTopRowInlineLabelClassName)}
+              labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
+              valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
               emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-              labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+              labelPlacement={resolvedFloatingLabelPlacement}
             >
               <input
                 name={names?.repsMax}
@@ -472,6 +552,7 @@ export function MeasurementPanelV2({
                   tripleRow: useThreeAcrossMetrics,
                   hasValue: Boolean((values.repsMax ?? "").trim()),
                   topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
                 })}
                 placeholder=""
               />
@@ -493,14 +574,10 @@ export function MeasurementPanelV2({
                   label={METRICS[0].title}
                   showEmptyValue={!values.reps.trim()}
                   hasValue={Boolean(values.reps.trim())}
-                  labelClassName={useFloatingBorderLabels
-                    ? floatingBorderLabelClassName
-                    : useTopRightInlineLabels
-                    ? topRightInlineLabelClassName
-                    : (useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
-                  valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-                  labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+                  labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
                     name={names?.reps}
@@ -514,6 +591,7 @@ export function MeasurementPanelV2({
                       tripleRow: useThreeAcrossMetrics,
                       hasValue: Boolean(values.reps.trim()),
                       topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
                     })}
                     placeholder=""
                   />
@@ -534,14 +612,10 @@ export function MeasurementPanelV2({
                   label={values.weightUnit}
                   showEmptyValue={!values.weight.trim()}
                   hasValue={Boolean(values.weight.trim())}
-                  labelClassName={useFloatingBorderLabels
-                    ? floatingBorderLabelClassName
-                    : useTopRightInlineLabels
-                    ? topRightInlineLabelClassName
-                    : (useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
-                  valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-                  labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+                  labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
                     name={names?.weight}
@@ -555,6 +629,7 @@ export function MeasurementPanelV2({
                       tripleRow: useThreeAcrossMetrics,
                       hasValue: Boolean(values.weight.trim()),
                       topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
                     })}
                     placeholder=""
                   />
@@ -576,14 +651,10 @@ export function MeasurementPanelV2({
                   label="s"
                   showEmptyValue={!values.duration.trim()}
                   hasValue={Boolean(values.duration.trim())}
-                  labelClassName={useFloatingBorderLabels
-                    ? floatingBorderLabelClassName
-                    : useTopRightInlineLabels
-                    ? topRightInlineLabelClassName
-                    : (useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
-                  valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-                  labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+                  labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
                     name={names?.duration}
@@ -597,6 +668,7 @@ export function MeasurementPanelV2({
                       tripleRow: useThreeAcrossMetrics,
                       hasValue: Boolean(values.duration.trim()),
                       topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
                     })}
                     placeholder=""
                   />
@@ -617,14 +689,10 @@ export function MeasurementPanelV2({
                   label={resolvedDistanceUnit}
                   showEmptyValue={!values.distance.trim()}
                   hasValue={Boolean(values.distance.trim())}
-                  labelClassName={useFloatingBorderLabels
-                    ? floatingBorderLabelClassName
-                    : useTopRightInlineLabels
-                    ? topRightInlineLabelClassName
-                    : (useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
-                  valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-                  labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+                  labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
                     name={names?.distance}
@@ -638,6 +706,7 @@ export function MeasurementPanelV2({
                       tripleRow: useThreeAcrossMetrics,
                       hasValue: Boolean(values.distance.trim()),
                       topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
                     })}
                     placeholder=""
                   />
@@ -659,14 +728,10 @@ export function MeasurementPanelV2({
                   label="cal"
                   showEmptyValue={!values.calories.trim()}
                   hasValue={Boolean(values.calories.trim())}
-                  labelClassName={useFloatingBorderLabels
-                    ? floatingBorderLabelClassName
-                    : useTopRightInlineLabels
-                    ? topRightInlineLabelClassName
-                    : (useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
-                  valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
                   emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-                  labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+                  labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
                     name={names?.calories}
@@ -680,6 +745,7 @@ export function MeasurementPanelV2({
                       tripleRow: useThreeAcrossMetrics,
                       hasValue: Boolean(values.calories.trim()),
                       topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
                       extraClassName: useThreeAcrossMetrics ? undefined : "pr-16",
                     })}
                     placeholder=""
@@ -701,14 +767,10 @@ export function MeasurementPanelV2({
                   label="/ 10"
                   showEmptyValue={!(rpe ?? "").trim()}
                   hasValue={Boolean((rpe ?? "").trim())}
-                  labelClassName={useFloatingBorderLabels
-                    ? floatingBorderLabelClassName
-                    : useTopRightInlineLabels
-                    ? topRightInlineLabelClassName
-                    : (useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
                   emptyValueClassName={useThreeAcrossMetrics ? "pr-8" : undefined}
-                  valueLabelClassName={useFloatingBorderLabels ? floatingBorderLabelClassName : (useTopRightInlineLabels ? topRightInlineLabelClassName : "bottom-3 right-3 text-[9px] tracking-[0.06em]")}
-                  labelPlacement={useFloatingBorderLabels ? "floating-border" : useTopRightInlineLabels ? "top-right" : "side"}
+                  valueLabelClassName={resolveValueLabelClassName("bottom-3 right-3 text-[9px] tracking-[0.06em]")}
+                  labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
                     type="text"
@@ -719,6 +781,7 @@ export function MeasurementPanelV2({
                       tripleRow: useThreeAcrossMetrics,
                       hasValue: Boolean((rpe ?? "").trim()),
                       topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
                       extraClassName: useThreeAcrossMetrics ? undefined : "pl-18 pr-12 [text-indent:0.45rem]",
                     })}
                     placeholder=""
@@ -752,7 +815,7 @@ export function MeasurementPanelV2({
   const useHorizontalScrollLayout = layoutMode === "horizontal-scroll" && orderedMetricFields.length > 0;
 
   function getHorizontalFieldWidthClassName(fieldId: string) {
-    if (fieldId === "top-field") return "w-[5.65rem]";
+    if (fieldId === "top-field") return "w-[5.95rem]";
     if (fieldId === "reps-min" || fieldId === "reps-max") return "w-[6.35rem]";
     if (fieldId === "reps") return "w-[5.85rem]";
     if (fieldId === "weight") return "w-[5.95rem]";
@@ -792,7 +855,7 @@ export function MeasurementPanelV2({
           {useHorizontalScrollLayout ? (
             <div className="relative overflow-visible">
               <div className="hide-scrollbar overflow-x-auto overscroll-contain pb-0.5 pt-1.5 touch-pan-x">
-                <div className="mx-auto flex min-w-full w-max flex-nowrap items-start justify-center gap-1.5">
+                <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5">
                   {orderedMetricFields.map((field) => (
                     <div key={field.id} className={cn("shrink-0", getHorizontalFieldWidthClassName(field.id))}>
                       {field.node}
@@ -832,7 +895,7 @@ export function MeasurementPanelV2({
           })}
         </div>
 
-        {footerContent ? <div className="-mt-9">{footerContent}</div> : null}
+        {footerContent ? <div className={cn("-mt-9", footerClassName)}>{footerContent}</div> : null}
       </div>
 
       {trailingContent ? <div>{trailingContent}</div> : null}

@@ -21,6 +21,7 @@ export function MeasurementConfigurator({
   leadingContent,
   trailingContent,
   footerContent,
+  footerClassName,
   topField,
   repRangeLabels,
   visibleMetrics,
@@ -44,6 +45,7 @@ export function MeasurementConfigurator({
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
   footerContent?: ReactNode;
+  footerClassName?: string;
   topField?: {
     title: string;
     suffix?: string;
@@ -83,6 +85,7 @@ export function MeasurementConfigurator({
       leadingContent={leadingContent}
       trailingContent={trailingContent}
       footerContent={footerContent}
+      footerClassName={footerClassName}
       topField={topField}
       repRangeLabels={repRangeLabels}
       visibleMetrics={visibleMetrics}

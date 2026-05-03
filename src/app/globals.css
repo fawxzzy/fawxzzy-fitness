@@ -732,22 +732,24 @@ html[data-route-loading="true"] .app-edge-frame {
 .route-loading__grid {
   opacity: 0.3;
   background:
-    radial-gradient(circle at 50% 50%, rgb(var(--ambient-line-cyan) / 0.06), transparent 18%),
-    linear-gradient(120deg, transparent 0%, rgb(var(--ambient-line-highlight) / 0.028) 48%, transparent 100%),
-    linear-gradient(60deg, transparent 0%, rgb(var(--ambient-line-cyan) / 0.024) 52%, transparent 100%);
+    radial-gradient(circle at 50% 50%, rgb(var(--loader-scan-rgb) / 0.065), transparent 18%),
+    linear-gradient(120deg, transparent 0%, rgb(var(--loader-scan-rgb) / 0.03) 48%, transparent 100%),
+    linear-gradient(60deg, transparent 0%, rgb(var(--loader-scan-rgb) / 0.024) 52%, transparent 100%);
   background-size: 100% 100%, 220% 220%, 180% 180%;
   animation: route-loading-grid-drift 34s linear infinite;
 }
 
 .route-loading__scan {
   inset: -12% 0;
-  opacity: 0.18;
+  opacity: 0.34;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    transparent 42%,
-    rgb(var(--loader-scan-rgb) / 0.12) 50%,
-    transparent 58%,
+    transparent 40%,
+    rgb(var(--loader-scan-rgb) / 0.06) 45%,
+    rgb(var(--loader-scan-rgb) / 0.28) 50%,
+    rgb(var(--loader-scan-rgb) / 0.06) 55%,
+    transparent 60%,
     transparent 100%
   );
   mix-blend-mode: screen;
@@ -765,8 +767,8 @@ html[data-route-loading="true"] .app-edge-frame {
   width: 0.32rem;
   height: 0.32rem;
   border-radius: 999px;
-  background: rgb(var(--ambient-line-highlight) / 0.72);
-  box-shadow: 0 0 12px rgb(var(--ambient-line-cyan) / 0.24);
+  background: rgb(var(--loader-scan-rgb) / 0.82);
+  box-shadow: 0 0 12px rgb(var(--loader-scan-rgb) / 0.32);
   animation: route-loading-particle var(--route-loading-duration, 18s) ease-in-out infinite;
   animation-delay: var(--route-loading-delay, 0ms);
 }
@@ -903,9 +905,8 @@ html[data-route-loading="true"] .app-edge-frame {
   }
 }
 
-/* Remove decorative flashing / cursor-like line indicators app-wide. */
-.app-edge-frame__rail,
-.route-loading__scan {
+/* Remove decorative edge-rail flashing app-wide. */
+.app-edge-frame__rail {
   display: none;
 }
 
@@ -2057,6 +2058,26 @@ a:focus-visible {
 .filter-scroll-viewport::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgb(var(--accent) / 0.82), rgb(var(--accent) / 0.52));
   border-radius: 999px;
+}
+
+.auth-input-plain,
+.auth-input-plain:hover,
+.auth-input-plain:focus,
+.auth-input-plain:active,
+.auth-input-plain:focus-visible {
+  background-color: transparent !important;
+}
+
+.auth-input-plain:-webkit-autofill,
+.auth-input-plain:-webkit-autofill:hover,
+.auth-input-plain:-webkit-autofill:focus,
+.auth-input-plain:-webkit-autofill:active {
+  -webkit-text-fill-color: rgb(var(--text-primary) / 0.98);
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  background-color: transparent !important;
+  caret-color: rgb(var(--text-primary));
+  transition: background-color 99999s ease-in-out 0s;
 }
 
 .app-page-scroll {

@@ -7,6 +7,12 @@ import { parseDotenvFile } from "./env-file.mjs";
 const EXPECTED_PROD_SUPABASE_PROJECT_REF = "lpswxoyfniocuhljgzbc";
 const DEFAULT_DUMP_DIR = ".tmp/prod-mirror";
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
+const DISALLOWED_LOCAL_PORTS = new Map([
+  [
+    "54322",
+    "Refusing to mirror into port 54322. This repo's current local target is the Postgres instance on 127.0.0.1:5432, not the Supabase CLI port.",
+  ],
+]);
 const PLACEHOLDER_PATTERNS = [
   "replace-me",
   "example.invalid",
@@ -63,12 +69,18 @@ function usage() {
   console.log(
     [
       "Usage:",
-      "  npm run db:mirror:prod-to-local -- --env .env.prod-local-mirror --yes",
+      "  node .\\scripts\\sync-prod-to-local.mjs --env C:\\ATLAS\\secrets\\local\\fitness-prod-to-local.env --yes",
+      "  npm run db:mirror:prod-to-local -- --env C:\\ATLAS\\secrets\\local\\fitness-prod-to-local.env --yes",
       "",
       "Options:",
-      "  --env <path>    Required. Separate env file for mirror credentials.",
+      "  --env <path>    Required. Separate env file for mirror credentials outside the repo root.",
       "  --yes           Required to perform the destructive local refresh.",
       "  --keep-dump     Keep the generated SQL dump under .tmp/prod-mirror/.",
+      "",
+      "Required env keys:",
+      "  PROD_SUPABASE_PROJECT_REF=lpswxoyfniocuhljgzbc",
+      "  PROD_DATABASE_URL=postgresql://...",
+      "  LOCAL_DATABASE_URL=postgresql://...127.0.0.1:5432...",
     ].join("\n"),
   );
 }
@@ -122,6 +134,14 @@ function parseDatabaseUrl(label, rawValue) {
 
 function isLocalDatabaseHost(hostname) {
   return LOCAL_HOSTS.has(hostname.toLowerCase());
+}
+
+function assertSupportedLocalDatabaseTarget(localDatabaseUrl) {
+  const disallowedMessage = DISALLOWED_LOCAL_PORTS.get(localDatabaseUrl.port);
+
+  if (disallowedMessage) {
+    fail(`${disallowedMessage} Update LOCAL_DATABASE_URL to the database that is actually running locally.`);
+  }
 }
 
 function assertCommandAvailable(command) {
@@ -233,6 +253,8 @@ if (!isLocalDatabaseHost(localDatabaseUrl.hostname)) {
   );
 }
 
+assertSupportedLocalDatabaseTarget(localDatabaseUrl);
+
 if (isLocalDatabaseHost(prodDatabaseUrl.hostname)) {
   fail(`Refusing to mirror: PROD_DATABASE_URL points to a local host (${prodDatabaseUrl.hostname}).`);
 }
@@ -251,7 +273,10 @@ printPlan({
 });
 
 if (!args.yes) {
-  fail("Refusing to continue without --yes. This operation is destructive to local public data.");
+  fail(
+    "Refusing to continue without --yes. This operation truncates and reloads local public data. " +
+    "Re-run with --yes after confirming LOCAL_DATABASE_URL points to your local Postgres instance.",
+  );
 }
 
 assertCommandAvailable("pg_dump");

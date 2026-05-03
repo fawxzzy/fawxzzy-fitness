@@ -5,7 +5,7 @@ import {
   startLoadingDiagnosticGate,
   type LoadingDiagnosticMetadata,
 } from "@/lib/loading-diagnostics";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseServerWithSession } from "@/lib/supabase/server";
 
 type RequireUserOptions = {
   gate?: string;
@@ -26,7 +26,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
     timeoutMs: options.timeoutMs ?? 5000,
     collector: options.collector,
   });
-  const supabase = supabaseServer();
+  const supabase = await supabaseServerWithSession();
   const {
     data: { user },
   } = await supabase.auth.getUser().catch((error) => {

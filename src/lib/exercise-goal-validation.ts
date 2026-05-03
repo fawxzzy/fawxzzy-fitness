@@ -171,8 +171,19 @@ export function getVisibleMetricsForModality(modality: GoalModality): Measuremen
 }
 
 export function getGoalMeasurementOrder(modality: GoalModality): MeasurementSelection[] {
-  void modality;
-  return ["reps", "time", "distance", "calories", "weight"];
+  switch (modality) {
+    case "cardio_time":
+      return ["time", "distance", "reps", "weight", "calories"];
+    case "cardio_distance":
+      return ["distance", "time", "reps", "weight", "calories"];
+    case "cardio_time_distance":
+      return ["time", "distance", "reps", "weight", "calories"];
+    case "bodyweight":
+      return ["reps", "time", "distance", "weight", "calories"];
+    case "strength":
+    default:
+      return ["reps", "weight", "time", "distance", "calories"];
+  }
 }
 
 export function inferMeasurementTypeFromGoalModality(modality: GoalModality): "reps" | "time" | "distance" | "time_distance" {

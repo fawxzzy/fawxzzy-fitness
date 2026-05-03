@@ -172,7 +172,10 @@ function renderRoutineDayTitle(args: {
       <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">{dayParts?.weekday ?? displayName}</span>
       {dayParts?.remainder ? (
         <>
-          <SignatureDot />
+          <span
+            aria-hidden="true"
+            className="inline-block h-[0.82em] w-px shrink-0 self-center bg-[rgb(var(--accent-divider-rgb)/0.96)]"
+          />
           <span>{dayParts.remainder}</span>
         </>
       ) : null}
@@ -212,6 +215,17 @@ function renderRoutineListRightRail(args: {
   return (
     <span className="inline-flex items-center gap-3">
       {args.isCurrent ? renderRoutineTag("CURRENT") : null}
+      <span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>
+    </span>
+  );
+}
+
+function renderRoutineDayRightRail(day: Pick<RoutineDayCardItem, "isToday" | "isRest" | "isCompleted" | "isInSession">) {
+  const tag = renderRoutineTag(resolveRoutineDayTagLabel(day));
+
+  return (
+    <span className="inline-flex items-center gap-3">
+      {tag}
       <span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>
     </span>
   );
@@ -375,8 +389,7 @@ export function RoutinesPageClient({
                     })}
                     subtitle={renderRoutineDaySubtitle(day)}
                     subtitleTone="plain"
-                    titleMeta={renderRoutineTag(resolveRoutineDayTagLabel(day))}
-                    rightIcon={<span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>}
+                    rightIcon={renderRoutineDayRightRail(day)}
                     state={resolveDayCardState({
                       isToday: day.isToday,
                       isSelected: day.isToday,

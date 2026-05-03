@@ -91,6 +91,11 @@ export function ExerciseDisclosureCard({
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
   const isCompletedSessionCard = scope === "session-exercise" && state === "completed";
+  const resolvedRightIconMode = rightIconMode ?? (scope === "session-exercise" ? "overlay" : "rail");
+  const resolvedRightRailClassName = cn(
+    scope === "session-exercise" ? "!top-auto bottom-[0.9rem] !translate-y-0" : undefined,
+    rightRailClassName,
+  );
 
   const sharpMediaEdgeClassName = showLeadingVisual ? mediaDisclosureShellClassName : undefined;
 
@@ -119,14 +124,14 @@ export function ExerciseDisclosureCard({
         mediaLeftCornerMode={mediaLeftCornerMode}
         className={cn("shadow-none", expanded ? "rounded-b-none [border-bottom-right-radius:0px]" : undefined, cardClassName)}
         trailingClassName={trailingClassName}
-        rightRailClassName={rightRailClassName}
+        rightRailClassName={resolvedRightRailClassName}
         bodyClassName={bodyClassName}
         contentClassName={contentClassName}
         subtitleClassName={subtitleClassName}
         subtitleTone={subtitleTone}
         showAccentRail={showAccentRail}
         hideEmptySummary={hideEmptySummary}
-        rightIconMode={rightIconMode}
+        rightIconMode={resolvedRightIconMode}
         rightIcon={(
           expanded
             ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />

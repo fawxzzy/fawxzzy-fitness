@@ -97,7 +97,7 @@ export default function ForgotPasswordFormClient({
         <AuthIntro eyebrow="" title="" subtitle="" />
         <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="Email or username">
+            <LabeledEditorField label="Email or username" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
               <Input
                 type="text"
                 name="email"
@@ -105,7 +105,7 @@ export default function ForgotPasswordFormClient({
                 autoComplete="username"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setEmail(event.target.value)}
               />

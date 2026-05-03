@@ -1,8 +1,15 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+
+const reorderHandleSelectionChromeStyle = {
+  borderColor: "rgb(var(--selection-rgb) / 0.3)",
+  color: "rgb(var(--text-primary) / 0.96)",
+  background: "linear-gradient(180deg, rgb(var(--selection-rgb) / 0.05), rgb(var(--surface-1-rgb) / 0.3))",
+  boxShadow: "inset 0 0 0 1px rgb(var(--selection-rgb) / 0.16), 0 0 0 1px rgb(var(--selection-rgb) / 0.05), 0 0 16px rgb(var(--selection-rgb) / 0.12), 0 12px 24px rgba(0, 0, 0, 0.16)",
+} as CSSProperties;
 
 type Props = {
   exerciseId: string;
@@ -74,7 +81,11 @@ export function ReorderExerciseRow({
             type="button"
             aria-label={`Reorder ${exerciseName}`}
             title="Drag to reorder"
-            className={appTokens.routineEditorReorderHandle}
+            className={cn(
+              appTokens.routineEditorReorderHandle,
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
+            )}
+            style={reorderHandleSelectionChromeStyle}
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}

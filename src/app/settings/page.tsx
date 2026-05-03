@@ -53,7 +53,7 @@ export default async function SettingsPage() {
           floatingHeader={<SettingsFloatingHeader email={user.email ?? ""} username={username} />}
         >
           <ContentRail className={appTokens.settingsContentRail}>
-            <SurfaceCard className="border-transparent shadow-none">
+            <SurfaceCard className="!border-transparent !bg-transparent !shadow-none !backdrop-blur-0">
               <SettingsAccordionClient
                 email={user.email ?? ""}
                 username={username}

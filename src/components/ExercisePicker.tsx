@@ -11,11 +11,11 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
+import { MeasurementDockSummary, measurementDockSurfaceClassName } from "@/components/ui/measurements/MeasurementDock";
 import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
@@ -592,11 +592,7 @@ export function ExercisePicker({
   const lastSummaryText = selectedStats
     ? formatLoggedMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)
     : null;
-  const bestSummaryText = selectedStats
-    ? formatLoggedMeasurementStat(selectedStats.actualPrWeight, selectedStats.actualPrReps, selectedStats.lastUnit)
-    : null;
   const hasLast = Boolean(lastSummaryText);
-  const hasBest = Boolean(bestSummaryText) || selectedStats?.prEst1rm != null;
 
   const resetMeasurementFields = useCallback(() => {
     setGoalState((current) => ({
@@ -698,35 +694,37 @@ export function ExercisePicker({
     ? `missing ${getMissingGoalPreviewLabel(goalValidation.requiredFields[0])}`
     : null;
   const goalPreviewNode = (
-    <div className="relative z-[1] mx-0.5 flex flex-col pt-0">
-      <MetricAccentBar variant="thin" className="relative z-[1] mt-0 w-full max-w-full self-stretch" />
-      <div className="flex min-w-0 items-center justify-center gap-1.5 px-1 pb-0.5 pt-0 text-center">
-        <SignatureMetaTag className="text-[10px] tracking-[0.16em]">Preview</SignatureMetaTag>
-        <SignatureMiniPipe />
-        {goalPreviewMissingLabel ? (
-          <p className="min-w-0 flex-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
-            {goalPreviewMissingLabel}
-          </p>
-        ) : (
-          <GoalSummaryInline
-            includeSets={false}
-            className="min-w-0 flex-1 px-0 py-0 text-center"
-            values={{
-              sets: goalState.sets ? Number(goalState.sets) : null,
-              reps: goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null,
-              repsMax: goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null,
-              weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
-              weightUnit: goalState.weightUnit,
-              durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
-              distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
-              distanceUnit: goalState.distanceUnit,
-              calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
-              emptyLabel: "Goal missing",
-            }}
-          />
-        )}
-      </div>
-    </div>
+    <MeasurementDockSummary
+      className="mx-0.5 pt-0.5"
+      lead={(
+        <div className="inline-flex items-center gap-1.5">
+          <SignatureMetaTag className="text-[10px] tracking-[0.16em]">Preview</SignatureMetaTag>
+          <SignatureMiniPipe />
+        </div>
+      )}
+      summary={goalPreviewMissingLabel ? (
+        <p className="min-w-0 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
+          {goalPreviewMissingLabel}
+        </p>
+      ) : (
+        <GoalSummaryInline
+          includeSets={false}
+          className="min-w-0 px-0 py-0 text-center"
+          values={{
+            sets: goalState.sets ? Number(goalState.sets) : null,
+            reps: goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null,
+            repsMax: goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null,
+            weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
+            weightUnit: goalState.weightUnit,
+            durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
+            distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
+            distanceUnit: goalState.distanceUnit,
+            calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
+            emptyLabel: "Goal missing",
+          }}
+        />
+      )}
+    />
   );
 
   const footerNode = renderFooter ? renderFooter({
@@ -741,65 +739,74 @@ export function ExercisePicker({
   }) : footerSlot;
 
   const configureGoalDockNode = routineTargetConfig && selectedExercise ? (
-    <section className={cn(appTokens.exercisePickerGoalPanel, appTokens.exercisePickerGoalCompact, "-mx-2 flex w-[calc(100%+1rem)] min-w-0 max-w-none flex-col space-y-0 overflow-visible rounded-[1.7rem] border-[rgb(var(--accent-divider-rgb)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.98)] px-3 pb-1 pt-1 shadow-[0_12px_24px_rgba(3,9,16,0.14)]")}>
-      {!isStretchHubSelected && selectedStats && (hasLast || hasBest) ? (
+    <section className={cn(appTokens.exercisePickerGoalCompact, measurementDockSurfaceClassName, "-mx-1 flex w-[calc(100%+0.5rem)] min-w-0 max-w-none flex-col space-y-0 overflow-visible rounded-[1.7rem] px-1 pb-0 pt-0")}>
+      {!isStretchHubSelected && selectedStats && hasLast ? (
         <div
           className={cn(
             appTokens.exercisePickerStatsStack,
             didApplyLast ? appTokens.exercisePickerStatsEmphasis : undefined,
             appTokens.exercisePickerStatsCompact,
-            "pb-0.5",
+            "px-2 pb-1.5",
           )}
         >
           {hasLast ? (
-            <div className="flex items-start justify-between gap-3">
-              <p className={cn(appTokens.exercisePickerStatsText, "min-w-0 flex-1")}>Last: {lastSummaryText}{selectedStats.lastPerformedAt ? ` \u00b7 ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p>
-              <AppButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="shrink-0 self-start"
-                onClick={() => {
-                  setGoalState((current) => {
-                    const nextMeasurements = new Set(current.measurements);
-                    const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
-                    const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
+            <MeasurementDockSummary
+              className="min-h-0 gap-1 pb-0.5"
+              barClassName="opacity-65"
+              rowClassName="min-h-[1.75rem]"
+              centerClassName="px-2"
+              lead={(
+                <div className="inline-flex items-center gap-1.5">
+                  <SignatureMetaTag className="text-[10px] tracking-[0.16em]">Last</SignatureMetaTag>
+                  <SignatureMiniPipe />
+                </div>
+              )}
+              summary={(
+                <p className={cn(appTokens.exercisePickerStatsText, "min-w-0 text-center text-[rgb(var(--text-primary)/0.98)]")}>
+                  {lastSummaryText}
+                </p>
+              )}
+              trailing={(
+                <AppButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 self-center"
+                  onClick={() => {
+                    setGoalState((current) => {
+                      const nextMeasurements = new Set(current.measurements);
+                      const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
+                      const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
 
-                    if (hasLastWeight) {
-                      nextMeasurements.add("weight");
-                    }
-                    if (hasLastReps) {
-                      nextMeasurements.add("reps");
-                    }
+                      if (hasLastWeight) {
+                        nextMeasurements.add("weight");
+                      }
+                      if (hasLastReps) {
+                        nextMeasurements.add("reps");
+                      }
 
-                    return {
-                      ...current,
-                      weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
-                      repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
-                      repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
-                      weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
-                      measurements: Array.from(nextMeasurements),
-                    };
-                  });
-                  setDidApplyLast(true);
-                  setTimeout(() => setDidApplyLast(false), 1200);
-                }}
-              >
-                Use last
-              </AppButton>
-            </div>
-          ) : null}
-          {hasBest ? (
-            <p className={appTokens.exercisePickerStatsText}>
-              Best: {bestSummaryText}
-              {selectedStats.actualPrAt ? ` \u00b7 ${formatStatDate(selectedStats.actualPrAt)}` : ""}
-              {selectedStats.prEst1rm != null ? `${bestSummaryText || selectedStats.actualPrAt ? " \u00b7 " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}
-            </p>
+                      return {
+                        ...current,
+                        weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
+                        repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
+                        repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
+                        weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
+                        measurements: Array.from(nextMeasurements),
+                      };
+                    });
+                    setDidApplyLast(true);
+                    setTimeout(() => setDidApplyLast(false), 1200);
+                  }}
+                >
+                  Use
+                </AppButton>
+              )}
+            />
           ) : null}
         </div>
       ) : null}
 
-      <div>
+      <div className="min-w-0">
         <SharedExerciseGoalForm
           modality={goalModality}
           state={goalState}
@@ -822,9 +829,10 @@ export function ExercisePicker({
           measurementLayoutMode="horizontal-scroll"
           visibleMetrics={isMeasurementOptionalSelected ? [] : undefined}
           visibleMetricOrder={isMeasurementOptionalSelected ? [] : undefined}
+          footerContent={goalPreviewNode}
+          footerClassName="mt-1"
         />
       </div>
-      {goalPreviewNode}
     </section>
   ) : null;
 

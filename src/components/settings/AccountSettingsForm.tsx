@@ -85,7 +85,7 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
       </PublishBottomActions>
 
       <form id={ACCOUNT_SETTINGS_FORM_ID} onSubmit={submitEmailUpdate} className="space-y-3 pt-2">
-        <div className="relative -mx-5 overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.22)] shadow-[inset_0_1px_0_rgb(255_255_255/0.03)]">
+        <div className="relative -mx-5 overflow-hidden rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.22)] shadow-[inset_0_1px_0_rgb(255_255_255/0.03)]">
           <div className="absolute inset-0 opacity-72 [mask-image:linear-gradient(180deg,black,black_82%,transparent)]">
             <AppAmbientBackdrop preset="today" />
           </div>

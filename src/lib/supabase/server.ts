@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 
 function getRequestAuthTokens() {
   const cookieStore = cookies();
@@ -11,16 +12,23 @@ function getRequestAuthTokens() {
   const hostHeader = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").trim().toLowerCase();
   const hostname = hostHeader.split(":")[0] ?? "";
   const localhostHeaderToken = requestHeaders.get("x-atlas-access-token")?.trim() ?? "";
+  const localhostRefreshHeaderToken = requestHeaders.get("x-atlas-refresh-token")?.trim() ?? "";
+  const canTrustLocalDevHeaders = isTrustedLocalDevHost(hostname);
 
   const accessToken = accessTokenCookie || (
-    (hostname === "127.0.0.1" || hostname === "localhost") && localhostHeaderToken
+    canTrustLocalDevHeaders && localhostHeaderToken
       ? localhostHeaderToken
+      : null
+  );
+  const refreshToken = refreshTokenCookie || (
+    canTrustLocalDevHeaders && localhostRefreshHeaderToken
+      ? localhostRefreshHeaderToken
       : null
   );
 
   return {
     accessToken,
-    refreshToken: refreshTokenCookie ?? null,
+    refreshToken,
   };
 }
 

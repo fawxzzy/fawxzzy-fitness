@@ -33,6 +33,7 @@ export function SharedExerciseGoalForm({
   hideEmptySummary,
   hideSummary,
   footerContent,
+  footerClassName,
   visibleMetrics,
   visibleMetricOrder,
   measurementLayoutMode,
@@ -47,6 +48,7 @@ export function SharedExerciseGoalForm({
   hideEmptySummary?: boolean;
   hideSummary?: boolean;
   footerContent?: ReactNode;
+  footerClassName?: string;
   visibleMetrics?: Array<keyof MeasurementMetrics>;
   visibleMetricOrder?: Array<keyof MeasurementMetrics>;
   measurementLayoutMode?: "grid" | "horizontal-scroll";
@@ -100,6 +102,7 @@ export function SharedExerciseGoalForm({
         hideEmptySummary={hideEmptySummary}
         hideSummary={hideSummary}
         footerContent={footerContent}
+        footerClassName={footerClassName}
         visibleMetrics={visibleMetrics}
         visibleMetricOrder={visibleMetricOrder}
         measurementLayoutMode={measurementLayoutMode}

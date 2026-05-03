@@ -3,7 +3,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
-import { labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
@@ -48,6 +47,7 @@ export function ExerciseGoalForm({
   hideSummary = false,
   validationOverride,
   footerContent,
+  footerClassName,
   visibleMetrics,
   visibleMetricOrder,
   measurementLayoutMode = "grid",
@@ -63,6 +63,7 @@ export function ExerciseGoalForm({
   hideSummary?: boolean;
   validationOverride?: string;
   footerContent?: ReactNode;
+  footerClassName?: string;
   visibleMetrics?: Array<keyof MeasurementMetrics>;
   visibleMetricOrder?: Array<keyof MeasurementMetrics>;
   measurementLayoutMode?: "grid" | "horizontal-scroll";
@@ -153,6 +154,7 @@ export function ExerciseGoalForm({
         }}
         showHeader={false}
         footerContent={footerContent}
+        footerClassName={footerClassName}
         repRangeLabels={{ min: "MIN REPS", max: "MAX REPS" }}
         metricOrder={resolvedMetricOrder}
         visibleMetrics={visibleMetrics}
@@ -164,8 +166,6 @@ export function ExerciseGoalForm({
           inlineLabel: "SETS",
           showEmptyValue: false,
           hasValue: setsHasValue,
-          labelClassName: cn(labeledEditorFieldFloatingLabelClassName, "top-0 -translate-y-[46%] bg-transparent px-0 py-px leading-[1.24] antialiased [text-shadow:0_0_1px_rgb(var(--surface-2-rgb)/0.98),0_-0.5px_0_rgb(var(--surface-2-rgb)/0.98)]"),
-          valueLabelClassName: cn(labeledEditorFieldFloatingLabelClassName, "top-0 -translate-y-[46%] bg-transparent px-0 py-px leading-[1.24] antialiased [text-shadow:0_0_1px_rgb(var(--surface-2-rgb)/0.98),0_-0.5px_0_rgb(var(--surface-2-rgb)/0.98)]"),
           input: null,
           renderInput: ({ inputClassName }) => (
             <input

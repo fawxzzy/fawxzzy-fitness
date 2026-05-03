@@ -58,7 +58,7 @@ export function SignupForm({
         <AuthIntro eyebrow="" title={copy.title} subtitle={copy.subtitle} />
         <AuthForm id={SIGNUP_FORM_ID} action={signup} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="Username">
+            <LabeledEditorField label="Username" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
               <Input
                 type="text"
                 name="username"
@@ -67,11 +67,11 @@ export function SignupForm({
                 autoComplete="username"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
               />
             </LabeledEditorField>
-            <LabeledEditorField label="Email">
+            <LabeledEditorField label="Email" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
               <Input
                 type="email"
                 name="email"
@@ -79,12 +79,12 @@ export function SignupForm({
                 autoComplete="email"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setEmail(event.target.value)}
               />
             </LabeledEditorField>
-            <LabeledEditorField label="Password">
+            <LabeledEditorField label="Password" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
               <Input
                 type="password"
                 name="password"
@@ -93,7 +93,7 @@ export function SignupForm({
                 autoComplete="new-password"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setPassword(event.target.value)}
               />

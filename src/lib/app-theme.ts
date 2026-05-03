@@ -9,12 +9,14 @@ export type AppThemeSettings = {
   primaryActionColor: string;
   secondaryActionColor: string;
   accentDividerColor: string;
+  metricAccentColor: string;
   successCompleteColor: string;
   selectionActiveColor: string;
   loaderScanColor: string;
   warningColor: string;
   dangerColor: string;
   surfaceCardColor: string;
+  cardOutlineColor: string;
   buttonRadius: number;
   cardRadius: number;
 };
@@ -42,12 +44,14 @@ const DEFAULT_TEXT_PRIMARY_COLOR = "#f4f8fc";
 const DEFAULT_TEXT_SECONDARY_COLOR = "#cdd9e8";
 const DEFAULT_TEXT_MUTED_COLOR = "#90a4bc";
 const DEFAULT_ACCENT_DIVIDER_COLOR = "#20974e";
+const DEFAULT_METRIC_ACCENT_COLOR = "#20974e";
 const DEFAULT_SUCCESS_COMPLETE_COLOR = "#20974e";
 const DEFAULT_SELECTION_ACTIVE_COLOR = "#20974e";
 const DEFAULT_LOADER_SCAN_COLOR = "#20794e";
 const DEFAULT_WARNING_COLOR = "#f0b24e";
 const DEFAULT_DANGER_COLOR = "#ff6f83";
 const DEFAULT_SURFACE_CARD_COLOR = "#0a0b0f";
+const DEFAULT_CARD_OUTLINE_COLOR = "#bed6ee";
 const DEFAULT_BUTTON_RADIUS = 20;
 const DEFAULT_CARD_RADIUS = 20;
 
@@ -59,12 +63,14 @@ export const DEFAULT_APP_THEME: AppThemeSettings = {
   primaryActionColor: DEFAULT_PRIMARY_ACTION_COLOR,
   secondaryActionColor: DEFAULT_SECONDARY_ACTION_COLOR,
   accentDividerColor: DEFAULT_ACCENT_DIVIDER_COLOR,
+  metricAccentColor: DEFAULT_METRIC_ACCENT_COLOR,
   successCompleteColor: DEFAULT_SUCCESS_COMPLETE_COLOR,
   selectionActiveColor: DEFAULT_SELECTION_ACTIVE_COLOR,
   loaderScanColor: DEFAULT_LOADER_SCAN_COLOR,
   warningColor: DEFAULT_WARNING_COLOR,
   dangerColor: DEFAULT_DANGER_COLOR,
   surfaceCardColor: DEFAULT_SURFACE_CARD_COLOR,
+  cardOutlineColor: DEFAULT_CARD_OUTLINE_COLOR,
   buttonRadius: DEFAULT_BUTTON_RADIUS,
   cardRadius: DEFAULT_CARD_RADIUS,
 };
@@ -77,12 +83,14 @@ export const TEST_APP_THEME: AppThemeSettings = {
   primaryActionColor: "#7cc3ff",
   secondaryActionColor: "#ffbf67",
   accentDividerColor: "#8ce8d9",
+  metricAccentColor: "#78e38f",
   successCompleteColor: "#78e38f",
   selectionActiveColor: "#5fd4ff",
   loaderScanColor: "#87f1ff",
   warningColor: "#ff9f59",
   dangerColor: "#ff7f96",
   surfaceCardColor: "#1f3546",
+  cardOutlineColor: "#d7eeff",
   buttonRadius: 10,
   cardRadius: 32,
 };
@@ -110,10 +118,13 @@ const APP_THEME_VARIABLE_NAMES = [
   "--accent-purple",
   "--secondary-action-rgb",
   "--accent-divider-rgb",
+  "--metric-accent-rgb",
   "--selection-rgb",
   "--loader-scan-rgb",
   "--warning-rgb",
   "--danger-rgb",
+  "--stroke-soft",
+  "--stroke-strong",
   "--text-primary",
   "--text-secondary",
   "--text-muted",
@@ -159,12 +170,14 @@ const APP_THEME_CUSTOMIZATION_KEYS = [
   "primaryActionColor",
   "secondaryActionColor",
   "accentDividerColor",
+  "metricAccentColor",
   "successCompleteColor",
   "selectionActiveColor",
   "loaderScanColor",
   "warningColor",
   "dangerColor",
   "surfaceCardColor",
+  "cardOutlineColor",
   "buttonRadius",
   "cardRadius",
 ] as const satisfies ReadonlyArray<keyof AppThemeSettings>;
@@ -284,12 +297,14 @@ export function normalizeAppTheme(value: Partial<AppThemeSettings> | null | unde
     primaryActionColor: normalizeHexColor(value?.primaryActionColor, DEFAULT_PRIMARY_ACTION_COLOR),
     secondaryActionColor: normalizeHexColor(value?.secondaryActionColor, DEFAULT_SECONDARY_ACTION_COLOR),
     accentDividerColor: normalizeHexColor(value?.accentDividerColor, DEFAULT_ACCENT_DIVIDER_COLOR),
+    metricAccentColor: normalizeHexColor(value?.metricAccentColor, DEFAULT_METRIC_ACCENT_COLOR),
     successCompleteColor: normalizeHexColor(value?.successCompleteColor, DEFAULT_SUCCESS_COMPLETE_COLOR),
     selectionActiveColor: normalizeHexColor(value?.selectionActiveColor, DEFAULT_SELECTION_ACTIVE_COLOR),
     loaderScanColor: normalizeHexColor(value?.loaderScanColor, DEFAULT_LOADER_SCAN_COLOR),
     warningColor: normalizeHexColor(value?.warningColor, DEFAULT_WARNING_COLOR),
     dangerColor: normalizeHexColor(value?.dangerColor, DEFAULT_DANGER_COLOR),
     surfaceCardColor: normalizeHexColor(value?.surfaceCardColor, DEFAULT_SURFACE_CARD_COLOR),
+    cardOutlineColor: normalizeHexColor(value?.cardOutlineColor, DEFAULT_CARD_OUTLINE_COLOR),
     buttonRadius: normalizeRadius(value?.buttonRadius, DEFAULT_BUTTON_RADIUS, MIN_BUTTON_RADIUS, MAX_BUTTON_RADIUS),
     cardRadius: normalizeRadius(value?.cardRadius, DEFAULT_CARD_RADIUS, MIN_CARD_RADIUS, MAX_CARD_RADIUS),
   };
@@ -304,12 +319,14 @@ export function areAppThemesEqual(left: AppThemeSettings, right: AppThemeSetting
     && left.primaryActionColor === right.primaryActionColor
     && left.secondaryActionColor === right.secondaryActionColor
     && left.accentDividerColor === right.accentDividerColor
+    && left.metricAccentColor === right.metricAccentColor
     && left.successCompleteColor === right.successCompleteColor
     && left.selectionActiveColor === right.selectionActiveColor
     && left.loaderScanColor === right.loaderScanColor
     && left.warningColor === right.warningColor
     && left.dangerColor === right.dangerColor
     && left.surfaceCardColor === right.surfaceCardColor
+    && left.cardOutlineColor === right.cardOutlineColor
     && left.buttonRadius === right.buttonRadius
     && left.cardRadius === right.cardRadius
   );
@@ -332,11 +349,13 @@ export function getAppThemeCssVariables(theme: AppThemeSettings) {
   const accentStrong = mixRgb(accent, WHITE_RGB, 0.16);
   const secondaryAction = toRgbTuple(theme.secondaryActionColor);
   const accentDivider = toRgbTuple(theme.accentDividerColor);
+  const metricAccent = toRgbTuple(theme.metricAccentColor);
   const successComplete = toRgbTuple(theme.successCompleteColor);
   const selectionActive = toRgbTuple(theme.selectionActiveColor);
   const loaderScan = toRgbTuple(theme.loaderScanColor);
   const warning = toRgbTuple(theme.warningColor);
   const danger = toRgbTuple(theme.dangerColor);
+  const cardOutline = toRgbTuple(theme.cardOutlineColor);
   const textPrimary = toRgbTuple(theme.textPrimaryColor);
   const textSecondary = toRgbTuple(theme.textSecondaryColor);
   const textMuted = toRgbTuple(theme.textMutedColor);
@@ -364,10 +383,13 @@ export function getAppThemeCssVariables(theme: AppThemeSettings) {
     "--accent-purple": toRgbCssValue(accent),
     "--secondary-action-rgb": toRgbCssValue(secondaryAction),
     "--accent-divider-rgb": toRgbCssValue(accentDivider),
+    "--metric-accent-rgb": toRgbCssValue(metricAccent),
     "--selection-rgb": toRgbCssValue(selectionActive),
     "--loader-scan-rgb": toRgbCssValue(loaderScan),
     "--warning-rgb": toRgbCssValue(warning),
     "--danger-rgb": toRgbCssValue(danger),
+    "--stroke-soft": toRgbCssValue(cardOutline),
+    "--stroke-strong": toRgbCssValue(cardOutline),
     "--accent-yellow-off": "var(--warning-rgb)",
     "--accent-yellow-on": "var(--warning-rgb)",
     "--success-rgb": toRgbCssValue(successComplete),

@@ -33,11 +33,16 @@ export function FawxzzySigilLoader({
 
   return (
     <div className={cn("relative grid place-items-center", scale.shell, className)} aria-hidden="true">
-      <div className="absolute inset-0 rounded-full bg-[rgb(var(--accent)/0.18)] blur-[18px]" />
-      <div className="absolute inset-0 rounded-full border border-[rgb(var(--accent)/0.18)]" />
-      <div className="absolute inset-[4px] animate-spin rounded-full border border-transparent border-r-[rgb(var(--ambient-line-cyan)/0.48)] border-t-[rgb(var(--accent)/0.9)]" />
+      <div className="absolute inset-0 rounded-full bg-[rgb(var(--loader-scan-rgb)/0.2)] blur-[18px]" />
+      <div className="absolute inset-0 rounded-full border border-[rgb(var(--loader-scan-rgb)/0.2)]" />
+      <div className="absolute inset-[4px] animate-spin rounded-full border border-transparent border-r-[rgb(var(--loader-scan-rgb)/0.44)] border-t-[rgb(var(--loader-scan-rgb)/0.92)]" />
       <div className="absolute inset-[9px] rounded-full border border-[rgb(var(--text)/0.08)]" />
-      <div className="absolute inset-[11px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(71,215,196,0.28),rgba(71,215,196,0.04)_68%,transparent_100%)]" />
+      <div
+        className="absolute inset-[11px] animate-pulse rounded-full"
+        style={{
+          background: "radial-gradient(circle, rgb(var(--loader-scan-rgb) / 0.28), rgb(var(--loader-scan-rgb) / 0.04) 68%, transparent 100%)",
+        }}
+      />
       <div className={cn("relative grid place-items-center overflow-hidden", scale.core)}>
         <Image
           src="/app/loader-sigil.png"
@@ -50,8 +55,11 @@ export function FawxzzySigilLoader({
         />
       </div>
       <div
-        className="absolute inset-0 animate-spin rounded-full [mask-image:conic-gradient(from_0deg,transparent_0deg,black_38deg,transparent_82deg)] bg-[conic-gradient(from_0deg,rgba(71,215,196,0)_0deg,rgba(71,215,196,0.55)_34deg,rgba(160,214,255,0.18)_68deg,rgba(71,215,196,0)_118deg)]"
-        style={{ animationDuration: "2.4s" }}
+        className="absolute inset-0 animate-spin rounded-full [mask-image:conic-gradient(from_0deg,transparent_0deg,black_38deg,transparent_82deg)]"
+        style={{
+          background: "conic-gradient(from 0deg, rgb(var(--loader-scan-rgb) / 0) 0deg, rgb(var(--loader-scan-rgb) / 0.55) 34deg, rgb(var(--loader-scan-rgb) / 0.18) 68deg, rgb(var(--loader-scan-rgb) / 0) 118deg)",
+          animationDuration: "2.4s",
+        }}
       />
     </div>
   );

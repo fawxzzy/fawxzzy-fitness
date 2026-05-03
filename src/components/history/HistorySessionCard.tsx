@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import type { SessionSummary } from "@/app/history/session-summary";
 import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCard";
-import { cardAccentRailClassNames, type CardSemanticTone } from "@/components/cardSemanticTones";
+import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { MetricAccentBar, type MetricDatum, MetricGrid } from "@/components/ui/MetricItem";
@@ -27,8 +27,7 @@ const densityStyles = {
   },
 };
 
-const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
-
+const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
 function getAutoMetricSpanClassName(totalItems: number, index: number) {
   if (totalItems <= 1) return "col-span-6";
   if (totalItems === 2) return "col-span-3";
@@ -62,7 +61,7 @@ function HistorySessionDetailedMetricGrid({ items }: { items: MetricDatum[] }) {
             getAutoMetricSpanClassName(items.length, index),
             appTokens.workoutMetricChrome,
             appTokens.workoutMetricCompact,
-            "flex min-h-[2.8rem] flex-col items-center justify-start overflow-hidden border-transparent bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%] px-2.75 py-1 shadow-none ring-0 backdrop-blur-0",
+            "flex min-h-[2.8rem] flex-col items-center justify-start overflow-hidden border-transparent bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%] px-2.75 py-1 shadow-none ring-0 backdrop-blur-0",
           )}
         >
           <p className="block w-full px-px pt-px text-center text-[10px] font-semibold leading-[1.02] tracking-[0.03em] text-[rgb(var(--accent-divider-rgb)/0.92)]">
@@ -297,26 +296,16 @@ export function HistorySessionCard({
       >
         <div
           className={cn(
-            "relative flex min-h-[1.84rem] items-center rounded-[0.9rem] px-[0.8rem] py-[0.18rem] transition-colors",
+            "relative rounded-[0.9rem] px-[0.8rem] py-[0.18rem] transition-colors",
             selected ? "bg-[rgb(var(--surface-1-rgb)/0.16)]" : "bg-transparent hover:bg-[rgb(var(--surface-1-rgb)/0.1)]",
           )}
         >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-x-[0.8rem] bottom-0 h-px bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))]",
-            )}
-          />
-          <span
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute bottom-0 left-[0.8rem] h-px w-12 rounded-full",
-              cardAccentRailClassNames[resolvedTone],
-            )}
-          />
-          <div className={cn("w-full min-w-0 pl-px text-[rgb(var(--text)/1)]", compactHeaderTextClassName)}>
-            {title ?? buildSessionCompactTitleText(session)}
+          <div className="flex min-h-[1.84rem] items-center">
+            <div className={cn("w-full min-w-0 pl-px text-[rgb(var(--text)/1)]", compactHeaderTextClassName)}>
+              {title ?? buildSessionCompactTitleText(session)}
+            </div>
           </div>
+          <MetricAccentBar variant="thin" className="opacity-85" />
         </div>
       </div>
     );
@@ -368,7 +357,7 @@ export function HistorySessionCard({
         <div className="relative px-[0.92rem] py-[0.88rem]">
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.96),rgb(var(--accent-divider-rgb)/0.58))]"
+            className="pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full bg-[linear-gradient(180deg,rgb(var(--metric-accent-rgb)/0.96),rgb(var(--metric-accent-rgb)/0.58))]"
           />
           {supportingContent}
         </div>

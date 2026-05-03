@@ -146,6 +146,27 @@ npm install
 npm run dev
 ```
 
+## Prod to local mirror
+
+Use the existing mirror script for a one-time prod -> local data load before local launch or debugging. This is a controlled snapshot into local Postgres, not a live loop against production.
+
+Keep the mirror env file outside the repo root under `C:\ATLAS\secrets\local\...`. The current local target for this repo is Postgres on `127.0.0.1:5432`, so `LOCAL_DATABASE_URL` must point there rather than the Supabase CLI port `54322`.
+
+```powershell
+cd C:\ATLAS\repos\fawxzzy-fitness
+node .\scripts\sync-prod-to-local.mjs --env C:\ATLAS\secrets\local\fitness-prod-to-local.env --yes
+```
+
+Required env keys:
+
+```env
+PROD_SUPABASE_PROJECT_REF=lpswxoyfniocuhljgzbc
+PROD_DATABASE_URL=postgresql://...
+LOCAL_DATABASE_URL=postgresql://...127.0.0.1:5432...
+```
+
+The script mirrors only the `public` schema and destructively refreshes local data before reload, so treat the env file and resulting dataset as controlled production-derived material.
+
 ## Quality checks
 
 ```bash

@@ -6,19 +6,16 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { appTokens } from "@/components/ui/app/tokens";
-import { SignatureSectionBar } from "@/components/ui/app/SignatureSeparator";
 import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_NAME_MAX_LENGTH,
   applyAppTheme,
   areAppThemesEqual,
-  clearStoredAppThemeSelection,
-  countAppThemeCustomizations,
   DEFAULT_APP_THEME,
   getNextAvailableAppThemeSlotId,
-  getAppThemeSummary,
   readStoredAppTheme,
   readStoredAppThemeLibrary,
   readStoredAppThemeSelection,
@@ -59,6 +56,7 @@ const THEME_COLOR_GROUPS = [
       { key: "primaryActionColor", label: "Primary Action" },
       { key: "secondaryActionColor", label: "Secondary Action" },
       { key: "surfaceCardColor", label: "Cards & Surfaces" },
+      { key: "cardOutlineColor", label: "Card Outlines" },
     ],
   },
   {
@@ -76,6 +74,7 @@ const THEME_COLOR_GROUPS = [
     description: "Supporting lines and motion highlights that tie the system together.",
     fields: [
       { key: "accentDividerColor", label: "Accent Lines" },
+      { key: "metricAccentColor", label: "Metric Strips" },
       { key: "loaderScanColor", label: "Loading Scan" },
     ],
   },
@@ -84,6 +83,27 @@ const THEME_COLOR_GROUPS = [
   description: string;
   fields: ReadonlyArray<{ key: keyof AppThemeSettings; label: string }>;
 }>;
+
+const THEME_PANEL_SHELL_CLASSNAME =
+  "-mx-5 rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.14)] shadow-[0_20px_44px_rgba(0,0,0,0.16)] supports-[backdrop-filter]:bg-[rgb(var(--surface-1-rgb)/0.08)]";
+
+function ThemeHeroTray({ children }: { children: React.ReactNode }) {
+  return (
+    <div className={cn(THEME_PANEL_SHELL_CLASSNAME, "space-y-3 p-4 sm:p-5")}>
+      <div className="space-y-3">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ThemeSectionDivider({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center justify-center py-1.5", className)}>
+      <MetricAccentBar variant="thin" className="w-3/4 opacity-85" />
+    </div>
+  );
+}
 
 function ThemePanelSection({
   title,
@@ -95,21 +115,13 @@ function ThemePanelSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="-mx-5 space-y-3 rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.18)] p-4 sm:p-5">
+    <section className={cn(THEME_PANEL_SHELL_CLASSNAME, "space-y-3 p-4 sm:p-5")}>
       <div className="space-y-1 text-center">
         <h3 className="text-sm font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary)/0.96)]">{title}</h3>
         <p className={appTokens.settingsBodyText}>{description}</p>
       </div>
       {children}
     </section>
-  );
-}
-
-function ThemeSectionDivider() {
-  return (
-    <div className="flex items-center justify-center py-1.5">
-      <SignatureSectionBar />
-    </div>
   );
 }
 
@@ -250,6 +262,7 @@ export function AppThemeSettings({
   const [savedWeightUnit, setSavedWeightUnit] = useState<"lbs" | "kg">(preferredWeightUnit);
   const [savedDistanceUnit, setSavedDistanceUnit] = useState<"mi" | "km">(preferredDistanceUnit);
   const [isSaving, startSaving] = useTransition();
+  const [isThemeNameFocused, setIsThemeNameFocused] = useState(false);
 
   useEffect(() => {
     const storedTheme = readStoredAppTheme() ?? DEFAULT_APP_THEME;
@@ -308,35 +321,23 @@ export function AppThemeSettings({
   const selectedThemeBaseName = selectedSavedTheme?.name ?? "";
   const selectedThemeBase = selectedSavedTheme?.theme ?? DEFAULT_APP_THEME;
   const nextAvailableThemeSlotId = getNextAvailableAppThemeSlotId(savedThemes);
-  const themeSummary = getAppThemeSummary(theme);
-  const themeCustomizationCount = countAppThemeCustomizations(theme);
   const hasThemeContentChange = !areAppThemesEqual(theme, selectedThemeBase);
   const hasThemeNameChange = normalizedThemeName !== selectedThemeBaseName;
   const hasActiveThemeChange = hasThemeContentChange || hasThemeNameChange;
-  const showThemeNameField = !isDefaultThemeSelected || hasThemeContentChange || normalizedThemeName.length > 0;
+  const showThemeEditor = !isDefaultThemeSelected;
+  const showThemeNameField = showThemeEditor && (!selectedSavedTheme || hasThemeContentChange || normalizedThemeName.length > 0);
   const canSaveTheme = normalizedThemeName.length > 0
     && hasActiveThemeChange
     && (!isDefaultThemeSelected || nextAvailableThemeSlotId !== null);
   const hasUnitPreferenceChange = weightUnit !== savedWeightUnit || distanceUnit !== savedDistanceUnit;
   const canSaveAnyChange = canSaveTheme || hasUnitPreferenceChange;
-  const themeDraftMessage = isDefaultThemeSelected
-    ? hasThemeContentChange
-      ? nextAvailableThemeSlotId
-        ? "Name this draft to save it into the next open slot."
-        : "All theme slots are full. Select a slot first if you want to overwrite it."
-      : "Default stays live until you make a custom change."
-    : selectedSavedTheme
-      ? hasActiveThemeChange
-        ? `Saving will overwrite ${selectedSavedTheme.name}.`
-        : `${selectedSavedTheme.name} already matches the active theme.`
-      : "Choose a name to save this slot.";
 
   const selectDefaultTheme = () => {
     setSelectedThemeId("default");
     setThemeName("");
     setSaveMessage(null);
     setTheme(DEFAULT_APP_THEME);
-    clearStoredAppThemeSelection();
+    writeStoredAppThemeSelection("default");
   };
 
   const selectSavedTheme = (savedTheme: SavedAppThemeSlot) => {
@@ -441,34 +442,62 @@ export function AppThemeSettings({
 
   return (
     <div className="space-y-4 pt-2">
-      <PublishBottomActions>
-        <BottomActionSplit
-          secondary={(
-            <BottomDockButton
-              type="button"
-              intent="danger"
-              onClick={deleteTheme}
-              disabled={!selectedSavedTheme}
-            >
-              Delete
-            </BottomDockButton>
-          )}
-          primary={(
-            <BottomDockButton
-              type="button"
-              intent="positive"
-              onClick={saveTheme}
-              disabled={!canSaveAnyChange}
-              loading={isSaving}
-            >
-              Save
-            </BottomDockButton>
-          )}
-        />
-      </PublishBottomActions>
+      {!isDefaultThemeSelected ? (
+        <PublishBottomActions>
+          <BottomActionSplit
+            secondary={(
+              <BottomDockButton
+                type="button"
+                intent="danger"
+                onClick={deleteTheme}
+                disabled={!selectedSavedTheme}
+              >
+                Delete
+              </BottomDockButton>
+            )}
+            primary={(
+              <BottomDockButton
+                type="button"
+                intent="positive"
+                onClick={saveTheme}
+                disabled={!canSaveAnyChange}
+                loading={isSaving}
+              >
+                Save
+              </BottomDockButton>
+            )}
+          />
+        </PublishBottomActions>
+      ) : null}
 
-      <div className="-mx-5 space-y-3 rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.18)] p-4 sm:p-5">
+      <ThemeHeroTray>
         <div className="space-y-3">
+          {showThemeNameField ? (
+            <div className={appTokens.settingsFieldStack}>
+              <LabeledEditorField
+                label="Theme name"
+                className="w-full"
+              >
+                <input
+                  aria-label="Theme name"
+                  type="text"
+                  value={themeName}
+                  maxLength={APP_THEME_NAME_MAX_LENGTH}
+                  placeholder={isThemeNameFocused && themeName.length === 0 ? "" : "Theme name"}
+                  onFocus={() => setIsThemeNameFocused(true)}
+                  onBlur={() => setIsThemeNameFocused(false)}
+                  onChange={(event) => {
+                    setSaveMessage(null);
+                    setThemeName(sanitizeAppThemeName(event.target.value));
+                  }}
+                  className={cn(
+                    labeledEditorFieldControlClassName,
+                    "h-14 px-[10px] py-3 text-center",
+                  )}
+                />
+              </LabeledEditorField>
+            </div>
+          ) : null}
           <div className={appTokens.settingsFieldStack}>
             <div className="flex flex-wrap justify-center gap-2">
               <ThemeSlotButton
@@ -491,142 +520,110 @@ export function AppThemeSettings({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="rounded-full border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.28)] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-primary)/0.94)]">
-              {themeSummary.title}
-            </span>
-            <span className="rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.24)] px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-secondary)/0.9)]">
-              {themeCustomizationCount === 0 ? "No custom changes" : `${themeCustomizationCount} custom ${themeCustomizationCount === 1 ? "change" : "changes"}`}
-            </span>
-          </div>
-
-          <p className={appTokens.settingsStatusMuted}>{themeDraftMessage}</p>
-
-          {showThemeNameField ? (
-            <div className={cn(appTokens.settingsFieldStack, "mx-auto w-fit")}>
-              <LabeledEditorField
-                label="Theme name"
-                className="w-[17ch] max-w-full"
-              >
-                <input
-                  aria-label="Theme name"
-                  type="text"
-                  value={themeName}
-                  maxLength={APP_THEME_NAME_MAX_LENGTH}
-                  placeholder="Theme name"
-                  onChange={(event) => {
-                    setSaveMessage(null);
-                    setThemeName(sanitizeAppThemeName(event.target.value));
-                  }}
-                  className={cn(
-                    labeledEditorFieldControlClassName,
-                    "h-14 px-[10px] py-3 text-center",
-                  )}
-                />
-              </LabeledEditorField>
-            </div>
-          ) : null}
-
           {saveMessage ? (
             <p className={saveMessage.tone === "success" ? appTokens.settingsStatusSuccess : appTokens.settingsStatusError}>
               {saveMessage.text}
             </p>
           ) : null}
         </div>
-      </div>
+      </ThemeHeroTray>
 
-      <ThemeSectionDivider />
+      {showThemeEditor ? (
+        <>
+          <ThemeSectionDivider />
 
-      <ThemePanelSection
-        title="Units"
-        description="Choose the measurement units used across routines, sessions, and progress displays."
-      >
-        <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-3">
-          <div className={cn(appTokens.settingsFieldStack, "w-fit items-center text-center")}>
-            <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Weight</p>
-            <SegmentedControl
-              ariaLabel="Weight unit"
-              options={WEIGHT_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
-              value={weightUnit}
-              onChange={(nextValue) => {
-                setSaveMessage(null);
-                setWeightUnit(nextValue as "lbs" | "kg");
-              }}
-              size="sm"
-              activeIntent="positive"
-              fitContent
-              className="mx-auto"
-              shellClassName="!border-transparent !bg-transparent !shadow-none !p-0 gap-1.5"
-            />
-          </div>
-
-          <div className={cn(appTokens.settingsFieldStack, "w-fit items-center text-center")}>
-            <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Distance</p>
-            <SegmentedControl
-              ariaLabel="Distance unit"
-              options={DISTANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
-              value={distanceUnit}
-              onChange={(nextValue) => {
-                setSaveMessage(null);
-                setDistanceUnit(nextValue as "mi" | "km");
-              }}
-              size="sm"
-              activeIntent="positive"
-              fitContent
-              className="mx-auto"
-              shellClassName="!border-transparent !bg-transparent !shadow-none !p-0 gap-1.5"
-            />
-          </div>
-        </div>
-      </ThemePanelSection>
-
-      <ThemeSectionDivider />
-
-      {THEME_COLOR_GROUPS.map((group) => (
-        <div key={group.title} className="space-y-4">
-          <ThemePanelSection title={group.title} description={group.description}>
-            <div className="flex flex-wrap justify-center gap-2.5">
-              {group.fields.map((field) => (
-                <ThemeColorField
-                  key={field.key}
-                  label={field.label}
-                  value={theme[field.key] as string}
-                  onChange={(nextValue) => updateColor(field.key, nextValue)}
+          <ThemePanelSection
+            title="Units"
+            description="Choose the measurement units used across routines, sessions, and progress displays."
+          >
+            <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-3">
+              <div className={cn(appTokens.settingsFieldStack, "w-fit items-center text-center")}>
+                <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Weight</p>
+                <SegmentedControl
+                  ariaLabel="Weight unit"
+                  options={WEIGHT_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
+                  value={weightUnit}
+                  onChange={(nextValue) => {
+                    setSaveMessage(null);
+                    setWeightUnit(nextValue as "lbs" | "kg");
+                  }}
+                  size="sm"
+                  activeIntent="positive"
+                  fitContent
+                  className="mx-auto"
+                  shellClassName="!border-transparent !bg-transparent !shadow-none !p-0 gap-1.5"
                 />
-              ))}
+              </div>
+
+              <div className={cn(appTokens.settingsFieldStack, "w-fit items-center text-center")}>
+                <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Distance</p>
+                <SegmentedControl
+                  ariaLabel="Distance unit"
+                  options={DISTANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
+                  value={distanceUnit}
+                  onChange={(nextValue) => {
+                    setSaveMessage(null);
+                    setDistanceUnit(nextValue as "mi" | "km");
+                  }}
+                  size="sm"
+                  activeIntent="positive"
+                  fitContent
+                  className="mx-auto"
+                  shellClassName="!border-transparent !bg-transparent !shadow-none !p-0 gap-1.5"
+                />
+              </div>
             </div>
           </ThemePanelSection>
-          <ThemeSectionDivider />
-        </div>
-      ))}
 
-      <ThemePanelSection
-        title="Shape"
-        description="Set how rounded buttons and cards should feel across shared flows."
-      >
-        <div className="flex flex-wrap justify-center gap-3">
-          <ThemeRangeField
-            label="Button Radius"
-            min={10}
-            max={28}
-            value={theme.buttonRadius}
-            onChange={(nextValue) => updateTheme((currentTheme) => ({
-              ...currentTheme,
-              buttonRadius: nextValue,
-            }))}
-          />
-          <ThemeRangeField
-            label="Card Radius"
-            min={14}
-            max={36}
-            value={theme.cardRadius}
-            onChange={(nextValue) => updateTheme((currentTheme) => ({
-              ...currentTheme,
-              cardRadius: nextValue,
-            }))}
-          />
-        </div>
-      </ThemePanelSection>
+          <ThemeSectionDivider />
+
+          {THEME_COLOR_GROUPS.map((group) => (
+            <div key={group.title} className="space-y-4">
+              <ThemePanelSection title={group.title} description={group.description}>
+                <div className="flex flex-wrap justify-center gap-2.5">
+                  {group.fields.map((field) => (
+                    <ThemeColorField
+                      key={field.key}
+                      label={field.label}
+                      value={theme[field.key] as string}
+                      onChange={(nextValue) => updateColor(field.key, nextValue)}
+                    />
+                  ))}
+                </div>
+              </ThemePanelSection>
+              <ThemeSectionDivider />
+            </div>
+          ))}
+
+          <ThemePanelSection
+            title="Shape"
+            description="Set how rounded buttons and cards should feel across shared flows."
+          >
+            <div className="flex flex-wrap justify-center gap-3">
+              <ThemeRangeField
+                label="Button Radius"
+                min={10}
+                max={28}
+                value={theme.buttonRadius}
+                onChange={(nextValue) => updateTheme((currentTheme) => ({
+                  ...currentTheme,
+                  buttonRadius: nextValue,
+                }))}
+              />
+              <ThemeRangeField
+                label="Card Radius"
+                min={14}
+                max={36}
+                value={theme.cardRadius}
+                onChange={(nextValue) => updateTheme((currentTheme) => ({
+                  ...currentTheme,
+                  cardRadius: nextValue,
+                }))}
+              />
+            </div>
+          </ThemePanelSection>
+        </>
+      ) : null}
     </div>
   );
 }

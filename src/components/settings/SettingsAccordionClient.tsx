@@ -41,16 +41,17 @@ export function SettingsAccordionTrigger({
       type="button"
       aria-expanded={expanded}
       onClick={onClick}
-      className="group relative block w-full appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 text-left shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+      className="group relative block w-full appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <span className="relative flex min-h-[2rem] items-end justify-center px-4 pr-12 pb-3">
-        <span className="min-w-0 w-fit max-w-full text-center">
+      <span className="grid min-h-[2rem] grid-cols-[2rem_minmax(0,1fr)_2rem] items-end px-4 pb-3">
+        <span aria-hidden="true" />
+        <span className="min-w-0 w-full text-center">
           <span className="block text-[1.05rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</span>
           {summary ? (
             <span className="mt-1 block text-sm leading-5 text-[rgb(var(--text-secondary)/0.88)]">{summary}</span>
           ) : null}
         </span>
-        <span className="absolute bottom-3 right-4 shrink-0 text-[rgb(var(--text-muted)/0.84)] transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]">
+        <span className="flex items-center justify-end text-[rgb(var(--text-muted)/0.84)] transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]">
           {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
         </span>
       </span>

@@ -372,7 +372,7 @@ export function LoginScreen({
             )}
           >
             {showEmailField ? (
-              <LabeledEditorField label="Email or username">
+              <LabeledEditorField label="Email or username" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
                 <Input
                   id={EMAIL_INPUT_ID}
                   type="text"
@@ -383,7 +383,7 @@ export function LoginScreen({
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
-                    "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     emailValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => setEmail(event.target.value)}
@@ -392,7 +392,7 @@ export function LoginScreen({
             ) : null}
 
             <AuthStack size="sm">
-              <LabeledEditorField label="Password">
+              <LabeledEditorField label="Password" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
                 <Input
                   id={PASSWORD_INPUT_ID}
                   type="password"
@@ -403,7 +403,7 @@ export function LoginScreen({
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
-                    "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     passwordValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => setPassword(event.target.value)}

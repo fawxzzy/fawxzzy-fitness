@@ -49,12 +49,14 @@ test("normalizeAppTheme clamps radii and normalizes colors", () => {
     primaryActionColor: "#ABC",
     secondaryActionColor: "#FBA",
     accentDividerColor: "#DEF",
+    metricAccentColor: "#0f0",
     successCompleteColor: "#123456",
     selectionActiveColor: "654321",
     loaderScanColor: "#89a",
     warningColor: "#fed",
     dangerColor: "#d45",
     surfaceCardColor: "223344",
+    cardOutlineColor: "#cde",
     buttonRadius: 99,
     cardRadius: 1,
   });
@@ -66,12 +68,14 @@ test("normalizeAppTheme clamps radii and normalizes colors", () => {
   assert.equal(theme.primaryActionColor, "#aabbcc");
   assert.equal(theme.secondaryActionColor, "#ffbbaa");
   assert.equal(theme.accentDividerColor, "#ddeeff");
+  assert.equal(theme.metricAccentColor, "#00ff00");
   assert.equal(theme.successCompleteColor, "#123456");
   assert.equal(theme.selectionActiveColor, "#654321");
   assert.equal(theme.loaderScanColor, "#8899aa");
   assert.equal(theme.warningColor, "#ffeedd");
   assert.equal(theme.dangerColor, "#dd4455");
   assert.equal(theme.surfaceCardColor, "#223344");
+  assert.equal(theme.cardOutlineColor, "#ccddee");
   assert.equal(theme.buttonRadius, 28);
   assert.equal(theme.cardRadius, 14);
 });
@@ -85,10 +89,13 @@ test("getAppThemeCssVariables derives shared accent and surface variables", () =
   assert.equal(cssVariables["--accent"], "124 195 255");
   assert.equal(cssVariables["--secondary-action-rgb"], "255 191 103");
   assert.equal(cssVariables["--accent-divider-rgb"], "140 232 217");
+  assert.equal(cssVariables["--metric-accent-rgb"], "120 227 143");
   assert.equal(cssVariables["--selection-rgb"], "95 212 255");
   assert.equal(cssVariables["--loader-scan-rgb"], "135 241 255");
   assert.equal(cssVariables["--warning-rgb"], "255 159 89");
   assert.equal(cssVariables["--danger-rgb"], "255 127 150");
+  assert.equal(cssVariables["--stroke-soft"], "215 238 255");
+  assert.equal(cssVariables["--stroke-strong"], "215 238 255");
   assert.equal(cssVariables["--success-rgb"], "120 227 143");
   assert.equal(cssVariables["--surface-2-rgb"], "31 53 70");
   assert.equal(cssVariables["--button-radius"], "10px");
