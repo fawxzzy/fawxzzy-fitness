@@ -183,6 +183,19 @@ test("resolved stored theme falls back to the selected rose preset when active c
   assert.deepEqual(resolveStoredAppTheme(storage), ROSE_APP_THEME);
 });
 
+test("resolved stored theme prefers a selected preset over a stale saved theme blob", () => {
+  const storage = createStorageStub();
+
+  writeStoredAppTheme({
+    ...TEST_APP_THEME,
+    primaryActionColor: "#112233",
+  }, storage);
+  writeStoredAppThemeSelection("rose", storage);
+
+  assert.deepEqual(resolveStoredAppTheme(storage), ROSE_APP_THEME);
+  assert.equal(storage.getItem(APP_THEME_STORAGE_KEY), null);
+});
+
 test("stored non-default theme round-trips through storage", () => {
   const storage = createStorageStub();
 
@@ -190,6 +203,16 @@ test("stored non-default theme round-trips through storage", () => {
   const restoredTheme = readStoredAppTheme(storage);
 
   assert.deepEqual(restoredTheme, TEST_APP_THEME);
+});
+
+test("preset writes clear the stored custom theme blob for any preset match", () => {
+  const storage = createStorageStub();
+
+  writeStoredAppTheme(TEST_APP_THEME, storage);
+  assert.notEqual(storage.getItem(APP_THEME_STORAGE_KEY), null);
+
+  writeStoredAppTheme(ROSE_APP_THEME, storage);
+  assert.equal(storage.getItem(APP_THEME_STORAGE_KEY), null);
 });
 
 test("saved theme names preserve spaces and cap at the shared limit", () => {
@@ -249,6 +272,25 @@ test("selected theme slot persists and clears through storage", () => {
 
   assert.equal(storage.getItem(APP_THEME_SELECTION_STORAGE_KEY), null);
   assert.equal(readStoredAppThemeSelection(storage), null);
+});
+
+test("theme storage helpers fail closed when browser storage throws", () => {
+  const storage = {
+    getItem() {
+      throw new Error("storage blocked");
+    },
+    setItem() {
+      throw new Error("storage blocked");
+    },
+    removeItem() {
+      throw new Error("storage blocked");
+    },
+  };
+
+  assert.deepEqual(resolveStoredAppTheme(storage), DEFAULT_APP_THEME);
+  assert.equal(readStoredAppThemeSelection(storage), null);
+  assert.equal(readStoredAppTheme(storage), null);
+  assert.doesNotThrow(() => writeStoredAppTheme(TEST_APP_THEME, storage));
 });
 
 test("next available slot resolves null when all custom theme slots are used", () => {

@@ -1,5 +1,14 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  ACCESS_COOKIE_NAME,
+  buildSessionRecoveryPath,
+  classifyAuthSessionFailure,
+  hasSessionCookieValues,
+  REFRESH_COOKIE_NAME,
+} from "@/lib/auth-session";
+import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import {
   type LoadingDiagnosticsCollector,
   startLoadingDiagnosticGate,
@@ -27,14 +36,69 @@ export async function requireUser(options: RequireUserOptions = {}) {
     collector: options.collector,
   });
   const supabase = await supabaseServerWithSession();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser().catch((error) => {
+  const cookieStore = cookies();
+  const accessToken = cookieStore.get(ACCESS_COOKIE_NAME)?.value ?? null;
+  const refreshToken = cookieStore.get(REFRESH_COOKIE_NAME)?.value ?? null;
+  const hasSessionCookies = hasSessionCookieValues({ accessToken, refreshToken });
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null = null;
+
+  try {
+    const result = await supabase.auth.getUser();
+    const failure = classifyAuthSessionFailure(result.error);
+
+    if (failure) {
+      recordServerBootDiagnostic({
+        tag: "[boot.auth]",
+        source: "server",
+        route: options.route ?? null,
+        stage: `redirect-login-${failure.reason}`,
+        authState: hasSessionCookies ? "redirected-login" : "auth-error",
+      }, "warn");
+      gate.redirect({
+        blockingReason: "Recovered from an invalid or expired authenticated session by redirecting to /login.",
+      });
+      redirect(buildSessionRecoveryPath(failure.loginErrorCode));
+    }
+
+    user = result.data.user;
+  } catch (error) {
     gate.error(error);
-    throw error;
-  });
+    const failure = classifyAuthSessionFailure(error);
+
+    if (!failure) {
+      throw error;
+    }
+
+    recordServerBootDiagnostic({
+      tag: "[boot.auth]",
+      source: "server",
+      route: options.route ?? null,
+      stage: `redirect-login-${failure.reason}`,
+      authState: hasSessionCookies ? "redirected-login" : "auth-error",
+      errorName: error instanceof Error ? error.name : null,
+      errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
+    }, "warn");
+    gate.redirect({
+      blockingReason: "Recovered from an invalid or expired authenticated session by redirecting to /login.",
+    });
+    redirect(buildSessionRecoveryPath(failure.loginErrorCode));
+  }
 
   if (!user) {
+    if (hasSessionCookies) {
+      recordServerBootDiagnostic({
+        tag: "[boot.auth]",
+        source: "server",
+        route: options.route ?? null,
+        stage: "redirect-login-user-missing-after-session-check",
+        authState: "redirected-login",
+      }, "warn");
+      gate.redirect({
+        blockingReason: "Session cookies were present without an authenticated user. Redirecting to /login.",
+      });
+      redirect(buildSessionRecoveryPath());
+    }
+
     gate.redirect({
       blockingReason: "No authenticated user session. Redirecting to /login.",
     });

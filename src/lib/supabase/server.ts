@@ -1,6 +1,8 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
+import { classifyAuthSessionFailure } from "@/lib/auth-session";
+import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 
@@ -70,11 +72,21 @@ export async function supabaseServerWithSession() {
     return supabase;
   }
 
-  console.error("Failed to restore Supabase server session", {
-    message: error.message,
-    status: error.status,
-    name: error.name,
-  });
+  const failure = classifyAuthSessionFailure(error);
+
+  recordServerBootDiagnostic({
+    tag: "[boot.auth]",
+    source: "server",
+    route: null,
+    stage: `restore-session-${failure?.reason ?? "unexpected"}`,
+    authState: failure ? "auth-error" : null,
+    errorName: error.name,
+    errorMessage: error.message,
+  }, "error");
+
+  if (failure) {
+    return createSupabaseServerClient();
+  }
 
   return createSupabaseServerClient(accessToken);
 }

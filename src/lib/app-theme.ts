@@ -651,7 +651,11 @@ export function readStoredAppThemeSelection(storage?: StorageLike | null) {
     const rawValue = resolvedStorage.getItem(APP_THEME_SELECTION_STORAGE_KEY);
     return isThemeSelectionId(rawValue) ? rawValue : null;
   } catch {
-    resolvedStorage.removeItem(APP_THEME_SELECTION_STORAGE_KEY);
+    try {
+      resolvedStorage.removeItem(APP_THEME_SELECTION_STORAGE_KEY);
+    } catch {
+      // Ignore cleanup failures and fall back to default selection.
+    }
     return null;
   }
 }
@@ -688,30 +692,45 @@ export function readStoredAppTheme(storage?: StorageLike | null) {
     };
 
     if (parsed.version !== APP_THEME_VERSION || !parsed.theme) {
-      resolvedStorage.removeItem(APP_THEME_STORAGE_KEY);
+      try {
+        resolvedStorage.removeItem(APP_THEME_STORAGE_KEY);
+      } catch {
+        // Ignore cleanup failures and fall back to preset resolution.
+      }
       return null;
     }
 
     return normalizeAppTheme(parsed.theme);
   } catch {
-    resolvedStorage.removeItem(APP_THEME_STORAGE_KEY);
+    try {
+      resolvedStorage.removeItem(APP_THEME_STORAGE_KEY);
+    } catch {
+      // Ignore cleanup failures and fall back to preset resolution.
+    }
     return null;
   }
 }
 
 export function resolveStoredAppTheme(storage?: StorageLike | null) {
+  const selection = readStoredAppThemeSelection(storage);
+
+  if (selection && isAppThemePreset(selection)) {
+    const resolvedStorage = getBrowserStorage(storage);
+    try {
+      resolvedStorage?.removeItem(APP_THEME_STORAGE_KEY);
+    } catch {
+      // Ignore cleanup failures and continue with the selected preset.
+    }
+    return APP_THEME_PRESETS[selection];
+  }
+
   const storedTheme = readStoredAppTheme(storage);
   if (storedTheme) {
     return storedTheme;
   }
 
-  const selection = readStoredAppThemeSelection(storage);
   if (!selection) {
     return DEFAULT_APP_THEME;
-  }
-
-  if (isAppThemePreset(selection)) {
-    return APP_THEME_PRESETS[selection];
   }
 
   const savedTheme = readStoredAppThemeLibrary(storage).find((theme) => theme.id === selection);
@@ -724,16 +743,24 @@ export function writeStoredAppTheme(theme: AppThemeSettings, storage?: StorageLi
     return;
   }
 
-  if (getAppThemePresetMatch(theme) === "default") {
-    resolvedStorage.removeItem(APP_THEME_STORAGE_KEY);
+  if (getAppThemePresetMatch(theme)) {
+    try {
+      resolvedStorage.removeItem(APP_THEME_STORAGE_KEY);
+    } catch {
+      // Ignore cleanup failures and keep the preset active.
+    }
     dispatchAppThemeChange(DEFAULT_APP_THEME);
     return;
   }
 
-  resolvedStorage.setItem(APP_THEME_STORAGE_KEY, JSON.stringify({
-    version: APP_THEME_VERSION,
-    theme,
-  }));
+  try {
+    resolvedStorage.setItem(APP_THEME_STORAGE_KEY, JSON.stringify({
+      version: APP_THEME_VERSION,
+      theme,
+    }));
+  } catch {
+    return;
+  }
   dispatchAppThemeChange(theme);
 }
 

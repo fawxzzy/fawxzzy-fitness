@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EmailOtpType } from "@supabase/supabase-js";
+import { setSessionCookies } from "@/lib/auth-session";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -108,18 +109,9 @@ export async function GET(request: NextRequest) {
   const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/entry";
 
   const response = NextResponse.redirect(new URL(redirectPath, request.url));
-  response.cookies.set("sb-access-token", session.access_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-  response.cookies.set("sb-refresh-token", session.refresh_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
+  setSessionCookies(response.cookies, {
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
   });
 
   return response;

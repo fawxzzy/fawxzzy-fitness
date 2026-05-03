@@ -10,7 +10,7 @@
     "build": "node scripts/next-cli.mjs build",
     "build:guard": "node scripts/next-build-guard.mjs",
     "build:next": "node scripts/profile-next-build.mjs",
-    "build:prepare": "node scripts/generate-exercise-icon-manifest.mjs && node scripts/generate-stretch-library-split.mjs && node scripts/generate-icons.mjs && node scripts/generate-app-build-manifest.mjs",
+    "build:prepare": "node scripts/generate-exercise-icon-manifest.mjs && node scripts/generate-stretch-library-split.mjs && node scripts/generate-icons.mjs && node scripts/generate-app-build-manifest.mjs && node scripts/generate-service-worker.mjs",
     "clean:next": "node scripts/cleanup-repo.mjs --only-build-cache",
     "rebuild:clean": "npm run clean:next && npm run build",
     "start": "node scripts/next-cli.mjs start",
@@ -25,7 +25,7 @@
     "lint": "node scripts/next-cli.mjs lint",
     "lint:ci": "node scripts/next-cli.mjs lint --no-cache",
     "typecheck": "node scripts/tsc-cli.mjs -p tsconfig.json --pretty false",
-    "prebuild": "npm run gen:exercise-icons && node scripts/generate-icons.mjs",
+    "prebuild": "npm run build:prepare",
     "dev:assets": "node scripts/generate-icons.mjs",
     "gen:stretch-library-split": "node scripts/generate-stretch-library-split.mjs",
     "sync:exercise-icons": "node scripts/syncExerciseIcons.mjs",
@@ -102,7 +102,8 @@
     "evaluate:fitness-pilot-readiness": "node scripts/evaluate-fitness-pilot-readiness.mjs",
     "record:fitness-pilot-evidence": "node scripts/record-fitness-pilot-evidence.mjs",
     "test:session-set-count": "node --test src/components/session/setCountSync.test.ts",
-    "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/history-preview.test.ts src/lib/history-sessions-page-loader.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts"
+    "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/history-preview.test.ts src/lib/history-sessions-page-loader.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts",
+    "test:build-contracts": "node --test tests/build-contracts.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

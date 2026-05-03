@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clearSessionCookies, setSessionCookies } from "@/lib/auth-session";
 
 type SessionSyncBody = {
   accessToken?: unknown;
@@ -7,39 +8,6 @@ type SessionSyncBody = {
 
 function buildResponse() {
   return NextResponse.json({ ok: true });
-}
-
-function setSessionCookies(response: NextResponse, session: { accessToken: string; refreshToken: string }) {
-  response.cookies.set("sb-access-token", session.accessToken, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-  response.cookies.set("sb-refresh-token", session.refreshToken, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-}
-
-function clearSessionCookies(response: NextResponse) {
-  response.cookies.set("sb-access-token", "", {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    expires: new Date(0),
-  });
-  response.cookies.set("sb-refresh-token", "", {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    expires: new Date(0),
-  });
 }
 
 export async function POST(request: Request) {
@@ -59,12 +27,12 @@ export async function POST(request: Request) {
   }
 
   const response = buildResponse();
-  setSessionCookies(response, { accessToken, refreshToken });
+  setSessionCookies(response.cookies, { accessToken, refreshToken });
   return response;
 }
 
 export async function DELETE() {
   const response = buildResponse();
-  clearSessionCookies(response);
+  clearSessionCookies(response.cookies);
   return response;
 }

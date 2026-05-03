@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { setSessionCookies } from "@/lib/auth-session";
 import { optionalEnv } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -106,23 +107,6 @@ function getResetPasswordErrorMessage(message: string | undefined) {
   return "Could not send reset email. Please try again in a few minutes.";
 }
 
-function setSessionCookies(session: { access_token: string; refresh_token: string }) {
-  const cookieStore = cookies();
-  cookieStore.set("sb-access-token", session.access_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-  cookieStore.set("sb-refresh-token", session.refresh_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-}
-
 export async function login(formData: FormData) {
   const identifier = normalizeLoginIdentifier(formData.get("email"));
   const password = String(formData.get("password") ?? "");
@@ -139,7 +123,10 @@ export async function login(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(error?.message ?? "Invalid email or password")}`);
   }
 
-  setSessionCookies(data.session);
+  setSessionCookies(cookies(), {
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+  });
   redirect("/entry");
 }
 
@@ -176,7 +163,10 @@ export async function signup(formData: FormData) {
   }
 
   if (data.session) {
-    setSessionCookies(data.session);
+    setSessionCookies(cookies(), {
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+    });
     redirect("/entry");
   }
 

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import { ClientBundleRecoveryBootstrap } from "@/components/ClientBundleRecoveryBootstrap";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
 import { ProtectedAppInstallGate } from "@/components/install/ProtectedAppInstallGate";
 import { AppAmbientThemeBootstrap } from "@/components/ui/AppAmbientThemeBootstrap";
@@ -124,6 +125,7 @@ export default function RootLayout({
         <PersistentAppChrome />
         <ToastProvider>
           <ServiceWorkerBootstrap />
+          <ClientBundleRecoveryBootstrap />
           <AppAmbientThemeBootstrap />
           <AppThemeBootstrap />
           <GlassEffectsBootstrap />

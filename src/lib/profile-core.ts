@@ -346,7 +346,6 @@ export async function ensureProfileForEntryBootstrap(
     logError("[entry] profile bootstrap failed; continuing with authenticated fallback", {
       route: "/entry",
       stage: "ensureProfile",
-      userId,
       ...getEntryBootstrapErrorDetails(error),
     });
 

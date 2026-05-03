@@ -330,6 +330,5 @@ test("ensureProfileForEntryBootstrap logs and fails open when profile bootstrap 
   assert.equal(logs[0]?.message, "[entry] profile bootstrap failed; continuing with authenticated fallback");
   assert.equal(logs[0]?.details.route, "/entry");
   assert.equal(logs[0]?.details.stage, "ensureProfile");
-  assert.equal(logs[0]?.details.userId, "user-7");
   assert.equal(logs[0]?.details.errorMessage, "profiles unavailable");
 });

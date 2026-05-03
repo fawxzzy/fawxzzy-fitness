@@ -12,6 +12,7 @@ import {
   shouldRestoreReloadState,
   shouldShowAppUpdateNotice,
 } from "@/lib/app-update-state";
+import { recordClientBootDiagnostic } from "@/lib/boot-diagnostics";
 
 const UPDATE_POLL_INTERVAL_MS = 60_000;
 const UPDATE_IDLE_THRESHOLD_MS = 12_000;
@@ -151,6 +152,12 @@ export function ServiceWorkerBootstrap() {
         return;
       }
 
+      recordClientBootDiagnostic({
+        tag: "[boot.service-worker]",
+        source: "client",
+        route: window.location.pathname,
+        stage: "reload-app",
+      });
       reloadingForUpdate = true;
       window.location.reload();
     };
@@ -166,6 +173,12 @@ export function ServiceWorkerBootstrap() {
       clearIdleTimer();
       clearReloadTimer();
       rememberReloadState(pendingBuildId);
+      recordClientBootDiagnostic({
+        tag: "[boot.service-worker]",
+        source: "client",
+        route: window.location.pathname,
+        stage: "begin-update-transition",
+      });
 
       if (document.visibilityState === "visible") {
         setIsApplyingUpdate(true);
@@ -258,6 +271,12 @@ export function ServiceWorkerBootstrap() {
           return;
         }
 
+        recordClientBootDiagnostic({
+          tag: "[boot.service-worker]",
+          source: "client",
+          route: window.location.pathname,
+          stage: "remote-build-mismatch",
+        });
         queueUpdate(registration, remoteBuildId);
       } catch {
         // Keep the app usable even if the version check fails.
@@ -357,6 +376,16 @@ export function ServiceWorkerBootstrap() {
         teardown = cleanup;
       })
       .catch((error) => {
+        recordClientBootDiagnostic({
+          tag: "[boot.service-worker]",
+          source: "client",
+          route: typeof window !== "undefined" ? window.location.pathname : null,
+          stage: "register-failed",
+          errorName: error instanceof Error ? error.name : null,
+          errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
+        }, {
+          level: "error",
+        });
         console.error("Failed to register service worker", error);
       });
 

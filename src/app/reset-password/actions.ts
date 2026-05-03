@@ -3,27 +3,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { setSessionCookies } from "@/lib/auth-session";
 import { supabaseServerWithSession } from "@/lib/supabase/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
-
-function setSessionCookies(session: { access_token: string; refresh_token: string }) {
-  const cookieStore = cookies();
-  cookieStore.set("sb-access-token", session.access_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-  cookieStore.set("sb-refresh-token", session.refresh_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-}
 
 export async function establishRecoverySession(input: { accessToken: string; refreshToken: string }) {
   const accessToken = input.accessToken.trim();
@@ -58,9 +42,9 @@ export async function establishRecoverySession(input: { accessToken: string; ref
     };
   }
 
-  setSessionCookies({
-    access_token: accessToken,
-    refresh_token: refreshToken,
+  setSessionCookies(cookies(), {
+    accessToken,
+    refreshToken,
   });
 
   return { ok: true as const };

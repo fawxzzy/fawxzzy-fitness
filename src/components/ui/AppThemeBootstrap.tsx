@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { applyAppTheme, resolveStoredAppTheme } from "@/lib/app-theme";
+import { applyAppTheme, DEFAULT_APP_THEME, resolveStoredAppTheme } from "@/lib/app-theme";
 import { startLoadingDiagnosticGate } from "@/lib/loading-diagnostics";
 
 export function AppThemeBootstrap() {
@@ -18,10 +18,17 @@ export function AppThemeBootstrap() {
       applyAppTheme(resolveStoredAppTheme());
       gate.resolve();
     } catch (error) {
+      try {
+        applyAppTheme(DEFAULT_APP_THEME);
+      } catch {
+        // Keep the app usable even if resetting to the default theme also fails.
+      }
       gate.error(error, {
         blockingReason: "Applying the persisted app theme failed.",
       });
-      throw error;
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[app.theme-bootstrap] falling back to the default theme after a restore failure", error);
+      }
     }
   }, []);
 

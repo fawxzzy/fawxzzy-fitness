@@ -41,8 +41,8 @@ type BrowserLoadingDiagnosticsStore = {
   updatedAt: string;
 };
 
-const BROWSER_STORE_KEY = "__FAWXZZY_LOADING_DIAGNOSTICS__";
-const BROWSER_STORAGE_KEY = "fawxzzy:loading-diagnostics";
+export const LOADING_DIAGNOSTICS_WINDOW_STORE_KEY = "__FAWXZZY_LOADING_DIAGNOSTICS__";
+export const LOADING_DIAGNOSTICS_STORAGE_KEY = "fawxzzy:loading-diagnostics";
 
 declare global {
   interface Window {
@@ -72,8 +72,50 @@ function sanitizeMetadata(metadata: LoadingDiagnosticMetadata | null | undefined
     return null;
   }
 
+  function sanitizeValue(value: unknown): unknown {
+    if (
+      value === null
+      || typeof value === "string"
+      || typeof value === "number"
+      || typeof value === "boolean"
+    ) {
+      return value;
+    }
+
+    if (typeof value === "bigint") {
+      return value.toString();
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => sanitizeValue(item)).filter((item) => item !== undefined);
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+      };
+    }
+
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value)
+          .map(([key, nestedValue]) => [key, sanitizeValue(nestedValue)] as const)
+          .filter(([, nestedValue]) => nestedValue !== undefined),
+      );
+    }
+
+    return String(value);
+  }
+
   return Object.fromEntries(
-    Object.entries(metadata).filter(([, value]) => value !== undefined),
+    Object.entries(metadata)
+      .map(([key, value]) => [key, sanitizeValue(value)] as const)
+      .filter(([, value]) => value !== undefined),
   );
 }
 
@@ -127,8 +169,8 @@ function shouldUseBrowserStorageOverride() {
       return true;
     }
 
-    const localValue = window.localStorage.getItem(BROWSER_STORAGE_KEY);
-    const sessionValue = window.sessionStorage.getItem(BROWSER_STORAGE_KEY);
+    const localValue = window.localStorage.getItem(LOADING_DIAGNOSTICS_STORAGE_KEY);
+    const sessionValue = window.sessionStorage.getItem(LOADING_DIAGNOSTICS_STORAGE_KEY);
     return localValue === "1" || sessionValue === "1" || localValue === "true" || sessionValue === "true";
   } catch {
     return false;
@@ -155,14 +197,14 @@ function readBrowserStore(): BrowserLoadingDiagnosticsStore {
     };
   }
 
-  if (!window[BROWSER_STORE_KEY]) {
-    window[BROWSER_STORE_KEY] = {
+  if (!window[LOADING_DIAGNOSTICS_WINDOW_STORE_KEY]) {
+    window[LOADING_DIAGNOSTICS_WINDOW_STORE_KEY] = {
       entries: [],
       updatedAt: toIso(Date.now()),
     };
   }
 
-  return window[BROWSER_STORE_KEY]!;
+  return window[LOADING_DIAGNOSTICS_WINDOW_STORE_KEY]!;
 }
 
 function upsertBrowserEntry(entry: LoadingDiagnosticEntry) {
@@ -174,7 +216,7 @@ function upsertBrowserEntry(entry: LoadingDiagnosticEntry) {
   const nextEntries = store.entries.filter((current) => current.id !== entry.id);
   nextEntries.push(entry);
   nextEntries.sort((left, right) => left.startedAt.localeCompare(right.startedAt));
-  window[BROWSER_STORE_KEY] = {
+  window[LOADING_DIAGNOSTICS_WINDOW_STORE_KEY] = {
     entries: nextEntries,
     updatedAt: toIso(Date.now()),
   };

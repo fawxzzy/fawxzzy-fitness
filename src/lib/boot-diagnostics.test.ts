@@ -1,0 +1,78 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  LAST_BOOT_DIAGNOSTIC_STORAGE_KEY,
+  recordClientBootDiagnostic,
+  sanitizeBootDiagnosticEvent,
+  serializeBootDiagnosticEvent,
+} from "./boot-diagnostics.ts";
+
+test("sanitizeBootDiagnosticEvent redacts emails ids and token-like values", () => {
+  const serialized = serializeBootDiagnosticEvent({
+    tag: "[boot.auth]",
+    source: "server",
+    route: "/entry",
+    stage: "jwt-expired-user-123e4567-e89b-12d3-a456-426614174000",
+    errorName: "AuthApiError",
+    errorMessage: "JWT expired for athlete@example.com token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature",
+  });
+
+  assert.equal(serialized.includes("athlete@example.com"), false);
+  assert.equal(serialized.includes("123e4567-e89b-12d3-a456-426614174000"), false);
+  assert.equal(serialized.includes("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"), false);
+  assert.equal(serialized.includes("[redacted-email]"), true);
+  assert.equal(serialized.includes("[redacted-id]"), true);
+  assert.equal(serialized.includes("[redacted-token]"), true);
+});
+
+test("recordClientBootDiagnostic stores the last sanitized client event", () => {
+  const writes = new Map<string, string>();
+  const storage = {
+    setItem(key: string, value: string) {
+      writes.set(key, value);
+    },
+  };
+
+  const payload = recordClientBootDiagnostic({
+    tag: "[boot.service-worker]",
+    source: "client",
+    route: "/today",
+    stage: "version-mismatch",
+    authState: "refreshed",
+    displayMode: "standalone",
+    serviceWorkerControlled: true,
+    errorMessage: "build drift for athlete@example.com",
+  }, {
+    storage,
+  });
+
+  assert.equal(payload.displayMode, "standalone");
+  assert.equal(payload.authState, "refreshed");
+  assert.equal(payload.serviceWorkerControlled, true);
+  assert.equal(writes.has(LAST_BOOT_DIAGNOSTIC_STORAGE_KEY), true);
+  assert.equal(writes.get(LAST_BOOT_DIAGNOSTIC_STORAGE_KEY)?.includes("athlete@example.com"), false);
+});
+
+test("sanitizeBootDiagnosticEvent preserves safe route and stage fields", () => {
+  assert.deepEqual(
+    sanitizeBootDiagnosticEvent({
+      tag: "[boot.entry]",
+      source: "server",
+      route: "/entry",
+      stage: "routine-hint",
+      authState: "has-refresh-cookie",
+    }),
+    {
+      tag: "[boot.entry]",
+      source: "server",
+      route: "/entry",
+      stage: "routine-hint",
+      buildId: "0.3.88-2026-05-01T08:28:58.031Z",
+      displayMode: "unknown",
+      serviceWorkerControlled: null,
+      authState: "has-refresh-cookie",
+      errorName: null,
+      errorMessage: null,
+    },
+  );
+});

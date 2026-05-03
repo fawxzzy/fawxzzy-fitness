@@ -2,12 +2,32 @@ import { AuthenticatedRememberedLoginSync } from "@/components/auth/Authenticate
 import { InitialExperienceGate } from "@/components/auth/InitialExperienceGate";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { requireUser } from "@/lib/auth";
+import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfileForEntryBootstrap } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+function recordEntryBootDiagnostic(stage: string, level: "error" | "info" | "warn", error?: unknown) {
+  const normalizedError = error instanceof Error
+    ? {
+        errorName: error.name,
+        errorMessage: error.message,
+      }
+    : {
+        errorMessage: typeof error === "string" ? error : null,
+      };
+
+  return recordServerBootDiagnostic({
+    tag: "[boot.entry]",
+    source: "server",
+    route: "/entry",
+    stage,
+    ...normalizedError,
+  }, level);
+}
 
 export default async function EntryPage() {
   const diagnostics = new LoadingDiagnosticsCollector("/entry");
@@ -18,21 +38,16 @@ export default async function EntryPage() {
     timeoutMs: 5000,
     collector: diagnostics,
   });
-  await diagnostics.measure("entry.profile.bootstrap", () => ensureProfileForEntryBootstrap(user.id), {
-    blockingReason: "Waiting for entry profile bootstrap.",
-    metadata: {
-      userId: user.id,
-    },
-    timeoutMs: 5000,
-  });
-  const rememberedLoginDisplayName =
-    typeof user.user_metadata?.display_name === "string"
-      ? user.user_metadata.display_name
-      : typeof user.user_metadata?.username === "string"
-        ? user.user_metadata.username
-        : null;
 
   let hasExistingProgram = true;
+  try {
+    await diagnostics.measure("entry.profile.bootstrap", () => ensureProfileForEntryBootstrap(user.id), {
+      blockingReason: "Waiting for entry profile bootstrap.",
+      timeoutMs: 5000,
+    });
+  } catch (error) {
+    recordEntryBootDiagnostic("profile-bootstrap", "warn", error);
+  }
 
   try {
     hasExistingProgram = await diagnostics.measure("entry.routine-hint.fetch", async () => {
@@ -45,24 +60,56 @@ export default async function EntryPage() {
       return error ? true : (count ?? 0) > 0;
     }, {
       blockingReason: "Checking whether entry should treat this member as having an existing program.",
-      metadata: {
-        userId: user.id,
-      },
       timeoutMs: 5000,
     });
-  } catch {
+  } catch (error) {
+    recordEntryBootDiagnostic("routine-hint.fetch", "warn", error);
     hasExistingProgram = true;
   }
 
-  return (
-    <>
-      <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-      <AuthenticatedRememberedLoginSync email={user.email ?? null} displayName={rememberedLoginDisplayName} />
-      <InitialExperienceGate
-        userId={user.id}
-        hasExistingProgram={hasExistingProgram}
-        curatedEngineEnabled={isCuratedOnboardingEnabled()}
-      />
-    </>
-  );
+  const rememberedLoginDisplayName =
+    typeof user.user_metadata?.display_name === "string"
+      ? user.user_metadata.display_name
+      : typeof user.user_metadata?.username === "string"
+        ? user.user_metadata.username
+        : null;
+
+  let curatedEngineEnabled = false;
+  try {
+    curatedEngineEnabled = isCuratedOnboardingEnabled();
+  } catch (error) {
+    recordEntryBootDiagnostic("feature-flags", "warn", error);
+  }
+
+  let diagnosticEntries = diagnostics.snapshot();
+  try {
+    diagnosticEntries = diagnostics.snapshot();
+  } catch (error) {
+    recordEntryBootDiagnostic("diagnostics.snapshot", "warn", error);
+    diagnosticEntries = [];
+  }
+
+  try {
+    return (
+      <>
+        <LoadingDiagnosticsClientBridge entries={diagnosticEntries} />
+        <AuthenticatedRememberedLoginSync email={user.email ?? null} displayName={rememberedLoginDisplayName} />
+        <InitialExperienceGate
+          userId={user.id}
+          hasExistingProgram={hasExistingProgram}
+          curatedEngineEnabled={curatedEngineEnabled}
+        />
+      </>
+    );
+  } catch (error) {
+    recordServerBootDiagnostic({
+      tag: "[entry.boot.unexpected]",
+      source: "server",
+      route: "/entry",
+      stage: "render",
+      errorName: error instanceof Error ? error.name : null,
+      errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
+    }, "error");
+    throw error;
+  }
 }
