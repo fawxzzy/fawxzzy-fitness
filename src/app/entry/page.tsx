@@ -2,6 +2,7 @@ import { AuthenticatedRememberedLoginSync } from "@/components/auth/Authenticate
 import { InitialExperienceGate } from "@/components/auth/InitialExperienceGate";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { requireUser } from "@/lib/auth";
+import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
@@ -25,6 +26,7 @@ function recordEntryBootDiagnostic(stage: string, level: "error" | "info" | "war
     source: "server",
     route: "/entry",
     stage,
+    buildId: CURRENT_APP_BUILD_ID,
     ...normalizedError,
   }, level);
 }
@@ -107,6 +109,7 @@ export default async function EntryPage() {
       source: "server",
       route: "/entry",
       stage: "render",
+      buildId: CURRENT_APP_BUILD_ID,
       errorName: error instanceof Error ? error.name : null,
       errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
     }, "error");

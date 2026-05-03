@@ -157,6 +157,7 @@ export function ServiceWorkerBootstrap() {
         source: "client",
         route: window.location.pathname,
         stage: "reload-app",
+        buildId: CURRENT_APP_BUILD_ID,
       });
       reloadingForUpdate = true;
       window.location.reload();
@@ -178,6 +179,7 @@ export function ServiceWorkerBootstrap() {
         source: "client",
         route: window.location.pathname,
         stage: "begin-update-transition",
+        buildId: CURRENT_APP_BUILD_ID,
       });
 
       if (document.visibilityState === "visible") {
@@ -276,6 +278,7 @@ export function ServiceWorkerBootstrap() {
           source: "client",
           route: window.location.pathname,
           stage: "remote-build-mismatch",
+          buildId: remoteBuildId,
         });
         queueUpdate(registration, remoteBuildId);
       } catch {
@@ -381,6 +384,7 @@ export function ServiceWorkerBootstrap() {
           source: "client",
           route: typeof window !== "undefined" ? window.location.pathname : null,
           stage: "register-failed",
+          buildId: CURRENT_APP_BUILD_ID,
           errorName: error instanceof Error ? error.name : null,
           errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
         }, {

@@ -56,7 +56,7 @@ function clearRecoveryStorage() {
 
   applyAppTheme(DEFAULT_APP_THEME);
   try {
-    delete (window as Window & Record<string, unknown>)[LOADING_DIAGNOSTICS_WINDOW_STORE_KEY];
+    delete (window as unknown as Record<string, unknown>)[LOADING_DIAGNOSTICS_WINDOW_STORE_KEY];
   } catch {
     // Ignore window cleanup failures and keep the recovery controls usable.
   }
@@ -88,6 +88,7 @@ export function AppRecoveryScreen({
       source: "client",
       route: pathname ?? null,
       stage: "error-recovery-screen",
+      buildId: CURRENT_APP_BUILD_ID,
       displayMode: resolveBootDisplayMode(),
       serviceWorkerControlled:
         typeof navigator !== "undefined" && "serviceWorker" in navigator

@@ -198,17 +198,25 @@ test("resolved stored theme prefers a selected preset over a stale saved theme b
 
 test("stored non-default theme round-trips through storage", () => {
   const storage = createStorageStub();
+  const customTheme = {
+    ...TEST_APP_THEME,
+    primaryActionColor: "#335577",
+  };
 
-  writeStoredAppTheme(TEST_APP_THEME, storage);
+  writeStoredAppTheme(customTheme, storage);
   const restoredTheme = readStoredAppTheme(storage);
 
-  assert.deepEqual(restoredTheme, TEST_APP_THEME);
+  assert.deepEqual(restoredTheme, customTheme);
 });
 
 test("preset writes clear the stored custom theme blob for any preset match", () => {
   const storage = createStorageStub();
+  const customTheme = {
+    ...TEST_APP_THEME,
+    primaryActionColor: "#335577",
+  };
 
-  writeStoredAppTheme(TEST_APP_THEME, storage);
+  writeStoredAppTheme(customTheme, storage);
   assert.notEqual(storage.getItem(APP_THEME_STORAGE_KEY), null);
 
   writeStoredAppTheme(ROSE_APP_THEME, storage);
@@ -290,7 +298,10 @@ test("theme storage helpers fail closed when browser storage throws", () => {
   assert.deepEqual(resolveStoredAppTheme(storage), DEFAULT_APP_THEME);
   assert.equal(readStoredAppThemeSelection(storage), null);
   assert.equal(readStoredAppTheme(storage), null);
-  assert.doesNotThrow(() => writeStoredAppTheme(TEST_APP_THEME, storage));
+  assert.doesNotThrow(() => writeStoredAppTheme({
+    ...TEST_APP_THEME,
+    primaryActionColor: "#335577",
+  }, storage));
 });
 
 test("next available slot resolves null when all custom theme slots are used", () => {

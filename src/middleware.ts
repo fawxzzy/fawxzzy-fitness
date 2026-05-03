@@ -9,6 +9,7 @@ import {
   setSessionCookies,
   shouldRefreshAuthSession,
 } from "@/lib/auth-session";
+import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
@@ -70,6 +71,7 @@ export async function middleware(request: NextRequest) {
         source: "server",
         route: pathname,
         stage: "refresh-cookie-missing",
+        buildId: CURRENT_APP_BUILD_ID,
         authState: "has-access-cookie",
       }, "warn");
       return buildLoginRedirectResponse(request, "session_expired");
@@ -80,6 +82,7 @@ export async function middleware(request: NextRequest) {
       source: "server",
       route: pathname,
       stage: "redirect-login-no-refresh-cookie",
+      buildId: CURRENT_APP_BUILD_ID,
       authState: "no-cookies",
     }, "info");
     return buildLoginRedirectResponse(request);
@@ -114,6 +117,7 @@ export async function middleware(request: NextRequest) {
         source: "server",
         route: pathname,
         stage: "refresh-session-unexpected",
+        buildId: CURRENT_APP_BUILD_ID,
         authState: "auth-error",
         errorName: error.name,
         errorMessage: error.message,
@@ -126,6 +130,7 @@ export async function middleware(request: NextRequest) {
       source: "server",
       route: pathname,
       stage: `redirect-login-${failure.reason}`,
+      buildId: CURRENT_APP_BUILD_ID,
       authState: "redirected-login",
       errorName: error.name,
       errorMessage: error.message,
@@ -139,6 +144,7 @@ export async function middleware(request: NextRequest) {
       source: "server",
       route: pathname,
       stage: "redirect-login-refresh-returned-no-session",
+      buildId: CURRENT_APP_BUILD_ID,
       authState: "redirected-login",
     }, "warn");
     return buildLoginRedirectResponse(request, "session_expired");
@@ -149,6 +155,7 @@ export async function middleware(request: NextRequest) {
     source: "server",
     route: pathname,
     stage: "session-refreshed",
+    buildId: CURRENT_APP_BUILD_ID,
     authState: "refreshed",
   });
 

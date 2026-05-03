@@ -1,5 +1,3 @@
-import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
-
 export type BootDiagnosticSource = "client" | "server";
 export type BootDiagnosticDisplayMode = "browser" | "standalone" | "unknown";
 export type BootDiagnosticTag =
@@ -104,7 +102,7 @@ export function sanitizeBootDiagnosticEvent(event: BootDiagnosticEvent) {
     source: event.source,
     route: sanitizeText(event.route ?? null, 96),
     stage: sanitizeText(event.stage, 96) ?? "unknown-stage",
-    buildId: sanitizeText(event.buildId ?? CURRENT_APP_BUILD_ID, 96),
+    buildId: sanitizeText(event.buildId ?? "unknown-build", 96),
     displayMode: event.displayMode ?? (event.source === "client" ? resolveBootDisplayMode() : "unknown"),
     serviceWorkerControlled:
       typeof event.serviceWorkerControlled === "boolean"

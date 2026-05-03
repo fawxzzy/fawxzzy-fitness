@@ -60,6 +60,7 @@ test("sanitizeBootDiagnosticEvent preserves safe route and stage fields", () => 
       source: "server",
       route: "/entry",
       stage: "routine-hint",
+      buildId: "build-123",
       authState: "has-refresh-cookie",
     }),
     {
@@ -67,7 +68,7 @@ test("sanitizeBootDiagnosticEvent preserves safe route and stage fields", () => 
       source: "server",
       route: "/entry",
       stage: "routine-hint",
-      buildId: "0.3.88-2026-05-01T08:28:58.031Z",
+      buildId: "build-123",
       displayMode: "unknown",
       serviceWorkerControlled: null,
       authState: "has-refresh-cookie",

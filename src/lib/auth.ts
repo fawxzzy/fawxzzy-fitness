@@ -8,6 +8,7 @@ import {
   hasSessionCookieValues,
   REFRESH_COOKIE_NAME,
 } from "@/lib/auth-session";
+import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import {
   type LoadingDiagnosticsCollector,
@@ -52,6 +53,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
         source: "server",
         route: options.route ?? null,
         stage: `redirect-login-${failure.reason}`,
+        buildId: CURRENT_APP_BUILD_ID,
         authState: hasSessionCookies ? "redirected-login" : "auth-error",
       }, "warn");
       gate.redirect({
@@ -74,6 +76,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
       source: "server",
       route: options.route ?? null,
       stage: `redirect-login-${failure.reason}`,
+      buildId: CURRENT_APP_BUILD_ID,
       authState: hasSessionCookies ? "redirected-login" : "auth-error",
       errorName: error instanceof Error ? error.name : null,
       errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
@@ -91,6 +94,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
         source: "server",
         route: options.route ?? null,
         stage: "redirect-login-user-missing-after-session-check",
+        buildId: CURRENT_APP_BUILD_ID,
         authState: "redirected-login",
       }, "warn");
       gate.redirect({

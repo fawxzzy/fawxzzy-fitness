@@ -35,6 +35,7 @@ export function ClientBundleRecoveryBootstrap() {
         source: "client",
         route: window.location.pathname,
         stage: `bundle-recovery-${signature}`,
+        buildId: CURRENT_APP_BUILD_ID,
         errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
       }, {
         level: "warn",

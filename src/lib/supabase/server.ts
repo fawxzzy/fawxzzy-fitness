@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
 import { classifyAuthSessionFailure } from "@/lib/auth-session";
+import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
@@ -79,6 +80,7 @@ export async function supabaseServerWithSession() {
     source: "server",
     route: null,
     stage: `restore-session-${failure?.reason ?? "unexpected"}`,
+    buildId: CURRENT_APP_BUILD_ID,
     authState: failure ? "auth-error" : null,
     errorName: error.name,
     errorMessage: error.message,

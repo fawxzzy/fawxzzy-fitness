@@ -406,8 +406,11 @@ export function readPublishedLoadingDiagnostics() {
 
 export class LoadingDiagnosticsCollector {
   private readonly entries = new Map<string, LoadingDiagnosticEntry>();
+  private readonly route: string;
 
-  constructor(private readonly route: string) {}
+  constructor(route: string) {
+    this.route = route;
+  }
 
   upsert(entry: LoadingDiagnosticEntry) {
     this.entries.set(entry.id, entry);

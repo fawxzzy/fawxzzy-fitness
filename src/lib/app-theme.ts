@@ -749,7 +749,7 @@ export function writeStoredAppTheme(theme: AppThemeSettings, storage?: StorageLi
     } catch {
       // Ignore cleanup failures and keep the preset active.
     }
-    dispatchAppThemeChange(DEFAULT_APP_THEME);
+    dispatchAppThemeChange(theme);
     return;
   }
 
