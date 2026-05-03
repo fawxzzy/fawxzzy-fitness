@@ -62,6 +62,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-03 - Installed-app auth handoff routes must recover expired sessions without throwing
+- Type: Guardrail
+- Summary: PWA launch and handoff routes like `/entry` must pass through the same session-refresh and invalid-session recovery path as the rest of the authenticated app. Expected Supabase auth failures should clear auth cookies and redirect to login instead of surfacing a server-side Application error.
+- Suggested Playbook File: docs/GUARDRAILS/pwa-auth-handoff-recovery.md
+- Rationale: Prevents stale or corrupt auth cookies in reopened installed apps from crashing the server render before the user can reach a recovery path, and keeps auth expiry behavior consistent across middleware, server loaders, and entry boot.
+- Failure Mode: Installed-app reopen lands on `/` or `/entry` with expired cookies, auth boot throws `JWT expired` during server render, and Next shows the default Application error screen instead of refreshing or redirecting safely.
+- Evidence: src/middleware.ts, src/lib/auth-session.ts, src/lib/auth.ts, src/lib/supabase/server.ts, src/app/auth/session-recovery/route.ts, src/app/entry/page.tsx, src/app/error.tsx, src/app/global-error.tsx, src/components/error/AppRecoveryScreen.tsx, src/components/ServiceWorkerBootstrap.tsx, src/components/ClientBundleRecoveryBootstrap.tsx, src/lib/boot-diagnostics.ts, public/sw.js, scripts/generate-service-worker.mjs, tests/build-contracts.test.mjs
+- Status: Proposed
+
 ## 2026-05-02 - Thin separators must not live inside animated or filtered interactive layers
 - Type: Guardrail
 - Summary: Shared `1px` separators should not be rendered as standalone siblings inside press-animated or filter-brightened interactive surfaces. When a route needs a thin divider inside a tappable card, paint it as part of the owning section shell or keep it outside the animated/filtering layer.
