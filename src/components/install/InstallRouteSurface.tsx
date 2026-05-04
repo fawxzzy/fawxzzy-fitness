@@ -70,8 +70,13 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
                 ? "You can keep training in the installed app, or use Open if you want the browser route."
                 : context.canUseNativeInstallPrompt
                   ? "The install prompt is owned by this app and browser. If you just want to sign in, choose Open."
-                  : "This browser context does not expose a native install prompt right now. You can still open Fitness normally."}
+                  : "This browser is not offering the one-tap install prompt right now. You can still open Fitness normally, or use your browser menu to add it to your home screen."}
             </p>
+            {!context.isStandalone && !context.canUseNativeInstallPrompt ? (
+              <p className="mt-2 text-[0.82rem] leading-5 text-[rgb(var(--text-muted)/0.9)]">
+                Look for Share, Add to Home Screen, or Install app depending on your browser.
+              </p>
+            ) : null}
           </div>
         </AuthStack>
       </AuthCard>
@@ -89,7 +94,7 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
               }}
               type="button"
             >
-              {installPrompt.canPromptInstall ? "Install" : "Install unavailable"}
+              {installPrompt.canPromptInstall ? "Install" : "Use browser menu"}
             </BottomDockButton>
           )}
           secondary={(
