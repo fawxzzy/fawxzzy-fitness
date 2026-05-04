@@ -35,6 +35,7 @@ import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import { formatMeasurementSummaryItems, formatSetPositionLabel } from "@/lib/measurement-display";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import type { SessionTargetHint } from "@/lib/session-target-hints";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
@@ -181,6 +182,7 @@ export function SetLoggerCard({
   prefill,
   defaultDistanceUnit,
   isCardio,
+  targetHint,
   useIntervalLanguage = false,
   initialEnabledMetrics,
   routineDayExerciseId,
@@ -210,6 +212,7 @@ export function SetLoggerCard({
   };
   defaultDistanceUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
+  targetHint: SessionTargetHint;
   useIntervalLanguage?: boolean;
   initialEnabledMetrics: {
     reps: boolean;
@@ -956,6 +959,59 @@ export function SetLoggerCard({
     </div>
   );
 
+  const contextRows = [
+    targetHint.lastSummary
+      ? `Last time: ${targetHint.lastSummary}${targetHint.lastPerformedAtLabel ? ` • ${targetHint.lastPerformedAtLabel}` : ""}`
+      : null,
+    targetHint.recentBestSummary && targetHint.recentBestSummary !== targetHint.lastSummary
+      ? `Recent best: ${targetHint.recentBestSummary}${targetHint.recentBestPerformedAtLabel ? ` • ${targetHint.recentBestPerformedAtLabel}` : ""}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  const targetHintSourceLabel = targetHint.source === "planned_target"
+    ? "Planned"
+    : targetHint.source === "last_performance"
+      ? "Last time"
+      : targetHint.source === "recent_best"
+        ? "Recent best"
+        : "New";
+
+  const targetHintPanel = (
+    <div
+      data-testid="session-target-hint"
+      className="mb-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.58)] px-3.5 py-3"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.88)]">
+            Next target
+          </p>
+          <p className="mt-1 text-[0.96rem] font-semibold leading-[1.25] text-[rgb(var(--text-primary)/0.98)]">
+            {targetHint.shortLabel}
+          </p>
+        </div>
+        <span className="rounded-full border border-[rgb(var(--border-strong)/0.16)] px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.9)]">
+          {targetHintSourceLabel}
+        </span>
+      </div>
+      <p className="mt-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">
+        {targetHint.reason}
+      </p>
+      {contextRows.length > 0 ? (
+        <div className="mt-2 space-y-1">
+          {contextRows.map((row) => (
+            <p
+              key={row}
+              className="text-[0.76rem] leading-5 text-[rgb(var(--text-muted)/0.92)]"
+            >
+              {row}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+
   const loggedSetList = sets.length > 0 ? (
     <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
       <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
@@ -1040,6 +1096,7 @@ export function SetLoggerCard({
         )}
         contentClassName="space-y-0"
       >
+        {targetHintPanel}
         <MeasurementPanelV2
           values={{
             reps,

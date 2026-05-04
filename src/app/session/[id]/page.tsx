@@ -9,6 +9,7 @@ import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { splitSessionHeaderTitle } from "@/lib/header-meta";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
+import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
@@ -141,6 +142,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     sessionTargets,
     exerciseOptions,
     exerciseNameMap,
+    exerciseStatsByExerciseId,
   } = await getSessionPageData(params.id, { diagnostics });
 
   const unitLabel = routine?.weight_unit ?? "kg";
@@ -204,6 +206,24 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             const isMeasurementOptional = isMeasurementOptionalExercise(exerciseMetadata);
             const useIntervalLanguage = usesIntervalLanguage({
               intervalMode: false,
+            });
+            const exerciseStats = exerciseStatsByExerciseId.get(exercise.exercise_id) ?? null;
+            const targetHint = deriveSessionTargetHint({
+              measurementType: (isMeasurementOptional ? "none" : (exercise.measurement_type ?? canonicalExercise?.measurement_type ?? "reps")) ?? "reps",
+              fallbackWeightUnit: unitLabel,
+              stats: exerciseStats,
+              plan: displayTarget ? {
+                measurementType: displayTarget.measurementType ?? "reps",
+                repsMin: displayTarget.repsMin ?? null,
+                repsMax: displayTarget.repsMax ?? null,
+                weightMin: displayTarget.weightMin ?? null,
+                weightMax: displayTarget.weightMax ?? null,
+                weightUnit: displayTarget.weightUnit ?? unitLabel,
+                durationSeconds: displayTarget.durationSeconds ?? null,
+                distance: displayTarget.distance ?? null,
+                distanceUnit: displayTarget.distanceUnit ?? null,
+                calories: displayTarget.calories ?? null,
+              } : null,
             });
 
             return {
@@ -299,6 +319,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                     measurementType: displayTarget.measurementType,
                   } : undefined
                 ),
+              targetHint,
               targetSetsMin: displayTarget?.setsMin ?? null,
               targetSetsMax: displayTarget?.setsMax ?? null,
               initialSets: setsByExercise.get(exercise.id) ?? [],

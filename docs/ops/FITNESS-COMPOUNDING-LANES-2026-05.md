@@ -91,6 +91,9 @@ Verification:
 - `npm run verify`
 - `npm run visual:fitness:session`
 
+Implementation note:
+- 2026-05-03: shipped the first cut by threading canonical `exercise_stats` history into the active session logger, deriving deterministic next-target hints from plan truth plus recent performance, and rendering last-time / recent-best context inline in the expanded logging workspace without changing the add-set flow.
+
 ### FIT-03 - Ship a weekly progress surface and establish the premium insight boundary
 
 Why:

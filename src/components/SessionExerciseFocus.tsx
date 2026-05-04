@@ -17,6 +17,8 @@ import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/ses
 import { buildInitialSessionRowClientState, reconcileSessionRowClientState, type SessionRowClientState } from "@/components/session/sessionRowClientState";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
+import { deriveSessionTargetHint } from "@/lib/session-target-hints";
+import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -94,6 +96,7 @@ export type SessionExerciseFocusItem = {
   goalLabel: string;
   prefill?: SessionExercisePrefill;
   quickLogTarget?: SessionQuickLogTarget;
+  targetHint?: SessionTargetHint;
   initialSets: SetRow[];
   loggedSetCount: number;
   targetSetsMin?: number | null;
@@ -352,6 +355,23 @@ export function SessionExerciseFocus({
             fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
           });
           const setCount = rowViewModel.loggedSetCount;
+          const resolvedTargetHint = exercise.targetHint ?? deriveSessionTargetHint({
+            measurementType: exercise.measurementType ?? "reps",
+            fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
+            stats: null,
+            plan: exercise.quickLogTarget ? {
+              measurementType: exercise.quickLogTarget.measurementType ?? (exercise.measurementType ?? "reps"),
+              repsMin: exercise.quickLogTarget.repsMin ?? null,
+              repsMax: exercise.quickLogTarget.repsMax ?? null,
+              weightMin: exercise.quickLogTarget.weightMin ?? null,
+              weightMax: exercise.quickLogTarget.weightMax ?? null,
+              weightUnit: exercise.quickLogTarget.weightUnit ?? (unitLabel === "lbs" ? "lbs" : "kg"),
+              durationSeconds: exercise.quickLogTarget.durationSeconds ?? null,
+              distance: exercise.quickLogTarget.distance ?? null,
+              distanceUnit: exercise.quickLogTarget.distanceUnit ?? null,
+              calories: exercise.quickLogTarget.calories ?? null,
+            } : null,
+          });
           const rowState = rowViewModel.rowState;
           const isCompletedRow = rowState.cardState === "completed";
           const progressState = deriveSessionExerciseProgressState({
@@ -435,6 +455,7 @@ export function SessionExerciseFocus({
                   prefill={exercise.prefill}
                   defaultDistanceUnit={exercise.defaultUnit}
                   isCardio={exercise.isCardio}
+                  targetHint={resolvedTargetHint}
                   useIntervalLanguage={exercise.useIntervalLanguage}
                   initialEnabledMetrics={exercise.initialEnabledMetrics}
                   routineDayExerciseId={exercise.routineDayExerciseId}

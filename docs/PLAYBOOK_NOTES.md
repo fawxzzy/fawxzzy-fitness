@@ -615,3 +615,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A supported browser can technically open the app, but users still hit install-first friction before they see workout value, which depresses activation and makes install feel like a prerequisite instead of an upgrade.
 - Evidence: src/components/install/ProtectedAppInstallGate.tsx, src/components/install/InstallRouteSurface.tsx, src/lib/install/getInstallContext.ts, src/app/install/page.tsx, src/app/today/page.tsx
 - Status: Proposed
+
+## 2026-05-03 - Active logging screens should surface prior truth inline before adding coaching abstraction
+- Type: Pattern
+- Summary: The active session logger should show last time, recent best, and deterministic next-target context inline in the same workspace where the user logs sets, instead of sending them to a separate analytics view or dressing the recommendation up as opaque coaching.
+- Suggested Playbook File: docs/PATTERNS/active-logging-prior-truth.md
+- Rationale: Preserves the fast-log loop while still answering the two most important in-session questions: what happened last time and what should I do now.
+- Failure Mode: Logging surfaces become slower and noisier when prior-performance context is hidden behind drill-ins or replaced with vague coaching language that the user cannot inspect.
+- Evidence: src/app/session/[id]/page.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/lib/session-target-hints.ts
+- Status: Proposed
