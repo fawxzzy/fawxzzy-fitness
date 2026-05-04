@@ -260,7 +260,10 @@ export function classifyAuthSessionFailure(error: unknown): AuthSessionFailure {
   }
 
   if (
-    message.includes("invalid refresh token")
+    message.includes("refresh token is not valid")
+    || message.includes("refresh token not valid")
+    || message.includes("refresh token invalid")
+    || message.includes("invalid refresh token")
     || (
       message.includes("refresh token")
       && (

@@ -81,6 +81,10 @@ test("classifyAuthSessionFailure treats expired and invalid tokens as session-ex
     reason: "jwt-invalid",
     loginErrorCode: SESSION_EXPIRED_LOGIN_ERROR,
   });
+  assert.deepEqual(classifyAuthSessionFailure(new Error("Refresh token is not valid")), {
+    reason: "refresh-token-invalid",
+    loginErrorCode: SESSION_EXPIRED_LOGIN_ERROR,
+  });
 });
 
 test("classifyAuthSessionFailure ignores unrelated server failures", () => {
