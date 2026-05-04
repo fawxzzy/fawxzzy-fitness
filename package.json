@@ -1,6 +1,6 @@
 {
   "name": "fawxzzyfitness",
-  "version": "0.3.88",
+  "version": "0.3.89",
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
