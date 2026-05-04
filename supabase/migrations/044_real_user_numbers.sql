@@ -85,25 +85,18 @@ set
   user_number_assigned_at = null
 where public.is_automation_auth_user(p.id);
 
-do $$
-declare
-  real_user_zero_email text := 'YOUR_REAL_EMAIL_HERE';
-begin
-  if real_user_zero_email = 'YOUR_REAL_EMAIL_HERE' then
-    raise notice 'Set real_user_zero_email in 044_real_user_numbers.sql before applying if this environment should reserve member #0.';
-    return;
-  end if;
-
-  update public.profiles p
-  set
-    user_number = 0,
-    user_kind = 'human',
-    user_number_assigned_at = coalesce(p.user_number_assigned_at, now())
-  from auth.users u
-  where u.id = p.id
-    and lower(coalesce(u.email, '')) = lower(real_user_zero_email);
-end;
-$$;
+-- Operator step after applying this migration:
+-- Reserve Zac as member #0 using the real auth email in the target environment.
+-- This is intentionally not hardcoded in repo history.
+--
+-- update public.profiles p
+-- set
+--   user_number = 0,
+--   user_kind = 'human',
+--   user_number_assigned_at = coalesce(p.user_number_assigned_at, now())
+-- from auth.users u
+-- where u.id = p.id
+--   and lower(coalesce(u.email, '')) = lower('YOUR_REAL_EMAIL_HERE');
 
 update public.profiles
 set user_number_assigned_at = coalesce(user_number_assigned_at, now())

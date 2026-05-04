@@ -34,6 +34,7 @@ function buildGoalState(): ExerciseGoalFormState {
     sets: "4",
     repsMin: "8",
     repsMax: "10",
+    failure: false,
     weight: "70",
     duration: "",
     distance: "",
