@@ -1,8 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse, type NextRequest } from "next/server.js";
 import {
   ACCESS_COOKIE_NAME,
-  classifyAuthSessionFailure,
   clearSessionCookies,
   REFRESH_COOKIE_NAME,
   serializeRequestCookiesWithSession,
@@ -11,29 +9,8 @@ import {
 } from "@/lib/auth-session";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
-
-const REFRESH_WINDOW_SECONDS = 60;
-
-function decodeJwtExp(token: string): number | null {
-  const tokenParts = token.split(".");
-  if (tokenParts.length < 2) {
-    return null;
-  }
-
-  const base64Url = tokenParts[1];
-  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`;
-
-  try {
-    const payloadText = atob(padded);
-    const payload = JSON.parse(payloadText) as { exp?: unknown };
-    return typeof payload.exp === "number" ? payload.exp : null;
-  } catch {
-    return null;
-  }
-}
 
 function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
   const responseUrl = new URL("/login", request.url);
@@ -47,7 +24,18 @@ function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
   return response;
 }
 
-export async function middleware(request: NextRequest) {
+type AuthSessionMiddlewareDependencies = {
+  recoverSession?: (args: {
+    accessToken?: string | null;
+    refreshToken?: string | null;
+    refreshWindowSeconds?: number;
+  }) => Promise<SessionRecoveryResult>;
+};
+
+export async function handleAuthSessionMiddleware(
+  request: NextRequest,
+  deps: AuthSessionMiddlewareDependencies = {},
+) {
   const { pathname } = request.nextUrl;
   const hostHeader = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "").trim().toLowerCase();
   const hostname = hostHeader.split(":")[0] ?? "";
@@ -87,58 +75,46 @@ export async function middleware(request: NextRequest) {
     }, "info");
     return buildLoginRedirectResponse(request);
   }
+  const recoverSession = deps.recoverSession ?? recoverSupabaseSessionFromCookies;
+  const recovery = await recoverSession({
+    accessToken,
+    refreshToken,
+    refreshWindowSeconds: 60,
+  });
 
-  const nowInSeconds = Math.floor(Date.now() / 1000);
-  const accessTokenExp = accessToken ? decodeJwtExp(accessToken) : null;
-
-  if (accessToken && accessTokenExp && accessTokenExp > nowInSeconds + REFRESH_WINDOW_SECONDS) {
+  if (recovery.status === "existing") {
     return NextResponse.next();
   }
 
-  const supabase = createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-
-  const { data, error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-
-  const session = data.session;
-  if (error) {
-    const failure = classifyAuthSessionFailure(error);
-
-    if (!failure) {
-      recordServerBootDiagnostic({
-        tag: "[boot.middleware]",
-        source: "server",
-        route: pathname,
-        stage: "refresh-session-unexpected",
-        buildId: CURRENT_APP_BUILD_ID,
-        authState: "auth-error",
-        errorName: error.name,
-        errorMessage: error.message,
-      }, "error");
-      return NextResponse.next();
-    }
-
+  if (recovery.status === "failed") {
     recordServerBootDiagnostic({
       tag: "[boot.middleware]",
       source: "server",
       route: pathname,
-      stage: `redirect-login-${failure.reason}`,
+      stage: `redirect-login-${recovery.failure.reason}`,
       buildId: CURRENT_APP_BUILD_ID,
       authState: "redirected-login",
-      errorName: error.name,
-      errorMessage: error.message,
+      errorName: recovery.error instanceof Error ? recovery.error.name : null,
+      errorMessage: recovery.error instanceof Error ? recovery.error.message : typeof recovery.error === "string" ? recovery.error : null,
     }, "warn");
-    return buildLoginRedirectResponse(request, failure.loginErrorCode);
+    return buildLoginRedirectResponse(request, recovery.failure.loginErrorCode);
   }
 
-  if (!session?.access_token || !session.refresh_token) {
+  if (recovery.status === "unexpected-error") {
+    recordServerBootDiagnostic({
+      tag: "[boot.middleware]",
+      source: "server",
+      route: pathname,
+      stage: "refresh-session-unexpected",
+      buildId: CURRENT_APP_BUILD_ID,
+      authState: "auth-error",
+      errorName: recovery.error instanceof Error ? recovery.error.name : null,
+      errorMessage: recovery.error instanceof Error ? recovery.error.message : typeof recovery.error === "string" ? recovery.error : null,
+    }, "error");
+    return NextResponse.next();
+  }
+
+  if (recovery.status === "missing-session") {
     recordServerBootDiagnostic({
       tag: "[boot.middleware]",
       source: "server",
@@ -150,24 +126,28 @@ export async function middleware(request: NextRequest) {
     return buildLoginRedirectResponse(request, "session_expired");
   }
 
+  if (recovery.status !== "refreshed") {
+    return NextResponse.next();
+  }
+
   recordServerBootDiagnostic({
     tag: "[boot.middleware]",
     source: "server",
     route: pathname,
     stage: "session-refreshed",
     buildId: CURRENT_APP_BUILD_ID,
-    authState: "refreshed",
+    authState: recovery.authState,
   });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("cookie", serializeRequestCookiesWithSession(request.cookies.getAll(), {
-    accessToken: session.access_token,
-    refreshToken: session.refresh_token,
+    accessToken: recovery.session.accessToken,
+    refreshToken: recovery.session.refreshToken,
   }));
 
   if (shouldAttachLocalDevHeaders) {
-    requestHeaders.set("x-atlas-access-token", session.access_token);
-    requestHeaders.set("x-atlas-refresh-token", session.refresh_token);
+    requestHeaders.set("x-atlas-access-token", recovery.session.accessToken);
+    requestHeaders.set("x-atlas-refresh-token", recovery.session.refreshToken);
   }
 
   const response = NextResponse.next({
@@ -176,14 +156,21 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  if (session.access_token !== accessToken || session.refresh_token !== refreshToken) {
-    setSessionCookies(response.cookies, {
-      accessToken: session.access_token,
-      refreshToken: session.refresh_token,
-    });
-  }
+  setSessionCookies(response.cookies, recovery.session);
+  recordServerBootDiagnostic({
+    tag: "[boot.middleware]",
+    source: "server",
+    route: pathname,
+    stage: "session-cookies-written",
+    buildId: CURRENT_APP_BUILD_ID,
+    authState: "durable-session-cookie-written",
+  });
 
   return response;
+}
+
+export async function middleware(request: NextRequest) {
+  return handleAuthSessionMiddleware(request);
 }
 
 export const config = {

@@ -62,6 +62,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-03 - Durable Supabase refresh cookies should own persistent login while JWTs stay short-lived
+- Type: Guardrail
+- Summary: Persistent login should come from a long-lived rotating refresh-token cookie plus refresh-on-boot/private-route recovery, not from extending the access JWT lifetime or treating remembered UI state as proof of auth.
+- Suggested Playbook File: docs/GUARDRAILS/persistent-supabase-session-cookies.md
+- Rationale: Prevents iPhone home-screen PWAs, cold browser relaunches, and production deploys from dropping users back to login just because the short-lived JWT expired or the access cookie was missing while a valid refresh session still existed.
+- Failure Mode: The app writes a short refresh-cookie Max-Age or depends on access-token restoration only, so a missing or expired access cookie breaks protected routes even though Supabase could still refresh the session.
+- Evidence: src/lib/auth-session.ts, src/lib/supabase/session-recovery.ts, src/lib/supabase/server.ts, src/middleware.ts, src/app/auth/session-keepalive/route.ts, src/components/ServiceWorkerBootstrap.tsx, src/lib/boot-diagnostics.ts
+- Status: Proposed
+
 ## 2026-05-03 - Installed-app auth handoff routes must recover expired sessions without throwing
 - Type: Guardrail
 - Summary: PWA launch and handoff routes like `/entry` must pass through the same session-refresh and invalid-session recovery path as the rest of the authenticated app. Expected Supabase auth failures should clear auth cookies and redirect to login instead of surfacing a server-side Application error.

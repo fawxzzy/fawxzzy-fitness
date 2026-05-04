@@ -1,10 +1,10 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
-import { classifyAuthSessionFailure } from "@/lib/auth-session";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { recoverSupabaseSessionFromCookies } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 
 function getRequestAuthTokens() {
@@ -58,37 +58,42 @@ export function supabaseServer() {
 
 export async function supabaseServerWithSession() {
   const { accessToken, refreshToken } = getRequestAuthTokens();
-
-  if (!accessToken || !refreshToken) {
-    return createSupabaseServerClient(accessToken);
-  }
-
-  const supabase = createSupabaseServerClient();
-  const { error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
+  const recovery = await recoverSupabaseSessionFromCookies({
+    accessToken,
+    refreshToken,
   });
 
-  if (!error) {
-    return supabase;
+  if (recovery.status === "anonymous") {
+    return createSupabaseServerClient(accessToken);
+  }
+  if (recovery.status === "existing") {
+    return createSupabaseServerClient(recovery.session.accessToken);
   }
 
-  const failure = classifyAuthSessionFailure(error);
+  if (recovery.status === "refreshed") {
+    recordServerBootDiagnostic({
+      tag: "[boot.auth]",
+      source: "server",
+      route: null,
+      stage: `restore-session-${recovery.authState}`,
+      buildId: CURRENT_APP_BUILD_ID,
+      authState: recovery.authState,
+    });
+    return createSupabaseServerClient(recovery.session.accessToken);
+  }
 
   recordServerBootDiagnostic({
     tag: "[boot.auth]",
     source: "server",
     route: null,
-    stage: `restore-session-${failure?.reason ?? "unexpected"}`,
+    stage: `restore-session-${recovery.status === "failed" ? recovery.failure.reason : recovery.status}`,
     buildId: CURRENT_APP_BUILD_ID,
-    authState: failure ? "auth-error" : null,
-    errorName: error.name,
-    errorMessage: error.message,
+    authState: recovery.status === "failed" ? "auth-error" : null,
+    errorName: recovery.status === "unexpected-error" && recovery.error instanceof Error ? recovery.error.name : null,
+    errorMessage:
+      recovery.status === "unexpected-error" && recovery.error instanceof Error
+        ? recovery.error.message
+        : null,
   }, "error");
-
-  if (failure) {
-    return createSupabaseServerClient();
-  }
-
   return createSupabaseServerClient(accessToken);
 }

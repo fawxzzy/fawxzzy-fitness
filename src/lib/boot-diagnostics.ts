@@ -9,9 +9,12 @@ export type BootDiagnosticTag =
 export type BootDiagnosticAuthState =
   | "authenticated"
   | "auth-error"
+  | "durable-session-cookie-written"
   | "has-access-cookie"
   | "has-refresh-cookie"
+  | "missing-access-cookie-recovered"
   | "no-cookies"
+  | "refreshed-from-refresh-cookie"
   | "redirected-login"
   | "refreshed"
   | null;

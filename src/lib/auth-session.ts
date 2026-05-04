@@ -2,8 +2,8 @@ export const ACCESS_COOKIE_NAME = "sb-access-token";
 export const REFRESH_COOKIE_NAME = "sb-refresh-token";
 export const SESSION_EXPIRED_LOGIN_ERROR = "session_expired";
 export const SESSION_RECOVERY_ROUTE = "/auth/session-recovery";
+export const PERSISTENT_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
 
-const REFRESH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const PUBLIC_AUTHLESS_PATH_PREFIXES = [
   "/auth",
   "/forgot-password",
@@ -47,12 +47,59 @@ export type AuthSessionFailure =
     }
   | null;
 
+export type SessionCookieLifetime = Pick<SessionCookieOptions, "expires" | "maxAge">;
+
 function buildBaseCookieOptions(): Omit<SessionCookieOptions, "expires" | "maxAge"> {
   return {
     path: "/",
     sameSite: "lax",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+  };
+}
+
+export function decodeJwtExp(token: string): number | null {
+  const tokenParts = token.split(".");
+  if (tokenParts.length < 2) {
+    return null;
+  }
+
+  const base64Url = tokenParts[1];
+  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`;
+
+  try {
+    const payloadText = atob(padded);
+    const payload = JSON.parse(payloadText) as { exp?: unknown };
+    return typeof payload.exp === "number" ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildCookieLifetimeFromMaxAge(maxAgeSeconds: number): SessionCookieLifetime {
+  return {
+    maxAge: maxAgeSeconds,
+    expires: new Date(Date.now() + (maxAgeSeconds * 1000)),
+  };
+}
+
+export function buildPersistentSessionCookieLifetime() {
+  return buildCookieLifetimeFromMaxAge(PERSISTENT_SESSION_COOKIE_MAX_AGE_SECONDS);
+}
+
+export function buildAccessTokenCookieLifetime(accessToken: string): SessionCookieLifetime | null {
+  const exp = decodeJwtExp(accessToken);
+  if (!exp) {
+    return null;
+  }
+
+  const expiresAtMs = exp * 1000;
+  const maxAgeSeconds = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000));
+
+  return {
+    expires: new Date(expiresAtMs),
+    maxAge: maxAgeSeconds,
   };
 }
 
@@ -105,10 +152,14 @@ export function shouldRefreshAuthSession(pathname: string) {
 }
 
 export function setSessionCookies(writer: SessionCookieWriter, session: SessionCookiePayload) {
-  writer.set(ACCESS_COOKIE_NAME, session.accessToken, buildBaseCookieOptions());
+  const accessCookieLifetime = buildAccessTokenCookieLifetime(session.accessToken);
+  writer.set(ACCESS_COOKIE_NAME, session.accessToken, {
+    ...buildBaseCookieOptions(),
+    ...(accessCookieLifetime ?? {}),
+  });
   writer.set(REFRESH_COOKIE_NAME, session.refreshToken, {
     ...buildBaseCookieOptions(),
-    maxAge: REFRESH_COOKIE_MAX_AGE_SECONDS,
+    ...buildPersistentSessionCookieLifetime(),
   });
 }
 
@@ -116,10 +167,12 @@ export function clearSessionCookies(writer: SessionCookieWriter) {
   writer.set(ACCESS_COOKIE_NAME, "", {
     ...buildBaseCookieOptions(),
     expires: new Date(0),
+    maxAge: 0,
   });
   writer.set(REFRESH_COOKIE_NAME, "", {
     ...buildBaseCookieOptions(),
     expires: new Date(0),
+    maxAge: 0,
   });
 }
 

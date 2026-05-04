@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server.js";
 import { clearSessionCookies, SESSION_EXPIRED_LOGIN_ERROR } from "@/lib/auth-session";
 
 export const dynamic = "force-dynamic";

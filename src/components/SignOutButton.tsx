@@ -14,8 +14,15 @@ export function SignOutButton() {
   const handleSignOut = async () => {
     clearPersistedWorkoutClientState();
     await supabase.auth.signOut();
-    document.cookie = "sb-access-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "sb-refresh-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    try {
+      await fetch("/auth/session-sync", {
+        method: "DELETE",
+        credentials: "same-origin",
+        keepalive: true,
+      });
+    } catch {
+      // Ignore cookie cleanup failures and continue to the login screen.
+    }
     router.replace(AUTH_ENTRY_PATH);
     window.location.assign(AUTH_ENTRY_PATH);
   };

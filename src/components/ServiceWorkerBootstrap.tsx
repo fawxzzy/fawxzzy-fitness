@@ -18,10 +18,28 @@ import { recordClientBootDiagnostic } from "@/lib/boot-diagnostics";
 const UPDATE_POLL_INTERVAL_MS = 60_000;
 const UPDATE_IDLE_THRESHOLD_MS = 12_000;
 const UPDATE_RELOAD_FALLBACK_MS = 1_400;
+const SESSION_KEEPALIVE_TIMEOUT_MS = 2_500;
 const SCROLL_RESTORE_ATTEMPTS = 8;
 const SCROLL_RESTORE_RETRY_MS = 120;
+const SESSION_KEEPALIVE_LAUNCH_KEY = "fawxzzy:fitness:session-keepalive:launch";
 
 function shouldPrioritizeImmediateUpdate(route: string) {
+  if (route === "/" || route === "/entry") {
+    return true;
+  }
+
+  try {
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      return true;
+    }
+  } catch {
+    // Fall through to navigator standalone detection.
+  }
+
+  return (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+function shouldRunSessionKeepalive(route: string) {
   if (route === "/" || route === "/entry") {
     return true;
   }
@@ -85,6 +103,118 @@ export function ServiceWorkerBootstrap() {
       // Ignore storage failures and keep the app usable.
     }
   }, [toast]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const route = window.location.pathname;
+    if (!shouldRunSessionKeepalive(route)) {
+      return;
+    }
+
+    try {
+      const rawLaunch = window.sessionStorage.getItem(SESSION_KEEPALIVE_LAUNCH_KEY);
+      if (rawLaunch === CURRENT_APP_BUILD_ID) {
+        return;
+      }
+      window.sessionStorage.setItem(SESSION_KEEPALIVE_LAUNCH_KEY, CURRENT_APP_BUILD_ID);
+    } catch {
+      // Continue without the sessionStorage launch guard if storage is unavailable.
+    }
+
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      abortController.abort();
+    }, SESSION_KEEPALIVE_TIMEOUT_MS);
+
+    void fetch("/auth/session-keepalive", {
+      method: "GET",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: {
+        "cache-control": "no-cache",
+      },
+      signal: abortController.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Session keepalive failed with ${response.status}`);
+        }
+
+        const payload = await response.json() as {
+          authState?: "anonymous" | "error" | "expired" | "refreshed";
+          recoveryState?: "missing-access-cookie-recovered" | "refreshed-from-refresh-cookie" | string | null;
+        };
+
+        if (payload.authState === "refreshed") {
+          recordClientBootDiagnostic({
+            tag: "[boot.auth]",
+            source: "client",
+            route,
+            stage: "session-keepalive-refreshed",
+            buildId: CURRENT_APP_BUILD_ID,
+            authState:
+              payload.recoveryState === "missing-access-cookie-recovered"
+                ? "missing-access-cookie-recovered"
+                : "refreshed-from-refresh-cookie",
+          });
+          return;
+        }
+
+        if (payload.authState === "anonymous") {
+          recordClientBootDiagnostic({
+            tag: "[boot.auth]",
+            source: "client",
+            route,
+            stage: "session-keepalive-anonymous",
+            buildId: CURRENT_APP_BUILD_ID,
+            authState: "no-cookies",
+          });
+          return;
+        }
+
+        if (payload.authState === "expired") {
+          recordClientBootDiagnostic({
+            tag: "[boot.auth]",
+            source: "client",
+            route,
+            stage: "session-keepalive-expired",
+            buildId: CURRENT_APP_BUILD_ID,
+            authState: "redirected-login",
+          }, {
+            level: "warn",
+          });
+          if (!route.startsWith("/login")) {
+            window.location.replace("/login?error=session_expired");
+          }
+        }
+      })
+      .catch((error) => {
+        const isAbortError = error instanceof DOMException && error.name === "AbortError";
+        recordClientBootDiagnostic({
+          tag: "[boot.auth]",
+          source: "client",
+          route,
+          stage: isAbortError ? "session-keepalive-timeout" : "session-keepalive-failed",
+          buildId: CURRENT_APP_BUILD_ID,
+          authState: "auth-error",
+          errorName: error instanceof Error ? error.name : null,
+          errorMessage: error instanceof Error ? error.message : typeof error === "string" ? error : null,
+        }, {
+          level: isAbortError ? "warn" : "error",
+        });
+      })
+      .finally(() => {
+        window.clearTimeout(timeoutId);
+      });
+
+    return () => {
+      abortController.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {

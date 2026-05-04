@@ -1,4 +1,4 @@
-import appBuildManifest from "@/generated/appBuildManifest.json";
+import appBuildManifest from "@/generated/appBuildManifest.json" with { type: "json" };
 
 export type AppBuildManifest = typeof appBuildManifest;
 

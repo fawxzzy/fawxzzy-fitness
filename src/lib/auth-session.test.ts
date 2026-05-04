@@ -2,9 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   ACCESS_COOKIE_NAME,
+  buildAccessTokenCookieLifetime,
   buildSessionRecoveryPath,
   classifyAuthSessionFailure,
   clearSessionCookies,
+  PERSISTENT_SESSION_COOKIE_MAX_AGE_SECONDS,
   REFRESH_COOKIE_NAME,
   serializeRequestCookiesWithSession,
   SESSION_EXPIRED_LOGIN_ERROR,
@@ -27,6 +29,22 @@ function createCookieWriter() {
       },
     },
   };
+}
+
+function encodeBase64Url(value: string) {
+  return Buffer.from(value, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function buildJwtWithExp(exp: number) {
+  return [
+    encodeBase64Url(JSON.stringify({ alg: "HS256", typ: "JWT" })),
+    encodeBase64Url(JSON.stringify({ exp })),
+    "signature",
+  ].join(".");
 }
 
 test("shouldRefreshAuthSession protects app boot and authenticated routes", () => {
@@ -72,18 +90,23 @@ test("classifyAuthSessionFailure ignores unrelated server failures", () => {
 
 test("setSessionCookies writes both auth cookies with secure session settings", () => {
   const { writer, writes } = createCookieWriter();
+  const accessToken = buildJwtWithExp(Math.floor(Date.now() / 1000) + 3_600);
 
   setSessionCookies(writer, {
-    accessToken: "access-123",
+    accessToken,
     refreshToken: "refresh-456",
   });
 
   assert.equal(writes.length, 2);
   assert.equal(writes[0]?.name, ACCESS_COOKIE_NAME);
-  assert.equal(writes[0]?.value, "access-123");
+  assert.equal(writes[0]?.value, accessToken);
   assert.equal(writes[1]?.name, REFRESH_COOKIE_NAME);
   assert.equal(writes[1]?.value, "refresh-456");
-  assert.equal(writes[1]?.options.maxAge, 60 * 60 * 24 * 30);
+  assert.equal(writes[1]?.options.maxAge, PERSISTENT_SESSION_COOKIE_MAX_AGE_SECONDS);
+  assert.ok(writes[1]?.options.expires instanceof Date);
+  assert.equal(typeof writes[0]?.options.maxAge, "number");
+  assert.ok((writes[0]?.options.maxAge as number) > 0);
+  assert.ok(writes[0]?.options.expires instanceof Date);
 });
 
 test("clearSessionCookies expires both auth cookies", () => {
@@ -118,4 +141,14 @@ test("buildSessionRecoveryPath targets the cookie-clearing auth recovery route",
     buildSessionRecoveryPath(),
     "/auth/session-recovery?error=session_expired",
   );
+});
+
+test("buildAccessTokenCookieLifetime aligns the access cookie to JWT expiry", () => {
+  const exp = Math.floor(Date.now() / 1000) + 1_800;
+  const lifetime = buildAccessTokenCookieLifetime(buildJwtWithExp(exp));
+
+  assert.ok(lifetime);
+  assert.equal(lifetime?.expires?.toISOString(), new Date(exp * 1000).toISOString());
+  assert.ok((lifetime?.maxAge ?? 0) > 0);
+  assert.ok((lifetime?.maxAge ?? 0) <= 1_800);
 });
