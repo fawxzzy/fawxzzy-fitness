@@ -1,16 +1,15 @@
 # Exercise Catalog Review Queue
 
-Generated: 2026-05-02T01:04:10.259Z
+Generated: 2026-05-03T23:58:36.401Z
 
 No review flags generated.
+
 ## Manual Spot Checks
 
 ### Non-reps Measurement Rows
 
 - `Air Bike Sprint` | measurement=`time_distance` | default=`m` | equipment=`Cardio Machine` | pattern=`cycling`
 - `Backward Sled Drag` | measurement=`distance` | default=`m` | equipment=`Sled` | pattern=`sled_drag`
-- `Hamstring Stretch` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`mobility_drill`
-- `Hip Flexor Stretch` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`mobility_drill`
 - `Hollow Body Hold` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`trunk_bracing`
 - `Incline Walk` | measurement=`time_distance` | default=`m` | equipment=`Cardio Machine` | pattern=`walking`
 - `Jump Rope` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`rope_skip`
@@ -46,3 +45,4 @@ No review flags generated.
 - `Stair Climber` | equipment=`Cardio Machine` | measurement=`time` | pattern=`step_cardio`
 - `Stationary Bike` | equipment=`Cardio Machine` | measurement=`time_distance` | pattern=`cycling`
 - `Treadmill Run` | equipment=`Cardio Machine` | measurement=`time_distance` | pattern=`running`
+

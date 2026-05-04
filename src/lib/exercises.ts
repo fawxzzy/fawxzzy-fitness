@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { normalizeExerciseCurationTags, type ExerciseCurationTags } from "@/lib/exercise-curation";
+import { filterSuppressedGlobalExercises } from "@/lib/global-exercise-picker";
 import { supabaseServerAnon } from "@/lib/supabase/server-anon";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
@@ -331,7 +332,7 @@ const listGlobalExercisesCached = unstable_cache(
       return [];
     }
 
-    const rows = data.map(hydrateExerciseRow);
+    const rows = filterSuppressedGlobalExercises(data.map(hydrateExerciseRow));
 
     return rows;
   },

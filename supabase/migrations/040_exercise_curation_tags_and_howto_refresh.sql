@@ -666,16 +666,6 @@ WHERE is_global = TRUE
 
 UPDATE public.exercises SET
   equipment = 'Bodyweight',
-  measurement_type = 'time',
-  default_unit = 's',
-  calories_estimation_method = NULL,
-  how_to_short = 'Hinge from the hips with a soft knee bend, reach only as far as you can keep a long spine, breathe steadily, and avoid forcing the stretch.',
-  curation_tags = '{"pattern_detail":["mobility_drill"],"plane_of_motion":["sagittal"],"exercise_utility":["preparatory"],"body_position":["standing"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
-WHERE is_global = TRUE
-  AND lower(btrim(name)) = lower(btrim('Hamstring Stretch'));
-
-UPDATE public.exercises SET
-  equipment = 'Bodyweight',
   measurement_type = 'reps',
   default_unit = 'reps',
   calories_estimation_method = NULL,
@@ -703,16 +693,6 @@ UPDATE public.exercises SET
   curation_tags = '{"pattern_detail":["chest_fly"],"plane_of_motion":["transverse"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["shoulder_horizontal_adduction"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
 WHERE is_global = TRUE
   AND lower(btrim(name)) = lower(btrim('High-to-Low Cable Fly'));
-
-UPDATE public.exercises SET
-  equipment = 'Bodyweight',
-  measurement_type = 'time',
-  default_unit = 's',
-  calories_estimation_method = NULL,
-  how_to_short = 'Set a half-kneeling stance, tuck the pelvis slightly, squeeze the rear-side glute, and ease forward until you feel a controlled stretch in the front of the hip.',
-  curation_tags = '{"pattern_detail":["mobility_drill"],"plane_of_motion":["sagittal"],"exercise_utility":["preparatory"],"body_position":["kneeling"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
-WHERE is_global = TRUE
-  AND lower(btrim(name)) = lower(btrim('Hip Flexor Stretch'));
 
 UPDATE public.exercises SET
   equipment = 'Barbell',

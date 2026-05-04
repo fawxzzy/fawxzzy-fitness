@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-05-02T01:04:10.129Z",
+  "generated_at": "2026-05-03T23:58:36.382Z",
   "source_path": "supabase/data/global_exercises_canonical.json",
-  "exercise_count": 170,
+  "exercise_count": 168,
   "coverage": {
-    "withHowTo": 170,
-    "withMeasurementType": 170,
-    "withDefaultUnit": 170,
+    "withHowTo": 168,
+    "withMeasurementType": 168,
+    "withDefaultUnit": 168,
     "withCaloriesEstimationMethod": 6,
-    "withPrimaryMusclesArray": 170,
-    "withSecondaryMusclesArray": 143,
-    "withHowToImage": 170,
-    "withMuscleImage": 170,
-    "withFullCuration": 170
+    "withPrimaryMusclesArray": 168,
+    "withSecondaryMusclesArray": 141,
+    "withHowToImage": 168,
+    "withMuscleImage": 168,
+    "withFullCuration": 168
   },
   "duplicates": {
     "duplicate_names": [],
@@ -21,7 +21,7 @@
     "equipment": [
       {
         "value": "Bodyweight",
-        "count": 41
+        "count": 39
       },
       {
         "value": "Barbell",
@@ -59,7 +59,7 @@
     "movement_pattern": [
       {
         "value": "push",
-        "count": 89
+        "count": 88
       },
       {
         "value": "pull",
@@ -67,7 +67,7 @@
       },
       {
         "value": "hinge",
-        "count": 25
+        "count": 24
       },
       {
         "value": "squat",
@@ -81,7 +81,7 @@
       },
       {
         "value": "time",
-        "count": 10
+        "count": 8
       },
       {
         "value": "time_distance",
@@ -146,10 +146,6 @@
         "count": 4
       },
       {
-        "value": "recovery",
-        "count": 4
-      },
-      {
         "value": "hamstrings",
         "count": 3
       },
@@ -179,6 +175,10 @@
       },
       {
         "value": "quads",
+        "count": 2
+      },
+      {
+        "value": "recovery",
         "count": 2
       },
       {
@@ -221,7 +221,7 @@
       },
       {
         "value": "hamstrings",
-        "count": 14
+        "count": 13
       },
       {
         "value": "upper back",
@@ -268,10 +268,6 @@
         "count": 2
       },
       {
-        "value": "hip flexors",
-        "count": 1
-      },
-      {
         "value": "recovery",
         "count": 1
       },
@@ -299,7 +295,7 @@
       },
       {
         "value": "glutes",
-        "count": 13
+        "count": 12
       },
       {
         "value": "rear delts",
@@ -307,7 +303,7 @@
       },
       {
         "value": "calves",
-        "count": 11
+        "count": 10
       },
       {
         "value": "hamstrings",
@@ -315,7 +311,7 @@
       },
       {
         "value": "quads",
-        "count": 9
+        "count": 8
       },
       {
         "value": "side delts",
@@ -338,11 +334,11 @@
         "count": 4
       },
       {
-        "value": "lower back",
-        "count": 3
+        "value": "forearms",
+        "count": 2
       },
       {
-        "value": "forearms",
+        "value": "lower back",
         "count": 2
       },
       {
@@ -412,10 +408,6 @@
         "count": 5
       },
       {
-        "value": "mobility_drill",
-        "count": 4
-      },
-      {
         "value": "plantar_flexion",
         "count": 4
       },
@@ -449,6 +441,10 @@
       },
       {
         "value": "leg_raise",
+        "count": 2
+      },
+      {
+        "value": "mobility_drill",
         "count": 2
       },
       {
@@ -511,7 +507,7 @@
     "plane_of_motion": [
       {
         "value": "sagittal",
-        "count": 142
+        "count": 140
       },
       {
         "value": "transverse",
@@ -541,13 +537,13 @@
       },
       {
         "value": "preparatory",
-        "count": 5
+        "count": 3
       }
     ],
     "body_position": [
       {
         "value": "standing",
-        "count": 90
+        "count": 89
       },
       {
         "value": "seated",
@@ -571,7 +567,7 @@
       },
       {
         "value": "kneeling",
-        "count": 6
+        "count": 5
       },
       {
         "value": "side_lying",
@@ -616,16 +612,16 @@
         "count": 8
       },
       {
-        "value": "mobility",
-        "count": 5
-      },
-      {
         "value": "power",
         "count": 5
       },
       {
+        "value": "mobility",
+        "count": 3
+      },
+      {
         "value": "recovery",
-        "count": 4
+        "count": 2
       }
     ],
     "difficulty": [
@@ -635,7 +631,7 @@
       },
       {
         "value": "beginner",
-        "count": 74
+        "count": 72
       },
       {
         "value": "advanced",
@@ -645,7 +641,7 @@
     "setup_cost": [
       {
         "value": "quick_setup",
-        "count": 95
+        "count": 93
       },
       {
         "value": "high_setup",
@@ -663,7 +659,7 @@
       },
       {
         "value": "supported",
-        "count": 55
+        "count": 53
       },
       {
         "value": "balance_demanding",
@@ -685,11 +681,11 @@
     "unilateral_profile": [
       {
         "value": "bilateral",
-        "count": 148
+        "count": 147
       },
       {
         "value": "unilateral",
-        "count": 18
+        "count": 17
       },
       {
         "value": "alternating",
@@ -703,7 +699,7 @@
       },
       {
         "value": "bodyweight",
-        "count": 41
+        "count": 39
       },
       {
         "value": "machine_loaded",
@@ -729,7 +725,7 @@
       },
       {
         "value": "hip_dominant",
-        "count": 23
+        "count": 21
       },
       {
         "value": "horizontal_press",
@@ -807,7 +803,7 @@
     "spine_demand": [
       {
         "value": "low_spinal_load",
-        "count": 143
+        "count": 141
       },
       {
         "value": "high_spinal_load",
@@ -873,20 +869,6 @@
         "default_unit": "m",
         "equipment": "Sled",
         "pattern_detail": "sled_drag"
-      },
-      {
-        "name": "Hamstring Stretch",
-        "measurement_type": "time",
-        "default_unit": "s",
-        "equipment": "Bodyweight",
-        "pattern_detail": "mobility_drill"
-      },
-      {
-        "name": "Hip Flexor Stretch",
-        "measurement_type": "time",
-        "default_unit": "s",
-        "equipment": "Bodyweight",
-        "pattern_detail": "mobility_drill"
       },
       {
         "name": "Hollow Body Hold",
@@ -6259,84 +6241,6 @@
     },
     {
       "index": 67,
-      "name": "Hamstring Stretch",
-      "slug": "hamstring-stretch",
-      "equipment": "Bodyweight",
-      "movement_pattern": "hinge",
-      "measurement_type": "time",
-      "default_unit": "s",
-      "calories_estimation_method": "",
-      "primary_muscle": "recovery",
-      "primary_muscles": [
-        "hamstrings"
-      ],
-      "secondary_muscles": [
-        "calves",
-        "lower back"
-      ],
-      "image_howto_path": "/exercises/placeholders/howto.svg",
-      "image_muscles_path": "/exercises/placeholders/muscles.svg",
-      "how_to_short": "Hinge from the hips with a soft knee bend, reach only as far as you can keep a long spine, breathe steadily, and avoid forcing the stretch.",
-      "curation_tags": {
-        "pattern_detail": [
-          "mobility_drill"
-        ],
-        "plane_of_motion": [
-          "sagittal"
-        ],
-        "exercise_utility": [
-          "preparatory"
-        ],
-        "body_position": [
-          "standing"
-        ],
-        "training_goal": [
-          "mobility",
-          "recovery"
-        ],
-        "difficulty": [
-          "beginner"
-        ],
-        "setup_cost": [
-          "quick_setup"
-        ],
-        "stability_requirement": [
-          "supported"
-        ],
-        "unilateral_profile": [
-          "bilateral"
-        ],
-        "loading_profile": [
-          "bodyweight"
-        ],
-        "joint_emphasis": [
-          "hip_dominant"
-        ],
-        "spine_demand": [
-          "low_spinal_load"
-        ],
-        "grip_constraint": []
-      },
-      "facet_tags": [
-        "pattern_detail:mobility_drill",
-        "plane_of_motion:sagittal",
-        "exercise_utility:preparatory",
-        "body_position:standing",
-        "training_goal:mobility",
-        "training_goal:recovery",
-        "difficulty:beginner",
-        "setup_cost:quick_setup",
-        "stability_requirement:supported",
-        "unilateral_profile:bilateral",
-        "loading_profile:bodyweight",
-        "joint_emphasis:hip_dominant",
-        "spine_demand:low_spinal_load"
-      ],
-      "search_text": "Hamstring Stretch hamstring-stretch recovery hamstrings calves lower back Bodyweight hinge pattern_detail:mobility_drill plane_of_motion:sagittal exercise_utility:preparatory body_position:standing training_goal:mobility training_goal:recovery difficulty:beginner setup_cost:quick_setup stability_requirement:supported unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:hip_dominant spine_demand:low_spinal_load",
-      "review_flags": []
-    },
-    {
-      "index": 68,
       "name": "Hanging Leg Raise",
       "slug": "hanging-leg-raise",
       "equipment": "Bodyweight",
@@ -6416,7 +6320,7 @@
       "review_flags": []
     },
     {
-      "index": 69,
+      "index": 68,
       "name": "High-Bar Back Squat",
       "slug": "high-bar-back-squat",
       "equipment": "Barbell",
@@ -6495,7 +6399,7 @@
       "review_flags": []
     },
     {
-      "index": 70,
+      "index": 69,
       "name": "High-to-Low Cable Fly",
       "slug": "high-to-low-cable-fly",
       "equipment": "Cable",
@@ -6572,85 +6476,7 @@
       "review_flags": []
     },
     {
-      "index": 71,
-      "name": "Hip Flexor Stretch",
-      "slug": "hip-flexor-stretch",
-      "equipment": "Bodyweight",
-      "movement_pattern": "push",
-      "measurement_type": "time",
-      "default_unit": "s",
-      "calories_estimation_method": "",
-      "primary_muscle": "recovery",
-      "primary_muscles": [
-        "hip flexors"
-      ],
-      "secondary_muscles": [
-        "glutes",
-        "quads"
-      ],
-      "image_howto_path": "/exercises/placeholders/howto.svg",
-      "image_muscles_path": "/exercises/placeholders/muscles.svg",
-      "how_to_short": "Set a half-kneeling stance, tuck the pelvis slightly, squeeze the rear-side glute, and ease forward until you feel a controlled stretch in the front of the hip.",
-      "curation_tags": {
-        "pattern_detail": [
-          "mobility_drill"
-        ],
-        "plane_of_motion": [
-          "sagittal"
-        ],
-        "exercise_utility": [
-          "preparatory"
-        ],
-        "body_position": [
-          "kneeling"
-        ],
-        "training_goal": [
-          "mobility",
-          "recovery"
-        ],
-        "difficulty": [
-          "beginner"
-        ],
-        "setup_cost": [
-          "quick_setup"
-        ],
-        "stability_requirement": [
-          "supported"
-        ],
-        "unilateral_profile": [
-          "unilateral"
-        ],
-        "loading_profile": [
-          "bodyweight"
-        ],
-        "joint_emphasis": [
-          "hip_dominant"
-        ],
-        "spine_demand": [
-          "low_spinal_load"
-        ],
-        "grip_constraint": []
-      },
-      "facet_tags": [
-        "pattern_detail:mobility_drill",
-        "plane_of_motion:sagittal",
-        "exercise_utility:preparatory",
-        "body_position:kneeling",
-        "training_goal:mobility",
-        "training_goal:recovery",
-        "difficulty:beginner",
-        "setup_cost:quick_setup",
-        "stability_requirement:supported",
-        "unilateral_profile:unilateral",
-        "loading_profile:bodyweight",
-        "joint_emphasis:hip_dominant",
-        "spine_demand:low_spinal_load"
-      ],
-      "search_text": "Hip Flexor Stretch hip-flexor-stretch recovery hip flexors glutes quads Bodyweight push pattern_detail:mobility_drill plane_of_motion:sagittal exercise_utility:preparatory body_position:kneeling training_goal:mobility training_goal:recovery difficulty:beginner setup_cost:quick_setup stability_requirement:supported unilateral_profile:unilateral loading_profile:bodyweight joint_emphasis:hip_dominant spine_demand:low_spinal_load",
-      "review_flags": []
-    },
-    {
-      "index": 72,
+      "index": 70,
       "name": "Hip Thrust",
       "slug": "hip-thrust",
       "equipment": "Barbell",
@@ -6728,7 +6554,7 @@
       "review_flags": []
     },
     {
-      "index": 73,
+      "index": 71,
       "name": "Hollow Body Hold",
       "slug": "hollow-body-hold",
       "equipment": "Bodyweight",
@@ -6805,7 +6631,7 @@
       "review_flags": []
     },
     {
-      "index": 74,
+      "index": 72,
       "name": "Incline Barbell Bench Press",
       "slug": "incline-barbell-bench-press",
       "equipment": "Barbell",
@@ -6883,7 +6709,7 @@
       "review_flags": []
     },
     {
-      "index": 75,
+      "index": 73,
       "name": "Incline Dumbbell Bench Press",
       "slug": "incline-dumbbell-bench-press",
       "equipment": "Dumbbell",
@@ -6961,7 +6787,7 @@
       "review_flags": []
     },
     {
-      "index": 76,
+      "index": 74,
       "name": "Incline Dumbbell Curl",
       "slug": "incline-dumbbell-curl",
       "equipment": "Dumbbell",
@@ -7036,7 +6862,7 @@
       "review_flags": []
     },
     {
-      "index": 77,
+      "index": 75,
       "name": "Incline Dumbbell Fly",
       "slug": "incline-dumbbell-fly",
       "equipment": "Dumbbell",
@@ -7113,7 +6939,7 @@
       "review_flags": []
     },
     {
-      "index": 78,
+      "index": 76,
       "name": "Incline Walk",
       "slug": "incline-walk",
       "equipment": "Cardio Machine",
@@ -7191,7 +7017,7 @@
       "review_flags": []
     },
     {
-      "index": 79,
+      "index": 77,
       "name": "Inverted Row",
       "slug": "inverted-row",
       "equipment": "Bodyweight",
@@ -7273,7 +7099,7 @@
       "review_flags": []
     },
     {
-      "index": 80,
+      "index": 78,
       "name": "Jump Rope",
       "slug": "jump-rope",
       "equipment": "Bodyweight",
@@ -7350,7 +7176,7 @@
       "review_flags": []
     },
     {
-      "index": 81,
+      "index": 79,
       "name": "Lat Pulldown",
       "slug": "lat-pulldown",
       "equipment": "Cable",
@@ -7431,7 +7257,7 @@
       "review_flags": []
     },
     {
-      "index": 82,
+      "index": 80,
       "name": "Lateral Raise",
       "slug": "lateral-raise",
       "equipment": "Dumbbell",
@@ -7508,7 +7334,7 @@
       "review_flags": []
     },
     {
-      "index": 83,
+      "index": 81,
       "name": "Leaning Cable Lateral Raise",
       "slug": "leaning-cable-lateral-raise",
       "equipment": "Cable",
@@ -7585,7 +7411,7 @@
       "review_flags": []
     },
     {
-      "index": 84,
+      "index": 82,
       "name": "Leg Extension",
       "slug": "leg-extension",
       "equipment": "Machine",
@@ -7660,7 +7486,7 @@
       "review_flags": []
     },
     {
-      "index": 85,
+      "index": 83,
       "name": "Leg Press",
       "slug": "leg-press",
       "equipment": "Machine",
@@ -7738,7 +7564,7 @@
       "review_flags": []
     },
     {
-      "index": 86,
+      "index": 84,
       "name": "Low-Bar Back Squat",
       "slug": "low-bar-back-squat",
       "equipment": "Barbell",
@@ -7817,7 +7643,7 @@
       "review_flags": []
     },
     {
-      "index": 87,
+      "index": 85,
       "name": "Low-to-High Cable Fly",
       "slug": "low-to-high-cable-fly",
       "equipment": "Cable",
@@ -7894,7 +7720,7 @@
       "review_flags": []
     },
     {
-      "index": 88,
+      "index": 86,
       "name": "Lying Leg Curl",
       "slug": "lying-leg-curl",
       "equipment": "Machine",
@@ -7971,7 +7797,7 @@
       "review_flags": []
     },
     {
-      "index": 89,
+      "index": 87,
       "name": "Lying Leg Raise",
       "slug": "lying-leg-raise",
       "equipment": "Bodyweight",
@@ -8048,7 +7874,7 @@
       "review_flags": []
     },
     {
-      "index": 90,
+      "index": 88,
       "name": "Machine Biceps Curl",
       "slug": "machine-biceps-curl",
       "equipment": "Machine",
@@ -8123,7 +7949,7 @@
       "review_flags": []
     },
     {
-      "index": 91,
+      "index": 89,
       "name": "Machine Crunch",
       "slug": "machine-crunch",
       "equipment": "Machine",
@@ -8198,7 +8024,7 @@
       "review_flags": []
     },
     {
-      "index": 92,
+      "index": 90,
       "name": "Machine Pulldown",
       "slug": "machine-pulldown",
       "equipment": "Machine",
@@ -8279,7 +8105,7 @@
       "review_flags": []
     },
     {
-      "index": 93,
+      "index": 91,
       "name": "Machine Row",
       "slug": "machine-row",
       "equipment": "Machine",
@@ -8358,7 +8184,7 @@
       "review_flags": []
     },
     {
-      "index": 94,
+      "index": 92,
       "name": "Machine Shoulder Press",
       "slug": "machine-shoulder-press",
       "equipment": "Machine",
@@ -8439,7 +8265,7 @@
       "review_flags": []
     },
     {
-      "index": 95,
+      "index": 93,
       "name": "Mountain Climber",
       "slug": "mountain-climber",
       "equipment": "Bodyweight",
@@ -8518,7 +8344,7 @@
       "review_flags": []
     },
     {
-      "index": 96,
+      "index": 94,
       "name": "Neutral-Grip Pull-Up",
       "slug": "neutral-grip-pull-up",
       "equipment": "Bodyweight",
@@ -8602,7 +8428,7 @@
       "review_flags": []
     },
     {
-      "index": 97,
+      "index": 95,
       "name": "Nordic Curl",
       "slug": "nordic-curl",
       "equipment": "Bodyweight",
@@ -8679,7 +8505,7 @@
       "review_flags": []
     },
     {
-      "index": 98,
+      "index": 96,
       "name": "Overhead Press",
       "slug": "overhead-press",
       "equipment": "Barbell",
@@ -8761,7 +8587,7 @@
       "review_flags": []
     },
     {
-      "index": 99,
+      "index": 97,
       "name": "Overhead Triceps Extension",
       "slug": "overhead-triceps-extension",
       "equipment": "Cable",
@@ -8836,7 +8662,7 @@
       "review_flags": []
     },
     {
-      "index": 100,
+      "index": 98,
       "name": "Pallof Press",
       "slug": "pallof-press",
       "equipment": "Cable",
@@ -8911,7 +8737,7 @@
       "review_flags": []
     },
     {
-      "index": 101,
+      "index": 99,
       "name": "Paused Back Squat",
       "slug": "paused-back-squat",
       "equipment": "Barbell",
@@ -8990,7 +8816,7 @@
       "review_flags": []
     },
     {
-      "index": 102,
+      "index": 100,
       "name": "Paused Barbell Bench Press",
       "slug": "paused-barbell-bench-press",
       "equipment": "Barbell",
@@ -9068,7 +8894,7 @@
       "review_flags": []
     },
     {
-      "index": 103,
+      "index": 101,
       "name": "Paused Deadlift",
       "slug": "paused-deadlift",
       "equipment": "Barbell",
@@ -9147,7 +8973,7 @@
       "review_flags": []
     },
     {
-      "index": 104,
+      "index": 102,
       "name": "Paused Front Squat",
       "slug": "paused-front-squat",
       "equipment": "Barbell",
@@ -9229,7 +9055,7 @@
       "review_flags": []
     },
     {
-      "index": 105,
+      "index": 103,
       "name": "Pec Deck",
       "slug": "pec-deck",
       "equipment": "Machine",
@@ -9306,7 +9132,7 @@
       "review_flags": []
     },
     {
-      "index": 106,
+      "index": 104,
       "name": "Pendlay Row",
       "slug": "pendlay-row",
       "equipment": "Barbell",
@@ -9385,7 +9211,7 @@
       "review_flags": []
     },
     {
-      "index": 107,
+      "index": 105,
       "name": "Pike Push-Up",
       "slug": "pike-push-up",
       "equipment": "Bodyweight",
@@ -9469,7 +9295,7 @@
       "review_flags": []
     },
     {
-      "index": 108,
+      "index": 106,
       "name": "Plank",
       "slug": "plank",
       "equipment": "Bodyweight",
@@ -9544,7 +9370,7 @@
       "review_flags": []
     },
     {
-      "index": 109,
+      "index": 107,
       "name": "Plate Front Raise",
       "slug": "plate-front-raise",
       "equipment": "Plate",
@@ -9621,7 +9447,7 @@
       "review_flags": []
     },
     {
-      "index": 110,
+      "index": 108,
       "name": "Plate Halo",
       "slug": "plate-halo",
       "equipment": "Plate",
@@ -9700,7 +9526,7 @@
       "review_flags": []
     },
     {
-      "index": 111,
+      "index": 109,
       "name": "Plate Russian Twist",
       "slug": "plate-russian-twist",
       "equipment": "Plate",
@@ -9777,7 +9603,7 @@
       "review_flags": []
     },
     {
-      "index": 112,
+      "index": 110,
       "name": "Preacher Curl",
       "slug": "preacher-curl",
       "equipment": "Machine",
@@ -9852,7 +9678,7 @@
       "review_flags": []
     },
     {
-      "index": 113,
+      "index": 111,
       "name": "Pull-Up",
       "slug": "pull-up",
       "equipment": "Bodyweight",
@@ -9934,7 +9760,7 @@
       "review_flags": []
     },
     {
-      "index": 114,
+      "index": 112,
       "name": "Push Press",
       "slug": "push-press",
       "equipment": "Barbell",
@@ -10016,7 +9842,7 @@
       "review_flags": []
     },
     {
-      "index": 115,
+      "index": 113,
       "name": "Push-Up",
       "slug": "push-up",
       "equipment": "Bodyweight",
@@ -10094,7 +9920,7 @@
       "review_flags": []
     },
     {
-      "index": 116,
+      "index": 114,
       "name": "Rack Pull",
       "slug": "rack-pull",
       "equipment": "Barbell",
@@ -10173,7 +9999,7 @@
       "review_flags": []
     },
     {
-      "index": 117,
+      "index": 115,
       "name": "Rear Delt Fly",
       "slug": "rear-delt-fly",
       "equipment": "Dumbbell",
@@ -10250,7 +10076,7 @@
       "review_flags": []
     },
     {
-      "index": 118,
+      "index": 116,
       "name": "Reverse Hyperextension",
       "slug": "reverse-hyperextension",
       "equipment": "Machine",
@@ -10328,7 +10154,7 @@
       "review_flags": []
     },
     {
-      "index": 119,
+      "index": 117,
       "name": "Reverse Lunge",
       "slug": "reverse-lunge",
       "equipment": "Dumbbell",
@@ -10407,7 +10233,7 @@
       "review_flags": []
     },
     {
-      "index": 120,
+      "index": 118,
       "name": "Reverse Pec Deck",
       "slug": "reverse-pec-deck",
       "equipment": "Machine",
@@ -10484,7 +10310,7 @@
       "review_flags": []
     },
     {
-      "index": 121,
+      "index": 119,
       "name": "Reverse-Grip Pushdown",
       "slug": "reverse-grip-pushdown",
       "equipment": "Cable",
@@ -10562,7 +10388,7 @@
       "review_flags": []
     },
     {
-      "index": 122,
+      "index": 120,
       "name": "Romanian Deadlift",
       "slug": "romanian-deadlift",
       "equipment": "Barbell",
@@ -10641,7 +10467,7 @@
       "review_flags": []
     },
     {
-      "index": 123,
+      "index": 121,
       "name": "Rope Pushdown",
       "slug": "rope-pushdown",
       "equipment": "Cable",
@@ -10716,7 +10542,7 @@
       "review_flags": []
     },
     {
-      "index": 124,
+      "index": 122,
       "name": "Rowing Machine",
       "slug": "rowing-machine",
       "equipment": "Cardio Machine",
@@ -10794,7 +10620,7 @@
       "review_flags": []
     },
     {
-      "index": 125,
+      "index": 123,
       "name": "Russian Twist",
       "slug": "russian-twist",
       "equipment": "Bodyweight",
@@ -10869,7 +10695,7 @@
       "review_flags": []
     },
     {
-      "index": 126,
+      "index": 124,
       "name": "Seated Barbell Overhead Press",
       "slug": "seated-barbell-overhead-press",
       "equipment": "Barbell",
@@ -10950,7 +10776,7 @@
       "review_flags": []
     },
     {
-      "index": 127,
+      "index": 125,
       "name": "Seated Cable Row",
       "slug": "seated-cable-row",
       "equipment": "Cable",
@@ -11029,7 +10855,7 @@
       "review_flags": []
     },
     {
-      "index": 128,
+      "index": 126,
       "name": "Seated Dumbbell Shoulder Press",
       "slug": "seated-dumbbell-shoulder-press",
       "equipment": "Dumbbell",
@@ -11110,7 +10936,7 @@
       "review_flags": []
     },
     {
-      "index": 129,
+      "index": 127,
       "name": "Seated Leg Curl",
       "slug": "seated-leg-curl",
       "equipment": "Machine",
@@ -11187,7 +11013,7 @@
       "review_flags": []
     },
     {
-      "index": 130,
+      "index": 128,
       "name": "Side Plank",
       "slug": "side-plank",
       "equipment": "Bodyweight",
@@ -11262,7 +11088,7 @@
       "review_flags": []
     },
     {
-      "index": 131,
+      "index": 129,
       "name": "Side Plank Reach-Through",
       "slug": "side-plank-reach-through",
       "equipment": "Bodyweight",
@@ -11340,7 +11166,7 @@
       "review_flags": []
     },
     {
-      "index": 132,
+      "index": 130,
       "name": "Single-Arm Cable Row",
       "slug": "single-arm-cable-row",
       "equipment": "Cable",
@@ -11419,7 +11245,7 @@
       "review_flags": []
     },
     {
-      "index": 133,
+      "index": 131,
       "name": "Single-Arm Dumbbell Bench Press",
       "slug": "single-arm-dumbbell-bench-press",
       "equipment": "Dumbbell",
@@ -11497,7 +11323,7 @@
       "review_flags": []
     },
     {
-      "index": 134,
+      "index": 132,
       "name": "Single-Arm Dumbbell Row",
       "slug": "single-arm-dumbbell-row",
       "equipment": "Dumbbell",
@@ -11576,7 +11402,7 @@
       "review_flags": []
     },
     {
-      "index": 135,
+      "index": 133,
       "name": "Single-Arm Lat Pulldown",
       "slug": "single-arm-lat-pulldown",
       "equipment": "Cable",
@@ -11657,7 +11483,7 @@
       "review_flags": []
     },
     {
-      "index": 136,
+      "index": 134,
       "name": "Single-Leg Calf Raise",
       "slug": "single-leg-calf-raise",
       "equipment": "Bodyweight",
@@ -11734,7 +11560,7 @@
       "review_flags": []
     },
     {
-      "index": 137,
+      "index": 135,
       "name": "Single-Leg Hip Thrust",
       "slug": "single-leg-hip-thrust",
       "equipment": "Bodyweight",
@@ -11812,7 +11638,7 @@
       "review_flags": []
     },
     {
-      "index": 138,
+      "index": 136,
       "name": "Single-Leg Press",
       "slug": "single-leg-press",
       "equipment": "Machine",
@@ -11890,7 +11716,7 @@
       "review_flags": []
     },
     {
-      "index": 139,
+      "index": 137,
       "name": "Single-Leg Romanian Deadlift",
       "slug": "single-leg-romanian-deadlift",
       "equipment": "Dumbbell",
@@ -11969,7 +11795,7 @@
       "review_flags": []
     },
     {
-      "index": 140,
+      "index": 138,
       "name": "Skullcrusher",
       "slug": "skullcrusher",
       "equipment": "Barbell",
@@ -12044,7 +11870,7 @@
       "review_flags": []
     },
     {
-      "index": 141,
+      "index": 139,
       "name": "Sled Drag",
       "slug": "sled-drag",
       "equipment": "Sled",
@@ -12124,7 +11950,7 @@
       "review_flags": []
     },
     {
-      "index": 142,
+      "index": 140,
       "name": "Sled Push",
       "slug": "sled-push",
       "equipment": "Sled",
@@ -12202,7 +12028,7 @@
       "review_flags": []
     },
     {
-      "index": 143,
+      "index": 141,
       "name": "Smith Machine Bench Press",
       "slug": "smith-machine-bench-press",
       "equipment": "Smith Machine",
@@ -12280,7 +12106,7 @@
       "review_flags": []
     },
     {
-      "index": 144,
+      "index": 142,
       "name": "Smith Machine Hip Thrust",
       "slug": "smith-machine-hip-thrust",
       "equipment": "Smith Machine",
@@ -12358,7 +12184,7 @@
       "review_flags": []
     },
     {
-      "index": 145,
+      "index": 143,
       "name": "Smith Machine Incline Bench Press",
       "slug": "smith-machine-incline-bench-press",
       "equipment": "Smith Machine",
@@ -12436,7 +12262,7 @@
       "review_flags": []
     },
     {
-      "index": 146,
+      "index": 144,
       "name": "Smith Machine Romanian Deadlift",
       "slug": "smith-machine-romanian-deadlift",
       "equipment": "Smith Machine",
@@ -12515,7 +12341,7 @@
       "review_flags": []
     },
     {
-      "index": 147,
+      "index": 145,
       "name": "Smith Machine Shoulder Press",
       "slug": "smith-machine-shoulder-press",
       "equipment": "Smith Machine",
@@ -12596,7 +12422,7 @@
       "review_flags": []
     },
     {
-      "index": 148,
+      "index": 146,
       "name": "Smith Machine Squat",
       "slug": "smith-machine-squat",
       "equipment": "Smith Machine",
@@ -12674,7 +12500,7 @@
       "review_flags": []
     },
     {
-      "index": 149,
+      "index": 147,
       "name": "Snatch-Grip Deadlift",
       "slug": "snatch-grip-deadlift",
       "equipment": "Barbell",
@@ -12753,7 +12579,7 @@
       "review_flags": []
     },
     {
-      "index": 150,
+      "index": 148,
       "name": "Squat Jump",
       "slug": "squat-jump",
       "equipment": "Bodyweight",
@@ -12832,7 +12658,7 @@
       "review_flags": []
     },
     {
-      "index": 151,
+      "index": 149,
       "name": "Stair Climber",
       "slug": "stair-climber",
       "equipment": "Cardio Machine",
@@ -12910,7 +12736,7 @@
       "review_flags": []
     },
     {
-      "index": 152,
+      "index": 150,
       "name": "Stationary Bike",
       "slug": "stationary-bike",
       "equipment": "Cardio Machine",
@@ -12988,7 +12814,7 @@
       "review_flags": []
     },
     {
-      "index": 153,
+      "index": 151,
       "name": "Step-Up",
       "slug": "step-up",
       "equipment": "Dumbbell",
@@ -13067,7 +12893,7 @@
       "review_flags": []
     },
     {
-      "index": 154,
+      "index": 152,
       "name": "Stiff-Leg Deadlift",
       "slug": "stiff-leg-deadlift",
       "equipment": "Barbell",
@@ -13146,7 +12972,7 @@
       "review_flags": []
     },
     {
-      "index": 155,
+      "index": 153,
       "name": "Straight-Arm Pulldown",
       "slug": "straight-arm-pulldown",
       "equipment": "Cable",
@@ -13227,7 +13053,7 @@
       "review_flags": []
     },
     {
-      "index": 156,
+      "index": 154,
       "name": "Stretch",
       "slug": "stretch",
       "equipment": "Bodyweight",
@@ -13302,7 +13128,7 @@
       "review_flags": []
     },
     {
-      "index": 157,
+      "index": 155,
       "name": "T-Bar Row",
       "slug": "t-bar-row",
       "equipment": "Machine",
@@ -13381,7 +13207,7 @@
       "review_flags": []
     },
     {
-      "index": 158,
+      "index": 156,
       "name": "Tempo Back Squat",
       "slug": "tempo-back-squat",
       "equipment": "Barbell",
@@ -13460,7 +13286,7 @@
       "review_flags": []
     },
     {
-      "index": 159,
+      "index": 157,
       "name": "Tempo Barbell Bench Press",
       "slug": "tempo-barbell-bench-press",
       "equipment": "Barbell",
@@ -13538,7 +13364,7 @@
       "review_flags": []
     },
     {
-      "index": 160,
+      "index": 158,
       "name": "Tempo Deadlift",
       "slug": "tempo-deadlift",
       "equipment": "Barbell",
@@ -13617,7 +13443,7 @@
       "review_flags": []
     },
     {
-      "index": 161,
+      "index": 159,
       "name": "Thoracic Open Book",
       "slug": "thoracic-open-book",
       "equipment": "Bodyweight",
@@ -13695,7 +13521,7 @@
       "review_flags": []
     },
     {
-      "index": 162,
+      "index": 160,
       "name": "Treadmill Run",
       "slug": "treadmill-run",
       "equipment": "Cardio Machine",
@@ -13773,7 +13599,7 @@
       "review_flags": []
     },
     {
-      "index": 163,
+      "index": 161,
       "name": "Triceps Pushdown",
       "slug": "triceps-pushdown",
       "equipment": "Cable",
@@ -13848,7 +13674,7 @@
       "review_flags": []
     },
     {
-      "index": 164,
+      "index": 162,
       "name": "Upright Row",
       "slug": "upright-row",
       "equipment": "Barbell",
@@ -13926,7 +13752,7 @@
       "review_flags": []
     },
     {
-      "index": 165,
+      "index": 163,
       "name": "Walking Lunge",
       "slug": "walking-lunge",
       "equipment": "Dumbbell",
@@ -14005,7 +13831,7 @@
       "review_flags": []
     },
     {
-      "index": 166,
+      "index": 164,
       "name": "Weighted Plank",
       "slug": "weighted-plank",
       "equipment": "Bodyweight",
@@ -14080,7 +13906,7 @@
       "review_flags": []
     },
     {
-      "index": 167,
+      "index": 165,
       "name": "Weighted Pull-Up",
       "slug": "weighted-pull-up",
       "equipment": "Bodyweight",
@@ -14162,7 +13988,7 @@
       "review_flags": []
     },
     {
-      "index": 168,
+      "index": 166,
       "name": "Weighted Push-Up",
       "slug": "weighted-push-up",
       "equipment": "Bodyweight",
@@ -14240,7 +14066,7 @@
       "review_flags": []
     },
     {
-      "index": 169,
+      "index": 167,
       "name": "Wide-Grip Lat Pulldown",
       "slug": "wide-grip-lat-pulldown",
       "equipment": "Cable",
@@ -14323,7 +14149,7 @@
       "review_flags": []
     },
     {
-      "index": 170,
+      "index": 168,
       "name": "Yates Row",
       "slug": "yates-row",
       "equipment": "Barbell",

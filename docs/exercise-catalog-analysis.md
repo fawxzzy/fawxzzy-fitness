@@ -1,33 +1,33 @@
 # Exercise Catalog Analysis
 
-Generated: 2026-05-02T01:04:10.129Z
+Generated: 2026-05-03T23:58:36.382Z
 
 Source of truth: `supabase/data/global_exercises_canonical.json`
 
 ## Snapshot
 
-- Total exercises: 170
+- Total exercises: 168
 - Unique equipment values: 9
 - Unique movement patterns: 4
 - Unique measurement types: 4
 - Unique pattern-detail tags: 37
 - Review-queue items: 0
-- Manual spot-check rows (non-reps): 18
+- Manual spot-check rows (non-reps): 16
 
 ## Coverage
 
-- How-to copy populated: 170/170
-- Measurement type populated: 170/170
-- Default unit populated: 170/170
-- Primary muscles array populated: 170/170
-- Secondary muscles array populated: 143/170
-- Full curation-tag coverage: 170/170
+- How-to copy populated: 168/168
+- Measurement type populated: 168/168
+- Default unit populated: 168/168
+- Primary muscles array populated: 168/168
+- Secondary muscles array populated: 141/168
+- Full curation-tag coverage: 168/168
 
 ## Top Facets
 
 ### Equipment
 
-- `Bodyweight`: 41
+- `Bodyweight`: 39
 - `Barbell`: 32
 - `Cable`: 28
 - `Dumbbell`: 27
@@ -39,15 +39,15 @@ Source of truth: `supabase/data/global_exercises_canonical.json`
 
 ### Movement Pattern
 
-- `push`: 89
+- `push`: 88
 - `pull`: 40
-- `hinge`: 25
+- `hinge`: 24
 - `squat`: 16
 
 ### Measurement Type
 
 - `reps`: 152
-- `time`: 10
+- `time`: 8
 - `time_distance`: 5
 - `distance`: 3
 
@@ -66,7 +66,6 @@ Source of truth: `supabase/data/global_exercises_canonical.json`
 - `elbow_extension`: 6
 - `trunk_bracing`: 6
 - `trunk_rotation`: 5
-- `mobility_drill`: 4
 - `plantar_flexion`: 4
 - `anti_rotation`: 3
 - `knee_flexion`: 3
@@ -76,6 +75,7 @@ Source of truth: `supabase/data/global_exercises_canonical.json`
 - `hip_abduction`: 2
 - `hip_adduction`: 2
 - `leg_raise`: 2
+- `mobility_drill`: 2
 - `plyometric_jump`: 2
 - `shoulder_flexion`: 2
 - `sled_drag`: 2
@@ -93,7 +93,7 @@ Source of truth: `supabase/data/global_exercises_canonical.json`
 
 ### Plane Of Motion
 
-- `sagittal`: 142
+- `sagittal`: 140
 - `transverse`: 18
 - `frontal`: 8
 - `multi_planar`: 2
@@ -103,17 +103,17 @@ Source of truth: `supabase/data/global_exercises_canonical.json`
 - `basic`: 85
 - `isolation`: 45
 - `auxiliary`: 35
-- `preparatory`: 5
+- `preparatory`: 3
 
 ### Body Position
 
-- `standing`: 90
+- `standing`: 89
 - `seated`: 24
 - `supine`: 24
 - `prone`: 8
 - `split_stance`: 7
 - `hanging`: 6
-- `kneeling`: 6
+- `kneeling`: 5
 - `side_lying`: 3
 - `supported`: 1
 - `variable`: 1
@@ -127,9 +127,9 @@ Source of truth: `supabase/data/global_exercises_canonical.json`
 - `conditioning`: 15
 - `core_stability`: 12
 - `endurance`: 8
-- `mobility`: 5
 - `power`: 5
-- `recovery`: 4
+- `mobility`: 3
+- `recovery`: 2
 
 ## Prep Notes
 
@@ -138,3 +138,4 @@ Source of truth: `supabase/data/global_exercises_canonical.json`
 - Use `global_exercises_catalog_index.csv` when you want fast spreadsheet-style review or bulk cleanup planning.
 - For runtime efficiency, the history/browser surfaces should eventually read a trimmed catalog payload and lazy-load long how-to/media fields only in detail contexts.
 - Before expanding the total catalog aggressively, lock a stable slug/id strategy so future search, overrides, and migrations stay deterministic.
+

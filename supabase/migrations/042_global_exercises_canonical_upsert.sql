@@ -1014,21 +1014,6 @@ VALUES
     '{"pattern_detail":["elbow_flexion"],"plane_of_motion":["sagittal"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["free_weight"],"joint_emphasis":["elbow_flexion"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
   ),
   (
-    'Hamstring Stretch',
-    'recovery',
-    'Bodyweight',
-    'Hinge from the hips with a soft knee bend, reach only as far as you can keep a long spine, breathe steadily, and avoid forcing the stretch.',
-    ARRAY['hamstrings']::text[],
-    ARRAY['calves', 'lower back']::text[],
-    'hinge',
-    '/exercises/placeholders/howto.svg',
-    '/exercises/placeholders/muscles.svg',
-    'time',
-    's',
-    NULL,
-    '{"pattern_detail":["mobility_drill"],"plane_of_motion":["sagittal"],"exercise_utility":["preparatory"],"body_position":["standing"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["bilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
-  ),
-  (
     'Hanging Leg Raise',
     'core',
     'Bodyweight',
@@ -1072,21 +1057,6 @@ VALUES
     'reps',
     NULL,
     '{"pattern_detail":["chest_fly"],"plane_of_motion":["transverse"],"exercise_utility":["isolation"],"body_position":["standing"],"training_goal":["hypertrophy","accessory"],"difficulty":["intermediate"],"setup_cost":["moderate_setup"],"stability_requirement":["freestanding"],"unilateral_profile":["bilateral"],"loading_profile":["cable_loaded"],"joint_emphasis":["shoulder_horizontal_adduction"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
-  ),
-  (
-    'Hip Flexor Stretch',
-    'recovery',
-    'Bodyweight',
-    'Set a half-kneeling stance, tuck the pelvis slightly, squeeze the rear-side glute, and ease forward until you feel a controlled stretch in the front of the hip.',
-    ARRAY['hip flexors']::text[],
-    ARRAY['glutes', 'quads']::text[],
-    'push',
-    '/exercises/placeholders/howto.svg',
-    '/exercises/placeholders/muscles.svg',
-    'time',
-    's',
-    NULL,
-    '{"pattern_detail":["mobility_drill"],"plane_of_motion":["sagittal"],"exercise_utility":["preparatory"],"body_position":["kneeling"],"training_goal":["mobility","recovery"],"difficulty":["beginner"],"setup_cost":["quick_setup"],"stability_requirement":["supported"],"unilateral_profile":["unilateral"],"loading_profile":["bodyweight"],"joint_emphasis":["hip_dominant"],"spine_demand":["low_spinal_load"],"grip_constraint":[]}'::jsonb
   ),
   (
     'Hip Thrust',

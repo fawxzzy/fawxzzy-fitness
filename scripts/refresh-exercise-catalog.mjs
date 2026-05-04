@@ -107,8 +107,6 @@ const PRESERVE_CANONICAL_METADATA_NAMES = new Set([
   "half-kneeling pallof press",
   "bird dog",
   "side plank reach-through",
-  "hip flexor stretch",
-  "hamstring stretch",
   "thoracic open book",
   "box jump",
   "squat jump",
@@ -219,7 +217,7 @@ function isCardioExercise(row, name) {
 
 function resolvePatternDetail(row, name) {
   if (name === "stretch") return "mobility_drill";
-  if (hasAnyToken(name, ["hip flexor stretch", "hamstring stretch", "thoracic open book"])) return "mobility_drill";
+  if (name === "thoracic open book") return "mobility_drill";
   if (hasAnyToken(name, ["bird dog", "half-kneeling pallof press"])) return "anti_rotation";
   if (hasAnyToken(name, ["cable woodchop", "half-kneeling cable chop", "side plank reach-through", "plate russian twist"])) return "trunk_rotation";
   if (hasAnyToken(name, ["box jump", "squat jump"])) return "plyometric_jump";

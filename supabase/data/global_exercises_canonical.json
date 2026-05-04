@@ -3957,66 +3957,6 @@
     "calories_estimation_method": null
   },
   {
-    "name": "Hamstring Stretch",
-    "primary_muscle": "recovery",
-    "equipment": "Bodyweight",
-    "is_global": true,
-    "how_to_short": "Hinge from the hips with a soft knee bend, reach only as far as you can keep a long spine, breathe steadily, and avoid forcing the stretch.",
-    "movement_pattern": "hinge",
-    "primary_muscles": [
-      "hamstrings"
-    ],
-    "secondary_muscles": [
-      "calves",
-      "lower back"
-    ],
-    "image_howto_path": "/exercises/placeholders/howto.svg",
-    "image_muscles_path": "/exercises/placeholders/muscles.svg",
-    "curation_tags": {
-      "pattern_detail": [
-        "mobility_drill"
-      ],
-      "plane_of_motion": [
-        "sagittal"
-      ],
-      "exercise_utility": [
-        "preparatory"
-      ],
-      "body_position": [
-        "standing"
-      ],
-      "training_goal": [
-        "mobility",
-        "recovery"
-      ],
-      "difficulty": [
-        "beginner"
-      ],
-      "setup_cost": [
-        "quick_setup"
-      ],
-      "stability_requirement": [
-        "supported"
-      ],
-      "unilateral_profile": [
-        "bilateral"
-      ],
-      "loading_profile": [
-        "bodyweight"
-      ],
-      "joint_emphasis": [
-        "hip_dominant"
-      ],
-      "spine_demand": [
-        "low_spinal_load"
-      ],
-      "grip_constraint": []
-    },
-    "measurement_type": "time",
-    "default_unit": "s",
-    "calories_estimation_method": null
-  },
-  {
     "name": "Hanging Leg Raise",
     "primary_muscle": "core",
     "equipment": "Bodyweight",
@@ -4195,66 +4135,6 @@
     },
     "measurement_type": "reps",
     "default_unit": "reps",
-    "calories_estimation_method": null
-  },
-  {
-    "name": "Hip Flexor Stretch",
-    "primary_muscle": "recovery",
-    "equipment": "Bodyweight",
-    "is_global": true,
-    "how_to_short": "Set a half-kneeling stance, tuck the pelvis slightly, squeeze the rear-side glute, and ease forward until you feel a controlled stretch in the front of the hip.",
-    "movement_pattern": "push",
-    "primary_muscles": [
-      "hip flexors"
-    ],
-    "secondary_muscles": [
-      "glutes",
-      "quads"
-    ],
-    "image_howto_path": "/exercises/placeholders/howto.svg",
-    "image_muscles_path": "/exercises/placeholders/muscles.svg",
-    "curation_tags": {
-      "pattern_detail": [
-        "mobility_drill"
-      ],
-      "plane_of_motion": [
-        "sagittal"
-      ],
-      "exercise_utility": [
-        "preparatory"
-      ],
-      "body_position": [
-        "kneeling"
-      ],
-      "training_goal": [
-        "mobility",
-        "recovery"
-      ],
-      "difficulty": [
-        "beginner"
-      ],
-      "setup_cost": [
-        "quick_setup"
-      ],
-      "stability_requirement": [
-        "supported"
-      ],
-      "unilateral_profile": [
-        "unilateral"
-      ],
-      "loading_profile": [
-        "bodyweight"
-      ],
-      "joint_emphasis": [
-        "hip_dominant"
-      ],
-      "spine_demand": [
-        "low_spinal_load"
-      ],
-      "grip_constraint": []
-    },
-    "measurement_type": "time",
-    "default_unit": "s",
     "calories_estimation_method": null
   },
   {

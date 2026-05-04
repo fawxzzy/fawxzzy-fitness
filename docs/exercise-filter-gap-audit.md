@@ -1,15 +1,15 @@
 # Exercise Filter Gap Audit
 
-Generated: 2026-05-02T01:05:29.909Z
+Generated: 2026-05-03T23:58:40.847Z
 
 Input: `supabase/data/global_exercises_catalog_index.json`
 
 ## Summary
 
-- Exercises audited: 170
+- Exercises audited: 168
 - Sensible combinations checked: 25
 - Empty sensible combinations: 0
-- Thin sensible combinations: 20
+- Thin sensible combinations: 21
 - Suspicious metadata checks with matches: 0
 
 ## Audit Table
@@ -29,7 +29,7 @@ Input: `supabase/data/global_exercises_catalog_index.json`
 | Machine + pattern_detail:vertical_pull | 2 | Assisted Pull-Up, Machine Pulldown | Thin |
 | Sled + loading_profile:sled_loaded | 3 | Backward Sled Drag, Sled Drag, Sled Push | OK |
 | Plate + plane_of_motion:multi_planar | 1 | Plate Halo | Thin |
-| training_goal:mobility + training_goal:recovery | 4 | Hamstring Stretch, Hip Flexor Stretch, Stretch, Thoracic Open Book | OK |
+| training_goal:mobility + training_goal:recovery | 2 | Stretch, Thoracic Open Book | Thin |
 | training_goal:power | 5 | Air Bike Sprint, Box Jump, Burpee, Sled Push, Squat Jump | OK |
 | spine_demand:chest_supported | 2 | Chest-Supported Dumbbell Row, Chest-Supported Row | Thin |
 | Bodyweight + pattern_detail:full_body_conditioning | 1 | Burpee | Thin |
@@ -49,3 +49,4 @@ Input: `supabase/data/global_exercises_catalog_index.json`
 | Suspicious: calf raise without calves primary_muscles | 0 | - | OK |
 | Suspicious: plank/hold not time-based unless intentionally reps | 0 | - | OK |
 | Suspicious: mobility_drill not time or reps | 0 | - | OK |
+

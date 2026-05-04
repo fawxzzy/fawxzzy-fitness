@@ -26,6 +26,14 @@ test("stretch search matches tokenized multi-word queries", () => {
   assert.ok(results.some((stretch) => stretch.id === "ankle-inversion-eversion-mobility"));
 });
 
+test("stretch hub still includes hamstring and hip flexor mobility inside the library", () => {
+  const hamstringResults = queryStretchLibrary({ query: "hamstring stretch" });
+  const hipFlexorResults = queryStretchLibrary({ query: "hip flexor stretch" });
+
+  assert.ok(hamstringResults.some((stretch) => stretch.id === "sprinter-hamstring-stretch"));
+  assert.ok(hipFlexorResults.some((stretch) => stretch.id === "half-kneeling-hip-flexor-stretch"));
+});
+
 test("stretch details can be resolved lazily by id", () => {
   const stretch = getStretchReferenceDetailById("wall-serratus-reach-stretch");
   assert.ok(stretch);
