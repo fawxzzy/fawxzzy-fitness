@@ -6,6 +6,7 @@ export const PERSISTENT_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
 
 const PUBLIC_AUTHLESS_PATH_PREFIXES = [
   "/auth",
+  "/dev",
   "/forgot-password",
   "/install",
   "/login",

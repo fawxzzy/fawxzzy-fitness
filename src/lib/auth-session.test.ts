@@ -60,6 +60,8 @@ test("shouldRefreshAuthSession skips public auth and install routes", () => {
   assert.equal(shouldRefreshAuthSession("/signup"), false);
   assert.equal(shouldRefreshAuthSession("/forgot-password"), false);
   assert.equal(shouldRefreshAuthSession("/auth/confirm"), false);
+  assert.equal(shouldRefreshAuthSession("/dev/stretch-session-preview"), false);
+  assert.equal(shouldRefreshAuthSession("/dev/stretch-card-pass"), false);
   assert.equal(shouldRefreshAuthSession("/install"), false);
   assert.equal(shouldRefreshAuthSession("/api/app-version"), false);
 });
