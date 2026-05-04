@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Suspense } from "react";
 import { ClientBundleRecoveryBootstrap } from "@/components/ClientBundleRecoveryBootstrap";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
@@ -10,6 +11,7 @@ import { DisplayModeBootstrap } from "@/components/ui/app/DisplayModeBootstrap";
 import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
+import { buildPreHydrationAppThemePrimerScript } from "@/lib/app-theme";
 import "./globals.css";
 
 const APP_NAME = "FawxzzyFitness";
@@ -121,13 +123,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script id="app-theme-primer" strategy="beforeInteractive">
+          {buildPreHydrationAppThemePrimerScript()}
+        </Script>
+      </head>
       <body className="relative overflow-x-hidden">
+        <AppThemeBootstrap />
         <PersistentAppChrome />
         <ToastProvider>
           <ServiceWorkerBootstrap />
           <ClientBundleRecoveryBootstrap />
           <AppAmbientThemeBootstrap />
-          <AppThemeBootstrap />
           <GlassEffectsBootstrap />
           <DisplayModeBootstrap />
           <MobileViewportGuard />

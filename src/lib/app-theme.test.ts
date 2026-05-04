@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_LIBRARY_STORAGE_KEY,
@@ -11,6 +12,7 @@ import {
   countAppThemeCustomizations,
   getAppThemeSummary,
   APP_THEME_STORAGE_KEY,
+  buildPreHydrationAppThemePrimerScript,
   clearStoredAppThemeSelection,
   DEFAULT_APP_THEME,
   ROSE_APP_THEME,
@@ -44,6 +46,50 @@ function createStorageStub() {
       store.delete(key);
     },
   };
+}
+
+function createStyleStub() {
+  const values = new Map<string, string>();
+
+  return {
+    entries() {
+      return Array.from(values.entries());
+    },
+    getPropertyValue(key: string) {
+      return values.get(key) ?? "";
+    },
+    removeProperty(key: string) {
+      values.delete(key);
+    },
+    setProperty(key: string, value: string) {
+      values.set(key, value);
+    },
+  };
+}
+
+function runAppThemePrimer(storageEntries: Record<string, string>) {
+  const style = createStyleStub();
+  const store = new Map(Object.entries(storageEntries));
+  const context = {
+    document: {
+      documentElement: {
+        style,
+      },
+    },
+    window: {
+      localStorage: {
+        getItem(key: string) {
+          return store.get(key) ?? null;
+        },
+      },
+    },
+  };
+
+  assert.doesNotThrow(() => {
+    vm.runInNewContext(buildPreHydrationAppThemePrimerScript(), context);
+  });
+
+  return style;
 }
 
 test("normalizeAppTheme clamps radii and normalizes colors", () => {
@@ -302,6 +348,50 @@ test("theme storage helpers fail closed when browser storage throws", () => {
     ...TEST_APP_THEME,
     primaryActionColor: "#335577",
   }, storage));
+});
+
+test("pre-hydration theme primer resolves a selected preset theme before hydration", () => {
+  const style = runAppThemePrimer({
+    [APP_THEME_SELECTION_STORAGE_KEY]: "rose",
+  });
+
+  assert.equal(style.getPropertyValue("--accent"), "255 79 163");
+  assert.equal(style.getPropertyValue("--card-radius"), "24px");
+  assert.equal(style.getPropertyValue("--surface-2-rgb"), "19 7 17");
+});
+
+test("pre-hydration theme primer resolves a saved custom slot", () => {
+  const style = runAppThemePrimer({
+    [APP_THEME_SELECTION_STORAGE_KEY]: "custom-2",
+    [APP_THEME_LIBRARY_STORAGE_KEY]: JSON.stringify({
+      version: 1,
+      themes: [
+        {
+          id: "custom-2",
+          name: "Forest Glow",
+          theme: {
+            ...TEST_APP_THEME,
+            primaryActionColor: "#335577",
+            buttonRadius: 22,
+          },
+        },
+      ],
+    }),
+  });
+
+  assert.equal(style.getPropertyValue("--accent"), "51 85 119");
+  assert.equal(style.getPropertyValue("--button-radius"), "22px");
+  assert.equal(style.getPropertyValue("--surface-2-rgb"), "31 53 70");
+});
+
+test("pre-hydration theme primer falls back safely on corrupted storage", () => {
+  const style = runAppThemePrimer({
+    [APP_THEME_SELECTION_STORAGE_KEY]: "custom-1",
+    [APP_THEME_STORAGE_KEY]: "{",
+    [APP_THEME_LIBRARY_STORAGE_KEY]: "{",
+  });
+
+  assert.deepEqual(style.entries(), []);
 });
 
 test("next available slot resolves null when all custom theme slots are used", () => {

@@ -30,6 +30,18 @@ export type SavedAppThemeSlot = {
 
 type RgbTuple = readonly [number, number, number];
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+type AppThemePrimerConfig = {
+  customSlotIds: readonly CustomAppThemeSlotId[];
+  defaultTheme: AppThemeSettings;
+  libraryStorageKey: string;
+  libraryVersion: number;
+  selectionStorageKey: string;
+  themeKeys: readonly string[];
+  themeStorageKey: string;
+  themeVersion: number;
+  variableNames: readonly string[];
+  presetThemes: Record<AppThemePreset, AppThemeSettings>;
+};
 
 const APP_THEME_VERSION = 2;
 const APP_THEME_LIBRARY_VERSION = 1;
@@ -481,6 +493,27 @@ export function getAppThemeCssVariables(theme: AppThemeSettings) {
   } as const;
 }
 
+function getAppThemePrimerConfig(): AppThemePrimerConfig {
+  return {
+    customSlotIds: APP_THEME_CUSTOM_SLOT_IDS,
+    defaultTheme: DEFAULT_APP_THEME,
+    libraryStorageKey: APP_THEME_LIBRARY_STORAGE_KEY,
+    libraryVersion: APP_THEME_LIBRARY_VERSION,
+    selectionStorageKey: APP_THEME_SELECTION_STORAGE_KEY,
+    themeKeys: ["preset", ...APP_THEME_CUSTOMIZATION_KEYS],
+    themeStorageKey: APP_THEME_STORAGE_KEY,
+    themeVersion: APP_THEME_VERSION,
+    variableNames: APP_THEME_VARIABLE_NAMES,
+    presetThemes: APP_THEME_PRESETS,
+  };
+}
+
+export function buildPreHydrationAppThemePrimerScript() {
+  const config = JSON.stringify(getAppThemePrimerConfig());
+
+  return `(()=>{try{const c=${config};const root=document.documentElement;if(!root){return;}const clamp=(value,min,max)=>Math.min(Math.max(value,min),max);const normalizeHexColor=(value,fallback)=>{if(typeof value!=="string"){return fallback;}const trimmed=value.trim();const hex=trimmed.startsWith("#")?trimmed:"#"+trimmed;if(/^#[\\da-fA-F]{6}$/.test(hex)){return hex.toLowerCase();}if(/^#[\\da-fA-F]{3}$/.test(hex)){const [,first,second,third]=hex;return ("#"+first+first+second+second+third+third).toLowerCase();}return fallback;};const normalizeRadius=(value,fallback,min,max)=>typeof value==="number"&&!Number.isNaN(value)?clamp(Math.round(value),min,max):fallback;const isPreset=(value)=>value==="default"||value==="rose"||value==="test";const isSlot=(value)=>typeof value==="string"&&c.customSlotIds.includes(value);const isSelection=(value)=>isPreset(value)||isSlot(value);const sanitizeTheme=(value)=>{const preset=value?.preset==="test"?"test":value?.preset==="rose"?"rose":"default";return {preset,textPrimaryColor:normalizeHexColor(value?.textPrimaryColor,c.defaultTheme.textPrimaryColor),textSecondaryColor:normalizeHexColor(value?.textSecondaryColor,c.defaultTheme.textSecondaryColor),textMutedColor:normalizeHexColor(value?.textMutedColor,c.defaultTheme.textMutedColor),primaryActionColor:normalizeHexColor(value?.primaryActionColor,c.defaultTheme.primaryActionColor),secondaryActionColor:normalizeHexColor(value?.secondaryActionColor,c.defaultTheme.secondaryActionColor),accentDividerColor:normalizeHexColor(value?.accentDividerColor,c.defaultTheme.accentDividerColor),metricAccentColor:normalizeHexColor(value?.metricAccentColor,c.defaultTheme.metricAccentColor),successCompleteColor:normalizeHexColor(value?.successCompleteColor,c.defaultTheme.successCompleteColor),selectionActiveColor:normalizeHexColor(value?.selectionActiveColor,c.defaultTheme.selectionActiveColor),loaderScanColor:normalizeHexColor(value?.loaderScanColor,c.defaultTheme.loaderScanColor),warningColor:normalizeHexColor(value?.warningColor,c.defaultTheme.warningColor),dangerColor:normalizeHexColor(value?.dangerColor,c.defaultTheme.dangerColor),surfaceCardColor:normalizeHexColor(value?.surfaceCardColor,c.defaultTheme.surfaceCardColor),cardOutlineColor:normalizeHexColor(value?.cardOutlineColor,c.defaultTheme.cardOutlineColor),buttonRadius:normalizeRadius(value?.buttonRadius,c.defaultTheme.buttonRadius,10,28),cardRadius:normalizeRadius(value?.cardRadius,c.defaultTheme.cardRadius,14,36)};};const parseTheme=(rawValue)=>{if(!rawValue){return null;}try{const parsed=JSON.parse(rawValue);if(parsed?.version!==c.themeVersion||!parsed?.theme){return null;}return sanitizeTheme(parsed.theme);}catch{return null;}};const parseThemeLibrary=(rawValue)=>{if(!rawValue){return [];}try{const parsed=JSON.parse(rawValue);if(parsed?.version!==c.libraryVersion||!Array.isArray(parsed?.themes)){return [];}const seenIds=new Set();const normalizedThemes=[];for(const entry of parsed.themes){if(!isSlot(entry?.id)||seenIds.has(entry.id)){continue;}if(typeof entry?.name!=="string"||entry.name.replace(/[\\r\\n\\t]+/g," ").slice(0,15)===""){continue;}seenIds.add(entry.id);normalizedThemes.push({id:entry.id,theme:sanitizeTheme(entry.theme)});}return normalizedThemes.sort((left,right)=>c.customSlotIds.indexOf(left.id)-c.customSlotIds.indexOf(right.id));}catch{return [];}};const resolveTheme=()=>{try{const storage=window.localStorage;const selectionRaw=storage.getItem(c.selectionStorageKey);const selection=isSelection(selectionRaw)?selectionRaw:null;if(selection&&isPreset(selection)){return c.presetThemes[selection];}const storedTheme=parseTheme(storage.getItem(c.themeStorageKey));if(storedTheme){return storedTheme;}if(!selection||!isSlot(selection)){return c.defaultTheme;}return parseThemeLibrary(storage.getItem(c.libraryStorageKey)).find((entry)=>entry.id===selection)?.theme??c.defaultTheme;}catch{return c.defaultTheme;}};const areThemesEqual=(left,right)=>c.themeKeys.every((key)=>left?.[key]===right?.[key]);const toRgbTuple=(hexColor)=>{const normalized=normalizeHexColor(hexColor,c.defaultTheme.primaryActionColor);return [Number.parseInt(normalized.slice(1,3),16),Number.parseInt(normalized.slice(3,5),16),Number.parseInt(normalized.slice(5,7),16)];};const mixRgb=(source,target,amount)=>{const ratio=clamp(amount,0,1);return [Math.round(source[0]+(target[0]-source[0])*ratio),Math.round(source[1]+(target[1]-source[1])*ratio),Math.round(source[2]+(target[2]-source[2])*ratio)];};const toRgbCssValue=(rgb)=>rgb.join(" ");const toPixelValue=(value)=>Math.round(value)+"px";const deriveSurfacePalette=(surfaceCardColor)=>{const surface2=toRgbTuple(surfaceCardColor);const surface1=mixRgb(surface2,[7,17,27],0.28);const surface3=mixRgb(surface2,[255,255,255],0.12);return {surface1,surface2,surface3};};const deriveCardRadiusScale=(cardRadius)=>({cardRadius:toPixelValue(cardRadius),radiusSm:toPixelValue(clamp(cardRadius-8,10,cardRadius)),radiusMd:toPixelValue(clamp(cardRadius-4,12,cardRadius)),radiusLg:toPixelValue(cardRadius),radiusXl:toPixelValue(cardRadius+6)});const deriveButtonRadiusScale=(buttonRadius)=>({buttonRadius:toPixelValue(buttonRadius),bottomActionRadius:toPixelValue(clamp(buttonRadius+8,18,40)),actionChromeShellRadius:toPixelValue(clamp(buttonRadius+4,16,36)),actionChromeSegmentRadius:toPixelValue(buttonRadius),actionChromeSegmentRadiusCompact:toPixelValue(clamp(buttonRadius-2,8,buttonRadius))});const getCssVariables=(theme)=>{const accent=toRgbTuple(theme.primaryActionColor);const accentStrong=mixRgb(accent,[255,255,255],0.16);const secondaryAction=toRgbTuple(theme.secondaryActionColor);const accentDivider=toRgbTuple(theme.accentDividerColor);const metricAccent=toRgbTuple(theme.metricAccentColor);const successComplete=toRgbTuple(theme.successCompleteColor);const selectionActive=toRgbTuple(theme.selectionActiveColor);const loaderScan=toRgbTuple(theme.loaderScanColor);const warning=toRgbTuple(theme.warningColor);const danger=toRgbTuple(theme.dangerColor);const cardOutline=toRgbTuple(theme.cardOutlineColor);const textPrimary=toRgbTuple(theme.textPrimaryColor);const textSecondary=toRgbTuple(theme.textSecondaryColor);const textMuted=toRgbTuple(theme.textMutedColor);const destructiveBg=mixRgb(danger,[7,17,27],0.84);const destructiveBgHover=mixRgb(danger,[7,17,27],0.8);const destructiveBgActive=mixRgb(danger,[7,17,27],0.88);const destructiveText=mixRgb(danger,[255,255,255],0.78);const {surface1,surface2,surface3}=deriveSurfacePalette(theme.surfaceCardColor);const buttonScale=deriveButtonRadiusScale(theme.buttonRadius);const cardScale=deriveCardRadiusScale(theme.cardRadius);return {"--text-primary":toRgbCssValue(textPrimary),"--text-secondary":toRgbCssValue(textSecondary),"--text-muted":toRgbCssValue(textMuted),"--text":"var(--text-primary)","--muted":"var(--text-secondary)","--faint":"var(--text-muted)","--accent":toRgbCssValue(accent),"--accent-strong":toRgbCssValue(accentStrong),"--accent-mint":toRgbCssValue(accent),"--accent-mint-strong":toRgbCssValue(accentStrong),"--accent-blue":toRgbCssValue(accent),"--accent-red":toRgbCssValue(danger),"--accent-purple":toRgbCssValue(accent),"--secondary-action-rgb":toRgbCssValue(secondaryAction),"--accent-divider-rgb":toRgbCssValue(accentDivider),"--metric-accent-rgb":toRgbCssValue(metricAccent),"--selection-rgb":toRgbCssValue(selectionActive),"--loader-scan-rgb":toRgbCssValue(loaderScan),"--warning-rgb":toRgbCssValue(warning),"--danger-rgb":toRgbCssValue(danger),"--stroke-soft":toRgbCssValue(cardOutline),"--stroke-strong":toRgbCssValue(cardOutline),"--accent-yellow-off":"var(--warning-rgb)","--accent-yellow-on":"var(--warning-rgb)","--success-rgb":toRgbCssValue(successComplete),"--surface-1-rgb":toRgbCssValue(surface1),"--surface-2-rgb":toRgbCssValue(surface2),"--surface-3-rgb":toRgbCssValue(surface3),"--bg-panel":"var(--surface-1-rgb)","--bg-card":"var(--surface-2-rgb)","--bg-shell":"var(--surface-3-rgb)","--surface":"var(--surface-1-rgb)","--surface-2":"var(--surface-2-rgb)","--surface-rgb":"var(--surface-2-rgb)","--shell-rgb":"var(--surface-3-rgb)","--surface-muted":"var(--surface-2-rgb)","--glass-tint-rgb":"var(--surface-1-rgb)","--button-radius":buttonScale.buttonRadius,"--button-destructive-bg":toRgbCssValue(destructiveBg)+" / 0.94","--button-destructive-bg-hover":toRgbCssValue(destructiveBgHover)+" / 0.98","--button-destructive-bg-active":toRgbCssValue(destructiveBgActive)+" / 1","--button-destructive-text":toRgbCssValue(destructiveText),"--button-destructive-border":toRgbCssValue(danger)+" / 0.4","--bottom-action-radius":buttonScale.bottomActionRadius,"--action-chrome-shell-radius":buttonScale.actionChromeShellRadius,"--action-chrome-segment-radius":buttonScale.actionChromeSegmentRadius,"--action-chrome-segment-radius-compact":buttonScale.actionChromeSegmentRadiusCompact,"--card-radius":cardScale.cardRadius,"--radius-sm":cardScale.radiusSm,"--radius-md":cardScale.radiusMd,"--radius-lg":cardScale.radiusLg,"--radius-xl":cardScale.radiusXl};};const theme=resolveTheme();if(areThemesEqual(theme,c.defaultTheme)){for(const variableName of c.variableNames){root.style.removeProperty(variableName);}return;}const cssVariables=getCssVariables(theme);for(const [variableName,value] of Object.entries(cssVariables)){root.style.setProperty(variableName,value);}}catch{}})();`;
+}
+
 function getBrowserStorage(storage?: StorageLike | null) {
   if (storage) {
     return storage;
@@ -735,6 +768,15 @@ export function resolveStoredAppTheme(storage?: StorageLike | null) {
 
   const savedTheme = readStoredAppThemeLibrary(storage).find((theme) => theme.id === selection);
   return savedTheme?.theme ?? DEFAULT_APP_THEME;
+}
+
+export function applyResolvedStoredAppTheme(
+  storage?: StorageLike | null,
+  root: HTMLElement | null | undefined = typeof document !== "undefined" ? document.documentElement : null,
+) {
+  const resolvedTheme = resolveStoredAppTheme(storage);
+  applyAppTheme(resolvedTheme, root);
+  return resolvedTheme;
 }
 
 export function writeStoredAppTheme(theme: AppThemeSettings, storage?: StorageLike | null) {

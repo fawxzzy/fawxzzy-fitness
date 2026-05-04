@@ -36,6 +36,7 @@ import {
   type ResolvedGateDecision,
 } from "@/lib/initial-experience-gate";
 import { startLoadingDiagnosticGate } from "@/lib/loading-diagnostics";
+import { INITIAL_EXPERIENCE_LOADING_VARIANT } from "@/lib/route-loading";
 
 type InitialExperienceGateProps = {
   curatedEngineEnabled: boolean;
@@ -549,7 +550,7 @@ export function InitialExperienceGate({
   }
 
   if (stage !== "error") {
-    return <RouteLoading label={stageCopy.detail} variant="route" />;
+    return <RouteLoading label={stageCopy.detail} variant={INITIAL_EXPERIENCE_LOADING_VARIANT} />;
   }
 
   return (

@@ -1,11 +1,14 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FawxzzySigilLoader } from "@/components/ui/FawxzzySigilLoader";
 import { startLoadingDiagnosticGate } from "@/lib/loading-diagnostics";
-
-const ROUTE_LOADING_DELAY_MS = 260;
+import {
+  getRouteLoadingDelayMs,
+  shouldHideRouteLoadingChrome,
+  type RouteLoadingVariant,
+} from "@/lib/route-loading";
 const LOADING_PARTICLES = [
   { left: "18%", top: "22%", dx: "10px", dy: "24px", duration: "16s", delay: "0ms" },
   { left: "74%", top: "18%", dx: "-12px", dy: "28px", duration: "19s", delay: "1400ms" },
@@ -72,12 +75,13 @@ export function RouteLoading({
 }: {
   label?: string;
   detail?: string;
-  variant?: "boot" | "route";
+  variant?: RouteLoadingVariant;
   gateName?: string;
   blockingReason?: string;
   timeoutMs?: number;
 }) {
-  const isVisible = useDelayedVisible(variant === "boot" ? 0 : ROUTE_LOADING_DELAY_MS);
+  const isVisible = useDelayedVisible(getRouteLoadingDelayMs(variant));
+  const chromeHidden = shouldHideRouteLoadingChrome(variant, isVisible);
   const gateRef = useRef<ReturnType<typeof startLoadingDiagnosticGate> | null>(null);
 
   useEffect(() => {
@@ -106,8 +110,8 @@ export function RouteLoading({
     };
   }, [blockingReason, detail, gateName, label, timeoutMs, variant]);
 
-  useEffect(() => {
-    if (!isVisible) {
+  useLayoutEffect(() => {
+    if (!chromeHidden) {
       return;
     }
 
@@ -116,7 +120,7 @@ export function RouteLoading({
     return () => {
       setRouteLoadingChromeHidden(false);
     };
-  }, [isVisible]);
+  }, [chromeHidden]);
 
   useEffect(() => {
     gateRef.current?.pending({
