@@ -13,7 +13,12 @@ import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureC
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
-import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import {
+  resolveEffectiveQuickLogTarget,
+  resolveQuickLogFromResolvedTarget,
+  toQuickLogTargetFromSuggestedValues,
+  type SessionQuickLogTarget,
+} from "@/lib/session-quick-log";
 import { buildInitialSessionRowClientState, reconcileSessionRowClientState, type SessionRowClientState } from "@/components/session/sessionRowClientState";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
@@ -176,6 +181,23 @@ export function SessionExerciseFocus({
           isQuickLogPending: false,
           isSkipPending: false,
         };
+        const resolvedTargetHint = exercise.targetHint ?? deriveSessionTargetHint({
+          measurementType: exercise.measurementType ?? "reps",
+          fallbackWeightUnit,
+          stats: null,
+          plan: exercise.quickLogTarget ? {
+            measurementType: exercise.quickLogTarget.measurementType ?? (exercise.measurementType ?? "reps"),
+            repsMin: exercise.quickLogTarget.repsMin ?? null,
+            repsMax: exercise.quickLogTarget.repsMax ?? null,
+            weightMin: exercise.quickLogTarget.weightMin ?? null,
+            weightMax: exercise.quickLogTarget.weightMax ?? null,
+            weightUnit: exercise.quickLogTarget.weightUnit ?? fallbackWeightUnit,
+            durationSeconds: exercise.quickLogTarget.durationSeconds ?? null,
+            distance: exercise.quickLogTarget.distance ?? null,
+            distanceUnit: exercise.quickLogTarget.distanceUnit ?? null,
+            calories: exercise.quickLogTarget.calories ?? null,
+          } : null,
+        });
         const rowViewModel = deriveSessionExerciseRowViewModel({
           exerciseId: exercise.id,
           loggedSetCount: rowClientState.loggedSetCount,
@@ -185,6 +207,9 @@ export function SessionExerciseFocus({
           targetSetsMin: exercise.targetSetsMin,
           targetSetsMax: exercise.targetSetsMax,
           quickLogTarget: exercise.quickLogTarget,
+          quickLogNextTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.suggestedValues),
+          quickLogLastTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.lastSuggestedValues),
+          quickLogBestTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.recentBestSuggestedValues),
           fallbackWeightUnit,
         });
 
@@ -352,6 +377,9 @@ export function SessionExerciseFocus({
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
             quickLogTarget: exercise.quickLogTarget,
+            quickLogNextTarget: toQuickLogTargetFromSuggestedValues(exercise.targetHint?.suggestedValues ?? null),
+            quickLogLastTarget: toQuickLogTargetFromSuggestedValues(exercise.targetHint?.lastSuggestedValues ?? null),
+            quickLogBestTarget: toQuickLogTargetFromSuggestedValues(exercise.targetHint?.recentBestSuggestedValues ?? null),
             fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
           });
           const setCount = rowViewModel.loggedSetCount;
@@ -371,6 +399,12 @@ export function SessionExerciseFocus({
               distanceUnit: exercise.quickLogTarget.distanceUnit ?? null,
               calories: exercise.quickLogTarget.calories ?? null,
             } : null,
+          });
+          const resolvedQuickLogTarget = resolveEffectiveQuickLogTarget({
+            quickLogTarget: exercise.quickLogTarget,
+            nextTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.suggestedValues),
+            lastTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.lastSuggestedValues),
+            bestTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.recentBestSuggestedValues),
           });
           const rowState = rowViewModel.rowState;
           const isCompletedRow = rowState.cardState === "completed";
@@ -507,7 +541,10 @@ export function SessionExerciseFocus({
                   isQuickLogPending: true,
                 }));
                 try {
-                  const quickLogResolution = resolveQuickLogFromTarget(exercise.quickLogTarget, unitLabel === "lbs" ? "lbs" : "kg");
+                  const quickLogResolution = resolveQuickLogFromResolvedTarget(
+                    resolvedQuickLogTarget,
+                    unitLabel === "lbs" ? "lbs" : "kg",
+                  );
                   if (!quickLogResolution.ok) {
                     toast.error(quickLogResolution.reason);
                     toggleExercise(exercise.id);

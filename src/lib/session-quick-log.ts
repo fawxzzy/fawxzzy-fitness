@@ -14,6 +14,8 @@ export type SessionQuickLogTarget = {
   allowMeasurementlessLog?: boolean;
 };
 
+export type SessionQuickLogSource = "goal" | "next" | "last" | "best";
+
 type QuickLogPayload = {
   weight: number;
   reps: number;
@@ -28,6 +30,11 @@ type QuickLogResolution =
   | { ok: true; payload: QuickLogPayload }
   | { ok: false; reason: string };
 
+export type EffectiveSessionQuickLogTarget = {
+  source: SessionQuickLogSource;
+  target: SessionQuickLogTarget;
+};
+
 function hasValue(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
@@ -36,6 +43,75 @@ function resolveSingleValue(min?: number, max?: number) {
   if (hasValue(max)) return max ?? null;
   if (hasValue(min)) return min ?? null;
   return null;
+}
+
+function hasTargetMetrics(target: SessionQuickLogTarget | undefined) {
+  if (!target) return false;
+  if (target.allowMeasurementlessLog || target.measurementType === "none") {
+    return true;
+  }
+
+  const measurementType = target.measurementType ?? "reps";
+  if (measurementType === "reps") {
+    return hasValue(resolveSingleValue(target.repsMin, target.repsMax) ?? undefined)
+      || hasValue(resolveSingleValue(target.weightMin, target.weightMax) ?? undefined);
+  }
+
+  if (measurementType === "time") {
+    return hasValue(target.durationSeconds);
+  }
+
+  if (measurementType === "distance" || measurementType === "time_distance") {
+    return hasValue(target.durationSeconds) || hasValue(target.distance) || hasValue(target.calories);
+  }
+
+  return false;
+}
+
+export function toQuickLogTargetFromSuggestedValues(
+  values: {
+    measurementType: "reps" | "time" | "distance" | "time_distance" | "none";
+    weight: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+    distance: number | null;
+    distanceUnit: "mi" | "km" | "m" | null;
+    calories: number | null;
+    weightUnit: "lbs" | "kg" | null;
+  } | null | undefined,
+): SessionQuickLogTarget | undefined {
+  if (!values) {
+    return undefined;
+  }
+
+  return {
+    measurementType: values.measurementType,
+    repsMin: values.reps ?? undefined,
+    repsMax: values.reps ?? undefined,
+    weightMin: values.weight ?? undefined,
+    weightMax: values.weight ?? undefined,
+    weightUnit: values.weightUnit ?? undefined,
+    durationSeconds: values.durationSeconds ?? undefined,
+    distance: values.distance ?? undefined,
+    distanceUnit: values.distanceUnit ?? undefined,
+    calories: values.calories ?? undefined,
+  };
+}
+
+export function resolveEffectiveQuickLogTarget(args: {
+  quickLogTarget?: SessionQuickLogTarget;
+  nextTarget?: SessionQuickLogTarget;
+  lastTarget?: SessionQuickLogTarget;
+  bestTarget?: SessionQuickLogTarget;
+}): EffectiveSessionQuickLogTarget | null {
+  const candidates: Array<EffectiveSessionQuickLogTarget | null> = [
+    args.quickLogTarget ? { source: "goal", target: args.quickLogTarget } : null,
+    args.nextTarget ? { source: "next", target: args.nextTarget } : null,
+    args.lastTarget ? { source: "last", target: args.lastTarget } : null,
+    args.bestTarget ? { source: "best", target: args.bestTarget } : null,
+  ];
+
+  return candidates.find((candidate) => candidate !== null && hasTargetMetrics(candidate.target)) ?? null;
 }
 
 export function formatQuickLogPreviewLabel({
@@ -82,6 +158,39 @@ export function formatQuickLogPreviewLabel({
   void targetSetsMin;
   void targetSetsMax;
   return "";
+}
+
+export function formatQuickLogPreviewLabelForResolvedTarget({
+  resolvedTarget,
+  loggedSetCount,
+  targetSetsMin,
+  targetSetsMax,
+  fallbackWeightUnit,
+}: {
+  resolvedTarget: EffectiveSessionQuickLogTarget | null;
+  loggedSetCount: number;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
+  fallbackWeightUnit: "lbs" | "kg";
+}) {
+  return formatQuickLogPreviewLabel({
+    target: resolvedTarget?.target,
+    loggedSetCount,
+    targetSetsMin,
+    targetSetsMax,
+    fallbackWeightUnit,
+  });
+}
+
+export function resolveQuickLogFromResolvedTarget(
+  resolvedTarget: EffectiveSessionQuickLogTarget | null,
+  fallbackWeightUnit: "lbs" | "kg",
+): QuickLogResolution {
+  if (!resolvedTarget) {
+    return { ok: false, reason: "No goal, next, last, or best quick log target is available." };
+  }
+
+  return resolveQuickLogFromTarget(resolvedTarget.target, fallbackWeightUnit);
 }
 
 export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): QuickLogResolution {

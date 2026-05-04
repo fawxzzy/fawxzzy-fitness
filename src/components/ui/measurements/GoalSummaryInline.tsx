@@ -13,6 +13,7 @@ export function GoalSummaryInline({
     sets?: number | null;
     reps?: number | null;
     repsMax?: number | null;
+    failure?: boolean;
     weight?: number | null;
     weightUnit?: string | null;
     durationSeconds?: number | null;

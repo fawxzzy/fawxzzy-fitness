@@ -35,7 +35,7 @@ test("planned target wins when no history exists", () => {
   });
 
   assert.equal(hint.source, "planned_target");
-  assert.equal(hint.shortLabel, "135 lb x 8");
+  assert.equal(hint.shortLabel, "135 lbs x 8");
   assert.match(hint.reason, /planned target/i);
 });
 
@@ -52,8 +52,10 @@ test("last completed performance is used when no plan exists", () => {
   });
 
   assert.equal(hint.source, "last_performance");
-  assert.equal(hint.shortLabel, "Repeat 185 lb x 5");
-  assert.equal(hint.lastSummary, "185 lb x 5");
+  assert.equal(hint.shortLabel, "Repeat 185 lbs x 5");
+  assert.equal(hint.lastSummary, "185 lbs x 5");
+  assert.equal(hint.lastSuggestedValues?.weight, 185);
+  assert.equal(hint.lastSuggestedValues?.reps, 5);
 });
 
 test("planned target remains primary when recent best exists", () => {
@@ -77,8 +79,10 @@ test("planned target remains primary when recent best exists", () => {
   });
 
   assert.equal(hint.source, "planned_target");
-  assert.equal(hint.shortLabel, "190 lb x 6");
-  assert.equal(hint.recentBestSummary, "195 lb x 5");
+  assert.equal(hint.shortLabel, "190 lbs x 6");
+  assert.equal(hint.recentBestSummary, "195 lbs x 5");
+  assert.equal(hint.recentBestSuggestedValues?.weight, 195);
+  assert.equal(hint.recentBestSuggestedValues?.reps, 5);
 });
 
 test("bodyweight history preserves reps-only summaries", () => {

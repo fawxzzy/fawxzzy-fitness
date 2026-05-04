@@ -25,11 +25,29 @@ test("bodyweight prescription is valid with sets + reps", () => {
     sets: "4",
     repsMin: "10",
     repsMax: "",
+    failure: false,
     weight: "",
     duration: "",
     distance: "",
     calories: "",
     measurementSelections: new Set(["reps"]),
+  });
+
+  assert.equal(result.isValid, true);
+});
+
+test("strength prescription accepts failure mode without reps", () => {
+  const result = validateGoalConfiguration({
+    modality: "strength",
+    sets: "3",
+    repsMin: "",
+    repsMax: "",
+    failure: true,
+    weight: "100",
+    duration: "",
+    distance: "",
+    calories: "",
+    measurementSelections: new Set(["reps", "weight"]),
   });
 
   assert.equal(result.isValid, true);

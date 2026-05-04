@@ -40,3 +40,62 @@ test("deriveSessionRowState keeps quick log label and partial chips from one con
   assert.equal(state.quickLogActionIntent, "neutral");
   assert.equal(state.quickLogLabel, "Log: 8 reps • 95 lbs");
 });
+
+test("deriveSessionRowState falls back quick log label from next, then last, then best", () => {
+  const nextState = deriveSessionRowState({
+    loggedSetCount: 0,
+    isSkipped: false,
+    quickLogNextTarget: {
+      measurementType: "reps",
+      repsMin: 6,
+      weightMin: 135,
+      weightUnit: "lbs",
+    },
+    quickLogLastTarget: {
+      measurementType: "reps",
+      repsMin: 5,
+      weightMin: 130,
+      weightUnit: "lbs",
+    },
+    fallbackWeightUnit: "lbs",
+  });
+  assert.equal(nextState.quickLogLabel, "Log: 6 reps • 135 lbs");
+
+  const lastState = deriveSessionRowState({
+    loggedSetCount: 0,
+    isSkipped: false,
+    quickLogNextTarget: {
+      measurementType: "reps",
+      repsMin: 0,
+      weightMin: 0,
+      weightUnit: "lbs",
+    },
+    quickLogLastTarget: {
+      measurementType: "reps",
+      repsMin: 5,
+      weightMin: 130,
+      weightUnit: "lbs",
+    },
+    quickLogBestTarget: {
+      measurementType: "reps",
+      repsMin: 4,
+      weightMin: 140,
+      weightUnit: "lbs",
+    },
+    fallbackWeightUnit: "lbs",
+  });
+  assert.equal(lastState.quickLogLabel, "Log: 5 reps • 130 lbs");
+
+  const bestState = deriveSessionRowState({
+    loggedSetCount: 0,
+    isSkipped: false,
+    quickLogBestTarget: {
+      measurementType: "reps",
+      repsMin: 4,
+      weightMin: 140,
+      weightUnit: "lbs",
+    },
+    fallbackWeightUnit: "lbs",
+  });
+  assert.equal(bestState.quickLogLabel, "Log: 4 reps • 140 lbs");
+});

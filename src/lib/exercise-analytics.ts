@@ -17,7 +17,7 @@ function formatDurationShort(seconds: number) {
 }
 
 function normalizeUnit(unit: string | null | undefined) {
-  if (unit === "lb" || unit === "lbs") return "lb";
+  if (unit === "lb" || unit === "lbs") return "lbs";
   if (unit === "kg") return "kg";
   return "";
 }

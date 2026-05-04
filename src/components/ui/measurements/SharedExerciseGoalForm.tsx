@@ -10,6 +10,7 @@ export function inferGoalModeFromState(state: ExerciseGoalFormState): GoalModali
   const selections = deriveGoalMeasurementSelections("cardio_time_distance", {
     repsMin: state.repsMin,
     repsMax: state.repsMax,
+    failure: state.failure,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
@@ -83,6 +84,7 @@ export function SharedExerciseGoalForm({
               onStateChange({
                 ...state,
                 measurements: getDefaultMeasurementsForGoalModality(nextMode),
+                failure: false,
                 duration: nextMode === "cardio_distance" ? "" : state.duration,
                 distance: nextMode === "cardio_time" ? "" : state.distance,
               });

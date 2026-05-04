@@ -354,7 +354,7 @@ function buildExerciseInfoWeightTrendMetric(args: {
   const zeroWeightLabel = normalizedUnit === "kg"
     ? "0 kg"
     : normalizedUnit === "lb" || normalizedUnit === "lbs"
-      ? "0 lb"
+      ? "0 lbs"
       : "0";
 
   if (latestWeight === previousWeight) {

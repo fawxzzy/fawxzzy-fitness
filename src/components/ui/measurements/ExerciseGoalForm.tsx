@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
+import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
+import { selectionChromeStyle } from "@/components/ui/selectionChromeStyle";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
@@ -13,6 +15,7 @@ export type ExerciseGoalFormState = {
   sets: string;
   repsMin: string;
   repsMax: string;
+  failure: boolean;
   weight: string;
   duration: string;
   distance: string;
@@ -55,7 +58,7 @@ export function ExerciseGoalForm({
   modality: GoalModality;
   state: ExerciseGoalFormState;
   onStateChange: (next: ExerciseGoalFormState) => void;
-  names: Partial<Record<"sets" | "repsMin" | "repsMax" | "weight" | "duration" | "distance" | "calories" | "weightUnit" | "distanceUnit", string>>;
+  names: Partial<Record<"sets" | "repsMin" | "repsMax" | "failure" | "weight" | "duration" | "distance" | "calories" | "weightUnit" | "distanceUnit", string>>;
   includeSetsInSummary?: boolean;
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
@@ -74,17 +77,29 @@ export function ExerciseGoalForm({
     () => visibleMetricOrder ?? getGoalMeasurementOrder(modality),
     [modality, visibleMetricOrder],
   );
+  const supportsFailure = modality === "strength" || modality === "bodyweight";
+  const isFailureMode = supportsFailure && state.failure;
   const derivedSelections = useMemo(() => deriveGoalMeasurementSelections(modality, {
     repsMin: state.repsMin,
     repsMax: state.repsMax,
+    failure: isFailureMode,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
     calories: state.calories,
-  }), [modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.weight]);
+  }), [isFailureMode, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.weight]);
+
+  const resolvedVisibleMetrics = useMemo(() => {
+    const baseMetrics = visibleMetrics ?? resolvedMetricOrder;
+    if (!isFailureMode) {
+      return baseMetrics;
+    }
+
+    return baseMetrics.filter((metric) => metric !== "reps");
+  }, [isFailureMode, resolvedMetricOrder, visibleMetrics]);
 
   const activeMetrics = {
-    reps: derivedSelections.includes("reps"),
+    reps: !isFailureMode && derivedSelections.includes("reps"),
     weight: derivedSelections.includes("weight"),
     time: derivedSelections.includes("time"),
     distance: derivedSelections.includes("distance"),
@@ -96,12 +111,13 @@ export function ExerciseGoalForm({
     sets: state.sets,
     repsMin: state.repsMin,
     repsMax: state.repsMax,
+    failure: isFailureMode,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
     calories: state.calories,
     measurementSelections: new Set(derivedSelections),
-  }), [derivedSelections, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.sets, state.weight]);
+  }), [derivedSelections, isFailureMode, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.sets, state.weight]);
 
   const summaryValues = sanitizeEnabledMeasurementValues(activeMetrics, {
     reps: state.repsMin ? Number(state.repsMin) : null,
@@ -116,6 +132,7 @@ export function ExerciseGoalForm({
   return (
     <div className={stackClassName}>
       {derivedSelections.map((metric) => <input key={`selected-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
+      {names.failure ? <input type="hidden" name={names.failure} value={isFailureMode ? "true" : "false"} /> : null}
       <MeasurementConfigurator
         values={{
           reps: state.repsMin,
@@ -155,9 +172,43 @@ export function ExerciseGoalForm({
         showHeader={false}
         footerContent={footerContent}
         footerClassName={footerClassName}
+        auxiliaryFields={supportsFailure ? [{
+          title: "Failure",
+          input: null,
+          inlineLabel: "",
+          useInlineFieldShell: false,
+          hasValue: isFailureMode,
+          labelClassName: "hidden",
+          valueLabelClassName: "hidden",
+          renderInput: ({ inputClassName }) => (
+            <button
+              type="button"
+              className={cn(
+                ACTION_CHROME_CONTROL_CLASS_NAME,
+                inputClassName,
+                "flex !h-11 !min-h-11 w-full translate-y-[2px] flex-col items-center justify-center !rounded-[1rem] !border-0 !bg-transparent !px-3 !py-2 text-center leading-none !shadow-none focus-visible:ring-[var(--button-focus-ring)]",
+              )}
+              data-action-chrome-intent="ghost"
+              style={{
+                ...selectionChromeStyle,
+                "--action-chrome-text-color": isFailureMode
+                  ? "rgb(var(--text-primary) / 0.96)"
+                  : "rgb(var(--text-muted) / 0.92)",
+              } as CSSProperties}
+              aria-pressed={isFailureMode}
+              aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+              onClick={() => onStateChange({
+                ...state,
+                failure: !isFailureMode,
+              })}
+            >
+              <span className="text-xs font-semibold uppercase tracking-[0.06em]">Failure</span>
+            </button>
+          ),
+        }] : undefined}
         repRangeLabels={{ min: "MIN REPS", max: "MAX REPS" }}
         metricOrder={resolvedMetricOrder}
-        visibleMetrics={visibleMetrics}
+        visibleMetrics={resolvedVisibleMetrics}
         layoutMode={measurementLayoutMode}
         labelTreatment="floating-border"
         topField={{
@@ -189,7 +240,9 @@ export function ExerciseGoalForm({
           values={{
             ...summaryValues,
             sets: state.sets ? Number(state.sets) : null,
-            repsMax: activeMetrics.reps && state.repsMax ? Number(state.repsMax) : null,
+            reps: isFailureMode ? 0 : summaryValues.reps,
+            repsMax: isFailureMode ? 0 : (activeMetrics.reps && state.repsMax ? Number(state.repsMax) : null),
+            failure: isFailureMode,
             weightUnit: state.weightUnit,
             distanceUnit: state.distanceUnit,
             emptyLabel: emptySummaryLabel,

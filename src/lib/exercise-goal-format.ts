@@ -1,5 +1,6 @@
 import type { RoutineDayExerciseRow } from "@/types/db";
 import { formatGoalSummaryItems } from "./measurement-display";
+import { isFailureGoalSelection } from "./exercise-goal-validation";
 
 type GoalFields = Pick<
   RoutineDayExerciseRow,
@@ -27,6 +28,7 @@ export type ExerciseGoalSummaryFields = {
   sets?: number | null;
   reps?: number | null;
   repsMax?: number | null;
+  failure?: boolean;
   weight?: number | null;
   weightUnit?: string | null;
   durationSeconds?: number | null;
@@ -42,6 +44,7 @@ export function formatExerciseGoalSummary(goal: ExerciseGoalSummaryFields) {
     sets: goal.sets,
     reps: goal.reps,
     repsMax: goal.repsMax,
+    failure: goal.failure,
     weight: goal.weight,
     weightUnit: goal.weightUnit ?? "lbs",
     durationSeconds: goal.durationSeconds,
@@ -66,6 +69,10 @@ export function formatExerciseGoal(goal: GoalFields) {
     sets: goal.target_sets,
     reps: goal.target_reps_min ?? goal.target_reps,
     repsMax: goal.target_reps_max ?? goal.target_reps,
+    failure: isFailureGoalSelection({
+      repsMin: goal.target_reps_min ?? goal.target_reps,
+      repsMax: goal.target_reps_max ?? goal.target_reps,
+    }),
     weight: goal.target_weight,
     weightUnit: goal.target_weight_unit ?? "lbs",
     durationSeconds: goal.target_duration_seconds,

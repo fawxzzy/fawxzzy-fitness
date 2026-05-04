@@ -66,10 +66,6 @@ function formatRangeValue(minValue: number | undefined, maxValue: number | undef
 }
 
 function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {
-  if (unit === "lbs") {
-    return "lb";
-  }
-
   return unit;
 }
 

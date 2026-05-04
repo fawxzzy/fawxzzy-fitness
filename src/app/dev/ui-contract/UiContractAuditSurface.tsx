@@ -139,7 +139,7 @@ export function UiContractAuditSurface() {
           <div className="space-y-2">
             <p className="text-sm text-[rgb(var(--text)/0.9)]">{uiContractFixtures.editDayInlineEditor.subtitle}</p>
             <MeasurementSummary
-              values={{ reps: 12, weight: 35, weightUnit: "lb", durationSeconds: null, distance: null, distanceUnit: "mi", calories: null }}
+                values={{ reps: 12, weight: 35, weightUnit: "lbs", durationSeconds: null, distance: null, distanceUnit: "mi", calories: null }}
             />
           </div>
         </FormSectionCard>

@@ -11,6 +11,7 @@ export type GoalValidationInput = {
   sets: string;
   repsMin: string;
   repsMax: string;
+  failure?: boolean;
   weight: string;
   duration: string;
   distance: string;
@@ -21,6 +22,7 @@ export type GoalValidationInput = {
 type GoalMeasurementValueInputs = {
   repsMin: string;
   repsMax?: string;
+  failure?: boolean;
   weight: string;
   duration: string;
   distance: string;
@@ -98,6 +100,49 @@ function parseInteger(value: string) {
 
 function hasNonEmptyValue(value: string) {
   return value.trim().length > 0;
+}
+
+function isFailureRepTarget({
+  repsMin,
+  repsMax,
+  failure = false,
+}: {
+  repsMin: string | number | null | undefined;
+  repsMax?: string | number | null | undefined;
+  failure?: boolean;
+}) {
+  if (failure) {
+    return true;
+  }
+
+  const normalizeFailureValue = (value: string | number | null | undefined) => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value !== "string") {
+      return value ?? null;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "";
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : trimmed;
+  };
+
+  const normalizedMin = normalizeFailureValue(repsMin);
+  const normalizedMax = normalizeFailureValue(repsMax);
+  return normalizedMin === 0 && (normalizedMax === 0 || normalizedMax === "" || normalizedMax === null || normalizedMax === undefined);
+}
+
+export function isFailureGoalSelection(values: {
+  repsMin: string | number | null | undefined;
+  repsMax?: string | number | null | undefined;
+  failure?: boolean;
+}) {
+  return isFailureRepTarget(values);
 }
 
 function parsePositiveNumber(value: string) {
@@ -206,7 +251,7 @@ export function deriveGoalMeasurementSelections(
   values: GoalMeasurementValueInputs,
 ): MeasurementSelection[] {
   const present = new Set<MeasurementSelection>();
-  if (hasNonEmptyValue(values.repsMin) || hasNonEmptyValue(values.repsMax ?? "")) present.add("reps");
+  if (isFailureRepTarget(values) || hasNonEmptyValue(values.repsMin) || hasNonEmptyValue(values.repsMax ?? "")) present.add("reps");
   if (hasNonEmptyValue(values.weight)) present.add("weight");
   if (hasNonEmptyValue(values.duration)) present.add("time");
   if (hasNonEmptyValue(values.distance)) present.add("distance");
@@ -225,25 +270,30 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
     };
   }
 
-  const repsMin = parseInteger(input.repsMin);
-  const repsMax = parseInteger(input.repsMax);
+  const isFailureTarget = isFailureRepTarget({
+    repsMin: input.repsMin,
+    repsMax: input.repsMax,
+    failure: input.failure,
+  });
+  const repsMin = isFailureTarget ? 0 : parseInteger(input.repsMin);
+  const repsMax = isFailureTarget ? 0 : parseInteger(input.repsMax);
   const weight = parsePositiveNumber(input.weight);
   const duration = parseDurationSeconds(input.duration);
   const distance = parsePositiveNumber(input.distance);
 
-  if (repsMin !== null && (!Number.isInteger(repsMin) || repsMin < 1)) {
+  if (!isFailureTarget && repsMin !== null && (!Number.isInteger(repsMin) || repsMin < 1)) {
     return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (repsMax !== null && (!Number.isInteger(repsMax) || repsMax < 1)) {
+  if (!isFailureTarget && repsMax !== null && (!Number.isInteger(repsMax) || repsMax < 1)) {
     return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (repsMax !== null && repsMin === null) {
+  if (!isFailureTarget && repsMax !== null && repsMin === null) {
     return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (repsMin !== null && repsMax !== null && repsMin > repsMax) {
+  if (!isFailureTarget && repsMin !== null && repsMax !== null && repsMin > repsMax) {
     return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
   }
 

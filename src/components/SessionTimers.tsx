@@ -22,7 +22,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { SignatureInlineList, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
 import { selectionChromeStyle } from "@/components/ui/selectionChromeStyle";
@@ -106,6 +106,51 @@ function toDisplaySet(set: SetRow): DisplaySet {
     ...set,
     stableId: resolveStableSetId(set),
   };
+}
+
+function formatHistorySummary(summary: string | null, performedAtLabel: string | null) {
+  if (!summary) {
+    return {
+      items: [] as string[],
+      dateLabel: null as string | null,
+    };
+  }
+
+  const weightAndRepsMatch = summary.match(/^(.+?)\s+x\s+(\d+(?:\.\d+)?)$/i);
+  if (weightAndRepsMatch) {
+    const [, weightLabel, repsLabel] = weightAndRepsMatch;
+    return {
+      items: [
+        `${repsLabel} reps`,
+        weightLabel.trim(),
+      ],
+      dateLabel: performedAtLabel,
+    };
+  }
+
+  return {
+    items: [summary],
+    dateLabel: performedAtLabel,
+  };
+}
+
+function formatSuggestedHistoryItems(values: SessionTargetHint["suggestedValues"] | null | undefined) {
+  if (!values) {
+    return [];
+  }
+
+  return formatMeasurementSummaryItems({
+    reps: values.reps,
+    weight: values.weight,
+    weightUnit: values.weightUnit,
+    durationSeconds: values.durationSeconds,
+    distance: values.distance,
+    distanceUnit: values.distanceUnit,
+    calories: values.calories,
+    emptyLabel: "",
+  })
+    .map((item) => item.label)
+    .filter(Boolean);
 }
 
 function getSessionSummaryItems({
@@ -886,6 +931,24 @@ export function SetLoggerCard({
     [resolvedIsWarmup, sets.length, useIntervalLanguage],
   );
 
+  const applyHintValues = useCallback((values: SessionTargetHint["suggestedValues"] | null | undefined) => {
+    if (!values) return;
+
+    setWeight(values.weight !== null ? String(values.weight) : "");
+    setReps(values.reps !== null ? String(values.reps) : "");
+    setDurationInput(values.durationSeconds !== null ? formatDurationClock(values.durationSeconds) : "");
+    setDistance(values.distance !== null ? String(values.distance) : "");
+    if (values.distanceUnit === "mi" || values.distanceUnit === "km" || values.distanceUnit === "m") {
+      setDistanceUnit(values.distanceUnit);
+    }
+    setCalories(values.calories !== null ? String(values.calories) : "");
+    if (values.weightUnit === "kg" || values.weightUnit === "lbs") {
+      setSelectedWeightUnit(values.weightUnit);
+    }
+    setError(null);
+    toast.success("Applied to current set.");
+  }, [toast]);
+
 
   async function handleDeleteSet(set: DisplaySet) {
     if (set.pending || set.queueStatus) {
@@ -959,58 +1022,31 @@ export function SetLoggerCard({
     </div>
   );
 
-  const contextRows = [
-    targetHint.lastSummary
-      ? `Last time: ${targetHint.lastSummary}${targetHint.lastPerformedAtLabel ? ` • ${targetHint.lastPerformedAtLabel}` : ""}`
-      : null,
-    targetHint.recentBestSummary && targetHint.recentBestSummary !== targetHint.lastSummary
-      ? `Recent best: ${targetHint.recentBestSummary}${targetHint.recentBestPerformedAtLabel ? ` • ${targetHint.recentBestPerformedAtLabel}` : ""}`
-      : null,
-  ].filter((value): value is string => Boolean(value));
-
-  const targetHintSourceLabel = targetHint.source === "planned_target"
-    ? "Planned"
-    : targetHint.source === "last_performance"
-      ? "Last time"
-      : targetHint.source === "recent_best"
-        ? "Recent best"
-        : "New";
-
-  const targetHintPanel = (
-    <div
-      data-testid="session-target-hint"
-      className="mb-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.58)] px-3.5 py-3"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.88)]">
-            Next target
-          </p>
-          <p className="mt-1 text-[0.96rem] font-semibold leading-[1.25] text-[rgb(var(--text-primary)/0.98)]">
-            {targetHint.shortLabel}
-          </p>
-        </div>
-        <span className="rounded-full border border-[rgb(var(--border-strong)/0.16)] px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.9)]">
-          {targetHintSourceLabel}
-        </span>
-      </div>
-      <p className="mt-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">
-        {targetHint.reason}
-      </p>
-      {contextRows.length > 0 ? (
-        <div className="mt-2 space-y-1">
-          {contextRows.map((row) => (
-            <p
-              key={row}
-              className="text-[0.76rem] leading-5 text-[rgb(var(--text-muted)/0.92)]"
-            >
-              {row}
-            </p>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
+  const nextHistoryItems = formatSuggestedHistoryItems(targetHint.suggestedValues);
+  const historyRows = [
+    targetHint.lastSummary ? {
+      key: "last-time",
+      label: "Last",
+      showPipe: true,
+      applyValues: targetHint.lastSuggestedValues,
+      ...formatHistorySummary(targetHint.lastSummary, targetHint.lastPerformedAtLabel),
+    } : null,
+    targetHint.recentBestSummary && targetHint.recentBestSummary !== targetHint.lastSummary ? {
+      key: "recent-best",
+      label: "Best",
+      showPipe: true,
+      applyValues: targetHint.recentBestSuggestedValues,
+      ...formatHistorySummary(targetHint.recentBestSummary, targetHint.recentBestPerformedAtLabel),
+    } : null,
+    nextHistoryItems.length > 0 ? {
+      key: "next",
+      label: "Next",
+      showPipe: true,
+      items: nextHistoryItems,
+      dateLabel: null,
+      applyValues: targetHint.suggestedValues,
+    } : null,
+  ].filter((value): value is { key: string; label: string; showPipe: boolean; items: string[]; dateLabel: string | null; applyValues: SessionTargetHint["suggestedValues"] | null } => value !== null && value.items.length > 0);
 
   const loggedSetList = sets.length > 0 ? (
     <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
@@ -1092,11 +1128,10 @@ export function SetLoggerCard({
         className={cn(
           appTokens.currentSessionLoggerPanel,
           measurementDockSurfaceClassName,
-          "sticky bottom-[calc(var(--bottom-actions-height,0px)+0.625rem)] z-20 mt-auto shadow-[0_-12px_28px_rgba(2,8,16,0.2)] pt-2.5",
+          "sticky bottom-[calc(var(--bottom-actions-height,0px)+0.35rem)] z-20 mt-auto shadow-[0_-12px_28px_rgba(2,8,16,0.2)] pt-2.5 pb-2",
         )}
         contentClassName="space-y-0"
       >
-        {targetHintPanel}
         <MeasurementPanelV2
           values={{
             reps,
@@ -1168,6 +1203,69 @@ export function SetLoggerCard({
           onRpeChange={setRpe}
           footerContent={currentSummary}
         />
+        {historyRows.length > 0 ? (
+          <div className="mt-1.5 space-y-1.5">
+            {historyRows.map((row, index) => (
+              <div key={row.key} className="space-y-1.5">
+                <MeasurementDockSummary
+                  className={cn(
+                    appTokens.currentSessionLoggerSummaryCard,
+                    "border-0 bg-transparent px-0 py-0 shadow-none transition-all duration-200 ease-out",
+                  )}
+                  lead={(
+                    <div className={cn(appTokens.currentSessionLoggerSummaryText, "inline-flex items-center gap-x-2 text-[14px] leading-[1.25] transition-all duration-200 ease-out")}>
+                      <span className={cn(appTokens.currentSessionSetSummaryLabel, "shrink-0")}>{row.label}</span>
+                      {row.showPipe ? <SignatureMiniPipe /> : null}
+                      {row.dateLabel ? (
+                        <SignatureMetaTag className="shrink-0 text-[10.5px] tracking-[0.14em]">
+                          {row.dateLabel.toUpperCase()}
+                        </SignatureMetaTag>
+                      ) : null}
+                    </div>
+                  )}
+                  summary={(
+                    <SignatureInlineList
+                      items={row.items}
+                      separator="dot"
+                      className={cn(
+                        appTokens.currentSessionLoggerSummaryText,
+                        "justify-center whitespace-normal break-words text-center text-[14px] leading-[1.25] transition-all duration-200 ease-out",
+                      )}
+                    />
+                  )}
+                  trailing={(
+                    <div className="flex shrink-0 items-center gap-2 pl-2">
+                      {row.applyValues ? (
+                        <button
+                          type="button"
+                          onClick={() => applyHintValues(row.applyValues)}
+                          className={cn(
+                            getBottomActionButtonClassName({
+                              intent: "info",
+                              fullWidth: false,
+                              className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
+                            }),
+                            "shrink-0 self-center",
+                            tapFeedbackClass,
+                          )}
+                        >
+                          <span className="bottom-action__label">Apply</span>
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                />
+                {index === historyRows.length - 1 ? (
+                  <div className="pb-0.5">
+                    <div className="w-full opacity-85">
+                      <div className="h-px w-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))]" />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
         {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
       </WorkoutEntrySection>
 

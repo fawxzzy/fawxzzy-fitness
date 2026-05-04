@@ -1,5 +1,11 @@
 const DEFAULT_LOCALE = "en-US";
 
+export function normalizeWeightDisplayUnit(unit?: string | null): "lbs" | "kg" | null {
+  if (unit === "lb" || unit === "lbs") return "lbs";
+  if (unit === "kg") return "kg";
+  return null;
+}
+
 export function formatDurationShort(seconds?: number | null): string | null {
   if (!Number.isFinite(seconds ?? null) || (seconds ?? 0) <= 0) return null;
   const safe = Math.max(0, Math.floor(seconds as number));
@@ -24,7 +30,7 @@ function formatNumber(value: number): string {
 
 export function formatWeight(value?: number | null, unit?: string | null): string | null {
   if (!Number.isFinite(value ?? null) || (value ?? 0) <= 0) return null;
-  const normalizedUnit = unit === "lb" || unit === "lbs" ? "lb" : unit === "kg" ? "kg" : null;
+  const normalizedUnit = normalizeWeightDisplayUnit(unit);
   return normalizedUnit ? `${formatNumber(value as number)} ${normalizedUnit}` : formatNumber(value as number);
 }
 

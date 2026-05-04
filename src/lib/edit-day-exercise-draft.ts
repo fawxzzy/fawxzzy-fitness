@@ -1,6 +1,6 @@
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { formatDurationPreview } from "@/lib/duration";
-import { deriveGoalMeasurementSelections, type GoalModality } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, isFailureGoalSelection, type GoalModality } from "@/lib/exercise-goal-validation";
 
 export type EditDayExerciseDefaults = {
   targetSets?: number | null;
@@ -77,6 +77,7 @@ function formatDraftSummary(values: {
   sets: number | null;
   reps: number | null;
   repsMax: number | null;
+  failure: boolean;
   weight: number | null;
   weightUnit: "lbs" | "kg";
   durationSeconds: number | null;
@@ -86,7 +87,7 @@ function formatDraftSummary(values: {
 }) {
   const parts = [
     formatSetCountLabel(values.sets),
-    formatRepRange(values.reps, values.repsMax),
+    values.failure ? "Failure" : formatRepRange(values.reps, values.repsMax),
     Number.isFinite(values.weight) && (values.weight ?? 0) > 0 ? `${formatNumber(values.weight as number)} ${values.weightUnit}` : null,
     Number.isFinite(values.durationSeconds) && (values.durationSeconds ?? 0) > 0
       ? formatDurationPreview(values.durationSeconds as number)
@@ -120,11 +121,17 @@ export function createEditDayExerciseDraft({
   orderNumber: number;
   modality: GoalModality;
 }): EditDayExerciseDraft {
+  const failure = isFailureGoalSelection({
+    repsMin: defaults.targetRepsMin ?? defaults.targetReps,
+    repsMax: defaults.targetRepsMax ?? defaults.targetReps,
+  });
+
   return {
     goalState: {
       sets: String(defaults.targetSets ?? 1),
-      repsMin: String(defaults.targetRepsMin ?? defaults.targetReps ?? ""),
-      repsMax: String(defaults.targetRepsMax ?? ""),
+      repsMin: failure ? "" : String(defaults.targetRepsMin ?? defaults.targetReps ?? ""),
+      repsMax: failure ? "" : String(defaults.targetRepsMax ?? ""),
+      failure,
       weight: String(defaults.targetWeight ?? ""),
       duration: formatDuration(defaults.targetDurationSeconds),
       distance: String(defaults.targetDistance ?? ""),
@@ -132,7 +139,7 @@ export function createEditDayExerciseDraft({
       weightUnit: defaults.targetWeightUnit ?? weightUnit,
       distanceUnit: defaults.targetDistanceUnit ?? distanceUnit,
       measurements: [
-        ...(defaults.targetRepsMin != null || defaults.targetRepsMax != null || defaults.targetReps != null ? ["reps" as const] : []),
+        ...(failure || defaults.targetRepsMin != null || defaults.targetRepsMax != null || defaults.targetReps != null ? ["reps" as const] : []),
         ...(defaults.targetWeight != null ? ["weight" as const] : []),
         ...(defaults.targetDurationSeconds != null ? ["time" as const] : []),
         ...(defaults.targetDistance != null ? ["distance" as const] : []),
@@ -148,6 +155,7 @@ export function formatEditDayExerciseDraftSummary(draft: EditDayExerciseDraft) {
   const measurementSelections = new Set(deriveGoalMeasurementSelections(draft.modality, {
     repsMin: draft.goalState.repsMin,
     repsMax: draft.goalState.repsMax,
+    failure: draft.goalState.failure,
     weight: draft.goalState.weight,
     duration: draft.goalState.duration,
     distance: draft.goalState.distance,
@@ -156,8 +164,9 @@ export function formatEditDayExerciseDraftSummary(draft: EditDayExerciseDraft) {
 
   return formatDraftSummary({
     sets: parseOptionalNumber(draft.goalState.sets),
-    reps: measurementSelections.has("reps") ? parseOptionalNumber(draft.goalState.repsMin) : null,
-    repsMax: measurementSelections.has("reps") ? parseOptionalNumber(draft.goalState.repsMax) : null,
+    reps: draft.goalState.failure ? 0 : (measurementSelections.has("reps") ? parseOptionalNumber(draft.goalState.repsMin) : null),
+    repsMax: draft.goalState.failure ? 0 : (measurementSelections.has("reps") ? parseOptionalNumber(draft.goalState.repsMax) : null),
+    failure: draft.goalState.failure,
     weight: measurementSelections.has("weight") ? parseOptionalNumber(draft.goalState.weight) : null,
     durationSeconds: measurementSelections.has("time") ? parseDurationInput(draft.goalState.duration) : null,
     distance: measurementSelections.has("distance") ? parseOptionalNumber(draft.goalState.distance) : null,

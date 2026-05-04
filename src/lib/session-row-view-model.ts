@@ -10,6 +10,9 @@ type SessionRowBaseInput = {
   targetSetsMin?: number | null;
   targetSetsMax?: number | null;
   quickLogTarget?: SessionQuickLogTarget;
+  quickLogNextTarget?: SessionQuickLogTarget;
+  quickLogLastTarget?: SessionQuickLogTarget;
+  quickLogBestTarget?: SessionQuickLogTarget;
   fallbackWeightUnit: "lbs" | "kg";
 };
 
@@ -25,6 +28,9 @@ export function deriveSessionExerciseRowViewModel(input: SessionRowBaseInput): S
     targetSetsMin: input.targetSetsMin,
     targetSetsMax: input.targetSetsMax,
     quickLogTarget: input.quickLogTarget,
+    quickLogNextTarget: input.quickLogNextTarget,
+    quickLogLastTarget: input.quickLogLastTarget,
+    quickLogBestTarget: input.quickLogBestTarget,
     fallbackWeightUnit: input.fallbackWeightUnit,
   });
 

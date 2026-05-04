@@ -62,6 +62,22 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-04 - Active session logging should keep repeat-last-set and PR feedback inside the same logger
+- Type: Pattern
+- Summary: The active session logger should surface the last completed set inline, offer a one-tap repeat action, and announce simple PRs on save before asking the user to leave the logging workspace.
+- Suggested Playbook File: docs/PATTERNS/active-logging-prior-truth.md
+- Rationale: Keeps repeated logging fast and inspectable inside the same screen, so prior truth stays visible while the user is still in the set-entry loop.
+- Evidence: src/components/SessionTimers.tsx, src/lib/session-set-entry.ts, src/lib/session-target-hints.ts
+- Status: Proposed
+## 2026-05-04 - Human-facing member numbers must come from profile truth, not auth totals
+- Type: Guardrail
+- Summary: Public member numbers should be assigned by database-owned profile truth, while auth keeps infrastructure history for real, test, and automation accounts without using total `auth.users` as the product user count.
+- Suggested Playbook File: docs/GUARDRAILS/profile-member-number-truth.md
+- Rationale: Preserves recoverable auth history and QA accounts without letting automation consume public identity numbers or distort real-user reporting.
+- Rule: Human-facing member numbers are assigned by database truth, not client code.
+- Failure Mode: Client bootstrap or raw auth counts treat automation accounts as real members, consume numbered identity slots, or leak infrastructure counts into product analytics.
+- Evidence: supabase/migrations/044_real_user_numbers.sql, src/lib/profile-core.ts
+- Status: Proposed
 ## 2026-05-03 - Durable Supabase refresh cookies should own persistent login while JWTs stay short-lived
 - Type: Guardrail
 - Summary: Persistent login should come from a long-lived rotating refresh-token cookie plus refresh-on-boot/private-route recovery, not from extending the access JWT lifetime or treating remembered UI state as proof of auth.

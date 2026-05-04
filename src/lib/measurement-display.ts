@@ -1,4 +1,5 @@
 import { formatDurationPreview } from "./duration";
+import { normalizeWeightDisplayUnit } from "./formatting";
 import { sanitizeEnabledMeasurementValues, type EnabledMeasurements } from "./measurement-sanitization";
 
 export type MeasurementMetric = "reps" | "weight" | "time" | "distance" | "calories";
@@ -20,6 +21,7 @@ export type GoalSummaryValues = {
   sets?: number | null;
   reps?: number | null;
   repsMax?: number | null;
+  failure?: boolean;
   weight?: number | null;
   weightUnit?: string | null;
   durationSeconds?: number | null;
@@ -62,6 +64,7 @@ function formatRepRange(reps: number | null | undefined, repsMax: number | null 
 function getMetricSummaryParts(values: {
   reps?: number | null;
   repsMax?: number | null;
+  failure?: boolean;
   weight?: number | null;
   weightUnit?: string | null;
   durationSeconds?: number | null;
@@ -71,13 +74,20 @@ function getMetricSummaryParts(values: {
 }): SummaryItem[] {
   const measurementParts: SummaryItem[] = [];
 
-  const repRange = formatRepRange(values.reps, values.repsMax);
+  if (values.failure) {
+    measurementParts.push({ metric: "reps", label: "Failure" });
+  }
+
+  const repRange = values.failure ? null : formatRepRange(values.reps, values.repsMax);
   if (repRange) {
     measurementParts.push({ metric: "reps", label: repRange });
   }
 
   if (Number.isFinite(values.weight ?? null) && (values.weight ?? 0) > 0) {
-    measurementParts.push({ metric: "weight", label: `${formatNumber(values.weight as number)} ${values.weightUnit ?? "lbs"}` });
+    measurementParts.push({
+      metric: "weight",
+      label: `${formatNumber(values.weight as number)} ${normalizeWeightDisplayUnit(values.weightUnit) ?? "lbs"}`,
+    });
   }
 
   if (Number.isFinite(values.durationSeconds ?? null) && (values.durationSeconds ?? 0) > 0) {
@@ -144,6 +154,7 @@ export function formatGoalSummaryItems(values: GoalSummaryValues): GoalSummaryIt
   const sanitizedValues = getSanitizedGoalMeasurementValues(values);
   const metricSummary = getMetricSummaryParts({
     ...values,
+    failure: values.failure,
     reps: sanitizedValues.reps ?? null,
     weight: sanitizedValues.weight ?? null,
     durationSeconds: sanitizedValues.durationSeconds ?? null,

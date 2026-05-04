@@ -139,6 +139,10 @@ function parseGoalModality(value: FormDataEntryValue | null): GoalModality | nul
   return null;
 }
 
+function parseFailureFlag(value: FormDataEntryValue | null) {
+  return String(value ?? "").trim().toLowerCase() === "true";
+}
+
 
 export function mapExerciseGoalPayloadToRoutineDayColumns(payload: ParsedGoalPayload) {
   return {
@@ -222,6 +226,7 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   const targetDistanceRaw = String(formData.get("targetDistance") ?? "").trim();
   const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? "").trim();
   const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
+  const targetFailure = parseFailureFlag(formData.get("targetFailure"));
   const defaultUnit = parseDistanceUnit(formData.get("defaultUnit"));
   const explicitSelections = parseMeasurementSelections(formData);
   const modality = parseGoalModality(formData.get("goalModality"));
@@ -234,6 +239,9 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
     calories: targetCaloriesRaw,
   });
   const selections = new Set<MeasurementSelection>([...explicitSelections, ...valueSelections]);
+  if (targetFailure) {
+    selections.add("reps");
+  }
   const derivedMeasurementType = deriveMeasurementType(selections);
   const measurementType = derivedMeasurementType === "none"
     ? "none"
@@ -254,8 +262,8 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   });
 
   const targetSets = targetSetsRaw ? Number(targetSetsRaw) : null;
-  const targetRepsMin = sanitizedTargets.reps ? Number(sanitizedTargets.reps) : null;
-  const targetRepsMax = selections.has("reps") && targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
+  const targetRepsMin = targetFailure ? 0 : (sanitizedTargets.reps ? Number(sanitizedTargets.reps) : null);
+  const targetRepsMax = targetFailure ? 0 : (selections.has("reps") && targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null);
   const targetWeight = sanitizedTargets.weight ? Number(sanitizedTargets.weight) : null;
   const targetDurationSeconds = parseTargetDurationSeconds(sanitizedTargets.duration);
   const targetDistance = parseOptionalNumeric(sanitizedTargets.distance);
@@ -269,19 +277,19 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
     return { ok: false, error: getMissingGoalMeasurementMessage("sets") };
   }
 
-  if (targetRepsMin !== null && (!Number.isInteger(targetRepsMin) || targetRepsMin < 1)) {
+  if (!targetFailure && targetRepsMin !== null && (!Number.isInteger(targetRepsMin) || targetRepsMin < 1)) {
     return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (targetRepsMax !== null && (!Number.isInteger(targetRepsMax) || targetRepsMax < 1)) {
+  if (!targetFailure && targetRepsMax !== null && (!Number.isInteger(targetRepsMax) || targetRepsMax < 1)) {
     return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (targetRepsMax !== null && targetRepsMin === null) {
+  if (!targetFailure && targetRepsMax !== null && targetRepsMin === null) {
     return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (targetRepsMin !== null && targetRepsMax !== null && targetRepsMin > targetRepsMax) {
+  if (!targetFailure && targetRepsMin !== null && targetRepsMax !== null && targetRepsMin > targetRepsMax) {
     return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
   }
 
@@ -313,7 +321,7 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
     switch (modality) {
     case "bodyweight":
     case "strength":
-      if (targetRepsMin === null) {
+      if (!targetFailure && targetRepsMin === null) {
         return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
       }
       break;

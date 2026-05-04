@@ -36,9 +36,11 @@ export type SessionTargetHint = {
   confidence: "high" | "medium" | "low";
   suggestedValues: SessionTargetHintSuggestedValues;
   lastSummary: string | null;
+  lastSuggestedValues: SessionTargetHintSuggestedValues | null;
   lastPerformedAt: string | null;
   lastPerformedAtLabel: string | null;
   recentBestSummary: string | null;
+  recentBestSuggestedValues: SessionTargetHintSuggestedValues | null;
   recentBestPerformedAt: string | null;
   recentBestPerformedAtLabel: string | null;
 };
@@ -167,6 +169,32 @@ function buildSuggestedValuesFromLastPerformance(
   };
 }
 
+function buildSuggestedValuesFromRecentBest(
+  measurementType: SessionTargetHintMeasurementType,
+  stats: ExerciseStatsRow,
+  fallbackWeightUnit: "lbs" | "kg",
+): SessionTargetHintSuggestedValues | null {
+  const hasWeight = isPositiveNumber(stats.actual_pr_weight);
+  const hasReps = isPositiveNumber(stats.actual_pr_reps);
+
+  if (!hasWeight && !hasReps) {
+    return null;
+  }
+
+  return {
+    measurementType,
+    weight: hasWeight ? stats.actual_pr_weight : null,
+    reps: hasReps ? stats.actual_pr_reps : null,
+    durationSeconds: null,
+    distance: null,
+    distanceUnit: null,
+    calories: null,
+    weightUnit: (stats.last_unit === "kg" || stats.last_unit === "lb" || stats.last_unit === "lbs")
+      ? (stats.last_unit === "kg" ? "kg" : "lbs")
+      : fallbackWeightUnit,
+  };
+}
+
 function buildFallbackValues(
   measurementType: SessionTargetHintMeasurementType,
   fallbackWeightUnit: "lbs" | "kg",
@@ -193,6 +221,8 @@ export function deriveSessionTargetHint(args: {
   const plannedSummary = plan ? formatPlannedSummary(plan, fallbackWeightUnit) : null;
   const lastSummary = formatLastSummary(measurementType, stats, fallbackWeightUnit);
   const recentBestSummary = formatRecentBestSummary(measurementType, stats, fallbackWeightUnit);
+  const lastSuggestedValues = stats ? buildSuggestedValuesFromLastPerformance(measurementType, stats, fallbackWeightUnit) : null;
+  const recentBestSuggestedValues = stats ? buildSuggestedValuesFromRecentBest(measurementType, stats, fallbackWeightUnit) : null;
   const lastPerformedAt = stats?.last_performed_at ?? null;
   const recentBestPerformedAt = stats?.actual_pr_at ?? null;
 
@@ -206,9 +236,11 @@ export function deriveSessionTargetHint(args: {
       confidence: "high",
       suggestedValues: buildSuggestedValuesFromPlan(plan, fallbackWeightUnit),
       lastSummary,
+      lastSuggestedValues,
       lastPerformedAt,
       lastPerformedAtLabel: lastPerformedAt ? formatDateShort(lastPerformedAt) : null,
       recentBestSummary,
+      recentBestSuggestedValues,
       recentBestPerformedAt,
       recentBestPerformedAtLabel: recentBestPerformedAt ? formatDateShort(recentBestPerformedAt) : null,
     };
@@ -222,9 +254,11 @@ export function deriveSessionTargetHint(args: {
       confidence: "medium",
       suggestedValues: buildSuggestedValuesFromLastPerformance(measurementType, stats, fallbackWeightUnit),
       lastSummary,
+      lastSuggestedValues,
       lastPerformedAt,
       lastPerformedAtLabel: lastPerformedAt ? formatDateShort(lastPerformedAt) : null,
       recentBestSummary,
+      recentBestSuggestedValues,
       recentBestPerformedAt,
       recentBestPerformedAtLabel: recentBestPerformedAt ? formatDateShort(recentBestPerformedAt) : null,
     };
@@ -236,11 +270,13 @@ export function deriveSessionTargetHint(args: {
       reason: "Completed history exists, but the strongest reusable signal is the recent best rather than a stored plan target.",
       source: "recent_best",
       confidence: "low",
-      suggestedValues: buildFallbackValues(measurementType, fallbackWeightUnit),
+      suggestedValues: recentBestSuggestedValues ?? buildFallbackValues(measurementType, fallbackWeightUnit),
       lastSummary,
+      lastSuggestedValues,
       lastPerformedAt,
       lastPerformedAtLabel: lastPerformedAt ? formatDateShort(lastPerformedAt) : null,
       recentBestSummary,
+      recentBestSuggestedValues,
       recentBestPerformedAt,
       recentBestPerformedAtLabel: recentBestPerformedAt ? formatDateShort(recentBestPerformedAt) : null,
     };
@@ -253,9 +289,11 @@ export function deriveSessionTargetHint(args: {
     confidence: "low",
     suggestedValues: buildFallbackValues(measurementType, fallbackWeightUnit),
     lastSummary,
+    lastSuggestedValues,
     lastPerformedAt,
     lastPerformedAtLabel: lastPerformedAt ? formatDateShort(lastPerformedAt) : null,
     recentBestSummary,
+    recentBestSuggestedValues,
     recentBestPerformedAt,
     recentBestPerformedAtLabel: recentBestPerformedAt ? formatDateShort(recentBestPerformedAt) : null,
   };

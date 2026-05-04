@@ -207,7 +207,7 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
       {
         id: "progress-a",
         name: "Hack Squat",
-        summary: "999 lb · 8 reps · top set armed",
+        summary: "999 lbs · 8 reps · top set armed",
         badgeText: "Set 3",
         state: "active",
         density: "detailed",
@@ -243,7 +243,7 @@ export const uiSystemFixtures: Record<UiSystemFixtureId, UiSystemFixture> = {
       {
         id: "weird-a",
         name: "Tempo RDL + Row [B-Set] {v2}",
-        summary: "999 reps · 999 lb · 12h 59m elapsed · cardio merge fallback",
+        summary: "999 reps · 999 lbs · 12h 59m elapsed · cardio merge fallback",
         badgeText: "Stress",
         state: "selected",
         density: "detailed",

@@ -41,3 +41,25 @@ test("mapRoutineDayGoalToSessionColumns preserves explicit measurement-optional 
   assert.equal(mapped.target_sets_min, 2);
   assert.equal(mapped.target_reps_min, null);
 });
+
+test("parseExerciseGoalPayload encodes failure goals through the reps sentinel", () => {
+  const formData = new FormData();
+  formData.set("targetSets", "3");
+  formData.set("targetWeight", "100");
+  formData.set("targetWeightUnit", "lbs");
+  formData.set("targetFailure", "true");
+  formData.set("measurementSelections", "weight");
+  formData.set("goalModality", "strength");
+
+  const result = parseExerciseGoalPayload(formData, { requireSets: true });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    throw new Error("Expected failure payload parsing to succeed.");
+  }
+
+  assert.equal(result.payload.measurement_type, "reps");
+  assert.equal(result.payload.target_reps_min, 0);
+  assert.equal(result.payload.target_reps_max, 0);
+  assert.equal(result.payload.target_weight_min, 100);
+});

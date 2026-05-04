@@ -23,6 +23,7 @@ export function MeasurementConfigurator({
   footerContent,
   footerClassName,
   topField,
+  auxiliaryFields,
   repRangeLabels,
   visibleMetrics,
   metricOrder,
@@ -58,6 +59,19 @@ export function MeasurementConfigurator({
     emptyValueClassName?: string;
     renderInput?: (options: { inputClassName: string }) => ReactNode;
   };
+  auxiliaryFields?: Array<{
+    title: string;
+    suffix?: string;
+    input: ReactNode;
+    inlineLabel?: string;
+    useInlineFieldShell?: boolean;
+    showEmptyValue?: boolean;
+    hasValue?: boolean;
+    labelClassName?: string;
+    valueLabelClassName?: string;
+    emptyValueClassName?: string;
+    renderInput?: (options: { inputClassName: string }) => ReactNode;
+  }>;
   repRangeLabels?: {
     min: string;
     max: string;
@@ -87,6 +101,7 @@ export function MeasurementConfigurator({
       footerContent={footerContent}
       footerClassName={footerClassName}
       topField={topField}
+      auxiliaryFields={auxiliaryFields}
       repRangeLabels={repRangeLabels}
       visibleMetrics={visibleMetrics}
       metricOrder={metricOrder}

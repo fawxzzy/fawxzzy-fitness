@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 import { ensureProfileForEntryBootstrap, ensureProfileWithClient } from "./profile-core.ts";
 
+const PROFILE_SELECT_WITH_EXTENDED_COLUMNS =
+  "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit, user_number, user_kind, user_number_assigned_at";
+const PROFILE_SELECT_LEGACY = "id, timezone, active_routine_id";
+
 type QueryResult = {
   data: unknown;
   error: { code?: string; details?: string; message: string } | null;
@@ -60,6 +64,9 @@ test("ensureProfile returns persisted preference columns when available", async 
           active_routine_id: null,
           preferred_weight_unit: "kg",
           preferred_distance_unit: "km",
+          user_number: 7,
+          user_kind: "human",
+          user_number_assigned_at: "2026-05-04T11:00:00.000Z",
         },
         error: null,
       },
@@ -71,6 +78,9 @@ test("ensureProfile returns persisted preference columns when available", async 
 
   assert.equal(profile.preferred_weight_unit, "kg");
   assert.equal(profile.preferred_distance_unit, "km");
+  assert.equal(profile.user_number, 7);
+  assert.equal(profile.user_kind, "human");
+  assert.equal(profile.user_number_assigned_at, "2026-05-04T11:00:00.000Z");
   assert.equal(fake.tracker.inserts.length, 0);
 });
 
@@ -99,9 +109,12 @@ test("ensureProfile falls back to legacy select and hydrates defaults when prefe
 
   assert.equal(profile.preferred_weight_unit, "lbs");
   assert.equal(profile.preferred_distance_unit, "mi");
+  assert.equal(profile.user_number, null);
+  assert.equal(profile.user_kind, "unknown");
+  assert.equal(profile.user_number_assigned_at, null);
   assert.deepEqual(fake.tracker.selects, [
-    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
-    "id, timezone, active_routine_id",
+    PROFILE_SELECT_WITH_EXTENDED_COLUMNS,
+    PROFILE_SELECT_LEGACY,
   ]);
 });
 
@@ -130,9 +143,11 @@ test("ensureProfile falls back when provider reports preferred_weight_unit as a 
 
   assert.equal(profile.preferred_weight_unit, "lbs");
   assert.equal(profile.preferred_distance_unit, "mi");
+  assert.equal(profile.user_number, null);
+  assert.equal(profile.user_kind, "unknown");
   assert.deepEqual(fake.tracker.selects, [
-    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
-    "id, timezone, active_routine_id",
+    PROFILE_SELECT_WITH_EXTENDED_COLUMNS,
+    PROFILE_SELECT_LEGACY,
   ]);
 });
 
@@ -161,9 +176,43 @@ test("ensureProfile falls back when provider reports preferred_distance_unit as 
 
   assert.equal(profile.preferred_weight_unit, "lbs");
   assert.equal(profile.preferred_distance_unit, "mi");
+  assert.equal(profile.user_number, null);
+  assert.equal(profile.user_kind, "unknown");
   assert.deepEqual(fake.tracker.selects, [
-    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
-    "id, timezone, active_routine_id",
+    PROFILE_SELECT_WITH_EXTENDED_COLUMNS,
+    PROFILE_SELECT_LEGACY,
+  ]);
+});
+
+test("ensureProfile falls back when provider reports user_number as a missing column", async () => {
+  const fake = createFakeSupabase({
+    maybeSingle: [
+      {
+        data: null,
+        error: {
+          message: "column profiles.user_number does not exist",
+        },
+      },
+      {
+        data: {
+          id: "user-2d",
+          timezone: "America/Phoenix",
+          active_routine_id: null,
+        },
+        error: null,
+      },
+    ],
+    single: [],
+  });
+
+  const profile = await ensureProfileWithClient("user-2d", fake.client as never);
+
+  assert.equal(profile.user_number, null);
+  assert.equal(profile.user_kind, "unknown");
+  assert.equal(profile.user_number_assigned_at, null);
+  assert.deepEqual(fake.tracker.selects, [
+    PROFILE_SELECT_WITH_EXTENDED_COLUMNS,
+    PROFILE_SELECT_LEGACY,
   ]);
 });
 
@@ -195,8 +244,13 @@ test("ensureProfile creates a profile in legacy mode without preference columns 
   assert.equal(fake.tracker.inserts.length, 1);
   assert.equal(fake.tracker.inserts[0].id, "user-3");
   assert.equal(typeof fake.tracker.inserts[0].timezone, "string");
+  assert.equal("user_number" in fake.tracker.inserts[0], false);
+  assert.equal("user_kind" in fake.tracker.inserts[0], false);
+  assert.equal("user_number_assigned_at" in fake.tracker.inserts[0], false);
   assert.equal(profile.preferred_weight_unit, "lbs");
   assert.equal(profile.preferred_distance_unit, "mi");
+  assert.equal(profile.user_number, null);
+  assert.equal(profile.user_kind, "unknown");
 });
 
 test("ensureProfile recovers from a read-then-insert collision by reloading the inserted row", async () => {
@@ -210,6 +264,9 @@ test("ensureProfile recovers from a read-then-insert collision by reloading the 
           active_routine_id: null,
           preferred_weight_unit: "lbs",
           preferred_distance_unit: "mi",
+          user_number: 1,
+          user_kind: "human",
+          user_number_assigned_at: "2026-05-04T12:00:00.000Z",
         },
         error: null,
       },
@@ -231,9 +288,9 @@ test("ensureProfile recovers from a read-then-insert collision by reloading the 
   assert.equal(profile.timezone, "America/New_York");
   assert.equal(fake.tracker.inserts.length, 1);
   assert.deepEqual(fake.tracker.selects, [
-    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
-    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
-    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
+    PROFILE_SELECT_WITH_EXTENDED_COLUMNS,
+    PROFILE_SELECT_WITH_EXTENDED_COLUMNS,
+    PROFILE_SELECT_WITH_EXTENDED_COLUMNS,
   ]);
 });
 
@@ -254,6 +311,9 @@ test("ensureProfile recovers when a transient read failure is followed by a conc
           active_routine_id: null,
           preferred_weight_unit: "lbs",
           preferred_distance_unit: "mi",
+          user_number: 2,
+          user_kind: "human",
+          user_number_assigned_at: "2026-05-04T12:15:00.000Z",
         },
         error: null,
       },
@@ -287,6 +347,9 @@ test("ensureProfile re-reads after a recoverable insert failure and returns the 
           active_routine_id: null,
           preferred_weight_unit: "lbs",
           preferred_distance_unit: "mi",
+          user_number: 3,
+          user_kind: "human",
+          user_number_assigned_at: "2026-05-04T12:30:00.000Z",
         },
         error: null,
       },

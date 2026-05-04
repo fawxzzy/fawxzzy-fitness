@@ -1,13 +1,23 @@
 import type { ProfileRow } from "@/types/db";
 
 const PROFILE_SELECT_WITH_PREFERENCES =
-  "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit";
+  "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit, user_number, user_kind, user_number_assigned_at";
 const PROFILE_SELECT_LEGACY = "id, timezone, active_routine_id";
 const DEFAULT_WEIGHT_UNIT: NonNullable<ProfileRow["preferred_weight_unit"]> = "lbs";
 const DEFAULT_DISTANCE_UNIT: NonNullable<ProfileRow["preferred_distance_unit"]> = "mi";
+const DEFAULT_USER_KIND: ProfileRow["user_kind"] = "unknown";
 
-type LegacyProfileShape = Pick<ProfileRow, "id" | "timezone" | "active_routine_id"> &
-  Partial<Pick<ProfileRow, "preferred_weight_unit" | "preferred_distance_unit">>;
+type HydratableProfileShape = Pick<ProfileRow, "id" | "timezone" | "active_routine_id"> &
+  Partial<
+    Pick<
+      ProfileRow,
+      | "preferred_weight_unit"
+      | "preferred_distance_unit"
+      | "user_number"
+      | "user_kind"
+      | "user_number_assigned_at"
+    >
+  >;
 
 type ProfileQueryError = { code?: string; details?: string; message?: string } | null | undefined;
 
@@ -47,13 +57,13 @@ const PROFILE_RECOVERABLE_ERROR_CODES = new Set([
 const PROFILE_BOOTSTRAP_ATTEMPT_LIMIT = 3;
 
 type ReadProfileResult = {
-  hasPreferenceColumns: boolean | null;
+  hasExtendedColumns: boolean | null;
   profile: ProfileRow | null;
   error: ProfileQueryError;
 };
 
 type InsertProfileResult = {
-  hasPreferenceColumns: boolean;
+  hasExtendedColumns: boolean;
   profile: ProfileRow | null;
   error: ProfileQueryError;
 };
@@ -62,21 +72,26 @@ type EntryBootstrapLogger = (message: string, details: Record<string, unknown>) 
 
 function isMissingProfilePreferenceColumnError(error: ProfileQueryError) {
   const message = error?.message?.toLowerCase() ?? "";
-  const referencesPreferenceColumn =
-    message.includes("preferred_weight_unit") || message.includes("preferred_distance_unit");
+  const referencesExtendedColumn = [
+    "preferred_weight_unit",
+    "preferred_distance_unit",
+    "user_number",
+    "user_kind",
+    "user_number_assigned_at",
+  ].some((column) => message.includes(column));
   const referencesProfilesTable = message.includes("profiles");
   const schemaCacheMissingColumn = message.includes("schema cache");
   const postgresMissingColumn =
     message.includes("column") && message.includes("does not exist") && referencesProfilesTable;
 
   return (
-    referencesPreferenceColumn &&
+    referencesExtendedColumn &&
     referencesProfilesTable &&
     (schemaCacheMissingColumn || postgresMissingColumn)
   );
 }
 
-function hydrateProfile(profile: LegacyProfileShape): ProfileRow {
+function hydrateProfile(profile: HydratableProfileShape): ProfileRow {
   return {
     id: profile.id,
     timezone: profile.timezone,
@@ -89,11 +104,20 @@ function hydrateProfile(profile: LegacyProfileShape): ProfileRow {
       profile.preferred_distance_unit === "km" || profile.preferred_distance_unit === "mi"
         ? profile.preferred_distance_unit
         : DEFAULT_DISTANCE_UNIT,
+    user_number: typeof profile.user_number === "number" ? profile.user_number : null,
+    user_kind:
+      profile.user_kind === "human"
+      || profile.user_kind === "automation"
+      || profile.user_kind === "unknown"
+        ? profile.user_kind
+        : DEFAULT_USER_KIND,
+    user_number_assigned_at:
+      typeof profile.user_number_assigned_at === "string" ? profile.user_number_assigned_at : null,
   };
 }
 
 async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
-  let hasPreferenceColumns = true;
+  let hasExtendedColumns = true;
   const { data, error } = await supabase
     .from("profiles")
     .select(PROFILE_SELECT_WITH_PREFERENCES)
@@ -102,14 +126,14 @@ async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
 
   if (error && !isMissingProfilePreferenceColumnError(error)) {
     return {
-      hasPreferenceColumns: null,
+      hasExtendedColumns: null,
       profile: null,
       error,
     } satisfies ReadProfileResult;
   }
 
   if (error && isMissingProfilePreferenceColumnError(error)) {
-    hasPreferenceColumns = false;
+    hasExtendedColumns = false;
     const { data: legacyData, error: legacyError } = await supabase
       .from("profiles")
       .select(PROFILE_SELECT_LEGACY)
@@ -118,7 +142,7 @@ async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
 
     if (legacyError) {
       return {
-        hasPreferenceColumns,
+        hasExtendedColumns,
         profile: null,
         error: legacyError,
       } satisfies ReadProfileResult;
@@ -126,8 +150,8 @@ async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
 
     if (legacyData) {
       return {
-        hasPreferenceColumns,
-        profile: hydrateProfile(legacyData as LegacyProfileShape),
+        hasExtendedColumns,
+        profile: hydrateProfile(legacyData as HydratableProfileShape),
         error: null,
       };
     }
@@ -135,14 +159,14 @@ async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
 
   if (data) {
     return {
-      hasPreferenceColumns,
-      profile: hydrateProfile(data as LegacyProfileShape),
+      hasExtendedColumns,
+      profile: hydrateProfile(data as HydratableProfileShape),
       error: null,
     };
   }
 
   return {
-    hasPreferenceColumns,
+    hasExtendedColumns,
     profile: null,
     error: null,
   };
@@ -221,11 +245,11 @@ function getEntryBootstrapErrorDetails(error: unknown) {
 async function insertProfile(
   userId: string,
   supabase: ProfileSupabaseClient,
-  hasPreferenceColumnsHint: boolean | null,
+  hasExtendedColumnsHint: boolean | null,
 ): Promise<InsertProfileResult> {
   const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Toronto";
 
-  async function attemptInsert(hasPreferenceColumns: boolean): Promise<InsertProfileResult> {
+  async function attemptInsert(hasExtendedColumns: boolean): Promise<InsertProfileResult> {
     const insertPayload: {
       id: string;
       timezone: string;
@@ -236,12 +260,12 @@ async function insertProfile(
       timezone: defaultTimeZone,
     };
 
-    if (hasPreferenceColumns) {
+    if (hasExtendedColumns) {
       insertPayload.preferred_weight_unit = DEFAULT_WEIGHT_UNIT;
       insertPayload.preferred_distance_unit = DEFAULT_DISTANCE_UNIT;
     }
 
-    const insertSelect = hasPreferenceColumns ? PROFILE_SELECT_WITH_PREFERENCES : PROFILE_SELECT_LEGACY;
+    const insertSelect = hasExtendedColumns ? PROFILE_SELECT_WITH_PREFERENCES : PROFILE_SELECT_LEGACY;
     const { data: inserted, error } = await supabase
       .from("profiles")
       .insert(insertPayload)
@@ -250,20 +274,20 @@ async function insertProfile(
 
     if (error || !inserted) {
       return {
-        hasPreferenceColumns,
+        hasExtendedColumns,
         profile: null,
         error: error ?? { message: "Unable to create profile" },
       };
     }
 
     return {
-      hasPreferenceColumns,
-      profile: hydrateProfile(inserted as LegacyProfileShape),
+      hasExtendedColumns,
+      profile: hydrateProfile(inserted as HydratableProfileShape),
       error: null,
     };
   }
 
-  if (hasPreferenceColumnsHint === false) {
+  if (hasExtendedColumnsHint === false) {
     return attemptInsert(false);
   }
 
@@ -289,7 +313,7 @@ export async function ensureProfileWithClient(userId: string, supabase: ProfileS
       throw toProfileError(existingProfile.error, "Unable to load profile");
     }
 
-    const insertedProfile = await insertProfile(userId, supabase, existingProfile.hasPreferenceColumns);
+    const insertedProfile = await insertProfile(userId, supabase, existingProfile.hasExtendedColumns);
     if (insertedProfile.profile) {
       return insertedProfile.profile;
     }

@@ -77,7 +77,7 @@ export const uiContractFixtures = {
     {
       id: "selected",
       title: "Paused Bench Press",
-      subtitle: "Goal: 3 × 5 @ 185 lb",
+      subtitle: "Goal: 3 × 5 @ 185 lbs",
       badgeText: "Selected",
       state: "selected",
       winnerNote: "Winner: selected card is obvious before reading supporting copy.",
@@ -132,7 +132,7 @@ export const uiContractFixtures = {
     summary: {
       reps: 5,
       weight: 185,
-      weightUnit: "lb",
+      weightUnit: "lbs",
       durationSeconds: null,
       distance: null,
       distanceUnit: "mi",
@@ -147,7 +147,7 @@ export const uiContractFixtures = {
     summary: {
       reps: 8,
       weight: 60,
-      weightUnit: "lb",
+      weightUnit: "lbs",
       durationSeconds: 0,
       distance: null,
       distanceUnit: "mi",

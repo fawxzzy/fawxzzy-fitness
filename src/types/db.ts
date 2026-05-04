@@ -64,6 +64,9 @@ export type ProfileRow = {
   active_routine_id: string | null;
   preferred_weight_unit: "lbs" | "kg" | null;
   preferred_distance_unit: "mi" | "km" | null;
+  user_number: number | null;
+  user_kind: "human" | "automation" | "unknown";
+  user_number_assigned_at?: string | null;
 };
 
 export type RoutineRow = {

@@ -31,6 +31,7 @@ import {
   deriveGoalMeasurementSelections,
   getDefaultMeasurementsForGoalModality,
   getMissingGoalPreviewLabel,
+  isFailureGoalSelection,
   resolveGoalModality,
   validateGoalConfiguration,
   type GoalModality,
@@ -433,6 +434,7 @@ export function ExercisePicker({
     sets: "3",
     repsMin: "",
     repsMax: "",
+    failure: false,
     weight: "",
     duration: "",
     distance: "",
@@ -600,6 +602,7 @@ export function ExercisePicker({
       sets: "3",
       repsMin: "",
       repsMax: "",
+      failure: false,
       weight: "",
       duration: "",
       distance: "",
@@ -626,6 +629,7 @@ export function ExercisePicker({
     setGoalState((current) => ({
       ...current,
       measurements: isMeasurementOptionalExercise(selectedExercise) ? [] : getDefaultMeasurementsForGoalModality(defaultModality),
+      failure: false,
       distanceUnit: nextDefaultUnit,
     }));
     resetMeasurementFields();
@@ -650,12 +654,13 @@ export function ExercisePicker({
     () => deriveGoalMeasurementSelections(effectiveGoalModality, {
       repsMin: goalState.repsMin,
       repsMax: goalState.repsMax,
+      failure: goalState.failure,
       weight: goalState.weight,
       duration: goalState.duration,
       distance: goalState.distance,
       calories: goalState.calories,
     }),
-    [effectiveGoalModality, goalState.calories, goalState.distance, goalState.duration, goalState.repsMax, goalState.repsMin, goalState.weight],
+    [effectiveGoalModality, goalState.calories, goalState.distance, goalState.duration, goalState.failure, goalState.repsMax, goalState.repsMin, goalState.weight],
   );
 
   const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
@@ -683,6 +688,7 @@ export function ExercisePicker({
       sets: goalState.sets,
       repsMin: goalState.repsMin,
       repsMax: goalState.repsMax,
+      failure: goalState.failure,
       weight: goalState.weight,
       duration: goalState.duration,
       distance: goalState.distance,
@@ -712,8 +718,13 @@ export function ExercisePicker({
           className="min-w-0 px-0 py-0 text-center"
           values={{
             sets: goalState.sets ? Number(goalState.sets) : null,
-            reps: goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null,
-            repsMax: goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null,
+            reps: goalState.failure ? 0 : (goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null),
+            repsMax: goalState.failure ? 0 : (goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null),
+            failure: goalState.failure || isFailureGoalSelection({
+              repsMin: goalState.repsMin,
+              repsMax: goalState.repsMax,
+              failure: goalState.failure,
+            }),
             weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
             weightUnit: goalState.weightUnit,
             durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
@@ -790,6 +801,7 @@ export function ExercisePicker({
                         weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
                         repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
                         repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
+                        failure: false,
                         weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
                         measurements: Array.from(nextMeasurements),
                       };
@@ -815,6 +827,7 @@ export function ExercisePicker({
             sets: "targetSets",
             repsMin: "targetRepsMin",
             repsMax: "targetRepsMax",
+            failure: "targetFailure",
             weight: "targetWeight",
             duration: "targetDuration",
             distance: "targetDistance",

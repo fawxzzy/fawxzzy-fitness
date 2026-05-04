@@ -51,7 +51,7 @@ test("strength delta helpers compare best and previous performance", () => {
       bestBodyweightReps: 0,
       lastBodyweightReps: 0,
     }),
-    "+5lb vs best",
+    "+5lbs vs best",
   );
 
   assert.equal(
@@ -59,7 +59,7 @@ test("strength delta helpers compare best and previous performance", () => {
       { weight: 210, reps: 2, unit: "lb", bodyweightReps: 0 },
       { weight: 205, reps: 3, unit: "lb", bodyweightReps: 0 },
     ),
-    "+5lb vs previous",
+    "+5lbs vs previous",
   );
 });
 

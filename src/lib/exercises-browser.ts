@@ -91,7 +91,7 @@ function formatCompact(value: number) {
 function formatStrengthSummary(weight: number | null, reps: number | null, unit: string | null) {
   const safeWeight = positive(weight);
   const safeReps = positive(reps);
-  const normalizedUnit = unit === "lb" || unit === "lbs" ? "lb" : unit === "kg" ? "kg" : "";
+  const normalizedUnit = unit === "lb" || unit === "lbs" ? "lbs" : unit === "kg" ? "kg" : "";
 
   if (safeWeight > 0 && safeReps > 0) {
     return `${formatCompact(safeWeight)}${normalizedUnit}x${formatCompact(safeReps)}`;
@@ -250,7 +250,7 @@ function buildStrengthWeightTrendMetric(latest: StrengthSessionSummary | null, p
   if (latestWeight === previousWeight) {
     return {
       label: "Weight",
-      value: unit === "kg" ? "0 kg" : unit === "lb" || unit === "lbs" ? "0 lb" : "0",
+      value: unit === "kg" ? "0 kg" : unit === "lb" || unit === "lbs" ? "0 lbs" : "0",
       valuePrefix: "\u2192",
       valueTone: "muted",
     };

@@ -1,6 +1,6 @@
 import type { ActionChromeIntent } from "@/components/ui/actionChrome";
 import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress";
-import { formatQuickLogPreviewLabel, type SessionQuickLogTarget } from "./session-quick-log";
+import { formatQuickLogPreviewLabelForResolvedTarget, resolveEffectiveQuickLogTarget, type SessionQuickLogTarget } from "./session-quick-log";
 
 export type SessionRowVisualVariant = "pending" | "active";
 
@@ -12,6 +12,9 @@ export type DeriveSessionRowStateInput = {
   targetSetsMax?: number | null;
   surface?: SessionExercisePresentationSurface;
   quickLogTarget?: SessionQuickLogTarget;
+  quickLogNextTarget?: SessionQuickLogTarget;
+  quickLogLastTarget?: SessionQuickLogTarget;
+  quickLogBestTarget?: SessionQuickLogTarget;
   fallbackWeightUnit: "lbs" | "kg";
 };
 
@@ -35,8 +38,14 @@ export type SessionRowState = {
 
 export function deriveSessionRowState(input: DeriveSessionRowStateInput): SessionRowState {
   const progressState = deriveSessionExerciseProgressState(input);
-  const quickLogPreviewLabel = formatQuickLogPreviewLabel({
-    target: input.quickLogTarget,
+  const resolvedQuickLogTarget = resolveEffectiveQuickLogTarget({
+    quickLogTarget: input.quickLogTarget,
+    nextTarget: input.quickLogNextTarget,
+    lastTarget: input.quickLogLastTarget,
+    bestTarget: input.quickLogBestTarget,
+  });
+  const quickLogPreviewLabel = formatQuickLogPreviewLabelForResolvedTarget({
+    resolvedTarget: resolvedQuickLogTarget,
     loggedSetCount: progressState.loggedSetCount,
     targetSetsMin: input.targetSetsMin,
     targetSetsMax: input.targetSetsMax,

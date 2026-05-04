@@ -60,6 +60,20 @@ function sanitizeDurationTextInput(value: string) {
 
 type FieldWidth = "compact" | "standard" | "wide";
 
+type MeasurementPanelAuxiliaryField = {
+  title: string;
+  suffix?: string;
+  input: ReactNode;
+  inlineLabel?: string;
+  useInlineFieldShell?: boolean;
+  showEmptyValue?: boolean;
+  hasValue?: boolean;
+  labelClassName?: string;
+  valueLabelClassName?: string;
+  emptyValueClassName?: string;
+  renderInput?: (options: { inputClassName: string }) => ReactNode;
+};
+
 function chunkFields<T>(items: T[], size: number) {
   const rows: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
@@ -331,6 +345,7 @@ export function MeasurementPanelV2({
   footerClassName,
   showInnerHeader = false,
   topField,
+  auxiliaryFields,
   repRangeLabels,
   visibleMetrics,
   metricOrder,
@@ -376,6 +391,7 @@ export function MeasurementPanelV2({
     emptyValueClassName?: string;
     renderInput?: (options: { inputClassName: string }) => ReactNode;
   };
+  auxiliaryFields?: MeasurementPanelAuxiliaryField[];
   repRangeLabels?: {
     min: string;
     max: string;
@@ -434,6 +450,58 @@ export function MeasurementPanelV2({
         : fallback
   );
 
+  function pushAuxiliaryField(field: MeasurementPanelAuxiliaryField, index: number) {
+    const useInlineFieldShell = field.useInlineFieldShell ?? true;
+    metricFields.push({
+      id: `aux-field-${index}`,
+      node: renderMetricCard({
+        testId: `measurement-field-aux-${index}`,
+        width: useThreeAcrossMetrics ? "compact" : "standard",
+        gridColumnCount,
+        children: field.inlineLabel !== undefined && useInlineFieldShell ? (
+          <InlineFieldControl
+            label={field.inlineLabel}
+            showEmptyValue={field.showEmptyValue}
+            hasValue={field.hasValue}
+            labelClassName={field.labelClassName}
+            valueLabelClassName={field.valueLabelClassName}
+            emptyValueClassName={field.emptyValueClassName}
+            labelPlacement={resolvedFloatingLabelPlacement}
+          >
+            {field.renderInput
+              ? field.renderInput({
+                inputClassName: getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: field.hasValue,
+                  topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
+                }),
+              })
+              : field.input}
+          </InlineFieldControl>
+        ) : field.inlineLabel !== undefined ? (
+          <div className="flex h-full items-center justify-center">
+            {field.renderInput
+              ? field.renderInput({
+                inputClassName: getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: field.hasValue,
+                  topRightLabel: false,
+                  floatingBorder: false,
+                }),
+              })
+              : field.input}
+          </div>
+        ) : (
+          <>
+            <StatFieldLabel title={field.title} suffix={field.suffix} emphasis="target" />
+            <div className="mt-2">{field.input}</div>
+          </>
+        ),
+      }),
+    });
+  }
+
   if (topField) {
     const useInlineFieldShell = topField.useInlineFieldShell ?? true;
     metricFields.push({
@@ -485,6 +553,8 @@ export function MeasurementPanelV2({
       }),
     });
   }
+
+  auxiliaryFields?.forEach((field, index) => pushAuxiliaryField(field, index));
 
   if (allowedMetrics.has("reps")) {
     if (usesRepRange) {
@@ -794,6 +864,9 @@ export function MeasurementPanelV2({
 
   const metricSortOrder = new Map<string, number>();
   metricSortOrder.set("top-field", -10);
+  auxiliaryFields?.forEach((_, index) => {
+    metricSortOrder.set(`aux-field-${index}`, -9 + index);
+  });
   resolvedMetricOrder.forEach((metric, index) => {
     const baseOrder = index * 10;
     if (metric === "reps") {
