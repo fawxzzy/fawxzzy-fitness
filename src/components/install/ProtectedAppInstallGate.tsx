@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { IOSAddToHomeScreenGate } from "@/components/install/IOSAddToHomeScreenGate";
 import { IOSOpenInSafariGate } from "@/components/install/IOSOpenInSafariGate";
 import { getCanonicalInstallUrl } from "@/lib/install/config";
 import { copyInstallUrl, getInstallContext } from "@/lib/install/getInstallContext";
@@ -50,7 +49,7 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
       pathname
       && !isPublicPath(pathname)
       && isHydrated
-      && !context.shouldAllowAppAccess,
+      && context.shouldBlockAppAccess,
     );
 
     if (!shouldBlock) {
@@ -69,6 +68,7 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
         blockingReason: "Protected install gate is blocking app access on this device context.",
         metadata: {
           hasOverride: Boolean(override),
+          shouldBlockAppAccess: context.shouldBlockAppAccess,
           shouldShowIOSOpenInSafariGate: context.shouldShowIOSOpenInSafariGate,
           shouldShowIOSAddToHomeScreenGate: context.shouldShowIOSAddToHomeScreenGate,
         },
@@ -80,13 +80,14 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
     gateRef.current.pending({
       metadata: {
         hasOverride: Boolean(override),
+        shouldBlockAppAccess: context.shouldBlockAppAccess,
         shouldShowIOSOpenInSafariGate: context.shouldShowIOSOpenInSafariGate,
         shouldShowIOSAddToHomeScreenGate: context.shouldShowIOSAddToHomeScreenGate,
       },
     });
-  }, [context.shouldAllowAppAccess, context.shouldShowIOSAddToHomeScreenGate, context.shouldShowIOSOpenInSafariGate, isHydrated, override, pathname]);
+  }, [context.shouldBlockAppAccess, context.shouldShowIOSAddToHomeScreenGate, context.shouldShowIOSOpenInSafariGate, isHydrated, override, pathname]);
 
-  if (!pathname || isPublicPath(pathname) || (!isHydrated && !override) || context.shouldAllowAppAccess) {
+  if (!pathname || isPublicPath(pathname) || (!isHydrated && !override) || !context.shouldBlockAppAccess) {
     return <>{children}</>;
   }
 
@@ -98,10 +99,6 @@ export function ProtectedAppInstallGate({ children }: ProtectedAppInstallGatePro
 
   if (context.shouldShowIOSOpenInSafariGate) {
     return <IOSOpenInSafariGate copyState={copyState} installUrl={installUrl} onCopy={handleCopy} />;
-  }
-
-  if (context.shouldShowIOSAddToHomeScreenGate) {
-    return <IOSAddToHomeScreenGate copyState={copyState} installUrl={installUrl} onCopy={handleCopy} />;
   }
 
   return <>{children}</>;

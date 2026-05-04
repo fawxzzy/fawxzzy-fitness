@@ -7,6 +7,7 @@ import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { EarnedInstallPrompt } from "@/components/install/EarnedInstallPrompt";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
@@ -703,6 +704,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               destinationPath={recoveryShadowPlacement.destinationPath}
             />
           ) : null}
+          <EarnedInstallPrompt />
           {todayPayload.inProgressSessionId ? (
             <TodayOverviewScaffold>
               <div className="flex flex-col gap-[0.625rem]">

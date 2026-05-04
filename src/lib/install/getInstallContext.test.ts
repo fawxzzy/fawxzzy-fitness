@@ -14,6 +14,8 @@ test("detects iPhone Safari browser tab as Add to Home Screen gate", () => {
   assert.equal(context.isIOS, true);
   assert.equal(context.isSafari, true);
   assert.equal(context.shouldShowIOSAddToHomeScreenGate, true);
+  assert.equal(context.shouldBlockAppAccess, false);
+  assert.equal(context.shouldAllowAppAccess, true);
 });
 test("detects iPhone in-app browser as Open in Safari gate", () => {
   const context = getInstallContext({
@@ -26,6 +28,8 @@ test("detects iPhone in-app browser as Open in Safari gate", () => {
 
   assert.equal(context.isInAppBrowser, true);
   assert.equal(context.shouldShowIOSOpenInSafariGate, true);
+  assert.equal(context.shouldBlockAppAccess, true);
+  assert.equal(context.shouldAllowAppAccess, false);
 });
 
 test("allows iPhone standalone mode", () => {
@@ -38,6 +42,7 @@ test("allows iPhone standalone mode", () => {
   });
 
   assert.equal(context.isStandalone, true);
+  assert.equal(context.shouldBlockAppAccess, false);
   assert.equal(context.shouldAllowAppAccess, true);
 });
 
@@ -53,6 +58,7 @@ test("detects Android install prompt support", () => {
 
   assert.equal(context.isAndroid, true);
   assert.equal(context.canUseNativeInstallPrompt, true);
+  assert.equal(context.shouldBlockAppAccess, false);
   assert.equal(context.shouldAllowAppAccess, true);
 });
 
@@ -66,6 +72,7 @@ test("detects desktop fallback without iOS gates", () => {
   });
 
   assert.equal(context.platform, "desktop");
+  assert.equal(context.shouldBlockAppAccess, false);
   assert.equal(context.shouldAllowAppAccess, true);
 });
 
@@ -80,4 +87,16 @@ test("detects iPadOS Safari desktop platform with touch", () => {
 
   assert.equal(context.isIOS, true);
   assert.equal(context.shouldShowIOSAddToHomeScreenGate, true);
+  assert.equal(context.shouldAllowAppAccess, true);
+});
+
+test("ios safari override remains guidance-only for local install QA", () => {
+  const context = getInstallContext({
+    override: "ios-safari",
+    canUseNativeInstallPrompt: false,
+  });
+
+  assert.equal(context.shouldShowIOSAddToHomeScreenGate, true);
+  assert.equal(context.shouldBlockAppAccess, false);
+  assert.equal(context.shouldAllowAppAccess, true);
 });

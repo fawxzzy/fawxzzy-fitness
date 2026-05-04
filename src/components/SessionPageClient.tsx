@@ -19,6 +19,7 @@ import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/us
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
+import { writeInstallEarnedMoment } from "@/lib/install/earned-install-prompt";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { SetRow } from "@/types/db";
 
@@ -184,6 +185,7 @@ export function SessionPageClient({
 
           if (result.ok) {
             clearActiveSessionHint(sessionId);
+            writeInstallEarnedMoment("workout-completed");
             router.refresh();
             navigateReturn();
           }

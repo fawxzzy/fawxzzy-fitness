@@ -14,6 +14,7 @@ export type InstallContext = {
   canUseNativeInstallPrompt: boolean;
   shouldShowIOSOpenInSafariGate: boolean;
   shouldShowIOSAddToHomeScreenGate: boolean;
+  shouldBlockAppAccess: boolean;
   shouldAllowAppAccess: boolean;
 };
 
@@ -88,6 +89,7 @@ function contextFromOverride(
       canUseNativeInstallPrompt,
       shouldShowIOSOpenInSafariGate: true,
       shouldShowIOSAddToHomeScreenGate: false,
+      shouldBlockAppAccess: true,
       shouldAllowAppAccess: false,
     };
   }
@@ -105,7 +107,8 @@ function contextFromOverride(
       canUseNativeInstallPrompt,
       shouldShowIOSOpenInSafariGate: false,
       shouldShowIOSAddToHomeScreenGate: true,
-      shouldAllowAppAccess: false,
+      shouldBlockAppAccess: false,
+      shouldAllowAppAccess: true,
     };
   }
 
@@ -122,6 +125,7 @@ function contextFromOverride(
       canUseNativeInstallPrompt: false,
       shouldShowIOSOpenInSafariGate: false,
       shouldShowIOSAddToHomeScreenGate: false,
+      shouldBlockAppAccess: false,
       shouldAllowAppAccess: true,
     };
   }
@@ -139,6 +143,7 @@ function contextFromOverride(
       canUseNativeInstallPrompt,
       shouldShowIOSOpenInSafariGate: false,
       shouldShowIOSAddToHomeScreenGate: false,
+      shouldBlockAppAccess: false,
       shouldAllowAppAccess: true,
     };
   }
@@ -155,6 +160,7 @@ function contextFromOverride(
     canUseNativeInstallPrompt,
     shouldShowIOSOpenInSafariGate: false,
     shouldShowIOSAddToHomeScreenGate: false,
+    shouldBlockAppAccess: false,
     shouldAllowAppAccess: true,
   };
 }
@@ -213,6 +219,7 @@ export function getInstallContext(options: InstallContextOptions = {}): InstallC
 
   const shouldShowIOSOpenInSafariGate = isIOS && isInAppBrowser && !isStandalone;
   const shouldShowIOSAddToHomeScreenGate = isIOS && !isInAppBrowser && isSafari && !isStandalone;
+  const shouldBlockAppAccess = shouldShowIOSOpenInSafariGate;
 
   return {
     platform: isIOS ? "ios" : isAndroid ? "android" : userAgent ? "desktop" : "unknown",
@@ -226,6 +233,7 @@ export function getInstallContext(options: InstallContextOptions = {}): InstallC
     canUseNativeInstallPrompt,
     shouldShowIOSOpenInSafariGate,
     shouldShowIOSAddToHomeScreenGate,
-    shouldAllowAppAccess: !shouldShowIOSOpenInSafariGate && !shouldShowIOSAddToHomeScreenGate,
+    shouldBlockAppAccess,
+    shouldAllowAppAccess: !shouldBlockAppAccess,
   };
 }

@@ -606,3 +606,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: The user refreshes inside an add-exercise route and the selected exercise changes, making the footer preview, measurement defaults, and detail state feel nondeterministic.
 - Evidence: src/components/ExercisePicker.tsx, src/components/exercises/ExerciseChooserAddFlowForm.tsx, src/components/routines/RoutineEditorShared.tsx, src/app/routines/[id]/edit/day/[dayId]/add-exercise/page.tsx, src/app/session/[id]/add-exercise/page.tsx
 - Status: Proposed
+
+## 2026-05-03 - Install prompts should be earned inside the workout loop instead of front-door gating
+- Type: Pattern
+- Summary: Install UI should remain capability-aware and platform-aware, but the primary promotion moment should come after a real product-value event such as account completion, repeated usage, or a completed workout instead of blocking normal browser entry by default.
+- Suggested Playbook File: docs/PATTERNS/pwa-install-entry.md
+- Rationale: Prevents install from becoming the first source of friction in a product whose main retention loop depends on fast entry into Today, Session, and routine execution surfaces.
+- Failure Mode: A supported browser can technically open the app, but users still hit install-first friction before they see workout value, which depresses activation and makes install feel like a prerequisite instead of an upgrade.
+- Evidence: src/components/install/ProtectedAppInstallGate.tsx, src/components/install/InstallRouteSurface.tsx, src/lib/install/getInstallContext.ts, src/app/install/page.tsx, src/app/today/page.tsx
+- Status: Proposed

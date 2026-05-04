@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AuthCard, AuthDock, AuthIntro, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { IOSAddToHomeScreenGate } from "@/components/install/IOSAddToHomeScreenGate";
 import { IOSOpenInSafariGate } from "@/components/install/IOSOpenInSafariGate";
@@ -26,17 +26,6 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
       }),
     [installPrompt.canPromptInstall, override],
   );
-  const shouldAutoOpen = !context.shouldShowIOSOpenInSafariGate
-    && !context.shouldShowIOSAddToHomeScreenGate
-    && (context.isStandalone || !context.canUseNativeInstallPrompt);
-
-  useEffect(() => {
-    if (!shouldAutoOpen) {
-      return;
-    }
-
-    window.location.replace(openHref);
-  }, [openHref, shouldAutoOpen]);
 
   const handleCopy = () => {
     copyInstallUrl(installUrl)
@@ -66,21 +55,23 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
     );
   }
 
-  if (shouldAutoOpen) {
-    return null;
-  }
-
   return (
     <AuthShell>
       <AuthCard className="mx-auto w-full max-w-md">
         <AuthIntro
           eyebrow="Install Flow"
-          subtitle="Use the browser install prompt here, or open Fitness directly."
-          title="Install Fitness"
+          subtitle={context.isStandalone ? "Fitness is already running in installed mode on this device." : "Use the browser install prompt here, or open Fitness directly."}
+          title={context.isStandalone ? "Fitness is already installed" : "Install Fitness"}
         />
         <AuthStack className="pt-6" size="compact">
           <div className="rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2)/0.84)] px-4 py-4 text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
-            <p>The install prompt is owned by this app and browser. If you just want to sign in, choose Open.</p>
+            <p>
+              {context.isStandalone
+                ? "You can keep training in the installed app, or use Open if you want the browser route."
+                : context.canUseNativeInstallPrompt
+                  ? "The install prompt is owned by this app and browser. If you just want to sign in, choose Open."
+                  : "This browser context does not expose a native install prompt right now. You can still open Fitness normally."}
+            </p>
           </div>
         </AuthStack>
       </AuthCard>
@@ -90,6 +81,7 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
           primary={(
             <BottomDockButton
               intent="info"
+              disabled={!installPrompt.canPromptInstall}
               loading={installPrompt.isPrompting}
               loadingLabel="Installing app..."
               onClick={() => {
@@ -97,7 +89,7 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
               }}
               type="button"
             >
-              Install
+              {installPrompt.canPromptInstall ? "Install" : "Install unavailable"}
             </BottomDockButton>
           )}
           secondary={(
