@@ -35,6 +35,7 @@ import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import { formatMeasurementSummaryItems, formatSetPositionLabel } from "@/lib/measurement-display";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { deriveRepeatLastSetDraft, deriveSimpleSessionPrToast } from "@/lib/session-set-entry";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
@@ -309,6 +310,11 @@ export function SetLoggerCard({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
+  const lastLoggedSet = sets.length > 0 ? sets[sets.length - 1] : null;
+  const lastLoggedSetDraft = useMemo(
+    () => (lastLoggedSet ? deriveRepeatLastSetDraft(lastLoggedSet, unitLabel === "lbs" ? "lbs" : "kg") : null),
+    [lastLoggedSet, unitLabel],
+  );
 
   const toast = useToast();
   const queueUndo = useUndoAction(6000);
@@ -601,6 +607,33 @@ export function SetLoggerCard({
     }
   }, [visibleMetrics.reps]);
 
+  const repeatLastSet = useCallback(() => {
+    if (!lastLoggedSetDraft) {
+      return;
+    }
+
+    setWeight(lastLoggedSetDraft.weight);
+    setReps(lastLoggedSetDraft.reps);
+    setDurationInput(lastLoggedSetDraft.duration);
+    setDistance(lastLoggedSetDraft.distance);
+    setDistanceUnit(lastLoggedSetDraft.distanceUnit);
+    setCalories(lastLoggedSetDraft.calories);
+    setSelectedWeightUnit(lastLoggedSetDraft.weightUnit);
+    setWarmupValue(lastLoggedSetDraft.isWarmup);
+    setVisibleMetrics(
+      deriveMeasurementPresenceFromValues({
+        reps: lastLoggedSetDraft.reps,
+        weight: lastLoggedSetDraft.weight,
+        duration: lastLoggedSetDraft.duration,
+        distance: lastLoggedSetDraft.distance,
+        calories: lastLoggedSetDraft.calories,
+      }),
+    );
+    setIsMetricsExpanded(true);
+    setError(null);
+    toast.success("Repeated last set.");
+  }, [lastLoggedSetDraft, setWarmupValue, toast]);
+
   useEffect(() => {
     if (!resetSignal) {
       return;
@@ -808,7 +841,12 @@ export function SetLoggerCard({
       }
 
       setSets((current) => current.map((item) => (item.stableId === clientLogId ? toDisplaySet(result.data!.set) : item)));
-      toast.success("Set logged.");
+      const prToast = deriveSimpleSessionPrToast({
+        previousSets: sets,
+        candidate: result.data!.set,
+        fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
+      });
+      toast.success(prToast ? `Set logged. ${prToast}` : "Set logged.");
     } catch {
       const queued = await enqueueSetLog({
         userId,
@@ -875,6 +913,7 @@ export function SetLoggerCard({
     setWarmupValue,
     sets,
     toast,
+    unitLabel,
     userId,
     weight,
     addSetAction,
@@ -1132,6 +1171,35 @@ export function SetLoggerCard({
         )}
         contentClassName="space-y-0"
       >
+        {lastLoggedSetDraft ? (
+          <div className="mb-2">
+            <LoggedSetSummaryRow
+              label="Last set"
+              summary={lastLoggedSetDraft.summaryText}
+              action={(
+                <button
+                  type="button"
+                  onClick={repeatLastSet}
+                  data-bottom-action-intent="toggleActive"
+                  className={cn(
+                    getBottomActionButtonClassName({
+                      intent: "toggleActive",
+                      fullWidth: false,
+                      className:
+                        "h-7 min-h-0 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.12em]",
+                    }),
+                    "shrink-0 self-center",
+                  )}
+                >
+                  Repeat last set
+                </button>
+              )}
+              actionClassName="pr-3"
+              balanceActionSpace
+              className="overflow-hidden rounded-[1rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-1-rgb)/0.45)]"
+            />
+          </div>
+        ) : null}
         <MeasurementPanelV2
           values={{
             reps,
