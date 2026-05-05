@@ -124,6 +124,8 @@ export default async function HistoryPage({
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistorySessionsClient
           sessions={state.data.sessionItems}
+          weeklyProgress={state.data.weeklyProgress}
+          weeklyProgressByWeek={state.data.weeklyProgressByWeek}
           selectedSessionId={state.data.selectedSessionId}
           initialViewMode={initialViewMode}
           initialFiltersOpen={initialFiltersOpen}

@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import { AMBIENT_THEME_STORAGE_KEY } from "@/lib/ambient/theme";
+import {
+  APP_BOOT_PREFERENCES_COOKIE_KEY,
+  serializeAppBootPreferences,
+} from "@/lib/app-boot-preferences";
+import { buildPreHydrationAppBootPrimerScript } from "@/lib/app-boot-primer";
 import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_LIBRARY_STORAGE_KEY,
@@ -12,7 +18,6 @@ import {
   countAppThemeCustomizations,
   getAppThemeSummary,
   APP_THEME_STORAGE_KEY,
-  buildPreHydrationAppThemePrimerScript,
   clearStoredAppThemeSelection,
   DEFAULT_APP_THEME,
   ROSE_APP_THEME,
@@ -67,14 +72,25 @@ function createStyleStub() {
   };
 }
 
-function runAppThemePrimer(storageEntries: Record<string, string>) {
+function runAppThemePrimer({
+  storageEntries = {},
+  cookieString = "",
+  displayMode = "browser",
+}: {
+  storageEntries?: Record<string, string>;
+  cookieString?: string;
+  displayMode?: "browser" | "standalone";
+} = {}) {
   const style = createStyleStub();
+  const dataset: Record<string, string> = {};
   const store = new Map(Object.entries(storageEntries));
   const context = {
     document: {
       documentElement: {
+        dataset,
         style,
       },
+      cookie: cookieString,
     },
     window: {
       localStorage: {
@@ -82,14 +98,25 @@ function runAppThemePrimer(storageEntries: Record<string, string>) {
           return store.get(key) ?? null;
         },
       },
+      matchMedia() {
+        return {
+          matches: displayMode === "standalone",
+        };
+      },
+      navigator: {
+        standalone: displayMode === "standalone",
+      },
     },
   };
 
   assert.doesNotThrow(() => {
-    vm.runInNewContext(buildPreHydrationAppThemePrimerScript(), context);
+    vm.runInNewContext(buildPreHydrationAppBootPrimerScript(), context);
   });
 
-  return style;
+  return {
+    dataset,
+    style,
+  };
 }
 
 test("normalizeAppTheme clamps radii and normalizes colors", () => {
@@ -351,32 +378,38 @@ test("theme storage helpers fail closed when browser storage throws", () => {
 });
 
 test("pre-hydration theme primer resolves a selected preset theme before hydration", () => {
-  const style = runAppThemePrimer({
-    [APP_THEME_SELECTION_STORAGE_KEY]: "rose",
+  const { dataset, style } = runAppThemePrimer({
+    storageEntries: {
+      [APP_THEME_SELECTION_STORAGE_KEY]: "rose",
+    },
   });
 
   assert.equal(style.getPropertyValue("--accent"), "255 79 163");
   assert.equal(style.getPropertyValue("--card-radius"), "24px");
   assert.equal(style.getPropertyValue("--surface-2-rgb"), "19 7 17");
+  assert.equal(dataset.appThemeReady, "true");
+  assert.equal(dataset.appBootPrimer, "applied");
 });
 
 test("pre-hydration theme primer resolves a saved custom slot", () => {
-  const style = runAppThemePrimer({
-    [APP_THEME_SELECTION_STORAGE_KEY]: "custom-2",
-    [APP_THEME_LIBRARY_STORAGE_KEY]: JSON.stringify({
-      version: 1,
-      themes: [
-        {
-          id: "custom-2",
-          name: "Forest Glow",
-          theme: {
-            ...TEST_APP_THEME,
-            primaryActionColor: "#335577",
-            buttonRadius: 22,
+  const { style } = runAppThemePrimer({
+    storageEntries: {
+      [APP_THEME_SELECTION_STORAGE_KEY]: "custom-2",
+      [APP_THEME_LIBRARY_STORAGE_KEY]: JSON.stringify({
+        version: 1,
+        themes: [
+          {
+            id: "custom-2",
+            name: "Forest Glow",
+            theme: {
+              ...TEST_APP_THEME,
+              primaryActionColor: "#335577",
+              buttonRadius: 22,
+            },
           },
-        },
-      ],
-    }),
+        ],
+      }),
+    },
   });
 
   assert.equal(style.getPropertyValue("--accent"), "51 85 119");
@@ -385,13 +418,68 @@ test("pre-hydration theme primer resolves a saved custom slot", () => {
 });
 
 test("pre-hydration theme primer falls back safely on corrupted storage", () => {
-  const style = runAppThemePrimer({
-    [APP_THEME_SELECTION_STORAGE_KEY]: "custom-1",
-    [APP_THEME_STORAGE_KEY]: "{",
-    [APP_THEME_LIBRARY_STORAGE_KEY]: "{",
+  const { dataset, style } = runAppThemePrimer({
+    storageEntries: {
+      [APP_THEME_SELECTION_STORAGE_KEY]: "custom-1",
+      [APP_THEME_STORAGE_KEY]: "{",
+      [APP_THEME_LIBRARY_STORAGE_KEY]: "{",
+    },
   });
 
   assert.deepEqual(style.entries(), []);
+  assert.equal(dataset.appThemeReady, "true");
+});
+
+test("pre-hydration theme primer supports the legacy localStorage-only theme restore path", () => {
+  const { style } = runAppThemePrimer({
+    storageEntries: {
+      [APP_THEME_STORAGE_KEY]: JSON.stringify({
+        version: 2,
+        theme: {
+          ...TEST_APP_THEME,
+          primaryActionColor: "#4488aa",
+        },
+      }),
+    },
+  });
+
+  assert.equal(style.getPropertyValue("--accent"), "68 136 170");
+});
+
+test("pre-hydration boot cookie wins over legacy localStorage and primes ambient plus display mode", () => {
+  const cookieValue = encodeURIComponent(serializeAppBootPreferences({
+    version: 1,
+    updatedAt: "2026-05-04T12:00:00.000Z",
+    themeSelection: "rose",
+    theme: {
+      ...TEST_APP_THEME,
+      primaryActionColor: "#224466",
+      cardRadius: 26,
+    },
+    ambientTheme: "ember",
+    displayMode: "browser",
+  }));
+  const { dataset, style } = runAppThemePrimer({
+    storageEntries: {
+      [APP_THEME_SELECTION_STORAGE_KEY]: "rose",
+      [APP_THEME_STORAGE_KEY]: JSON.stringify({
+        version: 2,
+        theme: {
+          ...TEST_APP_THEME,
+          primaryActionColor: "#99aa22",
+        },
+      }),
+      [AMBIENT_THEME_STORAGE_KEY]: "mint",
+    },
+    cookieString: `${APP_BOOT_PREFERENCES_COOKIE_KEY}=${cookieValue}`,
+    displayMode: "standalone",
+  });
+
+  assert.equal(style.getPropertyValue("--accent"), "34 68 102");
+  assert.equal(style.getPropertyValue("--card-radius"), "26px");
+  assert.equal(dataset.ambientTheme, "ember");
+  assert.equal(dataset.displayMode, "standalone");
+  assert.equal(dataset.appBootPrimer, "applied");
 });
 
 test("next available slot resolves null when all custom theme slots are used", () => {

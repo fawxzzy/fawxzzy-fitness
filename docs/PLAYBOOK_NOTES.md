@@ -78,6 +78,25 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Client bootstrap or raw auth counts treat automation accounts as real members, consume numbered identity slots, or leak infrastructure counts into product analytics.
 - Evidence: supabase/migrations/044_real_user_numbers.sql, src/lib/profile-core.ts
 - Status: Proposed
+## 2026-05-04 - Weekly progress surfaces should explain stored workout truth before adding recommendations
+- Type: Pattern
+- Summary: Weekly progress UI should surface deterministic workout count, consistency, PR moments, and volume mix directly from stored session and set truth before any recommendation or coaching layer is introduced.
+- Suggested Playbook File: docs/PATTERNS/weekly-progress-truth-first.md
+- Rationale: Keeps progress legible immediately after training without creating dashboard filler or opaque coaching that the user cannot trace back to real workouts.
+- Rule: Weekly summaries must be deterministic and traceable.
+- Failure Mode: Dashboard filler creates noise when metrics are not tied to recent user action.
+- Evidence: src/lib/history-weekly-progress.ts, src/components/history/WeeklyProgressSurface.tsx, src/app/history/HistorySessionsClient.tsx
+- Status: Proposed
+## 2026-05-04 - Boot-critical UI preferences should prime before hydration without replacing canonical storage
+- Type: Guardrail
+- Summary: Theme, ambient theme, and display-mode shell state may ship through a tiny validated boot snapshot for first paint, but canonical preference truth must remain in the normal localStorage/profile systems.
+- Suggested Playbook File: docs/GUARDRAILS/prehydration-ui-preferences.md
+- Rationale: Prevents first-paint flicker caused by separate bootstraps repainting default values before the stored UI theme arrives, while avoiding auth-coupled or oversized boot state.
+- Rule: Boot-critical UI preferences should have a tiny validated pre-hydration snapshot, but canonical preference state remains in normal app storage/profile systems.
+- Pattern: Server-prime + prehydration-primer + idempotent client bootstrap.
+- Failure Mode: Multiple bootstraps apply default and then custom values in sequence, so the app flashes the wrong theme or shell even though each bootstrap is individually correct.
+- Evidence: src/app/layout.tsx, src/lib/app-boot-preferences.ts, src/lib/app-boot-primer.ts, src/components/ui/AppThemeBootstrap.tsx, src/components/ui/AppAmbientThemeBootstrap.tsx, src/components/ui/app/DisplayModeBootstrap.tsx, src/components/RouteLoading.tsx
+- Status: Proposed
 ## 2026-05-03 - Durable Supabase refresh cookies should own persistent login while JWTs stay short-lived
 - Type: Guardrail
 - Summary: Persistent login should come from a long-lived rotating refresh-token cookie plus refresh-on-boot/private-route recovery, not from extending the access JWT lifetime or treating remembered UI state as proof of auth.
@@ -101,6 +120,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Summary: Shared `1px` separators should not be rendered as standalone siblings inside press-animated or filter-brightened interactive surfaces. When a route needs a thin divider inside a tappable card, paint it as part of the owning section shell or keep it outside the animated/filtering layer.
 - Suggested Playbook File: docs/GUARDRAILS/interactive-separator-rasterization.md
 - Rationale: Prevents route-specific flicker and disappearing divider bugs where one card looks broken only because a thin line lands on a fractional pixel or gets re-rasterized inside a filtered composite layer.
+- Follow-up: If a compact separator still flakes after moving out of animated/filter layers, promote it from a `1px` divider to the shared compact `2px` accent bar instead of duplicating route-local underline styles.
 - Failure Mode: Tappable cards keep their transform or brightness feedback, but the divider appears to blink, disappear, or fail on only some cards because the separator is still a fragile `1px` child of the animated layer.
 - Evidence: src/components/ExerciseCard.tsx, src/components/ui/Glass.tsx, src/app/globals.css, src/components/ui/MetricItem.tsx, src/components/history/HistoryExerciseCard.tsx, src/components/history/HistorySessionCard.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
 - Status: Proposed

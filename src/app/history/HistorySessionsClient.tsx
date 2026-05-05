@@ -8,10 +8,12 @@ import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
-import { appTokens } from "@/components/ui/app/tokens";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import { getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatDateShort } from "@/lib/formatting";
+import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import type { SessionSummary } from "./session-summary";
 
 function normalizeSessionTagValue(prefix: string, value: string) {
@@ -82,6 +84,8 @@ function HistorySessionFilters({
 
 export function HistorySessionsClient({
   sessions,
+  weeklyProgress,
+  weeklyProgressByWeek = [],
   selectedSessionId,
   initialViewMode = "compact",
   initialFiltersOpen = false,
@@ -90,6 +94,8 @@ export function HistorySessionsClient({
   showBottomActions = true,
 }: {
   sessions: SessionSummary[];
+  weeklyProgress: WeeklyProgressSummary;
+  weeklyProgressByWeek?: WeeklyProgressSummary[];
   selectedSessionId?: string;
   initialViewMode?: "compact" | "detailed";
   initialFiltersOpen?: boolean;
@@ -189,35 +195,70 @@ export function HistorySessionsClient({
     });
   }, [deferredQuery, selectedTags, sessionTagsById, sessions]);
 
+  const sessionWeekStarts = useMemo(
+    () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, weeklyProgress.timezone)])),
+    [filteredSessions, weeklyProgress.timezone],
+  );
+  const weeklyProgressByWeekStart = useMemo(
+    () => new Map(weeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
+    [weeklyProgressByWeek],
+  );
+
   return (
     <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
       {sessions.length > 0 ? (
-        <HistoryTitleControlShell
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          showViewModeToggle={false}
-        >
-          <HistorySessionFilters
-            query={query}
-            onQueryChange={setQuery}
-            selectedTags={selectedTags}
-            onTagsChange={setSelectedTags}
-            groups={availableTagGroups}
-            resultCount={filteredSessions.length}
-            initialOpen={initialFiltersOpen}
-          />
-        </HistoryTitleControlShell>
+        <div className="sticky top-0 z-30 -mx-1 px-1 pt-0">
+          <div className="rounded-b-[1.1rem] bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0.96)_0%,rgba(var(--surface-rgb),0.92)_72%,rgba(var(--surface-rgb),0)_100%)] backdrop-blur-md">
+            <div className={cn(appTokens.historyFloatingHeaderRail, "overflow-visible")}>
+              <HistoryTitleControlShell
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                showViewModeToggle={false}
+              >
+                <HistorySessionFilters
+                  query={query}
+                  onQueryChange={setQuery}
+                  selectedTags={selectedTags}
+                  onTagsChange={setSelectedTags}
+                  groups={availableTagGroups}
+                  resultCount={filteredSessions.length}
+                  initialOpen={initialFiltersOpen}
+                />
+              </HistoryTitleControlShell>
+            </div>
+          </div>
+        </div>
       ) : null}
+      <WeeklyProgressSurface summary={weeklyProgress} viewMode={viewMode} />
       {filteredSessions.length > 0 ? (
         <ul className={cn(
           viewMode === "compact"
             ? appTokens.historyBrowserList
             : appTokens.historyBrowserList,
         )}>
-          {filteredSessions.map((session) => {
+          {filteredSessions.map((session, filteredIndex) => {
             const index = sessions.findIndex((entry) => entry.id === session.id);
+            const previousFilteredSession = filteredIndex > 0 ? filteredSessions[filteredIndex - 1] : null;
+            const sessionWeekStart = sessionWeekStarts.get(session.id) ?? null;
+            const previousWeekStart = previousFilteredSession
+              ? (sessionWeekStarts.get(previousFilteredSession.id) ?? null)
+              : null;
+            const startsNewWeekGroup = filteredIndex === 0 || sessionWeekStart !== previousWeekStart;
+            const historicalWeeklySummary = sessionWeekStart && sessionWeekStart !== weeklyProgress.weekStart
+              ? (weeklyProgressByWeekStart.get(sessionWeekStart) ?? null)
+              : null;
             return (
-              <li key={session.id}>
+              <li
+                key={session.id}
+                className={cn(startsNewWeekGroup && historicalWeeklySummary ? "space-y-2.5 pt-6" : undefined)}
+              >
+                {startsNewWeekGroup && historicalWeeklySummary ? (
+                  <WeeklyProgressSurface
+                    summary={historicalWeeklySummary}
+                    viewMode={viewMode}
+                    presentation="historical"
+                  />
+                ) : null}
                 <HistorySessionCard
                   session={session}
                   previousSession={index >= 0 ? (sessions[index + 1] ?? null) : null}

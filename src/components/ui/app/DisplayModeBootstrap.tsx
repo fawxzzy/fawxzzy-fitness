@@ -1,20 +1,25 @@
 "use client";
 
 import { useEffect, useLayoutEffect } from "react";
+import {
+  mergeAppBootPreferences,
+  resolveAppBootPreferences,
+  type AppBootDisplayMode,
+} from "@/lib/app-boot-preferences";
 
 type NavigatorWithStandalone = Navigator & {
   standalone?: boolean;
 };
 
-function getStandaloneState() {
+function getDisplayMode(): AppBootDisplayMode {
   if (typeof window === "undefined") {
-    return false;
+    return "browser";
   }
 
   const mediaMatch = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
   const navigatorStandalone = Boolean((window.navigator as NavigatorWithStandalone).standalone);
 
-  return mediaMatch || navigatorStandalone;
+  return mediaMatch || navigatorStandalone ? "standalone" : "browser";
 }
 
 function syncDisplayMode() {
@@ -22,7 +27,27 @@ function syncDisplayMode() {
     return;
   }
 
-  document.documentElement.dataset.displayMode = getStandaloneState() ? "standalone" : "browser";
+  const root = document.documentElement;
+  const nextDisplayMode = getDisplayMode();
+  const currentBootPreferences = resolveAppBootPreferences({
+    cookieString: document.cookie,
+  });
+  const shouldUpdateDataset = root.dataset.displayMode !== nextDisplayMode;
+  const shouldUpdateSnapshot = currentBootPreferences?.displayMode !== nextDisplayMode;
+
+  if (!shouldUpdateDataset && !shouldUpdateSnapshot) {
+    return;
+  }
+
+  if (shouldUpdateDataset) {
+    root.dataset.displayMode = nextDisplayMode;
+  }
+
+  if (shouldUpdateSnapshot) {
+    mergeAppBootPreferences({
+      displayMode: nextDisplayMode,
+    });
+  }
 }
 
 export function DisplayModeBootstrap() {

@@ -126,6 +126,7 @@ test("history sessions loader returns session content on the happy path", async 
   const result = await loadHistorySessionsPageData({
     supabase,
     userId: "user-1",
+    now: "2026-04-20T16:00:00.000Z",
     searchParams: { selected: "session-1" },
     logger: { warn() {} },
   });
@@ -136,6 +137,8 @@ test("history sessions loader returns session content on the happy path", async 
   assert.equal(result.sessionItems[0]?.dayTitle, "Primer");
   assert.equal(result.sessionItems[0]?.exerciseCount, 1);
   assert.equal(result.sessionItems[0]?.setCount, 1);
+  assert.equal(result.weeklyProgress.completedWorkoutCount, 1);
+  assert.equal(result.weeklyProgressByWeek.length, 1);
 });
 
 test("history sessions loader renders empty history without crashing", async () => {
@@ -146,12 +149,15 @@ test("history sessions loader renders empty history without crashing", async () 
   const result = await loadHistorySessionsPageData({
     supabase,
     userId: "user-1",
+    now: "2026-04-20T16:00:00.000Z",
     logger: { warn() {} },
   });
 
   assert.equal(result.subtitle, "0 logged sessions");
   assert.equal(result.sessionItems.length, 0);
   assert.equal(result.nextCursor, null);
+  assert.equal(result.weeklyProgress.completedWorkoutCount, 0);
+  assert.equal(result.weeklyProgressByWeek.length, 0);
 });
 
 test("history sessions route state falls back when a secondary load crashes", async () => {
@@ -206,6 +212,7 @@ test("history sessions loader degrades when enrichment queries fail", async () =
   const result = await loadHistorySessionsPageData({
     supabase,
     userId: "user-1",
+    now: "2026-04-20T16:00:00.000Z",
     logger: {
       warn(message) {
         warnings.push(String(message));
@@ -217,6 +224,8 @@ test("history sessions loader degrades when enrichment queries fail", async () =
   assert.equal(result.sessionItems[0]?.routineTitle, "Fallback Routine");
   assert.equal(result.sessionItems[0]?.dayTitle, "Day 2");
   assert.equal(result.sessionItems[0]?.exerciseCount, 0);
+  assert.equal(result.weeklyProgress.completedWorkoutCount, 1);
+  assert.equal(result.weeklyProgressByWeek.length, 1);
   assert.equal(warnings.length, 3);
 });
 

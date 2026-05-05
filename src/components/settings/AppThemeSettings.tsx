@@ -9,6 +9,7 @@ import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/compon
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { appTokens } from "@/components/ui/app/tokens";
+import { mergeAppBootPreferences } from "@/lib/app-boot-preferences";
 import {
   APP_THEME_CUSTOM_SLOT_IDS,
   APP_THEME_NAME_MAX_LENGTH,
@@ -306,7 +307,11 @@ export function AppThemeSettings({
 
     applyAppTheme(theme);
     writeStoredAppTheme(theme);
-  }, [hasLoaded, theme]);
+    mergeAppBootPreferences({
+      theme,
+      themeSelection: selectedThemeId,
+    });
+  }, [hasLoaded, selectedThemeId, theme]);
 
   const updateTheme = (updater: (currentTheme: AppThemeSettings) => AppThemeSettings) => {
     setSaveMessage(null);

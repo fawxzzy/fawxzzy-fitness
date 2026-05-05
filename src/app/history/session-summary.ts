@@ -6,6 +6,7 @@ import { deriveSessionAnalytics } from "@/lib/session-analytics";
 export type SessionSummary = {
   id: string;
   startedAt: string;
+  routineId?: string | null;
   routineTitle: string;
   dayTitle?: string;
   exerciseNames?: string[];
@@ -122,6 +123,7 @@ export function buildSessionSummary({
   return {
     id: sessionRow.id,
     startedAt: sessionRow.performed_at,
+    routineId: sessionRow.routine_id ?? null,
     routineTitle: (routineTitle ?? sessionRow.name ?? "").trim() || "Unknown routine",
     dayTitle: dayTitle?.trim() || undefined,
     exerciseNames,

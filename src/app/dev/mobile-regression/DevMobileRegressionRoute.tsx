@@ -37,6 +37,7 @@ import {
   type MobileFixtureScenario,
 } from "@/features/mobile-regression/fixtures";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 
 export const dynamic = "force-dynamic";
@@ -846,6 +847,38 @@ const mockHistorySessions = [
   },
 ];
 
+const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
+  timezone: "America/New_York",
+  weekStart: "2026-04-06",
+  weekEnd: "2026-04-12",
+  completedWorkoutCount: 3,
+  previousWeekWorkoutCount: 2,
+  activeDayCount: 3,
+  prMomentCount: 4,
+  prExerciseNames: ["Back Squat", "Bench Press", "Weighted Chin-Up"],
+  consistencyTrend: {
+    direction: "up",
+    label: "+1 vs last week",
+    detail: "3 workouts this week, 2 workouts last week.",
+    delta: 1,
+  },
+  volumeCategories: [
+    { key: "strength", label: "Strength", setCount: 34, exerciseCount: 7 },
+    { key: "cardio", label: "Cardio", setCount: 6, exerciseCount: 2 },
+  ],
+  progressScore: {
+    value: 8,
+    max: 10,
+    breakdown: [
+      { label: "Workouts", value: 3, max: 4 },
+      { label: "PRs", value: 3, max: 3 },
+      { label: "Consistency", value: 2, max: 2 },
+      { label: "Coverage", value: 0, max: 1 },
+    ],
+    summary: "3/4 workouts • 3/3 prs • 2/2 consistency",
+  },
+};
+
 const mockHistoryExerciseRows = [
   {
     exerciseId: MOCK_EXERCISE_IDS.walk,
@@ -1479,6 +1512,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient
             sessions={[...mockHistorySessions]}
+            weeklyProgress={mockHistoryWeeklyProgress}
             selectedSessionId="history-session-2"
             initialViewMode={initialViewMode}
           />

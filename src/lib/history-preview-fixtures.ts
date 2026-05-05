@@ -1,5 +1,6 @@
 import type { SessionSummary } from "@/app/history/session-summary";
 import type { HistorySessionsPageData } from "@/lib/history-sessions-page-loader";
+import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import type { IncomingHistoryAuditExercise } from "@/lib/history-log-normalization";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
@@ -186,6 +187,73 @@ const historyPreviewExerciseNameMap = {
   "history-preview-exercise-plank": "Plank",
 } satisfies Record<string, string>;
 
+const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
+  timezone: "America/New_York",
+  weekStart: "2026-04-20",
+  weekEnd: "2026-04-26",
+  completedWorkoutCount: 1,
+  previousWeekWorkoutCount: 2,
+  activeDayCount: 1,
+  prMomentCount: 2,
+  prExerciseNames: ["Back Squat", "Walking Lunge"],
+  consistencyTrend: {
+    direction: "down",
+    label: "-1 vs last week",
+    detail: "1 workout this week after 2 workouts last week.",
+    delta: -1,
+  },
+  volumeCategories: [
+    { key: "strength", label: "Strength", setCount: 7, exerciseCount: 2 },
+    { key: "cardio", label: "Cardio", setCount: 5, exerciseCount: 2 },
+  ],
+  progressScore: {
+    value: 5,
+    max: 10,
+    breakdown: [
+      { label: "Workouts", value: 1, max: 4 },
+      { label: "PRs", value: 2, max: 3 },
+      { label: "Consistency", value: 0, max: 2 },
+      { label: "Coverage", value: 0, max: 1 },
+    ],
+    summary: "1/4 workouts • 2/3 prs",
+  },
+};
+
+const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
+  historyPreviewWeeklyProgress,
+  {
+    timezone: "America/New_York",
+    weekStart: "2026-04-13",
+    weekEnd: "2026-04-19",
+    completedWorkoutCount: 2,
+    previousWeekWorkoutCount: 0,
+    activeDayCount: 2,
+    prMomentCount: 1,
+    prExerciseNames: ["Weighted Pull-Up"],
+    consistencyTrend: {
+      direction: "new",
+      label: "Opened the week",
+      detail: "2 workouts across 2 days.",
+      delta: 2,
+    },
+    volumeCategories: [
+      { key: "strength", label: "Strength", setCount: 11, exerciseCount: 1 },
+      { key: "cardio", label: "Cardio", setCount: 5, exerciseCount: 1 },
+    ],
+    progressScore: {
+      value: 5,
+      max: 10,
+      breakdown: [
+        { label: "Workouts", value: 2, max: 4 },
+        { label: "PRs", value: 1, max: 3 },
+        { label: "Consistency", value: 2, max: 2 },
+        { label: "Coverage", value: 0, max: 1 },
+      ],
+      summary: "2/4 workouts â€¢ 1/3 prs â€¢ 2/2 consistency",
+    },
+  },
+];
+
 const historyPreviewDetailExercises: IncomingHistoryAuditExercise[] = [
   {
     id: "history-preview-row-squat",
@@ -309,6 +377,8 @@ export function getHistoryPreviewSessionsPageData(args?: {
     selectedSessionId: getSelectedSessionId(args?.selected) ?? HISTORY_PREVIEW_PRIMARY_SESSION_ID,
     sessionItems: [...historyPreviewSessions],
     subtitle: `${historyPreviewSessions.length} logged sessions`,
+    weeklyProgress: historyPreviewWeeklyProgress,
+    weeklyProgressByWeek: historyPreviewWeeklyProgressByWeek,
   };
 }
 

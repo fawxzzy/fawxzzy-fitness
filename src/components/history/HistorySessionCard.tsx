@@ -290,22 +290,24 @@ export function HistorySessionCard({
     const compactContent = (
       <div
         className={cn(
-          "relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[0.2rem] py-[0.12rem]",
+          "relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]",
           className,
         )}
       >
         <div
           className={cn(
-            "relative rounded-[0.9rem] px-[0.8rem] py-[0.18rem] transition-colors",
-            selected ? "bg-[rgb(var(--surface-1-rgb)/0.16)]" : "bg-transparent hover:bg-[rgb(var(--surface-1-rgb)/0.1)]",
+            "relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors",
+            selected ? "bg-[rgb(var(--surface-1-rgb)/0.16)] hover:bg-[rgb(var(--surface-1-rgb)/0.16)]" : "bg-transparent hover:bg-[rgb(var(--surface-1-rgb)/0.1)]",
           )}
         >
-          <div className="flex min-h-[1.84rem] items-center">
+          <div className="flex min-h-[30px] items-center">
             <div className={cn("w-full min-w-0 pl-px text-[rgb(var(--text)/1)]", compactHeaderTextClassName)}>
               {title ?? buildSessionCompactTitleText(session)}
             </div>
           </div>
-          <MetricAccentBar variant="thin" className="opacity-85" />
+          <div className="px-px pt-[1px]">
+            <MetricAccentBar variant="compact" />
+          </div>
         </div>
       </div>
     );

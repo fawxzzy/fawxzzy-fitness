@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
-import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
+import { AccentDotSeparatedText, SignatureDot } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
 
 export type MetricDatum = {
   label: string;
   value: string;
+  valueNode?: ReactNode;
   delta?: string | null;
   timeframe?: string | null;
   trend?: string | null;
@@ -14,14 +15,14 @@ export type MetricDatum = {
 };
 
 type MetricLabelPlacement = "top" | "bottom-right";
-type MetricAccentBarVariant = "metric" | "thin";
+export type MetricAccentBarVariant = "metric" | "thin" | "compact";
 
 export function MetricAccentBar({
   className,
   variant = "metric",
 }: {
   className?: string;
-  variant?: "metric" | "thin";
+  variant?: MetricAccentBarVariant;
 }) {
   return (
     <span
@@ -29,7 +30,9 @@ export function MetricAccentBar({
       className={cn(
         variant === "thin"
           ? "block h-px w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] shadow-[0_0_14px_rgb(var(--metric-accent-rgb)/0.16)]"
-          : "mt-[0.32rem] block h-[4px] w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.55),rgb(var(--metric-accent-rgb)/1),rgb(var(--metric-accent-rgb)/0.55))] shadow-[0_0_16px_rgb(var(--metric-accent-rgb)/0.5)]",
+          : variant === "compact"
+            ? "block h-[2px] w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.16),rgb(var(--metric-accent-rgb)/0.82),rgb(var(--metric-accent-rgb)/0.16))] shadow-[0_0_12px_rgb(var(--metric-accent-rgb)/0.14)]"
+            : "mt-[0.32rem] block h-[4px] w-full rounded-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.55),rgb(var(--metric-accent-rgb)/1),rgb(var(--metric-accent-rgb)/0.55))] shadow-[0_0_16px_rgb(var(--metric-accent-rgb)/0.5)]",
         className,
       )}
     />
@@ -64,20 +67,21 @@ function MetricValueLine({
 }: {
   value: string;
 }) {
-  const parts = value.split(" • ").map((part) => part.trim()).filter(Boolean);
-  if (parts.length <= 1) {
+  const normalizedValue = String(value);
+  if (
+    !normalizedValue.includes("|")
+    && !normalizedValue.includes("•")
+    && !normalizedValue.includes("â€¢")
+    && !normalizedValue.includes("Ã¢â‚¬Â¢")
+  ) {
     return <span>{value}</span>;
   }
 
   return (
-    <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-      {parts.map((part, index) => (
-        <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
-          {index > 0 ? <SignatureDot /> : null}
-          <span>{part}</span>
-        </span>
-      ))}
-    </span>
+    <AccentDotSeparatedText
+      text={normalizedValue}
+      className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
+    />
   );
 }
 
@@ -209,7 +213,7 @@ export function MetricItem({
   const valueNode = (
     <span className={cn("inline-flex flex-wrap items-center gap-1.5", valueToneClassName)}>
       {renderMetricValuePrefix(item.valuePrefix)}
-      <MetricValueLine value={item.value} />
+      {item.valueNode ?? <MetricValueLine value={item.value} />}
     </span>
   );
 
@@ -318,16 +322,22 @@ export function MetricGrid({
 export function MetricStrip({
   items,
   className,
+  accentBarVariant = "metric",
 }: {
   items: MetricDatum[];
   className?: string;
+  accentBarVariant?: MetricAccentBarVariant;
 }) {
   if (items.length === 0) return null;
 
   return (
     <div className={cn("flex flex-wrap gap-1.25", className)}>
       {items.map((item) => (
-        <MetricChrome key={`${item.label}-${item.value}`} className={appTokens.workoutMetricStrip}>
+        <MetricChrome
+          key={`${item.label}-${item.value}`}
+          className={appTokens.workoutMetricStrip}
+          accentBarVariant={accentBarVariant}
+        >
           <p className={cn(appTokens.workoutMetricLabel, "block px-px pt-px leading-[1.18]")}>
             {item.label}
           </p>

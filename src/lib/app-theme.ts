@@ -43,8 +43,8 @@ type AppThemePrimerConfig = {
   presetThemes: Record<AppThemePreset, AppThemeSettings>;
 };
 
-const APP_THEME_VERSION = 2;
-const APP_THEME_LIBRARY_VERSION = 1;
+export const APP_THEME_VERSION = 2;
+export const APP_THEME_LIBRARY_VERSION = 1;
 export const APP_THEME_STORAGE_KEY = "fawxzzy:app-theme";
 export const APP_THEME_LIBRARY_STORAGE_KEY = "fawxzzy:app-theme-library";
 export const APP_THEME_SELECTION_STORAGE_KEY = "fawxzzy:app-theme-selection";
@@ -159,7 +159,7 @@ const MAX_CARD_RADIUS = 36;
 const DEEP_BACKGROUND_RGB: RgbTuple = [7, 17, 27];
 const WHITE_RGB: RgbTuple = [255, 255, 255];
 
-const APP_THEME_VARIABLE_NAMES = [
+export const APP_THEME_VARIABLE_NAMES = [
   "--accent",
   "--accent-strong",
   "--accent-mint",
@@ -269,11 +269,11 @@ function isCustomAppThemeSlotId(value: unknown): value is CustomAppThemeSlotId {
   return typeof value === "string" && APP_THEME_CUSTOM_SLOT_IDS.includes(value as CustomAppThemeSlotId);
 }
 
-function isAppThemePreset(value: unknown): value is AppThemePreset {
+export function isAppThemePreset(value: unknown): value is AppThemePreset {
   return value === "default" || value === "rose" || value === "test";
 }
 
-function isThemeSelectionId(value: unknown): value is AppThemeSelectionId {
+export function isAppThemeSelectionId(value: unknown): value is AppThemeSelectionId {
   return isAppThemePreset(value) || isCustomAppThemeSlotId(value);
 }
 
@@ -493,7 +493,7 @@ export function getAppThemeCssVariables(theme: AppThemeSettings) {
   } as const;
 }
 
-function getAppThemePrimerConfig(): AppThemePrimerConfig {
+export function getAppThemePrimerConfig(): AppThemePrimerConfig {
   return {
     customSlotIds: APP_THEME_CUSTOM_SLOT_IDS,
     defaultTheme: DEFAULT_APP_THEME,
@@ -682,7 +682,7 @@ export function readStoredAppThemeSelection(storage?: StorageLike | null) {
 
   try {
     const rawValue = resolvedStorage.getItem(APP_THEME_SELECTION_STORAGE_KEY);
-    return isThemeSelectionId(rawValue) ? rawValue : null;
+    return isAppThemeSelectionId(rawValue) ? rawValue : null;
   } catch {
     try {
       resolvedStorage.removeItem(APP_THEME_SELECTION_STORAGE_KEY);
@@ -822,18 +822,28 @@ export function clearAppliedAppTheme(root: HTMLElement | null | undefined = type
   }
 }
 
+export function getAppThemeSignature(theme: AppThemeSettings) {
+  return getAppThemePrimerConfig().themeKeys.map((key) => String(theme[key as keyof AppThemeSettings] ?? "")).join("|");
+}
+
 export function applyAppTheme(theme: AppThemeSettings, root: HTMLElement | null | undefined = typeof document !== "undefined" ? document.documentElement : null) {
   if (!root) {
     return;
   }
 
-  if (getAppThemePresetMatch(theme) === "default") {
-    clearAppliedAppTheme(root);
+  const nextSignature = getAppThemeSignature(theme);
+  if (root.dataset.appThemeReady === "true" && root.dataset.appThemeSignature === nextSignature) {
     return;
   }
 
-  const cssVariables = getAppThemeCssVariables(theme);
-  for (const [variableName, value] of Object.entries(cssVariables)) {
-    root.style.setProperty(variableName, value);
+  if (getAppThemePresetMatch(theme) === "default") {
+    clearAppliedAppTheme(root);
+  } else {
+    const cssVariables = getAppThemeCssVariables(theme);
+    for (const [variableName, value] of Object.entries(cssVariables)) {
+      root.style.setProperty(variableName, value);
+    }
   }
+  root.dataset.appThemeReady = "true";
+  root.dataset.appThemeSignature = nextSignature;
 }
