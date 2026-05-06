@@ -25,6 +25,9 @@ Non-goals for this lane:
 - Scope: fix only the four `function_search_path_mutable` findings with an isolated migration.
 - Current implementation file:
   - `supabase/migrations/20260506173000_047_function_search_path_hardening.sql`
+- Proof status:
+  - applied and proved
+  - post-apply security advisors cleared the four `function_search_path_mutable` findings
 - Explicitly deferred from this wave:
   - `anon_security_definer_function_executable`
   - `authenticated_security_definer_function_executable`
@@ -39,6 +42,8 @@ Non-goals for this lane:
 | Finding class | Likely owner action | Current posture | PR size |
 | --- | --- | --- | --- |
 | `function_search_path_mutable` | migration PR | open | S |
+| `anon_security_definer_function_executable` | migration PR after usage classification | open | S |
+| `authenticated_security_definer_function_executable` | migration PR after usage classification | open | S |
 | `unindexed_foreign_keys` | migration PR after confirmed advisor export | planned | S-M |
 | `auth_rls_initplan` | migration PR series | planned | M-L |
 | `auth_leaked_password_protection` | Supabase operator action | open | S |
@@ -51,25 +56,26 @@ Non-goals for this lane:
 Low-risk schema hygiene and deterministic SQL hardening.
 
 1. `function_search_path_mutable`
-2. `unindexed_foreign_keys`
+2. `anon_security_definer_function_executable` / `authenticated_security_definer_function_executable`
+3. `unindexed_foreign_keys`
 
 ### Wave 2
 
 RLS performance optimization without changing access intent.
 
-3. `auth_rls_initplan`
+4. `auth_rls_initplan`
 
 ### Wave 3
 
 Operator-owned auth hardening.
 
-4. `auth_leaked_password_protection`
+5. `auth_leaked_password_protection`
 
 ### Wave 4
 
 Telemetry-backed cleanup only after earlier waves settle.
 
-5. `unused_index`
+6. `unused_index`
 
 ## Lane details
 
@@ -130,6 +136,48 @@ Telemetry-backed cleanup only after earlier waves settle.
 - Requires:
   - code or migration PR
   - fresh observation to confirm the exact FK list before implementation
+
+### 2A. `anon_security_definer_function_executable` / `authenticated_security_definer_function_executable`
+
+- Current affected functions:
+  - `public.assign_real_user_number_on_profile_insert()`
+  - `public.is_automation_auth_user(target_user_id uuid)`
+- Current source file:
+  - `supabase/migrations/044_real_user_numbers.sql`
+- Intended call-path classification:
+  - `public.assign_real_user_number_on_profile_insert()`
+    - trigger-only
+    - invoked by `profiles_assign_real_user_number_before_insert`
+    - no repo evidence of app RPC usage
+  - `public.is_automation_auth_user(target_user_id uuid)`
+    - internal helper
+    - called by `assign_real_user_number_on_profile_insert()`
+    - also used by the one-time migration backfill in `044_real_user_numbers.sql`
+    - no repo evidence of app RPC usage
+- Why not `SECURITY INVOKER` by default:
+  - `is_automation_auth_user()` reads `auth.users`, so switching away from `SECURITY DEFINER` may break the intended privileged read path
+  - `assign_real_user_number_on_profile_insert()` runs inside a trigger path and should be kept behaviorally stable while the exposure issue is fixed
+- Recommended remediation path:
+  - keep both functions behaviorally intact
+  - keep `SECURITY DEFINER` unless later proof shows it is unnecessary
+  - revoke `EXECUTE` from `anon` and `authenticated`
+  - preserve trigger and internal function execution
+  - consider moving the helper out of the exposed `public` API surface only after the revoke-first lane is proved
+- Safer-than alternatives:
+  - better than changing to `SECURITY INVOKER` without re-proving access to `auth.users`
+  - better than mixing schema moves, search-path changes, and permission revokes in one PR
+- Verification path:
+  - `pnpm migration:validate`
+  - reviewed security advisor refresh proving both `anon_security_definer_function_executable` and `authenticated_security_definer_function_executable` findings clear
+  - smoke check that profile insert still works for a normal signed-in user path
+  - smoke check that existing automation-account classification logic still behaves correctly
+- Rollback concern:
+  - if any hidden RPC or external operator path relies on PostgREST execution of either function, revoking `EXECUTE` will break that path immediately
+- Risk if ignored:
+  - exposed `SECURITY DEFINER` functions remain callable through the public API surface and keep Fitness in a warning posture
+- Requires:
+  - code or migration PR
+  - reviewed advisor proof after apply
 
 ### 3. `auth_rls_initplan`
 
@@ -210,11 +258,13 @@ Telemetry-backed cleanup only after earlier waves settle.
 
 ## Recommended PR sequence
 
-1. Wave 1A: explicit `search_path` hardening on custom SQL functions.
-2. Wave 1B: targeted FK index additions after confirming the exact advisor surfaces.
-3. Wave 2A+: staged RLS initplan policy rewrites by table family.
-4. Wave 3: Supabase operator action for leaked password protection plus proof capture.
-5. Wave 4: unused index review after telemetry and earlier waves settle.
+1. Wave 1A: explicit `search_path` hardening on custom SQL functions. Completed and proved.
+2. Wave 1C planning: classify remaining `SECURITY DEFINER` exposure and choose the narrow revoke-first remediation path.
+3. Wave 1C apply: revoke `EXECUTE` from `anon` and `authenticated` for the two internal-only functions, then refresh advisors.
+4. Wave 1B: targeted FK index additions after confirming the exact advisor surfaces.
+5. Wave 2A+: staged RLS initplan policy rewrites by table family.
+6. Wave 3: Supabase operator action for leaked password protection plus proof capture.
+7. Wave 4: unused index review after telemetry and earlier waves settle.
 
 ## Exit criteria before Foundation posture changes
 
