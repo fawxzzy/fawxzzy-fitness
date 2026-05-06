@@ -20,6 +20,20 @@ Non-goals for this lane:
 - Foundation Supabase inventory draft and advisor findings
 - Fitness migration chain under `supabase/migrations`
 
+## Wave 1A status
+
+- Scope: fix only the four `function_search_path_mutable` findings with an isolated migration.
+- Current implementation file:
+  - `supabase/migrations/20260506173000_047_function_search_path_hardening.sql`
+- Explicitly deferred from this wave:
+  - `anon_security_definer_function_executable`
+  - `authenticated_security_definer_function_executable`
+- Deferred affected functions:
+  - `public.assign_real_user_number_on_profile_insert()`
+  - `public.is_automation_auth_user(target_user_id uuid)`
+- Reason for deferral:
+  - permission hardening and search-path hardening should not be mixed into one PR because rollback and post-change advisor proof would become ambiguous.
+
 ## Current finding classes
 
 | Finding class | Likely owner action | Current posture | PR size |
