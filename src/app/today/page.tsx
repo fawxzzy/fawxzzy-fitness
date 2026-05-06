@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
@@ -8,8 +9,8 @@ import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { EarnedInstallPrompt } from "@/components/install/EarnedInstallPrompt";
+import { ProgressionReviewCard } from "@/components/progression/ProgressionReviewCard";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -24,6 +25,7 @@ import {
 } from "@/components/today/TodayScreenFamily";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
+import type { ActionResult } from "@/lib/action-result";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -32,8 +34,16 @@ import {
   getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
-import { formatRoutineDayDisplayName, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import { formatRoutineDayOccurrenceDisplayName, getRoutineCycleOccurrence, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
+import {
+  buildProgressionHistorySessions,
+  deriveProgressionReviewCandidate,
+  type ProgressionHistorySetRow,
+  type ProgressionTargetPlan,
+} from "@/lib/progression-playbooks";
+import { formatProgressionReviewDisplayItem, type ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
+import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
@@ -89,6 +99,7 @@ type TodayBootstrapStep =
   | "exercises fetch"
   | "completion fetch"
   | "in-progress fetch"
+  | "progression review fetch"
   | "optional enrichments fetch";
 
 function getTodayBootstrapErrorMessage(error: unknown) {
@@ -124,6 +135,404 @@ function logTodayBootstrapFailure(args: {
     activeRoutineId: args.activeRoutineId ?? null,
     message: getTodayBootstrapErrorMessage(args.error),
   });
+}
+
+function buildProgressionReviewTargetPlan(exercise: RoutineDayExerciseRow): ProgressionTargetPlan {
+  return {
+    measurementType: exercise.measurement_type ?? "reps",
+    setsMin: exercise.target_sets ?? null,
+    setsMax: exercise.target_sets ?? null,
+    repsMin: exercise.target_reps_min ?? exercise.target_reps ?? null,
+    repsMax: exercise.target_reps_max ?? exercise.target_reps ?? null,
+    weightMin: exercise.target_weight ?? null,
+    weightMax: exercise.target_weight ?? null,
+    weightUnit: exercise.target_weight_unit ?? null,
+    durationSeconds: exercise.target_duration_seconds ?? null,
+    distance: exercise.target_distance ?? null,
+    distanceUnit: exercise.target_distance_unit ?? null,
+    calories: exercise.target_calories ?? null,
+  };
+}
+
+type ProgressionReviewMutationExerciseRow = RoutineDayExerciseRow & {
+  routine_day_id: string;
+};
+
+async function readProgressionReviewMutationContext(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  routineId: string;
+  routineDayExerciseId: string;
+}): Promise<ActionResult<{
+  exercise: ProgressionReviewMutationExerciseRow;
+  fallbackWeightUnit: "lbs" | "kg";
+}>> {
+  const { data: exerciseRow, error: exerciseError } = await args.supabase
+    .from("routine_day_exercises")
+    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config")
+    .eq("id", args.routineDayExerciseId)
+    .eq("user_id", args.userId)
+    .maybeSingle();
+
+  if (exerciseError || !exerciseRow) {
+    return { ok: false, error: "Progression review candidate is no longer available." };
+  }
+
+  const exercise = exerciseRow as ProgressionReviewMutationExerciseRow;
+  const { data: routineDay, error: routineDayError } = await args.supabase
+    .from("routine_days")
+    .select("routine_id")
+    .eq("id", exercise.routine_day_id)
+    .eq("user_id", args.userId)
+    .maybeSingle();
+
+  if (routineDayError || routineDay?.routine_id !== args.routineId) {
+    return { ok: false, error: "Progression review candidate is not part of this routine." };
+  }
+
+  const { data: routine, error: routineError } = await args.supabase
+    .from("routines")
+    .select("weight_unit")
+    .eq("id", args.routineId)
+    .eq("user_id", args.userId)
+    .maybeSingle();
+
+  if (routineError || !routine) {
+    return { ok: false, error: "Could not verify routine settings." };
+  }
+
+  const { count: activeSessionCount, error: activeSessionError } = await args.supabase
+    .from("sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", args.userId)
+    .eq("routine_id", args.routineId)
+    .eq("status", "in_progress");
+
+  if (activeSessionError) {
+    return { ok: false, error: "Could not verify active session state." };
+  }
+
+  if ((activeSessionCount ?? 0) > 0) {
+    return { ok: false, error: "Finish or discard the active workout before applying progression changes." };
+  }
+
+  return {
+    ok: true,
+    data: {
+      exercise,
+      fallbackWeightUnit: routine.weight_unit === "kg" ? "kg" : "lbs",
+    },
+  };
+}
+
+async function loadProgressionHistoryForExercise(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  routineId: string;
+  exerciseId: string;
+}) {
+  const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
+    .from("session_exercises")
+    .select("id, exercise_id, session:sessions!inner(performed_at, status, routine_id)")
+    .eq("user_id", args.userId)
+    .eq("exercise_id", args.exerciseId)
+    .eq("session.status", "completed")
+    .eq("session.routine_id", args.routineId);
+
+  if (sessionExercisesError) {
+    throw sessionExercisesError;
+  }
+
+  const sessionExerciseMetaById = new Map<string, { performedAt: string }>();
+  for (const row of (sessionExercisesData ?? []) as Array<{
+    id: string;
+    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
+  }>) {
+    const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
+    if (!row.id || !sessionRow?.performed_at || sessionRow.status !== "completed" || sessionRow.routine_id !== args.routineId) {
+      continue;
+    }
+
+    sessionExerciseMetaById.set(row.id, { performedAt: sessionRow.performed_at });
+  }
+
+  const sessionExerciseIds = [...sessionExerciseMetaById.keys()];
+  const { data: setsData, error: setsError } = sessionExerciseIds.length > 0
+    ? await args.supabase
+        .from("sets")
+        .select("session_exercise_id, set_index, weight, reps, weight_unit, is_warmup")
+        .eq("user_id", args.userId)
+        .in("session_exercise_id", sessionExerciseIds)
+        .order("set_index", { ascending: true })
+    : { data: [], error: null };
+
+  if (setsError) {
+    throw setsError;
+  }
+
+  return ((setsData ?? []) as Array<{
+    session_exercise_id: string;
+    set_index: number;
+    weight: number | null;
+    reps: number | null;
+    weight_unit: "lbs" | "kg" | null;
+    is_warmup: boolean;
+  }>)
+    .map((row): ProgressionHistorySetRow | null => {
+      const meta = sessionExerciseMetaById.get(row.session_exercise_id);
+      if (!meta) {
+        return null;
+      }
+
+      return {
+        sessionId: row.session_exercise_id,
+        performedAt: meta.performedAt,
+        setIndex: row.set_index,
+        weight: row.weight ?? null,
+        reps: row.reps ?? null,
+        weightUnit: row.weight_unit ?? null,
+        isWarmup: row.is_warmup,
+      };
+    })
+    .filter((row): row is ProgressionHistorySetRow => row !== null);
+}
+
+async function applyProgressionReviewCandidateAction(payload: {
+  routineId: string;
+  routineDayExerciseId: string;
+  candidateType: ProgressionReviewDisplayItem["type"];
+}): Promise<ActionResult<{ previousTarget: ProgressionTargetPlan; appliedTarget: ProgressionTargetPlan }>> {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  if (payload.candidateType === "review") {
+    return { ok: false, error: "Hold & Review candidates are review-only for now." };
+  }
+
+  const context = await readProgressionReviewMutationContext({
+    supabase,
+    userId: user.id,
+    routineId: payload.routineId,
+    routineDayExerciseId: payload.routineDayExerciseId,
+  });
+
+  if (!context.ok) {
+    return { ok: false, error: context.error };
+  }
+
+  if (!context.data) {
+    return { ok: false, error: "Progression review candidate is no longer available." };
+  }
+
+  const { exercise, fallbackWeightUnit } = context.data;
+  const previousTarget = buildProgressionReviewTargetPlan(exercise);
+
+  let historyRows: ProgressionHistorySetRow[] = [];
+  try {
+    historyRows = await loadProgressionHistoryForExercise({
+      supabase,
+      userId: user.id,
+      routineId: payload.routineId,
+      exerciseId: exercise.exercise_id,
+    });
+  } catch {
+    return { ok: false, error: "Could not verify completed history for this progression change." };
+  }
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: exercise.progression_playbook_id,
+    config: exercise.progression_playbook_config,
+    plan: previousTarget,
+    history: buildProgressionHistorySessions({
+      rows: historyRows,
+      targetSetCount: exercise.target_sets,
+      topRepTarget: exercise.target_reps_max ?? exercise.target_reps,
+      limit: 8,
+    }),
+    fallbackWeightUnit,
+  });
+
+  if (candidate.type !== payload.candidateType || (candidate.type !== "promote" && candidate.type !== "deload") || !candidate.proposedTarget) {
+    return { ok: false, error: "Progression review candidate is no longer applicable." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("routine_day_exercises")
+    .update(buildProgressionReviewTargetUpdate(candidate.proposedTarget))
+    .eq("id", exercise.id)
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    return { ok: false, error: "Could not apply progression review." };
+  }
+
+  revalidatePath("/today");
+  revalidatePath(`/routines/${payload.routineId}/edit`);
+
+  return {
+    ok: true,
+    data: {
+      previousTarget,
+      appliedTarget: candidate.proposedTarget,
+    },
+  };
+}
+
+async function revertProgressionReviewCandidateAction(payload: {
+  routineId: string;
+  routineDayExerciseId: string;
+  previousTarget: ProgressionTargetPlan;
+}): Promise<ActionResult> {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const context = await readProgressionReviewMutationContext({
+    supabase,
+    userId: user.id,
+    routineId: payload.routineId,
+    routineDayExerciseId: payload.routineDayExerciseId,
+  });
+
+  if (!context.ok) {
+    return { ok: false, error: context.error };
+  }
+
+  const { error: updateError } = await supabase
+    .from("routine_day_exercises")
+    .update(buildProgressionReviewTargetUpdate(payload.previousTarget))
+    .eq("id", payload.routineDayExerciseId)
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    return { ok: false, error: "Could not revert progression review." };
+  }
+
+  revalidatePath("/today");
+  revalidatePath(`/routines/${payload.routineId}/edit`);
+
+  return { ok: true };
+}
+
+async function loadTodayProgressionReviewItems(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  routineId: string;
+  fallbackWeightUnit: "lbs" | "kg";
+  exercises: RoutineDayExerciseRow[];
+  exerciseNameByRoutineExerciseId: Map<string, string>;
+}) {
+  const progressionExercises = args.exercises.filter((exercise) => exercise.progression_playbook_id);
+  if (progressionExercises.length === 0) {
+    return [] as ProgressionReviewDisplayItem[];
+  }
+
+  const progressionExerciseIds = Array.from(new Set(
+    progressionExercises
+      .map((exercise) => exercise.exercise_id)
+      .filter((exerciseId): exerciseId is string => Boolean(exerciseId)),
+  ));
+
+  if (progressionExerciseIds.length === 0) {
+    return [] as ProgressionReviewDisplayItem[];
+  }
+
+  const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
+    .from("session_exercises")
+    .select("id, exercise_id, session:sessions!inner(performed_at, status, routine_id)")
+    .eq("user_id", args.userId)
+    .in("exercise_id", progressionExerciseIds)
+    .eq("session.status", "completed")
+    .eq("session.routine_id", args.routineId);
+
+  if (sessionExercisesError) {
+    throw sessionExercisesError;
+  }
+
+  const sessionExerciseMetaById = new Map<string, { exerciseId: string; performedAt: string }>();
+  for (const row of (sessionExercisesData ?? []) as Array<{
+    id: string;
+    exercise_id: string;
+    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
+  }>) {
+    const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
+    if (!row.id || !row.exercise_id || !sessionRow?.performed_at || sessionRow.status !== "completed" || sessionRow.routine_id !== args.routineId) {
+      continue;
+    }
+
+    sessionExerciseMetaById.set(row.id, {
+      exerciseId: row.exercise_id,
+      performedAt: sessionRow.performed_at,
+    });
+  }
+
+  const sessionExerciseIds = [...sessionExerciseMetaById.keys()];
+  const { data: setsData, error: setsError } = sessionExerciseIds.length > 0
+    ? await args.supabase
+        .from("sets")
+        .select("session_exercise_id, set_index, weight, reps, weight_unit, is_warmup")
+        .eq("user_id", args.userId)
+        .in("session_exercise_id", sessionExerciseIds)
+        .order("set_index", { ascending: true })
+    : { data: [], error: null };
+
+  if (setsError) {
+    throw setsError;
+  }
+
+  const historyRowsByExerciseId = new Map<string, ProgressionHistorySetRow[]>();
+  for (const row of (setsData ?? []) as Array<{
+    session_exercise_id: string;
+    set_index: number;
+    weight: number | null;
+    reps: number | null;
+    weight_unit: "lbs" | "kg" | null;
+    is_warmup: boolean;
+  }>) {
+    const meta = sessionExerciseMetaById.get(row.session_exercise_id);
+    if (!meta) {
+      continue;
+    }
+
+    const current = historyRowsByExerciseId.get(meta.exerciseId) ?? [];
+    current.push({
+      sessionId: row.session_exercise_id,
+      performedAt: meta.performedAt,
+      setIndex: row.set_index,
+      weight: row.weight ?? null,
+      reps: row.reps ?? null,
+      weightUnit: row.weight_unit ?? null,
+      isWarmup: row.is_warmup,
+    });
+    historyRowsByExerciseId.set(meta.exerciseId, current);
+  }
+
+  return progressionExercises
+    .map((exercise) => {
+      const plan = buildProgressionReviewTargetPlan(exercise);
+      const history = buildProgressionHistorySessions({
+        rows: historyRowsByExerciseId.get(exercise.exercise_id) ?? [],
+        targetSetCount: exercise.target_sets,
+        topRepTarget: exercise.target_reps_max ?? exercise.target_reps,
+        limit: 8,
+      });
+      const candidate = deriveProgressionReviewCandidate({
+        playbookId: exercise.progression_playbook_id,
+        config: exercise.progression_playbook_config,
+        plan,
+        history,
+        fallbackWeightUnit: args.fallbackWeightUnit,
+      });
+
+      return formatProgressionReviewDisplayItem({
+        id: exercise.id,
+        exerciseName: args.exerciseNameByRoutineExerciseId.get(exercise.id) ?? "Exercise",
+        candidate,
+      });
+    })
+    .filter((item): item is ProgressionReviewDisplayItem => item !== null);
 }
 
 
@@ -219,7 +628,15 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
   redirect("/today");
 }
 
-export default async function TodayPage({ searchParams }: { searchParams?: { error?: string } }) {
+export default async function TodayPage({
+  searchParams,
+}: {
+  searchParams?: {
+    error?: string;
+    focus?: string;
+    shadowPlacement?: string;
+  };
+}) {
   const diagnostics = new LoadingDiagnosticsCollector("/today");
   const user = await requireUser({
     gate: "today.auth.session",
@@ -339,7 +756,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         allDayExercises = await diagnostics.measure("today.day-exercises.fetch", async () => {
           const { data: allExercises, error: exercisesError } = await supabase
             .from("routine_day_exercises")
-            .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
+            .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config")
             .in("routine_day_id", routineDays.map((day) => day.id))
             .eq("user_id", user.id)
             .order("position", { ascending: true });
@@ -525,6 +942,38 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     }
   }
   const normalizedDayByIndex = new Map(normalizedDaySummaries.map((entry) => [entry.day.day_index, entry]));
+  const exerciseNameByRoutineExerciseId = new Map(
+    normalizedDaySummaries.flatMap((summary) => summary.runnableExercises.map((exercise) => [exercise.id, exercise.displayName] as const)),
+  );
+  let progressionReviewItems: ProgressionReviewDisplayItem[] = [];
+  if (activeRoutine && !inProgressSession && allDayExercises.length > 0) {
+    try {
+      progressionReviewItems = await diagnostics.measure("today.progression-review.fetch", () => loadTodayProgressionReviewItems({
+        supabase,
+        userId: user.id,
+        routineId: activeRoutine.id,
+        fallbackWeightUnit: activeRoutine.weight_unit,
+        exercises: allDayExercises,
+        exerciseNameByRoutineExerciseId,
+      }), {
+        blockingReason: "Waiting for Today progression review candidates.",
+        metadata: {
+          activeRoutineId: activeRoutine.id,
+          exerciseCount: allDayExercises.length,
+          userId: user.id,
+        },
+        timeoutMs: 7000,
+      });
+    } catch (error) {
+      logTodayBootstrapFailure({
+        step: "progression review fetch",
+        userId: user.id,
+        routineId: activeRoutine.id,
+        activeRoutineId: profile.active_routine_id,
+        error,
+      });
+    }
+  }
   // Manual QA checklist:
   // - Start from the default day, back out, and confirm Resume still targets that same day.
   // - Select a different day, start workout, back out, and confirm Resume restores that selected day instead of recalculating calendar today.
@@ -538,11 +987,20 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   const effectiveDayIndex = displayDay.dayIndex;
   const effectiveRoutineDay = displayDay.routineDay;
   const effectiveDaySummary = effectiveRoutineDay ? normalizedDayByIndex.get(effectiveRoutineDay.day_index) ?? null : null;
+  const effectiveDayOccurrenceLabel = activeRoutine?.start_date && effectiveDayIndex !== null
+    ? getRoutineCycleOccurrence({
+        cycleLengthDays: activeRoutine.cycle_length_days,
+        startDate: activeRoutine.start_date,
+        profileTimeZone: activeRoutine.timezone || profile.timezone,
+        dayIndex: effectiveDayIndex,
+      }).occurrenceLabel
+    : null;
   const routineDayName = effectiveDayIndex !== null
-    ? formatRoutineDayDisplayName({
+    ? formatRoutineDayOccurrenceDisplayName({
         name: displayDay.dayName,
         dayIndex: effectiveDayIndex,
         startDate: activeRoutine?.start_date ?? null,
+        occurrenceLabel: effectiveDayOccurrenceLabel,
       })
     : displayDay.dayName;
   const routinePayloadState = buildTodayRoutinePayloadState({
@@ -637,7 +1095,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             recentExerciseIds: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => exercise.exercise_id),
           },
         };
-  const recoveryShadowPlacement = fetchFailed
+  const shouldLoadRecoveryShadowPlacement =
+    searchParams?.shadowPlacement === "recovery_reset_shadow_placement"
+    || searchParams?.focus === "recovery_reset_shadow";
+  const recoveryShadowPlacement = fetchFailed || !shouldLoadRecoveryShadowPlacement
     ? null
     : await diagnostics.measure("today.recovery-shadow.fetch", () => loadTodayRecoveryShadowPlacementSafely({
       memberId: user.id,
@@ -672,9 +1133,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 )}
                 align="center"
                 subtitle={todayHeaderSubtitle}
-                action={completedDayIndexes.includes(todayPayload.routine.dayIndex)
-                  ? <AppBadge tone="success">Completed</AppBadge>
-                  : undefined}
               />
             </TodayFloatingHeaderRail>
           ) : (
@@ -705,6 +1163,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             />
           ) : null}
           <EarnedInstallPrompt />
+          {!todayPayload.inProgressSessionId && todayPayload.routine && progressionReviewItems.length > 0 ? (
+            <ProgressionReviewCard
+              items={progressionReviewItems}
+              routineId={todayPayload.routine.id}
+              applyAction={applyProgressionReviewCandidateAction}
+              revertAction={revertProgressionReviewCandidateAction}
+            />
+          ) : null}
           {todayPayload.inProgressSessionId ? (
             <TodayOverviewScaffold>
               <div className="flex flex-col gap-[0.625rem]">
@@ -720,6 +1186,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 id: day.id,
                 dayIndex: day.day_index,
                 name: day.name || `Day ${day.day_index}`,
+                occurrenceLabel: activeRoutine?.start_date
+                  ? getRoutineCycleOccurrence({
+                      cycleLengthDays: activeRoutine.cycle_length_days,
+                      startDate: activeRoutine.start_date,
+                      profileTimeZone: activeRoutine.timezone || profile.timezone,
+                      dayIndex: day.day_index,
+                    }).occurrenceLabel
+                  : null,
                 isRest: day.is_rest,
                 state,
                 invalidExerciseCount: invalidExercises.length,
