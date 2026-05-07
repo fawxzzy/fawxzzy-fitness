@@ -5,12 +5,14 @@
 -- Expected production migration shape:
 -- 1. keep both functions in place
 -- 2. keep SECURITY DEFINER unless follow-up proof justifies changing it
--- 3. revoke EXECUTE from anon and authenticated
+-- 3. revoke EXECUTE from public, anon, and authenticated
 -- 4. refresh security advisors and confirm the two exposure classes clear
 
+revoke execute on function public.assign_real_user_number_on_profile_insert() from public;
 revoke execute on function public.assign_real_user_number_on_profile_insert() from anon;
 revoke execute on function public.assign_real_user_number_on_profile_insert() from authenticated;
 
+revoke execute on function public.is_automation_auth_user(uuid) from public;
 revoke execute on function public.is_automation_auth_user(uuid) from anon;
 revoke execute on function public.is_automation_auth_user(uuid) from authenticated;
 

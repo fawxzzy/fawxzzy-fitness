@@ -37,13 +37,29 @@ Non-goals for this lane:
 - Reason for deferral:
   - permission hardening and search-path hardening should not be mixed into one PR because rollback and post-change advisor proof would become ambiguous.
 
+## Wave 1C status
+
+- Scope: revoke inherited public API execution from the two internal-only `SECURITY DEFINER` functions without changing their bodies or execution mode.
+- Current implementation file:
+  - `supabase/migrations/20260506190000_048_security_definer_execute_revokes.sql`
+- Proof status:
+  - applied and proved
+  - post-apply security advisors cleared both `anon_security_definer_function_executable` and `authenticated_security_definer_function_executable`
+- Cleared affected functions:
+  - `public.assign_real_user_number_on_profile_insert()`
+  - `public.is_automation_auth_user(target_user_id uuid)`
+- Remaining separate security lane:
+  - `auth_leaked_password_protection`
+- Reason this stayed separate:
+  - permission hardening was intentionally isolated from Supabase Auth operator settings, RLS rewrites, and performance remediation so the post-change proof stayed unambiguous.
+
 ## Current finding classes
 
 | Finding class | Likely owner action | Current posture | PR size |
 | --- | --- | --- | --- |
-| `function_search_path_mutable` | migration PR | open | S |
-| `anon_security_definer_function_executable` | migration PR after usage classification | open | S |
-| `authenticated_security_definer_function_executable` | migration PR after usage classification | open | S |
+| `function_search_path_mutable` | migration PR | proved | S |
+| `anon_security_definer_function_executable` | migration PR after usage classification | proved | S |
+| `authenticated_security_definer_function_executable` | migration PR after usage classification | proved | S |
 | `unindexed_foreign_keys` | migration PR after confirmed advisor export | planned | S-M |
 | `auth_rls_initplan` | migration PR series | planned | M-L |
 | `auth_leaked_password_protection` | Supabase operator action | open | S |
@@ -55,9 +71,7 @@ Non-goals for this lane:
 
 Low-risk schema hygiene and deterministic SQL hardening.
 
-1. `function_search_path_mutable`
-2. `anon_security_definer_function_executable` / `authenticated_security_definer_function_executable`
-3. `unindexed_foreign_keys`
+1. `unindexed_foreign_keys`
 
 ### Wave 2
 
@@ -160,7 +174,7 @@ Telemetry-backed cleanup only after earlier waves settle.
 - Recommended remediation path:
   - keep both functions behaviorally intact
   - keep `SECURITY DEFINER` unless later proof shows it is unnecessary
-  - revoke `EXECUTE` from `anon` and `authenticated`
+  - revoke `EXECUTE` from `public`, `anon`, and `authenticated`
   - preserve trigger and internal function execution
   - consider moving the helper out of the exposed `public` API surface only after the revoke-first lane is proved
 - Safer-than alternatives:
@@ -260,7 +274,7 @@ Telemetry-backed cleanup only after earlier waves settle.
 
 1. Wave 1A: explicit `search_path` hardening on custom SQL functions. Completed and proved.
 2. Wave 1C planning: classify remaining `SECURITY DEFINER` exposure and choose the narrow revoke-first remediation path.
-3. Wave 1C apply: revoke `EXECUTE` from `anon` and `authenticated` for the two internal-only functions, then refresh advisors.
+3. Wave 1C apply: revoke `EXECUTE` from `public`, `anon`, and `authenticated` for the two internal-only functions, then refresh advisors. Completed and proved.
 4. Wave 1B: targeted FK index additions after confirming the exact advisor surfaces.
 5. Wave 2A+: staged RLS initplan policy rewrites by table family.
 6. Wave 3: Supabase operator action for leaked password protection plus proof capture.
