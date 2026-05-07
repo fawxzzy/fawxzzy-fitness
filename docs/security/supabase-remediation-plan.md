@@ -121,11 +121,16 @@ Telemetry-backed cleanup only after earlier waves settle.
 
 ### 2. `unindexed_foreign_keys`
 
-- Candidate affected surfaces to confirm against the next advisor export:
+- Confirmed advisor surfaces:
   - `public.session_exercises.exercise_id`
   - `public.routine_day_exercises.exercise_id`
   - `public.sessions.routine_id`
   - `public.exercise_stats.exercise_id`
+- Current implementation file:
+  - `supabase/migrations/20260507130000_049_fk_covering_indexes.sql`
+- Current status:
+  - code-ready
+  - not applied yet
 - Existing references that already appear covered by leading-column indexes:
   - `public.routine_days.routine_id`
   - `public.sets.session_exercise_id`
@@ -137,9 +142,13 @@ Telemetry-backed cleanup only after earlier waves settle.
   - `supabase/migrations/024_session_exercises_routine_day_exercise_fk.sql`
   - `supabase/migrations/026_exercise_stats_cache.sql`
 - Proposed fix:
-  - confirm the exact advisor-reported FK columns first
   - add narrow covering indexes only for the still-unindexed referencing columns
   - avoid redundant indexes where a leading-column composite already satisfies the FK path
+  - keep the lane limited to:
+    - `idx_session_exercises_exercise_id`
+    - `idx_routine_day_exercises_exercise_id`
+    - `idx_sessions_routine_id`
+    - `idx_exercise_stats_exercise_id`
 - Verification command:
   - `pnpm migration:validate`
   - reviewed Supabase advisor refresh proving the specific FK findings were removed
