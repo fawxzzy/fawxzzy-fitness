@@ -60,7 +60,7 @@ Non-goals for this lane:
 | `function_search_path_mutable` | migration PR | proved | S |
 | `anon_security_definer_function_executable` | migration PR after usage classification | proved | S |
 | `authenticated_security_definer_function_executable` | migration PR after usage classification | proved | S |
-| `unindexed_foreign_keys` | migration PR after confirmed advisor export | planned | S-M |
+| `unindexed_foreign_keys` | migration PR after confirmed advisor export | proved | S-M |
 | `auth_rls_initplan` | migration PR series | planned | M-L |
 | `auth_leaked_password_protection` | Supabase operator action | open | S |
 | `unused_index` | observation-first review, maybe migration PR later | deferred | S |
@@ -129,8 +129,8 @@ Telemetry-backed cleanup only after earlier waves settle.
 - Current implementation file:
   - `supabase/migrations/20260507130000_049_fk_covering_indexes.sql`
 - Current status:
-  - code-ready
-  - not applied yet
+  - applied and proved
+  - post-apply performance advisors cleared all four `unindexed_foreign_keys` findings
 - Existing references that already appear covered by leading-column indexes:
   - `public.routine_days.routine_id`
   - `public.sets.session_exercise_id`
@@ -158,7 +158,7 @@ Telemetry-backed cleanup only after earlier waves settle.
   - deletes and joins across referenced tables can degrade and amplify policy overhead
 - Requires:
   - code or migration PR
-  - fresh observation to confirm the exact FK list before implementation
+  - reviewed advisor proof after apply
 
 ### 2A. `anon_security_definer_function_executable` / `authenticated_security_definer_function_executable`
 
@@ -224,21 +224,77 @@ Telemetry-backed cleanup only after earlier waves settle.
   - `supabase/migrations/015_history_log_audit_notes.sql`
   - `supabase/migrations/026_exercise_stats_cache.sql`
   - `supabase/migrations/036_session_follow_up_jobs.sql`
+- Current advisor count:
+  - 40 findings
+  - 10 tables x 4 policies each (`select`, `insert`, `update`, `delete`)
 - Proposed fix:
   - replace direct `auth.uid()` predicates with initplan-friendly forms such as `(select auth.uid())`
   - preserve the existing access intent and table ownership semantics
   - stage the work by table family instead of rewriting every policy in one oversized PR
+- Proposed batch map:
+  - Wave 2A-1 Session core
+    - tables: `sessions`, `session_exercises`, `sets`
+    - policy count: 12
+    - source migrations: `001_init.sql`, `005_ui_core_fix_pack.sql`, `006_session_status.sql`, `015_history_log_audit_notes.sql`
+  - Wave 2A-2 Routine core
+    - tables: `routines`, `routine_days`, `routine_day_exercises`
+    - policy count: 12
+    - source migration: `002_routines.sql`
+  - Wave 2A-3 Profile and catalog core
+    - tables: `profiles`, `exercises`, `exercise_stats`
+    - policy count: 12
+    - source migrations: `002_routines.sql`, `008_exercises_table_and_rls.sql`, `026_exercise_stats_cache.sql`
+  - Wave 2A-4 Follow-up jobs
+    - table: `session_follow_up_jobs`
+    - policy count: 4
+    - source migration: `036_session_follow_up_jobs.sql`
+- Policy map:
+  - Session core
+    - `sessions_select_own`, `sessions_insert_own`, `sessions_update_own`, `sessions_delete_own`
+    - `session_exercises_select_own`, `session_exercises_insert_own`, `session_exercises_update_own`, `session_exercises_delete_own`
+    - `sets_select_own`, `sets_insert_own`, `sets_update_own`, `sets_delete_own`
+  - Routine core
+    - `routines_select_own`, `routines_insert_own`, `routines_update_own`, `routines_delete_own`
+    - `routine_days_select_own`, `routine_days_insert_own`, `routine_days_update_own`, `routine_days_delete_own`
+    - `routine_day_exercises_select_own`, `routine_day_exercises_insert_own`, `routine_day_exercises_update_own`, `routine_day_exercises_delete_own`
+  - Profile and catalog core
+    - `profiles_select_own`, `profiles_insert_own`, `profiles_update_own`, `profiles_delete_own`
+    - `exercises_select_global_or_own`, `exercises_insert_own_only`, `exercises_update_own_only`, `exercises_delete_own_only`
+    - `exercise_stats_select_own`, `exercise_stats_insert_own`, `exercise_stats_update_own`, `exercise_stats_delete_own`
+  - Follow-up jobs
+    - `session_follow_up_jobs_select_own`, `session_follow_up_jobs_insert_own`, `session_follow_up_jobs_update_own`, `session_follow_up_jobs_delete_own`
+- Implementation notes:
+  - prefer batch-local `drop policy` + `create policy` rewrites so the diff stays mechanical
+  - keep all non-auth predicates intact; only wrap auth calls in `select`
+  - preserve the special `exercises_select_global_or_own` semantics exactly:
+    - `user_id is null or user_id = (select auth.uid())`
+  - preserve paired `using` and `with check` clauses symmetrically on `update` policies
 - Verification command:
   - `pnpm migration:validate`
   - reviewed advisor refresh after each policy batch
   - owner review that authenticated read/write behavior is unchanged
+- Smoke-test checklist:
+  - signed-in user can read, insert, update, and delete own `sessions`, `session_exercises`, and `sets`
+  - signed-in user can read, insert, update, and delete own `routines`, `routine_days`, and `routine_day_exercises`
+  - signed-in user can read and update own `profiles`
+  - signed-in user can read global exercises and manage owned exercises only
+  - signed-in user can read and mutate own `exercise_stats`
+  - signed-in user can read and mutate own `session_follow_up_jobs`
 - Rollback concern:
   - policy mistakes can silently block legitimate access or widen access if rewritten carelessly
+- Additional rollback concerns:
+  - later migrations such as `005_ui_core_fix_pack.sql`, `006_session_status.sql`, and `015_history_log_audit_notes.sql` already override some base policies; batch rewrites must target the latest canonical text, not the earliest migration version
+  - running all 40 rewrites in one migration would make policy regression triage much harder if a single table family breaks
 - Risk if ignored:
   - policy evaluation overhead persists and keeps the privacy lane in a warning state even if access rules are logically correct
 - Requires:
   - code or migration PR
   - observation-backed follow-up after each policy batch
+- Proposed PR sequence:
+  1. Wave 2A-1 `sessions` / `session_exercises` / `sets`
+  2. Wave 2A-2 `routines` / `routine_days` / `routine_day_exercises`
+  3. Wave 2A-3 `profiles` / `exercises` / `exercise_stats`
+  4. Wave 2A-4 `session_follow_up_jobs`
 
 ### 4. `auth_leaked_password_protection`
 
