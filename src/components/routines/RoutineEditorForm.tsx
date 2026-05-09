@@ -111,6 +111,7 @@ const routineEditorCycleInputClassName = cn(
   labeledEditorFieldControlClassName,
   "h-11 min-h-11 px-3 py-2 text-center font-semibold leading-none tabular-nums",
 );
+const routineEditorCycleFieldWidthClassName = "w-[10.5rem]";
 
 type RoutineEditorInfoPayload = {
   title: string;
@@ -257,7 +258,7 @@ function RoutineEditorWeekdayField({
             <div className="flex shrink-0 items-start">
               <RoutineEditorTextField
                 label="Day 1"
-                className="w-[10.5rem]"
+                className={routineEditorCycleFieldWidthClassName}
                 info={{
                   title: "Cycle Start",
                   summary: "Calendar date that anchors Day 1 of the routine cycle.",
@@ -358,7 +359,7 @@ function RoutineEditorCycleLengthField({
   return (
     <RoutineEditorTextField
       label="Length"
-      className="w-[5.25rem]"
+      className={routineEditorCycleFieldWidthClassName}
       info={{
         title: "Cycle Length",
         summary: "Days before the routine repeats.",

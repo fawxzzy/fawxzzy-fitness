@@ -329,11 +329,11 @@ export function ExerciseCard({
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute bottom-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.20),rgb(var(--accent)/0.11))]",
+            "pointer-events-none absolute bottom-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))]",
             isFullProgressFill
               ? "right-0 rounded-br-[var(--exercise-card-progress-fill-bottom-right-radius,calc(var(--card-radius)-2px))] rounded-tr-[var(--exercise-card-progress-fill-top-right-radius,calc(var(--card-radius)-2px))]"
-              : "w-[var(--exercise-card-progress-fill-span)] rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.08)]",
-            isFullProgressFill ? "shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.16)]" : undefined,
+              : "w-[var(--exercise-card-progress-fill-span)] rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.12)]",
+            isFullProgressFill ? "shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.20)]" : undefined,
           )}
           style={{
             ...railProgressFillStyle,
@@ -378,11 +378,11 @@ export function ExerciseCard({
             <span
               aria-hidden="true"
               className={cn(
-                "pointer-events-none absolute z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.20),rgb(var(--accent)/0.11))]",
+                "pointer-events-none absolute z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))]",
                 isFullProgressFill
                   ? "inset-0 w-full rounded-br-[var(--exercise-card-progress-fill-bottom-right-radius,calc(var(--card-radius)-2px))] rounded-tr-[var(--exercise-card-progress-fill-top-right-radius,calc(var(--card-radius)-2px))]"
-                  : "bottom-0 left-0 top-0 w-[var(--exercise-card-progress-fill-width)] rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.08)]",
-                isFullProgressFill ? "shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.16)]" : undefined,
+                  : "bottom-0 left-0 top-0 w-[var(--exercise-card-progress-fill-width)] rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.12)]",
+                isFullProgressFill ? "shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.20)]" : undefined,
               )}
               style={progressFillStyle}
             />

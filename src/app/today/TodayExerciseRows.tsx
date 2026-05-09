@@ -168,10 +168,10 @@ export function TodayExerciseRows({
                     <span
                       aria-hidden="true"
                       className={[
-                        "pointer-events-none absolute bottom-0 left-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.20),rgb(var(--accent)/0.11))]",
+                        "pointer-events-none absolute bottom-0 left-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))]",
                         isCompactProgressFillComplete
-                          ? "right-0 rounded-br-[var(--card-radius)] rounded-tr-[var(--card-radius)] shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.16)]"
-                          : "rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.08)]",
+                          ? "right-0 rounded-br-[var(--card-radius)] rounded-tr-[var(--card-radius)] shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.20)]"
+                          : "rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.12)]",
                       ].join(" ")}
                       style={compactProgressFillStyle}
                     />

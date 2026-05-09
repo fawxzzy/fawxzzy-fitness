@@ -873,7 +873,7 @@ export function ProgressionPlaybookEditor({
 
     return (
       <section className="pt-1.5">
-        <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y]">
+        <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
           <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1">
             {orderedFieldGroups.map((group, groupIndex) => (
               <div key={group.key} className="flex shrink-0 flex-nowrap items-stretch gap-2">

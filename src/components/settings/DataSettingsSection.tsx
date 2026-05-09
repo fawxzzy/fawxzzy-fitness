@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { updateQaLlelVisibilityAction } from "@/app/settings/actions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -118,24 +119,35 @@ export function DataSettingsSection({
   return (
     <div className="space-y-4 pt-2">
       <PublishBottomActions>
-        <BottomActionSplit
-          secondary={canAccessQaLlelUi ? (
-            <button
-              type="button"
-              className={getAppButtonClassName({ variant: qaVisible ? "secondary" : "tertiary", fullWidth: true })}
-              disabled={isSavingQaVisible}
-              onClick={() => {
-                const nextQaVisible = !qaVisible;
-                setQaVisible(nextQaVisible);
-                saveQaVisibility(nextQaVisible);
-              }}
-            >
-              {isSavingQaVisible ? "Saving..." : qaVisible ? "Hide QA" : "Show QA"}
-            </button>
-          ) : (
-            <span />
-          )}
-          primary={
+        {canAccessQaLlelUi ? (
+          <BottomActionSplit
+            secondary={(
+              <button
+                type="button"
+                className={getAppButtonClassName({ variant: qaVisible ? "secondary" : "tertiary", fullWidth: true })}
+                disabled={isSavingQaVisible}
+                onClick={() => {
+                  const nextQaVisible = !qaVisible;
+                  setQaVisible(nextQaVisible);
+                  saveQaVisibility(nextQaVisible);
+                }}
+              >
+                {isSavingQaVisible ? "Saving..." : qaVisible ? "Hide QA" : "Show QA"}
+              </button>
+            )}
+            primary={(
+              <button
+                type="button"
+                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                disabled={isExporting}
+                onClick={runExport}
+              >
+                {isExporting ? "Preparing..." : "Export"}
+              </button>
+            )}
+          />
+        ) : (
+          <BottomActionSingle>
             <button
               type="button"
               className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
@@ -144,8 +156,8 @@ export function DataSettingsSection({
             >
               {isExporting ? "Preparing..." : "Export"}
             </button>
-          }
-        />
+          </BottomActionSingle>
+        )}
       </PublishBottomActions>
 
       <div className="space-y-3 rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.22)] p-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.03)] sm:p-5">

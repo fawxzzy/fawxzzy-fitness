@@ -949,7 +949,7 @@ export function MeasurementPanelV2({
 
           {useHorizontalScrollLayout ? (
             <div className="relative overflow-visible">
-              <div className="hide-scrollbar overflow-x-auto overscroll-contain pb-0.5 pt-1.5 touch-pan-x">
+              <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
                 <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5">
                   {horizontalRowPrefix ? (
                     <div className="shrink-0">

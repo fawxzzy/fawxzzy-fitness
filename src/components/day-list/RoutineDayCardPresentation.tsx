@@ -41,7 +41,7 @@ export function renderSignatureParts(parts: string[], className?: string) {
   }
 
   return (
-    <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]", className)}>
+    <span className={cn("flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]", className)}>
       {parts.map((part, index) => (
         <Fragment key={`${part}-${index}`}>
           {index > 0 ? <SignatureDot /> : null}

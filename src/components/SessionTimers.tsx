@@ -1276,8 +1276,8 @@ export function SetLoggerCard({
   const saveSetPrimaryActions = useMemo(
     () => bottomDockCenter ? (
       <BottomActionTriad
-        className="grid-cols-[minmax(92px,0.76fr)_minmax(7.35rem,8.6rem)_minmax(0,1.3fr)]"
-        tertiaryClassName="[&>*]:max-w-[8rem]"
+        className="max-w-full overflow-x-clip grid-cols-[minmax(84px,0.72fr)_minmax(6.5rem,7.8rem)_minmax(0,1.16fr)]"
+        tertiaryClassName="[&>*]:max-w-[7.35rem]"
         secondary={onSecondaryAction ? (
           <BottomDockButton
             type="button"
@@ -1486,7 +1486,7 @@ export function SetLoggerCard({
   }, []);
   const progressionSettingsRow = progressionEditorGroups.length > 0 ? (
     <section className="px-1 pb-1.5 pt-1">
-      <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y]">
+      <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
         <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1">
           {progressionEditorGroups.map((group, groupIndex) => (
             <div key={group.key} className="flex shrink-0 flex-nowrap items-stretch gap-2">

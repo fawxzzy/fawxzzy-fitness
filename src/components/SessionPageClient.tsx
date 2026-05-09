@@ -238,7 +238,7 @@ export function SessionPageClient({
         <div
           role="group"
           aria-label="Bottom actions"
-          className="grid w-full grid-cols-[minmax(94px,0.82fr)_minmax(7.35rem,8.6rem)_minmax(112px,1.08fr)] items-stretch gap-2"
+          className="grid w-full max-w-full overflow-x-clip grid-cols-[minmax(84px,0.72fr)_minmax(6.5rem,7.8rem)_minmax(0,1.16fr)] items-stretch gap-2"
         >
           <div className="flex min-w-0 items-stretch [&>*]:w-full">
             {quickAddAction}
@@ -262,7 +262,7 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip")} floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader}>
       <PublishBottomActions>{sessionActions}</PublishBottomActions>
 
       <ContentRail className={appTokens.currentSessionContentRail}>
@@ -294,7 +294,7 @@ export function SessionPageClient({
               removeExerciseAction={removeExerciseAction}
               deleteSetAction={deleteSetAction}
               updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
-              bottomDockCenter={timerPill}
+              bottomDockCenter={null}
             />
           ) : null}
 
