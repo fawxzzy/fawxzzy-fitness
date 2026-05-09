@@ -19,9 +19,9 @@ export const CURATED_STEP_REGISTRY: CuratedStepDefinition[] = [
   },
   {
     id: "goals",
-    eyebrow: "Training Goal",
+    eyebrow: "Training Focus",
     title: "What are you training for?",
-    body: "Pick the goal that should anchor your first routine.",
+    body: "Pick the focus that should anchor your first routine.",
     nextLabel: "Next",
   },
   {

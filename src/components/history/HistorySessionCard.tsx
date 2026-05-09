@@ -114,13 +114,13 @@ export function buildSessionCompactTitleText(
       {hasMetadata ? (
         <span className="ml-2 inline-flex min-w-0 items-center gap-x-2 overflow-hidden text-[0.73rem] font-medium text-[rgb(var(--text-secondary)/0.92)]">
           <SignatureMiniPipe className="w-[0.35rem] shrink-0" />
+          {dayTitle ? <span className="min-w-0 shrink truncate">{dayTitle}</span> : null}
           {weekday ? (
             <span className="inline-flex shrink-0 items-center gap-2">
-              <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">{weekday}</span>
               {dayTitle ? <SignatureDot /> : null}
+              <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">{weekday}</span>
             </span>
           ) : null}
-          {dayTitle ? <span className="min-w-0 shrink truncate">{dayTitle}</span> : null}
         </span>
       ) : null}
     </span>
@@ -184,17 +184,17 @@ function SessionTitleFlow({
             <span className="mx-2 inline-flex align-middle">
               <SignatureMiniPipe className="w-[0.35rem]" />
             </span>
+            {dayTitle ? <span>{dayTitle}</span> : null}
             {weekday ? (
               <>
-                <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">{weekday}</span>
                 {dayTitle ? (
                   <span className="mx-2 inline-flex align-middle">
                     <SignatureDot />
                   </span>
                 ) : null}
+                <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">{weekday}</span>
               </>
             ) : null}
-            {dayTitle ? <span>{dayTitle}</span> : null}
           </>
         ) : null}
       <span className="block clear-both h-0" />
@@ -290,22 +290,24 @@ export function HistorySessionCard({
     const compactContent = (
       <div
         className={cn(
-          "relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[0.2rem] py-[0.12rem]",
+          "relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]",
           className,
         )}
       >
         <div
           className={cn(
-            "relative rounded-[0.9rem] px-[0.8rem] py-[0.18rem] transition-colors",
-            selected ? "bg-[rgb(var(--surface-1-rgb)/0.16)]" : "bg-transparent hover:bg-[rgb(var(--surface-1-rgb)/0.1)]",
+            "relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors",
+            selected ? "bg-[rgb(var(--surface-1-rgb)/0.16)] hover:bg-[rgb(var(--surface-1-rgb)/0.16)]" : "bg-transparent hover:bg-[rgb(var(--surface-1-rgb)/0.1)]",
           )}
         >
-          <div className="flex min-h-[1.84rem] items-center">
+          <div className="flex min-h-[30px] items-center">
             <div className={cn("w-full min-w-0 pl-px text-[rgb(var(--text)/1)]", compactHeaderTextClassName)}>
               {title ?? buildSessionCompactTitleText(session)}
             </div>
           </div>
-          <MetricAccentBar variant="thin" className="opacity-85" />
+          <div className="px-px pt-[1px]">
+            <MetricAccentBar variant="compact" />
+          </div>
         </div>
       </div>
     );

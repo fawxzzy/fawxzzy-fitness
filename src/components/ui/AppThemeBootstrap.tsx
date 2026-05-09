@@ -1,7 +1,14 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { applyAppTheme, applyResolvedStoredAppTheme, DEFAULT_APP_THEME } from "@/lib/app-theme";
+import { mergeAppBootPreferences, resolveAppBootPreferences } from "@/lib/app-boot-preferences";
+import {
+  applyAppTheme,
+  applyResolvedStoredAppTheme,
+  DEFAULT_APP_THEME,
+  getAppThemeSignature,
+  readStoredAppThemeSelection,
+} from "@/lib/app-theme";
 import { startLoadingDiagnosticGate } from "@/lib/loading-diagnostics";
 
 export function AppThemeBootstrap() {
@@ -15,7 +22,21 @@ export function AppThemeBootstrap() {
     });
 
     try {
-      applyResolvedStoredAppTheme();
+      const resolvedTheme = applyResolvedStoredAppTheme();
+      const resolvedSelection = readStoredAppThemeSelection();
+      const currentBootPreferences = resolveAppBootPreferences({
+        cookieString: typeof document !== "undefined" ? document.cookie : null,
+      });
+
+      const currentThemeSignature = currentBootPreferences?.theme ? getAppThemeSignature(currentBootPreferences.theme) : null;
+      const resolvedThemeSignature = getAppThemeSignature(resolvedTheme);
+
+      if (currentThemeSignature !== resolvedThemeSignature || currentBootPreferences?.themeSelection !== resolvedSelection) {
+        mergeAppBootPreferences({
+          theme: resolvedTheme,
+          themeSelection: resolvedSelection,
+        });
+      }
       gate.resolve();
     } catch (error) {
       try {

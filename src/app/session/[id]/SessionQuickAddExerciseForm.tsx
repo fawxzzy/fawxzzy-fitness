@@ -2,9 +2,9 @@
 
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import type { EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
-import { appTokens } from "@/components/ui/app/tokens";
 import type { ActionResult } from "@/lib/action-result";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
+import type { ProgressionPlaybookId } from "@/lib/progression-playbooks";
 
 export function SessionQuickAddExerciseForm({
   sessionId,
@@ -12,6 +12,8 @@ export function SessionQuickAddExerciseForm({
   initialSelectedId,
   weightUnit,
   exerciseStats,
+  defaultProgressionPlaybookId,
+  defaultProgressionPlaybookConfig,
   backHref,
   addExerciseAction,
 }: {
@@ -20,6 +22,8 @@ export function SessionQuickAddExerciseForm({
   initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
   exerciseStats: ExerciseStatsOption[];
+  defaultProgressionPlaybookId?: ProgressionPlaybookId | null;
+  defaultProgressionPlaybookConfig?: Record<string, unknown> | null;
   backHref: string;
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
 }) {
@@ -30,12 +34,14 @@ export function SessionQuickAddExerciseForm({
       exercises={exercises}
       initialSelectedId={initialSelectedId}
       weightUnit={weightUnit}
+      defaultProgressionPlaybookId={defaultProgressionPlaybookId}
+      defaultProgressionPlaybookConfig={defaultProgressionPlaybookConfig}
       exerciseStats={exerciseStats}
+      customExerciseEnabled
       backHref={backHref}
       addExerciseAction={addExerciseAction}
       successMessage="Exercise added to session."
       errorMessage="Could not add exercise."
-      className={appTokens.currentSessionFormStack}
     />
   );
 }

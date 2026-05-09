@@ -54,7 +54,7 @@ function resolveInlineModality(
 }
 
 const INLINE_VIEW_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "toggleActive",
+  intent: "toggleInactive",
 });
 
 const INLINE_DELETE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
@@ -76,6 +76,24 @@ export function EditDayRegressionSurface({
       goalState,
       manualOrder: "1",
       modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null, activeExercise.name),
+      progressionPlaybookId: "",
+      progressionStallPolicy: "none",
+      progressionLoadIncrement: "5",
+      progressionStallThreshold: "2",
+      progressionDeloadPercent: "10",
+      progressionAutoUpdateRoutineGoals: false,
+      progressionSetFlow: "straight_sets",
+      progressionBarbellLoadIncrement: "",
+      progressionDumbbellLoadIncrement: "",
+      progressionMachineLoadIncrement: "",
+      progressionCableLoadIncrement: "",
+      progressionBodyweightRepIncrement: "",
+      progressionDurationIncrementSeconds: "",
+      progressionDistanceIncrement: "",
+      progressionSetFlowLoadStep: "",
+      progressionSetFlowRepStep: "",
+      progressionSetFlowDurationStep: "",
+      progressionSetFlowDistanceStep: "",
     }
     : null;
 
@@ -236,7 +254,7 @@ export function EditDayRegressionSurface({
           return (
             <div className={appTokens.routineEditorCompactStack}>
               <AttachedCardActionStripFrame gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
-                  <button type="button" className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--border-strong)/0.18)]")}>
+                  <button type="button" data-bottom-action-intent="toggleInactive" className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]")}>
                     <span className="bottom-action__label">View</span>
                   </button>
                   <button type="button" data-bottom-action-intent="danger" className={INLINE_DELETE_ACTION_BUTTON_CLASS_NAME}>

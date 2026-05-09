@@ -39,6 +39,10 @@ export type ExerciseGoalSummaryFields = {
   emptyLabel?: string;
 };
 
+export function resolveExerciseGoalCurrentReps(goal: Pick<GoalFields, "target_reps" | "target_reps_min" | "target_reps_max">) {
+  return goal.target_reps ?? goal.target_reps_min ?? goal.target_reps_max ?? null;
+}
+
 export function formatExerciseGoalSummary(goal: ExerciseGoalSummaryFields) {
   const items = formatGoalSummaryItems({
     sets: goal.sets,
@@ -65,13 +69,15 @@ export function formatExerciseGoalSummary(goal: ExerciseGoalSummaryFields) {
 }
 
 export function formatExerciseGoal(goal: GoalFields) {
+  const currentReps = resolveExerciseGoalCurrentReps(goal);
+
   return formatExerciseGoalSummary({
     sets: goal.target_sets,
-    reps: goal.target_reps_min ?? goal.target_reps,
-    repsMax: goal.target_reps_max ?? goal.target_reps,
+    reps: currentReps,
+    repsMax: currentReps,
     failure: isFailureGoalSelection({
-      repsMin: goal.target_reps_min ?? goal.target_reps,
-      repsMax: goal.target_reps_max ?? goal.target_reps,
+      repsMin: currentReps,
+      repsMax: currentReps,
     }),
     weight: goal.target_weight,
     weightUnit: goal.target_weight_unit ?? "lbs",

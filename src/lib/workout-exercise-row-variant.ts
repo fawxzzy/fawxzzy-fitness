@@ -18,7 +18,7 @@ export type WorkoutExerciseCardVariantState = {
   badgeText?: string;
   progressLabel?: string;
   chips: Array<SessionExerciseProgressChip | "addedToday">;
-  skipActionLabel: "Skip" | "Unskip";
+  skipActionLabel: "Skip" | "Unskip" | "Hide" | "Unhide";
   actionRowClassName: string;
   quickLogActionClassName: string;
   skipActionClassName: string;

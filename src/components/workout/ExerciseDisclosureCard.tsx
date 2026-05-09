@@ -9,6 +9,7 @@ import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import type { ExerciseCardButtonProps, ExerciseCardContentVerticalAlign, ExerciseCardDensity, ExerciseCardMediaLeftCornerMode, ExerciseCardRightIconMode, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
 import type { ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
+import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 type DisclosureScope = "session-exercise" | "day-detail";
@@ -27,6 +28,7 @@ export function ExerciseDisclosureCard({
   scope,
   itemId,
   expanded,
+  keepPanelMounted = false,
   onToggle,
   exercise,
   summary,
@@ -46,6 +48,7 @@ export function ExerciseDisclosureCard({
   titleMeta,
   trailingClassName,
   rightRailClassName,
+  mediaClassName,
   bodyClassName,
   contentClassName,
   subtitleClassName,
@@ -56,10 +59,12 @@ export function ExerciseDisclosureCard({
   rightIconMode,
   hideEmptySummary = false,
   contentVerticalAlign,
+  progressFill,
 }: {
   scope: DisclosureScope;
   itemId: string;
   expanded: boolean;
+  keepPanelMounted?: boolean;
   onToggle: () => void;
   exercise: ExerciseCardVisual;
   summary?: ExerciseGoalSummaryValue;
@@ -79,6 +84,7 @@ export function ExerciseDisclosureCard({
   titleMeta?: ReactNode;
   trailingClassName?: string;
   rightRailClassName?: string;
+  mediaClassName?: string;
   bodyClassName?: string;
   contentClassName?: string;
   subtitleClassName?: string;
@@ -89,6 +95,7 @@ export function ExerciseDisclosureCard({
   rightIconMode?: ExerciseCardRightIconMode;
   hideEmptySummary?: boolean;
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
+  progressFill?: ProgressionProgressFill | null;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
@@ -127,6 +134,7 @@ export function ExerciseDisclosureCard({
         className={cn("shadow-none", expanded ? "rounded-b-none [border-bottom-right-radius:0px]" : undefined, cardClassName)}
         trailingClassName={trailingClassName}
         rightRailClassName={resolvedRightRailClassName}
+        mediaClassName={mediaClassName}
         bodyClassName={bodyClassName}
         contentClassName={contentClassName}
         subtitleClassName={subtitleClassName}
@@ -135,6 +143,7 @@ export function ExerciseDisclosureCard({
         hideEmptySummary={hideEmptySummary}
         rightIconMode={resolvedRightIconMode}
         contentVerticalAlign={contentVerticalAlign}
+        progressFill={progressFill}
         rightIcon={(
           expanded
             ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
@@ -142,11 +151,16 @@ export function ExerciseDisclosureCard({
         )}
         badgeText={badgeText}
       />
-      {expanded && children ? (
+      {(expanded || keepPanelMounted) && children ? (
         <div
           id={contract.panelId}
           data-testid={contract.panelTestId}
-          className={cn(appTokens.workoutCardExpandedPanel, panelClassName)}
+          aria-hidden={!expanded}
+          className={cn(
+            appTokens.workoutCardExpandedPanel,
+            !expanded ? "hidden" : undefined,
+            panelClassName,
+          )}
         >
           {children}
         </div>

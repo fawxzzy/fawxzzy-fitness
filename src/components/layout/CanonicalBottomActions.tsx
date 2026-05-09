@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-2 pb-[calc(var(--app-dock-safe-padding-bottom)+0.375rem)]";
-export const BOTTOM_ACTION_SHELL_CLASSNAME = "mx-auto w-full max-w-[720px] px-4";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-1 pb-[calc(var(--app-dock-safe-padding-bottom)+0.125rem)]";
+export const BOTTOM_ACTION_SHELL_CLASSNAME = "mx-auto w-full max-w-[720px] max-w-full overflow-x-clip px-4";
 
 const BOTTOM_ACTION_ARIA_LABEL = "Bottom actions";
 const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-2";

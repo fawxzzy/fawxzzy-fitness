@@ -1,11 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { HistorySessionsClient } from "@/app/history/HistorySessionsClient";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { loadHistorySessionsPageData } from "@/lib/history-sessions-page-loader";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { QA_LLEL_VISIBILITY_COOKIE, resolveQaLlelVisibilityOverride } from "@/lib/qa-data-visibility";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,9 @@ export default async function DevHistorySessionsLivePage({
   const data = await loadHistorySessionsPageData({
     supabase: dataClient,
     userId,
+    showQaLlelDataOverride: resolveQaLlelVisibilityOverride(
+      cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value,
+    ),
   });
 
   if (captureMode) {
@@ -84,6 +88,8 @@ export default async function DevHistorySessionsLivePage({
         <ContentRail className="pt-5">
           <HistorySessionsClient
             sessions={data.sessionItems}
+            weeklyProgress={data.weeklyProgress}
+            weeklyProgressByWeek={data.weeklyProgressByWeek}
             initialViewMode={initialViewMode}
             initialFiltersOpen={initialFiltersOpen}
             initialQuery={initialQuery}
@@ -104,6 +110,8 @@ export default async function DevHistorySessionsLivePage({
     >
       <HistorySessionsClient
         sessions={data.sessionItems}
+        weeklyProgress={data.weeklyProgress}
+        weeklyProgressByWeek={data.weeklyProgressByWeek}
         initialViewMode={initialViewMode}
         initialFiltersOpen={initialFiltersOpen}
         initialQuery={initialQuery}

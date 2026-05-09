@@ -1,7 +1,7 @@
 import type { ProfileRow } from "@/types/db";
 
 const PROFILE_SELECT_WITH_PREFERENCES =
-  "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit, user_number, user_kind, user_number_assigned_at";
+  "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit, show_qa_llel_data, user_number, user_kind, user_number_assigned_at";
 const PROFILE_SELECT_LEGACY = "id, timezone, active_routine_id";
 const DEFAULT_WEIGHT_UNIT: NonNullable<ProfileRow["preferred_weight_unit"]> = "lbs";
 const DEFAULT_DISTANCE_UNIT: NonNullable<ProfileRow["preferred_distance_unit"]> = "mi";
@@ -13,6 +13,7 @@ type HydratableProfileShape = Pick<ProfileRow, "id" | "timezone" | "active_routi
       ProfileRow,
       | "preferred_weight_unit"
       | "preferred_distance_unit"
+      | "show_qa_llel_data"
       | "user_number"
       | "user_kind"
       | "user_number_assigned_at"
@@ -75,6 +76,7 @@ function isMissingProfilePreferenceColumnError(error: ProfileQueryError) {
   const referencesExtendedColumn = [
     "preferred_weight_unit",
     "preferred_distance_unit",
+    "show_qa_llel_data",
     "user_number",
     "user_kind",
     "user_number_assigned_at",
@@ -104,6 +106,9 @@ function hydrateProfile(profile: HydratableProfileShape): ProfileRow {
       profile.preferred_distance_unit === "km" || profile.preferred_distance_unit === "mi"
         ? profile.preferred_distance_unit
         : DEFAULT_DISTANCE_UNIT,
+    show_qa_llel_data: typeof profile.show_qa_llel_data === "boolean"
+      ? profile.show_qa_llel_data
+      : profile.user_kind === "automation",
     user_number: typeof profile.user_number === "number" ? profile.user_number : null,
     user_kind:
       profile.user_kind === "human"
@@ -255,6 +260,7 @@ async function insertProfile(
       timezone: string;
       preferred_weight_unit?: NonNullable<ProfileRow["preferred_weight_unit"]>;
       preferred_distance_unit?: NonNullable<ProfileRow["preferred_distance_unit"]>;
+      show_qa_llel_data?: boolean;
     } = {
       id: userId,
       timezone: defaultTimeZone,
@@ -263,6 +269,7 @@ async function insertProfile(
     if (hasExtendedColumns) {
       insertPayload.preferred_weight_unit = DEFAULT_WEIGHT_UNIT;
       insertPayload.preferred_distance_unit = DEFAULT_DISTANCE_UNIT;
+      insertPayload.show_qa_llel_data = false;
     }
 
     const insertSelect = hasExtendedColumns ? PROFILE_SELECT_WITH_PREFERENCES : PROFILE_SELECT_LEGACY;

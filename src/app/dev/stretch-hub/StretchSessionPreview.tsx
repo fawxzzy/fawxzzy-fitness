@@ -20,6 +20,7 @@ export function StretchSessionPreview() {
       toggleSkipAction={async () => ({ ok: true })}
       removeExerciseAction={async () => ({ ok: true })}
       deleteSetAction={async () => ({ ok: true })}
+      updateSessionExerciseProgressionAction={async () => ({ ok: true })}
     />
   );
 }

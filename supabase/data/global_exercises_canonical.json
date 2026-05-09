@@ -6299,6 +6299,1078 @@
     "calories_estimation_method": null
   },
   {
+    "name": "Pilates Clam",
+    "primary_muscle": "glutes, hips",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Keep heels together and hips stacked, open the top knee from the hip, then close without rocking the pelvis.",
+    "movement_pattern": "rotation",
+    "primary_muscles": [
+      "glutes",
+      "hips"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_external_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "side_lying"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_rotation"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Criss-Cross",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Rotate from the ribs toward the opposite knee, keep the pelvis heavy, and switch sides without rushing.",
+    "movement_pattern": "rotation",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "obliques"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "alternating"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "rotation_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Double-Leg Stretch",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Reach arms and legs away only as far as you can keep the trunk still, then sweep back to the tucked position.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "anti_extension"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Hundred",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Brace with the low ribs heavy, pump the arms from the shoulders, and keep the breath steady without letting the low back arch.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_bracing"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_bracing"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Leg Circles",
+    "primary_muscle": "core, hips",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Keep the pelvis heavy while the leg circles from the hip, using a range you can control.",
+    "movement_pattern": "rotation",
+    "primary_muscles": [
+      "core",
+      "hips"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_circumduction"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Mermaid Stretch",
+    "primary_muscle": "hips, obliques",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Sit grounded, reach one arm overhead, and side-bend through the ribs while both hips stay heavy.",
+    "movement_pattern": "rotation",
+    "primary_muscles": [
+      "hips",
+      "obliques"
+    ],
+    "secondary_muscles": [
+      "back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "lateral_flexion_mobility"
+      ],
+      "plane_of_motion": [
+        "frontal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "seated"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "lateral_flexion"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press the floor away, keep ribs and pelvis stacked, and hold a straight line without sagging.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_bracing"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "plank"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_bracing"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Roll-Up",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Peel the spine up one segment at a time, reach forward with control, then roll back down without using momentum.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "spinal_flexion"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "spinal_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Saw",
+    "primary_muscle": "core, back",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Sit tall, rotate through the ribs, reach toward the opposite foot, then stack the spine back up.",
+    "movement_pattern": "rotation",
+    "primary_muscles": [
+      "core",
+      "back"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_rotation"
+      ],
+      "plane_of_motion": [
+        "transverse"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "seated"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "rotation_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Shoulder Bridge",
+    "primary_muscle": "glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Roll the hips up from the mat, keep the ribs stacked, and lower through the spine with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_extension"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_extension"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Side Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Stack the shoulder and hips, press away from the floor, and keep the body long without rotating forward.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "shoulders",
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "lateral_trunk_bracing"
+      ],
+      "plane_of_motion": [
+        "frontal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "side_plank"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "lateral_trunk_bracing"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Side-Lying Leg Lift",
+    "primary_muscle": "glutes, hips",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Stack the hips, lift the top leg without rolling backward, and lower slowly to keep tension.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hips"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hip_abduction"
+      ],
+      "plane_of_motion": [
+        "frontal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "side_lying"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "unilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_abduction"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Single Straight-Leg Stretch",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Keep both legs long, switch with control, and maintain a steady trunk curl without bouncing the lifted leg.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hamstrings"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "hamstring_mobility"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "alternating"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "hip_flexion_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Single-Leg Stretch",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Keep the trunk curled and quiet, switch legs smoothly, and pull the knee in without yanking the neck.",
+    "movement_pattern": "rotation",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "anti_extension"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "supine"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "alternating"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Spine Stretch Forward",
+    "primary_muscle": "back, hamstrings",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Sit tall, nod the head and round forward from the upper spine, then rebuild the posture one segment at a time.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "back",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "spinal_flexion_mobility"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "seated"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "spinal_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Swan",
+    "primary_muscle": "back",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press the chest forward and up with long legs, keep the neck neutral, and avoid dumping into the low back.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "back"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "spinal_extension"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "prone"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "spinal_extension"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "reps",
+    "default_unit": "reps",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Swimming",
+    "primary_muscle": "back",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Reach opposite arm and leg long, flutter with small controlled reps, and keep the neck relaxed.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "back"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "shoulders"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "contralateral_extension"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "prone"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "beginner"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "alternating"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "posterior_chain_control"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
+    "name": "Pilates Teaser",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Balance tall through the spine, hold the legs and trunk in a V shape, and lower before the low back takes over.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "curation_tags": {
+      "pattern_detail": [
+        "trunk_bracing"
+      ],
+      "plane_of_motion": [
+        "sagittal"
+      ],
+      "exercise_utility": [
+        "basic"
+      ],
+      "body_position": [
+        "seated"
+      ],
+      "training_goal": [
+        "mobility",
+        "core_stability"
+      ],
+      "difficulty": [
+        "advanced"
+      ],
+      "setup_cost": [
+        "quick_setup"
+      ],
+      "stability_requirement": [
+        "freestanding"
+      ],
+      "unilateral_profile": [
+        "bilateral"
+      ],
+      "loading_profile": [
+        "bodyweight"
+      ],
+      "joint_emphasis": [
+        "trunk_bracing"
+      ],
+      "spine_demand": [
+        "low_spinal_load"
+      ],
+      "grip_constraint": []
+    },
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": null
+  },
+  {
     "name": "Plank",
     "primary_muscle": "core",
     "equipment": "Bodyweight",

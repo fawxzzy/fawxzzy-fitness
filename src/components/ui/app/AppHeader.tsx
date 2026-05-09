@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { isValidElement, type ReactNode } from "react";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { EyebrowText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
@@ -48,6 +48,8 @@ export function AppHeader({
   const actionNode = action ?? leading;
   const shouldMergeSubtitleAndMeta = !subtitleRight && Boolean(resolvedSubtitle) && hasMeta;
   const hasRightRail = Boolean(actionNode || trailing);
+  const shouldRenderRawTitle = isValidElement<{ "data-app-header-raw-title"?: string }>(title)
+    && title.props["data-app-header-raw-title"] === "true";
 
   const isCentered = align === "center";
   const copyStackAlignmentClassName = isCentered ? "items-center text-center" : "items-start text-left";
@@ -70,7 +72,13 @@ export function AppHeader({
         <div className={cn("min-w-0", copyColumnClassName)}>
           <div className={cn(copyStackClassName, copyStackAlignmentClassName)}>
             {eyebrow ? <EyebrowText className={cn("block", isCentered ? "text-center" : "text-left", headerTokens.eyebrowClassName)}>{eyebrow}</EyebrowText> : null}
-            <TitleText as={titleAs} className={cn("block max-w-full break-words px-1 leading-tight [text-wrap:balance] sm:px-0", isCentered ? "text-center" : "text-left", headerTokens.titleClassName, headerTokens.titleTextClassName, titleClassName)}>{title}</TitleText>
+            {shouldRenderRawTitle ? (
+              <div className={cn("block max-w-full px-1 sm:px-0", isCentered ? "text-center" : "text-left", titleClassName)}>
+                {title}
+              </div>
+            ) : (
+              <TitleText as={titleAs} className={cn("block max-w-full break-words px-1 leading-tight [text-wrap:balance] sm:px-0", isCentered ? "text-center" : "text-left", headerTokens.titleClassName, headerTokens.titleTextClassName, titleClassName)}>{title}</TitleText>
+            )}
             {hasSubtitleRow || hasMeta ? (
               <div className={cn(headerTokens.titleToSecondaryGap, headerTokens.secondaryBlockGap, "w-full")}>
                 {hasSubtitleRow ? (

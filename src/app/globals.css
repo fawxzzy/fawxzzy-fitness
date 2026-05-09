@@ -31,7 +31,7 @@
   --accent-purple: 32 151 78;
   --success-rgb: 32 151 78;
   --warning-rgb: 240 178 78;
-  --danger-rgb: 255 111 131;
+  --danger-rgb: 238 62 78;
   --ambient-depth-top: 12 22 33;
   --ambient-depth-mid: 8 17 27;
   --ambient-depth-bottom: 5 12 19;
@@ -97,11 +97,11 @@
   --button-ghost-text: var(--text-secondary);
   --button-ghost-border: 190 214 238 / 0.12;
 
-  --button-destructive-bg: 18 31 48 / 0.94;
-  --button-destructive-bg-hover: 23 38 58 / 0.98;
-  --button-destructive-bg-active: 15 29 45 / 1;
-  --button-destructive-text: 255 223 229;
-  --button-destructive-border: 255 111 131 / 0.4;
+  --button-destructive-bg: 42 18 25 / 0.96;
+  --button-destructive-bg-hover: 58 21 29 / 0.98;
+  --button-destructive-bg-active: 34 13 20 / 1;
+  --button-destructive-text: 255 238 241;
+  --button-destructive-border: 238 62 78 / 0.58;
 
   --button-focus-ring: rgb(var(--accent) / 0.32);
   --button-transition: 120ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -1627,15 +1627,15 @@ button,
 }
 
 .action-chrome[data-action-chrome-intent="toggleInactive"] {
-  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.24);
-  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.36);
-  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.08);
-  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.03);
+  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.16);
+  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.3);
+  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.025);
+  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.006);
   --action-chrome-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.12);
   --action-chrome-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.05);
   --action-chrome-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.16);
   --action-chrome-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.06);
-  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.96);
+  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.58);
 }
 
 .action-chrome[data-action-chrome-intent="toggleActive"] {
@@ -1675,6 +1675,16 @@ button,
   --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.018);
   --action-chrome-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.024);
   --action-chrome-shadow-active: inset 0 1px 0 rgb(255 255 255 / 0.016);
+}
+
+.measurement-toggle-button {
+  border-color: var(--action-chrome-border-color);
+  background: rgb(var(--surface-2) / 0.94);
+  color: var(--action-chrome-text-color);
+}
+
+.measurement-toggle-button:hover:not(:disabled) {
+  border-color: var(--action-chrome-border-color-hover);
 }
 
 
@@ -1772,6 +1782,11 @@ a:focus-visible {
 }
 
 .bottom-action--secondary {
+  --bottom-action-border-color-hover: rgb(var(--secondary-action-rgb) / 0.4);
+  --bottom-action-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.14);
+  --bottom-action-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.06);
+  --bottom-action-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.18);
+  --bottom-action-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.08);
   border-color: rgb(var(--secondary-action-rgb) / 0.24);
   background:
     linear-gradient(180deg, rgb(var(--secondary-action-rgb) / 0.12), rgb(var(--surface-muted) / 0.92));
@@ -1779,6 +1794,11 @@ a:focus-visible {
 }
 
 .bottom-action[data-bottom-action-intent="toggleActive"] {
+  --bottom-action-border-color-hover: rgb(var(--secondary-action-rgb) / 0.48);
+  --bottom-action-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.18);
+  --bottom-action-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.08);
+  --bottom-action-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.22);
+  --bottom-action-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.1);
   border-color: rgb(var(--secondary-action-rgb) / 0.28);
   background:
     linear-gradient(180deg, rgb(var(--secondary-action-rgb) / 0.16), rgb(var(--surface-muted) / 0.94));
@@ -1786,14 +1806,26 @@ a:focus-visible {
 }
 
 .bottom-action[data-bottom-action-intent="toggleInactive"] {
-  border-color: rgb(var(--secondary-action-rgb) / 0.2);
-  background: rgb(var(--surface-muted) / 0.92);
-  color: rgb(var(--secondary-action-rgb) / 0.94);
+  --bottom-action-border-color-hover: rgb(var(--secondary-action-rgb) / 0.3);
+  --bottom-action-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.12);
+  --bottom-action-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.05);
+  --bottom-action-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.16);
+  --bottom-action-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.06);
+  border-color: rgb(var(--secondary-action-rgb) / 0.14);
+  background: rgb(var(--surface-muted) / 0.84);
+  color: rgb(var(--secondary-action-rgb) / 0.64);
 }
 
+.bottom-action--danger,
 .bottom-action[data-bottom-action-intent="danger"] {
-  border-color: rgb(var(--danger-rgb) / 0.2);
-  color: rgb(var(--danger-rgb) / 0.96);
+  --bottom-action-border-color-hover: rgb(var(--button-destructive-border));
+  --bottom-action-overlay-top-hover: rgb(var(--danger-rgb) / 0.08);
+  --bottom-action-overlay-bottom-hover: rgb(var(--danger-rgb) / 0.03);
+  --bottom-action-overlay-top-active: rgb(var(--danger-rgb) / 0.12);
+  --bottom-action-overlay-bottom-active: rgb(var(--danger-rgb) / 0.05);
+  border-color: rgb(var(--button-destructive-border));
+  background: rgb(var(--button-destructive-bg));
+  color: rgb(var(--button-destructive-text));
 }
 
 .bottom-action:hover:not(:disabled) {
@@ -1813,6 +1845,16 @@ a:focus-visible {
 
 .bottom-action:active:not(:disabled)::after {
   background: linear-gradient(180deg, var(--bottom-action-overlay-top-active), var(--bottom-action-overlay-bottom-active));
+}
+
+.bottom-action--danger:hover:not(:disabled),
+.bottom-action[data-bottom-action-intent="danger"]:hover:not(:disabled) {
+  background: rgb(var(--button-destructive-bg-hover));
+}
+
+.bottom-action--danger:active:not(:disabled),
+.bottom-action[data-bottom-action-intent="danger"]:active:not(:disabled) {
+  background: rgb(var(--button-destructive-bg-active));
 }
 
 .bottom-action:focus-visible {
@@ -2098,4 +2140,8 @@ a:focus-visible {
   word-break: normal;
   overflow-wrap: normal;
   hyphens: none;
+}
+
+body[data-today-day-picker-open="true"] [data-progression-updates-card="true"] {
+  display: none;
 }

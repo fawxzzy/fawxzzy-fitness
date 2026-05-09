@@ -1,6 +1,5 @@
 "use client";
 
-import { Fragment } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,11 +7,31 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { useToast } from "@/components/ui/ToastProvider";
 import {
   DayCard,
   DayList,
   resolveDayCardState,
 } from "@/components/day-list/DayList";
+import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
+import {
+  ROUTINE_CONTENT_GAP_CLASS_NAME,
+  ROUTINE_DAY_CARD_BODY_CLASS_NAME,
+  ROUTINE_DAY_CARD_CONTENT_CLASS_NAME,
+  ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME,
+  ROUTINE_DAY_CARD_TITLE_CLASS_NAME,
+  ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME,
+  ROUTINE_REST_DAY_CARD_CLASS_NAME,
+  ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME,
+  RoutineDayCardTitle,
+  renderRoutineDayRightRail,
+  renderRoutineDaySubtitle,
+  renderRoutineTag,
+  renderSignatureParts,
+  splitRoutineSummaryParts,
+} from "@/components/day-list/RoutineDayCardPresentation";
 import {
   RoutinesCardList,
   RoutinesListItemCard,
@@ -21,13 +40,12 @@ import {
   RoutinesRouteHeaderCard,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
-import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import { cn } from "@/lib/cn";
-import { splitWeekdayDisplayLabel } from "@/lib/header-meta";
-import { formatRoutineDayDisplayName } from "@/lib/routines";
+import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 
 export type RoutineSwitcherItem = {
   id: string;
@@ -53,6 +71,7 @@ export type RoutineDayCardItem = {
   href: string;
   isToday: boolean;
   isCompleted: boolean;
+  isSkipped?: boolean;
   isInSession: boolean;
   loggedSetCount?: number;
 };
@@ -66,58 +85,26 @@ const ROUTINES_IA_COPY = {
   },
 } as const;
 
-const ROUTINES_DAY_CARD_BODY_CLASS_NAME = "min-h-[4.3rem] py-2";
-const ROUTINES_REST_DAY_CARD_BODY_CLASS_NAME = "min-h-[2.9rem] py-1";
-const ROUTINES_DAY_CARD_CONTENT_CLASS_NAME = "py-0.5";
-const ROUTINES_REST_DAY_CARD_CONTENT_CLASS_NAME = "py-0";
 const ROUTINES_LIST_CARD_BODY_CLASS_NAME = "min-h-[3.85rem] py-2";
 const ROUTINES_LIST_CARD_CONTENT_CLASS_NAME = "py-0.5";
-const ROUTINES_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.22]";
-const ROUTINES_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
-const ROUTINES_CONTENT_GAP_CLASS_NAME = "pt-2";
-const ROUTINES_TAG_CLASS_NAME = "text-[11px] tracking-[0.12em]";
-const ROUTINES_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
+const ROUTINE_HOME_TOGGLE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "toggleInactive",
+  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
+});
+const ROUTINE_HOME_RESTING_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "toggleActive",
+  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
+});
+const ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "positive",
+  className: "translate-x-px !border-l-0 focus-visible:ring-[rgb(var(--accent)/0.24)]",
+});
 
 function formatRoutineCount(count: number) {
   return `${count} ${count === 1 ? "routine" : "routines"} total`;
 }
 
-function splitSummaryParts(value: string | null | undefined) {
-  return String(value ?? "")
-    .split(/\s*(?:\u00B7|\u2022|\|)\s*/)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-}
-
-function renderSignatureParts(parts: string[], className?: string) {
-  if (parts.length === 0) {
-    return undefined;
-  }
-
-  return (
-    <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]", className)}>
-      {parts.map((part, index) => (
-        <Fragment key={`${part}-${index}`}>
-          {index > 0 ? <SignatureDot /> : null}
-          <span className="min-w-0">{part}</span>
-        </Fragment>
-      ))}
-    </span>
-  );
-}
-
-function buildRoutineSplitParts(summary: NonNullable<RoutineDayCardItem["splitSummary"]>) {
-  const parts: string[] = [];
-
-  if (summary.strength > 0) parts.push(`${summary.strength} strength`);
-  if (summary.cardio > 0) parts.push(`${summary.cardio} cardio`);
-  if (summary.bodyweight > 0) parts.push(`${summary.bodyweight} bodyweight`);
-  if (summary.unknown > 0) parts.push(`${summary.unknown} other`);
-
-  return parts;
-}
-
-function resolveRoutineDayTagLabel(day: Pick<RoutineDayCardItem, "isToday" | "isRest" | "isCompleted" | "isInSession">) {
+function resolveRoutineDayTagLabel(day: Pick<RoutineDayCardItem, "isToday" | "isRest" | "isCompleted" | "isSkipped" | "isInSession">) {
   if (day.isInSession) {
     return "IN SESSION";
   }
@@ -127,81 +114,27 @@ function resolveRoutineDayTagLabel(day: Pick<RoutineDayCardItem, "isToday" | "is
   }
 
   if (day.isCompleted) {
-    return "COMPLETED";
+    return "DONE";
   }
 
   if (day.isRest) {
     return "REST DAY";
   }
 
+  if (day.isSkipped) {
+    return "SKIPPED";
+  }
+
   return undefined;
 }
 
-function renderRoutineTag(label: string | undefined) {
-  const normalizedLabel = label?.trim().toUpperCase();
-  if (!normalizedLabel) {
-    return undefined;
-  }
-
-  const colorClassName = normalizedLabel === "REST DAY"
-      ? "text-[rgb(var(--accent-yellow-on))]"
-      : normalizedLabel === "TODAY"
-        || normalizedLabel === "CURRENT"
-        || normalizedLabel === "IN SESSION"
-        || normalizedLabel === "COMPLETED"
-        ? "text-[rgb(var(--accent-divider-rgb)/0.96)]"
-        : "text-[rgb(var(--text-secondary)/0.92)]";
-
-  return <SignatureMetaTag className={cn(ROUTINES_TAG_CLASS_NAME, colorClassName)}>{normalizedLabel}</SignatureMetaTag>;
-}
-
-function renderRoutineDayTitle(args: {
-  name: string | null | undefined;
-  dayIndex: number;
-  startDate: string | null | undefined;
-}) {
-  const displayName = formatRoutineDayDisplayName({
-    name: args.name,
-    dayIndex: args.dayIndex,
-    startDate: args.startDate,
-  });
-  const dayParts = splitWeekdayDisplayLabel(displayName);
-
-  return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
-      <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">{dayParts?.weekday ?? displayName}</span>
-      {dayParts?.remainder ? (
-        <>
-          <span
-            aria-hidden="true"
-            className="inline-block h-[0.82em] w-px shrink-0 self-center bg-[rgb(var(--accent-divider-rgb)/0.96)]"
-          />
-          <span>{dayParts.remainder}</span>
-        </>
-      ) : null}
-    </span>
-  );
-}
-
-function renderRoutineDaySubtitle(day: RoutineDayCardItem) {
-  if (day.isRest) {
-    return undefined;
-  }
-
-  if (day.splitSummary) {
-    return renderSignatureParts(buildRoutineSplitParts(day.splitSummary)) ?? "No exercises yet";
-  }
-
-  return renderSignatureParts(splitSummaryParts(day.exerciseSummary)) ?? day.exerciseSummary ?? "No exercises yet";
-}
-
 function renderRoutineHeaderSubtitle(summary: string | null | undefined) {
-  const parts = splitSummaryParts(summary);
+  const parts = splitRoutineSummaryParts(summary);
   return renderSignatureParts(parts, "justify-center text-center") ?? summary ?? undefined;
 }
 
 function renderRoutineListSubtitle(summary: string) {
-  return renderSignatureParts(splitSummaryParts(summary)) ?? summary;
+  return renderSignatureParts(splitRoutineSummaryParts(summary)) ?? summary;
 }
 
 function renderRoutineListRightRail(args: {
@@ -220,15 +153,8 @@ function renderRoutineListRightRail(args: {
   );
 }
 
-function renderRoutineDayRightRail(day: Pick<RoutineDayCardItem, "isToday" | "isRest" | "isCompleted" | "isInSession">) {
-  const tag = renderRoutineTag(resolveRoutineDayTagLabel(day));
-
-  return (
-    <span className="inline-flex items-center gap-3">
-      {tag}
-      <span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>
-    </span>
-  );
+function resolveRoutineHomeEditDayHref(routineId: string, dayId: string) {
+  return `/routines/${routineId}/edit/day/${dayId}`;
 }
 
 export function RoutinesPageClient({
@@ -255,9 +181,14 @@ export function RoutinesPageClient({
   initialRoutineListOpen?: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [isRoutineListOpen, setIsRoutineListOpen] = useState(initialRoutineListOpen);
   const [isPending, startTransition] = useTransition();
+  const [isRestTogglePending, startRestToggleTransition] = useTransition();
   const [floatingHeaderSlot, setFloatingHeaderSlot] = useState<HTMLElement | null>(null);
+  const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
+  const [restOverrideByDayId, setRestOverrideByDayId] = useState<Record<string, boolean>>({});
+  const [restTogglePendingDayId, setRestTogglePendingDayId] = useState<string | null>(null);
 
   useEffect(() => {
     setFloatingHeaderSlot(document.getElementById("routines-floating-header"));
@@ -280,6 +211,59 @@ export function RoutinesPageClient({
       setIsRoutineListOpen(false);
     });
   }, [activeRoutineId, isPending, setActiveRoutineAction]);
+
+  const handleToggleDayExpansion = useCallback((dayId: string) => {
+    setExpandedDayId((current) => (current === dayId ? null : dayId));
+  }, []);
+
+  const handleToggleDayRest = useCallback((day: RoutineDayCardItem, currentIsRest: boolean) => {
+    if (!activeRoutineId || isRestTogglePending) {
+      return;
+    }
+
+    const nextIsRest = !currentIsRest;
+    const previousOverride = restOverrideByDayId[day.id];
+    const dayName = String(day.name ?? day.title ?? day.dayIndex).trim();
+
+    setRestOverrideByDayId((current) => ({
+      ...current,
+      [day.id]: nextIsRest,
+    }));
+    setRestTogglePendingDayId(day.id);
+
+    startRestToggleTransition(async () => {
+      const formData = new FormData();
+      formData.set("routineId", activeRoutineId);
+      formData.set("routineDayId", day.id);
+      formData.set("name", dayName);
+      if (nextIsRest) {
+        formData.set("isRest", "on");
+      }
+
+      const result = await updateRoutineDaySettingsAction(formData);
+      if (!result.ok) {
+        setRestOverrideByDayId((current) => {
+          const next = { ...current };
+          if (previousOverride === undefined) {
+            delete next[day.id];
+          } else {
+            next[day.id] = previousOverride;
+          }
+          return next;
+        });
+        toast.error(result.error ?? "Could not update rest day status.");
+        setRestTogglePendingDayId(null);
+        return;
+      }
+
+      toast.info(nextIsRest ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled : REST_DAY_BEHAVIOR_CONTRACT.copy.disabled, {
+        id: "day-rest-toggle-status",
+        durationMs: 2600,
+      });
+      setRestTogglePendingDayId(null);
+      router.refresh();
+    });
+  }, [activeRoutineId, isRestTogglePending, restOverrideByDayId, router, toast]);
 
   const screenMode = isRoutineListOpen
     ? "browse-routines"
@@ -346,7 +330,7 @@ export function RoutinesPageClient({
       {floatingHeaderSlot ? createPortal(floatingHeader, floatingHeaderSlot) : floatingHeader}
 
       {screenMode === "browse-routines" ? (
-        <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel} className={ROUTINES_CONTENT_GAP_CLASS_NAME}>
+        <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel} className={ROUTINE_CONTENT_GAP_CLASS_NAME}>
           <SharedDayListSection>
             <RoutinesCardList>
               {routines.map((routine) => {
@@ -362,8 +346,8 @@ export function RoutinesPageClient({
                       rightIcon={renderRoutineListRightRail({ isCurrent, isPending })}
                       bodyClassName={ROUTINES_LIST_CARD_BODY_CLASS_NAME}
                       contentClassName={ROUTINES_LIST_CARD_CONTENT_CLASS_NAME}
-                      titleClassName={ROUTINES_DAY_CARD_TITLE_CLASS_NAME}
-                      subtitleClassName={ROUTINES_DAY_CARD_SUBTITLE_CLASS_NAME}
+                      titleClassName={ROUTINE_DAY_CARD_TITLE_CLASS_NAME}
+                      subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
                       trailingStackClassName="flex items-center gap-3"
                     />
                   </RoutinesListItem>
@@ -376,35 +360,85 @@ export function RoutinesPageClient({
 
       {screenMode === "selected-routine-days" ? (
         <SharedDayListSection>
-          <div className={ROUTINES_CONTENT_GAP_CLASS_NAME}>
+          <div className={ROUTINE_CONTENT_GAP_CLASS_NAME}>
             {days.length > 0 ? (
-              <DayList>
-                {days.map((day) => (
-                  <DayCard
-                    key={day.id}
-                    title={renderRoutineDayTitle({
-                      name: day.name ?? day.title ?? null,
-                      dayIndex: day.dayIndex,
-                      startDate: activeRoutineStartDate,
-                    })}
-                    subtitle={renderRoutineDaySubtitle(day)}
-                    subtitleTone="plain"
-                    rightIcon={renderRoutineDayRightRail(day)}
-                    state={resolveDayCardState({
-                      isToday: day.isToday,
-                      isSelected: day.isToday,
-                      isRest: day.isRest,
-                      isCompleted: day.isCompleted,
-                      isInSession: day.isInSession,
-                    })}
-                    className={day.isRest ? ROUTINES_REST_DAY_CARD_CLASS_NAME : undefined}
-                    bodyClassName={day.isRest ? ROUTINES_REST_DAY_CARD_BODY_CLASS_NAME : ROUTINES_DAY_CARD_BODY_CLASS_NAME}
-                    contentClassName={day.isRest ? ROUTINES_REST_DAY_CARD_CONTENT_CLASS_NAME : ROUTINES_DAY_CARD_CONTENT_CLASS_NAME}
-                    titleClassName={ROUTINES_DAY_CARD_TITLE_CLASS_NAME}
-                    subtitleClassName={ROUTINES_DAY_CARD_SUBTITLE_CLASS_NAME}
-                    onPress={() => router.push(day.href)}
-                  />
-                ))}
+              <DayList className="space-y-[0.375rem] sm:space-y-[0.375rem]">
+                {days.map((day) => {
+                  const displayIsRest = restOverrideByDayId[day.id] ?? day.isRest;
+                  const displayDay = { ...day, isRest: displayIsRest };
+                  const isExpanded = expandedDayId === day.id;
+                  const isThisTogglePending = restTogglePendingDayId === day.id && isRestTogglePending;
+                  const editDayHref = activeRoutineId ? resolveRoutineHomeEditDayHref(activeRoutineId, day.id) : day.href;
+
+                  return (
+                    <DayCard
+                      key={day.id}
+                      title={<RoutineDayCardTitle name={day.name ?? day.title ?? null} dayIndex={day.dayIndex} startDate={activeRoutineStartDate} />}
+                      subtitle={renderRoutineDaySubtitle(displayDay)}
+                      subtitleTone="plain"
+                      rightIcon={(
+                        <span className="inline-flex items-center gap-3">
+                          {renderRoutineTag(resolveRoutineDayTagLabel(displayDay))}
+                          {isExpanded
+                            ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
+                            : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />}
+                        </span>
+                      )}
+                      state={resolveDayCardState({
+                        isToday: day.isToday,
+                        isSelected: day.isToday,
+                        isRest: displayIsRest,
+                        isCompleted: false,
+                        isInSession: day.isInSession,
+                      })}
+                      className={cn(
+                        displayIsRest ? ROUTINE_REST_DAY_CARD_CLASS_NAME : undefined,
+                        isExpanded ? "rounded-b-none ![border-bottom-left-radius:0px] ![border-bottom-right-radius:0px]" : undefined,
+                      )}
+                      bodyClassName={displayIsRest ? ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME : ROUTINE_DAY_CARD_BODY_CLASS_NAME}
+                      contentClassName={displayIsRest ? ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME : ROUTINE_DAY_CARD_CONTENT_CLASS_NAME}
+                      titleClassName={ROUTINE_DAY_CARD_TITLE_CLASS_NAME}
+                      subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
+                      contentVerticalAlign={displayIsRest ? "top" : undefined}
+                      rightRailClassName="!items-end"
+                      trailingStackClassName="!items-end !pb-1"
+                      onPress={() => handleToggleDayExpansion(day.id)}
+                      wrapper={(card) => (
+                        <div className="min-w-0">
+                          {card}
+                          {isExpanded ? (
+                            <AttachedCardActionStripFrame gridClassName={displayIsRest ? "grid-cols-1" : "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]"}>
+                                <button
+                                  type="button"
+                                  data-bottom-action-intent={displayIsRest ? "toggleActive" : "toggleInactive"}
+                                  onClick={() => handleToggleDayRest(day, displayIsRest)}
+                                  disabled={!activeRoutineId || isThisTogglePending}
+                                  aria-pressed={displayIsRest}
+                                  className={displayIsRest
+                                    ? getAttachedCardActionButtonClassName({ intent: "toggleActive" })
+                                    : ROUTINE_HOME_TOGGLE_ACTION_BUTTON_CLASS_NAME}
+                                >
+                                  <span className={cn("bottom-action__label", isThisTogglePending ? "opacity-65" : undefined)}>
+                                    {isThisTogglePending ? "Saving..." : displayIsRest ? NORMALIZED_ACTION_LABELS.resting : NORMALIZED_ACTION_LABELS.training}
+                                  </span>
+                                </button>
+                                {!displayIsRest ? (
+                                  <button
+                                    type="button"
+                                    data-bottom-action-intent="positive"
+                                    onClick={() => router.push(editDayHref)}
+                                    className={ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME}
+                                  >
+                                    <span className="bottom-action__label">Edit</span>
+                                  </button>
+                                ) : null}
+                            </AttachedCardActionStripFrame>
+                          ) : null}
+                        </div>
+                      )}
+                    />
+                  );
+                })}
               </DayList>
             ) : (
               <EmptyState

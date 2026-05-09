@@ -6,17 +6,21 @@ type SessionRowStateSource = {
 
 export type SessionRowClientState = {
   loggedSetCount: number;
+  setCountOverrideActive: boolean;
   isSkipped: boolean;
   isQuickLogPending: boolean;
   isSkipPending: boolean;
+  showWhenCompleted: boolean;
 };
 
 function createDefaultRowState(source: SessionRowStateSource): SessionRowClientState {
   return {
     loggedSetCount: source.loggedSetCount,
+    setCountOverrideActive: false,
     isSkipped: source.isSkipped,
     isQuickLogPending: false,
     isSkipPending: false,
+    showWhenCompleted: false,
   };
 }
 
@@ -36,11 +40,15 @@ export function reconcileSessionRowClientState({
   return Object.fromEntries(
     rows.map((row) => {
       const previous = current[row.id];
+      const serverLoggedSetCount = mergedLoggedSetCount[row.id] ?? row.loggedSetCount;
+      const shouldPreserveLocalCount = Boolean(previous?.setCountOverrideActive && serverLoggedSetCount !== previous.loggedSetCount);
       return [row.id, {
-        loggedSetCount: mergedLoggedSetCount[row.id] ?? row.loggedSetCount,
+        loggedSetCount: shouldPreserveLocalCount ? previous!.loggedSetCount : serverLoggedSetCount,
+        setCountOverrideActive: shouldPreserveLocalCount,
         isSkipped: row.isSkipped,
         isQuickLogPending: previous?.isQuickLogPending ?? false,
         isSkipPending: previous?.isSkipPending ?? false,
+        showWhenCompleted: previous?.showWhenCompleted ?? false,
       } satisfies SessionRowClientState];
     }),
   );

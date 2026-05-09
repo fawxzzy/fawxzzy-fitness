@@ -29,7 +29,9 @@ const DEV_ENV_KEYS = [
   "APP_URL",
   "ALLOW_PROD_SUPABASE_IN_DEV",
   "HISTORY_QA_PREVIEW_ENABLED",
+  "FITNESS_EXPECT_SUPABASE_HOST",
 ];
+const DEFAULT_EXPECTED_SUPABASE_HOST = "lpswxoyfniocuhljgzbc.supabase.co";
 const middlewareManifestStub = JSON.stringify({
   version: 3,
   middleware: {},
@@ -118,6 +120,35 @@ function printLanHint() {
   );
 }
 
+function resolveUrlHost(value) {
+  try {
+    return new URL(value).host.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function warnIfUnexpectedSupabaseHost(env) {
+  const expectedHost = (env.FITNESS_EXPECT_SUPABASE_HOST || DEFAULT_EXPECTED_SUPABASE_HOST).trim().toLowerCase();
+  const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || "");
+
+  if (!expectedHost || actualHost === expectedHost) {
+    process.stdout.write(`[dev-target] Supabase target: ${actualHost || "(missing)"}\n`);
+    return;
+  }
+
+  process.stderr.write(
+    [
+      "",
+      "[dev-target] WARNING: Fitness dev is not pointed at the expected Supabase project.",
+      `[dev-target] Expected: ${expectedHost}`,
+      `[dev-target] Actual:   ${actualHost || "(missing NEXT_PUBLIC_SUPABASE_URL)"}`,
+      "[dev-target] Use `npm run dev:fitness:lps` or fix .env.local before smoke testing FIT work.",
+      "",
+    ].join("\n"),
+  );
+}
+
 function ensureMiddlewareManifestStub() {
   const serverDir = path.join(nextBuildRoot, "server");
   const manifestPath = path.join(serverDir, "middleware-manifest.json");
@@ -182,6 +213,7 @@ if (overriddenKeys.length > 0) {
 }
 
 printLanHint();
+warnIfUnexpectedSupabaseHost(childEnv);
 
 const child = spawn(process.execPath, [nextBin, "dev", ...devArgs], {
   cwd: repoRoot,

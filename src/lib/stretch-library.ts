@@ -4,6 +4,10 @@ type StretchHubExerciseLike = {
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
 };
 
 export type StretchReferenceItem = {
@@ -1130,6 +1134,16 @@ function normalizeStretchValue(value: string | null | undefined) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function normalizeStretchList(value: string[] | string | null | undefined) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeStretchValue(item)).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(",").map((item) => normalizeStretchValue(item)).filter(Boolean);
+  }
+  return [];
+}
+
 export function isStretchHubExercise(exercise: StretchHubExerciseLike | null | undefined) {
   if (!exercise) {
     return false;
@@ -1142,6 +1156,15 @@ export function isStretchHubExercise(exercise: StretchHubExerciseLike | null | u
 
   const normalizedName = normalizeStretchValue(exercise.name);
   if (normalizedName === "stretch") {
+    return true;
+  }
+
+  if (
+    normalizeStretchValue(exercise.kind) === "stretch"
+    || normalizeStretchValue(exercise.type) === "stretch"
+    || normalizeStretchList(exercise.tags).includes("stretch")
+    || normalizeStretchList(exercise.categories).includes("stretch")
+  ) {
     return true;
   }
 

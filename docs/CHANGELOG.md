@@ -2,7 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
-## 0.3.89 — 2026-05-04
+## 1.0.0 ? 2026-05-09
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
+## 0.3.89 ? 2026-05-04
 
 ### WHAT
 - (fill in)

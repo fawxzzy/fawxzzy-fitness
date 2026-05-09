@@ -86,7 +86,7 @@ export function canAdvanceCuratedStep(stepId: CuratedStepId, data: CuratedOnboar
 }
 
 export function getCuratedStepBlockingMessage(stepId: CuratedStepId) {
-  if (stepId === "goals") return "Choose the training goal that should lead the routine.";
+  if (stepId === "goals") return "Choose the training focus that should lead the routine.";
   if (stepId === "experience") return "Choose the experience level that matches your current baseline.";
   if (stepId === "equipment") return "Choose at least one equipment setup.";
   if (stepId === "schedule") return "Set both weekly training days and session length.";
@@ -98,7 +98,7 @@ export function getCuratedStepBlockingMessage(stepId: CuratedStepId) {
 export function getCuratedReviewSections(data: CuratedOnboardingDraft["data"]) {
   return [
     {
-      title: "Training goal",
+      title: "Training focus",
       value: findOptionLabel(data.trainingGoal, TRAINING_GOAL_OPTIONS),
     },
     {

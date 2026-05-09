@@ -11,7 +11,7 @@ export function SessionExerciseCard({ children }: { children: ReactNode }) {
   return <div>{children}</div>;
 }
 
-const ATTACHED_CARD_ACTION_STRIP_SHELL_CLASS_NAME = "-mt-px overflow-hidden rounded-b-[1.05rem] border-0 bg-[rgb(var(--surface-1-rgb)/0.16)]";
+const ATTACHED_CARD_ACTION_STRIP_SHELL_CLASS_NAME = "-mt-px overflow-hidden rounded-b-[1.05rem] border border-t-0 border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.16)]";
 
 export function AttachedCardActionStripFrame({
   children,
@@ -24,7 +24,7 @@ export function AttachedCardActionStripFrame({
 }) {
   return (
     <div className={cn(ATTACHED_CARD_ACTION_STRIP_SHELL_CLASS_NAME, className)}>
-      <div className={cn("grid min-h-11", gridClassName)}>
+      <div className={cn("grid min-h-11 overflow-hidden rounded-b-[1.05rem]", gridClassName)}>
         {children}
       </div>
     </div>
@@ -81,7 +81,7 @@ export function AttachedQuickActionStrip({
   const skipLabel = rowContract.isSkipPending ? "Saving..." : rowContract.skipLabel;
 
   return (
-    <AttachedCardActionStripFrame className={className} gridClassName="grid-cols-[4.75rem_minmax(0,1fr)]">
+    <AttachedCardActionStripFrame className={className} gridClassName="grid-cols-[74px_minmax(0,1fr)]">
       <button
         type="button"
         onClick={onSkip}
@@ -89,14 +89,14 @@ export function AttachedQuickActionStrip({
         data-bottom-action-intent={rowContract.skipActionIntent}
         className={cn(
           getAttachedCardActionButtonClassName({
-            intent: rowContract.skipActionIntent ?? "danger",
-            className: "relative z-10 border-r border-[rgb(var(--danger-rgb)/0.18)] text-[0.9rem] focus-visible:ring-[rgb(var(--danger-rgb)/0.2)]",
+            intent: rowContract.skipActionIntent ?? "toggleInactive",
+            className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
           }),
           rowContract.isSkipDisabled ? "border-r-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none" : undefined,
           skipActionClassName,
         )}
       >
-        {skipLabel}
+        <span className="bottom-action__label">{skipLabel}</span>
       </button>
       <button
         type="button"
@@ -106,7 +106,7 @@ export function AttachedQuickActionStrip({
         className={cn(
           getAttachedCardActionButtonClassName({
             intent: "positive",
-            className: "relative min-w-0 overflow-hidden text-[rgb(var(--text-primary)/0.98)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+            className: "translate-x-px focus-visible:ring-[rgb(var(--accent)/0.24)]",
           }),
           rowContract.isQuickLogPending
             ? "opacity-88"
@@ -117,11 +117,9 @@ export function AttachedQuickActionStrip({
           quickLogActionClassName,
         )}
       >
-        <div className="flex min-h-11 w-full items-center justify-center px-4 text-center">
-          <p className={cn(appTokens.currentSessionLoggerSummaryText, "mt-0 whitespace-normal break-words text-center text-[14px] leading-[1.25] text-inherit")}>
-            {quickLogLabel}
-          </p>
-        </div>
+        <span className={cn("bottom-action__label", appTokens.currentSessionLoggerSummaryText)}>
+          {quickLogLabel}
+        </span>
       </button>
     </AttachedCardActionStripFrame>
   );

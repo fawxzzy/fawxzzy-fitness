@@ -6,6 +6,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { textRoles } from "@/components/ui/text-roles";
 import { type CardSemanticTone, cardAccentRailClassNames, cardBadgeToneClassNames, cardMediaToneClassNames, cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
+import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 
 export type ExerciseCardVariant = "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
 export type ExerciseCardState = "default" | "selected" | "active" | "completed" | "empty";
@@ -216,6 +217,7 @@ export function ExerciseCard({
   mediaLeftCornerMode = "sharp",
   rightIconMode = "rail",
   contentVerticalAlign = "auto",
+  progressFill,
 }: {
   title: ReactNode;
   titleMeta?: ReactNode;
@@ -254,6 +256,7 @@ export function ExerciseCard({
   mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
   rightIconMode?: ExerciseCardRightIconMode;
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
+  progressFill?: ProgressionProgressFill | null;
 }) {
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
@@ -283,6 +286,22 @@ export function ExerciseCard({
         borderBottomLeftRadius: "0px",
       } satisfies CSSProperties
     : shellStyle;
+  const progressFillPercent = progressFill && progressFill.percent > 0 && progressFill.state !== "manual_hidden" && progressFill.state !== "unsupported"
+    ? Math.max(0, Math.min(100, progressFill.percent))
+    : null;
+  const isFullProgressFill = progressFillPercent !== null && progressFillPercent >= 100;
+  const progressFillStyle = progressFillPercent !== null
+    ? ({
+        "--exercise-card-progress-fill-width": `${progressFillPercent}%`,
+      } as CSSProperties)
+    : undefined;
+  const railProgressFillStyle = progressFillPercent !== null && usesRailMedia
+    ? ({
+        "--exercise-card-progress-fill-width": `${progressFillPercent}%`,
+        "--exercise-card-progress-fill-left": `${resolvedMediaRailWidth}px`,
+        "--exercise-card-progress-fill-span": `calc((100% - ${resolvedMediaRailWidth}px) * ${progressFillPercent / 100})`,
+      } as CSSProperties)
+    : undefined;
 
   const bodyContent = (
     <div
@@ -304,6 +323,22 @@ export function ExerciseCard({
             "pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full",
             cardAccentRailClassNames[resolvedSemanticTone],
           )}
+        />
+      ) : null}
+      {progressFillPercent !== null && usesRailMedia ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute bottom-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))]",
+            isFullProgressFill
+              ? "right-0 rounded-br-[var(--exercise-card-progress-fill-bottom-right-radius,calc(var(--card-radius)-2px))] rounded-tr-[var(--exercise-card-progress-fill-top-right-radius,calc(var(--card-radius)-2px))]"
+              : "w-[var(--exercise-card-progress-fill-span)] rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.12)]",
+            isFullProgressFill ? "shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.20)]" : undefined,
+          )}
+          style={{
+            ...railProgressFillStyle,
+            left: "var(--exercise-card-progress-fill-left)",
+          }}
         />
       ) : null}
       {hasBadgeText ? (
@@ -338,10 +373,23 @@ export function ExerciseCard({
           </div>
         ) : null}
 
-        <div className={cn("min-w-0 self-stretch py-0.5", contentClassName)}>
+        <div className={cn("relative min-w-0 self-stretch overflow-hidden py-0.5", contentClassName)}>
+          {progressFillPercent !== null && !usesRailMedia ? (
+            <span
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.30),rgb(var(--accent)/0.17))]",
+                isFullProgressFill
+                  ? "inset-0 w-full rounded-br-[var(--exercise-card-progress-fill-bottom-right-radius,calc(var(--card-radius)-2px))] rounded-tr-[var(--exercise-card-progress-fill-top-right-radius,calc(var(--card-radius)-2px))]"
+                  : "bottom-0 left-0 top-0 w-[var(--exercise-card-progress-fill-width)] rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.12)]",
+                isFullProgressFill ? "shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.20)]" : undefined,
+              )}
+              style={progressFillStyle}
+            />
+          ) : null}
           <div
             className={cn(
-              "flex min-h-full min-w-0 flex-col",
+              "relative z-[1] flex min-h-full min-w-0 flex-col",
               contentVerticalAlign === "top" || hasSupportingContent ? "justify-start" : "justify-center",
               styles.contentGap,
               hasBadgeText && !hasTitleMeta ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
@@ -433,7 +481,7 @@ export function ExerciseCard({
       {hasRightIcon && rightIconMode === "rail" ? (
         <div
           className={cn(
-            "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center self-stretch justify-end",
+            "relative z-[1] flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center self-stretch justify-end",
             trailingClassName,
             rightRailClassName,
           )}

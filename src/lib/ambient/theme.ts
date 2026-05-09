@@ -3,7 +3,7 @@ export const AMBIENT_THEME_NAMES = ["mint", "ember", "violet"] as const;
 
 export type AmbientThemeName = (typeof AMBIENT_THEME_NAMES)[number];
 
-type StorageLike = Pick<Storage, "getItem" | "removeItem">;
+type StorageLike = Pick<Storage, "getItem" | "removeItem" | "setItem">;
 
 function getBrowserStorage(storage?: StorageLike | null) {
   if (storage) {
@@ -36,6 +36,20 @@ export function readStoredAmbientTheme(storage?: StorageLike | null) {
   }
 }
 
+export function writeStoredAmbientTheme(theme: AmbientThemeName | null, storage?: StorageLike | null) {
+  const resolvedStorage = getBrowserStorage(storage);
+  if (!resolvedStorage) {
+    return;
+  }
+
+  if (!theme) {
+    resolvedStorage.removeItem(AMBIENT_THEME_STORAGE_KEY);
+    return;
+  }
+
+  resolvedStorage.setItem(AMBIENT_THEME_STORAGE_KEY, theme);
+}
+
 export function applyAmbientTheme(
   theme: AmbientThemeName | null,
   root: HTMLElement | null | undefined = typeof document !== "undefined" ? document.documentElement : null,
@@ -45,7 +59,14 @@ export function applyAmbientTheme(
   }
 
   if (!theme) {
+    if (!root.dataset.ambientTheme) {
+      return;
+    }
     delete root.dataset.ambientTheme;
+    return;
+  }
+
+  if (root.dataset.ambientTheme === theme) {
     return;
   }
 

@@ -32,7 +32,6 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 import {
-  buildRememberedLoginState,
   clearRememberedLoginState,
   deriveRememberedLoginDisplayName,
   readRememberedLoginState,
@@ -49,6 +48,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 const RESET_COOLDOWN_SECONDS = 60;
 const RESET_NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
+const LOGIN_PENDING_TIMEOUT_MS = 12000;
+const LOGIN_PENDING_TIMEOUT_MESSAGE = "Login took too long. Check your password or try again.";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -69,6 +70,7 @@ export function LoginScreen({
 }) {
   const router = useRouter();
   const sessionProbeStartedRef = useRef(false);
+  const loginPendingTimeoutRef = useRef<number | null>(null);
   const copy = AUTH_MODE_COPY["password-login"];
   const resolvedError = error;
   const resolvedInfo = info;
@@ -85,10 +87,34 @@ export function LoginScreen({
   const [resetCooldownRemaining, setResetCooldownRemaining] = useState(0);
   const [isRedirectingAuthenticatedUser, setIsRedirectingAuthenticatedUser] = useState(false);
   const [showCredentialStep, setShowCredentialStep] = useState(shouldStartCredentialStepOpen);
+  const [forceFullCredentialForm, setForceFullCredentialForm] = useState(false);
   const toast = useToast();
 
   useToastMessageEffect("error", resolvedError, { id: "login-route-error" });
   useToastMessageEffect("success", resolvedInfo, { id: "login-route-info" });
+
+  useEffect(() => () => {
+    if (loginPendingTimeoutRef.current) {
+      window.clearTimeout(loginPendingTimeoutRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!resolvedError && !resolvedInfo) {
+      return;
+    }
+
+    if (loginPendingTimeoutRef.current) {
+      window.clearTimeout(loginPendingTimeoutRef.current);
+      loginPendingTimeoutRef.current = null;
+    }
+    setIsSubmitting(false);
+    if (resolvedError) {
+      setForceFullCredentialForm(true);
+      setShowCredentialStep(true);
+      setFormSeed((current) => current + 1);
+    }
+  }, [resolvedError, resolvedInfo]);
 
   useEffect(() => {
     if (previewRememberedLogin || previewShowCredentialStep || sessionProbeStartedRef.current) {
@@ -168,10 +194,11 @@ export function LoginScreen({
   }, [resetCooldownRemaining]);
 
   const rememberedEmail = rememberedLogin?.email ?? null;
+  const effectiveRememberedEmail = forceFullCredentialForm ? null : rememberedEmail;
   const rememberedIdentity = rememberedLogin
     ? { displayName: rememberedLogin.displayName || deriveRememberedLoginDisplayName(rememberedLogin.email) }
     : null;
-  const hasRememberedAccount = hasHydrated && Boolean(rememberedEmail);
+  const hasRememberedAccount = hasHydrated && Boolean(effectiveRememberedEmail);
   const showEmailField = !hasRememberedAccount;
 
   useEffect(() => {
@@ -182,11 +209,11 @@ export function LoginScreen({
     const syncFormValues = () => {
       const emailInput = document.getElementById(EMAIL_INPUT_ID) as HTMLInputElement | null;
       const passwordInput = document.getElementById(PASSWORD_INPUT_ID) as HTMLInputElement | null;
-      const focusTarget = rememberedEmail ? passwordInput : emailInput ?? passwordInput;
+      const focusTarget = effectiveRememberedEmail ? passwordInput : emailInput ?? passwordInput;
       const nextFormState = getSyncedLoginFieldState({
         emailInputValue: emailInput?.value,
         passwordInputValue: passwordInput?.value,
-        rememberedEmail,
+        rememberedEmail: effectiveRememberedEmail ?? rememberedEmail,
         showEmailField,
       });
 
@@ -204,12 +231,12 @@ export function LoginScreen({
       window.cancelAnimationFrame(frameId);
       timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
-  }, [formSeed, rememberedEmail, showCredentialStep, showEmailField]);
+  }, [effectiveRememberedEmail, formSeed, rememberedEmail, showCredentialStep, showEmailField]);
 
   const viewState = getLoginScreenViewState({
     email,
     password,
-    rememberedEmail,
+    rememberedEmail: effectiveRememberedEmail,
     hasHydrated,
     showCredentialStep,
     isSubmitting,
@@ -232,11 +259,16 @@ export function LoginScreen({
   const resetPasswordLabel = resetCooldownRemaining > 0 ? `Try again in ${resetCooldownRemaining}s` : PASSWORD_LOGIN_UI_COPY.forgotPassword;
 
   function handleSwitchAccount() {
+    if (loginPendingTimeoutRef.current) {
+      window.clearTimeout(loginPendingTimeoutRef.current);
+      loginPendingTimeoutRef.current = null;
+    }
     clearRememberedLoginState();
     setRememberedLogin(null);
     setEmail("");
     setPassword("");
     setIsSubmitting(false);
+    setForceFullCredentialForm(false);
     setShowCredentialStep(false);
     setFormSeed((current) => current + 1);
 
@@ -251,6 +283,7 @@ export function LoginScreen({
       return;
     }
 
+    setForceFullCredentialForm(false);
     setShowCredentialStep(true);
   }
 
@@ -265,17 +298,16 @@ export function LoginScreen({
       return;
     }
 
-    if (EMAIL_PATTERN.test(submittedEmail)) {
-      const nextRememberedLogin = buildRememberedLoginState({
-        email: submittedEmail,
-        displayName: rememberedDisplayName ?? deriveRememberedLoginDisplayName(submittedEmail),
-        sessionState: "reauth-required",
-      });
-      writeRememberedLoginState(nextRememberedLogin);
-      setRememberedLogin(nextRememberedLogin);
+    if (loginPendingTimeoutRef.current) {
+      window.clearTimeout(loginPendingTimeoutRef.current);
     }
     setIsSubmitting(true);
     setShowCredentialStep(true);
+    loginPendingTimeoutRef.current = window.setTimeout(() => {
+      loginPendingTimeoutRef.current = null;
+      setIsSubmitting(false);
+      toast.error(LOGIN_PENDING_TIMEOUT_MESSAGE, { id: "login-submit-timeout" });
+    }, LOGIN_PENDING_TIMEOUT_MS);
   }
 
   async function handlePasswordReset() {
@@ -331,8 +363,8 @@ export function LoginScreen({
         )}
       >
         <AuthForm id={LOGIN_FORM_ID} action={login} onSubmit={handleSubmit}>
-          {showRememberedAccountCard && rememberedEmail ? (
-            <input type="hidden" name="email" value={rememberedEmail} />
+          {showRememberedAccountCard && effectiveRememberedEmail ? (
+            <input type="hidden" name="email" value={effectiveRememberedEmail} />
           ) : null}
           <AuthStack size="lg">
             <AuthStack>
@@ -379,14 +411,16 @@ export function LoginScreen({
                   name="email"
                   required
                   autoComplete="username"
-                  defaultValue={rememberedEmail ?? undefined}
+                  defaultValue={email || rememberedEmail || undefined}
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
                     "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     emailValid ? appTokens.authInputActive : "",
                   )}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                  }}
                 />
               </LabeledEditorField>
             ) : null}
@@ -406,7 +440,9 @@ export function LoginScreen({
                     "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     passwordValid ? appTokens.authInputActive : "",
                   )}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                  }}
                 />
               </LabeledEditorField>
             </AuthStack>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Button } from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
+import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { PillButton } from "@/components/ui/Pill";
 import { cn } from "@/lib/cn";
 import { formatExerciseTagLabel } from "@/lib/exercise-curation";
@@ -30,6 +31,8 @@ type ExerciseTagFilterControlProps = {
   open?: boolean;
   onOpenChange?: (nextValue: boolean) => void;
   hideButton?: boolean;
+  tagLayout?: "horizontal" | "stacked";
+  showScrollEdgeFades?: boolean;
 };
 
 export function ExerciseTagFilterControl({
@@ -48,8 +51,11 @@ export function ExerciseTagFilterControl({
   open,
   onOpenChange,
   hideButton = false,
+  tagLayout = "horizontal",
+  showScrollEdgeFades = true,
 }: ExerciseTagFilterControlProps) {
   const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(defaultOpen);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const isOpen = typeof open === "boolean" ? open : uncontrolledIsOpen;
 
   const setIsOpen = (nextValue: boolean | ((previous: boolean) => boolean)) => {
@@ -68,7 +74,39 @@ export function ExerciseTagFilterControl({
     return `${selectedTags.length} selected \u00b7 ${labels.join(", ")}`;
   }, [groups, selectedTags]);
 
+  const groupByOptions = useMemo(
+    () => groups.map((group) => ({ key: group.key, label: group.label })),
+    [groups],
+  );
+
+  const orderedGroups = useMemo(() => {
+    if (!selectedGroupKey) {
+      return groups;
+    }
+
+    const pinnedGroup = groups.find((group) => group.key === selectedGroupKey);
+    if (!pinnedGroup) {
+      return groups;
+    }
+
+    return [
+      pinnedGroup,
+      ...groups.filter((group) => group.key !== selectedGroupKey),
+    ];
+  }, [groups, selectedGroupKey]);
+
+  useEffect(() => {
+    if (!selectedGroupKey) {
+      return;
+    }
+
+    if (!groups.some((group) => group.key === selectedGroupKey)) {
+      setSelectedGroupKey(null);
+    }
+  }, [groups, selectedGroupKey]);
+
   const compact = variant === "compact";
+  const useStackedTagLayout = tagLayout === "stacked";
 
   return (
     <div className={className ?? "space-y-2"}>
@@ -116,16 +154,52 @@ export function ExerciseTagFilterControl({
             panelClassName,
           )}
         >
-          <div className="relative overflow-hidden rounded-[0.95rem] bg-[rgb(var(--surface-1-rgb)/0.28)]">
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-5 bg-gradient-to-b from-[rgb(var(--surface-1-rgb)/0.86)] via-[rgb(var(--surface-1-rgb)/0.42)] to-transparent" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-7 bg-gradient-to-t from-[rgb(var(--surface-1-rgb)/0.92)] via-[rgb(var(--surface-1-rgb)/0.56)] to-transparent" />
-            <div
-              className={cn(
-                "filter-scroll-viewport overflow-y-auto overscroll-contain touch-pan-y py-1 pr-1",
-                compact ? "max-h-[min(42vh,20rem)] space-y-3" : "max-h-[min(48vh,24rem)] space-y-2",
-              )}
-            >
-              {groups.map((group) => (
+          {groupByOptions.length > 1 ? (
+            <div className="space-y-1.5">
+              <p
+                className={cn(
+                  compact
+                    ? appTokens.exercisePickerFilterGroupLabel
+                    : "text-[11px] font-medium uppercase tracking-wide",
+                  "pl-[4px] pt-[4px]",
+                )}
+              >
+                Group By
+              </p>
+              <div className="hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1">
+                <div className={cn(compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1")}>
+                  {groupByOptions.map((option) => {
+                    const isSelected = selectedGroupKey === option.key;
+                    return (
+                      <PillButton
+                        key={option.key}
+                        type="button"
+                        active={isSelected}
+                        className={cn(
+                          "shrink-0 whitespace-nowrap",
+                          compact ? "px-2 py-1 text-[10px]" : undefined,
+                          isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                        )}
+                        onClick={() => setSelectedGroupKey((current) => (current === option.key ? null : option.key))}
+                      >
+                        {option.label}
+                      </PillButton>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <FilterScrollPanel
+            showEdgeFades={showScrollEdgeFades}
+            viewportClassName={compact ? "max-h-[min(42vh,20rem)] space-y-3" : "max-h-[min(48vh,24rem)] space-y-2"}
+          >
+              {orderedGroups.map((group) => {
+                const selectedTagsForGroup = group.tags
+                  .map((tag) => tag.value)
+                  .filter((tagValue) => selectedTags.includes(tagValue));
+
+                return (
                 <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
                   <p
                     className={cn(
@@ -137,8 +211,36 @@ export function ExerciseTagFilterControl({
                   >
                     {group.label}
                   </p>
-                  <div className={cn("hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1", compact ? "pt-0.5" : undefined)}>
-                    <div className={compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1"}>
+                  <div
+                    className={cn(
+                      useStackedTagLayout
+                        ? "px-0.5 pb-1"
+                        : "hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1",
+                      compact ? "pt-0.5" : undefined,
+                    )}
+                    >
+                      <div
+                        className={cn(
+                          useStackedTagLayout
+                            ? "flex flex-col gap-1.5"
+                          : compact
+                            ? "flex min-w-max flex-nowrap gap-1.5"
+                            : "flex min-w-max flex-nowrap gap-1",
+                        )}
+                      >
+                      {selectedTagsForGroup.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => onChange(selectedTags.filter((value) => !selectedTagsForGroup.includes(value)))}
+                          className={cn(
+                            appTokens.exercisePickerFilterClearButton,
+                            "shrink-0 whitespace-nowrap",
+                            compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+                          )}
+                        >
+                          Clear
+                        </button>
+                      ) : null}
                       {[...group.tags].sort((left, right) => {
                         const leftSelected = selectedTags.includes(left.value);
                         const rightSelected = selectedTags.includes(right.value);
@@ -152,7 +254,8 @@ export function ExerciseTagFilterControl({
                             type="button"
                             active={isSelected}
                             className={cn(
-                              "max-w-full shrink-0 justify-start whitespace-nowrap text-left leading-tight [word-break:normal]",
+                              "max-w-full justify-start text-left leading-tight [word-break:normal]",
+                              useStackedTagLayout ? "w-full whitespace-normal" : "shrink-0 whitespace-nowrap",
                               compact ? "px-2 py-1 text-[10px]" : undefined,
                               isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                             )}
@@ -172,20 +275,8 @@ export function ExerciseTagFilterControl({
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-          {selectedTags.length > 0 ? (
-            <div className="flex items-center justify-end pt-1">
-              <button
-                type="button"
-                onClick={() => onChange([])}
-                className={appTokens.exercisePickerFilterClearButton}
-              >
-                Clear
-              </button>
-            </div>
-          ) : null}
+              )})}
+          </FilterScrollPanel>
         </div>
       ) : null}
     </div>

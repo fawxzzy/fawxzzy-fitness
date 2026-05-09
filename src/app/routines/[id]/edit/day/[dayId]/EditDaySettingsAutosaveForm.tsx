@@ -15,7 +15,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { cn } from "@/lib/cn";
-import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
+import { getRoutineOverviewHref } from "@/lib/routine-day-navigation";
 import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { publishEditDayCloseExpandedCard, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
@@ -116,7 +116,6 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
             { id: "day-rest-toggle-status", durationMs: 2600 },
           );
         }
-        router.refresh();
         return;
       }
       toast.error(result.error ?? "Autosave failed", { id: "day-autosave-status", durationMs: 3200 });
@@ -137,12 +136,12 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
 
   const headerNode = (
     <RoutineEditorPageHeader
-      title={<RoutineDayHeaderTitle leadingItems={[routineName.trim() || "Routine"]} dayLabel={previewDayName} />}
+      title={<RoutineDayHeaderTitle leadingItems={[routineName.trim() || "Routine"]} dayLabel={previewDayName} dayLabelOrder="day-first" />}
       subtitle={<DayTaxonomyHeaderSummary dayName={previewDayName} summary={daySummaryCounts} isRest={draft.isRest} />}
       action={(
         <TopRightBackButton
           href={backHref}
-          ariaLabel="Back to Day"
+          ariaLabel="Back to routines"
           historyBehavior="fallback-only"
           onClick={() => publishEditDayCloseExpandedCard()}
           className="translate-y-[2px] scale-[1.03]"
@@ -156,12 +155,12 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
     <form ref={formRef} id="routine-day-settings-form" className={appTokens.routineEditorCompactStack} onSubmit={(event) => event.preventDefault()}>
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />
-      <NavigationReturnInput fallbackHref={getRoutineDayViewHref(routineId, routineDayId)} value={backHref} />
+      <NavigationReturnInput fallbackHref={getRoutineOverviewHref()} value={backHref} />
       {!isFocusModeActive ? (floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode) : null}
       {!isFocusModeActive && !isReorderModeActive ? (
         <div className="space-y-3 px-1">
-          <label className="block">
-            <LabeledEditorField label="Day name">
+          <label className="mx-auto block w-full max-w-[24rem]">
+            <LabeledEditorField label="Day name" className="w-full">
               <input
                 name="name"
                 value={draft.name}
@@ -175,7 +174,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
                 maxLength={15}
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent text-base font-semibold !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "h-14 px-[10px] py-3 text-center text-base font-semibold",
                 )}
               />
             </LabeledEditorField>

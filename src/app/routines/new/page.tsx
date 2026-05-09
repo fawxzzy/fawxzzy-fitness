@@ -1,6 +1,7 @@
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
+import { getTodayDateInTimeZone } from "@/lib/routines";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
 import { NewRoutineDraftForm } from "@/app/routines/new/NewRoutineDraftForm";
 
@@ -10,6 +11,7 @@ export default async function NewRoutinePage() {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const routineTimezoneDefault = normalizeRoutineTimezone(profile.timezone);
+  const routineStartDateDefault = getTodayDateInTimeZone(routineTimezoneDefault);
 
   return (
     <RoutineDetailsScreenShell
@@ -21,6 +23,7 @@ export default async function NewRoutinePage() {
         defaults={{
           name: "",
           cycleLengthDays: 7,
+          startDate: routineStartDateDefault,
           startWeekday: "monday",
           timezone: routineTimezoneDefault,
           weightUnit: profile.preferred_weight_unit ?? "lbs",

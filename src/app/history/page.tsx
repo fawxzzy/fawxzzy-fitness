@@ -1,5 +1,6 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
+import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { appTokens } from "@/components/ui/app/tokens";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
@@ -15,6 +16,7 @@ import {
   type HistorySearchParams,
 } from "@/lib/history-sessions-page-loader";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
+import { QA_LLEL_VISIBILITY_COOKIE, resolveQaLlelVisibilityOverride } from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
 import { HistorySessionsClient } from "./HistorySessionsClient";
 
@@ -83,6 +85,9 @@ export default async function HistoryPage({
           supabase: supabaseServer(),
           userId: user.id,
           searchParams,
+          showQaLlelDataOverride: resolveQaLlelVisibilityOverride(
+            cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value,
+          ),
         }), {
           blockingReason: "Waiting for history sessions page data.",
           metadata: {
@@ -124,6 +129,8 @@ export default async function HistoryPage({
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistorySessionsClient
           sessions={state.data.sessionItems}
+          weeklyProgress={state.data.weeklyProgress}
+          weeklyProgressByWeek={state.data.weeklyProgressByWeek}
           selectedSessionId={state.data.selectedSessionId}
           initialViewMode={initialViewMode}
           initialFiltersOpen={initialFiltersOpen}

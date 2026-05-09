@@ -1,0 +1,351 @@
+import type { SessionSummary } from "@/app/history/session-summary";
+
+export type WeeklyProgressExerciseMeta = {
+  name: string;
+  measurementType: string | null;
+  primaryMuscle: string | null;
+};
+
+export type WeeklyProgressSessionExercise = {
+  id: string;
+  sessionId: string;
+  exerciseId: string;
+};
+
+export type WeeklyProgressSet = {
+  weight: number;
+  reps: number;
+};
+
+export type WeeklyProgressVolumeCategoryKey = "strength" | "cardio" | "bodyweight" | "other";
+
+export type WeeklyProgressVolumeCategory = {
+  key: WeeklyProgressVolumeCategoryKey;
+  label: string;
+  setCount: number;
+  exerciseCount: number;
+};
+
+export type WeeklyProgressTrendDirection = "up" | "flat" | "down" | "new" | "none";
+
+export type WeeklyProgressSummary = {
+  timezone: string;
+  weekStart: string;
+  weekEnd: string;
+  completedWorkoutCount: number;
+  previousWeekWorkoutCount: number;
+  activeDayCount: number;
+  prMomentCount: number;
+  prExerciseNames: string[];
+  consistencyTrend: {
+    direction: WeeklyProgressTrendDirection;
+    label: string;
+    detail: string;
+    delta: number;
+  };
+  volumeCategories: WeeklyProgressVolumeCategory[];
+  progressScore: {
+    value: number;
+    max: number;
+    breakdown: Array<{
+      label: string;
+      value: number;
+      max: number;
+    }>;
+    summary: string;
+  };
+};
+
+type BuildWeeklyProgressSummaryOptions = {
+  sessions: SessionSummary[];
+  sessionExercisesBySessionId: Map<string, WeeklyProgressSessionExercise[]>;
+  setsBySessionExerciseId: Map<string, WeeklyProgressSet[]>;
+  exerciseMetaById: Map<string, WeeklyProgressExerciseMeta>;
+  routineDayCountByRoutineId?: Map<string, number>;
+  timezone?: string | null;
+  now?: string;
+  weekStart?: string;
+};
+
+const DEFAULT_TIMEZONE = "America/New_York";
+const SCORE_MAX = 10;
+
+export function getWeeklyProgressDayKey(value: string, timeZone: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+export function shiftWeeklyProgressDay(dayKey: string, amount: number) {
+  const date = new Date(`${dayKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+export function startOfWeeklyProgressIsoWeek(dayKey: string) {
+  const date = new Date(`${dayKey}T00:00:00.000Z`);
+  const day = date.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  return shiftWeeklyProgressDay(dayKey, diff);
+}
+
+export function getWeeklyProgressWeekStart(value: string, timeZone: string) {
+  const dayKey = getWeeklyProgressDayKey(value, timeZone);
+  return dayKey ? startOfWeeklyProgressIsoWeek(dayKey) : null;
+}
+
+function labelForVolumeCategory(key: WeeklyProgressVolumeCategoryKey) {
+  switch (key) {
+    case "strength":
+      return "Strength";
+    case "cardio":
+      return "Cardio";
+    case "bodyweight":
+      return "Bodyweight";
+    default:
+      return "Other";
+  }
+}
+
+function normalizePositive(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function resolveVolumeCategory(
+  measurementType: string | null | undefined,
+  sets: WeeklyProgressSet[],
+): WeeklyProgressVolumeCategoryKey {
+  const normalizedMeasurementType = String(measurementType ?? "").trim().toLowerCase();
+  if (
+    normalizedMeasurementType === "time"
+    || normalizedMeasurementType === "distance"
+    || normalizedMeasurementType === "time_distance"
+  ) {
+    return "cardio";
+  }
+
+  if (sets.some((set) => normalizePositive(set.weight) > 0)) {
+    return "strength";
+  }
+
+  if (sets.some((set) => normalizePositive(set.reps) > 0)) {
+    return "bodyweight";
+  }
+
+  return normalizedMeasurementType === "reps" ? "bodyweight" : "other";
+}
+
+function toPluralLabel(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function resolvePrimaryRoutineTargetCount(
+  sessions: Array<SessionSummary & { dayKey: string }>,
+  routineDayCountByRoutineId: Map<string, number>,
+) {
+  const currentWeekRoutineCounts = new Map<string, number>();
+
+  for (const session of sessions) {
+    const routineId = session.routineId?.trim();
+    if (!routineId) {
+      continue;
+    }
+
+    currentWeekRoutineCounts.set(routineId, (currentWeekRoutineCounts.get(routineId) ?? 0) + 1);
+  }
+
+  let primaryRoutineId: string | null = null;
+  let primaryRoutineSessionCount = -1;
+
+  for (const [routineId, sessionCount] of currentWeekRoutineCounts.entries()) {
+    if (sessionCount > primaryRoutineSessionCount) {
+      primaryRoutineId = routineId;
+      primaryRoutineSessionCount = sessionCount;
+    }
+  }
+
+  return primaryRoutineId ? (routineDayCountByRoutineId.get(primaryRoutineId) ?? 0) : 0;
+}
+
+export function buildWeeklyProgressSummary({
+  sessions,
+  sessionExercisesBySessionId,
+  setsBySessionExerciseId,
+  exerciseMetaById,
+  routineDayCountByRoutineId = new Map<string, number>(),
+  timezone = DEFAULT_TIMEZONE,
+  now = new Date().toISOString(),
+  weekStart: requestedWeekStart,
+}: BuildWeeklyProgressSummaryOptions): WeeklyProgressSummary {
+  const safeTimezone = typeof timezone === "string" && timezone.trim().length > 0 ? timezone : DEFAULT_TIMEZONE;
+  const fallbackCurrentDayKey = getWeeklyProgressDayKey(now, safeTimezone)
+    ?? getWeeklyProgressDayKey(new Date().toISOString(), safeTimezone)
+    ?? "1970-01-05";
+  const weekStart = requestedWeekStart && requestedWeekStart.trim().length > 0
+    ? requestedWeekStart
+    : startOfWeeklyProgressIsoWeek(fallbackCurrentDayKey);
+  const weekEnd = shiftWeeklyProgressDay(weekStart, 6);
+  const previousWeekStart = shiftWeeklyProgressDay(weekStart, -7);
+  const previousWeekEnd = shiftWeeklyProgressDay(previousWeekStart, 6);
+
+  const currentWeekSessions: Array<SessionSummary & { dayKey: string }> = [];
+  let previousWeekWorkoutCount = 0;
+
+  for (const session of sessions) {
+    const dayKey = getWeeklyProgressDayKey(session.startedAt, safeTimezone);
+    if (!dayKey) {
+      continue;
+    }
+
+    if (dayKey >= weekStart && dayKey <= weekEnd) {
+      currentWeekSessions.push({ ...session, dayKey });
+      continue;
+    }
+
+    if (dayKey >= previousWeekStart && dayKey <= previousWeekEnd) {
+      previousWeekWorkoutCount += 1;
+    }
+  }
+
+  const activeDayCount = new Set(currentWeekSessions.map((session) => session.dayKey)).size;
+  const completedWorkoutCount = currentWeekSessions.length;
+  const prMomentCount = currentWeekSessions.reduce((sum, session) => sum + session.prCounts.total, 0);
+  const primaryRoutineTargetCount = resolvePrimaryRoutineTargetCount(currentWeekSessions, routineDayCountByRoutineId);
+  const prExerciseNames: string[] = [];
+  for (const session of currentWeekSessions) {
+    for (const exerciseName of session.prExerciseNames ?? []) {
+      const normalizedName = exerciseName.trim();
+      if (!normalizedName || prExerciseNames.includes(normalizedName)) {
+        continue;
+      }
+      prExerciseNames.push(normalizedName);
+    }
+  }
+
+  const volumeCategoryState = new Map<
+    WeeklyProgressVolumeCategoryKey,
+    { setCount: number; exerciseIds: Set<string> }
+  >();
+
+  for (const session of currentWeekSessions) {
+    const sessionExercises = sessionExercisesBySessionId.get(session.id) ?? [];
+    for (const sessionExercise of sessionExercises) {
+      const sets = setsBySessionExerciseId.get(sessionExercise.id) ?? [];
+      if (sets.length === 0) {
+        continue;
+      }
+
+      const exerciseMeta = exerciseMetaById.get(sessionExercise.exerciseId);
+      const categoryKey = resolveVolumeCategory(exerciseMeta?.measurementType, sets);
+      const bucket = volumeCategoryState.get(categoryKey) ?? {
+        setCount: 0,
+        exerciseIds: new Set<string>(),
+      };
+
+      bucket.setCount += sets.length;
+      bucket.exerciseIds.add(sessionExercise.exerciseId);
+      volumeCategoryState.set(categoryKey, bucket);
+    }
+  }
+
+  const volumeCategories = [...volumeCategoryState.entries()]
+    .map(([key, value]) => ({
+      key,
+      label: labelForVolumeCategory(key),
+      setCount: value.setCount,
+      exerciseCount: value.exerciseIds.size,
+    }))
+    .sort((left, right) => {
+      if (right.setCount !== left.setCount) {
+        return right.setCount - left.setCount;
+      }
+      return left.label.localeCompare(right.label);
+    });
+
+  const workoutPoints = Math.min(completedWorkoutCount, 4);
+  const coveragePoints = Math.min(completedWorkoutCount, 3);
+  const consistencyPoints = primaryRoutineTargetCount <= 0 || completedWorkoutCount <= 0
+    ? 0
+    : completedWorkoutCount >= primaryRoutineTargetCount
+      ? 3
+      : completedWorkoutCount / primaryRoutineTargetCount >= (2 / 3)
+        ? 2
+        : 1;
+  const progressScoreValue = workoutPoints + consistencyPoints + coveragePoints;
+
+  let consistencyDirection: WeeklyProgressTrendDirection = "none";
+  let consistencyLabel = "No sessions yet";
+  let consistencyDetail = "Log a completed session to start the weekly trend.";
+  const consistencyDelta = completedWorkoutCount - previousWeekWorkoutCount;
+
+  if (completedWorkoutCount > 0 && previousWeekWorkoutCount === 0) {
+    consistencyDirection = "new";
+    consistencyLabel = "Opened the week";
+    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} across ${toPluralLabel(activeDayCount, "day")}.`;
+  } else if (consistencyDelta > 0) {
+    consistencyDirection = "up";
+    consistencyLabel = `+${consistencyDelta} vs last week`;
+    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this week, ${toPluralLabel(previousWeekWorkoutCount, "workout")} last week.`;
+  } else if (consistencyDelta === 0 && completedWorkoutCount > 0) {
+    consistencyDirection = "flat";
+    consistencyLabel = "Matched last week";
+    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} across ${toPluralLabel(activeDayCount, "active day", "active days")}.`;
+  } else if (consistencyDelta < 0) {
+    consistencyDirection = "down";
+    consistencyLabel = `${consistencyDelta} vs last week`;
+    consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this week after ${toPluralLabel(previousWeekWorkoutCount, "workout")} last week.`;
+  }
+
+  const scoreBreakdown = [
+    { label: "Sessions", value: workoutPoints, max: 4 },
+    { label: "Consistency", value: consistencyPoints, max: 3 },
+    { label: "Coverage", value: coveragePoints, max: 3 },
+  ];
+
+  const scoreSummary = scoreBreakdown
+    .filter((entry) => entry.value > 0)
+    .map((entry) => `${entry.value}/${entry.max} ${entry.label.toLowerCase()}`)
+    .join(" • ");
+
+  return {
+    timezone: safeTimezone,
+    weekStart,
+    weekEnd,
+    completedWorkoutCount,
+    previousWeekWorkoutCount,
+    activeDayCount,
+    prMomentCount,
+    prExerciseNames,
+    consistencyTrend: {
+      direction: consistencyDirection,
+      label: consistencyLabel,
+      detail: consistencyDetail,
+      delta: consistencyDelta,
+    },
+    volumeCategories,
+    progressScore: {
+      value: progressScoreValue,
+      max: SCORE_MAX,
+      breakdown: scoreBreakdown,
+      summary: scoreSummary || "No score inputs yet",
+    },
+  };
+}

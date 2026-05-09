@@ -21,7 +21,7 @@ const INTENT_TO_BOTTOM_ACTION_CLASS_NAME: Record<BottomActionIntent, string> = {
   info: "bottom-action--secondary",
   toggleInactive: "bottom-action--secondary",
   toggleActive: "bottom-action--secondary",
-  danger: "bottom-action--secondary",
+  danger: "bottom-action--danger",
 };
 
 export function resolveBottomActionIntent({

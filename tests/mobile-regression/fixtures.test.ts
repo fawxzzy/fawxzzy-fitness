@@ -48,6 +48,7 @@ const expectedScenarioIds = [
   "history-exercises-cardio-taxonomy",
   "history-detail-broken-images",
   "settings-default",
+  "settings-data-export",
   "exercise-detail-strength",
   "exercise-detail-cardio",
   "exercise-detail-bodyweight",
@@ -95,6 +96,7 @@ const expectedScenarioFamilies = [
   ["history-exercises-cardio-taxonomy", "Exercise cards"],
   ["history-detail-broken-images", "Session summaries"],
   ["settings-default", "Settings / detail"],
+  ["settings-data-export", "Settings / detail"],
   ["exercise-detail-strength", "Settings / detail"],
   ["exercise-detail-cardio", "Settings / detail"],
   ["exercise-detail-bodyweight", "Settings / detail"],
@@ -185,4 +187,5 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "bodyweight" })?.id, "exercise-detail-bodyweight");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "long-scroll" })?.id, "exercise-detail-long-scroll");
   assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");
+  assert.equal(resolveMobileRegressionScenario({ screen: "settings", fixture: "data-export" })?.id, "settings-data-export");
 });

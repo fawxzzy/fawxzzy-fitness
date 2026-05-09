@@ -27,7 +27,7 @@ export function LoggedSetSummaryRow({
 }) {
   const isCentered = contentAlign === "center";
   const shouldBalanceActionSpace = balanceActionSpace && Boolean(action);
-  const balancedRailClassName = "grid grid-cols-[6.5rem_minmax(0,1fr)_6.5rem] items-center gap-2";
+  const balancedRailClassName = "grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-center gap-1.5";
   const resolvedSummary = summaryItems && summaryItems.length > 0
     ? (
       <div
@@ -38,7 +38,7 @@ export function LoggedSetSummaryRow({
         )}
       >
         <div className={cn("inline-flex min-w-0 items-center gap-2", shouldBalanceActionSpace ? "justify-start" : undefined, isCentered ? "text-center" : "text-left")}>
-          <div className={cn(appTokens.currentSessionSetSummaryLabel, "shrink-0", isCentered ? "text-center" : "text-left")}>
+          <div className={cn(appTokens.currentSessionSetSummaryLabel, "shrink-0 whitespace-nowrap", isCentered ? "text-center" : "text-left")}>
             {label}
           </div>
           <SignatureMiniPipe />
@@ -55,7 +55,7 @@ export function LoggedSetSummaryRow({
           itemClassName="min-w-0"
         />
         {shouldBalanceActionSpace ? (
-          <div className={cn("flex min-w-0 items-center justify-end", actionClassName)}>
+          <div className={cn("flex items-center justify-end", actionClassName)}>
             {action}
           </div>
         ) : null}

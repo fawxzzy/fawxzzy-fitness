@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
-import { selectionChromeStyle } from "@/components/ui/selectionChromeStyle";
+import { getMeasurementToggleButtonClassName, getMeasurementToggleIntent } from "@/components/ui/measurements/measurementToggleButton";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
@@ -49,6 +48,7 @@ export function ExerciseGoalForm({
   hideEmptySummary,
   hideSummary = false,
   validationOverride,
+  betweenInputsAndFooterContent,
   footerContent,
   footerClassName,
   visibleMetrics,
@@ -65,6 +65,7 @@ export function ExerciseGoalForm({
   hideEmptySummary?: boolean;
   hideSummary?: boolean;
   validationOverride?: string;
+  betweenInputsAndFooterContent?: ReactNode;
   footerContent?: ReactNode;
   footerClassName?: string;
   visibleMetrics?: Array<keyof MeasurementMetrics>;
@@ -77,7 +78,8 @@ export function ExerciseGoalForm({
     () => visibleMetricOrder ?? getGoalMeasurementOrder(modality),
     [modality, visibleMetricOrder],
   );
-  const supportsFailure = modality === "strength" || modality === "bodyweight";
+  const baseVisibleMetrics = visibleMetrics ?? resolvedMetricOrder;
+  const supportsFailure = baseVisibleMetrics.includes("reps");
   const isFailureMode = supportsFailure && state.failure;
   const derivedSelections = useMemo(() => deriveGoalMeasurementSelections(modality, {
     repsMin: state.repsMin,
@@ -90,13 +92,12 @@ export function ExerciseGoalForm({
   }), [isFailureMode, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.weight]);
 
   const resolvedVisibleMetrics = useMemo(() => {
-    const baseMetrics = visibleMetrics ?? resolvedMetricOrder;
     if (!isFailureMode) {
-      return baseMetrics;
+      return baseVisibleMetrics;
     }
 
-    return baseMetrics.filter((metric) => metric !== "reps");
-  }, [isFailureMode, resolvedMetricOrder, visibleMetrics]);
+    return baseVisibleMetrics.filter((metric) => metric !== "reps");
+  }, [baseVisibleMetrics, isFailureMode]);
 
   const activeMetrics = {
     reps: !isFailureMode && derivedSelections.includes("reps"),
@@ -170,6 +171,7 @@ export function ExerciseGoalForm({
           distanceUnit: names.distanceUnit,
         }}
         showHeader={false}
+        betweenInputsAndFooterContent={betweenInputsAndFooterContent}
         footerContent={footerContent}
         footerClassName={footerClassName}
         auxiliaryFields={supportsFailure ? [{
@@ -180,29 +182,19 @@ export function ExerciseGoalForm({
           hasValue: isFailureMode,
           labelClassName: "hidden",
           valueLabelClassName: "hidden",
-          renderInput: ({ inputClassName }) => (
+          renderInput: () => (
             <button
               type="button"
-              className={cn(
-                ACTION_CHROME_CONTROL_CLASS_NAME,
-                inputClassName,
-                "flex !h-11 !min-h-11 w-full translate-y-[2px] flex-col items-center justify-center !rounded-[1rem] !border-0 !bg-transparent !px-3 !py-2 text-center leading-none !shadow-none focus-visible:ring-[var(--button-focus-ring)]",
-              )}
-              data-action-chrome-intent="ghost"
-              style={{
-                ...selectionChromeStyle,
-                "--action-chrome-text-color": isFailureMode
-                  ? "rgb(var(--text-primary) / 0.96)"
-                  : "rgb(var(--text-muted) / 0.92)",
-              } as CSSProperties}
-              aria-pressed={isFailureMode}
-              aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+                className={getMeasurementToggleButtonClassName()}
+                data-action-chrome-intent={getMeasurementToggleIntent(isFailureMode)}
+                aria-pressed={isFailureMode}
+                aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
               onClick={() => onStateChange({
                 ...state,
                 failure: !isFailureMode,
               })}
             >
-              <span className="text-xs font-semibold uppercase tracking-[0.06em]">Failure</span>
+              <span className="measurement-toggle__label text-xs font-semibold uppercase tracking-[0.06em]">Failure</span>
             </button>
           ),
         }] : undefined}

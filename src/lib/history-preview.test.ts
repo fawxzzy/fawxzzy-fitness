@@ -41,6 +41,8 @@ test("history preview fixtures stay deterministic across the three QA entry rout
   const sessionsPageData = getHistoryPreviewSessionsPageData();
   assert.equal(sessionsPageData.sessionItems.length, 3);
   assert.equal(sessionsPageData.selectedSessionId, HISTORY_PREVIEW_PRIMARY_SESSION_ID);
+  assert.equal(sessionsPageData.weeklyProgress.completedWorkoutCount, 1);
+  assert.equal(sessionsPageData.weeklyProgressByWeek.length, 2);
 
   const exerciseRows = getHistoryPreviewExerciseRows();
   assert.equal(exerciseRows.length, 3);

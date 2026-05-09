@@ -133,11 +133,13 @@ function renderMetricCard({
   width,
   gridColumnCount,
   children,
+  dimmed = false,
 }: {
   testId: string;
   width: FieldWidth;
   gridColumnCount: 2 | 3;
   children: ReactNode;
+  dimmed?: boolean;
 }) {
   return (
     <div
@@ -146,6 +148,7 @@ function renderMetricCard({
           "min-h-0 min-w-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
           getFieldSpanClassName(width, gridColumnCount),
           getFieldChromeClassName(width),
+          dimmed ? "opacity-55" : undefined,
         )}
       data-testid={testId}
       data-field-width={width}
@@ -220,7 +223,7 @@ function InlineFieldControl({
           <span
             aria-hidden="true"
             className={cn(
-              "pointer-events-none absolute inset-0 flex items-center justify-start pl-3.5 pr-14 text-left text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
+              "pointer-events-none absolute inset-0 flex items-center justify-center px-3.5 text-center text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
               emptyValueClassName,
             )}
           >
@@ -238,7 +241,7 @@ function InlineFieldControl({
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 flex items-center justify-start pl-3.5 pr-14 text-left text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
+            "pointer-events-none absolute inset-0 flex items-center justify-center px-3.5 text-center text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
             emptyValueClassName,
           )}
         >
@@ -341,14 +344,18 @@ export function MeasurementPanelV2({
   belowRpeField,
   rpe,
   onRpeChange,
+  betweenInputsAndFooterContent,
   footerContent,
   footerClassName,
   showInnerHeader = false,
   topField,
   auxiliaryFields,
+  horizontalRowPrefix,
+  metricLabelOverrides,
   repRangeLabels,
   visibleMetrics,
   metricOrder,
+  dimmedMetrics,
   layoutMode = "grid",
   labelTreatment = "inline",
 }: {
@@ -375,6 +382,7 @@ export function MeasurementPanelV2({
   };
   rpe?: string;
   onRpeChange?: (value: string) => void;
+  betweenInputsAndFooterContent?: ReactNode;
   footerContent?: ReactNode;
   footerClassName?: string;
   showInnerHeader?: boolean;
@@ -392,12 +400,15 @@ export function MeasurementPanelV2({
     renderInput?: (options: { inputClassName: string }) => ReactNode;
   };
   auxiliaryFields?: MeasurementPanelAuxiliaryField[];
+  horizontalRowPrefix?: ReactNode;
+  metricLabelOverrides?: Partial<Record<keyof MeasurementMetrics, string>>;
   repRangeLabels?: {
     min: string;
     max: string;
   };
   visibleMetrics?: Array<keyof MeasurementMetrics>;
   metricOrder?: Array<keyof MeasurementMetrics>;
+  dimmedMetrics?: Array<keyof MeasurementMetrics>;
   layoutMode?: "grid" | "horizontal-scroll";
   labelTreatment?: "inline" | "floating-border";
 }) {
@@ -407,6 +418,7 @@ export function MeasurementPanelV2({
   const hasRpeInput = typeof onRpeChange === "function";
   const contract = resolveScreenContract("exerciseLog");
   const allowedMetrics = new Set<keyof MeasurementMetrics>(visibleMetrics ?? ["reps", "weight", "time", "distance", "calories"]);
+  const dimmedMetricSet = new Set<keyof MeasurementMetrics>(dimmedMetrics ?? []);
   const resolvedMetricOrder = (metricOrder ?? ["reps", "weight", "time", "distance", "calories"]).filter((metric) => allowedMetrics.has(metric));
   const standardMetrics = (["reps", "weight", "time", "distance", "calories"] as const).filter((metric) => allowedMetrics.has(metric));
   const singlePrimaryMetric = standardMetrics.length === 1 ? standardMetrics[0] : null;
@@ -449,6 +461,7 @@ export function MeasurementPanelV2({
         ? topRightInlineLabelClassName
         : fallback
   );
+  const resolveMetricLabel = (metric: keyof MeasurementMetrics, fallback: string) => metricLabelOverrides?.[metric] ?? fallback;
 
   function pushAuxiliaryField(field: MeasurementPanelAuxiliaryField, index: number) {
     const useInlineFieldShell = field.useInlineFieldShell ?? true;
@@ -564,6 +577,7 @@ export function MeasurementPanelV2({
           testId: "measurement-field-reps-min",
           width: useThreeAcrossMetrics ? "compact" : "standard",
           gridColumnCount,
+          dimmed: dimmedMetricSet.has("reps"),
           children: (
             <InlineFieldControl
               label={resolvedRepRangeLabels.min}
@@ -571,7 +585,7 @@ export function MeasurementPanelV2({
               hasValue={Boolean(values.reps.trim())}
               labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
               valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
-              emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+              emptyValueClassName={undefined}
               labelPlacement={resolvedFloatingLabelPlacement}
             >
               <input
@@ -600,6 +614,7 @@ export function MeasurementPanelV2({
           testId: "measurement-field-reps-max",
           width: useThreeAcrossMetrics ? "compact" : "standard",
           gridColumnCount,
+          dimmed: dimmedMetricSet.has("reps"),
           children: (
             <InlineFieldControl
               label={resolvedRepRangeLabels.max}
@@ -607,7 +622,7 @@ export function MeasurementPanelV2({
               hasValue={Boolean((values.repsMax ?? "").trim())}
               labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
               valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
-              emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+              emptyValueClassName={undefined}
               labelPlacement={resolvedFloatingLabelPlacement}
             >
               <input
@@ -639,6 +654,7 @@ export function MeasurementPanelV2({
                   ? "wide"
                   : (useThreeAcrossMetrics ? "compact" : "standard"),
               gridColumnCount,
+              dimmed: dimmedMetricSet.has("reps"),
               children: (
                 <InlineFieldControl
                   label={METRICS[0].title}
@@ -646,7 +662,7 @@ export function MeasurementPanelV2({
                   hasValue={Boolean(values.reps.trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
-                  emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+                  emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
@@ -676,6 +692,7 @@ export function MeasurementPanelV2({
             testId: "measurement-field-weight",
             width: useThreeAcrossMetrics ? "compact" : resolveMetricWidth({ metric: "weight", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
             gridColumnCount,
+            dimmed: dimmedMetricSet.has("weight"),
             children: (
               <>
                 <InlineFieldControl
@@ -684,7 +701,7 @@ export function MeasurementPanelV2({
                   hasValue={Boolean(values.weight.trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
-                  emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+                  emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
@@ -715,15 +732,16 @@ export function MeasurementPanelV2({
             testId: "measurement-field-time",
             width: resolveMetricWidth({ metric: "time", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
             gridColumnCount,
+            dimmed: dimmedMetricSet.has("time"),
             children: (
               <>
                 <InlineFieldControl
-                  label="s"
+                  label={resolveMetricLabel("time", "s")}
                   showEmptyValue={!values.duration.trim()}
                   hasValue={Boolean(values.duration.trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
-                  emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+                  emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
@@ -753,15 +771,16 @@ export function MeasurementPanelV2({
             testId: "measurement-field-distance",
             width: resolveMetricWidth({ metric: "distance", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
             gridColumnCount,
+            dimmed: dimmedMetricSet.has("distance"),
             children: (
               <>
                 <InlineFieldControl
-                  label={resolvedDistanceUnit}
+                  label={resolveMetricLabel("distance", resolvedDistanceUnit)}
                   showEmptyValue={!values.distance.trim()}
                   hasValue={Boolean(values.distance.trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
-                  emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+                  emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
@@ -792,6 +811,7 @@ export function MeasurementPanelV2({
             testId: "measurement-field-calories",
             width: resolveMetricWidth({ metric: "calories", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
             gridColumnCount,
+            dimmed: dimmedMetricSet.has("calories"),
             children: (
               <>
                 <InlineFieldControl
@@ -800,7 +820,7 @@ export function MeasurementPanelV2({
                   hasValue={Boolean(values.calories.trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
                   valueLabelClassName={resolveValueLabelClassName()}
-                  emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+                  emptyValueClassName={undefined}
                   labelPlacement={resolvedFloatingLabelPlacement}
                 >
                   <input
@@ -838,7 +858,7 @@ export function MeasurementPanelV2({
                   showEmptyValue={!(rpe ?? "").trim()}
                   hasValue={Boolean((rpe ?? "").trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
-                  emptyValueClassName={useThreeAcrossMetrics ? "pr-8" : undefined}
+                  emptyValueClassName={undefined}
                   valueLabelClassName={resolveValueLabelClassName("bottom-3 right-3 text-[9px] tracking-[0.06em]")}
                   labelPlacement={resolvedFloatingLabelPlacement}
                 >
@@ -864,9 +884,6 @@ export function MeasurementPanelV2({
 
   const metricSortOrder = new Map<string, number>();
   metricSortOrder.set("top-field", -10);
-  auxiliaryFields?.forEach((_, index) => {
-    metricSortOrder.set(`aux-field-${index}`, -9 + index);
-  });
   resolvedMetricOrder.forEach((metric, index) => {
     const baseOrder = index * 10;
     if (metric === "reps") {
@@ -878,6 +895,10 @@ export function MeasurementPanelV2({
 
     metricSortOrder.set(metric, baseOrder);
   });
+  const repsOrder = metricSortOrder.get("reps-min") ?? metricSortOrder.get("reps") ?? 0;
+  auxiliaryFields?.forEach((_, index) => {
+    metricSortOrder.set(`aux-field-${index}`, -20 + (index * 0.01));
+  });
   metricSortOrder.set("rpe", resolvedMetricOrder.length * 10 + 5);
 
   const orderedMetricFields = [...metricFields].sort(
@@ -888,7 +909,8 @@ export function MeasurementPanelV2({
   const useHorizontalScrollLayout = layoutMode === "horizontal-scroll" && orderedMetricFields.length > 0;
 
   function getHorizontalFieldWidthClassName(fieldId: string) {
-    if (fieldId === "top-field") return "w-[5.95rem]";
+    if (fieldId === "top-field") return "w-[6.35rem]";
+    if (fieldId.startsWith("aux-field-")) return "w-[8.75rem]";
     if (fieldId === "reps-min" || fieldId === "reps-max") return "w-[6.35rem]";
     if (fieldId === "reps") return "w-[5.85rem]";
     if (fieldId === "weight") return "w-[5.95rem]";
@@ -927,8 +949,13 @@ export function MeasurementPanelV2({
 
           {useHorizontalScrollLayout ? (
             <div className="relative overflow-visible">
-              <div className="hide-scrollbar overflow-x-auto overscroll-contain pb-0.5 pt-1.5 touch-pan-x">
+              <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
                 <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5">
+                  {horizontalRowPrefix ? (
+                    <div className="shrink-0">
+                      {horizontalRowPrefix}
+                    </div>
+                  ) : null}
                   {orderedMetricFields.map((field) => (
                     <div key={field.id} className={cn("shrink-0", getHorizontalFieldWidthClassName(field.id))}>
                       {field.node}
@@ -967,6 +994,12 @@ export function MeasurementPanelV2({
             );
           })}
         </div>
+
+        {betweenInputsAndFooterContent ? (
+          <div className="mt-1">
+            {betweenInputsAndFooterContent}
+          </div>
+        ) : null}
 
         {footerContent ? <div className={cn("-mt-9", footerClassName)}>{footerContent}</div> : null}
       </div>

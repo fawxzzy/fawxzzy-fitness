@@ -3,6 +3,7 @@
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import type { ActionResult } from "@/lib/action-result";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
+import type { ProgressionPlaybookId } from "@/lib/progression-playbooks";
 
 type ExerciseOption = {
   id: string;
@@ -19,6 +20,10 @@ type ExerciseOption = {
   how_to_short?: string | null;
   image_icon_path?: string | null;
   slug?: string | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
 };
 
 export function EditDayAddExerciseScreen({
@@ -27,6 +32,8 @@ export function EditDayAddExerciseScreen({
   exercises,
   initialSelectedId,
   weightUnit,
+  defaultProgressionPlaybookId,
+  defaultProgressionPlaybookConfig,
   addExerciseAction,
   exerciseStats,
   backHref,
@@ -36,6 +43,8 @@ export function EditDayAddExerciseScreen({
   exercises: ExerciseOption[];
   initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
+  defaultProgressionPlaybookId?: ProgressionPlaybookId | null;
+  defaultProgressionPlaybookConfig?: Record<string, unknown> | null;
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
   exerciseStats: ExerciseStatsOption[];
   backHref: string;
@@ -47,7 +56,10 @@ export function EditDayAddExerciseScreen({
       exercises={exercises}
       initialSelectedId={initialSelectedId}
       weightUnit={weightUnit}
+      defaultProgressionPlaybookId={defaultProgressionPlaybookId}
+      defaultProgressionPlaybookConfig={defaultProgressionPlaybookConfig}
       exerciseStats={exerciseStats}
+      customExerciseEnabled
       backHref={backHref}
       addExerciseAction={addExerciseAction}
       successMessage="Exercise added to the day."

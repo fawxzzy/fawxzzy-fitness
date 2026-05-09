@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { mergeAppBootPreferences, resolveAppBootPreferences } from "@/lib/app-boot-preferences";
 import { applyAmbientTheme, readStoredAmbientTheme } from "@/lib/ambient/theme";
 import { startLoadingDiagnosticGate } from "@/lib/loading-diagnostics";
 
@@ -15,7 +16,17 @@ export function AppAmbientThemeBootstrap() {
     });
 
     try {
-      applyAmbientTheme(readStoredAmbientTheme());
+      const ambientTheme = readStoredAmbientTheme();
+      applyAmbientTheme(ambientTheme);
+
+      const currentBootPreferences = resolveAppBootPreferences({
+        cookieString: typeof document !== "undefined" ? document.cookie : null,
+      });
+      if (currentBootPreferences?.ambientTheme !== ambientTheme) {
+        mergeAppBootPreferences({
+          ambientTheme,
+        });
+      }
       gate.resolve();
     } catch (error) {
       gate.error(error, {

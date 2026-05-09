@@ -17,6 +17,7 @@ type TodayPayload = {
     name: string;
     dayIndex: number;
     dayName: string;
+    dayWeekday?: string | null;
     isRest: boolean;
   } | null;
   exercises: Array<{

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import Script from "next/script";
 import { Suspense } from "react";
 import { ClientBundleRecoveryBootstrap } from "@/components/ClientBundleRecoveryBootstrap";
@@ -11,7 +12,10 @@ import { DisplayModeBootstrap } from "@/components/ui/app/DisplayModeBootstrap";
 import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
-import { buildPreHydrationAppThemePrimerScript } from "@/lib/app-theme";
+import { DevSupabaseTargetBanner } from "@/components/dev/DevSupabaseTargetBanner";
+import { buildPreHydrationAppBootPrimerScript } from "@/lib/app-boot-primer";
+import { APP_BOOT_PREFERENCES_COOKIE_KEY, readAppBootPreferencesCookieValue } from "@/lib/app-boot-preferences";
+import { getAppThemeCssVariables, getAppThemeSignature } from "@/lib/app-theme";
 import "./globals.css";
 
 const APP_NAME = "FawxzzyFitness";
@@ -116,19 +120,31 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const bootPreferences = readAppBootPreferencesCookieValue(cookieStore.get(APP_BOOT_PREFERENCES_COOKIE_KEY)?.value ?? null);
+  const bootTheme = bootPreferences?.theme ?? null;
+
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      data-ambient-theme={bootPreferences?.ambientTheme ?? undefined}
+      data-display-mode={bootPreferences?.displayMode ?? undefined}
+      data-app-theme-ready={bootTheme ? "true" : undefined}
+      data-app-theme-signature={bootTheme ? getAppThemeSignature(bootTheme) : undefined}
+      style={bootTheme ? getAppThemeCssVariables(bootTheme) as React.CSSProperties : undefined}
+    >
       <head>
         <Script id="app-theme-primer" strategy="beforeInteractive">
-          {buildPreHydrationAppThemePrimerScript()}
+          {buildPreHydrationAppBootPrimerScript()}
         </Script>
       </head>
       <body className="relative overflow-x-hidden">
+        <DevSupabaseTargetBanner />
         <AppThemeBootstrap />
         <PersistentAppChrome />
         <ToastProvider>

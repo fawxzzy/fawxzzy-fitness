@@ -11,7 +11,7 @@ import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
-import { controlClassName } from "@/components/ui/formClasses";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -32,6 +32,10 @@ export type EditorExerciseOption = {
   how_to_short?: string | null;
   image_icon_path?: string | null;
   slug?: string | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
 };
 
 export function RoutineEditorPageHeader({
@@ -176,6 +180,7 @@ export function RoutineEditorTitleInput({
   ariaLabel,
   maxLength,
   className,
+  label = "Routine Title",
 }: {
   name: string;
   value: string;
@@ -184,17 +189,35 @@ export function RoutineEditorTitleInput({
   ariaLabel: string;
   maxLength?: number;
   className?: string;
+  label?: string;
 }) {
+  const titleLength = Math.max((value.trim() || placeholder).length, label.length);
+  const inputWidth = `${Math.min(Math.max(titleLength + 2, 14), 32)}ch`;
+
   return (
-    <input
-      name={name}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      maxLength={maxLength}
-      className={cn(controlClassName.replace("h-11", "h-12"), "text-base font-semibold", className)}
-    />
+    <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
+      <LabeledEditorField
+        label={label}
+        className={cn(
+          "mx-auto inline-block !w-fit min-w-[10rem] max-w-[min(26rem,calc(100vw-7rem))] align-middle normal-case tracking-normal",
+          className,
+        )}
+      >
+        <input
+          name={name}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          maxLength={maxLength}
+          className={cn(
+            labeledEditorFieldControlClassName,
+            "h-14 max-w-[calc(100vw-8rem)] px-[10px] py-3 text-center text-base font-semibold leading-none tracking-normal",
+          )}
+          style={{ width: inputWidth }}
+        />
+      </LabeledEditorField>
+    </div>
   );
 }
 
@@ -297,8 +320,11 @@ export function RoutineEditorAddExerciseFlowShell({
   exerciseStats,
   onSelectedExerciseChange,
   renderFooter,
+  goalExtraContent,
+  goalBetweenInputsAndPreviewContent,
   footerSlot,
   name = "exerciseId",
+  customExerciseEnabled = false,
 }: {
   exercises: EditorExerciseOption[];
   initialSelectedId?: string;
@@ -307,8 +333,11 @@ export function RoutineEditorAddExerciseFlowShell({
   exerciseStats?: ExerciseStatsOption[];
   onSelectedExerciseChange?: ComponentProps<typeof ExercisePicker>["onSelectedExerciseChange"];
   renderFooter?: ComponentProps<typeof ExercisePicker>["renderFooter"];
+  goalExtraContent?: ComponentProps<typeof ExercisePicker>["goalExtraContent"];
+  goalBetweenInputsAndPreviewContent?: ComponentProps<typeof ExercisePicker>["goalBetweenInputsAndPreviewContent"];
   footerSlot?: ReactNode;
   name?: string;
+  customExerciseEnabled?: boolean;
 }) {
   return (
     <ExercisePicker
@@ -320,7 +349,10 @@ export function RoutineEditorAddExerciseFlowShell({
       routineTargetConfig={weightUnit ? { weightUnit } : undefined}
       exerciseStats={exerciseStats}
       renderFooter={renderFooter}
+      goalExtraContent={goalExtraContent}
+      goalBetweenInputsAndPreviewContent={goalBetweenInputsAndPreviewContent}
       footerSlot={footerSlot}
+      customExerciseEnabled={customExerciseEnabled}
     />
   );
 }

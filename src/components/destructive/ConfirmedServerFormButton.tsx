@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 
 export function ConfirmedServerFormButton({
   action,
+  onBeforeSubmit,
   onSuccess,
   hiddenFields,
   triggerLabel,
@@ -25,6 +26,7 @@ export function ConfirmedServerFormButton({
   confirmVariant = "destructive",
 }: {
   action: (formData: FormData) => unknown | Promise<unknown>;
+  onBeforeSubmit?: () => void;
   onSuccess?: () => void | Promise<void>;
   hiddenFields: Record<string, string>;
   triggerLabel: string;
@@ -101,7 +103,10 @@ export function ConfirmedServerFormButton({
         isLoading={isLoading}
         confirmVariant={confirmVariant}
         onCancel={() => setOpen(false)}
-        onConfirm={() => formRef.current?.requestSubmit()}
+        onConfirm={() => {
+          onBeforeSubmit?.();
+          formRef.current?.requestSubmit();
+        }}
       />
     </form>
   );

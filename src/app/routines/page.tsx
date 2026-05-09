@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -12,6 +13,12 @@ import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import {
+  filterQaLlelRows,
+  QA_LLEL_VISIBILITY_COOKIE,
+  resolveQaLlelVisibilityOverride,
+  resolveShowQaLlelDataPreferenceWithOverride,
+} from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
 import {
@@ -21,6 +28,37 @@ import {
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function parseDateStringAsUtc(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function formatUtcDate(timestamp: number) {
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+function addDaysToDateString(dateString: string, days: number) {
+  return formatUtcDate(parseDateStringAsUtc(dateString) + (days * MS_PER_DAY));
+}
+
+function formatDateInTimeZone(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
 
 async function setActiveRoutineAction(formData: FormData) {
   "use server";
@@ -79,6 +117,10 @@ export default async function RoutinesPage({
     timeoutMs: 5000,
   });
   const supabase = supabaseServer();
+  const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
+    profile,
+    resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+  );
 
   const { data } = await diagnostics.measure("routines.list.fetch", async () => await supabase
     .from("routines")
@@ -93,7 +135,10 @@ export default async function RoutinesPage({
   });
 
   const routines = (data ?? []) as RoutineRow[];
-  const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? routines[0] ?? null;
+  const visibleRoutines = showQaLlelData
+    ? routines
+    : filterQaLlelRows(routines, (routine) => [routine.name]);
+  const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? visibleRoutines[0] ?? null;
   const routineIds = routines.map((routine) => routine.id);
 
   const { data: allRoutineDaysData } = routineIds.length
@@ -140,6 +185,7 @@ export default async function RoutinesPage({
   }
 
   let activeRoutineDays: RoutineDayRow[] = [];
+  let activeRoutineDayExercises: RoutineDayExerciseRow[] = [];
   let activeRoutineExerciseSummaries = new Map<string, ReturnType<typeof getRestDayExerciseCountSummaryFromCanonicalDay>>();
 
   if (activeRoutine) {
@@ -150,14 +196,15 @@ export default async function RoutinesPage({
     if (activeRoutineDays.length > 0) {
       const { data: routineDayExercises } = await supabase
         .from("routine_day_exercises")
-        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
+        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config")
         .in("routine_day_id", activeRoutineDays.map((day) => day.id))
         .eq("user_id", user.id);
+      activeRoutineDayExercises = (routineDayExercises ?? []) as RoutineDayExerciseRow[];
 
       const { summaries } = await buildCanonicalDaySummaries({
         supabase,
         routineDays: activeRoutineDays,
-        allDayExercises: (routineDayExercises ?? []) as RoutineDayExerciseRow[],
+        allDayExercises: activeRoutineDayExercises,
       });
 
       activeRoutineExerciseSummaries = new Map(
@@ -212,24 +259,85 @@ export default async function RoutinesPage({
       });
 
   let completedDayIndexSet = new Set<number>();
+  let skippedDayIndexSet = new Set<number>();
   let inSessionDayIndex: number | null = null;
 
   if (activeRoutine) {
-    const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
-    const { data: completedTodaySessions } = await supabase
-      .from("sessions")
-      .select("routine_day_index")
-      .eq("user_id", user.id)
-      .eq("status", "completed")
-      .eq("routine_id", activeRoutine.id)
-      .gte("performed_at", startIso)
-      .lt("performed_at", endIso);
+    const routineTimeZone = activeRoutine.timezone || profile.timezone;
+    const safeCycleLength = Number.isFinite(cycleLength) && cycleLength > 0 ? Math.floor(cycleLength) : 1;
 
-    completedDayIndexSet = new Set(
-      (completedTodaySessions ?? [])
-        .map((session) => session.routine_day_index)
-        .filter((value): value is number => Number.isFinite(value)),
-    );
+    if (activeRoutine.start_date && todayRoutineDayComputation && todayRoutineDayComputation.daysSinceStart >= 0) {
+      const currentCycleStartOffset = Math.floor(todayRoutineDayComputation.daysSinceStart / safeCycleLength) * safeCycleLength;
+      const currentCycleStartDate = addDaysToDateString(activeRoutine.start_date, currentCycleStartOffset);
+      const todayDate = todayRoutineDayComputation.todayDate;
+      const occurrenceDateByDayIndex = new Map<number, string>();
+
+      for (const [index, day] of sortedActiveRoutineDays.entries()) {
+        const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+        occurrenceDateByDayIndex.set(dayNumber, addDaysToDateString(currentCycleStartDate, dayNumber - 1));
+      }
+
+      const queryStartDate = addDaysToDateString(currentCycleStartDate, -1);
+      const queryEndDate = addDaysToDateString(todayDate, 2);
+      const { data: completedCycleSessions } = await supabase
+        .from("sessions")
+        .select("routine_day_index, performed_at")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .eq("routine_id", activeRoutine.id)
+        .gte("performed_at", `${queryStartDate}T00:00:00.000Z`)
+        .lt("performed_at", `${queryEndDate}T00:00:00.000Z`);
+
+      completedDayIndexSet = new Set(
+        (completedCycleSessions ?? [])
+          .filter((session) => {
+            const dayIndex = session.routine_day_index;
+            if (!Number.isFinite(dayIndex) || !session.performed_at) {
+              return false;
+            }
+
+            const occurrenceDate = occurrenceDateByDayIndex.get(dayIndex);
+            const performedDate = formatDateInTimeZone(new Date(session.performed_at), routineTimeZone);
+            return Boolean(occurrenceDate && performedDate === occurrenceDate);
+          })
+          .map((session) => session.routine_day_index)
+          .filter((value): value is number => Number.isFinite(value)),
+      );
+
+      skippedDayIndexSet = new Set(
+        sortedActiveRoutineDays
+          .map((day, index) => ({
+            day,
+            dayNumber: Number.isFinite(day.day_index) ? day.day_index : index + 1,
+          }))
+          .filter(({ day, dayNumber }) => {
+            const occurrenceDate = occurrenceDateByDayIndex.get(dayNumber);
+            return Boolean(
+              occurrenceDate
+              && occurrenceDate < todayDate
+              && !day.is_rest
+              && !completedDayIndexSet.has(dayNumber),
+            );
+          })
+          .map(({ dayNumber }) => dayNumber),
+      );
+    } else {
+      const { startIso, endIso } = getTimeZoneDayWindow(routineTimeZone);
+      const { data: completedTodaySessions } = await supabase
+        .from("sessions")
+        .select("routine_day_index")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .eq("routine_id", activeRoutine.id)
+        .gte("performed_at", startIso)
+        .lt("performed_at", endIso);
+
+      completedDayIndexSet = new Set(
+        (completedTodaySessions ?? [])
+          .map((session) => session.routine_day_index)
+          .filter((value): value is number => Number.isFinite(value)),
+      );
+    }
 
     const { data: inProgressSession } = await supabase
       .from("sessions")
@@ -286,7 +394,7 @@ export default async function RoutinesPage({
               activeRoutineStartDate={activeRoutine?.start_date ?? null}
               activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
               newRoutineHref="/routines/new"
-              routines={routines.map((routine) => ({
+              routines={visibleRoutines.map((routine) => ({
                 id: routine.id,
                 name: routine.name,
                 summary: (() => {
@@ -307,9 +415,10 @@ export default async function RoutinesPage({
                   isRest: Boolean(day.is_rest),
                   splitSummary: activeRoutineExerciseSummaries.get(day.id)
                     ?? getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(null, Boolean(day.is_rest)),
-                  href: `/routines/${activeRoutine.id}/days/${day.id}`,
+                  href: `/routines/${activeRoutine.id}/edit/day/${day.id}`,
                   isToday: index === todayRowIndex,
                   isCompleted: completedDayIndexSet.has(dayNumber),
+                  isSkipped: skippedDayIndexSet.has(dayNumber),
                   isInSession: inSessionDayIndex === dayNumber,
                 };
               }) : []}

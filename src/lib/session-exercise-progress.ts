@@ -28,7 +28,7 @@ export type SessionExerciseProgressState = {
   badgeText?: string;
   chips: SessionExerciseProgressChip[];
   progressLabel?: string;
-  skipActionLabel: "Skip" | "Unskip";
+  skipActionLabel: "Skip" | "Unskip" | "Hide" | "Unhide";
   allowQuickLog: boolean;
   allowSkipToggle: boolean;
 };
@@ -108,9 +108,9 @@ function derivePresentationFromExecutionState({
         cardState: "completed",
         badgeText: "Completed",
         chips: [],
-        skipActionLabel: isSkipped ? "Unskip" : "Skip",
+        skipActionLabel: isSkipped ? "Unhide" : "Hide",
         allowQuickLog: true,
-        allowSkipToggle: false,
+        allowSkipToggle: true,
       };
     case "skipped":
       return {

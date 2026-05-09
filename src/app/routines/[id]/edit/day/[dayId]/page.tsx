@@ -9,6 +9,7 @@ import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
+import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -16,6 +17,11 @@ import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
+
+const ROUTINE_DAY_EXERCISE_SELECT_LEGACY = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes";
+const ROUTINE_DAY_EXERCISE_SELECT_WITH_PROGRESSION = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, progression_playbook_id, progression_playbook_config, measurement_type, default_unit, notes";
+const ROUTINE_SELECT_LEGACY = "id, user_id, name, weight_unit, start_date";
+const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 
 type PageProps = {
   params: {
@@ -34,12 +40,21 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const { data: routine } = await supabase
+  const { data: routineWithProgression, error: routineWithProgressionError } = await supabase
     .from("routines")
-    .select("id, user_id, name, weight_unit, start_date")
+    .select(ROUTINE_SELECT_WITH_PROGRESSION)
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
+  const { data: legacyRoutine } = routineWithProgressionError && isMissingRoutineDefaultProgressionColumnError(routineWithProgressionError)
+    ? await supabase
+        .from("routines")
+        .select(ROUTINE_SELECT_LEGACY)
+        .eq("id", params.id)
+        .eq("user_id", user.id)
+        .single()
+    : { data: null };
+  const routine = routineWithProgression ?? legacyRoutine;
   if (!routine) notFound();
 
   const { data: routineDays } = await supabase
@@ -52,14 +67,23 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const day = (routineDays ?? []).find((routineDay) => routineDay.id === params.dayId) as RoutineDayRow | undefined;
   if (!day) notFound();
 
-  const { data: exercises } = await supabase
+  const { data: exerciseRowsWithProgression, error: exerciseRowsWithProgressionError } = await supabase
     .from("routine_day_exercises")
-    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
+    .select(ROUTINE_DAY_EXERCISE_SELECT_WITH_PROGRESSION)
     .in("routine_day_id", (routineDays ?? []).map((routineDay) => routineDay.id))
     .eq("user_id", user.id)
     .order("position", { ascending: true });
+  const { data: legacyExerciseRows } = exerciseRowsWithProgressionError && isMissingProgressionPlaybookColumnError(exerciseRowsWithProgressionError)
+    ? await supabase
+        .from("routine_day_exercises")
+        .select(ROUTINE_DAY_EXERCISE_SELECT_LEGACY)
+        .in("routine_day_id", (routineDays ?? []).map((routineDay) => routineDay.id))
+        .eq("user_id", user.id)
+        .order("position", { ascending: true })
+    : { data: null };
+  const exercises = exerciseRowsWithProgression ?? legacyExerciseRows ?? [];
 
-  const allRoutineDayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
+  const allRoutineDayExercises = exercises as RoutineDayExerciseRow[];
   const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
   const exerciseNameMap = await getExerciseNameMap();
   const { canonicalExerciseIdByRawId, exerciseDetailsById } = await loadCanonicalExerciseCatalog({
@@ -144,6 +168,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         targetDistance: exercise.target_distance,
         targetDistanceUnit: exercise.target_distance_unit,
         targetCalories: exercise.target_calories,
+        progressionPlaybookId: exercise.progression_playbook_id ?? null,
+        progressionPlaybookConfig: exercise.progression_playbook_config ?? null,
       },
     };
   });
@@ -190,6 +216,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           reorderAction={reorderRoutineDayExercisesAction}
           initialIsRest={(day as RoutineDayRow).is_rest}
           addExerciseHref={addExerciseHref}
+          routineDefaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
+          routineDefaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         />
       </DetailScreenScaffold>
     </AppShell>

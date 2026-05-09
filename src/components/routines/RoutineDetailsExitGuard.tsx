@@ -1,9 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -39,6 +41,7 @@ export function RoutineDetailsScreenShellClient({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
   const [headerTitle, setHeaderTitle] = useState<ReactNode>(title);
+  const hasFormOwnedHeaderTitleRef = useRef(false);
 
   useEffect(() => {
     if (!hasUnsavedChanges) {
@@ -47,8 +50,15 @@ export function RoutineDetailsScreenShellClient({
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
-    setHeaderTitle(title);
+    if (!hasFormOwnedHeaderTitleRef.current) {
+      setHeaderTitle(title);
+    }
   }, [title]);
+
+  const setFormOwnedHeaderTitle = useCallback((nextValue: ReactNode) => {
+    hasFormOwnedHeaderTitleRef.current = true;
+    setHeaderTitle(nextValue);
+  }, []);
 
   const requestExit = useCallback(() => {
     if (!hasUnsavedChanges) {
@@ -73,35 +83,38 @@ export function RoutineDetailsScreenShellClient({
     isConfirmingDiscard,
     headerTitle,
     setHasUnsavedChanges,
-    setHeaderTitle,
+    setHeaderTitle: setFormOwnedHeaderTitle,
     requestExit,
     stayOnScreen,
     discardChanges,
-  }), [discardChanges, hasUnsavedChanges, headerTitle, isConfirmingDiscard, requestExit, stayOnScreen]);
+  }), [discardChanges, hasUnsavedChanges, headerTitle, isConfirmingDiscard, requestExit, setFormOwnedHeaderTitle, stayOnScreen]);
 
   return (
     <RoutineDetailsExitGuardContext.Provider value={contextValue}>
       <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
         <ScrollScreenWithBottomActions
           floatingHeader={(
-            <div className="px-1">
-              <SharedScreenHeader
-                recipe="editDay"
-                title={headerTitle}
-                subtitle={subtitle}
-                align={align}
-                action={(
-                  <TopRightBackButton
-                    href={backHref}
-                    historyBehavior="fallback-only"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      requestExit();
-                    }}
-                  />
-                )}
-              />
-            </div>
+            <ContentRail className="py-1 pt-3">
+              <ScreenScaffold recipe="editDay" className="w-full">
+                <SharedScreenHeader
+                  recipe="editDay"
+                  title={headerTitle}
+                  subtitle={subtitle}
+                  align={align}
+                  withPanel={false}
+                  action={(
+                    <TopRightBackButton
+                      href={backHref}
+                      historyBehavior="fallback-only"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        requestExit();
+                      }}
+                    />
+                  )}
+                />
+              </ScreenScaffold>
+            </ContentRail>
           )}
         >
           {children}

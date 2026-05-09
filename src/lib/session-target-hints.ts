@@ -2,11 +2,20 @@ import type { ExerciseStatsRow } from "@/lib/exercise-stats";
 import { formatCalories, formatDistance } from "@/lib/exercise-stats-formatting";
 import { formatDurationPreview } from "@/lib/duration";
 import { formatDateShort, formatWeight } from "@/lib/formatting";
+import {
+  deriveProgressionPlaybookTarget,
+  getProgressionPlaybookDefinition,
+  validateProgressionPlaybookSelection,
+  type ProgressionHistorySession,
+} from "@/lib/progression-playbooks";
 
 export type SessionTargetHintMeasurementType = "reps" | "time" | "distance" | "time_distance" | "none";
 
 export type SessionTargetHintPlan = {
   measurementType: SessionTargetHintMeasurementType;
+  setsMin?: number | null;
+  setsMax?: number | null;
+  repsTarget?: number | null;
   repsMin?: number | null;
   repsMax?: number | null;
   weightMin?: number | null;
@@ -29,10 +38,20 @@ export type SessionTargetHintSuggestedValues = {
   weightUnit: "lbs" | "kg" | null;
 };
 
+export type SessionTargetHintSource =
+  | "manual_target"
+  | "playbook_seed_target"
+  | "playbook_derived_target"
+  | "fallback_last_successful_set"
+  | "unsupported_playbook_fallback"
+  | "invalid_playbook_fallback"
+  | "recent_best"
+  | "no_history";
+
 export type SessionTargetHint = {
   shortLabel: string;
   reason: string;
-  source: "planned_target" | "last_performance" | "recent_best" | "no_history";
+  source: SessionTargetHintSource;
   confidence: "high" | "medium" | "low";
   suggestedValues: SessionTargetHintSuggestedValues;
   lastSummary: string | null;
@@ -88,7 +107,7 @@ function formatPlannedSummary(plan: SessionTargetHintPlan, fallbackWeightUnit: "
   if (plan.measurementType === "reps") {
     return formatWeightReps(
       resolveSingleValue(plan.weightMin, plan.weightMax),
-      resolveSingleValue(plan.repsMin, plan.repsMax),
+      isPositiveNumber(plan.repsTarget) ? plan.repsTarget : resolveSingleValue(plan.repsMin, plan.repsMax),
       plan.weightUnit ?? fallbackWeightUnit,
     );
   }
@@ -141,7 +160,7 @@ function buildSuggestedValuesFromPlan(
   return {
     measurementType: plan.measurementType,
     weight: resolveSingleValue(plan.weightMin, plan.weightMax),
-    reps: resolveSingleValue(plan.repsMin, plan.repsMax),
+    reps: isPositiveNumber(plan.repsTarget) ? plan.repsTarget : resolveSingleValue(plan.repsMin, plan.repsMax),
     durationSeconds: isPositiveNumber(plan.durationSeconds) ? plan.durationSeconds : null,
     distance: isPositiveNumber(plan.distance) ? plan.distance : null,
     distanceUnit: isPositiveNumber(plan.distance) ? (plan.distanceUnit ?? null) : null,
@@ -211,11 +230,45 @@ function buildFallbackValues(
   };
 }
 
+function isWeightedRepPlaybookSeed(plan: SessionTargetHintPlan | null | undefined) {
+  if (!plan || plan.measurementType !== "reps") {
+    return false;
+  }
+
+  return isPositiveNumber(resolveSingleValue(plan.setsMin, plan.setsMax))
+    && isPositiveNumber(resolveSingleValue(plan.repsMin, plan.repsMax))
+    && isPositiveNumber(resolveSingleValue(plan.weightMin, plan.weightMax));
+}
+
+function getPlaybookFallbackReason(args: {
+  mode: "seed" | "invalid" | "unsupported";
+  label?: string | null;
+}) {
+  if (args.mode === "seed") {
+    return args.label
+      ? `${args.label}: no completed history yet; using routine target as the playbook seed.`
+      : "No completed history yet; using routine target as the playbook seed.";
+  }
+
+  if (args.mode === "invalid") {
+    return "Progression playbook config is invalid; using the routine target instead.";
+  }
+
+  return args.label
+    ? `${args.label} does not support this exercise yet; use current goal.`
+    : "Selected progression playbook does not support this exercise yet; use current goal.";
+}
+
 export function deriveSessionTargetHint(args: {
   measurementType: SessionTargetHintMeasurementType;
   plan: SessionTargetHintPlan | null;
   stats: ExerciseStatsRow | null | undefined;
   fallbackWeightUnit: "lbs" | "kg";
+  playbook?: {
+    playbookId: unknown;
+    config: unknown;
+    history: ProgressionHistorySession[] | null | undefined;
+  } | null;
 }): SessionTargetHint {
   const { measurementType, plan, stats, fallbackWeightUnit } = args;
   const plannedSummary = plan ? formatPlannedSummary(plan, fallbackWeightUnit) : null;
@@ -225,6 +278,111 @@ export function deriveSessionTargetHint(args: {
   const recentBestSuggestedValues = stats ? buildSuggestedValuesFromRecentBest(measurementType, stats, fallbackWeightUnit) : null;
   const lastPerformedAt = stats?.last_performed_at ?? null;
   const recentBestPerformedAt = stats?.actual_pr_at ?? null;
+  const playbookSelection = args.playbook
+    ? validateProgressionPlaybookSelection({
+      playbookId: args.playbook.playbookId,
+      config: args.playbook.config,
+    })
+    : null;
+  const playbookDefinition = playbookSelection ? getProgressionPlaybookDefinition(playbookSelection.id) : null;
+  const playbookTarget = playbookSelection && args.playbook
+    ? deriveProgressionPlaybookTarget({
+      playbookId: playbookSelection.id,
+      config: playbookSelection.config,
+      plan: plan ? {
+        measurementType: plan.measurementType,
+        setsMin: plan.setsMin ?? null,
+        setsMax: plan.setsMax ?? null,
+        repsTarget: plan.repsTarget ?? null,
+        repsMin: plan.repsMin ?? null,
+        repsMax: plan.repsMax ?? null,
+        weightMin: plan.weightMin ?? null,
+        weightMax: plan.weightMax ?? null,
+        weightUnit: plan.weightUnit ?? fallbackWeightUnit,
+        durationSeconds: plan.durationSeconds ?? null,
+        distance: plan.distance ?? null,
+        distanceUnit: plan.distanceUnit ?? null,
+        calories: plan.calories ?? null,
+      } : null,
+      history: args.playbook.history,
+      fallbackWeightUnit,
+    })
+    : null;
+
+  if (playbookTarget) {
+    const playbookSummary = formatPlannedSummary({
+      measurementType: playbookTarget.plan.measurementType,
+      repsMin: playbookTarget.plan.repsMin ?? null,
+      repsMax: playbookTarget.plan.repsMax ?? null,
+      repsTarget: playbookTarget.plan.repsTarget ?? null,
+      weightMin: playbookTarget.plan.weightMin ?? null,
+      weightMax: playbookTarget.plan.weightMax ?? null,
+      weightUnit: playbookTarget.plan.weightUnit ?? fallbackWeightUnit,
+      durationSeconds: playbookTarget.plan.durationSeconds ?? null,
+      distance: playbookTarget.plan.distance ?? null,
+      distanceUnit: playbookTarget.plan.distanceUnit ?? null,
+      calories: playbookTarget.plan.calories ?? null,
+    }, fallbackWeightUnit) ?? plannedSummary ?? playbookTarget.label;
+
+    return {
+      shortLabel: playbookSummary,
+      reason: playbookTarget.reason,
+      source: "playbook_derived_target",
+      confidence: playbookTarget.changed ? "high" : "medium",
+      suggestedValues: buildSuggestedValuesFromPlan({
+        measurementType: playbookTarget.plan.measurementType,
+        repsTarget: playbookTarget.plan.repsTarget ?? null,
+        repsMin: playbookTarget.plan.repsMin ?? null,
+        repsMax: playbookTarget.plan.repsMax ?? null,
+        weightMin: playbookTarget.plan.weightMin ?? null,
+        weightMax: playbookTarget.plan.weightMax ?? null,
+        weightUnit: playbookTarget.plan.weightUnit ?? fallbackWeightUnit,
+        durationSeconds: playbookTarget.plan.durationSeconds ?? null,
+        distance: playbookTarget.plan.distance ?? null,
+        distanceUnit: playbookTarget.plan.distanceUnit ?? null,
+        calories: playbookTarget.plan.calories ?? null,
+      }, fallbackWeightUnit),
+      lastSummary,
+      lastSuggestedValues,
+      lastPerformedAt,
+      lastPerformedAtLabel: lastPerformedAt ? formatDateShort(lastPerformedAt) : null,
+      recentBestSummary,
+      recentBestSuggestedValues,
+      recentBestPerformedAt,
+      recentBestPerformedAtLabel: recentBestPerformedAt ? formatDateShort(recentBestPerformedAt) : null,
+    };
+  }
+
+  if (args.playbook && plan && plannedSummary) {
+    const source = !playbookSelection
+      ? "invalid_playbook_fallback"
+      : isWeightedRepPlaybookSeed(plan) && (args.playbook.history?.length ?? 0) === 0
+        ? "playbook_seed_target"
+        : "unsupported_playbook_fallback";
+
+    return {
+      shortLabel: plannedSummary,
+      reason: getPlaybookFallbackReason({
+        mode: source === "invalid_playbook_fallback"
+          ? "invalid"
+          : source === "playbook_seed_target"
+            ? "seed"
+            : "unsupported",
+        label: playbookDefinition?.label ?? null,
+      }),
+      source,
+      confidence: source === "playbook_seed_target" ? "medium" : "low",
+      suggestedValues: buildSuggestedValuesFromPlan(plan, fallbackWeightUnit),
+      lastSummary,
+      lastSuggestedValues,
+      lastPerformedAt,
+      lastPerformedAtLabel: lastPerformedAt ? formatDateShort(lastPerformedAt) : null,
+      recentBestSummary,
+      recentBestSuggestedValues,
+      recentBestPerformedAt,
+      recentBestPerformedAtLabel: recentBestPerformedAt ? formatDateShort(recentBestPerformedAt) : null,
+    };
+  }
 
   if (plannedSummary && plan) {
     return {
@@ -232,7 +390,7 @@ export function deriveSessionTargetHint(args: {
       reason: lastSummary
         ? "Using the planned target and keeping your last logged performance visible inline."
         : "Using the planned target because no completed history is available yet.",
-      source: "planned_target",
+      source: "manual_target",
       confidence: "high",
       suggestedValues: buildSuggestedValuesFromPlan(plan, fallbackWeightUnit),
       lastSummary,
@@ -250,7 +408,7 @@ export function deriveSessionTargetHint(args: {
     return {
       shortLabel: `Repeat ${lastSummary}`,
       reason: "No explicit plan target was set, so the next hint repeats the last completed performance.",
-      source: "last_performance",
+      source: "fallback_last_successful_set",
       confidence: "medium",
       suggestedValues: buildSuggestedValuesFromLastPerformance(measurementType, stats, fallbackWeightUnit),
       lastSummary,

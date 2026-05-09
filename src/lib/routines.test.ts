@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "./routines.ts";
+import {
+  formatRoutineDayDisplayName,
+  formatRoutineDayOccurrenceDisplayName,
+  formatRoutineDayStableDisplayName,
+  getRoutineCycleOccurrence,
+  getRoutineDayEditableName,
+} from "./routines.ts";
 
 test("getRoutineDayEditableName strips a stored weekday prefix from custom names", () => {
   assert.equal(
     getRoutineDayEditableName({
-      name: "Tue · Forge",
+      name: "Tue \u00C2\u00B7 Forge",
       dayIndex: 2,
       startDate: "2026-04-27",
     }),
@@ -16,10 +22,62 @@ test("getRoutineDayEditableName strips a stored weekday prefix from custom names
 test("formatRoutineDayDisplayName does not duplicate weekday when the stored name is already formatted", () => {
   assert.equal(
     formatRoutineDayDisplayName({
-      name: "Tue · Forge",
+      name: "Tue \u00C2\u00B7 Forge",
       dayIndex: 2,
       startDate: "2026-04-27",
     }),
-    "Tue · Forge",
+    "Tue | Forge",
+  );
+});
+
+test("formatRoutineDayStableDisplayName keeps only the program day name", () => {
+  assert.equal(
+    formatRoutineDayStableDisplayName({
+      name: "Rest",
+      dayIndex: 3,
+      startDate: "2026-05-04",
+    }),
+    "Rest",
+  );
+});
+
+test("getRoutineCycleOccurrence advances labels for non-week cycles", () => {
+  const occurrence = getRoutineCycleOccurrence({
+    cycleLengthDays: 3,
+    startDate: "2026-05-11",
+    profileTimeZone: "America/New_York",
+    referenceDate: "2026-05-14",
+    dayIndex: 1,
+  });
+
+  assert.equal(occurrence.currentDayIndex, 1);
+  assert.equal(occurrence.occurrenceDate, "2026-05-14");
+  assert.equal(occurrence.occurrenceLabel, "Thu, May 14");
+  assert.equal(occurrence.cycleRotationIndex, 1);
+});
+
+test("getRoutineCycleOccurrence returns next occurrence for previous cycle days", () => {
+  const occurrence = getRoutineCycleOccurrence({
+    cycleLengthDays: 3,
+    startDate: "2026-05-11",
+    profileTimeZone: "America/New_York",
+    referenceDate: "2026-05-13",
+    dayIndex: 1,
+  });
+
+  assert.equal(occurrence.currentDayIndex, 3);
+  assert.equal(occurrence.occurrenceDate, "2026-05-14");
+  assert.equal(occurrence.occurrenceLabel, "Thu, May 14");
+});
+
+test("formatRoutineDayOccurrenceDisplayName preserves routine day name and appends occurrence date", () => {
+  assert.equal(
+    formatRoutineDayOccurrenceDisplayName({
+      name: "Push",
+      dayIndex: 1,
+      startDate: "2026-05-11",
+      occurrenceLabel: "Thu, May 14",
+    }),
+    "Push | Thu, May 14",
   );
 });

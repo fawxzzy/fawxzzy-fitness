@@ -94,7 +94,7 @@ test("deriveReadOnlyExercisePresentation keeps completed semantic when target is
   assert.deepEqual(presentation.chips, []);
 });
 
-test("deriveSessionExerciseProgressState keeps completed badge but exposes unskip controls when completed exercise is skipped", () => {
+test("deriveSessionExerciseProgressState keeps completed badge but exposes unhide controls when completed exercise is hidden", () => {
   const state = deriveSessionExerciseProgressState({
     loggedSetCount: 4,
     isSkipped: true,
@@ -103,7 +103,7 @@ test("deriveSessionExerciseProgressState keeps completed badge but exposes unski
 
   assert.equal(state.executionState, "completed");
   assert.equal(state.badgeText, "Completed");
-  assert.equal(state.skipActionLabel, "Unskip");
+  assert.equal(state.skipActionLabel, "Unhide");
   assert.equal(state.allowQuickLog, true);
-  assert.equal(state.allowSkipToggle, false);
+  assert.equal(state.allowSkipToggle, true);
 });

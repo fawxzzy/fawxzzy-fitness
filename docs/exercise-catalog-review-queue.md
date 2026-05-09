@@ -1,6 +1,6 @@
 # Exercise Catalog Review Queue
 
-Generated: 2026-05-03T23:58:36.401Z
+Generated: 2026-05-07T22:08:00.835Z
 
 No review flags generated.
 
@@ -14,6 +14,14 @@ No review flags generated.
 - `Incline Walk` | measurement=`time_distance` | default=`m` | equipment=`Cardio Machine` | pattern=`walking`
 - `Jump Rope` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`rope_skip`
 - `Mountain Climber` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`locomotion_drill`
+- `Pilates Hundred` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`trunk_bracing`
+- `Pilates Mermaid Stretch` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`lateral_flexion_mobility`
+- `Pilates Plank` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`trunk_bracing`
+- `Pilates Saw` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`trunk_rotation`
+- `Pilates Side Plank` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`lateral_trunk_bracing`
+- `Pilates Spine Stretch Forward` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`spinal_flexion_mobility`
+- `Pilates Swimming` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`contralateral_extension`
+- `Pilates Teaser` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`trunk_bracing`
 - `Plank` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`trunk_bracing`
 - `Rowing Machine` | measurement=`time_distance` | default=`m` | equipment=`Cardio Machine` | pattern=`rowing`
 - `Side Plank` | measurement=`time` | default=`s` | equipment=`Bodyweight` | pattern=`trunk_bracing`

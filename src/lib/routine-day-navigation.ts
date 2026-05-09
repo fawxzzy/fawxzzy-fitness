@@ -21,7 +21,9 @@ export function getRoutineEditHref(routineId: string) {
 }
 
 export function getRoutineDayViewHref(routineId: string, dayId: string) {
-  return `/routines/${routineId}/days/${dayId}`;
+  void routineId;
+  void dayId;
+  return getRoutineOverviewHref();
 }
 
 export function getRoutineDayEditHref(routineId: string, dayId: string, returnTo?: string | null) {
@@ -40,18 +42,19 @@ export function resolveRoutineDayViewBackHref(rawReturnTo: string | null | undef
 }
 
 export function resolveRoutineDayEditBackHref(routineId: string, dayId: string, rawReturnTo: string | null | undefined) {
-  const canonicalDayViewHref = getRoutineDayViewHref(routineId, dayId);
-  const resolvedReturnTo = resolveReturnHref(decodeReturnTo(rawReturnTo), canonicalDayViewHref);
+  const routineOverviewHref = getRoutineOverviewHref();
+  const canonicalDayViewHref = `/routines/${routineId}/days/${dayId}`;
+  const resolvedReturnTo = resolveReturnHref(decodeReturnTo(rawReturnTo), routineOverviewHref);
 
-  // Edit Day should always return to its canonical parent (same-day View Day),
-  // never into any edit-family route chain.
+  // View Day has been retired; Edit Day should always close back to routine home
+  // instead of looping through edit routes or the legacy day detail route.
   if (
     resolvedReturnTo === canonicalDayViewHref
     || resolvedReturnTo === getRoutineEditHref(routineId)
     || resolvedReturnTo.startsWith(`${getRoutineEditHref(routineId)}/`)
   ) {
-    return canonicalDayViewHref;
+    return routineOverviewHref;
   }
 
-  return canonicalDayViewHref;
+  return routineOverviewHref;
 }

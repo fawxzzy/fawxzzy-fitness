@@ -9,6 +9,7 @@ import {
   hasMeaningfulExerciseGoalSummary,
   type ExerciseGoalSummaryValue,
 } from "@/lib/exercise-goal-summary";
+import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
 import { resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
@@ -60,6 +61,7 @@ type StandardExerciseRowProps = {
   hideEmptySummary?: boolean;
   rightIconMode?: ExerciseCardRightIconMode;
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
+  progressFill?: ProgressionProgressFill | null;
 };
 
 export function StandardExerciseRow({
@@ -101,6 +103,7 @@ export function StandardExerciseRow({
   hideEmptySummary = false,
   rightIconMode,
   contentVerticalAlign,
+  progressFill,
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const hasMeaningfulSummary = hasMeaningfulExerciseGoalSummary(resolvedSummary);
@@ -164,6 +167,7 @@ export function StandardExerciseRow({
       showAccentRail={showAccentRail}
       buttonProps={buttonProps}
       contentVerticalAlign={contentVerticalAlign}
+      progressFill={progressFill}
     >
       {children}
     </ExerciseCard>

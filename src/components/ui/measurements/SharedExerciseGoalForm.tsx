@@ -33,6 +33,7 @@ export function SharedExerciseGoalForm({
   showValidationMessage,
   hideEmptySummary,
   hideSummary,
+  betweenInputsAndFooterContent,
   footerContent,
   footerClassName,
   visibleMetrics,
@@ -48,6 +49,7 @@ export function SharedExerciseGoalForm({
   showValidationMessage?: boolean;
   hideEmptySummary?: boolean;
   hideSummary?: boolean;
+  betweenInputsAndFooterContent?: ReactNode;
   footerContent?: ReactNode;
   footerClassName?: string;
   visibleMetrics?: Array<keyof MeasurementMetrics>;
@@ -72,7 +74,6 @@ export function SharedExerciseGoalForm({
     <div className={stackClassName}>
       {goalModeChoices.length ? (
         <div className="space-y-1">
-          <p className="px-0.5 text-xs text-muted">Goal mode</p>
           <SegmentedControl
             options={goalModeChoices}
             value={effectiveGoalModality}
@@ -103,6 +104,7 @@ export function SharedExerciseGoalForm({
         showValidationMessage={showValidationMessage}
         hideEmptySummary={hideEmptySummary}
         hideSummary={hideSummary}
+        betweenInputsAndFooterContent={betweenInputsAndFooterContent}
         footerContent={footerContent}
         footerClassName={footerClassName}
         visibleMetrics={visibleMetrics}
