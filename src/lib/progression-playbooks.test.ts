@@ -1016,6 +1016,40 @@ test("invalid stored config is rejected", () => {
   assert.equal(selection, null);
 });
 
+test("legacy double progression config resolves default promotion controls", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+  });
+
+  assert.ok(selection);
+  assert.equal(selection?.id, "double_progression");
+  if (selection.id === "double_progression") {
+    assert.equal(selection.config.promotionBasis, "weight_and_reps");
+    assert.equal(selection.config.repPromotionThreshold, "top_of_range");
+  }
+});
+
+test("invalid custom promotion target falls back to top-of-range in normalized config", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionBasis: "reps_only",
+      repPromotionThreshold: "custom",
+      customRepPromotionTarget: 0,
+    },
+  });
+
+  assert.ok(selection);
+  if (selection.id === "double_progression") {
+    assert.equal(selection.config.promotionBasis, "reps_only");
+    assert.equal(selection.config.repPromotionThreshold, "top_of_range");
+    assert.equal("customRepPromotionTarget" in selection.config, false);
+  }
+});
+
 test("unit preservation keeps kg targets intact", () => {
   const history = buildProgressionHistorySessions({
     rows: buildHistoryRows({

@@ -35,7 +35,7 @@ import {
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { listSupportedSetFlowDefinitions } from "@/lib/set-flow";
 
-const progressionFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
+const progressionFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] [touch-action:pan-x_pan-y] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 const progressionFieldLabelClassName = cn(
   labeledEditorFieldFloatingLabelClassName,
   "whitespace-nowrap px-1 py-0 text-[9px] leading-none",

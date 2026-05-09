@@ -3,6 +3,13 @@ import {
   inferProgressionStepPolicy,
   type ProgressionStepPolicy,
 } from "@/lib/progression-step-policy";
+import {
+  DEFAULT_PROGRESSION_PROMOTION_BASIS,
+  DEFAULT_REP_PROMOTION_THRESHOLD,
+  normalizeProgressionPromotionConfig,
+  type ProgressionPromotionBasis,
+  type RepPromotionThreshold,
+} from "@/lib/progression-promotion";
 import { applyProgressionVector } from "@/lib/progression-vector";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
 
@@ -300,6 +307,12 @@ export type SetFlowStepConfig = {
   distanceStep?: number;
 };
 
+export type ProgressionPromotionConfigFields = {
+  promotionBasis?: ProgressionPromotionBasis;
+  repPromotionThreshold?: RepPromotionThreshold;
+  customRepPromotionTarget?: number | null;
+};
+
 export type DoubleProgressionConfig = {
   version: 1;
   loadIncrement: number;
@@ -310,7 +323,7 @@ export type DoubleProgressionConfig = {
   stallThreshold?: number;
   deloadPercent?: number;
   autoUpdateRoutineGoals?: boolean;
-};
+} & ProgressionPromotionConfigFields;
 
 export type FixedLoadRepRangeProgressionConfig = {
   version: 1;
@@ -322,7 +335,7 @@ export type FixedLoadRepRangeProgressionConfig = {
   stallThreshold?: number;
   deloadPercent?: number;
   autoUpdateRoutineGoals?: boolean;
-};
+} & ProgressionPromotionConfigFields;
 
 export type DeloadAfterStallConfig = {
   version: 1;
@@ -1390,9 +1403,23 @@ export function getDefaultProgressionPlaybookConfig(id: ProgressionPlaybookId): 
 export function getDefaultProgressionPlaybookConfig(id: ProgressionPlaybookId): ProgressionPlaybookConfig {
   switch (id) {
   case "double_progression":
-    return { version: 1, loadIncrement: 5, stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES }, setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS } };
+    return {
+      version: 1,
+      loadIncrement: 5,
+      stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES },
+      setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS },
+      promotionBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+      repPromotionThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+    };
   case "fixed_load_rep_range_progression":
-    return { version: 1, loadIncrement: 5, stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES }, setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS } };
+    return {
+      version: 1,
+      loadIncrement: 5,
+      stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES },
+      setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS },
+      promotionBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+      repPromotionThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+    };
   case "deload_after_stall":
     return { version: 1, loadIncrement: 5, stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES }, setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS }, stallThreshold: 2, deloadPercent: 10 };
   }
@@ -1417,6 +1444,13 @@ export function validateProgressionPlaybookSelection(args: {
   }
   const stepOverrides = normalizeProgressionStepOverrides(config.stepOverrides);
   const setFlowSteps = normalizeSetFlowSteps(config.setFlowSteps);
+  const promotionConfig = normalizeProgressionPromotionConfig({
+    promotionBasis: config.promotionBasis,
+    repPromotionThreshold: config.repPromotionThreshold,
+    customRepPromotionTarget: config.customRepPromotionTarget,
+    fallbackBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    fallbackThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+  });
 
   if (id === "double_progression") {
     const stallPolicy = normalizeStallPolicy(config.stallPolicy);
@@ -1433,7 +1467,12 @@ export function validateProgressionPlaybookSelection(args: {
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
       deloadPercent: stallPolicy === "deload_after_stall" ? config.deloadPercent as number : undefined,
       autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
+      promotionBasis: promotionConfig.promotionBasis,
+      repPromotionThreshold: promotionConfig.repPromotionThreshold,
     };
+    if (promotionConfig.customRepPromotionTarget !== null) {
+      nextConfig.customRepPromotionTarget = promotionConfig.customRepPromotionTarget;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;
@@ -1460,7 +1499,12 @@ export function validateProgressionPlaybookSelection(args: {
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
       deloadPercent: stallPolicy === "deload_after_stall" ? config.deloadPercent as number : undefined,
       autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
+      promotionBasis: promotionConfig.promotionBasis,
+      repPromotionThreshold: promotionConfig.repPromotionThreshold,
     };
+    if (promotionConfig.customRepPromotionTarget !== null) {
+      nextConfig.customRepPromotionTarget = promotionConfig.customRepPromotionTarget;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;

@@ -1,0 +1,43 @@
+name: atlas-contracts
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/atlas-contracts.yml"
+      - "docs/COMMANDS.md"
+      - "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md"
+      - "exports/fitness.atlas.*.json"
+      - "package.json"
+      - "src/app/api/health/route.ts"
+      - "src/lib/atlas-contracts.ts"
+      - "src/lib/atlas-contracts.test.ts"
+      - "tests/atlas-platform-contracts.test.mjs"
+      - "README.md"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/atlas-contracts.yml"
+      - "docs/COMMANDS.md"
+      - "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md"
+      - "exports/fitness.atlas.*.json"
+      - "package.json"
+      - "src/app/api/health/route.ts"
+      - "src/lib/atlas-contracts.ts"
+      - "src/lib/atlas-contracts.test.ts"
+      - "tests/atlas-platform-contracts.test.mjs"
+      - "README.md"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    uses: fawxzzy/ATLAS/.github/workflows/reusable-atlas-app.yml@b48f820d3eca094800c2f3ccb36901dadfd259a9
+    with:
+      repo_id: fitness
+      app_id: fawxzzy-fitness
+      repo_class: application
+      node_version: "22"
+      package_manager: npm
+      install_command: npm ci
+      contract_check_command: npm run test:atlas-contracts
+      verify_command: npm run verify

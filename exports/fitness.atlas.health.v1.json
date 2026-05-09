@@ -1,0 +1,40 @@
+{
+  "contract_version": "atlas.health.v1",
+  "repo_id": "fitness",
+  "app_id": "fawxzzy-fitness",
+  "checked_at": "2026-05-09T23:30:00Z",
+  "status": "ok",
+  "environment": "production",
+  "version": "1.0.0",
+  "commit": "b48f820d3eca094800c2f3ccb36901dadfd259a9",
+  "checks": [
+    {
+      "name": "supabase-browser-env",
+      "status": "ok",
+      "summary": "Public Supabase URL and anon key are configured.",
+      "latency_ms": null
+    },
+    {
+      "name": "supabase-admin-env",
+      "status": "ok",
+      "summary": "Service-role access is available for admin and recovery flows.",
+      "latency_ms": null
+    },
+    {
+      "name": "contract-check",
+      "status": "ok",
+      "summary": "Repo-owned ATLAS v1 exports validate against the pinned root schemas.",
+      "latency_ms": 82
+    }
+  ],
+  "receipts": [
+    {
+      "kind": "contract-check",
+      "status": "passed",
+      "ref": ".github/workflows/atlas-contracts.yml"
+    }
+  ],
+  "notes": [
+    "Wave 2A health is repo-owned and intentionally limited to owner-lane readiness signals."
+  ]
+}

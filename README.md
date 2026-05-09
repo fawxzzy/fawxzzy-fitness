@@ -16,6 +16,18 @@ Canonical model:
 - one documented operator path in repo scripts/docs
 - repo-local adoption evidence in `exports/fitness.playbook.adoption.evidence.v1.json` and `docs/ops/FITNESS-PLAYBOOK-ADOPTION.md`
 
+## ATLAS platform v1 adoption
+
+Fitness now carries repo-owned ATLAS platform v1 declarations in `exports/fitness.atlas.*.json`.
+
+Wave 2A adds:
+
+- a pinned ATLAS schema validation lane via `npm run test:atlas-contracts`
+- a live `/api/health` route that returns the ATLAS v1 health payload
+- a reusable contract workflow at `.github/workflows/atlas-contracts.yml`
+
+Implementation notes live in `docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md`.
+
 ## Playbook runtime setup
 
 Deterministic Playbook resolution is official-fallback-first and does **not** rely on a globally installed `playbook` on `PATH`.
