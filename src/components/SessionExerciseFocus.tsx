@@ -81,6 +81,9 @@ type SessionExercisePrefill = {
   weight?: number;
   reps?: number;
   durationSeconds?: number;
+  distance?: number;
+  distanceUnit?: "mi" | "km" | "m";
+  calories?: number;
   weightUnit?: "lbs" | "kg";
 };
 
@@ -104,6 +107,13 @@ function toPrefillFromQuickLogTarget(
   }
   if (target.durationSeconds !== undefined) {
     prefill.durationSeconds = target.durationSeconds;
+  }
+  if (target.distance !== undefined) {
+    prefill.distance = target.distance;
+    prefill.distanceUnit = target.distanceUnit ?? "mi";
+  }
+  if (target.calories !== undefined) {
+    prefill.calories = target.calories;
   }
 
   return Object.keys(prefill).length > 0 ? prefill : undefined;
@@ -536,7 +546,7 @@ export function SessionExerciseFocus({
             bestTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.recentBestSuggestedValues),
           });
           const setLoggerPrefill = toPrefillFromQuickLogTarget(
-            primaryQuickLogTarget,
+            resolvedQuickLogTarget?.target ?? primaryQuickLogTarget,
             unitLabel === "lbs" ? "lbs" : "kg",
           ) ?? exercise.prefill;
           const progressState = deriveSessionExerciseProgressState({

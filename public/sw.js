@@ -1,4 +1,4 @@
-const APP_BUILD_ID = "1.0.0-2026-05-09T23:32:20.567Z";
+const APP_BUILD_ID = "1.0.0-2026-05-09T23:43:06.601Z";
 const OFFLINE_HTML = [
   "<!doctype html>",
   "<html lang=\"en\">",

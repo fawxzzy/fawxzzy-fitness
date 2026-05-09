@@ -363,6 +363,9 @@ export function SetLoggerCard({
     weight?: number;
     reps?: number;
     durationSeconds?: number;
+    distance?: number;
+    distanceUnit?: "mi" | "km" | "m";
+    calories?: number;
     weightUnit?: "lbs" | "kg";
   };
   setFlowQuickLogTargets?: SessionQuickLogTarget[];
@@ -406,9 +409,9 @@ export function SetLoggerCard({
   const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
   const [reps, setReps] = useState(prefill?.reps !== undefined ? String(prefill.reps) : "");
   const [durationInput, setDurationInput] = useState(prefill?.durationSeconds !== undefined ? formatDurationClock(prefill.durationSeconds) : "");
-  const [distance, setDistance] = useState("");
-  const [distanceUnit, setDistanceUnit] = useState<"mi" | "km" | "m">(defaultDistanceUnit ?? "mi");
-  const [calories, setCalories] = useState("");
+  const [distance, setDistance] = useState(prefill?.distance !== undefined ? String(prefill.distance) : "");
+  const [distanceUnit, setDistanceUnit] = useState<"mi" | "km" | "m">(prefill?.distanceUnit ?? (defaultDistanceUnit ?? "mi"));
+  const [calories, setCalories] = useState(prefill?.calories !== undefined ? String(prefill.calories) : "");
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
@@ -453,6 +456,9 @@ export function SetLoggerCard({
   const prefillWeight = prefill?.weight;
   const prefillReps = prefill?.reps;
   const prefillDurationSeconds = prefill?.durationSeconds;
+  const prefillDistance = prefill?.distance;
+  const prefillDistanceUnit = prefill?.distanceUnit;
+  const prefillCalories = prefill?.calories;
   const prefillWeightUnit = prefill?.weightUnit;
 
   const toast = useToast();
@@ -504,9 +510,9 @@ export function SetLoggerCard({
     setSelectedWeightUnit(prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
     setReps(prefillReps !== undefined ? String(prefillReps) : "");
     setDurationInput(prefillDurationSeconds !== undefined ? formatDurationClock(prefillDurationSeconds) : "");
-    setDistance("");
-    setDistanceUnit(defaultDistanceUnit ?? "mi");
-    setCalories("");
+    setDistance(prefillDistance !== undefined ? String(prefillDistance) : "");
+    setDistanceUnit(prefillDistanceUnit ?? (defaultDistanceUnit ?? "mi"));
+    setCalories(prefillCalories !== undefined ? String(prefillCalories) : "");
     setRpe("");
     setWarmupValue(false);
     setIsFailure(false);
@@ -516,7 +522,7 @@ export function SetLoggerCard({
     setSets(nextDisplaySets);
     setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = nextDisplaySets.length;
-  }, [defaultDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, sessionExerciseId, setWarmupValue, unitLabel]);
+  }, [defaultDistanceUnit, prefillCalories, prefillDistance, prefillDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, sessionExerciseId, setWarmupValue, unitLabel]);
 
   useEffect(() => {
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
@@ -1591,14 +1597,14 @@ export function SetLoggerCard({
     ACTION_CHROME_CONTROL_CLASS_NAME,
     appTokens.measurementField,
     appTokens.measurementFieldCompact,
-    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-[5.25rem] !min-w-[5.25rem] !flex-none !justify-center !rounded-[1rem] !border !px-2.5 !py-0 text-center shadow-none",
+    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-[5.25rem] !min-w-[5.25rem] !flex-none !justify-center !rounded-[1rem] !border !px-2.5 !py-0 text-center shadow-none [touch-action:pan-x_pan-y]",
     "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
   );
   const loggerUtilitySummaryButtonClassName = cn(
     ACTION_CHROME_CONTROL_CLASS_NAME,
     appTokens.measurementField,
     appTokens.measurementFieldCompact,
-    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-auto !min-w-0 !flex-none !justify-center !rounded-[1rem] !border !px-3 !py-0 text-center shadow-none",
+    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-auto !min-w-0 !flex-none !justify-center !rounded-[1rem] !border !px-3 !py-0 text-center shadow-none [touch-action:pan-x_pan-y]",
     "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
   );
   const loggerUtilityButtonsRow = (
