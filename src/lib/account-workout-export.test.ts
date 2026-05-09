@@ -12,17 +12,15 @@ import {
   resolveAccountWorkoutExportSuggestedDateRange,
   sanitizeAccountWorkoutExportName,
   serializeAccountWorkoutExportCsv,
+  type AccountWorkoutExportExerciseRow,
   type AccountWorkoutExportPayload,
+  type AccountWorkoutExportProfileRow,
+  type AccountWorkoutExportRoutineDayExerciseRow,
+  type AccountWorkoutExportRoutineDayRow,
+  type AccountWorkoutExportRoutineRow,
+  type AccountWorkoutExportSessionExerciseRow,
 } from "@/lib/account-workout-export";
-import type {
-  ProfileRow,
-  RoutineDayExerciseRow,
-  RoutineDayRow,
-  RoutineRow,
-  SessionExerciseRow,
-  SessionRow,
-  SetRow,
-} from "@/types/db";
+import type { SessionRow, SetRow } from "@/types/db";
 
 type TableName =
   | "profiles"
@@ -145,7 +143,7 @@ function createMockSupabase(rows: Record<TableName, Record<string, unknown>[]>) 
 }
 
 function buildPayload(): AccountWorkoutExportPayload {
-  const profile: ProfileRow = {
+  const profile: AccountWorkoutExportProfileRow = {
     id: "user-1",
     timezone: "America/New_York",
     active_routine_id: "routine-1",
@@ -155,20 +153,25 @@ function buildPayload(): AccountWorkoutExportPayload {
     user_number: 101,
     user_kind: "human",
     user_number_assigned_at: "2026-05-01T00:00:00.000Z",
+    created_at: "2026-05-01T00:00:00.000Z",
+    updated_at: "2026-05-09T00:00:00.000Z",
   };
-  const routines: RoutineRow[] = [{
+  const routines: AccountWorkoutExportRoutineRow[] = [{
     id: "routine-1",
     user_id: "user-1",
     name: "Atlas Routine",
     cycle_length_days: 4,
     start_date: "2026-05-01",
     timezone: "America/New_York",
+    progression_mode: "progressive_overload",
+    temperament: "moderate",
+    created_at: "2026-05-01T00:00:00.000Z",
     updated_at: "2026-05-04T10:00:00.000Z",
     weight_unit: "lbs",
     default_progression_playbook_id: null,
     default_progression_playbook_config: null,
   }];
-  const routineDays: RoutineDayRow[] = [{
+  const routineDays: AccountWorkoutExportRoutineDayRow[] = [{
     id: "day-1",
     user_id: "user-1",
     routine_id: "routine-1",
@@ -176,8 +179,9 @@ function buildPayload(): AccountWorkoutExportPayload {
     name: "Lower A",
     is_rest: false,
     notes: null,
+    created_at: "2026-05-01T00:00:00.000Z",
   }];
-  const routineDayExercises: RoutineDayExerciseRow[] = [{
+  const routineDayExercises: AccountWorkoutExportRoutineDayExerciseRow[] = [{
     id: "routine-exercise-1",
     user_id: "user-1",
     routine_day_id: "day-1",
@@ -198,6 +202,7 @@ function buildPayload(): AccountWorkoutExportPayload {
     measurement_type: "reps",
     default_unit: null,
     notes: "Tempo focus",
+    created_at: "2026-05-01T00:00:00.000Z",
   }];
   const sessions: SessionRow[] = [{
     id: "session-1",
@@ -212,7 +217,7 @@ function buildPayload(): AccountWorkoutExportPayload {
     duration_seconds: 1800,
     status: "completed",
   }];
-  const sessionExercises: SessionExerciseRow[] = [{
+  const sessionExercises: AccountWorkoutExportSessionExerciseRow[] = [{
     id: "session-exercise-1",
     session_id: "session-1",
     user_id: "user-1",
@@ -224,18 +229,23 @@ function buildPayload(): AccountWorkoutExportPayload {
     is_skipped: false,
     measurement_type: "reps",
     default_unit: null,
+    target_reps: 4,
     target_sets_min: 4,
     target_sets_max: 4,
     target_reps_min: 4,
     target_reps_max: 6,
+    target_weight: 225,
     target_weight_min: 225,
     target_weight_max: 225,
     target_weight_unit: "lbs",
+    target_duration_seconds: null,
     target_time_seconds_min: null,
     target_time_seconds_max: null,
+    target_distance: null,
     target_distance_min: null,
     target_distance_max: null,
     target_distance_unit: null,
+    target_calories: null,
     target_calories_min: null,
     target_calories_max: null,
   }];
@@ -259,11 +269,30 @@ function buildPayload(): AccountWorkoutExportPayload {
 
   return {
     metadata: {
+      snapshotVersion: "fitness-account-export-v1",
+      sourceApp: "fawxzzy-fitness",
+      sourceBackend: "primary-supabase",
       exportedAt: "2026-05-09T00:00:00.000Z",
       scope: "all",
       dateFrom: null,
       dateTo: null,
+      activeRoutineId: "routine-1",
+      canonicalTables: [
+        "profiles",
+        "exercises",
+        "routines",
+        "routine_days",
+        "routine_day_exercises",
+        "sessions",
+        "session_exercises",
+        "sets",
+      ],
+      excludedTables: [
+        "exercise_stats",
+        "session_follow_up_jobs",
+      ],
       counts: {
+        profile: 1,
         sessions: sessions.length,
         completedSessions: 1,
         sessionExercises: sessionExercises.length,
@@ -272,6 +301,8 @@ function buildPayload(): AccountWorkoutExportPayload {
         routineDays: routineDays.length,
         routineDayExercises: routineDayExercises.length,
         exercises: 1,
+        globalExercises: 1,
+        userOwnedExercises: 0,
       },
     },
     profile,
@@ -287,6 +318,8 @@ function buildPayload(): AccountWorkoutExportPayload {
       user_id: null,
       is_global: true,
       primary_muscle: "Quads",
+      primary_muscles: ["quads", "glutes"],
+      secondary_muscles: ["core"],
       equipment: "Barbell",
       movement_pattern: "squat",
       measurement_type: "reps",
@@ -295,11 +328,16 @@ function buildPayload(): AccountWorkoutExportPayload {
       image_path: null,
       image_icon_path: null,
       image_howto_path: null,
+      image_muscles_path: null,
       slug: "back-squat",
+      kind: null,
+      type: null,
+      tags: null,
+      categories: null,
       how_to_short: null,
       curation_tags: null,
       created_at: "2026-01-01T00:00:00.000Z",
-    }],
+    }] satisfies AccountWorkoutExportExerciseRow[],
   };
 }
 
@@ -323,6 +361,8 @@ test("builds tabular CSV rows and escapes values", () => {
   assert.equal(rows.length, 1);
   assert.equal(rows[0]?.routine_name, "Atlas Routine");
   assert.equal(rows[0]?.exercise_name, "Back Squat");
+  assert.equal(rows[0]?.target_reps, 4);
+  assert.equal(rows[0]?.set_id, "set-1");
   assert.match(csv, /session_id,performed_at,session_status/);
   assert.match(csv, /Back Squat/);
   assert.match(csv, /Paused/);
@@ -334,6 +374,8 @@ test("builds an xlsx workbook with the expected sheet names", () => {
   const workbook = XLSX.read(workbookBuffer, { type: "buffer" });
 
   assert.deepEqual(workbook.SheetNames, [
+    "Metadata",
+    "Profile",
     "Sessions",
     "Completed Sessions",
     "Session Exercises",
@@ -344,6 +386,19 @@ test("builds an xlsx workbook with the expected sheet names", () => {
     "Routine Day Exercises",
     "Progression Summary",
   ]);
+});
+
+test("includes metadata and profile workbook sheets", () => {
+  const payload = buildPayload();
+  const workbookBuffer = buildAccountWorkoutExportWorkbookBuffer(payload);
+  const workbook = XLSX.read(workbookBuffer, { type: "buffer" });
+  const metadataRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets.Metadata);
+  const profileRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets.Profile);
+
+  assert.equal(metadataRows[0]?.snapshot_version, "fitness-account-export-v1");
+  assert.equal(metadataRows[0]?.active_routine_id, "routine-1");
+  assert.equal(profileRows[0]?.id, "user-1");
+  assert.equal(profileRows[0]?.preferred_weight_unit, "lbs");
 });
 
 test("reports the xlsx content type", () => {
@@ -581,6 +636,69 @@ test("filters export payload to the current active routine", async () => {
   assert.deepEqual(payload.routineDays.map((day) => day.id), ["day-2"]);
   assert.deepEqual(payload.routineDayExercises.map((exercise) => exercise.id), ["routine-exercise-2"]);
   assert.deepEqual(payload.sessions.map((session) => session.id), ["session-routine-2"]);
+  assert.equal(payload.metadata.activeRoutineId, "routine-2");
+});
+
+test("rejects current routine export when no active routine is set", async () => {
+  const rows = {
+    profiles: [{
+      id: "user-1",
+      timezone: "America/New_York",
+      active_routine_id: null,
+      preferred_weight_unit: "lbs",
+      preferred_distance_unit: "mi",
+      show_qa_llel_data: false,
+      user_number: 101,
+      user_kind: "human",
+      user_number_assigned_at: "2026-05-01T00:00:00.000Z",
+    }],
+    routines: [],
+    routine_days: [],
+    routine_day_exercises: [],
+    sessions: [],
+    session_exercises: [],
+    sets: [],
+    exercises: [],
+  } satisfies Record<TableName, Record<string, unknown>[]>;
+
+  await assert.rejects(
+    () => buildAccountWorkoutExportPayload({
+      supabase: createMockSupabase(rows),
+      userId: "user-1",
+      options: {
+        fileType: "json",
+        scope: "current_routine",
+      },
+    }),
+    /No active routine is set for this account\./,
+  );
+});
+
+test("rejects invalid export date windows", async () => {
+  const rows = {
+    profiles: [],
+    routines: [],
+    routine_days: [],
+    routine_day_exercises: [],
+    sessions: [],
+    session_exercises: [],
+    sets: [],
+    exercises: [],
+  } satisfies Record<TableName, Record<string, unknown>[]>;
+
+  await assert.rejects(
+    () => buildAccountWorkoutExportPayload({
+      supabase: createMockSupabase(rows),
+      userId: "user-1",
+      options: {
+        fileType: "json",
+        scope: "all",
+        dateFrom: "2026-05-09",
+        dateTo: "2026-05-01",
+      },
+    }),
+    /From date must be on or before To date\./,
+  );
 });
 
 test("suggested export date range uses the oldest available account workout date and today", () => {

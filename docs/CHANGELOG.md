@@ -5,10 +5,14 @@ All notable changes to this project are documented in this file.
 ## 1.0.0 ? 2026-05-09
 
 ### WHAT
-- (fill in)
+- Rebuilt account workout export around a stricter table-first snapshot contract.
+- Added real export date validation, explicit `current_routine` guardrails, and hard query-error propagation so exports no longer silently widen scope or return partial empty data.
+- Expanded CSV/XLSX output to include richer session-exercise target truth, metadata/profile workbook sheets, and canonical table/excluded-table counts.
+- Added focused export regression coverage for workbook contract, invalid date windows, and missing active-routine behavior.
 
 ### WHY
-- (fill in)
+- The previous export path was functional but under-specified: it could silently ignore bad dates, export all data when `current_routine` had no active routine, and flatten too little truth for reliable audit or re-import work.
+- Export files now preserve more deterministic fitness state in a format that is easier to audit, transform, and round-trip later.
 
 ## 0.3.89 ? 2026-05-04
 
