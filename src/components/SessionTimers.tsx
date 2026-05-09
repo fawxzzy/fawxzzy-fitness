@@ -916,15 +916,6 @@ export function SetLoggerCard({
     setCalories(lastLoggedSetDraft.calories);
     setSelectedWeightUnit(lastLoggedSetDraft.weightUnit);
     setWarmupValue(lastLoggedSetDraft.isWarmup);
-    setVisibleMetrics(
-      deriveMeasurementPresenceFromValues({
-        reps: lastLoggedSetDraft.reps,
-        weight: lastLoggedSetDraft.weight,
-        duration: lastLoggedSetDraft.duration,
-        distance: lastLoggedSetDraft.distance,
-        calories: lastLoggedSetDraft.calories,
-      }),
-    );
     setIsMetricsExpanded(true);
     setError(null);
     toast.success("Repeated last set.");
