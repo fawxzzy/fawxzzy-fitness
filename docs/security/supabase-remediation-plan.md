@@ -236,6 +236,8 @@ Telemetry-backed cleanup only after earlier waves settle.
     - tables: `sessions`, `session_exercises`, `sets`
     - policy count: 12
     - source migrations: `001_init.sql`, `005_ui_core_fix_pack.sql`, `006_session_status.sql`, `015_history_log_audit_notes.sql`
+    - implementation file: `supabase/migrations/20260509100000_050_session_core_rls_initplan.sql`
+    - status: code-ready, not applied
   - Wave 2A-2 Routine core
     - tables: `routines`, `routine_days`, `routine_day_exercises`
     - policy count: 12
