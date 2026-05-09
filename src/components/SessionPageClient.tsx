@@ -61,11 +61,18 @@ type SyncQueuedSetLogsAction = (payload: {
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
 type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
+type ProgressionUpdateAction = (formData: FormData) => Promise<ActionResult>;
 
 function formatDurationClock(totalSeconds: number) {
   const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
-  const minutes = Math.floor(safeSeconds / 60);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
   const seconds = safeSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
@@ -99,6 +106,7 @@ export function SessionPageClient({
   toggleSkipAction,
   removeExerciseAction,
   deleteSetAction,
+  updateSessionExerciseProgressionAction,
 }: {
   userId: string;
   sessionId: string;
@@ -124,6 +132,7 @@ export function SessionPageClient({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  updateSessionExerciseProgressionAction: ProgressionUpdateAction;
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(initialSelectedExerciseId);
@@ -138,6 +147,22 @@ export function SessionPageClient({
     [requestedReturnTo, sessionId],
   );
   const { navigateReturn } = useReturnNavigation(fallbackReturnHref ?? "/today");
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    if (selectedExerciseId) {
+      url.searchParams.set("exerciseId", selectedExerciseId);
+    } else {
+      url.searchParams.delete("exerciseId");
+    }
+
+    const nextHref = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState(window.history.state, "", nextHref);
+  }, [selectedExerciseId]);
 
   useEffect(() => {
     writeActiveSessionHint(sessionId);
@@ -172,7 +197,23 @@ export function SessionPageClient({
     () => (hasExercises ? null : <p className={appTokens.currentSessionEmptyState}>No exercises yet.</p>),
     [hasExercises],
   );
-
+  const timerPill = useMemo(
+    () => (
+      <div
+        className={cn(
+          appTokens.currentSessionDurationPill,
+          "flex min-h-[44px] w-full items-center justify-center bg-[linear-gradient(180deg,rgba(26,31,42,0.98),rgba(12,16,24,0.98))] px-2 text-[1.4rem] font-black tracking-[0.03em] text-[rgb(236_247_255/0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(125,211,252,0.08)] [font-variant-numeric:tabular-nums] [text-shadow:0_0_10px_rgba(220,240,255,0.12)]",
+        )}
+        suppressHydrationWarning
+        aria-live={hasMountedTimer ? "off" : undefined}
+      >
+        <span className="inline-flex w-full items-center justify-center whitespace-nowrap font-mono leading-none">
+          {formatDurationClock(hasMountedTimer ? durationSeconds : 0)}
+        </span>
+      </div>
+    ),
+    [durationSeconds, hasMountedTimer],
+  );
   const sessionActions = useMemo(
     () => (
       <form
@@ -197,24 +238,13 @@ export function SessionPageClient({
         <div
           role="group"
           aria-label="Bottom actions"
-          className="grid w-full grid-cols-[minmax(0,1fr)_minmax(6.15rem,6.15rem)_minmax(0,1fr)] items-stretch gap-2"
+          className="grid w-full grid-cols-[minmax(94px,0.82fr)_minmax(7.35rem,8.6rem)_minmax(112px,1.08fr)] items-stretch gap-2"
         >
           <div className="flex min-w-0 items-stretch [&>*]:w-full">
             {quickAddAction}
           </div>
           <div className="flex min-w-0 items-stretch justify-center">
-            <div
-              className={cn(
-                appTokens.currentSessionDurationPill,
-                "flex min-h-[44px] w-full items-center justify-center bg-[linear-gradient(180deg,rgba(26,31,42,0.98),rgba(12,16,24,0.98))] px-0 text-[1.44rem] font-black tracking-[0.04em] text-[rgb(236_247_255/0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(125,211,252,0.08)] [font-variant-numeric:tabular-nums] [text-shadow:0_0_10px_rgba(220,240,255,0.12)]",
-              )}
-              suppressHydrationWarning
-              aria-live={hasMountedTimer ? "off" : undefined}
-            >
-              <span className="inline-flex w-full items-center justify-center font-mono">
-                {formatDurationClock(hasMountedTimer ? durationSeconds : 0)}
-              </span>
-            </div>
+            {timerPill}
           </div>
           <div className="flex min-w-0 items-stretch [&>*]:w-full">
             <BottomDockButton
@@ -228,14 +258,12 @@ export function SessionPageClient({
         </div>
       </form>
     ),
-    [durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, toast],
+    [durationSeconds, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, timerPill, toast],
   );
 
   return (
     <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip")} floatingHeader={floatingHeader}>
-      {!isExerciseOpen ? (
-        <PublishBottomActions>{sessionActions}</PublishBottomActions>
-      ) : null}
+      <PublishBottomActions>{sessionActions}</PublishBottomActions>
 
       <ContentRail className={appTokens.currentSessionContentRail}>
         <section
@@ -243,7 +271,7 @@ export function SessionPageClient({
           data-section-chrome={sessionRecipe.sectionChrome}
           data-footer-dock={sessionRecipe.footerDock}
           data-row-interaction={sessionRecipe.rowInteraction}
-          className={appTokens.currentSessionSectionStack}
+          className={cn(appTokens.currentSessionSectionStack, isExerciseOpen ? "pt-3" : undefined)}
         >
           {!isExerciseOpen ? (
             <div className="flex justify-end">
@@ -265,6 +293,8 @@ export function SessionPageClient({
               toggleSkipAction={toggleSkipAction}
               removeExerciseAction={removeExerciseAction}
               deleteSetAction={deleteSetAction}
+              updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
+              bottomDockCenter={timerPill}
             />
           ) : null}
 

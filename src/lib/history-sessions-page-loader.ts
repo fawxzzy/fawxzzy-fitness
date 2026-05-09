@@ -10,6 +10,10 @@ import {
   type WeeklyProgressSet,
   type WeeklyProgressSummary,
 } from "@/lib/history-weekly-progress";
+import {
+  filterQaLlelRows,
+  resolveShowQaLlelDataPreferenceWithOverride,
+} from "@/lib/qa-data-visibility";
 import type { SessionExerciseRow, SessionRow } from "@/types/db";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
@@ -213,9 +217,17 @@ function normalizeExerciseMetadataRows(rows: unknown[]) {
   return exerciseMetaById;
 }
 
-function normalizeProfileTimezoneRow(rows: unknown[]) {
-  const timezone = asTrimmedString(asRecord(rows[0])?.timezone);
-  return timezone ?? "America/New_York";
+function normalizeProfileSettingsRow(rows: unknown[], showQaLlelDataOverride: boolean | null = null) {
+  const record = asRecord(rows[0]);
+  return {
+    timezone: asTrimmedString(record?.timezone) ?? "America/New_York",
+    showQaLlelData: resolveShowQaLlelDataPreferenceWithOverride({
+      show_qa_llel_data: record?.show_qa_llel_data === true ? true : record?.show_qa_llel_data === false ? false : null,
+      user_kind: record?.user_kind === "human" || record?.user_kind === "automation" || record?.user_kind === "unknown"
+        ? record.user_kind
+        : "unknown",
+    }, showQaLlelDataOverride),
+  };
 }
 
 function normalizeRoutineNames(rows: unknown[]) {
@@ -396,12 +408,14 @@ export async function loadHistorySessionsPageData({
   logger = console,
   now,
   searchParams,
+  showQaLlelDataOverride = null,
   supabase,
   userId,
 }: {
   logger?: ConsoleLike;
   now?: string;
   searchParams?: HistorySearchParams;
+  showQaLlelDataOverride?: boolean | null;
   supabase: SupabaseLike;
   userId: string;
 }): Promise<HistorySessionsPageData> {
@@ -444,7 +458,7 @@ export async function loadHistorySessionsPageData({
       label: "profile timezone",
       load: () => supabase
         .from("profiles")
-        .select("timezone")
+        .select("timezone, show_qa_llel_data, user_kind")
         .eq("id", userId),
       logger,
     }),
@@ -480,7 +494,8 @@ export async function loadHistorySessionsPageData({
     }),
   ]);
 
-  const profileTimezone = normalizeProfileTimezoneRow(profileRows);
+  const profileSettings = normalizeProfileSettingsRow(profileRows, showQaLlelDataOverride);
+  const profileTimezone = profileSettings.timezone;
 
   const sessionExercises = sessionExerciseRows
     .map(normalizeSessionExerciseRow)
@@ -585,9 +600,12 @@ export async function loadHistorySessionsPageData({
         .filter(Boolean),
     });
   });
+  const visibleSessionItems = profileSettings.showQaLlelData
+    ? sessionItems
+    : filterQaLlelRows(sessionItems, (session) => [session.routineTitle, session.dayTitle]);
 
   const weeklyProgress = buildWeeklyProgressSummary({
-    sessions: sessionItems,
+    sessions: visibleSessionItems,
     sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
     setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
     exerciseMetaById,
@@ -597,14 +615,14 @@ export async function loadHistorySessionsPageData({
   });
   const weeklyProgressByWeek = Array.from(
     new Set(
-      sessionItems
+      visibleSessionItems
         .map((session) => getWeeklyProgressWeekStart(session.startedAt, profileTimezone))
         .filter((weekStart): weekStart is string => Boolean(weekStart)),
     ),
   )
     .sort((left, right) => right.localeCompare(left))
     .map((weekStart) => buildWeeklyProgressSummary({
-      sessions: sessionItems,
+      sessions: visibleSessionItems,
       sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
       setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
       exerciseMetaById,
@@ -617,8 +635,8 @@ export async function loadHistorySessionsPageData({
   return {
     nextCursor,
     selectedSessionId: getSingleSearchParam(searchParams?.selected) ?? undefined,
-    sessionItems,
-    subtitle: `${sessionItems.length} logged sessions`,
+    sessionItems: visibleSessionItems,
+    subtitle: `${visibleSessionItems.length} logged sessions`,
     weeklyProgress,
     weeklyProgressByWeek,
   };

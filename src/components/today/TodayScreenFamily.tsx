@@ -46,8 +46,24 @@ export function TodayFloatingHeaderSlot({
   return <FloatingHeaderSlot railClassName="py-1" id={id} />;
 }
 
+export function TodayRoutineSwitchFloatingHeaderSlot({
+  id,
+}: {
+  id: string;
+}) {
+  return (
+    <ContentRail>
+      <div id={id} />
+    </ContentRail>
+  );
+}
+
 export function TodayOverviewHeader(props: Omit<ComponentProps<typeof SharedScreenHeader>, "recipe">) {
-  return <SharedScreenHeader recipe="todayOverview" {...props} />;
+  return <SharedScreenHeader recipe="todayOverview" withPanel={false} {...props} />;
+}
+
+export function TodayRoutineSwitchHeader(props: Omit<ComponentProps<typeof SharedScreenHeader>, "recipe" | "withPanel">) {
+  return <SharedScreenHeader recipe="routinesOverview" withPanel {...props} />;
 }
 
 export function TodayOverviewContent({

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
+import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -11,7 +12,16 @@ import {
 } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
+import { ensureProfile } from "@/lib/profile";
+import {
+  hasQaLlelMarker,
+  QA_LLEL_VISIBILITY_COOKIE,
+  resolveQaLlelVisibilityOverride,
+  resolveShowQaLlelDataPreferenceWithOverride,
+} from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
+import { isFeatureEnabled } from "@/lib/feature-flags";
+import { buildWorkoutRecapArtifact } from "@/lib/workout-recap";
 import type { SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
@@ -60,6 +70,11 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       collector: diagnostics,
     });
     const supabase = supabaseServer();
+    const profile = await ensureProfile(user.id);
+    const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
+      profile,
+      resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+    );
 
     const sessionResult = await diagnostics.measure<{ data: unknown }>("history.detail.session.fetch", async () => await supabase
       .from("sessions")
@@ -80,6 +95,21 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     } | null;
 
     if (!session) {
+      notFound();
+    }
+
+    const routineField = session.routines;
+    const routineName = Array.isArray(routineField)
+      ? routineField[0]?.name ?? session.name ?? null
+      : routineField?.name ?? session.name ?? null;
+
+    if (!showQaLlelData && hasQaLlelMarker([
+      routineName,
+      session.day_name_override,
+      session.routine_day_name,
+      session.name,
+      session.notes,
+    ])) {
       notFound();
     }
 
@@ -129,10 +159,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       timeoutMs: 7000,
     });
     const exerciseNameRecord = Object.fromEntries(exerciseNameMap.entries());
-    const routineField = sessionRow.routines;
-    const routineName = Array.isArray(routineField)
-      ? routineField[0]?.name ?? sessionRow.name ?? "Session"
-      : routineField?.name ?? sessionRow.name ?? "Session";
+    const routineTitle = routineName ?? "Session";
     const unitLabel = Array.isArray(routineField)
       ? routineField[0]?.weight_unit ?? "kg"
       : routineField?.weight_unit ?? "kg";
@@ -193,7 +220,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
     const sessionSummary = buildSessionSummary({
       sessionRow,
-      routineTitle: routineName,
+      routineTitle,
       dayTitle: effectiveDayName,
       sessionExercises: orderedSessionExercises.map((exercise) => ({
         id: exercise.id,
@@ -241,6 +268,25 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       });
     }));
     const clientSessionSummary = toClientPlainObject(sessionSummary);
+    const recapArtifact = isFeatureEnabled("shareableRecapArtifacts")
+      ? buildWorkoutRecapArtifact({
+          sessionSummary: clientSessionSummary,
+          exercises: clientExercises.map((exercise) => ({
+            id: exercise.id,
+            exerciseId: exercise.exercise_id,
+            exerciseName: exercise.exercise_name ?? exerciseNameRecord[exercise.exercise_id] ?? "Exercise",
+            sets: exercise.sets.map((set) => ({
+              weight: set.weight,
+              reps: set.reps,
+              weightUnit: set.weight_unit,
+              durationSeconds: set.duration_seconds,
+              distance: set.distance,
+              distanceUnit: set.distance_unit,
+              calories: set.calories,
+            })),
+          })),
+        })
+      : null;
 
     return (
       <HistoryRouteScaffold mode="detail" showTopChrome={false} floatingHeader={<div id="history-log-floating-header" />}>
@@ -252,6 +298,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
           unitLabel={unitLabel}
           exerciseNameMap={exerciseNameRecord}
           sessionSummary={clientSessionSummary}
+          recapArtifact={toClientPlainObject(recapArtifact)}
           backHref={backHref}
           exercises={clientExercises}
         />

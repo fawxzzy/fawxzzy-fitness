@@ -408,6 +408,7 @@ export function ExerciseInfoSheet({
       <DetailHeader
         title={exercise?.name ?? "Exercise"}
         titleClassName="pl-[4px] pt-[5px] pr-3 text-[1.02rem] leading-[1.12]"
+        className="!border-transparent !bg-[rgba(var(--bg-app),0.48)] !shadow-none backdrop-blur-[14px]"
         align="center"
         action={(
           <TopRightBackButton

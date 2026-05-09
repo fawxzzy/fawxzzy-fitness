@@ -63,7 +63,7 @@ const DEFAULT_SUCCESS_COMPLETE_COLOR = "#20974e";
 const DEFAULT_SELECTION_ACTIVE_COLOR = "#20974e";
 const DEFAULT_LOADER_SCAN_COLOR = "#20794e";
 const DEFAULT_WARNING_COLOR = "#f0b24e";
-const DEFAULT_DANGER_COLOR = "#ff6f83";
+const DEFAULT_DANGER_COLOR = "#ee3e4e";
 const DEFAULT_SURFACE_CARD_COLOR = "#0a0b0f";
 const DEFAULT_CARD_OUTLINE_COLOR = "#20974e";
 const DEFAULT_BUTTON_RADIUS = 20;
@@ -429,10 +429,10 @@ export function getAppThemeCssVariables(theme: AppThemeSettings) {
   const textPrimary = toRgbTuple(theme.textPrimaryColor);
   const textSecondary = toRgbTuple(theme.textSecondaryColor);
   const textMuted = toRgbTuple(theme.textMutedColor);
-  const destructiveBg = mixRgb(danger, DEEP_BACKGROUND_RGB, 0.84);
-  const destructiveBgHover = mixRgb(danger, DEEP_BACKGROUND_RGB, 0.8);
-  const destructiveBgActive = mixRgb(danger, DEEP_BACKGROUND_RGB, 0.88);
-  const destructiveText = mixRgb(danger, WHITE_RGB, 0.78);
+  const destructiveBg = mixRgb(danger, DEEP_BACKGROUND_RGB, 0.74);
+  const destructiveBgHover = mixRgb(danger, DEEP_BACKGROUND_RGB, 0.68);
+  const destructiveBgActive = mixRgb(danger, DEEP_BACKGROUND_RGB, 0.8);
+  const destructiveText = mixRgb(danger, WHITE_RGB, 0.86);
   const { surface1, surface2, surface3 } = deriveSurfacePalette(theme.surfaceCardColor);
   const buttonScale = deriveButtonRadiusScale(theme.buttonRadius);
   const cardScale = deriveCardRadiusScale(theme.cardRadius);
@@ -480,7 +480,7 @@ export function getAppThemeCssVariables(theme: AppThemeSettings) {
     "--button-destructive-bg-hover": `${toRgbCssValue(destructiveBgHover)} / 0.98`,
     "--button-destructive-bg-active": `${toRgbCssValue(destructiveBgActive)} / 1`,
     "--button-destructive-text": toRgbCssValue(destructiveText),
-    "--button-destructive-border": `${toRgbCssValue(danger)} / 0.4`,
+    "--button-destructive-border": `${toRgbCssValue(danger)} / 0.58`,
     "--bottom-action-radius": buttonScale.bottomActionRadius,
     "--action-chrome-shell-radius": buttonScale.actionChromeShellRadius,
     "--action-chrome-segment-radius": buttonScale.actionChromeSegmentRadius,

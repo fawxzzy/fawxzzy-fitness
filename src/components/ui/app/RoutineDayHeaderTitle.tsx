@@ -20,14 +20,19 @@ export function RoutineDayHeaderTitle({
   leadingItems,
   dayLabel,
   className,
+  dayLabelOrder = "weekday-first",
 }: {
   leadingItems: ReactNode[];
   dayLabel?: string | null;
   className?: string;
+  dayLabelOrder?: "weekday-first" | "day-first";
 }) {
   const visibleLeadingItems = leadingItems.filter(isRenderableNode);
   const normalizedDayLabel = String(dayLabel ?? "").trim();
   const dayParts = splitWeekdayDisplayLabel(normalizedDayLabel);
+  const remainderClassName = dayParts?.remainder?.trim().toLowerCase() === "rest"
+    ? "text-[rgb(var(--accent-yellow-on))]"
+    : undefined;
 
   return (
     <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]", className)}>
@@ -40,13 +45,19 @@ export function RoutineDayHeaderTitle({
         <>
           {visibleLeadingItems.length > 0 ? <SignatureMiniPipe /> : null}
           <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            {dayParts?.remainder && dayLabelOrder === "day-first" ? (
+              <>
+                <span className={remainderClassName}>{dayParts.remainder}</span>
+                <SignatureDot />
+              </>
+            ) : null}
             <span className={cn(appTokens.accentText, "text-[rgb(var(--accent-divider-rgb)/0.96)]")}>
               {dayParts?.weekday ?? normalizedDayLabel}
             </span>
-            {dayParts?.remainder ? (
+            {dayParts?.remainder && dayLabelOrder === "weekday-first" ? (
               <>
                 <SignatureDot />
-                <span>{dayParts.remainder}</span>
+                <span className={remainderClassName}>{dayParts.remainder}</span>
               </>
             ) : null}
           </span>

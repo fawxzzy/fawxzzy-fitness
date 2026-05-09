@@ -54,7 +54,7 @@ test("deriveWorkoutExerciseCardVariant preserves completion badge behavior", () 
   assert.equal(state.badgeText, "Completed");
 });
 
-test("deriveWorkoutExerciseCardVariant avoids partial copy when target was already completed before skip", () => {
+test("deriveWorkoutExerciseCardVariant treats completed skipped rows as hidden", () => {
   const state = deriveWorkoutExerciseCardVariant({
     loggedSetCount: 4,
     isSkipped: true,
@@ -64,6 +64,6 @@ test("deriveWorkoutExerciseCardVariant avoids partial copy when target was alrea
   assert.equal(state.cardState, "completed");
   assert.equal(state.badgeText, "Completed");
   assert.deepEqual(state.chips, []);
-  assert.equal(state.skipActionLabel, "Unskip");
-  assert.equal(state.isQuickLogDisabled, true);
+  assert.equal(state.skipActionLabel, "Unhide");
+  assert.equal(state.isQuickLogDisabled, false);
 });

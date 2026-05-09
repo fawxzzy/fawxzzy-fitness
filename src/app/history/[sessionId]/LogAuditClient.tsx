@@ -18,6 +18,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
+import { markProgressionAppliedPinsSourceDeletedInStorage } from "@/lib/progression-applied-pins";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
 import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
@@ -43,6 +44,7 @@ import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization
 import { formatMeasurementSummaryItems, formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { cn } from "@/lib/cn";
+import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -496,6 +498,47 @@ function renderSignatureMeta(parts: string[]) {
   );
 }
 
+function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
+  return (
+    <HistorySection title="Recap">
+      <div className="space-y-3 rounded-[1.05rem] border border-[rgb(var(--accent-divider-rgb)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.32)] px-3 py-3">
+        <div>
+          <p className="text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{recap.title}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-muted)/0.86)]">
+            {recap.metrics.map((metric, index) => (
+              <span key={`${metric.label}-${metric.value}`} className="inline-flex items-center gap-2">
+                {index > 0 ? <SignatureDot /> : null}
+                {metric.label}: {metric.value}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {recap.topEfforts.length > 0 ? (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
+            {recap.topEfforts.map((effort) => (
+              <p key={`${effort.exerciseName}-${effort.value}`} className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.96)]">
+                <span className="font-semibold text-[rgb(var(--text-primary)/0.94)]">{effort.exerciseName}</span>
+                {" · "}
+                {effort.value}
+              </p>
+            ))}
+          </div>
+        ) : null}
+
+        {recap.prMoments.length > 0 ? (
+          <p className="rounded-[0.85rem] border border-[rgb(var(--success-rgb)/0.18)] bg-[rgb(var(--success-rgb)/0.1)] px-2.5 py-2 text-xs font-semibold text-[rgb(var(--success-rgb)/0.95)]">
+            PRs: {recap.prMoments.join(", ")}
+          </p>
+        ) : null}
+
+        <pre className="whitespace-pre-wrap rounded-[0.85rem] bg-[rgb(var(--bg-app)/0.42)] px-2.5 py-2 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.95)]">{recap.shareText}</pre>
+      </div>
+    </HistorySection>
+  );
+}
+
 export function LogAuditClient({
   logId,
   initialDayName,
@@ -504,6 +547,7 @@ export function LogAuditClient({
   exerciseNameMap,
   exercises,
   sessionSummary,
+  recapArtifact,
   backHref,
   initialExpandedExerciseId = null,
 }: {
@@ -514,6 +558,7 @@ export function LogAuditClient({
   exerciseNameMap: Record<string, string>;
   exercises: AuditExercise[];
   sessionSummary: SessionSummary;
+  recapArtifact?: WorkoutRecapArtifact | null;
   backHref: string;
   initialExpandedExerciseId?: string | null;
 }) {
@@ -743,6 +788,7 @@ export function LogAuditClient({
         secondary={(
           <ConfirmedServerFormButton
             action={deleteCompletedSessionAction}
+            onBeforeSubmit={() => markProgressionAppliedPinsSourceDeletedInStorage(logId)}
             hiddenFields={{ sessionId: logId }}
             size="md"
             triggerLabel="Delete"
@@ -854,11 +900,12 @@ export function LogAuditClient({
   };
 
   const sessionHeaderWeekday = formatWeekdayShort(sessionSummary.startedAt);
-  const sessionHeaderDayLabel = [sessionHeaderWeekday, sessionSummary.dayTitle?.trim() || null].filter(Boolean).join(" \u00B7 ");
+  const sessionHeaderDayLabel = [sessionSummary.dayTitle?.trim() || null, sessionHeaderWeekday].filter(Boolean).join(" \u00B7 ");
   const sessionHeaderTitle = (
     <RoutineDayHeaderTitle
       leadingItems={[sessionSummary.routineTitle]}
       dayLabel={sessionHeaderDayLabel || undefined}
+      dayLabelOrder="day-first"
     />
   );
   const sessionHeaderAction = (
@@ -925,6 +972,10 @@ export function LogAuditClient({
           detailedHeaderMode="hidden"
           showDetailedDivider={false}
         />
+      ) : null}
+
+      {!isEditing && recapArtifact ? (
+        <WorkoutRecapCard recap={recapArtifact} />
       ) : null}
 
       {!isEditing && sessionNotes.trim().length > 0 ? (

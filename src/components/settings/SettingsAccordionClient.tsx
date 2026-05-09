@@ -2,10 +2,12 @@
 
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
+import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
 
 type SettingsSectionMeta = {
   title: string;
@@ -18,6 +20,8 @@ export function getSettingsSectionMeta(section: Exclude<SettingsSectionKey, null
       return { title: "Account" };
     case "theme":
       return { title: "App Theme" };
+    case "data":
+      return { title: "Data" };
     case "legacy":
       return { title: "Legacy & Migration" };
     default:
@@ -66,16 +70,29 @@ export function SettingsAccordionClient({
   legacyBridgeConfigured,
   preferredWeightUnit,
   preferredDistanceUnit,
+  userKind,
+  userNumber,
+  canAccessQaVisibilitySetting,
+  showQaLlelData,
+  initialExportDateFrom,
+  initialExportDateTo,
 }: {
   email: string;
   username: string;
   legacyBridgeConfigured: boolean;
   preferredWeightUnit: "lbs" | "kg";
   preferredDistanceUnit: "mi" | "km";
+  userKind: "human" | "automation" | "unknown";
+  userNumber: number | null;
+  canAccessQaVisibilitySetting: boolean;
+  showQaLlelData?: boolean | null;
+  initialExportDateFrom: string;
+  initialExportDateTo: string;
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
 
   const showAccount = expandedSection === null || expandedSection === "account";
+  const showData = expandedSection === null || expandedSection === "data";
   const showLegacy = expandedSection === null || expandedSection === "legacy";
   const showTheme = expandedSection === null || expandedSection === "theme";
 
@@ -91,6 +108,27 @@ export function SettingsAccordionClient({
             />
           ) : null}
           {expandedSection === "account" ? <AccountSettingsForm email={email} username={username} /> : null}
+        </div>
+      ) : null}
+
+      {showData ? (
+        <div className="space-y-3">
+          {expandedSection !== "data" ? (
+            <SettingsAccordionTrigger
+              title="Data"
+              expanded={false}
+              onClick={() => setExpandedSection("data")}
+            />
+          ) : null}
+          {expandedSection === "data" ? (
+            <DataSettingsSection
+              canAccessQaLlelUi={canAccessQaVisibilitySetting}
+              userKind={userKind}
+              showQaLlelData={showQaLlelData}
+              initialExportDateFrom={initialExportDateFrom}
+              initialExportDateTo={initialExportDateTo}
+            />
+          ) : null}
         </div>
       ) : null}
 

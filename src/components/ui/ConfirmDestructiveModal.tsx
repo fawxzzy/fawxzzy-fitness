@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -26,9 +27,19 @@ function resolveConfirmActionLabel(confirmLabel: string) {
 export function ConfirmDestructiveModal({
   open,
   title,
+  consequenceText,
+  description,
   confirmLabel,
+  cancelLabel = "Cancel",
+  confirmActionLabel: confirmActionLabelOverride,
+  contextLines,
+  details,
+  bullets,
+  children,
   isLoading = false,
+  confirmDisabled = false,
   confirmVariant = "destructive",
+  titleVariant = "confirm",
   onCancel,
   onConfirm,
 }: {
@@ -37,19 +48,31 @@ export function ConfirmDestructiveModal({
   consequenceText?: string;
   description?: string;
   confirmLabel: string;
+  cancelLabel?: string;
+  confirmActionLabel?: string;
   contextLines?: string[];
   details?: string;
   bullets?: string[];
+  children?: ReactNode;
   isLoading?: boolean;
+  confirmDisabled?: boolean;
   confirmVariant?: "primary" | "destructive";
+  titleVariant?: "confirm" | "raw";
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const titleId = useId();
   const modalRootRef = useRef<HTMLDivElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
-  const resolvedTitle = resolveConfirmTitle(title, confirmLabel);
-  const confirmActionLabel = resolveConfirmActionLabel(confirmLabel);
+  const resolvedTitle = titleVariant === "raw" ? title : resolveConfirmTitle(title, confirmLabel);
+  const confirmActionLabel = confirmActionLabelOverride ?? resolveConfirmActionLabel(confirmLabel);
+  const supportingLines = [
+    consequenceText,
+    description,
+    details,
+    ...(contextLines ?? []),
+    ...(bullets ?? []),
+  ].filter((line): line is string => typeof line === "string" && line.trim().length > 0);
   const portalTarget = typeof document === "undefined"
     ? null
     : document.querySelector(".app-shell") ?? document.body;
@@ -133,6 +156,18 @@ export function ConfirmDestructiveModal({
         className="relative z-10 w-full max-w-[22rem] rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.96)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-[14px]"
       >
         <h2 id={titleId} className="text-center text-[1.3125rem] font-semibold leading-tight tracking-[-0.03em] text-text">{resolvedTitle}</h2>
+        {supportingLines.length > 0 ? (
+          <div className="mt-3 space-y-1.5 text-center text-[0.82rem] font-medium leading-snug text-[rgb(var(--text-muted)/0.84)]">
+            {supportingLines.map((line, index) => (
+              <p key={`${index}-${line}`}>{line}</p>
+            ))}
+          </div>
+        ) : null}
+        {children ? (
+          <div className="mt-3">
+            {children}
+          </div>
+        ) : null}
       </div>
       <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-20 ${MODAL_BOTTOM_BAR_SURFACE_CLASSNAME}`}>
         <div className="pointer-events-auto mx-auto w-full max-w-[720px] px-4">
@@ -146,7 +181,7 @@ export function ConfirmDestructiveModal({
                   disabled={isLoading}
                   data-confirm-modal-action="cancel"
                 >
-                  Cancel
+                  {cancelLabel}
                 </BottomDockButton>
               )}
               primary={(
@@ -154,7 +189,7 @@ export function ConfirmDestructiveModal({
                   type="button"
                   variant={confirmVariant}
                   onClick={onConfirm}
-                  disabled={isLoading}
+                  disabled={isLoading || confirmDisabled}
                   loading={isLoading}
                   loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
                   data-confirm-modal-action="confirm"

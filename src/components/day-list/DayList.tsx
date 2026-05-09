@@ -83,8 +83,8 @@ export function formatLoggedSetCount(loggedSetCount?: number | null): string | u
   return `${Math.floor(loggedSetCount as number)} logged`;
 }
 
-export function DayList({ children }: { children: ReactNode }) {
-  return <ul className={appTokens.dayListStack}>{children}</ul>;
+export function DayList({ children, className }: { children: ReactNode; className?: string }) {
+  return <ul className={cn(appTokens.dayListStack, className)}>{children}</ul>;
 }
 
 function resolveDayCardSubtitle(subtitle: ReactNode, metaText?: string) {
@@ -114,6 +114,7 @@ function DayListItem({ children }: { children: ReactNode }) {
 }
 
 export type DayCardProps = {
+  children?: ReactNode;
   onPress?: () => void;
   title: ReactNode;
   titleMeta?: ReactNode;
@@ -124,12 +125,15 @@ export type DayCardProps = {
   metaText?: string;
   state?: DayListState;
   rightIcon?: ReactNode;
+  rightRailClassName?: string;
+  trailingStackClassName?: string;
   showAccentRail?: boolean;
   wrapper?: (child: ReactNode) => ReactNode;
   bodyClassName?: string;
   contentClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
+  contentVerticalAlign?: ComponentProps<typeof ExerciseCard>["contentVerticalAlign"];
   className?: string;
 };
 
@@ -146,7 +150,10 @@ export function DayCard({
   contentClassName,
   titleClassName,
   subtitleClassName,
+  contentVerticalAlign,
   className,
+  rightRailClassName,
+  trailingStackClassName,
   titleMeta,
   ...cardProps
 }: DayCardProps) {
@@ -166,6 +173,9 @@ export function DayCard({
       contentClassName={cn(appTokens.dayCardContent, contentClassName)}
       titleClassName={cn(appTokens.dayCardTitle, titleClassName)}
       subtitleClassName={cn(appTokens.dayCardSubtitle, subtitleClassName)}
+      rightRailClassName={rightRailClassName}
+      trailingStackClassName={trailingStackClassName}
+      contentVerticalAlign={contentVerticalAlign}
       variant="list"
       showAccentRail={showAccentRail}
     />

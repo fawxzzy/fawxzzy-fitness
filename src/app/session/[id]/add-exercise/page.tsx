@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { loadExerciseChooserRouteData } from "@/lib/exercise-chooser-route-data";
 import { getSessionPageData } from "@/app/session/[id]/queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
+import type { RoutineRow } from "@/types/db";
 
 type PageProps = {
   params: {
@@ -51,6 +52,8 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
         exercises={exercises}
         initialSelectedId={searchParams?.exerciseId}
         weightUnit={routine?.weight_unit ?? "kg"}
+        defaultProgressionPlaybookId={(routine as RoutineRow | null)?.default_progression_playbook_id ?? null}
+        defaultProgressionPlaybookConfig={(routine as RoutineRow | null)?.default_progression_playbook_config ?? null}
         exerciseStats={exerciseStats}
         backHref={backHref}
         addExerciseAction={addExerciseAction}

@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { normalizeExerciseCurationTags, type ExerciseCurationTags } from "@/lib/exercise-curation";
-import { filterSuppressedGlobalExercises } from "@/lib/global-exercise-picker";
+import { filterSuppressedGlobalExercises, shouldSuppressGlobalExerciseFromPicker } from "@/lib/global-exercise-picker";
 import { supabaseServerAnon } from "@/lib/supabase/server-anon";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
@@ -19,7 +19,7 @@ let hasLoggedMissingExerciseId = false;
 const VALID_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
 const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight", "cardio machine", "plate", "sled", "smith machine"] as const;
 const EXERCISE_LIST_SELECT =
-  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, how_to_short, curation_tags, created_at";
+  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, kind, type, tags, categories, how_to_short, curation_tags, created_at";
 const EXERCISE_LIST_SELECT_LEGACY =
   "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, created_at";
 const EXERCISE_OPTIONAL_METADATA_COLUMNS = [
@@ -27,6 +27,10 @@ const EXERCISE_OPTIONAL_METADATA_COLUMNS = [
   "image_icon_path",
   "image_howto_path",
   "slug",
+  "kind",
+  "type",
+  "tags",
+  "categories",
   "how_to_short",
   "curation_tags",
 ] as const;
@@ -110,6 +114,10 @@ function hydrateExerciseRow(row: Partial<ExerciseRow>): ExerciseRow {
     image_icon_path: row.image_icon_path ?? null,
     image_howto_path: row.image_howto_path ?? null,
     slug: row.slug ?? null,
+    kind: row.kind ?? null,
+    type: row.type ?? null,
+    tags: row.tags ?? null,
+    categories: row.categories ?? null,
     how_to_short: row.how_to_short ?? null,
     curation_tags: row.curation_tags ?? null,
     created_at: row.created_at ?? FALLBACK_CREATED_AT,
@@ -164,6 +172,10 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     image_icon_path: null,
     image_howto_path: null,
     slug: null,
+    kind: null,
+    type: null,
+    tags: null,
+    categories: null,
     how_to_short: exercise.how_to_short,
     curation_tags: null,
     created_at: FALLBACK_CREATED_AT,
@@ -234,6 +246,10 @@ function mergeAndNormalizeExercises(args: {
     }
 
     const normalizedExercise = { ...exercise, id };
+
+    if (shouldSuppressGlobalExerciseFromPicker(normalizedExercise)) {
+      return [];
+    }
 
     if (isLegacyPlaceholderExercise(normalizedExercise)) {
       suppressedLegacyPlaceholderCount += 1;
@@ -336,7 +352,7 @@ const listGlobalExercisesCached = unstable_cache(
 
     return rows;
   },
-  ["global-exercise-list-v3"],
+  ["global-exercise-list-v4"],
 );
 
 export async function getExerciseNameMap() {

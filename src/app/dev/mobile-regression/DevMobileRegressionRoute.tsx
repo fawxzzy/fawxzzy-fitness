@@ -6,6 +6,7 @@ import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFl
 import { RegressionDayRestToggleDockControl } from "@/app/dev/mobile-regression/RegressionDayRestToggleDockControl";
 import { AppNav } from "@/components/AppNav";
 import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
+import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
@@ -19,6 +20,7 @@ import { SettingsScreenStateProvider } from "@/components/settings/SettingsScree
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
@@ -67,10 +69,6 @@ const MeasurementComboBoard = nextDynamic(
   () => import("@/app/dev/mobile-regression/MeasurementComboBoard").then((mod) => mod.MeasurementComboBoard),
   { ssr: true },
 );
-const SessionQuickAddExerciseForm = nextDynamic(
-  () => import("@/app/session/[id]/SessionQuickAddExerciseForm").then((mod) => mod.SessionQuickAddExerciseForm),
-  { ssr: true },
-);
 const TodayDayPicker = nextDynamic(() => import("@/app/today/TodayDayPicker").then((mod) => mod.TodayDayPicker), { ssr: true });
 const TodayExerciseRows = nextDynamic(
   () => import("@/app/today/TodayExerciseRows").then((mod) => mod.TodayExerciseRows),
@@ -109,10 +107,6 @@ const SessionPageClient = nextDynamic(() => import("@/components/SessionPageClie
 });
 const SettingsAccordionClient = nextDynamic(
   () => import("@/components/settings/SettingsAccordionClient").then((mod) => mod.SettingsAccordionClient),
-  { ssr: true },
-);
-const SettingsBottomSignOutAction = nextDynamic(
-  () => import("@/components/settings/SettingsBottomSignOutAction").then((mod) => mod.SettingsBottomSignOutAction),
   { ssr: true },
 );
 const SettingsHeaderIdentity = nextDynamic(
@@ -1229,6 +1223,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         toggleSkipAction={noopActionResult}
         removeExerciseAction={noopActionResult}
         deleteSetAction={noopActionResult}
+        updateSessionExerciseProgressionAction={noopActionResult}
       />
     </AppShell>
   );
@@ -1445,6 +1440,7 @@ function renderCreateRoutineScenario(scenario: MobileFixtureScenario) {
           defaults={{
             name: PREVIEW_CREATE_ROUTINE_NAME,
             cycleLengthDays: 5,
+            startDate: "2026-04-07",
             startWeekday: "monday",
             timezone: "America/New_York",
             weightUnit: "lbs",
@@ -1467,6 +1463,7 @@ function renderEditRoutineScenario(scenario: MobileFixtureScenario) {
           returnHref="/routines"
           name={PREVIEW_ROUTINE_NAME}
           cycleLengthDays={5}
+          startDate="2026-04-07"
           startWeekday="monday"
           timezone="America/New_York"
           weightUnit="lbs"
@@ -1487,13 +1484,20 @@ function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
       headerAlign="center"
     >
       <RegressionMarker scenario={scenario} />
-      <SessionQuickAddExerciseForm
-        sessionId="dev-session"
+      <ExerciseChooserAddFlowForm
+        formId="dev-add-exercise-regression-form"
+        hiddenFields={{ sessionId: "dev-session" }}
         exercises={[...mockPickerExercises]}
+        initialSelectedId={MOCK_EXERCISE_IDS.squat}
         weightUnit="lbs"
+        defaultProgressionPlaybookId={null}
+        defaultProgressionPlaybookConfig={null}
         exerciseStats={[]}
+        customExerciseEnabled
         backHref="/session/dev-session"
         addExerciseAction={noopActionResult}
+        successMessage="Exercise added to session."
+        errorMessage="Could not add exercise."
       />
     </ExerciseChooserRouteScaffold>
   );
@@ -1591,7 +1595,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className={appTokens.settingsContentRail}>
           <SurfaceCard>
-            <SettingsScreenStateProvider>
+            <SettingsScreenStateProvider initialExpandedSection={scenario.fixture === "data-export" ? "data" : null}>
               <div className="pointer-events-none">
                 <SettingsAccordionClient
                   email="dev-regression@example.com"
@@ -1599,6 +1603,12 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                   legacyBridgeConfigured={false}
                   preferredWeightUnit="lbs"
                   preferredDistanceUnit="mi"
+                  userKind="human"
+                  userNumber={null}
+                  canAccessQaVisibilitySetting={false}
+                  showQaLlelData={false}
+                  initialExportDateFrom="2026-05-01"
+                  initialExportDateTo="2026-05-09"
                 />
               </div>
             </SettingsScreenStateProvider>
@@ -1606,7 +1616,16 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
         </ContentRail>
 
         <div className="pointer-events-none">
-          <SettingsBottomSignOutAction />
+          <PublishBottomActions>
+            <BottomActionSingle>
+              <button
+                type="button"
+                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+              >
+                Export
+              </button>
+            </BottomActionSingle>
+          </PublishBottomActions>
         </div>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>

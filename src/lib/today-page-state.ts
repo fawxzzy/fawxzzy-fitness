@@ -70,6 +70,7 @@ export type TodayRoutinePayloadState = {
   name: string;
   dayIndex: number;
   dayName: string;
+  dayWeekday: string | null;
   isRest: boolean;
   state: TodayPickerDayState;
   routineId: string;
@@ -80,6 +81,7 @@ export function buildTodayRoutinePayloadState(args: {
   activeRoutine: ActiveRoutineIdentity | null;
   effectiveDayIndex: number | null;
   routineDayName: string | null;
+  routineDayWeekday?: string | null;
   isRest: boolean;
   state: TodayPickerDayState;
   routineDayId: string | null;
@@ -95,6 +97,7 @@ export function buildTodayRoutinePayloadState(args: {
   }
 
   const dayName = args.routineDayName?.trim() || `Day ${dayIndex}`;
+  const dayWeekday = args.routineDayWeekday?.trim() || null;
   const routineName = args.activeRoutine.name?.trim() || "Routine";
 
   return {
@@ -102,6 +105,7 @@ export function buildTodayRoutinePayloadState(args: {
     name: routineName,
     dayIndex,
     dayName,
+    dayWeekday,
     isRest: args.isRest,
     state: args.state,
     routineId: args.activeRoutine.id,

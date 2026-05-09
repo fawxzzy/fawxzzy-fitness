@@ -52,6 +52,8 @@ export async function deleteCompletedSessionAction(formData: FormData) {
     await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
   }
 
+  revalidatePath("/today");
+  revalidatePath("/routines");
   revalidateHistoryViews();
   redirect("/history");
 }

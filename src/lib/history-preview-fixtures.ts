@@ -249,7 +249,7 @@ const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
         { label: "Consistency", value: 2, max: 2 },
         { label: "Coverage", value: 0, max: 1 },
       ],
-      summary: "2/4 workouts â€¢ 1/3 prs â€¢ 2/2 consistency",
+      summary: "2/4 workouts • 1/3 prs • 2/2 consistency",
     },
   },
 ];

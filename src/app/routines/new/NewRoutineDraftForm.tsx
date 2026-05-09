@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   RoutineDetailsBottomActionPublisher,
   RoutineEditorPageBody,
+  RoutineEditorTitleInput,
 } from "@/components/routines/RoutineEditorShared";
 import { appTokens } from "@/components/ui/app/tokens";
 import {
@@ -26,7 +27,15 @@ import {
   type RoutineDetailsDraft,
 } from "@/lib/routine-details-form";
 import { RoutineDetailsSaveState } from "@/components/routines/RoutineDetailsFormState";
-import { cn } from "@/lib/cn";
+import { ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
+import {
+  appendProgressionPlaybookFormData,
+  buildProgressionPlaybookFormSnapshot,
+  createProgressionPlaybookFormState,
+  createProgressionPlaybookFormStateForTrainingGoal,
+  isTrainingGoalCustomized,
+} from "@/lib/progression-playbook-form-state";
+import { TRAINING_GOAL_IDS, type TrainingGoalId } from "@/lib/progression-playbooks";
 
 const STORAGE_KEY = "routine-new-draft-v1";
 
@@ -42,18 +51,36 @@ function resolveRoutineDraftFieldValue(field: string, value: string) {
   return value;
 }
 
+function normalizeTrainingGoalId(value: unknown): TrainingGoalId | "" {
+  return TRAINING_GOAL_IDS.includes(value as TrainingGoalId) ? (value as TrainingGoalId) : "";
+}
+
 export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDefaults }) {
   const toast = useToast();
   const router = useRouter();
-  const normalizedDefaults = normalizeRoutineDetailsDraft(defaults, {
-    name: defaults.name,
-    cycleLengthDays: defaults.cycleLengthDays,
-    startWeekday: defaults.startWeekday,
-    timezone: defaults.timezone,
-    weightUnit: defaults.weightUnit,
-    distanceUnit: defaults.distanceUnit === "km" ? "km" : "mi",
-  });
+  const normalizedDefaults = useMemo(
+    () => normalizeRoutineDetailsDraft(defaults, {
+      name: defaults.name,
+      cycleLengthDays: defaults.cycleLengthDays,
+      startDate: defaults.startDate,
+      startWeekday: defaults.startWeekday,
+      timezone: defaults.timezone,
+      weightUnit: defaults.weightUnit,
+      distanceUnit: defaults.distanceUnit === "km" ? "km" : "mi",
+    }),
+    [
+      defaults.cycleLengthDays,
+      defaults.distanceUnit,
+      defaults.name,
+      defaults.startDate,
+      defaults.startWeekday,
+      defaults.timezone,
+      defaults.weightUnit,
+    ],
+  );
   const [draft, setDraft] = useState<RoutineDetailsDraft>(normalizedDefaults);
+  const [progressionDraft, setProgressionDraft] = useState(() => createProgressionPlaybookFormState());
+  const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(normalizedDefaults.cycleLengthDays));
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
@@ -65,17 +92,57 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Partial<RoutineDetailsDraft>;
+        const parsed = JSON.parse(raw) as Partial<RoutineDetailsDraft> & {
+          progressionPlaybookId?: string | null;
+          progressionPlaybookConfig?: Record<string, unknown> | null;
+          progressionLoadIncrement?: string;
+          progressionStallThreshold?: string;
+          progressionDeloadPercent?: string;
+          progressionBarbellLoadIncrement?: string;
+          progressionDumbbellLoadIncrement?: string;
+          progressionMachineLoadIncrement?: string;
+          progressionCableLoadIncrement?: string;
+          progressionBodyweightRepIncrement?: string;
+          progressionDurationIncrementSeconds?: string;
+          progressionDistanceIncrement?: string;
+          progressionSetFlowLoadStep?: string;
+          progressionSetFlowRepStep?: string;
+          progressionSetFlowDurationStep?: string;
+          progressionSetFlowDistanceStep?: string;
+          progressionTrainingGoal?: string | null;
+        };
         const normalizedParsed = normalizeRoutineDetailsDraft(parsed, normalizedDefaults);
         const shouldResetStartWeekday =
           normalizedParsed.name.trim().length === 0
           && normalizedParsed.cycleLengthDays === normalizedDefaults.cycleLengthDays;
         const nextDraft = {
           ...normalizedParsed,
+          startDate: shouldResetStartWeekday ? normalizedDefaults.startDate : normalizedParsed.startDate,
           startWeekday: shouldResetStartWeekday ? normalizedDefaults.startWeekday : normalizedParsed.startWeekday,
         };
 
         setDraft(nextDraft);
+        setProgressionDraft((current) => ({
+          ...createProgressionPlaybookFormState({
+            playbookId: parsed.progressionPlaybookId ?? current.progressionPlaybookId,
+            config: parsed.progressionPlaybookConfig ?? null,
+          }),
+          progressionLoadIncrement: typeof parsed.progressionLoadIncrement === "string" ? parsed.progressionLoadIncrement : current.progressionLoadIncrement,
+          progressionStallThreshold: typeof parsed.progressionStallThreshold === "string" ? parsed.progressionStallThreshold : current.progressionStallThreshold,
+          progressionDeloadPercent: typeof parsed.progressionDeloadPercent === "string" ? parsed.progressionDeloadPercent : current.progressionDeloadPercent,
+          progressionBarbellLoadIncrement: typeof parsed.progressionBarbellLoadIncrement === "string" ? parsed.progressionBarbellLoadIncrement : current.progressionBarbellLoadIncrement,
+          progressionDumbbellLoadIncrement: typeof parsed.progressionDumbbellLoadIncrement === "string" ? parsed.progressionDumbbellLoadIncrement : current.progressionDumbbellLoadIncrement,
+          progressionMachineLoadIncrement: typeof parsed.progressionMachineLoadIncrement === "string" ? parsed.progressionMachineLoadIncrement : current.progressionMachineLoadIncrement,
+          progressionCableLoadIncrement: typeof parsed.progressionCableLoadIncrement === "string" ? parsed.progressionCableLoadIncrement : current.progressionCableLoadIncrement,
+          progressionBodyweightRepIncrement: typeof parsed.progressionBodyweightRepIncrement === "string" ? parsed.progressionBodyweightRepIncrement : current.progressionBodyweightRepIncrement,
+          progressionDurationIncrementSeconds: typeof parsed.progressionDurationIncrementSeconds === "string" ? parsed.progressionDurationIncrementSeconds : current.progressionDurationIncrementSeconds,
+          progressionDistanceIncrement: typeof parsed.progressionDistanceIncrement === "string" ? parsed.progressionDistanceIncrement : current.progressionDistanceIncrement,
+          progressionSetFlowLoadStep: typeof parsed.progressionSetFlowLoadStep === "string" ? parsed.progressionSetFlowLoadStep : current.progressionSetFlowLoadStep,
+          progressionSetFlowRepStep: typeof parsed.progressionSetFlowRepStep === "string" ? parsed.progressionSetFlowRepStep : current.progressionSetFlowRepStep,
+          progressionSetFlowDurationStep: typeof parsed.progressionSetFlowDurationStep === "string" ? parsed.progressionSetFlowDurationStep : current.progressionSetFlowDurationStep,
+          progressionSetFlowDistanceStep: typeof parsed.progressionSetFlowDistanceStep === "string" ? parsed.progressionSetFlowDistanceStep : current.progressionSetFlowDistanceStep,
+        }));
+        setSelectedTrainingGoal(normalizeTrainingGoalId(parsed.progressionTrainingGoal));
         setCycleLengthInput(String(nextDraft.cycleLengthDays));
       }
     } catch {
@@ -89,7 +156,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          ...draft,
+          ...progressionDraft,
+          progressionTrainingGoal: selectedTrainingGoal,
+        }));
         setError(null);
       } catch {
         setError("Could not save local draft.");
@@ -100,7 +171,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [draft, loadedDraft, toast]);
+  }, [draft, loadedDraft, progressionDraft, selectedTrainingGoal, toast]);
 
   useEffect(() => {
     setCycleLengthInput(String(draft.cycleLengthDays));
@@ -109,14 +180,34 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
   const validation = validateRoutineDetailsDraft(draft);
   const initialSnapshot = buildRoutineDetailsSnapshot(normalizedDefaults);
   const currentSnapshot = buildRoutineDetailsSnapshot(draft);
-  const isDirty = currentSnapshot !== initialSnapshot;
+  const initialProgressionSnapshot = buildProgressionPlaybookFormSnapshot(createProgressionPlaybookFormState());
+  const currentProgressionSnapshot = buildProgressionPlaybookFormSnapshot(progressionDraft);
+  const isDirty = currentSnapshot !== initialSnapshot || currentProgressionSnapshot !== initialProgressionSnapshot;
   const hasDirtyChanges = hasUserEdited && isDirty;
   const canCreate = validation.valid && isDirty && !isSaving;
   const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
   const trimmedRoutineName = draft.name.trim().slice(0, 15);
+  const routineHeaderTitle = useMemo(() => (
+    <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
+      <RoutineEditorTitleInput
+        name="name"
+        value={draft.name}
+        onChange={(nextValue) => {
+          setHasUserEdited(true);
+          setDraft((current) => ({
+            ...current,
+            name: resolveRoutineDraftFieldValue("name", nextValue),
+          }));
+        }}
+        placeholder="Push/Pull/Legs"
+        ariaLabel="Routine Name"
+        maxLength={15}
+        className="text-center"
+      />
+    </div>
+  ), [draft.name]);
 
-  useRoutineDetailsHeaderTitle(trimmedRoutineName ? `New Routine | ${trimmedRoutineName}` : "New Routine");
-
+  useRoutineDetailsHeaderTitle(routineHeaderTitle);
   useRoutineDetailsDirtyState(hasDirtyChanges);
 
   useEffect(() => {
@@ -150,12 +241,12 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
   return (
     <>
       <RoutineEditorPageBody className={appTokens.routineEditorSectionStack}>
-        <div className={cn("pt-4", appTokens.routineEditorCompactStack)}>
+        <div className="space-y-2 pt-4">
           <RoutineEditorFormFields
-            titleInput
-            fields={["name", "cycleLengthDays"]}
+            fields={["cycleLengthDays", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
             cycleLengthInputValue={cycleLengthInput}
             cycleLengthDefaultValue={draft.cycleLengthDays}
+            startDateDefaultValue={draft.startDate}
             startWeekdayDefaultValue={draft.startWeekday}
             timezoneDefaultValue={draft.timezone}
             weightUnitDefaultValue={draft.weightUnit}
@@ -174,23 +265,23 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
               }));
             }}
           />
-        </div>
-
-        <div className={appTokens.routineEditorCompactStack}>
-          <RoutineEditorFormFields
-            fields={["startWeekday", "timezone", "weightUnit", "distanceUnit"]}
-            cycleLengthDefaultValue={draft.cycleLengthDays}
-            startWeekdayDefaultValue={draft.startWeekday}
-            timezoneDefaultValue={draft.timezone}
-            weightUnitDefaultValue={draft.weightUnit}
-            distanceUnitDefaultValue={draft.distanceUnit}
-            values={draft}
-            onFieldChange={(field, value) => {
+          <ProgressionPlaybookEditor
+            value={progressionDraft}
+            onChange={(nextValue) => {
               setHasUserEdited(true);
-              setDraft((current) => ({
-                ...current,
-                [field]: resolveRoutineDraftFieldValue(field, value),
-              }));
+              setProgressionDraft(nextValue);
+            }}
+            weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
+            context="routine-default"
+            collapsible
+            defaultExpanded={false}
+            separateInfoBox
+            trainingFocusValue={selectedTrainingGoal}
+            trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
+            onTrainingFocusChange={(goal) => {
+              setHasUserEdited(true);
+              setSelectedTrainingGoal(goal);
+              setProgressionDraft(createProgressionPlaybookFormStateForTrainingGoal(goal));
             }}
           />
         </div>
@@ -222,10 +313,12 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
                   const formData = new FormData();
                   formData.set("name", trimmedRoutineName);
                   formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+                  formData.set("startDate", nextDraft.startDate);
                   formData.set("startWeekday", nextDraft.startWeekday);
                   formData.set("timezone", nextDraft.timezone);
                   formData.set("weightUnit", nextDraft.weightUnit);
                   formData.set("distanceUnit", nextDraft.distanceUnit);
+                  appendProgressionPlaybookFormData(formData, progressionDraft);
                   const result = await createRoutineAction(formData);
                   if (!result.ok) {
                     const nextError = result.error ?? "Could not create routine.";
@@ -241,7 +334,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
                   }
                   window.localStorage.removeItem(STORAGE_KEY);
                   toast.success("Routine created");
-                  router.push("/routines?view=list");
+                  router.push("/routines");
                 });
               }}
             >

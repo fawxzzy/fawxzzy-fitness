@@ -2,15 +2,26 @@ import { SessionPageClient } from "@/components/SessionPageClient";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
-import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
+import { formatExerciseGoalSummary, resolveExerciseGoalCurrentReps } from "@/lib/exercise-goal-format";
 import { isCardioExercise, isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { splitSessionHeaderTitle } from "@/lib/header-meta";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
+import {
+  buildProgressionHistorySessions,
+  validateProgressionPlaybookSelection,
+  type ProgressionTargetPlan,
+} from "@/lib/progression-playbooks";
+import { createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
+import { deriveProgressionProgressPercent } from "@/lib/progression-progress-percent";
+import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
+import { getSessionVisiblePromotionStepFieldIds } from "@/lib/session-progression-display";
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
+import type { SessionQuickLogTarget } from "@/lib/session-quick-log";
 import type { DisplayTarget } from "@/lib/session-targets";
+import { generateSetFlowTargets, type PlannedSetTarget } from "@/lib/set-flow-targets";
 import {
   addSetAction,
   removeExerciseAction,
@@ -18,6 +29,7 @@ import {
   saveSessionAction,
   syncQueuedSetLogsAction,
   toggleSkipAction,
+  updateSessionExerciseProgressionAction,
 } from "./actions";
 import { getSessionPageData } from "./queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
@@ -105,6 +117,34 @@ function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "
   return Object.keys(prefill).length > 0 ? prefill : undefined;
 }
 
+function optionalNumber(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function toSetFlowQuickLogTarget(args: {
+  target: PlannedSetTarget;
+  plan: ProgressionTargetPlan;
+  fallbackWeightUnit: "lbs" | "kg";
+  fallbackDistanceUnit: "mi" | "km" | "m" | null;
+}): SessionQuickLogTarget {
+  const { target, plan, fallbackWeightUnit, fallbackDistanceUnit } = args;
+  const targetWeight = optionalNumber(target.targetWeight);
+  const targetDistance = optionalNumber(target.distance);
+
+  return {
+    measurementType: plan.measurementType,
+    repsMin: optionalNumber(target.targetRepsMin),
+    repsMax: optionalNumber(target.targetRepsMax),
+    weightMin: targetWeight,
+    weightMax: targetWeight,
+    weightUnit: plan.weightUnit ?? fallbackWeightUnit,
+    durationSeconds: optionalNumber(target.durationSeconds),
+    distance: targetDistance,
+    distanceUnit: targetDistance !== undefined ? (plan.distanceUnit ?? fallbackDistanceUnit ?? undefined) : undefined,
+    calories: optionalNumber(target.calories),
+  };
+}
+
 function resolveSessionExerciseDefaultDistanceUnit(defaultUnit: string | null | undefined): "mi" | "km" | "m" | null {
   if (defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m") {
     return defaultUnit;
@@ -143,6 +183,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     exerciseOptions,
     exerciseNameMap,
     exerciseStatsByExerciseId,
+    progressionHistoryByExerciseId,
+    progressionHistoryByRoutineDayExerciseId,
   } = await getSessionPageData(params.id, { diagnostics });
 
   const unitLabel = routine?.weight_unit ?? "kg";
@@ -208,23 +250,85 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               intervalMode: false,
             });
             const exerciseStats = exerciseStatsByExerciseId.get(exercise.exercise_id) ?? null;
+            const routineDayProgressionRows = exercise.routine_day_exercise_id
+              ? (progressionHistoryByRoutineDayExerciseId.get(exercise.routine_day_exercise_id) ?? [])
+              : [];
+            const progressionRows = routineDayProgressionRows.length > 0
+              ? routineDayProgressionRows
+              : (progressionHistoryByExerciseId.get(exercise.exercise_id) ?? []);
+            const progressionHistory = buildProgressionHistorySessions({
+              rows: progressionRows,
+              targetSetCount: displayTarget?.setsMin ?? displayTarget?.setsMax ?? null,
+              topRepTarget: displayTarget?.repsMax ?? displayTarget?.repsMin ?? null,
+              limit: 6,
+            });
+            const progressionPlan = displayTarget ? {
+              measurementType: displayTarget.measurementType ?? "reps",
+              setsMin: displayTarget.setsMin ?? null,
+              setsMax: displayTarget.setsMax ?? null,
+              repsTarget: exercise.target_reps ?? displayTarget.repsMax ?? displayTarget.repsMin ?? null,
+              repsMin: exercise.target_reps_min ?? displayTarget.repsMin ?? null,
+              repsMax: exercise.target_reps_max ?? displayTarget.repsMax ?? null,
+              weightMin: displayTarget.weightMin ?? null,
+              weightMax: displayTarget.weightMax ?? null,
+              weightUnit: displayTarget.weightUnit ?? unitLabel,
+              durationSeconds: displayTarget.durationSeconds ?? null,
+              distance: displayTarget.distance ?? null,
+              distanceUnit: displayTarget.distanceUnit ?? null,
+              calories: displayTarget.calories ?? null,
+            } : null;
+            const progressionSelection = exercise.progression_playbook_id
+              ? validateProgressionPlaybookSelection({
+                  playbookId: exercise.progression_playbook_id,
+                  config: exercise.progression_playbook_config ?? null,
+                })
+              : null;
             const targetHint = deriveSessionTargetHint({
               measurementType: (isMeasurementOptional ? "none" : (exercise.measurement_type ?? canonicalExercise?.measurement_type ?? "reps")) ?? "reps",
               fallbackWeightUnit: unitLabel,
               stats: exerciseStats,
-              plan: displayTarget ? {
-                measurementType: displayTarget.measurementType ?? "reps",
-                repsMin: displayTarget.repsMin ?? null,
-                repsMax: displayTarget.repsMax ?? null,
-                weightMin: displayTarget.weightMin ?? null,
-                weightMax: displayTarget.weightMax ?? null,
-                weightUnit: displayTarget.weightUnit ?? unitLabel,
-                durationSeconds: displayTarget.durationSeconds ?? null,
-                distance: displayTarget.distance ?? null,
-                distanceUnit: displayTarget.distanceUnit ?? null,
-                calories: displayTarget.calories ?? null,
+              plan: progressionPlan,
+              playbook: progressionSelection ? {
+                playbookId: progressionSelection.id,
+                config: progressionSelection.config,
+                history: progressionHistory,
               } : null,
             });
+            const progressionStepPolicy = progressionSelection && progressionPlan
+              ? inferProgressionStepPolicy({
+                  measurementType: progressionPlan.measurementType,
+                  equipment: canonicalExercise?.equipment ?? null,
+                  movementPattern: canonicalExercise?.movement_pattern ?? null,
+                  defaultUnit: exercise.default_unit ?? canonicalExercise?.default_unit ?? null,
+                  weightUnit: progressionPlan.weightUnit ?? unitLabel,
+                  distanceUnit: progressionPlan.distanceUnit === "km" ? "km" : "mi",
+                  targetWeight: progressionPlan.weightMax ?? progressionPlan.weightMin ?? null,
+                  exerciseOverrideValue: progressionSelection.config.loadIncrement,
+                  stepOverrides: progressionSelection.config.stepOverrides ?? null,
+                })
+              : null;
+            const progressionMeasurementSelections = new Set(
+              [
+                progressionPlan?.repsMin ?? progressionPlan?.repsMax ?? progressionPlan?.repsTarget ?? null ? "reps" : null,
+                progressionPlan?.weightMin ?? progressionPlan?.weightMax ?? null ? "weight" : null,
+                progressionPlan?.durationSeconds ?? null ? "time" : null,
+                progressionPlan?.distance ?? null ? "distance" : null,
+                progressionPlan?.calories ?? null ? "calories" : null,
+              ].filter((value): value is "reps" | "weight" | "time" | "distance" | "calories" => value !== null),
+            );
+            const setFlowQuickLogTargets = progressionSelection && progressionPlan
+              ? generateSetFlowTargets({
+                  setFlow: progressionSelection.config.setFlow,
+                  plan: progressionPlan,
+                  progressionStepPolicy,
+                  setFlowSteps: progressionSelection.config.setFlowSteps ?? null,
+                }).map((target) => toSetFlowQuickLogTarget({
+                  target,
+                  plan: progressionPlan,
+                  fallbackWeightUnit: unitLabel,
+                  fallbackDistanceUnit: resolveSessionExerciseDefaultDistanceUnit(exercise.default_unit),
+                }))
+              : [];
 
             return {
               id: exercise.id,
@@ -280,8 +384,16 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               })(),
               goalLabel: formatExerciseGoalSummary({
                 sets: displayTarget?.setsMin ?? displayTarget?.setsMax ?? null,
-                reps: displayTarget?.repsMin ?? displayTarget?.repsMax ?? null,
-                repsMax: displayTarget?.repsMax ?? displayTarget?.repsMin ?? null,
+                reps: resolveExerciseGoalCurrentReps({
+                  target_reps: exercise.target_reps ?? null,
+                  target_reps_min: displayTarget?.repsMin ?? null,
+                  target_reps_max: displayTarget?.repsMax ?? null,
+                }),
+                repsMax: resolveExerciseGoalCurrentReps({
+                  target_reps: exercise.target_reps ?? null,
+                  target_reps_min: displayTarget?.repsMin ?? null,
+                  target_reps_max: displayTarget?.repsMax ?? null,
+                }),
                 weight: displayTarget?.weightMin ?? displayTarget?.weightMax ?? null,
                 weightUnit: displayTarget?.weightUnit ?? unitLabel,
                 durationSeconds: displayTarget?.durationSeconds ?? null,
@@ -291,6 +403,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                 emptyLabel: "Goal missing",
               }),
               prefill: getGoalPrefill(displayTarget, unitLabel),
+              setFlowQuickLogTargets,
               quickLogTarget: isMeasurementOptional
                 ? {
                     repsMin: displayTarget?.repsMin,
@@ -320,6 +433,20 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   } : undefined
                 ),
               targetHint,
+              progressionFormState: createProgressionPlaybookFormState({
+                playbookId: exercise.progression_playbook_id ?? null,
+                config: exercise.progression_playbook_config ?? null,
+              }),
+              progressionStepPolicy,
+              visiblePromotionStepFields: getSessionVisiblePromotionStepFieldIds({
+                progressionStepPolicy,
+                selectedMetrics: progressionMeasurementSelections,
+              }),
+              progressionSelectedMetrics: [...progressionMeasurementSelections],
+              progressFill: deriveProgressionProgressPercent({
+                plan: progressionPlan,
+                historyRows: progressionRows,
+              }),
               targetSetsMin: displayTarget?.setsMin ?? null,
               targetSetsMax: displayTarget?.setsMax ?? null,
               initialSets: setsByExercise.get(exercise.id) ?? [],
@@ -339,6 +466,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           toggleSkipAction={toggleSkipAction}
           removeExerciseAction={removeExerciseAction}
           deleteSetAction={deleteSetAction}
+          updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
         />
     </AppShell>
   );

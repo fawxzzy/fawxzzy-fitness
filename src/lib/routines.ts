@@ -85,6 +85,10 @@ function formatUtcDate(timestamp: number) {
   return new Date(timestamp).toISOString().slice(0, 10);
 }
 
+function normalizeCycleDayOffset(value: number, cycleLengthDays: number) {
+  return ((value % cycleLengthDays) + cycleLengthDays) % cycleLengthDays;
+}
+
 export function getRoutineDayComputation(params: {
   cycleLengthDays: number;
   startDate: string;
@@ -96,12 +100,47 @@ export function getRoutineDayComputation(params: {
   const todayTs = parseDateStringAsUtc(todayDate);
   const startTs = parseDateStringAsUtc(startDate);
   const daysSinceStart = Math.floor((todayTs - startTs) / MS_PER_DAY);
-  const normalized = ((daysSinceStart % cycleLengthDays) + cycleLengthDays) % cycleLengthDays;
+  const normalized = normalizeCycleDayOffset(daysSinceStart, cycleLengthDays);
 
   return {
     todayDate,
     daysSinceStart,
     dayIndex: normalized + 1,
+  };
+}
+
+export function getRoutineCycleOccurrence(params: {
+  cycleLengthDays: number;
+  startDate: string;
+  profileTimeZone: string;
+  dayIndex: number;
+  referenceDate?: string | null;
+}) {
+  const { cycleLengthDays, startDate, profileTimeZone, dayIndex } = params;
+  const safeCycleLengthDays = Number.isFinite(cycleLengthDays) && cycleLengthDays > 0
+    ? Math.floor(cycleLengthDays)
+    : 1;
+  const safeDayIndex = Number.isFinite(dayIndex) && dayIndex > 0
+    ? Math.min(Math.floor(dayIndex), safeCycleLengthDays)
+    : 1;
+  const referenceDate = params.referenceDate || getTodayDateInTimeZone(profileTimeZone);
+  const referenceTs = parseDateStringAsUtc(referenceDate);
+  const startTs = parseDateStringAsUtc(startDate);
+  const daysSinceStart = Math.floor((referenceTs - startTs) / MS_PER_DAY);
+  const currentDayIndex = normalizeCycleDayOffset(daysSinceStart, safeCycleLengthDays) + 1;
+  const daysUntilOccurrence = normalizeCycleDayOffset(safeDayIndex - currentDayIndex, safeCycleLengthDays);
+  const occurrenceDate = formatUtcDate(referenceTs + (daysUntilOccurrence * MS_PER_DAY));
+  const occurrenceDaysSinceStart = daysSinceStart + daysUntilOccurrence;
+
+  return {
+    referenceDate,
+    daysSinceStart,
+    currentDayIndex,
+    dayIndex: safeDayIndex,
+    occurrenceDate,
+    occurrenceWeekdayShort: getWeekdayNameFromUtcDate(new Date(parseDateStringAsUtc(occurrenceDate)), "short"),
+    occurrenceLabel: formatRoutineOccurrenceDateLabel(occurrenceDate),
+    cycleRotationIndex: Math.floor(occurrenceDaysSinceStart / safeCycleLengthDays),
   };
 }
 
@@ -196,6 +235,20 @@ export function getRoutineDayWeekdayLabel(dayIndex: number, startDate: string | 
   return getWeekdayNameFromUtcDate(new Date(startTimestamp + ((dayIndex - 1) * MS_PER_DAY)), weekday);
 }
 
+export function formatRoutineOccurrenceDateLabel(dateString: string) {
+  const timestamp = Date.parse(`${dateString}T00:00:00Z`);
+  if (!Number.isFinite(timestamp)) {
+    return dateString;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+}
+
 export function isRoutineDayDefaultName(args: {
   name: string | null | undefined;
   dayIndex: number;
@@ -232,7 +285,8 @@ function stripRoutineDayWeekdayPrefix(args: {
   ];
 
   for (const weekdayLabel of weekdayLabels) {
-    const prefixedLabelMatch = trimmedName.match(new RegExp(`^${escapeRegExp(weekdayLabel)}\\s*(?:\\u00B7|\\|)\\s*(.+)$`, "i"));
+    const separatorPattern = String.raw`(?:\u00B7|\u00C2\u00B7|\u00C3\u0082\u00C2\u00B7|\||-)`;
+    const prefixedLabelMatch = trimmedName.match(new RegExp(`^${escapeRegExp(weekdayLabel)}\\s*${separatorPattern}\\s*(.+)$`, "i"));
     const remainder = prefixedLabelMatch?.[1]?.trim();
     if (remainder) {
       return remainder;
@@ -259,7 +313,33 @@ export function formatRoutineDayDisplayName(args: {
 }) {
   const weekdayLabel = getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, args.weekday ?? "short");
   const customName = getRoutineDayEditableName(args);
-  return customName ? `${weekdayLabel} · ${customName}` : weekdayLabel;
+  if (customName) {
+    return `${weekdayLabel} | ${customName}`;
+  }
+  return weekdayLabel;
+}
+
+export function formatRoutineDayStableDisplayName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+}) {
+  return getRoutineDayEditableName(args) || `Day ${args.dayIndex}`;
+}
+
+export function formatRoutineDayOccurrenceDisplayName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+  occurrenceLabel: string | null | undefined;
+}) {
+  const occurrenceLabel = args.occurrenceLabel?.trim();
+  if (!occurrenceLabel) {
+    return formatRoutineDayDisplayName(args);
+  }
+
+  const stableName = formatRoutineDayStableDisplayName(args);
+  return `${stableName} | ${occurrenceLabel}`;
 }
 
 export function createRoutineDaySeedsFromStartDate(cycleLengthDays: number, userId: string, routineId: string, _startDate: string | null) {

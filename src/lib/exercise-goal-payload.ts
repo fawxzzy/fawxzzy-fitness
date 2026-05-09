@@ -199,8 +199,8 @@ export function mapRoutineDayGoalToSessionColumns(goal: {
   return {
     target_sets_min: goal.target_sets,
     target_sets_max: goal.target_sets,
-    target_reps_min: goal.target_reps_min ?? goal.target_reps,
-    target_reps_max: goal.target_reps_max ?? goal.target_reps,
+    target_reps_min: goal.target_reps ?? goal.target_reps_min,
+    target_reps_max: goal.target_reps ?? goal.target_reps_max,
     target_weight_min: goal.target_weight,
     target_weight_max: goal.target_weight,
     target_weight_unit: goal.target_weight_unit,

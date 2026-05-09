@@ -3,26 +3,43 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
+import { validateExerciseEquipment, validateExerciseName, validateMovementPattern } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getRoutineEditDayPath, getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
+import { getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import { insertRoutineDayExerciseAtEnd } from "@/lib/ordered-position-insert";
+import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
+import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
-  revalidatePath(getRoutineEditDayPath(routineId, dayId));
   revalidatePath(getTodayPath());
 }
 
 
 function parseRoutineExercisePayload(formData: FormData) {
   const parsed = parseExerciseGoalPayload(formData, { requireSets: true });
-
   if (!parsed.ok) {
     return parsed;
   }
 
-  return { ok: true as const, payload: mapExerciseGoalPayloadToRoutineDayColumns(parsed.payload) };
+  const progression = parseProgressionPlaybookPayload(formData);
+  if (!progression.ok) {
+    return progression;
+  }
+
+  return {
+    ok: true as const,
+    payload: {
+      ...mapExerciseGoalPayloadToRoutineDayColumns(parsed.payload),
+      progression_playbook_id: progression.playbookId,
+      progression_playbook_config: progression.config,
+    },
+  };
+}
+
+function selectedProgressionPlaybook(payload: Record<string, unknown>) {
+  return typeof payload.progression_playbook_id === "string" && payload.progression_playbook_id.length > 0;
 }
 
 export async function updateRoutineDaySettingsAction(formData: FormData): Promise<ActionResult> {
@@ -72,9 +89,10 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
-  const exerciseId = String(formData.get("exerciseId") ?? "").trim();
+  const selectedExerciseId = String(formData.get("exerciseId") ?? "").trim();
+  const isCustomExercise = String(formData.get("customExerciseMode") ?? "").trim() === "custom";
 
-  if (!routineId || !routineDayId || !exerciseId) {
+  if (!routineId || !routineDayId || (!selectedExerciseId && !isCustomExercise)) {
     return { ok: false, error: "Missing exercise info" };
   }
 
@@ -83,25 +101,110 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     return { ok: false, error: parsedPayload.error };
   }
 
+  let exerciseId = selectedExerciseId;
+  let createdCustomExerciseId: string | null = null;
+
+  if (isCustomExercise) {
+    const rawName = String(formData.get("customExerciseName") ?? "");
+    const rawEquipment = String(formData.get("customExerciseEquipment") ?? "");
+    const primaryMuscle = String(formData.get("customExercisePrimaryMuscle") ?? "").trim() || null;
+    const rawMovementPattern = String(formData.get("customExerciseMovementPattern") ?? "");
+
+    let name: string;
+    let equipment: string | null;
+    let movementPattern: string | null;
+
+    try {
+      name = validateExerciseName(rawName);
+      equipment = validateExerciseEquipment(rawEquipment);
+      movementPattern = validateMovementPattern(rawMovementPattern);
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "Could not create custom exercise" };
+    }
+
+    const { data: duplicateExercise } = await supabase
+      .from("exercises")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("is_global", false)
+      .ilike("name", name)
+      .maybeSingle();
+
+    if (duplicateExercise) {
+      return { ok: false, error: "You already have a custom exercise with this name." };
+    }
+
+    const { data: createdExercise, error: customExerciseError } = await supabase
+      .from("exercises")
+      .insert({
+        name,
+        user_id: user.id,
+        is_global: false,
+        primary_muscle: primaryMuscle,
+        equipment,
+        movement_pattern: movementPattern,
+        measurement_type: parsedPayload.payload.measurement_type === "none" ? "reps" : parsedPayload.payload.measurement_type,
+        default_unit: parsedPayload.payload.default_unit,
+      })
+      .select("id")
+      .single();
+
+    if (customExerciseError || !createdExercise) {
+      return { ok: false, error: customExerciseError?.message ?? "Could not create custom exercise" };
+    }
+
+    exerciseId = createdExercise.id;
+    createdCustomExerciseId = createdExercise.id;
+  }
+
   // Manual QA checklist:
   // - Create strength routine -> add reps + weight -> measurement_type = 'reps'
   // - Create cardio routine -> add time only -> measurement_type = 'time'
   // - Add time + distance -> measurement_type = 'time_distance'
   // - Create Open workout (Sets only) -> measurement_type defaults to 'reps'
   // - Ensure distance unit defaults to 'mi'
-  const { error } = await insertRoutineDayExerciseAtEnd({
+  const insertPayload = {
+    user_id: user.id,
+    routine_day_id: routineDayId,
+    exercise_id: exerciseId,
+    ...parsedPayload.payload,
+  };
+  let { error } = await insertRoutineDayExerciseAtEnd({
     supabase,
     routineDayId,
     userId: user.id,
-    values: {
-      user_id: user.id,
-      routine_day_id: routineDayId,
-      exercise_id: exerciseId,
-      ...parsedPayload.payload,
-    },
+    values: insertPayload,
   });
 
+  if (error && isMissingProgressionPlaybookColumnError(error) && !selectedProgressionPlaybook(parsedPayload.payload)) {
+    const fallback = await insertRoutineDayExerciseAtEnd({
+      supabase,
+      routineDayId,
+      userId: user.id,
+      values: omitProgressionPlaybookColumns(insertPayload),
+    });
+    error = fallback.error;
+  }
+
+  if (error && isMissingProgressionPlaybookColumnError(error) && selectedProgressionPlaybook(parsedPayload.payload)) {
+    return {
+      ok: false,
+      error: getSchemaMismatchMessage(error, {
+        operation: "add routine day exercise progression",
+        progressionMigration: "045",
+      }) ?? "Progression schema is missing. Apply migration 045.",
+    };
+  }
+
   if (error) {
+    if (createdCustomExerciseId) {
+      await supabase
+        .from("exercises")
+        .delete()
+        .eq("id", createdCustomExerciseId)
+        .eq("user_id", user.id)
+        .eq("is_global", false);
+    }
     return { ok: false, error: error.message };
   }
 
@@ -126,12 +229,32 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
     return { ok: false, error: parsedPayload.error };
   }
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from("routine_day_exercises")
     .update(parsedPayload.payload)
     .eq("id", exerciseRowId)
     .eq("routine_day_id", routineDayId)
     .eq("user_id", user.id);
+
+  if (error && isMissingProgressionPlaybookColumnError(error) && !selectedProgressionPlaybook(parsedPayload.payload)) {
+    const fallback = await supabase
+      .from("routine_day_exercises")
+      .update(omitProgressionPlaybookColumns(parsedPayload.payload))
+      .eq("id", exerciseRowId)
+      .eq("routine_day_id", routineDayId)
+      .eq("user_id", user.id);
+    error = fallback.error;
+  }
+
+  if (error && isMissingProgressionPlaybookColumnError(error) && selectedProgressionPlaybook(parsedPayload.payload)) {
+    return {
+      ok: false,
+      error: getSchemaMismatchMessage(error, {
+        operation: "update routine day exercise progression",
+        progressionMigration: "045",
+      }) ?? "Progression schema is missing. Apply migration 045.",
+    };
+  }
 
   if (error) {
     return { ok: false, error: error.message };

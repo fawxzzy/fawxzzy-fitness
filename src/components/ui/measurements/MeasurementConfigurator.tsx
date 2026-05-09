@@ -20,6 +20,7 @@ export function MeasurementConfigurator({
   showHeader = false,
   leadingContent,
   trailingContent,
+  betweenInputsAndFooterContent,
   footerContent,
   footerClassName,
   topField,
@@ -45,6 +46,7 @@ export function MeasurementConfigurator({
   showHeader?: boolean;
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
+  betweenInputsAndFooterContent?: ReactNode;
   footerContent?: ReactNode;
   footerClassName?: string;
   topField?: {
@@ -98,6 +100,7 @@ export function MeasurementConfigurator({
       showHeader={showHeader}
       leadingContent={leadingContent}
       trailingContent={trailingContent}
+      betweenInputsAndFooterContent={betweenInputsAndFooterContent}
       footerContent={footerContent}
       footerClassName={footerClassName}
       topField={topField}

@@ -123,7 +123,7 @@ test("entered auxiliary bodyweight values stay in derived selections", () => {
 });
 
 test("goal layouts use the fixed shared measurement ordering", () => {
-  assert.deepEqual(getGoalMeasurementOrder("cardio_time"), ["reps", "time", "distance", "calories", "weight"]);
+  assert.deepEqual(getGoalMeasurementOrder("cardio_time"), ["time", "distance", "calories", "reps", "weight"]);
 });
 
 test("goal modality keeps strength measurement type stable when auxiliary values are present", () => {

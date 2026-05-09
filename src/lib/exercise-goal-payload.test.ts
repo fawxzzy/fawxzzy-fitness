@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { mapRoutineDayGoalToSessionColumns, parseExerciseGoalPayload } from "./exercise-goal-payload.ts";
+import { mapExerciseGoalPayloadToRoutineDayColumns, mapRoutineDayGoalToSessionColumns, parseExerciseGoalPayload } from "./exercise-goal-payload.ts";
 
 test("parseExerciseGoalPayload preserves measurement-optional sets-only goals", () => {
   const formData = new FormData();
@@ -62,4 +62,9 @@ test("parseExerciseGoalPayload encodes failure goals through the reps sentinel",
   assert.equal(result.payload.target_reps_min, 0);
   assert.equal(result.payload.target_reps_max, 0);
   assert.equal(result.payload.target_weight_min, 100);
+
+  const mapped = mapExerciseGoalPayloadToRoutineDayColumns(result.payload);
+  assert.equal(mapped.target_reps, 0);
+  assert.equal(mapped.target_reps_min, 0);
+  assert.equal(mapped.target_reps_max, 0);
 });

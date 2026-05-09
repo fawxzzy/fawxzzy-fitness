@@ -21,9 +21,11 @@ test("reconcileSessionRowClientState drops stale rows and keeps pending flags fo
     },
     "row-zombie": {
       loggedSetCount: 9,
+      setCountOverrideActive: false,
       isSkipped: true,
       isQuickLogPending: true,
       isSkipPending: true,
+      showWhenCompleted: false,
     },
   };
 
@@ -39,4 +41,37 @@ test("reconcileSessionRowClientState drops stale rows and keeps pending flags fo
   assert.deepEqual(Object.keys(reconciled).sort(), ["row-a", "row-b"]);
   assert.equal(reconciled["row-b"]?.isSkipPending, true);
   assert.equal(reconciled["row-b"]?.isSkipped, true);
+});
+
+test("reconcileSessionRowClientState preserves local set-count overrides until the server catches up", () => {
+  const initial = buildInitialSessionRowClientState([
+    { id: "row-a", loggedSetCount: 4, isSkipped: false },
+  ]);
+
+  const optimistic = {
+    ...initial,
+    "row-a": {
+      ...initial["row-a"],
+      loggedSetCount: 2,
+      setCountOverrideActive: true,
+    },
+  };
+
+  const staleServer = reconcileSessionRowClientState({
+    current: optimistic,
+    rows: [{ id: "row-a", loggedSetCount: 4, isSkipped: false }],
+    mergedLoggedSetCount: { "row-a": 4 },
+  });
+
+  assert.equal(staleServer["row-a"]?.loggedSetCount, 2);
+  assert.equal(staleServer["row-a"]?.setCountOverrideActive, true);
+
+  const caughtUpServer = reconcileSessionRowClientState({
+    current: staleServer,
+    rows: [{ id: "row-a", loggedSetCount: 2, isSkipped: false }],
+    mergedLoggedSetCount: { "row-a": 2 },
+  });
+
+  assert.equal(caughtUpServer["row-a"]?.loggedSetCount, 2);
+  assert.equal(caughtUpServer["row-a"]?.setCountOverrideActive, false);
 });

@@ -64,6 +64,7 @@ export type ProfileRow = {
   active_routine_id: string | null;
   preferred_weight_unit: "lbs" | "kg" | null;
   preferred_distance_unit: "mi" | "km" | null;
+  show_qa_llel_data?: boolean | null;
   user_number: number | null;
   user_kind: "human" | "automation" | "unknown";
   user_number_assigned_at?: string | null;
@@ -78,6 +79,8 @@ export type RoutineRow = {
   timezone: string;
   updated_at: string;
   weight_unit: "lbs" | "kg";
+  default_progression_playbook_id?: "double_progression" | "fixed_load_rep_range_progression" | "deload_after_stall" | null;
+  default_progression_playbook_config?: Record<string, unknown> | null;
 };
 
 export type RoutineDayRow = {
@@ -106,6 +109,8 @@ export type RoutineDayExerciseRow = {
   target_distance: number | null;
   target_distance_unit: "mi" | "km" | "m" | null;
   target_calories: number | null;
+  progression_playbook_id?: "double_progression" | "fixed_load_rep_range_progression" | "deload_after_stall" | null;
+  progression_playbook_config?: Record<string, unknown> | null;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: "mi" | "km" | "m" | null;
   notes: string | null;
@@ -120,13 +125,17 @@ export type ExerciseRow = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_path?: string | null;
   image_icon_path?: string | null;
   image_howto_path: string | null;
   slug?: string | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
   how_to_short: string | null;
   curation_tags?: Record<string, string[]> | null;
   created_at: string;

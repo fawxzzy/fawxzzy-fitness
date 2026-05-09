@@ -41,7 +41,7 @@ export const stretchPreviewSessionExercise: SessionExerciseFocusItem = {
   targetHint: {
     shortLabel: "Repeat 45 s",
     reason: "The preview uses the last completed mobility hold as the deterministic next target.",
-    source: "last_performance",
+    source: "fallback_last_successful_set",
     confidence: "medium",
     suggestedValues: {
       measurementType: "time",

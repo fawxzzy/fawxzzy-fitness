@@ -19,6 +19,8 @@ type AppNavProps = {
 const NAV_PENDING_HINT_DELAY_MS = 140;
 const DISCARD_CONFIRM_BAR_SURFACE_CLASSNAME =
   "relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.14)] px-2 pb-1 shadow-[0_20px_44px_rgba(0,0,0,0.16)] supports-[backdrop-filter]:bg-[rgb(var(--surface-1-rgb)/0.08)]";
+const TOP_CHROME_BAR_SURFACE_CLASSNAME =
+  "relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-transparent px-2 pb-1 shadow-none";
 
 const links: NavLink[] = [
   {
@@ -133,7 +135,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
       }`}
     >
       <ContentRail className="pointer-events-auto min-w-0">
-        <div className={DISCARD_CONFIRM_BAR_SURFACE_CLASSNAME}>
+        <div className={mode === "topChrome" ? TOP_CHROME_BAR_SURFACE_CLASSNAME : DISCARD_CONFIRM_BAR_SURFACE_CLASSNAME}>
           <div className="flex h-[var(--header-h)] items-center justify-center pt-0.5">
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {

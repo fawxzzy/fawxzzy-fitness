@@ -167,7 +167,7 @@ function WeeklyProgressBody({
               <MetricStrip items={volumeItems} accentBarVariant="compact" />
             ) : (
               <p className="text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-                No logged set volume in this week yet.
+                No logged set volume in this cycle yet.
               </p>
             )}
           </div>
@@ -187,7 +187,7 @@ function WeeklyProgressBody({
             </div>
           ) : (
             <p className="text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-              No PR moments recorded in the current week.
+              No PR moments recorded in the current cycle.
             </p>
           )}
         </div>
@@ -198,7 +198,7 @@ function WeeklyProgressBody({
 
 function HistoryGroupCompactHeader({
   title,
-  label = "Weekly Progression",
+  label = "Cycle Progression",
   expanded,
   controlsId,
   onToggle,
@@ -281,7 +281,7 @@ function HistoricalWeeklyProgressSurface({
           <div className="px-5 pb-2 pt-4">
             <div className="flex items-center gap-3">
               <p className="shrink-0 text-[0.82rem] font-semibold tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
-                Week Summary
+                Cycle Summary
               </p>
               <div className="min-w-0 flex-1 text-right">
                 <p className="text-[1.05rem] font-semibold leading-tight text-[rgb(var(--success-rgb)/0.94)]">
@@ -300,7 +300,7 @@ function HistoricalWeeklyProgressSurface({
     <section>
       <HistoryGroupCompactHeader
         title={weekRangeLabel}
-        label="Week Summary"
+        label="Cycle Summary"
         expanded={expanded}
         controlsId={panelId}
         onToggle={() => setExpanded((current) => !current)}

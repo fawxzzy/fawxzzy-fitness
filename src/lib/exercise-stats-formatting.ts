@@ -3,7 +3,11 @@ export function positive(value: number | null | undefined): number {
 }
 
 function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+  if (Number.isInteger(value)) {
+    return String(value);
+  }
+
+  return value.toFixed(2).replace(/\.?0+$/, "");
 }
 
 export function formatDurationShort(seconds?: number | null): string | null {

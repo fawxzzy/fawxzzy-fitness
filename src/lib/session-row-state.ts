@@ -1,4 +1,5 @@
 import type { ActionChromeIntent } from "@/components/ui/actionChrome";
+import type { BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress";
 import { formatQuickLogPreviewLabelForResolvedTarget, resolveEffectiveQuickLogTarget, type SessionQuickLogTarget } from "./session-quick-log";
 
@@ -24,9 +25,9 @@ export type SessionRowState = {
   badgeText?: string;
   progressLabel?: string;
   chips: SessionExerciseProgressChip[];
-  skipActionLabel: "Skip" | "Unskip";
+  skipActionLabel: "Skip" | "Unskip" | "Hide" | "Unhide";
   quickLogActionIntent: ActionChromeIntent;
-  skipActionIntent: ActionChromeIntent;
+  skipActionIntent: BottomActionIntent;
   actionRowClassName: string;
   quickLogActionClassName: string;
   skipActionClassName: string;
@@ -73,7 +74,7 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
     chips: progressState.chips,
     skipActionLabel: progressState.skipActionLabel,
     quickLogActionIntent: progressState.allowQuickLog ? "positive" : "neutral",
-    skipActionIntent: "danger",
+    skipActionIntent: input.isSkipped ? "toggleActive" : "toggleInactive",
     isQuickLogDisabled: !progressState.allowQuickLog,
     isSkipDisabled: !progressState.allowSkipToggle,
     quickLogDisabledMessage: "Unskip to log",

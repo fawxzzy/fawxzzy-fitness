@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-05-03T23:58:36.382Z",
+  "generated_at": "2026-05-07T22:08:00.818Z",
   "source_path": "supabase/data/global_exercises_canonical.json",
-  "exercise_count": 168,
+  "exercise_count": 186,
   "coverage": {
-    "withHowTo": 168,
-    "withMeasurementType": 168,
-    "withDefaultUnit": 168,
+    "withHowTo": 186,
+    "withMeasurementType": 186,
+    "withDefaultUnit": 186,
     "withCaloriesEstimationMethod": 6,
-    "withPrimaryMusclesArray": 168,
-    "withSecondaryMusclesArray": 141,
-    "withHowToImage": 168,
-    "withMuscleImage": 168,
-    "withFullCuration": 168
+    "withPrimaryMusclesArray": 186,
+    "withSecondaryMusclesArray": 159,
+    "withHowToImage": 186,
+    "withMuscleImage": 186,
+    "withFullCuration": 186
   },
   "duplicates": {
     "duplicate_names": [],
@@ -21,7 +21,7 @@
     "equipment": [
       {
         "value": "Bodyweight",
-        "count": 39
+        "count": 57
       },
       {
         "value": "Barbell",
@@ -59,7 +59,7 @@
     "movement_pattern": [
       {
         "value": "push",
-        "count": 88
+        "count": 92
       },
       {
         "value": "pull",
@@ -67,21 +67,25 @@
       },
       {
         "value": "hinge",
-        "count": 24
+        "count": 32
       },
       {
         "value": "squat",
         "count": 16
+      },
+      {
+        "value": "rotation",
+        "count": 6
       }
     ],
     "measurement_type": [
       {
         "value": "reps",
-        "count": 152
+        "count": 162
       },
       {
         "value": "time",
-        "count": 8
+        "count": 16
       },
       {
         "value": "time_distance",
@@ -94,16 +98,16 @@
     ],
     "primary_muscle": [
       {
+        "value": "core",
+        "count": 27
+      },
+      {
         "value": "quads, glutes",
         "count": 23
       },
       {
         "value": "chest, triceps",
         "count": 19
-      },
-      {
-        "value": "core",
-        "count": 18
       },
       {
         "value": "lats, mid back",
@@ -122,11 +126,11 @@
         "count": 10
       },
       {
-        "value": "front delts, triceps",
-        "count": 8
+        "value": "glutes",
+        "count": 9
       },
       {
-        "value": "glutes",
+        "value": "front delts, triceps",
         "count": 8
       },
       {
@@ -166,11 +170,19 @@
         "count": 2
       },
       {
+        "value": "back",
+        "count": 2
+      },
+      {
         "value": "front delts",
         "count": 2
       },
       {
         "value": "glutes, hamstrings",
+        "count": 2
+      },
+      {
+        "value": "glutes, hips",
         "count": 2
       },
       {
@@ -180,6 +192,22 @@
       {
         "value": "recovery",
         "count": 2
+      },
+      {
+        "value": "back, hamstrings",
+        "count": 1
+      },
+      {
+        "value": "core, back",
+        "count": 1
+      },
+      {
+        "value": "core, hips",
+        "count": 1
+      },
+      {
+        "value": "hips, obliques",
+        "count": 1
       },
       {
         "value": "rear delts, upper back",
@@ -197,11 +225,15 @@
     "primary_muscles": [
       {
         "value": "glutes",
-        "count": 43
+        "count": 46
       },
       {
         "value": "triceps",
         "count": 33
+      },
+      {
+        "value": "core",
+        "count": 29
       },
       {
         "value": "chest",
@@ -216,12 +248,8 @@
         "count": 23
       },
       {
-        "value": "core",
-        "count": 18
-      },
-      {
         "value": "hamstrings",
-        "count": 13
+        "count": 14
       },
       {
         "value": "upper back",
@@ -252,7 +280,15 @@
         "count": 5
       },
       {
+        "value": "back",
+        "count": 4
+      },
+      {
         "value": "calves",
+        "count": 4
+      },
+      {
+        "value": "hips",
         "count": 4
       },
       {
@@ -268,6 +304,10 @@
         "count": 2
       },
       {
+        "value": "obliques",
+        "count": 1
+      },
+      {
         "value": "recovery",
         "count": 1
       },
@@ -279,7 +319,7 @@
     "secondary_muscles": [
       {
         "value": "core",
-        "count": 56
+        "count": 60
       },
       {
         "value": "front delts",
@@ -295,6 +335,14 @@
       },
       {
         "value": "glutes",
+        "count": 16
+      },
+      {
+        "value": "hip flexors",
+        "count": 13
+      },
+      {
+        "value": "hamstrings",
         "count": 12
       },
       {
@@ -306,8 +354,8 @@
         "count": 10
       },
       {
-        "value": "hamstrings",
-        "count": 9
+        "value": "shoulders",
+        "count": 10
       },
       {
         "value": "quads",
@@ -316,14 +364,6 @@
       {
         "value": "side delts",
         "count": 8
-      },
-      {
-        "value": "hip flexors",
-        "count": 7
-      },
-      {
-        "value": "shoulders",
-        "count": 7
       },
       {
         "value": "upper traps",
@@ -342,11 +382,19 @@
         "count": 2
       },
       {
+        "value": "back",
+        "count": 1
+      },
+      {
         "value": "chest",
         "count": 1
       },
       {
         "value": "lats",
+        "count": 1
+      },
+      {
+        "value": "obliques",
         "count": 1
       },
       {
@@ -381,7 +429,11 @@
       },
       {
         "value": "hip_extension",
-        "count": 8
+        "count": 9
+      },
+      {
+        "value": "trunk_bracing",
+        "count": 9
       },
       {
         "value": "vertical_push",
@@ -389,6 +441,10 @@
       },
       {
         "value": "split_squat_lunge",
+        "count": 7
+      },
+      {
+        "value": "trunk_rotation",
         "count": 7
       },
       {
@@ -400,19 +456,15 @@
         "count": 6
       },
       {
-        "value": "trunk_bracing",
-        "count": 6
-      },
-      {
-        "value": "trunk_rotation",
-        "count": 5
-      },
-      {
         "value": "plantar_flexion",
         "count": 4
       },
       {
         "value": "anti_rotation",
+        "count": 3
+      },
+      {
+        "value": "hip_abduction",
         "count": 3
       },
       {
@@ -428,11 +480,11 @@
         "count": 3
       },
       {
-        "value": "cycling",
+        "value": "anti_extension",
         "count": 2
       },
       {
-        "value": "hip_abduction",
+        "value": "cycling",
         "count": 2
       },
       {
@@ -464,11 +516,35 @@
         "count": 2
       },
       {
+        "value": "contralateral_extension",
+        "count": 1
+      },
+      {
         "value": "full_body_conditioning",
         "count": 1
       },
       {
+        "value": "hamstring_mobility",
+        "count": 1
+      },
+      {
+        "value": "hip_circumduction",
+        "count": 1
+      },
+      {
+        "value": "hip_external_rotation",
+        "count": 1
+      },
+      {
         "value": "knee_extension",
+        "count": 1
+      },
+      {
+        "value": "lateral_flexion_mobility",
+        "count": 1
+      },
+      {
+        "value": "lateral_trunk_bracing",
         "count": 1
       },
       {
@@ -496,6 +572,18 @@
         "count": 1
       },
       {
+        "value": "spinal_extension",
+        "count": 1
+      },
+      {
+        "value": "spinal_flexion",
+        "count": 1
+      },
+      {
+        "value": "spinal_flexion_mobility",
+        "count": 1
+      },
+      {
         "value": "step_cardio",
         "count": 1
       },
@@ -507,15 +595,15 @@
     "plane_of_motion": [
       {
         "value": "sagittal",
-        "count": 140
+        "count": 151
       },
       {
         "value": "transverse",
-        "count": 18
+        "count": 22
       },
       {
         "value": "frontal",
-        "count": 8
+        "count": 11
       },
       {
         "value": "multi_planar",
@@ -525,7 +613,7 @@
     "exercise_utility": [
       {
         "value": "basic",
-        "count": 85
+        "count": 103
       },
       {
         "value": "isolation",
@@ -546,16 +634,16 @@
         "count": 89
       },
       {
-        "value": "seated",
-        "count": 24
+        "value": "supine",
+        "count": 32
       },
       {
-        "value": "supine",
-        "count": 24
+        "value": "seated",
+        "count": 28
       },
       {
         "value": "prone",
-        "count": 8
+        "count": 10
       },
       {
         "value": "split_stance",
@@ -571,7 +659,15 @@
       },
       {
         "value": "side_lying",
-        "count": 3
+        "count": 5
+      },
+      {
+        "value": "plank",
+        "count": 1
+      },
+      {
+        "value": "side_plank",
+        "count": 1
       },
       {
         "value": "supported",
@@ -596,16 +692,20 @@
         "count": 54
       },
       {
+        "value": "core_stability",
+        "count": 30
+      },
+      {
+        "value": "mobility",
+        "count": 21
+      },
+      {
         "value": "skill",
         "count": 18
       },
       {
         "value": "conditioning",
         "count": 15
-      },
-      {
-        "value": "core_stability",
-        "count": 12
       },
       {
         "value": "endurance",
@@ -616,32 +716,28 @@
         "count": 5
       },
       {
-        "value": "mobility",
-        "count": 3
-      },
-      {
         "value": "recovery",
         "count": 2
       }
     ],
     "difficulty": [
       {
+        "value": "beginner",
+        "count": 89
+      },
+      {
         "value": "intermediate",
         "count": 77
       },
       {
-        "value": "beginner",
-        "count": 72
-      },
-      {
         "value": "advanced",
-        "count": 19
+        "count": 20
       }
     ],
     "setup_cost": [
       {
         "value": "quick_setup",
-        "count": 93
+        "count": 111
       },
       {
         "value": "high_setup",
@@ -655,7 +751,7 @@
     "stability_requirement": [
       {
         "value": "freestanding",
-        "count": 92
+        "count": 110
       },
       {
         "value": "supported",
@@ -681,15 +777,15 @@
     "unilateral_profile": [
       {
         "value": "bilateral",
-        "count": 147
+        "count": 157
       },
       {
         "value": "unilateral",
-        "count": 17
+        "count": 21
       },
       {
         "value": "alternating",
-        "count": 4
+        "count": 8
       }
     ],
     "loading_profile": [
@@ -699,7 +795,7 @@
       },
       {
         "value": "bodyweight",
-        "count": 39
+        "count": 57
       },
       {
         "value": "machine_loaded",
@@ -736,6 +832,10 @@
         "count": 14
       },
       {
+        "value": "trunk_bracing",
+        "count": 12
+      },
+      {
         "value": "cyclical_conditioning",
         "count": 11
       },
@@ -746,10 +846,6 @@
       {
         "value": "vertical_pull",
         "count": 11
-      },
-      {
-        "value": "trunk_bracing",
-        "count": 9
       },
       {
         "value": "vertical_press",
@@ -776,6 +872,10 @@
         "count": 3
       },
       {
+        "value": "hip_abduction",
+        "count": 3
+      },
+      {
         "value": "shoulder_abduction",
         "count": 3
       },
@@ -788,22 +888,62 @@
         "count": 3
       },
       {
-        "value": "hip_abduction",
+        "value": "hip_adduction",
         "count": 2
       },
       {
-        "value": "hip_adduction",
+        "value": "rotation_control",
+        "count": 2
+      },
+      {
+        "value": "spinal_control",
+        "count": 2
+      },
+      {
+        "value": "trunk_control",
         "count": 2
       },
       {
         "value": "trunk_flexion",
         "count": 2
+      },
+      {
+        "value": "hip_control",
+        "count": 1
+      },
+      {
+        "value": "hip_extension",
+        "count": 1
+      },
+      {
+        "value": "hip_flexion_control",
+        "count": 1
+      },
+      {
+        "value": "hip_rotation",
+        "count": 1
+      },
+      {
+        "value": "lateral_flexion",
+        "count": 1
+      },
+      {
+        "value": "lateral_trunk_bracing",
+        "count": 1
+      },
+      {
+        "value": "posterior_chain_control",
+        "count": 1
+      },
+      {
+        "value": "spinal_extension",
+        "count": 1
       }
     ],
     "spine_demand": [
       {
         "value": "low_spinal_load",
-        "count": 141
+        "count": 159
       },
       {
         "value": "high_spinal_load",
@@ -897,6 +1037,62 @@
         "default_unit": "s",
         "equipment": "Bodyweight",
         "pattern_detail": "locomotion_drill"
+      },
+      {
+        "name": "Pilates Hundred",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "trunk_bracing"
+      },
+      {
+        "name": "Pilates Mermaid Stretch",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "lateral_flexion_mobility"
+      },
+      {
+        "name": "Pilates Plank",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "trunk_bracing"
+      },
+      {
+        "name": "Pilates Saw",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "trunk_rotation"
+      },
+      {
+        "name": "Pilates Side Plank",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "lateral_trunk_bracing"
+      },
+      {
+        "name": "Pilates Spine Stretch Forward",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "spinal_flexion_mobility"
+      },
+      {
+        "name": "Pilates Swimming",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "contralateral_extension"
+      },
+      {
+        "name": "Pilates Teaser",
+        "measurement_type": "time",
+        "default_unit": "s",
+        "equipment": "Bodyweight",
+        "pattern_detail": "trunk_bracing"
       },
       {
         "name": "Plank",
@@ -9296,6 +9492,1402 @@
     },
     {
       "index": 106,
+      "name": "Pilates Clam",
+      "slug": "pilates-clam",
+      "equipment": "Bodyweight",
+      "movement_pattern": "rotation",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "glutes, hips",
+      "primary_muscles": [
+        "glutes",
+        "hips"
+      ],
+      "secondary_muscles": [
+        "core"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Keep heels together and hips stacked, open the top knee from the hip, then close without rocking the pelvis.",
+      "curation_tags": {
+        "pattern_detail": [
+          "hip_external_rotation"
+        ],
+        "plane_of_motion": [
+          "transverse"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "side_lying"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "unilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "hip_rotation"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:hip_external_rotation",
+        "plane_of_motion:transverse",
+        "exercise_utility:basic",
+        "body_position:side_lying",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:unilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:hip_rotation",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Clam pilates-clam glutes, hips glutes hips core Bodyweight rotation pattern_detail:hip_external_rotation plane_of_motion:transverse exercise_utility:basic body_position:side_lying training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:unilateral loading_profile:bodyweight joint_emphasis:hip_rotation spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 107,
+      "name": "Pilates Criss-Cross",
+      "slug": "pilates-criss-cross",
+      "equipment": "Bodyweight",
+      "movement_pattern": "rotation",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "obliques"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Rotate from the ribs toward the opposite knee, keep the pelvis heavy, and switch sides without rushing.",
+      "curation_tags": {
+        "pattern_detail": [
+          "trunk_rotation"
+        ],
+        "plane_of_motion": [
+          "transverse"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "alternating"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "rotation_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:trunk_rotation",
+        "plane_of_motion:transverse",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:alternating",
+        "loading_profile:bodyweight",
+        "joint_emphasis:rotation_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Criss-Cross pilates-criss-cross core core obliques Bodyweight rotation pattern_detail:trunk_rotation plane_of_motion:transverse exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:alternating loading_profile:bodyweight joint_emphasis:rotation_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 108,
+      "name": "Pilates Double-Leg Stretch",
+      "slug": "pilates-double-leg-stretch",
+      "equipment": "Bodyweight",
+      "movement_pattern": "push",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "hip flexors"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Reach arms and legs away only as far as you can keep the trunk still, then sweep back to the tucked position.",
+      "curation_tags": {
+        "pattern_detail": [
+          "anti_extension"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "trunk_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:anti_extension",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:trunk_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Double-Leg Stretch pilates-double-leg-stretch core core hip flexors Bodyweight push pattern_detail:anti_extension plane_of_motion:sagittal exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:trunk_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 109,
+      "name": "Pilates Hundred",
+      "slug": "pilates-hundred",
+      "equipment": "Bodyweight",
+      "movement_pattern": "push",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "hip flexors"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Brace with the low ribs heavy, pump the arms from the shoulders, and keep the breath steady without letting the low back arch.",
+      "curation_tags": {
+        "pattern_detail": [
+          "trunk_bracing"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "trunk_bracing"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:trunk_bracing",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:trunk_bracing",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Hundred pilates-hundred core core hip flexors Bodyweight push pattern_detail:trunk_bracing plane_of_motion:sagittal exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:trunk_bracing spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 110,
+      "name": "Pilates Leg Circles",
+      "slug": "pilates-leg-circles",
+      "equipment": "Bodyweight",
+      "movement_pattern": "rotation",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "core, hips",
+      "primary_muscles": [
+        "core",
+        "hips"
+      ],
+      "secondary_muscles": [
+        "hip flexors"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Keep the pelvis heavy while the leg circles from the hip, using a range you can control.",
+      "curation_tags": {
+        "pattern_detail": [
+          "hip_circumduction"
+        ],
+        "plane_of_motion": [
+          "transverse"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "unilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "hip_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:hip_circumduction",
+        "plane_of_motion:transverse",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:unilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:hip_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Leg Circles pilates-leg-circles core, hips core hips hip flexors Bodyweight rotation pattern_detail:hip_circumduction plane_of_motion:transverse exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:unilateral loading_profile:bodyweight joint_emphasis:hip_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 111,
+      "name": "Pilates Mermaid Stretch",
+      "slug": "pilates-mermaid-stretch",
+      "equipment": "Bodyweight",
+      "movement_pattern": "rotation",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "hips, obliques",
+      "primary_muscles": [
+        "hips",
+        "obliques"
+      ],
+      "secondary_muscles": [
+        "back"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Sit grounded, reach one arm overhead, and side-bend through the ribs while both hips stay heavy.",
+      "curation_tags": {
+        "pattern_detail": [
+          "lateral_flexion_mobility"
+        ],
+        "plane_of_motion": [
+          "frontal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "seated"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "lateral_flexion"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:lateral_flexion_mobility",
+        "plane_of_motion:frontal",
+        "exercise_utility:basic",
+        "body_position:seated",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:lateral_flexion",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Mermaid Stretch pilates-mermaid-stretch hips, obliques hips obliques back Bodyweight rotation pattern_detail:lateral_flexion_mobility plane_of_motion:frontal exercise_utility:basic body_position:seated training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:lateral_flexion spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 112,
+      "name": "Pilates Plank",
+      "slug": "pilates-plank",
+      "equipment": "Bodyweight",
+      "movement_pattern": "push",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "glutes"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Press the floor away, keep ribs and pelvis stacked, and hold a straight line without sagging.",
+      "curation_tags": {
+        "pattern_detail": [
+          "trunk_bracing"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "plank"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "trunk_bracing"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:trunk_bracing",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:plank",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:trunk_bracing",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Plank pilates-plank core core shoulders glutes Bodyweight push pattern_detail:trunk_bracing plane_of_motion:sagittal exercise_utility:basic body_position:plank training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:trunk_bracing spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 113,
+      "name": "Pilates Roll-Up",
+      "slug": "pilates-roll-up",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "hip flexors"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Peel the spine up one segment at a time, reach forward with control, then roll back down without using momentum.",
+      "curation_tags": {
+        "pattern_detail": [
+          "spinal_flexion"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "spinal_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:spinal_flexion",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:spinal_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Roll-Up pilates-roll-up core core hip flexors Bodyweight hinge pattern_detail:spinal_flexion plane_of_motion:sagittal exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:spinal_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 114,
+      "name": "Pilates Saw",
+      "slug": "pilates-saw",
+      "equipment": "Bodyweight",
+      "movement_pattern": "rotation",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "core, back",
+      "primary_muscles": [
+        "core",
+        "back"
+      ],
+      "secondary_muscles": [
+        "hamstrings"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Sit tall, rotate through the ribs, reach toward the opposite foot, then stack the spine back up.",
+      "curation_tags": {
+        "pattern_detail": [
+          "trunk_rotation"
+        ],
+        "plane_of_motion": [
+          "transverse"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "seated"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "rotation_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:trunk_rotation",
+        "plane_of_motion:transverse",
+        "exercise_utility:basic",
+        "body_position:seated",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:rotation_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Saw pilates-saw core, back core back hamstrings Bodyweight rotation pattern_detail:trunk_rotation plane_of_motion:transverse exercise_utility:basic body_position:seated training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:rotation_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 115,
+      "name": "Pilates Shoulder Bridge",
+      "slug": "pilates-shoulder-bridge",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "glutes",
+      "primary_muscles": [
+        "glutes"
+      ],
+      "secondary_muscles": [
+        "hamstrings",
+        "core"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Roll the hips up from the mat, keep the ribs stacked, and lower through the spine with control.",
+      "curation_tags": {
+        "pattern_detail": [
+          "hip_extension"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "hip_extension"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:hip_extension",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:hip_extension",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Shoulder Bridge pilates-shoulder-bridge glutes glutes hamstrings core Bodyweight hinge pattern_detail:hip_extension plane_of_motion:sagittal exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:hip_extension spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 116,
+      "name": "Pilates Side Plank",
+      "slug": "pilates-side-plank",
+      "equipment": "Bodyweight",
+      "movement_pattern": "push",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "glutes"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Stack the shoulder and hips, press away from the floor, and keep the body long without rotating forward.",
+      "curation_tags": {
+        "pattern_detail": [
+          "lateral_trunk_bracing"
+        ],
+        "plane_of_motion": [
+          "frontal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "side_plank"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "unilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "lateral_trunk_bracing"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:lateral_trunk_bracing",
+        "plane_of_motion:frontal",
+        "exercise_utility:basic",
+        "body_position:side_plank",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:unilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:lateral_trunk_bracing",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Side Plank pilates-side-plank core core shoulders glutes Bodyweight push pattern_detail:lateral_trunk_bracing plane_of_motion:frontal exercise_utility:basic body_position:side_plank training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:unilateral loading_profile:bodyweight joint_emphasis:lateral_trunk_bracing spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 117,
+      "name": "Pilates Side-Lying Leg Lift",
+      "slug": "pilates-side-lying-leg-lift",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "glutes, hips",
+      "primary_muscles": [
+        "glutes",
+        "hips"
+      ],
+      "secondary_muscles": [
+        "core"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Stack the hips, lift the top leg without rolling backward, and lower slowly to keep tension.",
+      "curation_tags": {
+        "pattern_detail": [
+          "hip_abduction"
+        ],
+        "plane_of_motion": [
+          "frontal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "side_lying"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "unilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "hip_abduction"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:hip_abduction",
+        "plane_of_motion:frontal",
+        "exercise_utility:basic",
+        "body_position:side_lying",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:unilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:hip_abduction",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Side-Lying Leg Lift pilates-side-lying-leg-lift glutes, hips glutes hips core Bodyweight hinge pattern_detail:hip_abduction plane_of_motion:frontal exercise_utility:basic body_position:side_lying training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:unilateral loading_profile:bodyweight joint_emphasis:hip_abduction spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 118,
+      "name": "Pilates Single Straight-Leg Stretch",
+      "slug": "pilates-single-straight-leg-stretch",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "hamstrings"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Keep both legs long, switch with control, and maintain a steady trunk curl without bouncing the lifted leg.",
+      "curation_tags": {
+        "pattern_detail": [
+          "hamstring_mobility"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "alternating"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "hip_flexion_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:hamstring_mobility",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:alternating",
+        "loading_profile:bodyweight",
+        "joint_emphasis:hip_flexion_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Single Straight-Leg Stretch pilates-single-straight-leg-stretch core core hamstrings Bodyweight hinge pattern_detail:hamstring_mobility plane_of_motion:sagittal exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:alternating loading_profile:bodyweight joint_emphasis:hip_flexion_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 119,
+      "name": "Pilates Single-Leg Stretch",
+      "slug": "pilates-single-leg-stretch",
+      "equipment": "Bodyweight",
+      "movement_pattern": "rotation",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "hip flexors"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Keep the trunk curled and quiet, switch legs smoothly, and pull the knee in without yanking the neck.",
+      "curation_tags": {
+        "pattern_detail": [
+          "anti_extension"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "supine"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "alternating"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "trunk_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:anti_extension",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:supine",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:alternating",
+        "loading_profile:bodyweight",
+        "joint_emphasis:trunk_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Single-Leg Stretch pilates-single-leg-stretch core core hip flexors Bodyweight rotation pattern_detail:anti_extension plane_of_motion:sagittal exercise_utility:basic body_position:supine training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:alternating loading_profile:bodyweight joint_emphasis:trunk_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 120,
+      "name": "Pilates Spine Stretch Forward",
+      "slug": "pilates-spine-stretch-forward",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "back, hamstrings",
+      "primary_muscles": [
+        "back",
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "core"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Sit tall, nod the head and round forward from the upper spine, then rebuild the posture one segment at a time.",
+      "curation_tags": {
+        "pattern_detail": [
+          "spinal_flexion_mobility"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "seated"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "spinal_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:spinal_flexion_mobility",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:seated",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:spinal_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Spine Stretch Forward pilates-spine-stretch-forward back, hamstrings back hamstrings core Bodyweight hinge pattern_detail:spinal_flexion_mobility plane_of_motion:sagittal exercise_utility:basic body_position:seated training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:spinal_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 121,
+      "name": "Pilates Swan",
+      "slug": "pilates-swan",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "reps",
+      "default_unit": "reps",
+      "calories_estimation_method": "",
+      "primary_muscle": "back",
+      "primary_muscles": [
+        "back"
+      ],
+      "secondary_muscles": [
+        "glutes"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Press the chest forward and up with long legs, keep the neck neutral, and avoid dumping into the low back.",
+      "curation_tags": {
+        "pattern_detail": [
+          "spinal_extension"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "prone"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "spinal_extension"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:spinal_extension",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:prone",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:spinal_extension",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Swan pilates-swan back back glutes Bodyweight hinge pattern_detail:spinal_extension plane_of_motion:sagittal exercise_utility:basic body_position:prone training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:spinal_extension spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 122,
+      "name": "Pilates Swimming",
+      "slug": "pilates-swimming",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "back",
+      "primary_muscles": [
+        "back"
+      ],
+      "secondary_muscles": [
+        "glutes",
+        "shoulders"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Reach opposite arm and leg long, flutter with small controlled reps, and keep the neck relaxed.",
+      "curation_tags": {
+        "pattern_detail": [
+          "contralateral_extension"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "prone"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "beginner"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "alternating"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "posterior_chain_control"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:contralateral_extension",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:prone",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:beginner",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:alternating",
+        "loading_profile:bodyweight",
+        "joint_emphasis:posterior_chain_control",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Swimming pilates-swimming back back glutes shoulders Bodyweight hinge pattern_detail:contralateral_extension plane_of_motion:sagittal exercise_utility:basic body_position:prone training_goal:mobility training_goal:core_stability difficulty:beginner setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:alternating loading_profile:bodyweight joint_emphasis:posterior_chain_control spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 123,
+      "name": "Pilates Teaser",
+      "slug": "pilates-teaser",
+      "equipment": "Bodyweight",
+      "movement_pattern": "hinge",
+      "measurement_type": "time",
+      "default_unit": "s",
+      "calories_estimation_method": "",
+      "primary_muscle": "core",
+      "primary_muscles": [
+        "core"
+      ],
+      "secondary_muscles": [
+        "hip flexors"
+      ],
+      "image_howto_path": "/exercises/placeholders/howto.svg",
+      "image_muscles_path": "/exercises/placeholders/muscles.svg",
+      "how_to_short": "Balance tall through the spine, hold the legs and trunk in a V shape, and lower before the low back takes over.",
+      "curation_tags": {
+        "pattern_detail": [
+          "trunk_bracing"
+        ],
+        "plane_of_motion": [
+          "sagittal"
+        ],
+        "exercise_utility": [
+          "basic"
+        ],
+        "body_position": [
+          "seated"
+        ],
+        "training_goal": [
+          "mobility",
+          "core_stability"
+        ],
+        "difficulty": [
+          "advanced"
+        ],
+        "setup_cost": [
+          "quick_setup"
+        ],
+        "stability_requirement": [
+          "freestanding"
+        ],
+        "unilateral_profile": [
+          "bilateral"
+        ],
+        "loading_profile": [
+          "bodyweight"
+        ],
+        "joint_emphasis": [
+          "trunk_bracing"
+        ],
+        "spine_demand": [
+          "low_spinal_load"
+        ],
+        "grip_constraint": []
+      },
+      "facet_tags": [
+        "pattern_detail:trunk_bracing",
+        "plane_of_motion:sagittal",
+        "exercise_utility:basic",
+        "body_position:seated",
+        "training_goal:mobility",
+        "training_goal:core_stability",
+        "difficulty:advanced",
+        "setup_cost:quick_setup",
+        "stability_requirement:freestanding",
+        "unilateral_profile:bilateral",
+        "loading_profile:bodyweight",
+        "joint_emphasis:trunk_bracing",
+        "spine_demand:low_spinal_load"
+      ],
+      "search_text": "Pilates Teaser pilates-teaser core core hip flexors Bodyweight hinge pattern_detail:trunk_bracing plane_of_motion:sagittal exercise_utility:basic body_position:seated training_goal:mobility training_goal:core_stability difficulty:advanced setup_cost:quick_setup stability_requirement:freestanding unilateral_profile:bilateral loading_profile:bodyweight joint_emphasis:trunk_bracing spine_demand:low_spinal_load",
+      "review_flags": []
+    },
+    {
+      "index": 124,
       "name": "Plank",
       "slug": "plank",
       "equipment": "Bodyweight",
@@ -9370,7 +10962,7 @@
       "review_flags": []
     },
     {
-      "index": 107,
+      "index": 125,
       "name": "Plate Front Raise",
       "slug": "plate-front-raise",
       "equipment": "Plate",
@@ -9447,7 +11039,7 @@
       "review_flags": []
     },
     {
-      "index": 108,
+      "index": 126,
       "name": "Plate Halo",
       "slug": "plate-halo",
       "equipment": "Plate",
@@ -9526,7 +11118,7 @@
       "review_flags": []
     },
     {
-      "index": 109,
+      "index": 127,
       "name": "Plate Russian Twist",
       "slug": "plate-russian-twist",
       "equipment": "Plate",
@@ -9603,7 +11195,7 @@
       "review_flags": []
     },
     {
-      "index": 110,
+      "index": 128,
       "name": "Preacher Curl",
       "slug": "preacher-curl",
       "equipment": "Machine",
@@ -9678,7 +11270,7 @@
       "review_flags": []
     },
     {
-      "index": 111,
+      "index": 129,
       "name": "Pull-Up",
       "slug": "pull-up",
       "equipment": "Bodyweight",
@@ -9760,7 +11352,7 @@
       "review_flags": []
     },
     {
-      "index": 112,
+      "index": 130,
       "name": "Push Press",
       "slug": "push-press",
       "equipment": "Barbell",
@@ -9842,7 +11434,7 @@
       "review_flags": []
     },
     {
-      "index": 113,
+      "index": 131,
       "name": "Push-Up",
       "slug": "push-up",
       "equipment": "Bodyweight",
@@ -9920,7 +11512,7 @@
       "review_flags": []
     },
     {
-      "index": 114,
+      "index": 132,
       "name": "Rack Pull",
       "slug": "rack-pull",
       "equipment": "Barbell",
@@ -9999,7 +11591,7 @@
       "review_flags": []
     },
     {
-      "index": 115,
+      "index": 133,
       "name": "Rear Delt Fly",
       "slug": "rear-delt-fly",
       "equipment": "Dumbbell",
@@ -10076,7 +11668,7 @@
       "review_flags": []
     },
     {
-      "index": 116,
+      "index": 134,
       "name": "Reverse Hyperextension",
       "slug": "reverse-hyperextension",
       "equipment": "Machine",
@@ -10154,7 +11746,7 @@
       "review_flags": []
     },
     {
-      "index": 117,
+      "index": 135,
       "name": "Reverse Lunge",
       "slug": "reverse-lunge",
       "equipment": "Dumbbell",
@@ -10233,7 +11825,7 @@
       "review_flags": []
     },
     {
-      "index": 118,
+      "index": 136,
       "name": "Reverse Pec Deck",
       "slug": "reverse-pec-deck",
       "equipment": "Machine",
@@ -10310,7 +11902,7 @@
       "review_flags": []
     },
     {
-      "index": 119,
+      "index": 137,
       "name": "Reverse-Grip Pushdown",
       "slug": "reverse-grip-pushdown",
       "equipment": "Cable",
@@ -10388,7 +11980,7 @@
       "review_flags": []
     },
     {
-      "index": 120,
+      "index": 138,
       "name": "Romanian Deadlift",
       "slug": "romanian-deadlift",
       "equipment": "Barbell",
@@ -10467,7 +12059,7 @@
       "review_flags": []
     },
     {
-      "index": 121,
+      "index": 139,
       "name": "Rope Pushdown",
       "slug": "rope-pushdown",
       "equipment": "Cable",
@@ -10542,7 +12134,7 @@
       "review_flags": []
     },
     {
-      "index": 122,
+      "index": 140,
       "name": "Rowing Machine",
       "slug": "rowing-machine",
       "equipment": "Cardio Machine",
@@ -10620,7 +12212,7 @@
       "review_flags": []
     },
     {
-      "index": 123,
+      "index": 141,
       "name": "Russian Twist",
       "slug": "russian-twist",
       "equipment": "Bodyweight",
@@ -10695,7 +12287,7 @@
       "review_flags": []
     },
     {
-      "index": 124,
+      "index": 142,
       "name": "Seated Barbell Overhead Press",
       "slug": "seated-barbell-overhead-press",
       "equipment": "Barbell",
@@ -10776,7 +12368,7 @@
       "review_flags": []
     },
     {
-      "index": 125,
+      "index": 143,
       "name": "Seated Cable Row",
       "slug": "seated-cable-row",
       "equipment": "Cable",
@@ -10855,7 +12447,7 @@
       "review_flags": []
     },
     {
-      "index": 126,
+      "index": 144,
       "name": "Seated Dumbbell Shoulder Press",
       "slug": "seated-dumbbell-shoulder-press",
       "equipment": "Dumbbell",
@@ -10936,7 +12528,7 @@
       "review_flags": []
     },
     {
-      "index": 127,
+      "index": 145,
       "name": "Seated Leg Curl",
       "slug": "seated-leg-curl",
       "equipment": "Machine",
@@ -11013,7 +12605,7 @@
       "review_flags": []
     },
     {
-      "index": 128,
+      "index": 146,
       "name": "Side Plank",
       "slug": "side-plank",
       "equipment": "Bodyweight",
@@ -11088,7 +12680,7 @@
       "review_flags": []
     },
     {
-      "index": 129,
+      "index": 147,
       "name": "Side Plank Reach-Through",
       "slug": "side-plank-reach-through",
       "equipment": "Bodyweight",
@@ -11166,7 +12758,7 @@
       "review_flags": []
     },
     {
-      "index": 130,
+      "index": 148,
       "name": "Single-Arm Cable Row",
       "slug": "single-arm-cable-row",
       "equipment": "Cable",
@@ -11245,7 +12837,7 @@
       "review_flags": []
     },
     {
-      "index": 131,
+      "index": 149,
       "name": "Single-Arm Dumbbell Bench Press",
       "slug": "single-arm-dumbbell-bench-press",
       "equipment": "Dumbbell",
@@ -11323,7 +12915,7 @@
       "review_flags": []
     },
     {
-      "index": 132,
+      "index": 150,
       "name": "Single-Arm Dumbbell Row",
       "slug": "single-arm-dumbbell-row",
       "equipment": "Dumbbell",
@@ -11402,7 +12994,7 @@
       "review_flags": []
     },
     {
-      "index": 133,
+      "index": 151,
       "name": "Single-Arm Lat Pulldown",
       "slug": "single-arm-lat-pulldown",
       "equipment": "Cable",
@@ -11483,7 +13075,7 @@
       "review_flags": []
     },
     {
-      "index": 134,
+      "index": 152,
       "name": "Single-Leg Calf Raise",
       "slug": "single-leg-calf-raise",
       "equipment": "Bodyweight",
@@ -11560,7 +13152,7 @@
       "review_flags": []
     },
     {
-      "index": 135,
+      "index": 153,
       "name": "Single-Leg Hip Thrust",
       "slug": "single-leg-hip-thrust",
       "equipment": "Bodyweight",
@@ -11638,7 +13230,7 @@
       "review_flags": []
     },
     {
-      "index": 136,
+      "index": 154,
       "name": "Single-Leg Press",
       "slug": "single-leg-press",
       "equipment": "Machine",
@@ -11716,7 +13308,7 @@
       "review_flags": []
     },
     {
-      "index": 137,
+      "index": 155,
       "name": "Single-Leg Romanian Deadlift",
       "slug": "single-leg-romanian-deadlift",
       "equipment": "Dumbbell",
@@ -11795,7 +13387,7 @@
       "review_flags": []
     },
     {
-      "index": 138,
+      "index": 156,
       "name": "Skullcrusher",
       "slug": "skullcrusher",
       "equipment": "Barbell",
@@ -11870,7 +13462,7 @@
       "review_flags": []
     },
     {
-      "index": 139,
+      "index": 157,
       "name": "Sled Drag",
       "slug": "sled-drag",
       "equipment": "Sled",
@@ -11950,7 +13542,7 @@
       "review_flags": []
     },
     {
-      "index": 140,
+      "index": 158,
       "name": "Sled Push",
       "slug": "sled-push",
       "equipment": "Sled",
@@ -12028,7 +13620,7 @@
       "review_flags": []
     },
     {
-      "index": 141,
+      "index": 159,
       "name": "Smith Machine Bench Press",
       "slug": "smith-machine-bench-press",
       "equipment": "Smith Machine",
@@ -12106,7 +13698,7 @@
       "review_flags": []
     },
     {
-      "index": 142,
+      "index": 160,
       "name": "Smith Machine Hip Thrust",
       "slug": "smith-machine-hip-thrust",
       "equipment": "Smith Machine",
@@ -12184,7 +13776,7 @@
       "review_flags": []
     },
     {
-      "index": 143,
+      "index": 161,
       "name": "Smith Machine Incline Bench Press",
       "slug": "smith-machine-incline-bench-press",
       "equipment": "Smith Machine",
@@ -12262,7 +13854,7 @@
       "review_flags": []
     },
     {
-      "index": 144,
+      "index": 162,
       "name": "Smith Machine Romanian Deadlift",
       "slug": "smith-machine-romanian-deadlift",
       "equipment": "Smith Machine",
@@ -12341,7 +13933,7 @@
       "review_flags": []
     },
     {
-      "index": 145,
+      "index": 163,
       "name": "Smith Machine Shoulder Press",
       "slug": "smith-machine-shoulder-press",
       "equipment": "Smith Machine",
@@ -12422,7 +14014,7 @@
       "review_flags": []
     },
     {
-      "index": 146,
+      "index": 164,
       "name": "Smith Machine Squat",
       "slug": "smith-machine-squat",
       "equipment": "Smith Machine",
@@ -12500,7 +14092,7 @@
       "review_flags": []
     },
     {
-      "index": 147,
+      "index": 165,
       "name": "Snatch-Grip Deadlift",
       "slug": "snatch-grip-deadlift",
       "equipment": "Barbell",
@@ -12579,7 +14171,7 @@
       "review_flags": []
     },
     {
-      "index": 148,
+      "index": 166,
       "name": "Squat Jump",
       "slug": "squat-jump",
       "equipment": "Bodyweight",
@@ -12658,7 +14250,7 @@
       "review_flags": []
     },
     {
-      "index": 149,
+      "index": 167,
       "name": "Stair Climber",
       "slug": "stair-climber",
       "equipment": "Cardio Machine",
@@ -12736,7 +14328,7 @@
       "review_flags": []
     },
     {
-      "index": 150,
+      "index": 168,
       "name": "Stationary Bike",
       "slug": "stationary-bike",
       "equipment": "Cardio Machine",
@@ -12814,7 +14406,7 @@
       "review_flags": []
     },
     {
-      "index": 151,
+      "index": 169,
       "name": "Step-Up",
       "slug": "step-up",
       "equipment": "Dumbbell",
@@ -12893,7 +14485,7 @@
       "review_flags": []
     },
     {
-      "index": 152,
+      "index": 170,
       "name": "Stiff-Leg Deadlift",
       "slug": "stiff-leg-deadlift",
       "equipment": "Barbell",
@@ -12972,7 +14564,7 @@
       "review_flags": []
     },
     {
-      "index": 153,
+      "index": 171,
       "name": "Straight-Arm Pulldown",
       "slug": "straight-arm-pulldown",
       "equipment": "Cable",
@@ -13053,7 +14645,7 @@
       "review_flags": []
     },
     {
-      "index": 154,
+      "index": 172,
       "name": "Stretch",
       "slug": "stretch",
       "equipment": "Bodyweight",
@@ -13128,7 +14720,7 @@
       "review_flags": []
     },
     {
-      "index": 155,
+      "index": 173,
       "name": "T-Bar Row",
       "slug": "t-bar-row",
       "equipment": "Machine",
@@ -13207,7 +14799,7 @@
       "review_flags": []
     },
     {
-      "index": 156,
+      "index": 174,
       "name": "Tempo Back Squat",
       "slug": "tempo-back-squat",
       "equipment": "Barbell",
@@ -13286,7 +14878,7 @@
       "review_flags": []
     },
     {
-      "index": 157,
+      "index": 175,
       "name": "Tempo Barbell Bench Press",
       "slug": "tempo-barbell-bench-press",
       "equipment": "Barbell",
@@ -13364,7 +14956,7 @@
       "review_flags": []
     },
     {
-      "index": 158,
+      "index": 176,
       "name": "Tempo Deadlift",
       "slug": "tempo-deadlift",
       "equipment": "Barbell",
@@ -13443,7 +15035,7 @@
       "review_flags": []
     },
     {
-      "index": 159,
+      "index": 177,
       "name": "Thoracic Open Book",
       "slug": "thoracic-open-book",
       "equipment": "Bodyweight",
@@ -13521,7 +15113,7 @@
       "review_flags": []
     },
     {
-      "index": 160,
+      "index": 178,
       "name": "Treadmill Run",
       "slug": "treadmill-run",
       "equipment": "Cardio Machine",
@@ -13599,7 +15191,7 @@
       "review_flags": []
     },
     {
-      "index": 161,
+      "index": 179,
       "name": "Triceps Pushdown",
       "slug": "triceps-pushdown",
       "equipment": "Cable",
@@ -13674,7 +15266,7 @@
       "review_flags": []
     },
     {
-      "index": 162,
+      "index": 180,
       "name": "Upright Row",
       "slug": "upright-row",
       "equipment": "Barbell",
@@ -13752,7 +15344,7 @@
       "review_flags": []
     },
     {
-      "index": 163,
+      "index": 181,
       "name": "Walking Lunge",
       "slug": "walking-lunge",
       "equipment": "Dumbbell",
@@ -13831,7 +15423,7 @@
       "review_flags": []
     },
     {
-      "index": 164,
+      "index": 182,
       "name": "Weighted Plank",
       "slug": "weighted-plank",
       "equipment": "Bodyweight",
@@ -13906,7 +15498,7 @@
       "review_flags": []
     },
     {
-      "index": 165,
+      "index": 183,
       "name": "Weighted Pull-Up",
       "slug": "weighted-pull-up",
       "equipment": "Bodyweight",
@@ -13988,7 +15580,7 @@
       "review_flags": []
     },
     {
-      "index": 166,
+      "index": 184,
       "name": "Weighted Push-Up",
       "slug": "weighted-push-up",
       "equipment": "Bodyweight",
@@ -14066,7 +15658,7 @@
       "review_flags": []
     },
     {
-      "index": 167,
+      "index": 185,
       "name": "Wide-Grip Lat Pulldown",
       "slug": "wide-grip-lat-pulldown",
       "equipment": "Cable",
@@ -14149,7 +15741,7 @@
       "review_flags": []
     },
     {
-      "index": 168,
+      "index": 186,
       "name": "Yates Row",
       "slug": "yates-row",
       "equipment": "Barbell",

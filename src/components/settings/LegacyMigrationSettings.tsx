@@ -280,7 +280,7 @@ export function LegacyMigrationSettings({
               placeholder="Required for export"
               className={cn(
                 labeledEditorFieldControlClassName,
-                "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
               )}
             />
           </LabeledEditorField>

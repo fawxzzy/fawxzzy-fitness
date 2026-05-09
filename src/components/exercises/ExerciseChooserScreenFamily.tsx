@@ -54,7 +54,7 @@ export function ExerciseChooserRouteScaffold({
           </ContentRail>
         )}
       >
-        <ContentRail className={cn(appTokens.currentSessionContentRail, "max-md:px-0", contentRailClassName)}>
+        <ContentRail className={cn(appTokens.currentSessionContentRail, contentRailClassName)}>
           <ScreenScaffold recipe={recipe} className={cn(appTokens.routineEditorFill, "flex min-h-0 flex-1 flex-col")}>
             {children}
           </ScreenScaffold>

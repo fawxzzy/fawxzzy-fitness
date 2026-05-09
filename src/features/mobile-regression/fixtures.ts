@@ -844,6 +844,16 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     cardStates: [{ cardId: "settings-profile", state: "selected", badgeText: "Live" }],
   }),
   buildSimpleFixture({
+    id: "settings-data-export",
+    route: "settings",
+    screen: "settings",
+    family: "Settings / detail",
+    name: "Settings: data export",
+    fixture: "data-export",
+    fixtureState: "settings-data-export-v1",
+    cardStates: [{ cardId: "settings-data-export", state: "selected", badgeText: "QA" }],
+  }),
+  buildSimpleFixture({
     id: "exercise-detail-strength",
     route: "exerciseDetail",
     screen: "exercise-detail",

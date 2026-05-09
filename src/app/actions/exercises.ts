@@ -22,9 +22,23 @@ export async function createCustomExerciseAction(formData: FormData) {
   const supabase = supabaseServer();
 
   const returnTo = String(formData.get("returnTo") ?? "").trim();
-  const name = validateExerciseName(String(formData.get("name") ?? ""));
+  const rawName = String(formData.get("name") ?? "");
   const primaryMuscle = String(formData.get("primaryMuscle") ?? "").trim() || null;
-  const equipment = validateExerciseEquipment(String(formData.get("equipment") ?? ""));
+  const rawEquipment = String(formData.get("equipment") ?? "");
+
+  let name: string;
+  let equipment: string | null;
+
+  try {
+    name = validateExerciseName(rawName);
+    equipment = validateExerciseEquipment(rawEquipment);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not create exercise";
+    if (returnTo) {
+      redirectWithMessage(returnTo, "error", message);
+    }
+    throw error;
+  }
 
   const { data, error } = await supabase
     .from("exercises")

@@ -38,8 +38,12 @@ export async function getExerciseIdsForCompletedSessions(userId: string): Promis
   return uniqueExerciseIds(data.map((row) => row.exercise_id));
 }
 
-export async function getExerciseIdsForSession(userId: string, sessionId: string): Promise<string[]> {
-  const supabase = supabaseServer();
+export async function getExerciseIdsForSession(
+  userId: string,
+  sessionId: string,
+  client?: SupabaseClient,
+): Promise<string[]> {
+  const supabase = client ?? supabaseServer();
   const { data, error } = await supabase
     .from("session_exercises")
     .select("exercise_id")
@@ -88,13 +92,17 @@ export async function recomputeExerciseStatsForSessionExercises(userId: string, 
   await recomputeExerciseStatsForExercises(userId, exerciseIds);
 }
 
-export async function recomputeExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<void> {
+export async function recomputeExerciseStatsForExercises(
+  userId: string,
+  exerciseIds: string[],
+  client?: SupabaseClient,
+): Promise<void> {
   const uniqueIds = uniqueExerciseIds(exerciseIds);
   if (!uniqueIds.length) {
     return;
   }
 
-  const supabase = supabaseServer();
+  const supabase = client ?? supabaseServer();
 
   const { data: historySets, error } = await supabase
     .from("sets")

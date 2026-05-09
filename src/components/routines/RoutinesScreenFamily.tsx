@@ -69,7 +69,7 @@ export function RoutinesSectionCard({
 }
 
 export function RoutinesCardList({ children }: { children: ReactNode }) {
-  return <ul className={appTokens.dayListStack}>{children}</ul>;
+  return <ul className={cn(appTokens.dayListStack, "space-y-[0.375rem] sm:space-y-[0.375rem]")}>{children}</ul>;
 }
 
 export function RoutinesListItem({ children }: { children: ReactNode }) {

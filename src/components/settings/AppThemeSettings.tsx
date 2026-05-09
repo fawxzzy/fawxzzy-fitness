@@ -78,9 +78,9 @@ const THEME_COLOR_GROUPS = [
   },
   {
     title: "Accents",
-    description: "Supporting lines and motion highlights that tie the system together.",
+    description: "Supporting lines, Done status tags, and motion highlights that tie the system together.",
     fields: [
-      { key: "accentDividerColor", label: "Accent Lines" },
+      { key: "accentDividerColor", label: "Accent Lines / Done" },
       { key: "metricAccentColor", label: "Metric Strips" },
       { key: "loaderScanColor", label: "Loading Scan" },
     ],

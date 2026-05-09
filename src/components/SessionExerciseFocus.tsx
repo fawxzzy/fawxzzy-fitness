@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -10,6 +10,7 @@ import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } f
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
+import { cardMediaToneClassNames } from "@/components/cardSemanticTones";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
@@ -29,6 +30,10 @@ import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { createStableSetId } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
+import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
+import type { ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
+import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
+import type { PromotionStepFieldId } from "@/lib/session-progression-display";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -48,6 +53,8 @@ type AddSetPayload = {
 };
 
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
+
+const COMPACT_SESSION_ROW_SHELL_CLASS_NAME = "overflow-hidden rounded-none rounded-r-[var(--card-radius)] rounded-bl-[var(--card-radius)] border border-[rgb(var(--accent-divider-rgb)/0.28)] bg-[rgb(var(--surface-1-rgb)/0.06)] shadow-[0_0_0_1px_rgb(var(--accent-divider-rgb)/0.06)]";
 
 type SyncQueuedSetLogsAction = (payload: {
   items: Array<{
@@ -77,6 +84,31 @@ type SessionExercisePrefill = {
   weightUnit?: "lbs" | "kg";
 };
 
+function toPrefillFromQuickLogTarget(
+  target: SessionQuickLogTarget | null | undefined,
+  fallbackWeightUnit: "lbs" | "kg",
+): SessionExercisePrefill | undefined {
+  if (!target) {
+    return undefined;
+  }
+
+  const weight = target.weightMax ?? target.weightMin;
+  const reps = target.repsMax ?? target.repsMin;
+  const prefill: SessionExercisePrefill = {};
+  if (weight !== undefined) {
+    prefill.weight = weight;
+    prefill.weightUnit = target.weightUnit ?? fallbackWeightUnit;
+  }
+  if (reps !== undefined) {
+    prefill.reps = reps;
+  }
+  if (target.durationSeconds !== undefined) {
+    prefill.durationSeconds = target.durationSeconds;
+  }
+
+  return Object.keys(prefill).length > 0 ? prefill : undefined;
+}
+
 export type SessionExerciseFocusItem = {
   id: string;
   exerciseId: string;
@@ -101,7 +133,13 @@ export type SessionExerciseFocusItem = {
   goalLabel: string;
   prefill?: SessionExercisePrefill;
   quickLogTarget?: SessionQuickLogTarget;
+  setFlowQuickLogTargets?: SessionQuickLogTarget[];
   targetHint?: SessionTargetHint;
+  progressFill?: ProgressionProgressFill | null;
+  progressionFormState?: ProgressionPlaybookFormState | null;
+  progressionStepPolicy?: ProgressionStepPolicy | null;
+  visiblePromotionStepFields?: PromotionStepFieldId[] | null;
+  progressionSelectedMetrics?: Array<"reps" | "weight" | "time" | "distance" | "calories">;
   initialSets: SetRow[];
   loggedSetCount: number;
   targetSetsMin?: number | null;
@@ -149,6 +187,8 @@ export function SessionExerciseFocus({
   toggleSkipAction,
   removeExerciseAction,
   deleteSetAction,
+  updateSessionExerciseProgressionAction,
+  bottomDockCenter,
 }: {
   userId: string;
   sessionId: string;
@@ -161,11 +201,14 @@ export function SessionExerciseFocus({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  updateSessionExerciseProgressionAction: (formData: FormData) => Promise<ActionResult>;
+  bottomDockCenter?: ReactNode;
 }) {
   const contract = resolveScreenContract("exerciseLog");
   const surfacePolicy = resolveWorkoutCardSurfacePolicy("current-session", "compact");
   const [removingExerciseIds] = useState<string[]>([]);
   const [setLoggerResetSignal, setSetLoggerResetSignal] = useState(0);
+  const [persistedLoggerExerciseId, setPersistedLoggerExerciseId] = useState<string | null>(selectedExerciseId);
   const [rowClientStateBySessionExerciseId, setRowClientStateBySessionExerciseId] = useState<Record<string, SessionRowClientState>>(() =>
     buildInitialSessionRowClientState(exercises),
   );
@@ -177,25 +220,30 @@ export function SessionExerciseFocus({
       exercises.map((exercise) => {
         const rowClientState = rowClientStateBySessionExerciseId[exercise.id] ?? {
           loggedSetCount: exercise.loggedSetCount,
+          setCountOverrideActive: false,
           isSkipped: exercise.isSkipped,
           isQuickLogPending: false,
           isSkipPending: false,
         };
+        const setFlowQuickLogTarget = exercise.setFlowQuickLogTargets?.[rowClientState.loggedSetCount] ?? null;
+        const primaryQuickLogTarget = setFlowQuickLogTarget ?? exercise.quickLogTarget;
         const resolvedTargetHint = exercise.targetHint ?? deriveSessionTargetHint({
           measurementType: exercise.measurementType ?? "reps",
           fallbackWeightUnit,
           stats: null,
-          plan: exercise.quickLogTarget ? {
-            measurementType: exercise.quickLogTarget.measurementType ?? (exercise.measurementType ?? "reps"),
-            repsMin: exercise.quickLogTarget.repsMin ?? null,
-            repsMax: exercise.quickLogTarget.repsMax ?? null,
-            weightMin: exercise.quickLogTarget.weightMin ?? null,
-            weightMax: exercise.quickLogTarget.weightMax ?? null,
-            weightUnit: exercise.quickLogTarget.weightUnit ?? fallbackWeightUnit,
-            durationSeconds: exercise.quickLogTarget.durationSeconds ?? null,
-            distance: exercise.quickLogTarget.distance ?? null,
-            distanceUnit: exercise.quickLogTarget.distanceUnit ?? null,
-            calories: exercise.quickLogTarget.calories ?? null,
+          plan: primaryQuickLogTarget ? {
+            measurementType: primaryQuickLogTarget.measurementType ?? (exercise.measurementType ?? "reps"),
+            setsMin: exercise.targetSetsMin ?? null,
+            setsMax: exercise.targetSetsMax ?? null,
+            repsMin: primaryQuickLogTarget.repsMin ?? null,
+            repsMax: primaryQuickLogTarget.repsMax ?? null,
+            weightMin: primaryQuickLogTarget.weightMin ?? null,
+            weightMax: primaryQuickLogTarget.weightMax ?? null,
+            weightUnit: primaryQuickLogTarget.weightUnit ?? fallbackWeightUnit,
+            durationSeconds: primaryQuickLogTarget.durationSeconds ?? null,
+            distance: primaryQuickLogTarget.distance ?? null,
+            distanceUnit: primaryQuickLogTarget.distanceUnit ?? null,
+            calories: primaryQuickLogTarget.calories ?? null,
           } : null,
         });
         const rowViewModel = deriveSessionExerciseRowViewModel({
@@ -206,7 +254,7 @@ export function SessionExerciseFocus({
           isSkipPending: rowClientState.isSkipPending,
           targetSetsMin: exercise.targetSetsMin,
           targetSetsMax: exercise.targetSetsMax,
-          quickLogTarget: exercise.quickLogTarget,
+          quickLogTarget: primaryQuickLogTarget,
           quickLogNextTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.suggestedValues),
           quickLogLastTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.lastSuggestedValues),
           quickLogBestTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.recentBestSuggestedValues),
@@ -220,13 +268,15 @@ export function SessionExerciseFocus({
   const toast = useToast();
   const router = useRouter();
   void removeExerciseAction;
-  const visibleExercises = useMemo(
-    () => selectedExerciseId ? exercises.filter((exercise) => exercise.id === selectedExerciseId) : exercises,
-    [exercises, selectedExerciseId],
-  );
-
   useEffect(() => {
     setWarmupDraft(false);
+  }, [selectedExerciseId]);
+
+  useEffect(() => {
+    if (!selectedExerciseId) {
+      return;
+    }
+    setPersistedLoggerExerciseId(selectedExerciseId);
   }, [selectedExerciseId]);
 
   useEffect(() => {
@@ -267,9 +317,11 @@ export function SessionExerciseFocus({
       }
       const previous = current[sessionExerciseId] ?? {
         loggedSetCount: exercise.loggedSetCount,
+        setCountOverrideActive: false,
         isSkipped: exercise.isSkipped,
         isQuickLogPending: false,
         isSkipPending: false,
+        showWhenCompleted: false,
       };
       return {
         ...current,
@@ -295,29 +347,100 @@ export function SessionExerciseFocus({
   }, [exercises]);
 
   const handleSetCountChange = useCallback((exerciseId: string, count: number) => {
-    patchRowState(exerciseId, (existing) => existing.loggedSetCount === count ? existing : {
-      ...existing,
-      loggedSetCount: count,
+    patchRowState(exerciseId, (existing) => {
+      const exercise = exercises.find((item) => item.id === exerciseId);
+      const progressState = exercise ? deriveSessionExerciseProgressState({
+        loggedSetCount: count,
+        isSkipped: existing.isSkipped,
+        targetSetsMin: exercise.targetSetsMin,
+        targetSetsMax: exercise.targetSetsMax,
+      }) : null;
+      const isNowGoalCompleted = Boolean(progressState?.isGoalCompleted);
+      const nextShowWhenCompleted = isNowGoalCompleted
+        ? false
+        : existing.showWhenCompleted;
+
+      if (existing.loggedSetCount === count && existing.showWhenCompleted === nextShowWhenCompleted) {
+        return existing;
+      }
+
+      return {
+        ...existing,
+        loggedSetCount: count,
+        setCountOverrideActive: true,
+        showWhenCompleted: nextShowWhenCompleted,
+      };
     });
-  }, [patchRowState]);
+    const exercise = exercises.find((item) => item.id === exerciseId);
+    const isNowGoalCompleted = exercise ? deriveSessionExerciseProgressState({
+      loggedSetCount: count,
+      isSkipped: rowClientStateBySessionExerciseId[exerciseId]?.isSkipped ?? exercise.isSkipped,
+      targetSetsMin: exercise.targetSetsMin,
+      targetSetsMax: exercise.targetSetsMax,
+    }).isGoalCompleted : false;
+    if (isNowGoalCompleted && selectedExerciseId === exerciseId) {
+      onSelectedExerciseIdChange(null);
+    }
+  }, [exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, selectedExerciseId]);
 
   const toggleExercise = useCallback((exerciseId: string) => {
+    setPersistedLoggerExerciseId(exerciseId);
+    const exercise = exercises.find((item) => item.id === exerciseId);
+    const clientRowState = rowClientStateBySessionExerciseId[exerciseId];
     const rowViewModel = rowViewModelBySessionExerciseId.get(exerciseId);
+    const progressState = exercise ? deriveSessionExerciseProgressState({
+      loggedSetCount: clientRowState?.loggedSetCount ?? exercise.loggedSetCount,
+      isSkipped: clientRowState?.isSkipped ?? exercise.isSkipped,
+      targetSetsMin: exercise.targetSetsMin,
+      targetSetsMax: exercise.targetSetsMax,
+    }) : null;
+    const isOpeningExercise = selectedExerciseId !== exerciseId;
+
+    if (isOpeningExercise && progressState?.isGoalCompleted && !rowViewModel?.isSkipped) {
+      patchRowState(exerciseId, (current) => ({
+        ...current,
+        showWhenCompleted: true,
+      }));
+      setSetLoggerResetSignal((value) => value + 1);
+      onSelectedExerciseIdChange(exerciseId);
+      return;
+    }
+
     if (rowViewModel?.isSkipped) {
       return;
     }
+    if (!isOpeningExercise && progressState?.isGoalCompleted) {
+      patchRowState(exerciseId, (current) => ({
+        ...current,
+        showWhenCompleted: true,
+      }));
+    }
     setSetLoggerResetSignal((value) => value + 1);
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
-  }, [onSelectedExerciseIdChange, rowViewModelBySessionExerciseId, selectedExerciseId]);
+  }, [exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, rowViewModelBySessionExerciseId, selectedExerciseId]);
 
   const handleSkipToggle = useCallback(async (
     exerciseId: string,
     previousSkipped: boolean,
+    previousHidden: boolean,
+    isGoalCompleted: boolean,
     isQuickLogPending: boolean,
     isSkipPending: boolean,
     loggedSetCount: number,
   ) => {
     if (isQuickLogPending || isSkipPending) {
+      return;
+    }
+
+    if (isGoalCompleted && !previousSkipped) {
+      const nextShowWhenCompleted = previousHidden;
+      patchRowState(exerciseId, (current) => ({
+        ...current,
+        showWhenCompleted: nextShowWhenCompleted,
+      }));
+      if (selectedExerciseId === exerciseId) {
+        onSelectedExerciseIdChange(null);
+      }
       return;
     }
 
@@ -336,8 +459,8 @@ export function SessionExerciseFocus({
       const result = await toggleSkipAction(formData);
       toastActionResult(toast, result, {
         success: previousSkipped
-          ? "Exercise unskipped."
-          : (loggedSetCount > 0 ? "Skipped. Logged sets were saved." : "Exercise skipped."),
+          ? "Exercise shown."
+          : "Exercise hidden.",
         error: "Could not update skip state.",
       });
 
@@ -364,11 +487,15 @@ export function SessionExerciseFocus({
   return (
     <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>
       <ul className={cn(appTokens.currentSessionFocusList, "space-y-0")}>
-        {visibleExercises.map((exercise) => {
+        {exercises.map((exercise) => {
           const isRemoving = removingExerciseIds.includes(exercise.id);
           const isExpanded = selectedExerciseId === exercise.id;
           const isStretchHub = isStretchHubExercise(exercise);
-          const rowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
+          const clientRowState = rowClientStateBySessionExerciseId[exercise.id];
+          const loggedCountForTarget = clientRowState?.loggedSetCount ?? exercise.loggedSetCount;
+          const setFlowQuickLogTarget = exercise.setFlowQuickLogTargets?.[loggedCountForTarget] ?? null;
+          const primaryQuickLogTarget = setFlowQuickLogTarget ?? exercise.quickLogTarget;
+          const baseRowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
             exerciseId: exercise.id,
             loggedSetCount: exercise.loggedSetCount,
             isSkipped: exercise.isSkipped,
@@ -376,44 +503,61 @@ export function SessionExerciseFocus({
             isSkipPending: false,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
-            quickLogTarget: exercise.quickLogTarget,
+            quickLogTarget: primaryQuickLogTarget,
             quickLogNextTarget: toQuickLogTargetFromSuggestedValues(exercise.targetHint?.suggestedValues ?? null),
             quickLogLastTarget: toQuickLogTargetFromSuggestedValues(exercise.targetHint?.lastSuggestedValues ?? null),
             quickLogBestTarget: toQuickLogTargetFromSuggestedValues(exercise.targetHint?.recentBestSuggestedValues ?? null),
             fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
           });
-          const setCount = rowViewModel.loggedSetCount;
+          const setCount = baseRowViewModel.loggedSetCount;
           const resolvedTargetHint = exercise.targetHint ?? deriveSessionTargetHint({
             measurementType: exercise.measurementType ?? "reps",
             fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
             stats: null,
-            plan: exercise.quickLogTarget ? {
-              measurementType: exercise.quickLogTarget.measurementType ?? (exercise.measurementType ?? "reps"),
-              repsMin: exercise.quickLogTarget.repsMin ?? null,
-              repsMax: exercise.quickLogTarget.repsMax ?? null,
-              weightMin: exercise.quickLogTarget.weightMin ?? null,
-              weightMax: exercise.quickLogTarget.weightMax ?? null,
-              weightUnit: exercise.quickLogTarget.weightUnit ?? (unitLabel === "lbs" ? "lbs" : "kg"),
-              durationSeconds: exercise.quickLogTarget.durationSeconds ?? null,
-              distance: exercise.quickLogTarget.distance ?? null,
-              distanceUnit: exercise.quickLogTarget.distanceUnit ?? null,
-              calories: exercise.quickLogTarget.calories ?? null,
+            plan: primaryQuickLogTarget ? {
+              measurementType: primaryQuickLogTarget.measurementType ?? (exercise.measurementType ?? "reps"),
+              setsMin: exercise.targetSetsMin ?? null,
+              setsMax: exercise.targetSetsMax ?? null,
+              repsMin: primaryQuickLogTarget.repsMin ?? null,
+              repsMax: primaryQuickLogTarget.repsMax ?? null,
+              weightMin: primaryQuickLogTarget.weightMin ?? null,
+              weightMax: primaryQuickLogTarget.weightMax ?? null,
+              weightUnit: primaryQuickLogTarget.weightUnit ?? (unitLabel === "lbs" ? "lbs" : "kg"),
+              durationSeconds: primaryQuickLogTarget.durationSeconds ?? null,
+              distance: primaryQuickLogTarget.distance ?? null,
+              distanceUnit: primaryQuickLogTarget.distanceUnit ?? null,
+              calories: primaryQuickLogTarget.calories ?? null,
             } : null,
           });
           const resolvedQuickLogTarget = resolveEffectiveQuickLogTarget({
-            quickLogTarget: exercise.quickLogTarget,
+            quickLogTarget: primaryQuickLogTarget,
             nextTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.suggestedValues),
             lastTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.lastSuggestedValues),
             bestTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.recentBestSuggestedValues),
           });
-          const rowState = rowViewModel.rowState;
-          const isCompletedRow = rowState.cardState === "completed";
+          const setLoggerPrefill = toPrefillFromQuickLogTarget(
+            primaryQuickLogTarget,
+            unitLabel === "lbs" ? "lbs" : "kg",
+          ) ?? exercise.prefill;
           const progressState = deriveSessionExerciseProgressState({
             loggedSetCount: setCount,
-            isSkipped: rowViewModel.isSkipped,
+            isSkipped: baseRowViewModel.isSkipped,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
           });
+          const effectiveIsHidden = baseRowViewModel.isSkipped || (
+            progressState.isGoalCompleted
+            && !(clientRowState?.showWhenCompleted ?? false)
+            && !isExpanded
+          );
+          const rowViewModel = effectiveIsHidden === baseRowViewModel.isSkipped
+            ? baseRowViewModel
+            : deriveSessionExerciseRowViewModel({
+                ...baseRowViewModel,
+                isSkipped: effectiveIsHidden,
+              });
+          const rowState = rowViewModel.rowState;
+          const isCompletedRow = rowState.cardState === "completed";
           const titleMeta = progressState.goalSetTarget !== null && progressState.loggedSetCount > 0
             ? (
               <span className={isCompletedRow ? "text-[rgb(var(--success-rgb)/0.98)]" : undefined}>
@@ -421,20 +565,54 @@ export function SessionExerciseFocus({
               </span>
             )
             : undefined;
+          const sessionProgressFill = progressState.goalSetTarget !== null
+            ? {
+                percent: Math.max(0, Math.min(100, Math.round((progressState.loggedSetCount / progressState.goalSetTarget) * 100))),
+                state: progressState.isGoalCompleted ? "ready" : "partial",
+                label: `${Math.min(progressState.loggedSetCount, progressState.goalSetTarget)}/${progressState.goalSetTarget} sets`,
+              } satisfies ProgressionProgressFill
+            : null;
           const exerciseSummary = isStretchHub ? null : exercise.goalLabel;
           const semanticTone = resolveSessionExerciseTone({
             loggedSetCount: setCount,
-            isSkipped: rowViewModel.isSkipped,
+            isSkipped: effectiveIsHidden,
             isCompleted: rowState.cardState === "completed",
             isAddedToday: exercise.routineDayExerciseId === null,
           });
-          const shouldRenderCompactSkippedRow = rowViewModel.isSkipped && rowState.cardState !== "completed";
+          const shouldRenderCompactSkippedRow = effectiveIsHidden && !isExpanded;
+
+          const cardShellStyle: CSSProperties & {
+            "--exercise-card-progress-fill-top-right-radius": string;
+            "--exercise-card-progress-fill-bottom-right-radius": string;
+          } = isExpanded
+            ? {
+                borderTopRightRadius: "var(--card-radius)",
+                borderBottomRightRadius: "0px",
+                "--exercise-card-progress-fill-top-right-radius": "var(--card-radius)",
+                "--exercise-card-progress-fill-bottom-right-radius": "0px",
+              }
+            : {
+                borderTopRightRadius: "var(--card-radius)",
+                borderBottomRightRadius: "0px",
+                "--exercise-card-progress-fill-top-right-radius": "var(--card-radius)",
+                "--exercise-card-progress-fill-bottom-right-radius": "0px",
+              };
+          const compactProgressFillPercent = sessionProgressFill && sessionProgressFill.percent > 0
+            ? Math.max(0, Math.min(100, sessionProgressFill.percent))
+            : null;
+          const compactProgressFillStyle = compactProgressFillPercent !== null
+            ? ({
+                width: `${compactProgressFillPercent}%`,
+              } satisfies CSSProperties)
+            : null;
+          const isCompactProgressFillComplete = compactProgressFillPercent !== null && compactProgressFillPercent >= 100;
 
           const disclosureCard = (
             <ExerciseDisclosureCard
               scope="session-exercise"
               itemId={exercise.id}
               expanded={isExpanded}
+              keepPanelMounted={persistedLoggerExerciseId === exercise.id}
               onToggle={() => toggleExercise(exercise.id)}
               exercise={exercise}
               summary={exerciseSummary}
@@ -447,28 +625,24 @@ export function SessionExerciseFocus({
               showLeadingVisual={surfacePolicy.showMedia}
               subtitleTone="plain"
               subtitleClassName={isCompletedRow ? "!text-[rgb(var(--success-rgb)/0.98)]" : undefined}
-              className={isExpanded ? "flex min-h-[calc(100dvh-var(--bottom-actions-height,0px)-var(--app-safe-top)-1.5rem)] flex-col overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
+              className={isExpanded ? "flex flex-col overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
               shellClassName={[
                 isExpanded
-                  ? "sticky top-0 z-20 !border-0 shadow-[0_14px_28px_rgb(0_0_0/0.3)] [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
+                  ? "!border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
                   : "rounded-none !border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]",
                 rowState.cardState === "completed"
                   ? "!border-0 bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.76),rgb(var(--surface-2-rgb)/0.99))] ring-0"
                   : undefined,
               ].filter(Boolean).join(" ")}
-              shellStyle={isExpanded ? {
-                borderBottomRightRadius: "0px",
-              } : {
-                borderTopRightRadius: "var(--card-radius)",
-                borderBottomRightRadius: "0px",
-              }}
+              shellStyle={cardShellStyle}
               cardClassName={
                 !isExpanded
                   ? "rounded-none !border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
                   : "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
               }
               contentClassName="pl-3"
-              panelClassName={isExpanded ? "flex flex-1 flex-col" : undefined}
+              panelClassName={isExpanded ? "flex flex-col" : undefined}
+              mediaClassName={cardMediaToneClassNames.completed}
               mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
               rightIconMode={isExpanded ? "overlay" : undefined}
               rightRailClassName={isExpanded ? "!top-auto bottom-[0.9rem] !translate-y-0" : undefined}
@@ -476,6 +650,7 @@ export function SessionExerciseFocus({
               showAccentRail={!isStretchHub}
               hideEmptySummary={isStretchHub}
               contentVerticalAlign={isStretchHub ? "top" : "auto"}
+              progressFill={sessionProgressFill}
             >
               <>
                 <SetLoggerCard
@@ -486,7 +661,8 @@ export function SessionExerciseFocus({
                   syncQueuedSetLogsAction={syncQueuedSetLogsAction}
                   unitLabel={unitLabel}
                   initialSets={exercise.initialSets}
-                  prefill={exercise.prefill}
+                  prefill={setLoggerPrefill}
+                  setFlowQuickLogTargets={exercise.setFlowQuickLogTargets}
                   defaultDistanceUnit={exercise.defaultUnit}
                   isCardio={exercise.isCardio}
                   targetHint={resolvedTargetHint}
@@ -500,6 +676,15 @@ export function SessionExerciseFocus({
                   onSecondaryAction={() => setExerciseInfoExerciseId(exercise.exerciseId)}
                   warmupValue={warmupDraft}
                   onWarmupValueChange={setWarmupDraft}
+                  progressionFormState={exercise.progressionFormState ?? null}
+                  progressionStepPolicy={exercise.progressionStepPolicy ?? null}
+                  visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}
+                  progressionSelectedMetrics={exercise.progressionSelectedMetrics ?? []}
+                  showAllMeasurementInputs={!isStretchHub}
+                  showFailureToggle={!isStretchHub}
+                  showProgressionControls={!isStretchHub}
+                  updateProgressionAction={updateSessionExerciseProgressionAction}
+                  bottomDockCenter={bottomDockCenter}
                   onSetCountChange={(count) => {
                     handleSetCountChange(exercise.id, count);
                   }}
@@ -510,12 +695,12 @@ export function SessionExerciseFocus({
 
           const quickActionStrip = !isExpanded ? (
             <AttachedQuickActionStrip
-              className="rounded-bl-none [border-bottom-left-radius:0px]"
               rowContract={{
                 label: rowState.quickLogLabel,
                 skipLabel: rowState.skipActionLabel,
                 quickLogActionClassName: rowState.quickLogActionClassName,
                 skipActionClassName: rowState.skipActionClassName,
+                skipActionIntent: rowState.skipActionIntent,
                 actionRowClassName: rowState.actionRowClassName,
                 isQuickLogDisabled: rowState.isQuickLogDisabled,
                 isSkipDisabled: rowState.isSkipDisabled,
@@ -526,7 +711,9 @@ export function SessionExerciseFocus({
               onSkip={() => {
                 void handleSkipToggle(
                   exercise.id,
-                  rowViewModel.isSkipped,
+                  baseRowViewModel.isSkipped,
+                  effectiveIsHidden,
+                  progressState.isGoalCompleted,
                   rowViewModel.isQuickLogPending,
                   rowViewModel.isSkipPending,
                   setCount,
@@ -584,7 +771,7 @@ export function SessionExerciseFocus({
             <li
               key={exercise.id}
               className={[
-                "origin-top transition-all duration-150 motion-reduce:transition-none",
+                "origin-top transition-all duration-75 ease-out motion-reduce:transition-none",
                 isRemoving
                   ? "max-h-0 scale-[0.98] overflow-hidden opacity-0"
                   : isExpanded
@@ -593,10 +780,22 @@ export function SessionExerciseFocus({
               ].join(" ")}
             >
               <SessionExerciseBlock>
-                <div className={cn(!isExpanded ? "mx-auto w-full min-[360px]:max-w-[22.75rem]" : undefined)}>
+                <div className="w-full">
                   {shouldRenderCompactSkippedRow ? (
-                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border-0 bg-[rgb(var(--surface-1-rgb)/0.86)]">
-                      <div className="flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2.5">
+                    <div className={cn("relative", COMPACT_SESSION_ROW_SHELL_CLASS_NAME, "bg-[rgb(var(--surface-1-rgb)/0.86)]")}>
+                      {compactProgressFillStyle ? (
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "pointer-events-none absolute bottom-0 left-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.20),rgb(var(--accent)/0.11))]",
+                            isCompactProgressFillComplete
+                              ? "right-0 rounded-br-[var(--card-radius)] rounded-tr-[var(--card-radius)] shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.16)]"
+                              : "rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.08)]",
+                          )}
+                          style={compactProgressFillStyle}
+                        />
+                      ) : null}
+                      <div className="relative z-[1] flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2.5">
                         <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
                           {exercise.name}
                         </p>
@@ -606,16 +805,18 @@ export function SessionExerciseFocus({
                           onClick={() => {
                             void handleSkipToggle(
                               exercise.id,
-                              rowViewModel.isSkipped,
+                              baseRowViewModel.isSkipped,
+                              effectiveIsHidden,
+                              progressState.isGoalCompleted,
                               rowViewModel.isQuickLogPending,
                               rowViewModel.isSkipPending,
                               setCount,
                             );
                           }}
-                          data-bottom-action-intent="danger"
+                          data-bottom-action-intent={rowState.skipActionIntent}
                           className={cn(
                             getBottomActionButtonClassName({
-                              intent: "danger",
+                              intent: rowState.skipActionIntent,
                               fullWidth: false,
                               className: "!min-h-0 h-auto rounded-[999px] px-3 py-1.5 text-[11px] uppercase tracking-[0.14em]",
                             }),
@@ -623,7 +824,7 @@ export function SessionExerciseFocus({
                             rowViewModel.isSkipPending ? "shadow-none" : undefined,
                           )}
                         >
-                          {rowViewModel.isSkipPending ? "Saving..." : "Unskip"}
+                          {rowViewModel.isSkipPending ? "Saving..." : rowState.skipActionLabel}
                         </button>
                       </div>
                     </div>
@@ -632,7 +833,7 @@ export function SessionExerciseFocus({
                       {disclosureCard}
                     </SessionExerciseCard>
                   ) : (
-                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border-0 bg-transparent">
+                    <div className={COMPACT_SESSION_ROW_SHELL_CLASS_NAME}>
                       {disclosureCard}
                       {quickActionStrip}
                     </div>

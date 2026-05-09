@@ -218,11 +218,11 @@ export function getVisibleMetricsForModality(modality: GoalModality): Measuremen
 export function getGoalMeasurementOrder(modality: GoalModality): MeasurementSelection[] {
   switch (modality) {
     case "cardio_time":
-      return ["time", "distance", "reps", "weight", "calories"];
+      return ["time", "distance", "calories", "reps", "weight"];
     case "cardio_distance":
-      return ["distance", "time", "reps", "weight", "calories"];
+      return ["distance", "time", "calories", "reps", "weight"];
     case "cardio_time_distance":
-      return ["time", "distance", "reps", "weight", "calories"];
+      return ["time", "distance", "calories", "reps", "weight"];
     case "bodyweight":
       return ["reps", "time", "distance", "weight", "calories"];
     case "strength":

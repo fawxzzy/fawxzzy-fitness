@@ -1,0 +1,149 @@
+import { Fragment, type ReactNode } from "react";
+import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { appTokens } from "@/components/ui/app/tokens";
+import { cn } from "@/lib/cn";
+import { formatRoutineDayStableDisplayName, getRoutineDayWeekdayLabel } from "@/lib/routines";
+
+export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "min-h-[4.3rem] py-2";
+export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "min-h-[2.9rem] py-1";
+export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "py-0.5";
+export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "py-0";
+export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.22]";
+export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
+export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
+export const ROUTINE_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
+export const ROUTINE_TAG_CLASS_NAME = "text-[11px] tracking-[0.12em]";
+
+export type RoutineDayCardSummary = {
+  total?: number;
+  strength: number;
+  cardio: number;
+  bodyweight: number;
+  unknown: number;
+};
+
+export type RoutineDayCardPresentationItem = {
+  isRest: boolean;
+  splitSummary?: RoutineDayCardSummary;
+  exerciseSummary?: string;
+};
+
+export function splitRoutineSummaryParts(value: string | null | undefined) {
+  return String(value ?? "")
+    .split(/\s*(?:\u00B7|\u2022|\|)\s*/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
+export function renderSignatureParts(parts: string[], className?: string) {
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return (
+    <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]", className)}>
+      {parts.map((part, index) => (
+        <Fragment key={`${part}-${index}`}>
+          {index > 0 ? <SignatureDot /> : null}
+          <span className="min-w-0">{part}</span>
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
+export function buildRoutineSplitParts(summary: RoutineDayCardSummary) {
+  const parts: string[] = [];
+
+  if (summary.strength > 0) parts.push(`${summary.strength} strength`);
+  if (summary.cardio > 0) parts.push(`${summary.cardio} cardio`);
+  if (summary.bodyweight > 0) parts.push(`${summary.bodyweight} bodyweight`);
+  if (summary.unknown > 0) parts.push(`${summary.unknown} other`);
+
+  return parts;
+}
+
+export function RoutineDayCardTitle({
+  routineName,
+  name,
+  dayIndex,
+  startDate,
+  weekdayLabel,
+  dayWeekdaySeparator = "pipe",
+}: {
+  routineName?: string | null;
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+  weekdayLabel?: string | null;
+  dayWeekdaySeparator?: "dot" | "pipe";
+}) {
+  const normalizedRoutineName = routineName?.trim();
+  const dayName = formatRoutineDayStableDisplayName({ name, dayIndex, startDate });
+  const weekday = weekdayLabel?.trim() || getRoutineDayWeekdayLabel(dayIndex, startDate, "short");
+  const dayNameClassName = dayName.trim().toLowerCase() === "rest"
+    ? "text-[rgb(var(--accent-yellow-on))]"
+    : undefined;
+
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
+      {normalizedRoutineName ? (
+        <>
+          <span className="min-w-0">{normalizedRoutineName}</span>
+          <SignatureMiniPipe />
+        </>
+      ) : null}
+      <span className={cn("min-w-0", dayNameClassName)}>{dayName}</span>
+      {weekday ? (
+        <>
+          {dayWeekdaySeparator === "dot" ? <SignatureDot /> : <SignatureMiniPipe />}
+          <span className={cn("min-w-0", appTokens.accentText, "text-[rgb(var(--accent-divider-rgb)/0.96)]")}>
+            {weekday}
+          </span>
+        </>
+      ) : null}
+    </span>
+  );
+}
+
+export function renderRoutineDaySubtitle(day: RoutineDayCardPresentationItem): ReactNode {
+  if (day.isRest) {
+    return undefined;
+  }
+
+  if (day.splitSummary) {
+    return renderSignatureParts(buildRoutineSplitParts(day.splitSummary)) ?? "No exercises yet";
+  }
+
+  return renderSignatureParts(splitRoutineSummaryParts(day.exerciseSummary)) ?? day.exerciseSummary ?? "No exercises yet";
+}
+
+export function renderRoutineTag(label: string | undefined) {
+  const normalizedLabel = label?.trim().toUpperCase();
+  if (!normalizedLabel) {
+    return undefined;
+  }
+
+  const colorClassName = normalizedLabel === "REST DAY" || normalizedLabel === "SKIPPED"
+    ? "text-[rgb(var(--accent-yellow-on))]"
+    : normalizedLabel === "TODAY"
+      || normalizedLabel === "CURRENT"
+      || normalizedLabel === "IN SESSION"
+      || normalizedLabel === "COMPLETED"
+      || normalizedLabel === "DONE"
+      ? "text-[rgb(var(--accent-divider-rgb)/0.96)]"
+      : "text-[rgb(var(--text-secondary)/0.92)]";
+
+  return <SignatureMetaTag className={cn(ROUTINE_TAG_CLASS_NAME, colorClassName)}>{normalizedLabel}</SignatureMetaTag>;
+}
+
+export function renderRoutineDayRightRail(label: string | undefined) {
+  const tag = renderRoutineTag(label);
+
+  return (
+    <span className="inline-flex items-center gap-3">
+      {tag}
+      <span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>
+    </span>
+  );
+}

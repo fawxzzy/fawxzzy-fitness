@@ -193,7 +193,7 @@ test("resolved quick log preview and payload use fallback target chain", () => {
     targetSetsMax: 3,
     fallbackWeightUnit: "lbs",
   });
-  assert.equal(label, "8 reps â€¢ 95 lbs");
+  assert.equal(label, "8 reps • 95 lbs");
 
   const result = resolveQuickLogFromResolvedTarget(resolvedTarget, "lbs");
   assert.equal(result.ok, true);

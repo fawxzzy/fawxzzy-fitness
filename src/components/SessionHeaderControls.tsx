@@ -29,7 +29,7 @@ export function SessionHeaderControls({
     summary: sessionSummaryCounts,
     isRest: isRestDay,
   });
-  const titleNode = <RoutineDayHeaderTitle leadingItems={[routineName.trim() || "Routine"]} dayLabel={sessionDayName} />;
+  const titleNode = <RoutineDayHeaderTitle leadingItems={[routineName.trim() || "Routine"]} dayLabel={sessionDayName} dayLabelOrder="day-first" />;
   const subtitleNode = (
     <AccentDotSeparatedText
       text={countsSummary}

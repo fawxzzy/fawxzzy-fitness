@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -20,22 +20,36 @@ import {
 import { buildSessionDraftStorageKey, isOfflineSnapshotStale } from "@/lib/offline/client-storage";
 import { useToast } from "@/components/ui/ToastProvider";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
+import { BottomActionStackedPrimary, BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { SignatureInlineList, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { appTokens } from "@/components/ui/app/tokens";
 import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
-import { selectionChromeStyle } from "@/components/ui/selectionChromeStyle";
-import { useUndoAction } from "@/components/ui/useUndoAction";
-import { MeasurementDockSummary, measurementDockSurfaceClassName } from "@/components/ui/measurements/MeasurementDock";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
+import { appTokens } from "@/components/ui/app/tokens";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
+import { getMeasurementToggleButtonClassName, getMeasurementToggleIntent } from "@/components/ui/measurements/measurementToggleButton";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
+import { getLiveSetInputOrder, type LiveSetMetricFlags } from "@/lib/live-set-input-order";
 import { formatMeasurementSummaryItems, formatSetPositionLabel } from "@/lib/measurement-display";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { ProgressionNumberField, ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
+import { toQuickLogTargetFromSuggestedValues, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import {
+  buildProgressionPlaybookConfigFromFormState,
+  buildProgressionPlaybookFormSnapshot,
+  type ProgressionPlaybookFormState,
+} from "@/lib/progression-playbook-form-state";
+import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
+import {
+  buildSessionProgressionEditorGroups,
+  type PromotionStepFieldId,
+} from "@/lib/session-progression-display";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
@@ -57,6 +71,8 @@ type AddSetPayload = {
 };
 
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
+
+const FAILURE_NOTE_SENTINEL = "__session_failure__";
 
 function parseDurationInput(rawValue: string): number | null {
   const value = rawValue.trim();
@@ -97,6 +113,12 @@ type DisplaySet = SetRow & {
 };
 type AnimatedDisplaySet = DisplaySet & { isLeaving?: boolean };
 
+type StableSetIdentityLike = {
+  id: string;
+  client_log_id?: string | null;
+  stableId?: string;
+};
+
 function mergeDisplaySets(baseSets: DisplaySet[], incomingSets: DisplaySet[]) {
   return sortSetsByIndex(mergeByStableSetId(incomingSets, baseSets));
 }
@@ -106,6 +128,34 @@ function toDisplaySet(set: SetRow): DisplaySet {
     ...set,
     stableId: resolveStableSetId(set),
   };
+}
+
+function getDeletedSetIdentityKeys(set: StableSetIdentityLike) {
+  return [
+    set.stableId?.trim(),
+    set.client_log_id?.trim(),
+    set.id.trim(),
+  ].filter((value): value is string => Boolean(value && value.length > 0));
+}
+
+function filterDeletedDisplaySets<T extends StableSetIdentityLike>(sets: T[], deletedSetIdentityKeys: Set<string>) {
+  if (deletedSetIdentityKeys.size === 0) {
+    return sets;
+  }
+
+  return sets.filter((set) => !getDeletedSetIdentityKeys(set).some((key) => deletedSetIdentityKeys.has(key)));
+}
+
+function addDeletedSetIdentityKeys(target: Set<string>, set: StableSetIdentityLike) {
+  for (const key of getDeletedSetIdentityKeys(set)) {
+    target.add(key);
+  }
+}
+
+function removeDeletedSetIdentityKeys(target: Set<string>, set: StableSetIdentityLike) {
+  for (const key of getDeletedSetIdentityKeys(set)) {
+    target.delete(key);
+  }
 }
 
 function formatHistorySummary(summary: string | null, performedAtLabel: string | null) {
@@ -134,23 +184,25 @@ function formatHistorySummary(summary: string | null, performedAtLabel: string |
   };
 }
 
-function formatSuggestedHistoryItems(values: SessionTargetHint["suggestedValues"] | null | undefined) {
-  if (!values) {
-    return [];
+function formatLoggedSetRowLabel({
+  index,
+  isWarmup,
+  useIntervalLanguage,
+}: {
+  index: number;
+  isWarmup: boolean;
+  useIntervalLanguage: boolean;
+}) {
+  if (isWarmup) {
+    return <span className="text-[rgb(var(--warning-rgb)/0.98)]">Warm-Up</span>;
   }
 
-  return formatMeasurementSummaryItems({
-    reps: values.reps,
-    weight: values.weight,
-    weightUnit: values.weightUnit,
-    durationSeconds: values.durationSeconds,
-    distance: values.distance,
-    distanceUnit: values.distanceUnit,
-    calories: values.calories,
-    emptyLabel: "",
-  })
-    .map((item) => item.label)
-    .filter(Boolean);
+  return (
+    <>
+      {useIntervalLanguage ? "Interval" : "Set"}{" "}
+      <span className="text-[rgb(var(--accent)/0.98)]">{index + 1}</span>
+    </>
+  );
 }
 
 function getSessionSummaryItems({
@@ -161,6 +213,7 @@ function getSessionSummaryItems({
   distance,
   distanceUnit,
   calories,
+  failure,
   rpe,
   isWarmup,
   queueStatus,
@@ -175,6 +228,7 @@ function getSessionSummaryItems({
   distance: number | null | undefined;
   distanceUnit: "mi" | "km" | "m" | null | undefined;
   calories: number | null | undefined;
+  failure?: boolean;
   rpe?: number | null;
   isWarmup?: boolean;
   queueStatus?: string;
@@ -183,20 +237,24 @@ function getSessionSummaryItems({
   includeWarmupTag?: boolean;
 }) {
   const hasCardioSignal = [durationSeconds, distance, calories].some((value) => Number.isFinite(value ?? null) && (value ?? 0) > 0);
+  const resolvedFailure = Boolean(failure);
   const normalizedReps = hasCardioSignal && (reps ?? 0) <= 0 ? null : reps;
   const normalizedWeight = hasCardioSignal && (weight ?? 0) <= 0 ? null : weight;
   const normalizedDistance = (distance ?? 0) > 0 ? distance : null;
   const normalizedCalories = (calories ?? 0) > 0 ? calories : null;
-  const parts = formatMeasurementSummaryItems({
-    reps: normalizedReps,
-    weight: normalizedWeight,
-    weightUnit,
-    durationSeconds,
-    distance: normalizedDistance,
-    distanceUnit,
-    calories: normalizedCalories,
-    emptyLabel,
-  }).map((item) => item.label);
+  const parts = [
+    ...(resolvedFailure ? ["Failure"] : []),
+    ...formatMeasurementSummaryItems({
+      reps: normalizedReps,
+      weight: normalizedWeight,
+      weightUnit,
+      durationSeconds,
+      distance: normalizedDistance,
+      distanceUnit,
+      calories: normalizedCalories,
+      emptyLabel,
+    }).map((item) => item.label),
+  ];
 
   if (rpe !== null && rpe !== undefined) {
     parts.push(`Effort ${rpe}`);
@@ -206,13 +264,54 @@ function getSessionSummaryItems({
     parts.push("Warm-Up");
   }
 
-  if (queueStatus) {
-    parts.push(queueStatus);
-  } else if (pending) {
-    parts.push("saving...");
+  return parts;
+}
+
+function deriveLiveTargetMetrics(
+  target: SessionQuickLogTarget | null | undefined,
+  fallback: LiveSetMetricFlags,
+): LiveSetMetricFlags {
+  if (!target) {
+    return fallback;
   }
 
-  return parts;
+  const metrics: LiveSetMetricFlags = {
+    reps: typeof target.repsMin === "number" || typeof target.repsMax === "number",
+    weight: typeof target.weightMin === "number" || typeof target.weightMax === "number",
+    time: typeof target.durationSeconds === "number",
+    distance: typeof target.distance === "number",
+    calories: typeof target.calories === "number",
+  };
+
+  return Object.values(metrics).some(Boolean) ? metrics : fallback;
+}
+
+function deriveDraftMetricPresence(draftValues: {
+  reps: string;
+  weight: string;
+  duration: string;
+  distance: string;
+  calories: string;
+}): LiveSetMetricFlags {
+  return {
+    reps: draftValues.reps.trim().length > 0,
+    weight: draftValues.weight.trim().length > 0,
+    time: draftValues.duration.trim().length > 0,
+    distance: draftValues.distance.trim().length > 0,
+    calories: draftValues.calories.trim().length > 0,
+  };
+}
+
+function getSessionProgressionFieldInputMode(fieldId: PromotionStepFieldId | "setFlowLoad" | "setFlowReps" | "setFlowDuration" | "setFlowDistance" | "stallThreshold" | "deloadPercent") {
+  switch (fieldId) {
+    case "bodyweightReps":
+    case "setFlowReps":
+    case "setFlowDuration":
+    case "stallThreshold":
+      return "numeric" as const;
+    default:
+      return "decimal" as const;
+  }
 }
 
 export function SetLoggerCard({
@@ -225,6 +324,7 @@ export function SetLoggerCard({
   initialSets,
   onSetCountChange,
   prefill,
+  setFlowQuickLogTargets,
   defaultDistanceUnit,
   isCardio,
   targetHint,
@@ -238,6 +338,15 @@ export function SetLoggerCard({
   onSecondaryAction,
   warmupValue,
   onWarmupValueChange,
+  progressionFormState,
+  progressionStepPolicy,
+  visiblePromotionStepFields,
+  progressionSelectedMetrics,
+  showAllMeasurementInputs = false,
+  showFailureToggle = false,
+  showProgressionControls = true,
+  updateProgressionAction,
+  bottomDockCenter,
 }: {
   userId: string;
   sessionId: string;
@@ -255,6 +364,7 @@ export function SetLoggerCard({
     durationSeconds?: number;
     weightUnit?: "lbs" | "kg";
   };
+  setFlowQuickLogTargets?: SessionQuickLogTarget[];
   defaultDistanceUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
   targetHint: SessionTargetHint;
@@ -274,6 +384,15 @@ export function SetLoggerCard({
   onSecondaryAction?: () => Promise<void> | void;
   warmupValue?: boolean;
   onWarmupValueChange?: (value: boolean) => void;
+  progressionFormState?: ProgressionPlaybookFormState | null;
+  progressionStepPolicy?: ProgressionStepPolicy | null;
+  visiblePromotionStepFields?: PromotionStepFieldId[] | null;
+  progressionSelectedMetrics?: Array<"reps" | "weight" | "time" | "distance" | "calories">;
+  showAllMeasurementInputs?: boolean;
+  showFailureToggle?: boolean;
+  showProgressionControls?: boolean;
+  updateProgressionAction?: (formData: FormData) => Promise<ActionResult>;
+  bottomDockCenter?: ReactNode;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -291,6 +410,9 @@ export function SetLoggerCard({
   const [calories, setCalories] = useState("");
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
+  const [isFailure, setIsFailure] = useState(false);
+  const [progressionDraft, setProgressionDraft] = useState<ProgressionPlaybookFormState | null>(progressionFormState ?? null);
+  const [progressionSaveError, setProgressionSaveError] = useState<string | null>(null);
   const resolvedIsWarmup = warmupValue ?? isWarmup;
 
   const setWarmupValue = useCallback((value: boolean) => {
@@ -302,43 +424,98 @@ export function SetLoggerCard({
   }, [onWarmupValueChange]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLogRequestPending, setIsLogRequestPending] = useState(false);
+  const incomingProgressionSnapshot = useMemo(
+    () => progressionFormState ? buildProgressionPlaybookFormSnapshot(progressionFormState) : null,
+    [progressionFormState],
+  );
+  const lastSavedProgressionSnapshotRef = useRef<string | null>(incomingProgressionSnapshot);
+  const lastIncomingProgressionSnapshotRef = useRef<string | null>(incomingProgressionSnapshot);
+  const lastFailedProgressionSnapshotRef = useRef<string | null>(null);
   const [isSecondaryPending, setIsSecondaryPending] = useState(false);
   const [sets, setSets] = useState<DisplaySet[]>(() => initialSets.map(toDisplaySet));
-  const [visibleMetrics, setVisibleMetrics] = useState(initialEnabledMetrics);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(() => initialSets.map(toDisplaySet));
+  const [deletingSetIds, setDeletingSetIds] = useState<string[]>([]);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
+  const draftStorageWriteTimeoutRef = useRef<number | null>(null);
+  const draftStorageSnapshotRef = useRef<{ key: string; payload: string } | null>(null);
+  const lastQueueStatusByStableIdRef = useRef<Record<string, SetLogQueueItem["status"] | undefined>>({});
+  const locallyDeletedSetIdentityKeysRef = useRef<Set<string>>(new Set());
+  const logRequestInFlightRef = useRef(false);
+  const prefillWeight = prefill?.weight;
+  const prefillReps = prefill?.reps;
+  const prefillDurationSeconds = prefill?.durationSeconds;
+  const prefillWeightUnit = prefill?.weightUnit;
 
   const toast = useToast();
-  const queueUndo = useUndoAction(6000);
-
-  const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
-
-  useEffect(() => {
-    setVisibleMetrics(initialEnabledMetrics);
-  }, [initialEnabledMetrics, planContractSignature]);
+  const currentLiveQuickLogTarget = useMemo(
+    () => setFlowQuickLogTargets?.[sets.length] ?? toQuickLogTargetFromSuggestedValues(targetHint.suggestedValues),
+    [setFlowQuickLogTargets, sets.length, targetHint.suggestedValues],
+  );
+  const currentLiveTargetMetrics = useMemo(
+    () => deriveLiveTargetMetrics(currentLiveQuickLogTarget, initialEnabledMetrics),
+    [currentLiveQuickLogTarget, initialEnabledMetrics],
+  );
+  const draftMetricPresence = useMemo(
+    () => deriveDraftMetricPresence({
+      reps,
+      weight,
+      duration: durationInput,
+      distance,
+      calories,
+    }),
+    [calories, distance, durationInput, reps, weight],
+  );
+  const liveSetInputOrder = useMemo(() => getLiveSetInputOrder({
+    requiredMetrics: currentLiveTargetMetrics,
+    configuredMetrics: initialEnabledMetrics,
+    draftValues: {
+      reps,
+      weight,
+      time: durationInput,
+      distance,
+      calories,
+    },
+    isCardio,
+    showAllMetrics: showAllMeasurementInputs,
+  }), [calories, currentLiveTargetMetrics, distance, durationInput, initialEnabledMetrics, isCardio, reps, showAllMeasurementInputs, weight]);
+  const liveMeasurementMetrics = useMemo<LiveSetMetricFlags>(() => ({
+    reps: showAllMeasurementInputs ? liveSetInputOrder.visibleMetrics.includes("reps") : (liveSetInputOrder.visibleMetrics.includes("reps") || draftMetricPresence.reps),
+    weight: showAllMeasurementInputs ? liveSetInputOrder.visibleMetrics.includes("weight") : (liveSetInputOrder.visibleMetrics.includes("weight") || draftMetricPresence.weight),
+    time: showAllMeasurementInputs ? liveSetInputOrder.visibleMetrics.includes("time") : (liveSetInputOrder.visibleMetrics.includes("time") || draftMetricPresence.time),
+    distance: showAllMeasurementInputs ? liveSetInputOrder.visibleMetrics.includes("distance") : (liveSetInputOrder.visibleMetrics.includes("distance") || draftMetricPresence.distance),
+    calories: showAllMeasurementInputs ? liveSetInputOrder.visibleMetrics.includes("calories") : (liveSetInputOrder.visibleMetrics.includes("calories") || draftMetricPresence.calories),
+  }), [draftMetricPresence, liveSetInputOrder.visibleMetrics, showAllMeasurementInputs]);
 
   useEffect(() => {
     setIsMetricsExpanded(false);
   }, [sessionExerciseId]);
 
   useEffect(() => {
-    setWeight(prefill?.weight !== undefined ? String(prefill.weight) : "");
-    setSelectedWeightUnit(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
-    setReps(prefill?.reps !== undefined ? String(prefill.reps) : "");
-    setDurationInput(prefill?.durationSeconds !== undefined ? formatDurationClock(prefill.durationSeconds) : "");
+    setWeight(prefillWeight !== undefined ? String(prefillWeight) : "");
+    setSelectedWeightUnit(prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
+    setReps(prefillReps !== undefined ? String(prefillReps) : "");
+    setDurationInput(prefillDurationSeconds !== undefined ? formatDurationClock(prefillDurationSeconds) : "");
     setDistance("");
     setDistanceUnit(defaultDistanceUnit ?? "mi");
     setCalories("");
     setRpe("");
     setWarmupValue(false);
+    setIsFailure(false);
     setError(null);
-    const nextDisplaySets = initialSets.map(toDisplaySet);
+    locallyDeletedSetIdentityKeysRef.current = new Set();
+    const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
     setSets(nextDisplaySets);
     setAnimatedSets(nextDisplaySets);
-    lastPublishedSetCountRef.current = initialSets.length;
-  }, [defaultDistanceUnit, initialSets, prefill, sessionExerciseId, setWarmupValue, unitLabel]);
+    lastPublishedSetCountRef.current = nextDisplaySets.length;
+  }, [defaultDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, sessionExerciseId, setWarmupValue, unitLabel]);
+
+  useEffect(() => {
+    const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
+    setSets((current) => mergeDisplaySets(current, nextDisplaySets));
+  }, [initialSets, sessionExerciseId]);
 
   useEffect(() => {
     if (!onSetCountChange) {
@@ -364,7 +541,7 @@ export function SetLoggerCard({
     try {
       const parsed = JSON.parse(raw) as {
         sets?: DisplaySet[];
-        form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: "mi" | "km" | "m"; calories?: string; rpe?: string; isWarmup?: boolean; selectedWeightUnit?: "lbs" | "kg" };
+        form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: "mi" | "km" | "m"; calories?: string; rpe?: string; isWarmup?: boolean; isFailure?: boolean; selectedWeightUnit?: "lbs" | "kg" };
       };
 
       if (isOfflineSnapshotStale((parsed as { updatedAt?: number | string }).updatedAt)) {
@@ -377,7 +554,10 @@ export function SetLoggerCard({
           ...set,
           stableId: resolveStableSetId(set),
         })) as DisplaySet[];
-        setSets(mergeDisplaySets(initialSets.map(toDisplaySet), storedSets));
+        setSets(mergeDisplaySets(
+          filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current),
+          filterDeletedDisplaySets(storedSets, locallyDeletedSetIdentityKeysRef.current),
+        ));
       }
 
       if (parsed.form) {
@@ -403,6 +583,7 @@ export function SetLoggerCard({
         if (typeof sanitizedForm.calories === "string") setCalories(sanitizedForm.calories);
         if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
         if (typeof parsed.form.isWarmup === "boolean") setWarmupValue(parsed.form.isWarmup);
+        if (typeof parsed.form.isFailure === "boolean") setIsFailure(parsed.form.isFailure);
         if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
           setSelectedWeightUnit(parsed.form.selectedWeightUnit);
         }
@@ -438,13 +619,45 @@ export function SetLoggerCard({
         calories: sanitizedForm.calories,
         rpe,
         isWarmup: resolvedIsWarmup,
+        isFailure,
         selectedWeightUnit,
       },
       updatedAt: Date.now(),
     });
 
-    window.localStorage.setItem(storageKey, payload);
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
+    draftStorageSnapshotRef.current = { key: storageKey, payload };
+    if (draftStorageWriteTimeoutRef.current !== null) {
+      window.clearTimeout(draftStorageWriteTimeoutRef.current);
+    }
+    draftStorageWriteTimeoutRef.current = window.setTimeout(() => {
+      const pendingWrite = draftStorageSnapshotRef.current;
+      if (!pendingWrite) {
+        return;
+      }
+      window.localStorage.setItem(pendingWrite.key, pendingWrite.payload);
+      if (draftStorageSnapshotRef.current?.key === pendingWrite.key && draftStorageSnapshotRef.current?.payload === pendingWrite.payload) {
+        draftStorageSnapshotRef.current = null;
+      }
+      draftStorageWriteTimeoutRef.current = null;
+    }, 180);
+
+    return () => {
+      if (draftStorageWriteTimeoutRef.current !== null) {
+        window.clearTimeout(draftStorageWriteTimeoutRef.current);
+      }
+    };
+  }, [calories, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
+
+  useEffect(() => () => {
+    if (draftStorageWriteTimeoutRef.current !== null) {
+      window.clearTimeout(draftStorageWriteTimeoutRef.current);
+    }
+    const pendingWrite = draftStorageSnapshotRef.current;
+    if (pendingWrite) {
+      window.localStorage.setItem(pendingWrite.key, pendingWrite.payload);
+      draftStorageSnapshotRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -455,33 +668,8 @@ export function SetLoggerCard({
   }, []);
 
   useEffect(() => {
-    setAnimatedSets((current) => {
-      const nextIds = new Set(sets.map((set) => set.stableId));
-      const removed = current
-        .filter((set) => !nextIds.has(set.stableId))
-        .map((set) => ({ ...set, isLeaving: true }));
-      const merged = [...sets, ...removed];
-      const uniqueById = new Map<string, AnimatedDisplaySet>();
-      for (const set of merged) {
-        uniqueById.set(set.stableId, set);
-      }
-      return Array.from(uniqueById.values());
-    });
+    setAnimatedSets(sets);
   }, [sets]);
-
-  useEffect(() => {
-    if (prefersReducedMotion) {
-      setAnimatedSets(sets);
-      return;
-    }
-    if (!animatedSets.some((set) => set.isLeaving)) {
-      return;
-    }
-    const timeout = window.setTimeout(() => {
-      setAnimatedSets((current) => current.filter((set) => !set.isLeaving));
-    }, 140);
-    return () => window.clearTimeout(timeout);
-  }, [animatedSets, prefersReducedMotion, sets]);
 
   useEffect(() => {
     const engine = createSetLogSyncEngine({
@@ -503,9 +691,27 @@ export function SetLoggerCard({
               : set
           )),
         );
+        delete lastQueueStatusByStableIdRef.current[item.clientLogId];
+        toast.success("Saved set synced.");
       },
       onQueueUpdate: () => {
         void readQueuedSetLogsBySessionExerciseIdForUser(userId, sessionExerciseId).then((queued) => {
+          const previousQueueStatusByStableId = lastQueueStatusByStableIdRef.current;
+          const nextQueueStatusByStableId = Object.fromEntries(
+            queued.map((item) => [item.clientLogId, item.status] as const),
+          );
+          for (const item of queued) {
+            const previousStatus = previousQueueStatusByStableId[item.clientLogId];
+            if (item.status === "syncing" && previousStatus !== "syncing") {
+              toast.success("Syncing saved sets...");
+              break;
+            }
+            if (item.status === "failed" && previousStatus !== "failed") {
+              toast.error("Could not sync a saved set.");
+              break;
+            }
+          }
+          lastQueueStatusByStableIdRef.current = nextQueueStatusByStableId;
           setSets((current) =>
             current.map((set) => {
               const queuedMatch = queued.find((item) => item.clientLogId === set.stableId);
@@ -591,15 +797,105 @@ export function SetLoggerCard({
     };
   }, [sessionExerciseId, userId]);
 
+  useEffect(() => {
+    if (!incomingProgressionSnapshot || !progressionFormState) {
+      return;
+    }
 
-  const isSaveDisabled = isSubmitting;
+    if (incomingProgressionSnapshot === lastIncomingProgressionSnapshotRef.current) {
+      return;
+    }
+
+    lastIncomingProgressionSnapshotRef.current = incomingProgressionSnapshot;
+    lastSavedProgressionSnapshotRef.current = incomingProgressionSnapshot;
+    lastFailedProgressionSnapshotRef.current = null;
+    setProgressionDraft(progressionFormState);
+    setProgressionSaveError(null);
+  }, [incomingProgressionSnapshot, progressionFormState]);
+
+  const progressionDraftSnapshot = useMemo(
+    () => progressionDraft ? buildProgressionPlaybookFormSnapshot(progressionDraft) : null,
+    [progressionDraft],
+  );
+  const canPersistProgressionDraft = useMemo(
+    () => progressionDraft ? (progressionDraft.progressionPlaybookId === "" || buildProgressionPlaybookConfigFromFormState(progressionDraft) !== null) : false,
+    [progressionDraft],
+  );
+
+  useEffect(() => {
+    if (!updateProgressionAction || !progressionDraft || !progressionDraftSnapshot || !routineDayExerciseId) {
+      return;
+    }
+
+    if (
+      !canPersistProgressionDraft
+      || progressionDraftSnapshot === lastSavedProgressionSnapshotRef.current
+      || progressionDraftSnapshot === lastFailedProgressionSnapshotRef.current
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const formData = new FormData();
+      formData.set("sessionId", sessionId);
+      formData.set("sessionExerciseId", sessionExerciseId);
+      formData.set("exerciseRowId", routineDayExerciseId);
+      formData.set("progressionPlaybookId", progressionDraft.progressionPlaybookId);
+      formData.set("progressionStallPolicy", progressionDraft.progressionStallPolicy);
+      formData.set("progressionLoadIncrement", progressionDraft.progressionLoadIncrement);
+      formData.set("progressionBarbellLoadIncrement", progressionDraft.progressionBarbellLoadIncrement);
+      formData.set("progressionDumbbellLoadIncrement", progressionDraft.progressionDumbbellLoadIncrement);
+      formData.set("progressionMachineLoadIncrement", progressionDraft.progressionMachineLoadIncrement);
+      formData.set("progressionCableLoadIncrement", progressionDraft.progressionCableLoadIncrement);
+      formData.set("progressionBodyweightRepIncrement", progressionDraft.progressionBodyweightRepIncrement);
+      formData.set("progressionDurationIncrementSeconds", progressionDraft.progressionDurationIncrementSeconds);
+      formData.set("progressionDistanceIncrement", progressionDraft.progressionDistanceIncrement);
+      formData.set("progressionSetFlowLoadStep", progressionDraft.progressionSetFlowLoadStep);
+      formData.set("progressionSetFlowRepStep", progressionDraft.progressionSetFlowRepStep);
+      formData.set("progressionSetFlowDurationStep", progressionDraft.progressionSetFlowDurationStep);
+      formData.set("progressionSetFlowDistanceStep", progressionDraft.progressionSetFlowDistanceStep);
+      formData.set("progressionStallThreshold", progressionDraft.progressionStallThreshold);
+      formData.set("progressionDeloadPercent", progressionDraft.progressionDeloadPercent);
+      formData.set("progressionSetFlow", progressionDraft.progressionSetFlow);
+      if (progressionDraft.progressionAutoUpdateRoutineGoals) {
+        formData.set("progressionAutoUpdateRoutineGoals", "1");
+      }
+
+      void updateProgressionAction(formData).then((result) => {
+        if (!result.ok) {
+          lastFailedProgressionSnapshotRef.current = progressionDraftSnapshot;
+          setProgressionSaveError(result.error || "Could not save progression.");
+          toast.error(result.error || "Could not save progression.");
+          return;
+        }
+
+        lastSavedProgressionSnapshotRef.current = progressionDraftSnapshot;
+        lastFailedProgressionSnapshotRef.current = null;
+        setProgressionSaveError(null);
+      });
+    }, 280);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    canPersistProgressionDraft,
+    progressionDraft,
+    progressionDraftSnapshot,
+    routineDayExerciseId,
+    sessionExerciseId,
+    sessionId,
+    toast,
+    updateProgressionAction,
+  ]);
+
+  const resolvedIsFailure = showFailureToggle && !resolvedIsWarmup && isFailure;
+  const isSaveDisabled = isSubmitting || isLogRequestPending;
 
   const resetLoggerState = useCallback(() => {
     setDurationInput("");
-    if (visibleMetrics.reps) {
+    if (liveSetInputOrder.visibleMetrics.includes("reps")) {
       setReps("");
     }
-  }, [visibleMetrics.reps]);
+  }, [liveSetInputOrder.visibleMetrics]);
 
   useEffect(() => {
     if (!resetSignal) {
@@ -609,7 +905,71 @@ export function SetLoggerCard({
     resetLoggerState();
   }, [resetLoggerState, resetSignal]);
 
+  const applyQuickLogTargetToInputs = useCallback((target: SessionQuickLogTarget | null | undefined) => {
+    if (!target) {
+      return false;
+    }
+
+    const nextWeight = target.weightMax ?? target.weightMin;
+    const nextReps = target.repsMax ?? target.repsMin;
+    setWeight(nextWeight !== undefined ? String(nextWeight) : "");
+    setReps(nextReps !== undefined ? String(nextReps) : "");
+    setDurationInput(target.durationSeconds !== undefined ? formatDurationClock(target.durationSeconds) : "");
+    setDistance(target.distance !== undefined ? String(target.distance) : "");
+    if (target.distanceUnit === "mi" || target.distanceUnit === "km" || target.distanceUnit === "m") {
+      setDistanceUnit(target.distanceUnit);
+    } else {
+      setDistanceUnit(defaultDistanceUnit ?? "mi");
+    }
+    setCalories(target.calories !== undefined ? String(target.calories) : "");
+    if (target.weightUnit === "kg" || target.weightUnit === "lbs") {
+      setSelectedWeightUnit(target.weightUnit);
+    } else {
+      setSelectedWeightUnit(unitLabel === "kg" ? "kg" : "lbs");
+    }
+    setIsFailure(false);
+    setError(null);
+    return true;
+  }, [defaultDistanceUnit, unitLabel]);
+
+  const applyNextSetFlowTarget = useCallback((setIndex: number) => {
+    return applyQuickLogTargetToInputs(setFlowQuickLogTargets?.[setIndex] ?? null);
+  }, [applyQuickLogTargetToInputs, setFlowQuickLogTargets]);
+  const advanceLoggerAfterOptimisticLog = useCallback((args: {
+    nextSetIndex: number;
+    presentMetrics: ReturnType<typeof deriveMeasurementPresenceFromValues>;
+    sanitizedValues: ReturnType<typeof sanitizeEnabledMeasurementValues>;
+    parsedDuration: number | null;
+    parsedDistance: number | null;
+    parsedCalories: number | null;
+    parsedWeight: number;
+    parsedReps: number;
+    resolvedIsFailure: boolean;
+    parsedRpe: number | null;
+    resolvedIsWarmup: boolean;
+  }) => {
+    const appliedNextSetTarget = applyNextSetFlowTarget(args.nextSetIndex + 1);
+    if (!appliedNextSetTarget) {
+      setDurationInput(args.presentMetrics.time ? formatDurationInput(args.parsedDuration) : (args.sanitizedValues.duration ?? ""));
+      setDistance(args.presentMetrics.distance ? (args.parsedDistance === null ? "" : String(args.parsedDistance)) : String(args.sanitizedValues.distance ?? ""));
+      setCalories(args.presentMetrics.calories ? (args.parsedCalories === null ? "" : String(args.parsedCalories)) : String(args.sanitizedValues.calories ?? ""));
+      setWeight(args.presentMetrics.weight ? String(args.parsedWeight) : String(args.sanitizedValues.weight ?? ""));
+      setReps(args.presentMetrics.reps ? (args.resolvedIsFailure ? "" : String(args.parsedReps)) : String(args.sanitizedValues.reps ?? ""));
+    }
+    setRpe(args.parsedRpe === null ? "" : String(args.parsedRpe));
+    setIsFailure(false);
+    setWarmupValue(args.resolvedIsWarmup);
+  }, [applyNextSetFlowTarget, setWarmupValue]);
+  const releaseLogRequest = useCallback(() => {
+    logRequestInFlightRef.current = false;
+    setIsLogRequestPending(false);
+  }, []);
+
   const handleLogSet = useCallback(async () => {
+    if (logRequestInFlightRef.current) {
+      return;
+    }
+
     const presentMetrics = deriveMeasurementPresenceFromValues({
       reps,
       weight,
@@ -674,9 +1034,9 @@ export function SetLoggerCard({
     }
 
     setError(null);
-    setIsSubmitting(true);
 
     const clientLogId = createStableSetId();
+    const failureNote = resolvedIsFailure ? FAILURE_NOTE_SENTINEL : null;
     const nextSetIndex = sets.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
     const optimisticSet: DisplaySet = {
       id: clientLogId,
@@ -692,13 +1052,32 @@ export function SetLoggerCard({
       distance_unit: parsedDistance !== null ? distanceUnit : null,
       calories: parsedCalories,
       is_warmup: resolvedIsWarmup,
-      notes: null,
+      notes: failureNote,
       rpe: parsedRpe,
       weight_unit: selectedWeightUnit,
       pending: true,
     };
 
-    setSets((current) => [...current, optimisticSet]);
+    flushSync(() => {
+      logRequestInFlightRef.current = true;
+      setIsSubmitting(true);
+      setIsLogRequestPending(true);
+      setSets((current) => [...current, optimisticSet]);
+    });
+    advanceLoggerAfterOptimisticLog({
+      nextSetIndex,
+      presentMetrics,
+      sanitizedValues,
+      parsedDuration,
+      parsedDistance,
+      parsedCalories,
+      parsedWeight,
+      parsedReps,
+      resolvedIsFailure,
+      parsedRpe,
+      resolvedIsWarmup,
+    });
+    setIsSubmitting(false);
 
     const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
 
@@ -717,7 +1096,7 @@ export function SetLoggerCard({
           calories: parsedCalories,
           isWarmup: resolvedIsWarmup,
           rpe: parsedRpe,
-          notes: null,
+          notes: failureNote,
           weightUnit: selectedWeightUnit,
         },
       });
@@ -742,7 +1121,7 @@ export function SetLoggerCard({
       } else {
         toast.error(message);
       }
-      setIsSubmitting(false);
+      releaseLogRequest();
       return;
     }
 
@@ -758,7 +1137,7 @@ export function SetLoggerCard({
         calories: parsedCalories,
         isWarmup: resolvedIsWarmup,
         rpe: parsedRpe,
-        notes: null,
+        notes: failureNote,
         weightUnit: selectedWeightUnit,
         clientLogId,
       });
@@ -778,7 +1157,7 @@ export function SetLoggerCard({
             calories: parsedCalories,
             isWarmup: resolvedIsWarmup,
             rpe: parsedRpe,
-            notes: null,
+            notes: failureNote,
             weightUnit: selectedWeightUnit,
           },
         });
@@ -803,7 +1182,7 @@ export function SetLoggerCard({
         } else {
           toast.error(message);
         }
-        setIsSubmitting(false);
+        releaseLogRequest();
         return;
       }
 
@@ -824,7 +1203,7 @@ export function SetLoggerCard({
           calories: parsedCalories,
           isWarmup: resolvedIsWarmup,
           rpe: parsedRpe,
-          notes: null,
+          notes: failureNote,
           weightUnit: selectedWeightUnit,
         },
       });
@@ -848,23 +1227,17 @@ export function SetLoggerCard({
       } else {
         toast.error(message);
       }
-      setIsSubmitting(false);
+      releaseLogRequest();
       return;
     }
-
-    setDurationInput(presentMetrics.time ? formatDurationInput(parsedDuration) : sanitizedValues.duration);
-    setDistance(presentMetrics.distance ? (parsedDistance === null ? "" : String(parsedDistance)) : sanitizedValues.distance);
-    setCalories(presentMetrics.calories ? (parsedCalories === null ? "" : String(parsedCalories)) : sanitizedValues.calories);
-    setWeight(presentMetrics.weight ? String(parsedWeight) : sanitizedValues.weight);
-    setReps(presentMetrics.reps ? String(parsedReps) : sanitizedValues.reps);
-    setRpe(parsedRpe === null ? "" : String(parsedRpe));
-    setWarmupValue(resolvedIsWarmup);
-    setIsSubmitting(false);
+    releaseLogRequest();
   }, [
+    advanceLoggerAfterOptimisticLog,
     calories,
     distance,
     distanceUnit,
     durationInput,
+    resolvedIsFailure,
     resolvedIsWarmup,
     reps,
     rpe,
@@ -878,10 +1251,59 @@ export function SetLoggerCard({
     userId,
     weight,
     addSetAction,
+    releaseLogRequest,
   ]);
 
-  const saveSetActions = useMemo(
-    () => (
+  const liveSummaryItems = useMemo(() => {
+    const hasVisibleMeasurements = liveSetInputOrder.visibleMetrics.length > 0;
+    return getSessionSummaryItems({
+      reps: reps.trim() ? Number(reps) : null,
+      weight: weight.trim() ? Number(weight) : null,
+      weightUnit: selectedWeightUnit,
+      durationSeconds: parseDurationInput(durationInput),
+      distance: distance.trim() ? Number(distance) : null,
+      distanceUnit,
+      calories: calories.trim() ? Number(calories) : null,
+      failure: resolvedIsFailure,
+      rpe: rpe.trim() ? Number(rpe.trim()) : null,
+      isWarmup: resolvedIsWarmup,
+      emptyLabel: hasVisibleMeasurements ? "Add measurements" : "",
+      includeWarmupTag: false,
+    }).filter((item) => item.trim().length > 0);
+  }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
+  const liveLogButtonPrefix = resolvedIsWarmup ? "Log Warm-Up" : (resolvedIsFailure ? "Log Failure" : "Log");
+  const liveLogButtonLabel = liveSummaryItems.length > 0 ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(" • ")}` : liveLogButtonPrefix;
+  const saveSetPrimaryActions = useMemo(
+    () => bottomDockCenter ? (
+      <BottomActionTriad
+        className="grid-cols-[minmax(92px,0.76fr)_minmax(7.35rem,8.6rem)_minmax(0,1.3fr)]"
+        tertiaryClassName="[&>*]:max-w-[8rem]"
+        secondary={onSecondaryAction ? (
+          <BottomDockButton
+            type="button"
+            intent="toggleActive"
+            className="!min-h-[44px]"
+            disabled={isSecondaryPending}
+            onClick={async () => {
+              setIsSecondaryPending(true);
+              try {
+                await onSecondaryAction();
+              } finally {
+                setIsSecondaryPending(false);
+              }
+            }}
+          >
+            {isSecondaryPending ? "Opening..." : (secondaryActionLabel ?? "View")}
+          </BottomDockButton>
+        ) : <div aria-hidden="true" />}
+        tertiary={bottomDockCenter}
+        primary={(
+          <BottomDockButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} intent="positive" className="!min-h-[44px]">
+            {liveLogButtonLabel}
+          </BottomDockButton>
+        )}
+      />
+    ) : (
       <BottomActionDock
         left={onSecondaryAction ? (
           <DockButton
@@ -902,35 +1324,13 @@ export function SetLoggerCard({
         ) : <div aria-hidden="true" />}
         right={(
           <DockButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} intent="positive">
-            Log
+            <span className="bottom-action__label">{liveLogButtonLabel}</span>
           </DockButton>
         )}
       />
     ),
-    [handleLogSet, isSaveDisabled, isSecondaryPending, onSecondaryAction, secondaryActionLabel],
+    [bottomDockCenter, handleLogSet, isSaveDisabled, isSecondaryPending, liveLogButtonLabel, onSecondaryAction, secondaryActionLabel],
   );
-
-  const liveSummaryItems = useMemo(() => {
-    const hasVisibleMeasurements = Object.values(visibleMetrics).some(Boolean);
-    return getSessionSummaryItems({
-      reps: reps.trim() ? Number(reps) : null,
-      weight: weight.trim() ? Number(weight) : null,
-      weightUnit: selectedWeightUnit,
-      durationSeconds: parseDurationInput(durationInput),
-      distance: distance.trim() ? Number(distance) : null,
-      distanceUnit,
-      calories: calories.trim() ? Number(calories) : null,
-      rpe: rpe.trim() ? Number(rpe.trim()) : null,
-      isWarmup: resolvedIsWarmup,
-      emptyLabel: hasVisibleMeasurements ? "Add measurements" : "",
-      includeWarmupTag: false,
-    });
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, visibleMetrics, weight]);
-  const currentSetLabel = useMemo(
-    () => resolvedIsWarmup ? "Warm-up" : formatSetPositionLabel(sets.length + 1, useIntervalLanguage ? "Interval" : "Set"),
-    [resolvedIsWarmup, sets.length, useIntervalLanguage],
-  );
-
   const applyHintValues = useCallback((values: SessionTargetHint["suggestedValues"] | null | undefined) => {
     if (!values) return;
 
@@ -945,85 +1345,74 @@ export function SetLoggerCard({
     if (values.weightUnit === "kg" || values.weightUnit === "lbs") {
       setSelectedWeightUnit(values.weightUnit);
     }
+    setIsFailure(false);
     setError(null);
     toast.success("Applied to current set.");
   }, [toast]);
 
 
   async function handleDeleteSet(set: DisplaySet) {
+    if (deletingSetIds.includes(set.stableId)) {
+      return;
+    }
+
+    setDeletingSetIds((current) => current.includes(set.stableId) ? current : [...current, set.stableId]);
+
     if (set.pending || set.queueStatus) {
       if (set.queueItemId) {
         await removeSetLogQueueItem(set.queueItemId);
       }
+      addDeletedSetIdentityKeys(locallyDeletedSetIdentityKeysRef.current, set);
       setSets((current) => current.filter((item) => item.stableId !== set.stableId));
       toast.success("Queued set removed.");
+      setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
       return;
     }
 
     const removalIndex = sets.findIndex((item) => item.stableId === set.stableId);
-    if (removalIndex === -1) return;
+    if (removalIndex === -1) {
+      setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
+      return;
+    }
 
+    addDeletedSetIdentityKeys(locallyDeletedSetIdentityKeysRef.current, set);
     setSets((current) => current.filter((item) => item.stableId !== set.stableId));
 
-    queueUndo({
-      message: "Removed set",
-      onUndo: () => {
+    try {
+      const result = await deleteSetAction({
+        sessionId,
+        sessionExerciseId,
+        setId: set.id,
+      });
+
+      if (!result.ok) {
+        removeDeletedSetIdentityKeys(locallyDeletedSetIdentityKeysRef.current, set);
         setSets((current) => {
           if (current.some((item) => item.stableId === set.stableId)) return current;
           const next = [...current];
           next.splice(removalIndex, 0, set);
           return next;
         });
-      },
-      onCommit: async () => {
-        const result = await deleteSetAction({
-          sessionId,
-          sessionExerciseId,
-          setId: set.id,
-        });
+        toast.error(result.error || "Could not remove set.");
+        return;
+      }
 
-        if (!result.ok) {
-          setSets((current) => {
-            if (current.some((item) => item.stableId === set.stableId)) return current;
-            const next = [...current];
-            next.splice(removalIndex, 0, set);
-            return next;
-          });
-          toast.error(result.error || "Could not remove set.");
-        }
-      },
-    });
+      toast.success("Set removed.");
+    } finally {
+      setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
+    }
   }
 
-  const currentSummary = (
-    <div data-testid="set-logger-current-summary">
-      <MeasurementDockSummary
-        className={cn(
-          appTokens.currentSessionLoggerSummaryCard,
-          "border-0 bg-transparent px-0 py-0 shadow-none transition-all duration-200 ease-out",
-        )}
-        lead={(
-          <div className={cn(appTokens.currentSessionLoggerSummaryText, "inline-flex items-center gap-x-2 text-[14px] leading-[1.25] transition-all duration-200 ease-out")}>
-            <span className={cn(appTokens.currentSessionSetSummaryLabel, "shrink-0")}>{currentSetLabel}</span>
-            <SignatureMiniPipe />
-          </div>
-        )}
-        summary={(
-          <SignatureInlineList
-            items={liveSummaryItems}
-            separator="dot"
-            className={cn(
-              appTokens.currentSessionLoggerSummaryText,
-              "justify-center whitespace-normal break-words text-center text-[14px] leading-[1.25] transition-all duration-200 ease-out",
-            )}
-          />
-        )}
-      />
-    </div>
-  );
+  type HistoryRow = {
+    key: string;
+    label: string;
+    showPipe: boolean;
+    items: string[];
+    dateLabel: string | null;
+    applyValues: SessionTargetHint["suggestedValues"] | null;
+  };
 
-  const nextHistoryItems = formatSuggestedHistoryItems(targetHint.suggestedValues);
-  const historyRows = [
+  const historyRowsSource: Array<HistoryRow | null> = [
     targetHint.lastSummary ? {
       key: "last-time",
       label: "Last",
@@ -1038,73 +1427,308 @@ export function SetLoggerCard({
       applyValues: targetHint.recentBestSuggestedValues,
       ...formatHistorySummary(targetHint.recentBestSummary, targetHint.recentBestPerformedAtLabel),
     } : null,
-    nextHistoryItems.length > 0 ? {
-      key: "next",
-      label: "Next",
-      showPipe: true,
-      items: nextHistoryItems,
-      dateLabel: null,
-      applyValues: targetHint.suggestedValues,
-    } : null,
-  ].filter((value): value is { key: string; label: string; showPipe: boolean; items: string[]; dateLabel: string | null; applyValues: SessionTargetHint["suggestedValues"] | null } => value !== null && value.items.length > 0);
+  ];
+  const historyRows = historyRowsSource.filter((value): value is HistoryRow => value !== null && value.items.length > 0);
+  const applyLastRow = historyRows.find((row) => row.key === "last-time" && row.applyValues !== null) ?? null;
+  const progressionEditorGroups = useMemo(() => progressionDraft
+    ? buildSessionProgressionEditorGroups({
+        state: progressionDraft,
+        weightUnit: unitLabel === "kg" ? "kg" : "lbs",
+        visiblePromotionStepFields: visiblePromotionStepFields ?? [],
+        selectedMetrics: new Set(progressionSelectedMetrics ?? []),
+      })
+    : [],
+  [progressionDraft, progressionSelectedMetrics, unitLabel, visiblePromotionStepFields]);
+  const handleProgressionFieldChange = useCallback((
+    fieldId: PromotionStepFieldId | "setFlowLoad" | "setFlowReps" | "setFlowDuration" | "setFlowDistance" | "stallThreshold" | "deloadPercent",
+    nextValue: string,
+  ) => {
+    setProgressionDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      switch (fieldId) {
+        case "barbellLoad":
+          return { ...current, progressionBarbellLoadIncrement: nextValue };
+        case "dumbbellLoad":
+          return { ...current, progressionDumbbellLoadIncrement: nextValue };
+        case "machineLoad":
+          return { ...current, progressionMachineLoadIncrement: nextValue };
+        case "cableLoad":
+          return { ...current, progressionCableLoadIncrement: nextValue };
+        case "genericLoad":
+          return { ...current, progressionLoadIncrement: nextValue };
+        case "bodyweightReps":
+          return { ...current, progressionBodyweightRepIncrement: nextValue };
+        case "duration":
+          return { ...current, progressionDurationIncrementSeconds: nextValue };
+        case "distance":
+          return { ...current, progressionDistanceIncrement: nextValue };
+        case "setFlowLoad":
+          return { ...current, progressionSetFlowLoadStep: nextValue };
+        case "setFlowReps":
+          return { ...current, progressionSetFlowRepStep: nextValue };
+        case "setFlowDuration":
+          return { ...current, progressionSetFlowDurationStep: nextValue };
+        case "setFlowDistance":
+          return { ...current, progressionSetFlowDistanceStep: nextValue };
+        case "stallThreshold":
+          return { ...current, progressionStallThreshold: nextValue };
+        case "deloadPercent":
+          return { ...current, progressionDeloadPercent: nextValue };
+        default:
+          return current;
+      }
+    });
+    lastFailedProgressionSnapshotRef.current = null;
+    setProgressionSaveError(null);
+  }, []);
+  const progressionSettingsRow = progressionEditorGroups.length > 0 ? (
+    <section className="px-1 pb-1.5 pt-1">
+      <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y]">
+        <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1">
+          {progressionEditorGroups.map((group, groupIndex) => (
+            <div key={group.key} className="flex shrink-0 flex-nowrap items-stretch gap-2">
+              {groupIndex > 0 ? (
+                <span className="mx-1.5 flex shrink-0 self-stretch items-center" aria-hidden="true">
+                  <span className="block h-[3.7rem] w-px rounded-full bg-[rgb(var(--accent-divider-rgb)/0.52)]" />
+                </span>
+              ) : null}
+              <div className="shrink-0 space-y-2">
+                <div className="mx-auto w-fit max-w-full space-y-1 text-center">
+                  <p className={cn(
+                    "text-[9.5px] font-semibold uppercase tracking-[0.15em]",
+                    group.tone === "secondary"
+                      ? "text-[rgb(var(--secondary-action-rgb)/0.9)]"
+                      : "text-[rgb(var(--accent-divider-rgb)/0.9)]",
+                  )}>
+                    {group.title}
+                  </p>
+                  <MetricAccentBar variant="thin" className="w-full opacity-85" />
+                </div>
+                <div className="flex w-max flex-nowrap items-center justify-center gap-1.5">
+                  {group.fields.map((field, fieldIndex) => (
+                    <div key={`${group.key}-${field.label}-${fieldIndex}`} className="w-[8.25rem] shrink-0">
+                      <ProgressionNumberField
+                        label={field.label}
+                        name={`sessionProgressionDisplay-${group.key}-${fieldIndex}`}
+                        inputMode={getSessionProgressionFieldInputMode(field.id)}
+                        value={field.value}
+                        onChange={(nextValue) => handleProgressionFieldChange(field.id, nextValue)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  ) : null;
+  const progressionDockControl = showProgressionControls && progressionDraft && routineDayExerciseId ? (
+    <ProgressionPlaybookEditor
+      value={progressionDraft}
+      onChange={(nextValue) => {
+        lastFailedProgressionSnapshotRef.current = null;
+        setProgressionDraft(nextValue);
+        setProgressionSaveError(null);
+      }}
+      weightUnit={unitLabel === "kg" ? "kg" : "lbs"}
+      title="Progression Settings"
+      context="exercise"
+      collapsible
+      portalProgressionSettings
+      portalTriggerMode="dock"
+      defaultExpanded={false}
+      progressionStepPolicy={progressionStepPolicy}
+      visiblePromotionStepFields={visiblePromotionStepFields ?? null}
+      showProgressionSettingsRow={false}
+      extraPanelContent={progressionSettingsRow}
+    />
+  ) : null;
+  const saveSetActions = useMemo(
+    () => progressionDockControl ? (
+      <BottomActionStackedPrimary
+        utility={progressionDockControl}
+        primary={saveSetPrimaryActions}
+      />
+    ) : saveSetPrimaryActions,
+    [progressionDockControl, saveSetPrimaryActions],
+  );
+  const loggerUtilityButtonClassName = cn(
+    ACTION_CHROME_CONTROL_CLASS_NAME,
+    appTokens.measurementField,
+    appTokens.measurementFieldCompact,
+    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-[5.25rem] !min-w-[5.25rem] !flex-none !justify-center !rounded-[1rem] !border !px-2.5 !py-0 text-center shadow-none",
+    "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
+  );
+  const loggerUtilitySummaryButtonClassName = cn(
+    ACTION_CHROME_CONTROL_CLASS_NAME,
+    appTokens.measurementField,
+    appTokens.measurementFieldCompact,
+    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-auto !min-w-0 !flex-none !justify-center !rounded-[1rem] !border !px-3 !py-0 text-center shadow-none",
+    "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
+  );
+  const loggerUtilityButtonsRow = (
+      <div className="flex shrink-0 -translate-y-[11px] flex-nowrap items-stretch justify-start gap-1.5 pl-1 pr-0.5">
+      <button
+        type="button"
+        className={loggerUtilityButtonClassName}
+        data-action-chrome-intent={getMeasurementToggleIntent(resolvedIsWarmup)}
+        aria-pressed={resolvedIsWarmup}
+        aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
+        onClick={() => {
+          const nextWarmup = !resolvedIsWarmup;
+          setWarmupValue(nextWarmup);
+          if (nextWarmup) {
+            setIsFailure(false);
+          }
+        }}
+      >
+        <span className="measurement-toggle__label text-[10.5px] font-semibold uppercase tracking-[0.08em]">Warm Up</span>
+      </button>
+      {showFailureToggle ? (
+        <button
+          type="button"
+          className={loggerUtilityButtonClassName}
+          data-action-chrome-intent={getMeasurementToggleIntent(resolvedIsFailure)}
+          aria-pressed={resolvedIsFailure}
+          aria-label={resolvedIsFailure ? "Failure enabled" : "Failure disabled"}
+          onClick={() => {
+            setIsFailure((current) => {
+              const nextValue = !current;
+              if (nextValue) {
+                setWarmupValue(false);
+              }
+              return nextValue;
+            });
+            if (!resolvedIsFailure) {
+              setReps("");
+            }
+          }}
+        >
+          <span className="measurement-toggle__label text-[10.5px] font-semibold uppercase tracking-[0.08em]">Failure</span>
+        </button>
+      ) : null}
+      {applyLastRow ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (applyLastRow.applyValues) {
+              applyHintValues(applyLastRow.applyValues);
+            }
+          }}
+          data-action-chrome-intent={getMeasurementToggleIntent(false)}
+          className={cn(
+            loggerUtilitySummaryButtonClassName,
+            "text-[12px] font-semibold tracking-[0.02em]",
+            tapFeedbackClass,
+          )}
+          aria-label="Apply last target"
+        >
+          <span className={cn(appTokens.currentSessionSetSummaryLabel, "measurement-toggle__label whitespace-nowrap text-[12px]")}>
+            Apply Last
+          </span>
+          <SignatureInlineList
+            items={applyLastRow.items}
+            separator="dot"
+            className={cn(
+              appTokens.currentSessionLoggerSummaryText,
+              "min-w-0 justify-center whitespace-normal break-words text-center text-[12px] leading-[1.1] text-inherit",
+              "[&_.signature-inline-list__item]:whitespace-nowrap",
+            )}
+          />
+        </button>
+      ) : null}
+      </div>
+  );
 
   const loggedSetList = sets.length > 0 ? (
-    <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
-      <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
-        {animatedSets.map((set, index) => (
-          <li
-            key={set.stableId}
-            className={[
-              "origin-top transition-all duration-150 motion-reduce:transition-none",
-              set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
-            ].join(" ")}
-          >
-            <LoggedSetSummaryRow
-              label={set.is_warmup ? "Warm-up" : (useIntervalLanguage ? `Interval ${index + 1}` : `Set ${index + 1}`)}
-              summary=""
-              balanceActionSpace
-              showBottomSeparator
-              summaryItems={getSessionSummaryItems({
-                reps: set.reps,
-                weight: set.weight,
-                weightUnit: set.weight_unit ?? unitLabel,
-                durationSeconds: set.duration_seconds,
-                distance: set.distance,
-                distanceUnit: set.distance_unit,
-                calories: set.calories,
-                rpe: set.rpe,
-                isWarmup: set.is_warmup,
-                queueStatus: set.queueStatus,
-                pending: set.pending,
-                emptyLabel: "No measurements",
-                includeWarmupTag: false,
-              })}
-              actionClassName="items-center self-center bg-transparent pl-2 pr-0"
-              action={(
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleDeleteSet(set);
-                  }}
-                  aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
-                  data-bottom-action-intent="danger"
-                  className={cn(
-                    getBottomActionButtonClassName({
-                      intent: "danger",
-                      fullWidth: false,
-                      className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-                    }),
-                    "shrink-0 self-center",
-                    tapFeedbackClass,
-                  )}
-                >
-                  <span className="bottom-action__label">Delete</span>
-                </button>
-              )}
-            />
-          </li>
-        ))}
-      </ul>
+    <div
+      className={cn(
+        appTokens.currentSessionLoggerSetList,
+        "relative min-h-0 overflow-hidden rounded-[0.95rem]",
+      )}
+      data-testid="set-logger-set-list"
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-5 bg-gradient-to-b from-[rgb(var(--surface-1-rgb)/0.34)] via-[rgb(var(--surface-1-rgb)/0.16)] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-7 bg-gradient-to-t from-[rgb(var(--surface-1-rgb)/0.38)] via-[rgb(var(--surface-1-rgb)/0.18)] to-transparent" />
+      <div className="filter-scroll-viewport max-h-[10.1rem] overflow-y-auto overscroll-contain py-1 pr-1 touch-pan-y">
+        <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
+          {animatedSets.map((set, index) => {
+            const isDeletePending = deletingSetIds.includes(set.stableId);
+            return (
+            <li
+              key={set.stableId}
+              className={[
+                "origin-top transition-all duration-75 ease-out motion-reduce:transition-none",
+                set.isLeaving
+                  ? "pointer-events-none max-h-0 scale-[0.98] opacity-0"
+                  : "max-h-28 scale-100 opacity-100",
+              ].join(" ")}
+              aria-hidden={set.isLeaving ? "true" : undefined}
+            >
+              <LoggedSetSummaryRow
+                label={formatLoggedSetRowLabel({
+                  index,
+                  isWarmup: set.is_warmup,
+                  useIntervalLanguage,
+                })}
+                summary=""
+                balanceActionSpace
+                showBottomSeparator
+                summaryItems={getSessionSummaryItems({
+                  reps: set.reps,
+                  weight: set.weight,
+                  weightUnit: set.weight_unit ?? unitLabel,
+                  durationSeconds: set.duration_seconds,
+                  distance: set.distance,
+                  distanceUnit: set.distance_unit,
+                  calories: set.calories,
+                  failure: !set.is_warmup && set.notes === FAILURE_NOTE_SENTINEL,
+                  rpe: set.rpe,
+                  isWarmup: set.is_warmup,
+                  queueStatus: set.queueStatus,
+                  pending: set.pending,
+                  emptyLabel: "No measurements",
+                  includeWarmupTag: false,
+                })}
+                actionClassName="items-center self-center bg-transparent pl-2 pr-0"
+                action={(
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDeleteSet(set);
+                    }}
+                    disabled={set.isLeaving || isDeletePending}
+                    aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
+                    data-bottom-action-intent="danger"
+                    className={cn(
+                      getBottomActionButtonClassName({
+                        intent: "danger",
+                        fullWidth: false,
+                        className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
+                      }),
+                      "shrink-0 self-center",
+                      isDeletePending ? "opacity-75" : undefined,
+                      tapFeedbackClass,
+                    )}
+                  >
+                    <span className="bottom-action__label">{isDeletePending ? "Deleting..." : "Delete"}</span>
+                  </button>
+                )}
+              />
+            </li>
+            );
+          })}
+        </ul>
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-3 bottom-0 h-px rounded-full bg-[rgb(var(--accent-divider-rgb)/0.82)]"
+      />
     </div>
   ) : null;
 
@@ -1112,7 +1736,7 @@ export function SetLoggerCard({
     <div
       className={cn(
         appTokens.currentSessionLoggerStack,
-        "relative flex min-h-[calc(100dvh-var(--bottom-actions-height,0px)-10rem)] flex-col",
+        "relative flex flex-col",
       )}
       data-testid="set-logger-card"
     >
@@ -1127,10 +1751,9 @@ export function SetLoggerCard({
       <WorkoutEntrySection
         className={cn(
           appTokens.currentSessionLoggerPanel,
-          measurementDockSurfaceClassName,
-          "sticky bottom-[calc(var(--bottom-actions-height,0px)+0.35rem)] z-20 mt-auto shadow-[0_-12px_28px_rgba(2,8,16,0.2)] pt-2.5 pb-2",
+          "relative z-[1] mt-2 !space-y-0 border-transparent bg-transparent !p-0 shadow-none backdrop-blur-0",
         )}
-        contentClassName="space-y-0"
+        contentClassName="!space-y-0"
       >
         <MeasurementPanelV2
           values={{
@@ -1142,13 +1765,7 @@ export function SetLoggerCard({
             weightUnit: selectedWeightUnit,
             distanceUnit,
           }}
-          activeMetrics={deriveMeasurementPresenceFromValues({
-            reps,
-            weight,
-            duration: durationInput,
-            distance,
-            calories,
-          })}
+          activeMetrics={liveMeasurementMetrics}
           isExpanded={isMetricsExpanded}
           onExpandedChange={setIsMetricsExpanded}
           onMetricToggle={undefined}
@@ -1165,108 +1782,20 @@ export function SetLoggerCard({
           showInnerHeader={false}
           layoutMode="horizontal-scroll"
           labelTreatment="floating-border"
-          topField={{
-            title: "Warm up",
-            input: null,
-            inlineLabel: "",
-            useInlineFieldShell: false,
-            hasValue: resolvedIsWarmup,
-            labelClassName: "hidden",
-            valueLabelClassName: "hidden",
-            renderInput: ({ inputClassName }) => (
-              <button
-                type="button"
-                className={cn(
-                  ACTION_CHROME_CONTROL_CLASS_NAME,
-                  inputClassName,
-                  appTokens.currentSessionWarmupToggle,
-                  "flex !h-11 !min-h-11 w-full translate-y-[2px] flex-col items-center justify-center !rounded-[1rem] !border-0 !bg-transparent !px-3 !py-2 text-center leading-none !shadow-none focus-visible:ring-[var(--button-focus-ring)]",
-                )}
-                data-action-chrome-intent="ghost"
-                style={{
-                  ...selectionChromeStyle,
-                  "--action-chrome-text-color": resolvedIsWarmup
-                    ? "rgb(var(--text-primary) / 0.96)"
-                    : "rgb(var(--text-muted) / 0.92)",
-                } as CSSProperties}
-                aria-pressed={resolvedIsWarmup}
-                aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
-                onClick={() => setWarmupValue(!resolvedIsWarmup)}
-              >
-                <span className="text-xs font-semibold uppercase tracking-[0.06em]">Warm</span>
-                <span className="text-xs font-semibold uppercase tracking-[0.06em]">Up</span>
-              </button>
-            ),
+          horizontalRowPrefix={loggerUtilityButtonsRow}
+          metricLabelOverrides={{
+            time: "Time (s)",
+            distance: `Dist (${distanceUnit})`,
           }}
-          visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
+          visibleMetrics={liveSetInputOrder.visibleMetrics}
+          metricOrder={liveSetInputOrder.metricOrder}
+          dimmedMetrics={liveSetInputOrder.dimmedMetrics}
           rpe={rpe}
           onRpeChange={setRpe}
-          footerContent={currentSummary}
+          footerContent={null}
         />
-        {historyRows.length > 0 ? (
-          <div className="mt-1.5 space-y-1.5">
-            {historyRows.map((row, index) => (
-              <div key={row.key} className="space-y-1.5">
-                <MeasurementDockSummary
-                  className={cn(
-                    appTokens.currentSessionLoggerSummaryCard,
-                    "border-0 bg-transparent px-0 py-0 shadow-none transition-all duration-200 ease-out",
-                  )}
-                  lead={(
-                    <div className={cn(appTokens.currentSessionLoggerSummaryText, "inline-flex items-center gap-x-2 text-[14px] leading-[1.25] transition-all duration-200 ease-out")}>
-                      <span className={cn(appTokens.currentSessionSetSummaryLabel, "shrink-0")}>{row.label}</span>
-                      {row.showPipe ? <SignatureMiniPipe /> : null}
-                      {row.dateLabel ? (
-                        <SignatureMetaTag className="shrink-0 text-[10.5px] tracking-[0.14em]">
-                          {row.dateLabel.toUpperCase()}
-                        </SignatureMetaTag>
-                      ) : null}
-                    </div>
-                  )}
-                  summary={(
-                    <SignatureInlineList
-                      items={row.items}
-                      separator="dot"
-                      className={cn(
-                        appTokens.currentSessionLoggerSummaryText,
-                        "justify-center whitespace-normal break-words text-center text-[14px] leading-[1.25] transition-all duration-200 ease-out",
-                      )}
-                    />
-                  )}
-                  trailing={(
-                    <div className="flex shrink-0 items-center gap-2 pl-2">
-                      {row.applyValues ? (
-                        <button
-                          type="button"
-                          onClick={() => applyHintValues(row.applyValues)}
-                          className={cn(
-                            getBottomActionButtonClassName({
-                              intent: "info",
-                              fullWidth: false,
-                              className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
-                            }),
-                            "shrink-0 self-center",
-                            tapFeedbackClass,
-                          )}
-                        >
-                          <span className="bottom-action__label">Apply</span>
-                        </button>
-                      ) : null}
-                    </div>
-                  )}
-                />
-                {index === historyRows.length - 1 ? (
-                  <div className="pb-0.5">
-                    <div className="w-full opacity-85">
-                      <div className="h-px w-full bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))]" />
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        ) : null}
         {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
+        {!error && progressionSaveError ? <p className={appTokens.routineEditorAutosaveErrorText}>{progressionSaveError}</p> : null}
       </WorkoutEntrySection>
 
       <PublishBottomActions>{saveSetActions}</PublishBottomActions>

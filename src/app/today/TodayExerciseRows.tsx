@@ -1,12 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
+import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
@@ -33,6 +34,7 @@ export type TodayExerciseRow = {
   type?: string | null;
   tags?: string[] | string | null;
   categories?: string[] | string | null;
+  progressFill?: ProgressionProgressFill | null;
 };
 
 function formatLoggedSetFraction(loggedSetCount: number, goalSetTarget: number | null) {
@@ -103,6 +105,23 @@ export function TodayExerciseRows({
           const progressLabel = progressState && progressState.goalSetTarget !== null
             ? formatLoggedSetFraction(progressState.loggedSetCount, progressState.goalSetTarget)
             : undefined;
+          const executionProgressFill = !exercise.progressFill && progressState?.goalSetTarget
+            ? {
+                percent: Math.max(0, Math.min(100, Math.round((progressState.loggedSetCount / progressState.goalSetTarget) * 100))),
+                state: progressState.isGoalCompleted ? "ready" as const : progressState.loggedSetCount > 0 ? "partial" as const : "no_history" as const,
+                label: progressLabel ?? "",
+              }
+            : null;
+          const resolvedProgressFill = exercise.progressFill ?? executionProgressFill;
+          const compactProgressFillPercent = resolvedProgressFill && resolvedProgressFill.percent > 0
+            ? Math.max(0, Math.min(100, resolvedProgressFill.percent))
+            : null;
+          const compactProgressFillStyle = compactProgressFillPercent !== null
+            ? ({
+                width: `${compactProgressFillPercent}%`,
+              } satisfies CSSProperties)
+            : null;
+          const isCompactProgressFillComplete = compactProgressFillPercent !== null && compactProgressFillPercent >= 100;
           const detailedMetrics = buildPlannedExerciseDetailMetrics({
             name: exercise.name,
             slug: exercise.slug,
@@ -135,7 +154,7 @@ export function TodayExerciseRows({
                 <button
                   type="button"
                   className={[
-                    "flex w-full items-center justify-between gap-3 overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)] px-4 py-2.5 text-left opacity-60 saturate-[0.78] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                    "relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)] px-4 py-2.5 text-left opacity-60 saturate-[0.78] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]",
                     rowClassName,
                   ].filter(Boolean).join(" ")}
                   onClick={() => {
@@ -145,10 +164,24 @@ export function TodayExerciseRows({
                     setSelectedExerciseId(exercise.exerciseId);
                   }}
                 >
-                  <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
+                  {compactProgressFillStyle ? (
+                    <span
+                      aria-hidden="true"
+                      className={[
+                        "pointer-events-none absolute bottom-0 left-0 top-0 z-0 bg-[linear-gradient(90deg,rgb(var(--accent)/0.20),rgb(var(--accent)/0.11))]",
+                        isCompactProgressFillComplete
+                          ? "right-0 rounded-br-[var(--card-radius)] rounded-tr-[var(--card-radius)] shadow-[inset_-10px_0_18px_rgb(var(--accent)/0.16)]"
+                          : "rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.08)]",
+                      ].join(" ")}
+                      style={compactProgressFillStyle}
+                    />
+                  ) : null}
+                  <p className="relative z-[1] min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
                     {exercise.name}
                   </p>
-                  {renderProgressChevron(progressLabel, false)}
+                  <div className="relative z-[1]">
+                    {renderProgressChevron(progressLabel, false)}
+                  </div>
                 </button>
               ) : (
                 <StandardExerciseRow
@@ -179,6 +212,7 @@ export function TodayExerciseRows({
                   showLeadingVisual={policy.showMedia}
                   showAccentRail={!isStretchHub}
                   hideEmptySummary={isStretchHub}
+                  progressFill={resolvedProgressFill}
                 >
                   <WorkoutExerciseCardDetails
                     density={density}
