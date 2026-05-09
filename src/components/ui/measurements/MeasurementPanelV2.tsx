@@ -32,7 +32,7 @@ const floatingBorderLabelClassName = cn(
   "px-1 py-0 leading-none",
 );
 const topRightInlineLabelBaseClassName = "pointer-events-none absolute whitespace-nowrap text-right text-[8px] font-semibold uppercase leading-[1.02] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
-const floatingBorderFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
+const floatingBorderFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] [touch-action:pan-x_pan-y] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
 
 function sanitizeIntegerInput(value: string) {
   return value.replace(/[^\d]/g, "");
