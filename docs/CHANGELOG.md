@@ -1,3 +1,15 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+## 1.0.0 — 2026-05-09
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
 ## [v0.4.36] – UI: normalize routine/day toggles + routine-details split dock intents
 
 ### WHAT
