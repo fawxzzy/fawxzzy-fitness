@@ -62,6 +62,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-10 - Environment-normalization tests must clear ambient CI flags
+- Type: Guardrail
+- Summary: Unit tests that assert Vercel or runtime environment classification must explicitly clear ambient CI-only variables so GitHub Actions runner state does not change the intended assertion.
+- Suggested Playbook File: docs/GUARDRAILS/hermetic-env-tests.md
+- Rationale: Hosted CI commonly injects `CI=true`, and letting that leak into targeted environment-normalization tests makes failures look like runtime regressions when the real issue is non-hermetic test setup.
+- Evidence: src/lib/atlas-contracts.ts, src/lib/atlas-contracts.test.ts
+- Status: Proposed
+
 ## 2026-05-09 - Production deploys need a release ledger entry
 - Type: Rule
 - Summary: Every production deploy should record one structured release entry with commit, diff scope, verification, migrations, flags, artifacts, and known gaps.
