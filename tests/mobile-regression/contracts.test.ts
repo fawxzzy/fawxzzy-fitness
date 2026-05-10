@@ -217,6 +217,13 @@ test("history family contracts catch floating-header, header-owner, and surface-
     historySurfaceToken: "history-detail",
   });
   assert.equal(exercisesContracts.historySurfaceMatchesRouteFamily, false);
+
+  const progressionBaseline = requireScenario("history-progression-default");
+  const progressionContracts = validateMobileScenarioContracts({
+    ...progressionBaseline,
+    historySurfaceToken: "history-browser",
+  });
+  assert.equal(progressionContracts.historySurfaceMatchesRouteFamily, false);
 });
 
 test("history browser source stays on the history-browser surface contract", () => {

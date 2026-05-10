@@ -20,6 +20,7 @@ http://127.0.0.1:3002/routines/new
 http://127.0.0.1:3002/routines
 http://127.0.0.1:3002/today
 http://127.0.0.1:3002/history
+http://127.0.0.1:3002/history/progression
 ```
 
 Protected routes require a browser profile with valid auth cookies. Browser automation without cookies should redirect to `/login`.
@@ -44,8 +45,12 @@ Current run:
 - `[x]` Today Progression Updates card chrome patch is code-verified.
 - `[x]` Pilates catalog migration `20260507162000` applied to `lpswxoyfniocuhljgzbc` and 18 global Pilates rows are queryable.
 - `[ ]` Today Progression Updates Ready Updates-only behavior and card progress fill need manual visual confirmation with auth cookies.
+- `[ ]` Today selected-day Progression Status needs a visual receipt that preserves the separate ready-only Promote tray.
+- `[ ]` History > Progression History needs a read-only visual receipt with summary cards and ledger rows.
+- `[x]` Progression History dashboard cards are part of the progression visual receipt and remain read-only.
 - `[-]` Authenticated visual routes redirect to `/login` without manual browser auth cookies.
 - `[-]` Automated browser visual pass is blocked in this environment by Chrome launch failure.
+- `[x]` `qa:llel:progression` writes a deterministic receipt under `runtime/fitness/llel-captures/latest/report.json`, even if screenshots are blocked.
 - `[x]` `npm run fitness:followups:process:dry-run` reports missing service role cleanly and performs no mutation.
 
 Manual review sections:
@@ -59,7 +64,9 @@ Manual review sections:
 - `[ ]` Edit Day
 - `[ ]` Today base screen
 - `[ ]` Today switch-day screen
+- `[ ]` Today Progression Status
 - `[ ]` Current Session / live logger
+- `[ ]` History > Progression History
 - `[x]` Dev progression scenarios route availability
 - `[x]` FIT-05 dry-run safety
 
@@ -225,7 +232,13 @@ Release evidence hygiene:
 - The canonical machine-readable stream is `docs/releases/RELEASE_LEDGER.jsonl`.
 - Draft release metadata is prepared locally in `runtime/fitness/release-draft.json`.
 - Use `npm run release:fitness:prepare` and `npm run release:fitness:diff` before a prod push.
+- Use `npm run release:fitness:ready` after verify and progression receipt checks to confirm release draft, LLEL receipt, dirty-tree state, and migration readiness.
 - Use `npm run release:fitness:record` only when the release facts are final after deployment metadata is known.
+- `npm run release:fitness:ready` is reporting-only. It must not deploy, apply migrations, or repair Supabase history.
+- Expected-red local migration drift is acceptable during stacked branch work, but production deploy remains blocked until the current pending chain is applied remotely in order:
+  1. `20260508090000_remove_zone_2_cardio_catalog_exercise.sql`
+  2. `20260509103000_profile_qa_visibility.sql`
+  3. `20260509113000_051_progression_events.sql`
 - Keep `CHANGELOG.md` user-facing and short; keep deploy truth in the ledger and release note.
 
 Rules:
@@ -376,6 +389,7 @@ Checks:
 
 - `runtime/fitness/qa-storage-state.json` exists and is not committed.
 - `/today`, `/routines`, `/history`, `/settings` (Account tab), and `/dev/progression-audit` return authenticated responses.
+- `/history/progression` returns an authenticated response when the QA storage state is valid.
 - No passwords or tokens are printed to the terminal.
 - Do not mix `localhost` and `127.0.0.1`; cookies are origin-scoped.
 
@@ -384,7 +398,22 @@ Optional visual helpers:
 ```powershell
 npm run qa:llel:open
 npm run qa:llel:capture
+npm run qa:llel:progression
 ```
+
+Progression receipt targets:
+
+- Today selected-day Progression Status via `/dev/mobile-regression?scenario=today-progression-status`
+- History > Progression History via `/dev/mobile-regression?scenario=history-progression-default`
+- History > Progression History filtered via `/dev/mobile-regression?scenario=history-progression-filtered`
+- Account export progression events coverage via `src/lib/account-workout-export.test.ts`
+
+Progression History receipt should confirm:
+
+- dashboard cards render deterministic values from the ledger helpers
+- `Latest change` and `Most active vector` cards are visible
+- filter controls render and filtered cards still reflect the filtered ledger rows
+- no replay or revert controls appear
 
 ## Zac-Owned LLEL Fixture
 

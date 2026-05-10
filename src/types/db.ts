@@ -116,6 +116,23 @@ export type RoutineDayExerciseRow = {
   notes: string | null;
 };
 
+export type ProgressionEventRow = {
+  id: string;
+  user_id: string;
+  routine_id: string;
+  routine_day_exercise_id: string;
+  exercise_id: string;
+  event_type: "promotion_applied" | "promotion_reverted" | "lock_in" | "deload_applied" | "review_acknowledged" | "manual_target_change";
+  from_target: Record<string, unknown>;
+  to_target: Record<string, unknown>;
+  method: string;
+  vector: string;
+  step: Record<string, unknown> | null;
+  reason: string;
+  source_session_id: string | null;
+  created_at: string;
+};
+
 
 export type ExerciseRow = {
   id: string;

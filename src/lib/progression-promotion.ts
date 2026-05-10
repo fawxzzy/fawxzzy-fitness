@@ -78,6 +78,39 @@ export function usesWeightForPromotion(promotionBasis: unknown) {
   return normalizePromotionBasis(promotionBasis) !== "reps_only";
 }
 
+export function formatPromotionBasisLabel(promotionBasis: unknown) {
+  switch (normalizePromotionBasis(promotionBasis)) {
+  case "weight_only":
+    return "Weight only";
+  case "reps_only":
+    return "Reps only";
+  case "weight_and_reps":
+    return "Weight + reps";
+  }
+}
+
+export function describePromotionBasis(promotionBasis: unknown) {
+  switch (normalizePromotionBasis(promotionBasis)) {
+  case "weight_only":
+    return "Weight-only promotion: reps are tracked for guidance but do not block readiness.";
+  case "reps_only":
+    return "Reps-only promotion: load is tracked for context but does not block readiness.";
+  case "weight_and_reps":
+    return "Weight + reps promotion: both dimensions participate in readiness.";
+  }
+}
+
+export function formatRepPromotionThresholdLabel(thresholdType: unknown) {
+  switch (normalizeRepPromotionThreshold(thresholdType)) {
+  case "top_half_of_range":
+    return "Top half of range";
+  case "custom":
+    return "Custom rep target";
+  case "top_of_range":
+    return "Top of range";
+  }
+}
+
 export function getRepPromotionTarget(args: {
   minReps?: unknown;
   maxReps?: unknown;

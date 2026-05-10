@@ -1050,6 +1050,189 @@ test("invalid custom promotion target falls back to top-of-range in normalized c
   }
 });
 
+test("progression review qualifies top-half rep threshold at the configured range midpoint", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [10, 10, 10],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 10,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "top_half_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 10 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 105);
+  assert.match(candidate.reason, /promotion threshold reached/i);
+});
+
+test("progression review does not qualify below the top-half rep threshold", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [9, 9, 9],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 9,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "top_half_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 10 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+});
+
+test("progression review uses a valid custom rep threshold for readiness", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [11, 11, 11],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 11,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "custom", customRepPromotionTarget: 11 },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 11 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+});
+
+test("progression review falls back safely when custom rep threshold is invalid", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [11, 11, 11],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 11,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "custom", customRepPromotionTarget: 0 },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+});
+
+test("weight-only promotion ignores rep threshold when load proof is complete", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [6, 6, 6],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 6,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, promotionBasis: "weight_only", repPromotionThreshold: "top_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 8, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 105);
+});
+
+test("reps-only promotion ignores load gating and can qualify below target load", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+    weight: 80,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, promotionBasis: "reps_only", repPromotionThreshold: "top_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 100);
+  assert.equal(candidate.proposedTarget?.repsMin, 9);
+  assert.equal(candidate.proposedTarget?.repsMax, 13);
+});
+
+test("reps-only bodyweight progression does not require load to create a candidate", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+  }).map((row) => ({ ...row, weight: null, weightUnit: null }));
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, promotionBasis: "reps_only", repPromotionThreshold: "top_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: null, weightMax: null, weightUnit: null }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.currentTarget?.weightMin ?? null, null);
+  assert.equal(candidate.proposedTarget?.weightMin ?? null, null);
+  assert.equal(candidate.proposedTarget?.repsMin, 9);
+});
+
 test("unit preservation keeps kg targets intact", () => {
   const history = buildProgressionHistorySessions({
     rows: buildHistoryRows({

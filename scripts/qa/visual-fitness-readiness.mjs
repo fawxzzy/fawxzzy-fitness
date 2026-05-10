@@ -33,9 +33,11 @@ const protectedSuites = [
 const seamSuites = [
   "settings-seam",
   "today-seam",
+  "today-progression-status-seam",
   "session-seam",
   "routines-seam",
   "history-seam",
+  "history-progression-seam",
   "history-exercises-seam",
   "history-detail-seam",
   "exercise-detail-seam",

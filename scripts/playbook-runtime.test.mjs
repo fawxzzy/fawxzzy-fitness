@@ -9,6 +9,7 @@ import {
   classifyFallbackSpec,
   isPackageAcquisitionEnabled,
   normalizeFallbackInstallTarget,
+  resolveNpmCommand,
   shouldUseShellForExecutable
 } from './playbook-runtime.mjs';
 
@@ -37,6 +38,11 @@ test('shouldUseShellForExecutable only enables shell execution for Windows batch
   assert.equal(shouldUseShellForExecutable('C:\\repo\\.playbook\\runtime\\node_modules\\.bin\\playbook.bat', 'win32'), true);
   assert.equal(shouldUseShellForExecutable('C:\\repo\\.playbook\\runtime\\node_modules\\@fawxzzy\\playbook-cli\\bin\\playbook.js', 'win32'), false);
   assert.equal(shouldUseShellForExecutable('/tmp/playbook.cmd', 'linux'), false);
+});
+
+test('resolveNpmCommand chooses the Windows npm wrapper when needed', () => {
+  assert.equal(resolveNpmCommand('win32'), 'npm.cmd');
+  assert.equal(resolveNpmCommand('linux'), 'npm');
 });
 
 test('normalizeFallbackInstallTarget keeps local file fallback spec unchanged and verifies file size', async () => {

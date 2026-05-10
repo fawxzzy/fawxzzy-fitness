@@ -53,8 +53,13 @@ import {
   type ProgressionReviewLinkedTargetSnapshot,
   type ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
+import type { ProgressionStatusDisplayItem, ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
+import {
+  buildProgressionEventPayload,
+  extractProgressionSourceSessionId,
+  recordProgressionEvent,
+} from "@/lib/progression-events";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
@@ -255,7 +260,7 @@ async function loadProgressionHistoryForExercise(args: {
 }) {
   const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
     .from("session_exercises")
-    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status, routine_id)")
+    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(id, performed_at, status, routine_id)")
     .eq("user_id", args.userId)
     .eq("exercise_id", args.exerciseId)
     .eq("session.status", "completed")
@@ -265,11 +270,11 @@ async function loadProgressionHistoryForExercise(args: {
     throw sessionExercisesError;
   }
 
-  const sessionExerciseMetaById = new Map<string, { performedAt: string; routineDayExerciseId: string | null }>();
+  const sessionExerciseMetaById = new Map<string, { performedAt: string; routineDayExerciseId: string | null; sessionRecordId: string | null }>();
   for (const row of (sessionExercisesData ?? []) as Array<{
     id: string;
     routine_day_exercise_id?: string | null;
-    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
+    session?: { id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
   }>) {
     const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
     if (!row.id || !sessionRow?.performed_at || sessionRow.status !== "completed" || sessionRow.routine_id !== args.routineId) {
@@ -279,6 +284,7 @@ async function loadProgressionHistoryForExercise(args: {
     sessionExerciseMetaById.set(row.id, {
       performedAt: sessionRow.performed_at,
       routineDayExerciseId: row.routine_day_exercise_id ?? null,
+      sessionRecordId: sessionRow.id ?? null,
     });
   }
 
@@ -316,6 +322,7 @@ async function loadProgressionHistoryForExercise(args: {
 
       return {
         sessionId: row.session_exercise_id,
+        sessionRecordId: meta.sessionRecordId,
         performedAt: meta.performedAt,
         setIndex: row.set_index,
         weight: row.weight ?? null,
@@ -529,6 +536,10 @@ async function applyProgressionReviewCandidateAction(payload: {
   }
 
   const linkedTargets: ProgressionReviewLinkedTargetSnapshot[] = [];
+  const sourceSessionId = extractProgressionSourceSessionId({
+    sourceSessionId: candidate.sourceSession?.sessionId,
+    historyRows,
+  });
   for (const linkedExercise of linkedExercises) {
     const linkedPreviousTarget = buildProgressionReviewTargetPlan(linkedExercise);
     const { error: updateError } = await supabase
@@ -540,6 +551,24 @@ async function applyProgressionReviewCandidateAction(payload: {
     if (updateError) {
       return { ok: false, error: "Could not apply linked progression update." };
     }
+
+    await recordProgressionEvent({
+      supabase,
+      payload: buildProgressionEventPayload({
+        userId: user.id,
+        routineId: payload.routineId,
+        routineDayExerciseId: linkedExercise.id,
+        exerciseId: linkedExercise.exercise_id,
+        eventType: candidate.type === "deload" ? "deload_applied" : "promotion_applied",
+        fromTarget: linkedPreviousTarget,
+        toTarget: candidate.proposedTarget,
+        reason: candidate.reason,
+        playbookId: linkedExercise.progression_playbook_id,
+        config: linkedExercise.progression_playbook_config,
+        sourceSessionId,
+      }),
+      context: "today.applyProgressionReviewCandidateAction",
+    });
 
     linkedTargets.push({
       routineDayExerciseId: linkedExercise.id,
@@ -596,7 +625,11 @@ async function revertProgressionReviewCandidateAction(payload: {
     return { ok: false, error: linkedExercisesResult.error };
   }
 
+  const linkedExercises = linkedExercisesResult.data ?? [];
+  const linkedExerciseById = new Map(linkedExercises.map((exercise) => [exercise.id, exercise]));
   for (const target of revertTargets) {
+    const linkedExercise = linkedExerciseById.get(target.routineDayExerciseId);
+    const currentTarget = linkedExercise ? buildProgressionReviewTargetPlan(linkedExercise) : null;
     const { error: updateError } = await supabase
       .from("routine_day_exercises")
       .update(buildProgressionReviewTargetUpdate(target.previousTarget))
@@ -605,6 +638,26 @@ async function revertProgressionReviewCandidateAction(payload: {
 
     if (updateError) {
       return { ok: false, error: "Could not revert linked progression update." };
+    }
+
+    if (linkedExercise && currentTarget) {
+      await recordProgressionEvent({
+        supabase,
+        payload: buildProgressionEventPayload({
+          userId: user.id,
+          routineId: payload.routineId,
+          routineDayExerciseId: linkedExercise.id,
+          exerciseId: linkedExercise.exercise_id,
+          eventType: "promotion_reverted",
+          fromTarget: currentTarget,
+          toTarget: target.previousTarget,
+          reason: "Reverted an applied progression target.",
+          playbookId: linkedExercise.progression_playbook_id,
+          config: linkedExercise.progression_playbook_config,
+          sourceSessionId: null,
+        }),
+        context: "today.revertProgressionReviewCandidateAction",
+      });
     }
   }
 
@@ -1198,6 +1251,7 @@ export default async function TodayPage({
   const earnedInstallPromptEnabled = isFeatureEnabled("earnedInstallPromptTiming");
   let progressionReviewItems: ProgressionReviewDisplayItem[] = [];
   let progressionStatusItems: ProgressionStatusDisplayItem[] = [];
+  let progressionStatusSurfaceItems: ProgressionStatusSurfaceItem[] = [];
   if (progressionUpdatesEnabled && activeRoutine && !inProgressSession && allDayExercises.length > 0) {
     try {
       const progressionUpdates = await diagnostics.measure("today.progression-review.fetch", () => loadProgressionUpdatesDisplayData({
@@ -1219,6 +1273,7 @@ export default async function TodayPage({
       });
       progressionReviewItems = progressionUpdates.readyItems;
       progressionStatusItems = progressionUpdates.statusItems;
+      progressionStatusSurfaceItems = progressionUpdates.statusSurfaceItems;
     } catch (error) {
       logTodayBootstrapFailure({
         step: "progression review fetch",
@@ -1495,6 +1550,7 @@ export default async function TodayPage({
               switchFloatingHeaderSlotId="today-routine-switch-floating-header-slot"
               progressionReviewItems={progressionReviewItems}
               progressionStatusItems={progressionStatusItems}
+              progressionStatusSurfaceItems={progressionStatusSurfaceItems}
               progressionRoutineId={todayPayload.routine.id}
               applyProgressionReviewCandidateAction={applyProgressionReviewCandidateAction}
               revertProgressionReviewCandidateAction={revertProgressionReviewCandidateAction}

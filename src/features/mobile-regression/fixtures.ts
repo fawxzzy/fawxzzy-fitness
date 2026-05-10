@@ -8,6 +8,7 @@ export type MobileRouteKey =
   | "editRoutine"
   | "addExercise"
   | "historySessions"
+  | "historyProgression"
   | "historyExercises"
   | "historyDetail"
   | "settings"
@@ -23,6 +24,7 @@ export type MobileRegressionScreenKey =
   | "edit-routine"
   | "add-exercise"
   | "history-sessions"
+  | "history-progression"
   | "history-exercises"
   | "history-detail"
   | "settings"
@@ -106,7 +108,7 @@ export type ExerciseInfoLayoutFixture = {
   topSafePaddingRelaxed: boolean;
 };
 
-export type HistorySurfaceToken = "history-browser" | "history-detail";
+export type HistorySurfaceToken = "history-browser" | "history-detail" | "history-progression";
 
 export type MobileFixtureScenario = {
   id: string;
@@ -382,6 +384,19 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     todayHeaderMatchesSelectedDay: true,
     exerciseInfoHeaderPinned: true,
     detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
+  }),
+  buildWorkoutFixture({
+    id: "today-progression-status",
+    family: "Exercise cards",
+    name: "Today: progression status",
+    fixture: "progression-status",
+    fixtureState: "today-progression-status-v1",
+    lastInteractiveRowBottom: 688,
+    statusChips: ["in-progress"],
+    cardStates: [{ cardId: "today-progression-status", state: "selected", badgeText: "Today" }],
+    todayHeaderMatchesSelectedDay: true,
+    exerciseInfoHeaderPinned: true,
+    detailedMode: { extraMetricCount: 2, analyticsSlotsReady: true },
   }),
   buildWorkoutFixture({
     id: "today-rest",
@@ -756,6 +771,32 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     historyHeaderOwnerCount: 1,
   }),
   buildSimpleFixture({
+    id: "history-progression-default",
+    route: "historyProgression",
+    screen: "history-progression",
+    family: "Session summaries",
+    name: "History progression: ledger view",
+    fixture: "default",
+    fixtureState: "history-progression-default-v1",
+    cardStates: [{ cardId: "history-progression-latest", state: "selected", badgeText: "Ledger" }],
+    detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-progression",
+  }),
+  buildSimpleFixture({
+    id: "history-progression-filtered",
+    route: "historyProgression",
+    screen: "history-progression",
+    family: "Session summaries",
+    name: "History progression: filtered ledger view",
+    fixture: "filtered",
+    fixtureState: "history-progression-filtered-v1",
+    cardStates: [{ cardId: "history-progression-filtered", state: "selected", badgeText: "Filtered" }],
+    detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-progression",
+  }),
+  buildSimpleFixture({
     id: "history-exercises-zero-results",
     route: "historyExercises",
     screen: "history-exercises",
@@ -945,6 +986,7 @@ const defaultScenarioIdByScreen = {
   "add-exercise": "add-exercise-default",
   history: "history-sessions-compact",
   "history-sessions": "history-sessions-compact",
+  "history-progression": "history-progression-default",
   "history-exercises": "history-exercises-detailed",
   "history-detail": "history-detail-broken-images",
   settings: "settings-default",

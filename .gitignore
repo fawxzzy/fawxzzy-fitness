@@ -23,6 +23,9 @@ public/splash/*.png
 .vercel
 .env*.local
 .tmp/prod-mirror/
+runtime/fitness/release-draft.json
+tmp-dev-server*.log
+tmp-dev-server*.err.log
 
 # Codex local runtime artifacts
 .codex/logs/

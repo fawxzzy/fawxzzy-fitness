@@ -16,6 +16,7 @@ import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -40,6 +41,15 @@ import {
 } from "@/features/mobile-regression/fixtures";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
+import { buildProgressionHistoryDisplayModel, type ProgressionHistoryDisplayModel } from "@/lib/progression-history-display";
+import type { ProgressionAnalyticsEvent } from "@/lib/progression-event-analytics";
+import {
+  applyProgressionHistoryFilters,
+  buildProgressionHistoryFilterOptions,
+  type ProgressionHistoryFilters,
+} from "@/lib/progression-history-filters";
+import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
+import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 
 export const dynamic = "force-dynamic";
@@ -92,6 +102,10 @@ const ExerciseBrowserClient = nextDynamic(
 );
 const HistoryLogPageClient = nextDynamic(
   () => import("@/app/history/[sessionId]/HistoryLogPageClient").then((mod) => mod.HistoryLogPageClient),
+  { ssr: true },
+);
+const ProgressionHistorySurface = nextDynamic(
+  () => import("@/components/history/ProgressionHistorySurface").then((mod) => mod.ProgressionHistorySurface),
   { ssr: true },
 );
 const NewRoutineDraftForm = nextDynamic(
@@ -196,6 +210,8 @@ function getRegressionRenderBoundary(route: MobileRouteKey) {
       return "renderAddExerciseScenario";
     case "historySessions":
       return "renderHistorySessionsScenario";
+    case "historyProgression":
+      return "renderHistoryProgressionScenario";
     case "historyExercises":
       return "renderHistoryExercisesScenario";
     case "historyDetail":
@@ -1058,6 +1074,347 @@ const mockHistoryDetailExercises = [
   },
 ];
 
+const mockTodayProgressionReviewItems: ProgressionReviewDisplayItem[] = [
+  {
+    id: "td-2",
+    exerciseName: "Back Squat",
+    dayName: "Lower",
+    dayGroupId: "day-2",
+    type: "promote",
+    badgeLabel: "Promote",
+    summary: "Back Squat: 225 lbs x 5 -> 230 lbs x 5",
+    summaryParts: {
+      exerciseName: "Back Squat",
+      currentTarget: "225 lbs x 5",
+      proposedTarget: "230 lbs x 5",
+      fallback: null,
+    },
+    reason: "Ready: met the load evidence requirement from the latest qualifying session.",
+    actionLabel: "Promote",
+    currentTarget: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 225,
+      weightMax: 225,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    proposedTarget: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 230,
+      weightMax: 230,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+  },
+];
+
+const mockTodayProgressionStatusSurfaceItems: ProgressionStatusSurfaceItem[] = [
+  {
+    id: "td-2",
+    exerciseName: "Back Squat",
+    dayName: "Lower",
+    dayGroupId: "day-2",
+    readinessState: "ready",
+    readinessLabel: "Ready",
+    currentTargetLine: "Current target: 225 lbs x 5",
+    promotionBasisLabel: "Weight only",
+    promotionBasisDetail: "Weight-only promotion: reps are tracked for guidance but do not block readiness.",
+    repTargetLine: null,
+    latestLine: "Latest evidence: 230 lbs x 5 from the last qualifying session.",
+    targetLine: "Requirement: valid load evidence from a qualifying session.",
+    detailLine: "Ready: load evidence cleared the promotion rule.",
+    nextUpdateLine: "Next update: 230 lbs x 5",
+    reason: "Ready: met the load evidence requirement.",
+    progress: {
+      percent: 100,
+      state: "ready",
+      label: "4 of 4 qualifying sets recorded.",
+    },
+  },
+  {
+    id: "td-3",
+    exerciseName: "Walking Lunge",
+    dayName: "Lower",
+    dayGroupId: "day-2",
+    readinessState: "not_ready",
+    readinessLabel: "Not ready",
+    currentTargetLine: "Current target: 40 lbs x 8-12",
+    promotionBasisLabel: "Weight + reps",
+    promotionBasisDetail: "Both dimensions participate in auto-promotion for this exercise.",
+    repTargetLine: "Rep target for promotion: Top half of range (10+ reps)",
+    latestLine: "Latest evidence: 40 lbs x 9 on the strongest qualifying set.",
+    targetLine: "Requirement: 10+ reps at the current load before the next increase.",
+    detailLine: "Needs 10+ reps; latest best was 9.",
+    nextUpdateLine: "Next update: 45 lbs x 8",
+    reason: "Rep threshold not met yet.",
+    progress: {
+      percent: 75,
+      state: "partial",
+      label: "3 of 4 qualifying sets matched the current target.",
+    },
+  },
+];
+
+const mockProgressionHistoryEvents: ProgressionAnalyticsEvent[] = [
+  {
+    id: "progress-event-4",
+    user_id: "dev-user",
+    routine_id: "routine-1",
+    routine_day_exercise_id: "td-2",
+    exercise_id: MOCK_EXERCISE_IDS.squat,
+    event_type: "promotion_applied",
+    from_target: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 225,
+      weightMax: 225,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    to_target: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 230,
+      weightMax: 230,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    method: "double_progression",
+    vector: "load",
+    step: {
+      vector: "load",
+      loadDelta: 5,
+    },
+    reason: "Ready: met the weight-only promotion rule.",
+    source_session_id: "history-session-2",
+    created_at: "2026-05-10T14:30:00.000Z",
+  },
+  {
+    id: "progress-event-3",
+    user_id: "dev-user",
+    routine_id: "routine-1",
+    routine_day_exercise_id: "td-3",
+    exercise_id: MOCK_EXERCISE_IDS.lunge,
+    event_type: "manual_target_change",
+    from_target: {
+      measurementType: "reps",
+      setsMin: 3,
+      setsMax: 3,
+      repsTarget: null,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 35,
+      weightMax: 35,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    to_target: {
+      measurementType: "reps",
+      setsMin: 3,
+      setsMax: 3,
+      repsTarget: null,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 40,
+      weightMax: 40,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    method: "double_progression",
+    vector: "load",
+    step: {
+      vector: "load",
+      loadDelta: 5,
+    },
+    reason: "Manual target increase after accessory block review.",
+    source_session_id: null,
+    created_at: "2026-05-08T11:15:00.000Z",
+  },
+  {
+    id: "progress-event-2",
+    user_id: "dev-user",
+    routine_id: "routine-2",
+    routine_day_exercise_id: "td-4",
+    exercise_id: MOCK_EXERCISE_IDS.walk,
+    event_type: "deload_applied",
+    from_target: {
+      measurementType: "time_distance",
+      setsMin: 1,
+      setsMax: 1,
+      repsTarget: null,
+      repsMin: null,
+      repsMax: null,
+      weightMin: null,
+      weightMax: null,
+      weightUnit: null,
+      durationSeconds: 1200,
+      distance: 1.35,
+      distanceUnit: "mi",
+      calories: null,
+    },
+    to_target: {
+      measurementType: "time_distance",
+      setsMin: 1,
+      setsMax: 1,
+      repsTarget: null,
+      repsMin: null,
+      repsMax: null,
+      weightMin: null,
+      weightMax: null,
+      weightUnit: null,
+      durationSeconds: 1080,
+      distance: 1.2,
+      distanceUnit: "mi",
+      calories: null,
+    },
+    method: "cardio_progression",
+    vector: "coupled_duration_distance",
+    step: {
+      vector: "coupled_duration_distance",
+      durationSecondsDelta: -120,
+      distanceDelta: -0.15,
+    },
+    reason: "Deload applied after repeated missed cardio targets.",
+    source_session_id: "history-session-1",
+    created_at: "2026-05-05T09:00:00.000Z",
+  },
+  {
+    id: "progress-event-1",
+    user_id: "dev-user",
+    routine_id: "routine-1",
+    routine_day_exercise_id: "td-2",
+    exercise_id: MOCK_EXERCISE_IDS.squat,
+    event_type: "promotion_reverted",
+    from_target: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 230,
+      weightMax: 230,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    to_target: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 225,
+      weightMax: 225,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    method: "double_progression",
+    vector: "load",
+    step: {
+      vector: "load",
+      loadDelta: -5,
+    },
+    reason: "Reverted after logging the wrong target.",
+    source_session_id: null,
+    created_at: "2026-05-02T16:45:00.000Z",
+  },
+];
+
+const mockProgressionHistoryRoutineNameById = new Map([
+  ["routine-1", PREVIEW_ROUTINE_NAME],
+  ["routine-2", PREVIEW_SECONDARY_ROUTINE_NAME],
+]);
+
+const mockProgressionHistoryExerciseNameById = new Map([
+  [MOCK_EXERCISE_IDS.squat, "Back Squat"],
+  [MOCK_EXERCISE_IDS.lunge, "Walking Lunge"],
+  [MOCK_EXERCISE_IDS.walk, "Incline Walk"],
+]);
+
+const mockFilteredProgressionHistoryFilters: ProgressionHistoryFilters = {
+  eventType: "promotion_applied",
+  routineId: "routine-1",
+  exerciseId: MOCK_EXERCISE_IDS.squat,
+  dateFrom: "2026-05-08",
+  dateTo: "2026-05-10",
+};
+
+const mockProgressionHistoryDisplayModel: ProgressionHistoryDisplayModel = buildProgressionHistoryDisplayModel({
+  events: mockProgressionHistoryEvents,
+  routineNameById: mockProgressionHistoryRoutineNameById,
+  exerciseNameById: mockProgressionHistoryExerciseNameById,
+  filterOptions: buildProgressionHistoryFilterOptions({
+    events: mockProgressionHistoryEvents,
+    routineNameById: mockProgressionHistoryRoutineNameById,
+    exerciseNameById: mockProgressionHistoryExerciseNameById,
+    filters: {
+      eventType: null,
+      routineId: null,
+      exerciseId: null,
+      dateFrom: null,
+      dateTo: null,
+    },
+  }),
+  totalEventCount: mockProgressionHistoryEvents.length,
+});
+
+const mockFilteredProgressionHistoryDisplayModel: ProgressionHistoryDisplayModel = buildProgressionHistoryDisplayModel({
+  events: applyProgressionHistoryFilters(mockProgressionHistoryEvents, mockFilteredProgressionHistoryFilters),
+  routineNameById: mockProgressionHistoryRoutineNameById,
+  exerciseNameById: mockProgressionHistoryExerciseNameById,
+  filters: mockFilteredProgressionHistoryFilters,
+  filterOptions: buildProgressionHistoryFilterOptions({
+    events: mockProgressionHistoryEvents,
+    routineNameById: mockProgressionHistoryRoutineNameById,
+    exerciseNameById: mockProgressionHistoryExerciseNameById,
+    filters: mockFilteredProgressionHistoryFilters,
+  }),
+  totalEventCount: mockProgressionHistoryEvents.length,
+});
+
 function renderTodayScenario(scenario: MobileFixtureScenario) {
   const selectedDayIndex = scenario.id === "today-rest"
     ? 3
@@ -1066,6 +1423,8 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       : 2;
   const selectedDay = mockTodayDays.find((day) => day.dayIndex === selectedDayIndex) ?? mockTodayDays[1];
   const exerciseDensity = scenario.id === "today-detailed" ? "detailed" : "compact";
+  const progressionReviewItems = scenario.id === "today-progression-status" ? mockTodayProgressionReviewItems : [];
+  const progressionStatusSurfaceItems = scenario.id === "today-progression-status" ? mockTodayProgressionStatusSurfaceItems : [];
 
   if (scenario.id === "today-in-session-summary") {
     return (
@@ -1157,6 +1516,9 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
             startDate="2025-03-10"
             floatingHeaderSlotId="today-floating-header-slot"
             exerciseDensity={exerciseDensity}
+            progressionRoutineId="routine-1"
+            progressionReviewItems={progressionReviewItems}
+            progressionStatusSurfaceItems={progressionStatusSurfaceItems}
           />
         </ContentRail>
       </ScrollScreenWithBottomActions>
@@ -1526,6 +1888,24 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
   );
 }
 
+function renderHistoryProgressionScenario(scenario: MobileFixtureScenario) {
+  const model = scenario.fixture === "filtered"
+    ? mockFilteredProgressionHistoryDisplayModel
+    : mockProgressionHistoryDisplayModel;
+
+  return (
+    <HistoryRouteScaffold
+      mode="overview"
+      title="Progression"
+      subtitle="Durable ledger of applied target changes"
+      activeTab="progression"
+    >
+      <RegressionMarker scenario={scenario} />
+      <ProgressionHistorySurface {...model} />
+    </HistoryRouteScaffold>
+  );
+}
+
 function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
   const initialViewMode = scenario.fixture === "detailed" ? "detailed" : "compact";
   const rows = scenario.id === "history-exercises-cardio-taxonomy"
@@ -1864,6 +2244,8 @@ function renderScenario(scenario: MobileFixtureScenario) {
       return renderAddExerciseScenario(scenario);
     case "historySessions":
       return renderHistorySessionsScenario(scenario);
+    case "historyProgression":
+      return renderHistoryProgressionScenario(scenario);
     case "historyExercises":
       return renderHistoryExercisesScenario(scenario);
     case "historyDetail":

@@ -39,6 +39,7 @@ import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { ProgressionStatusSection } from "@/components/progression/ProgressionStatusSection";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
@@ -52,7 +53,7 @@ import type {
   ProgressionReviewDisplayItem,
   ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
+import type { ProgressionStatusDisplayItem, ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import {
   buildProgressionAppliedPin,
   getPendingProgressionAppliedPinsForRoutineDay,
@@ -118,6 +119,7 @@ export function TodayDayPicker({
   exerciseDensity = "compact",
   progressionReviewItems = [],
   progressionStatusItems = [],
+  progressionStatusSurfaceItems = [],
   progressionRoutineId,
   applyProgressionReviewCandidateAction,
   revertProgressionReviewCandidateAction,
@@ -135,6 +137,7 @@ export function TodayDayPicker({
   exerciseDensity?: "compact" | "detailed";
   progressionReviewItems?: ProgressionReviewDisplayItem[];
   progressionStatusItems?: ProgressionStatusDisplayItem[];
+  progressionStatusSurfaceItems?: ProgressionStatusSurfaceItem[];
   progressionRoutineId?: string | null;
   applyProgressionReviewCandidateAction?: (payload: {
     routineId: string;
@@ -267,6 +270,14 @@ export function TodayDayPicker({
       }];
     });
   }, [progressionReviewItems, selectedDay]);
+
+  const selectedDayProgressionStatusSurfaceItems = useMemo(() => {
+    if (!selectedDay) {
+      return [];
+    }
+
+    return progressionStatusSurfaceItems.filter((item) => item.dayGroupId === selectedDay.id);
+  }, [progressionStatusSurfaceItems, selectedDay]);
 
   const selectedDayProgressFillByExerciseId = useMemo(() => {
     const progressById = new Map<string, ProgressionStatusDisplayItem["progress"]>();
@@ -844,6 +855,10 @@ export function TodayDayPicker({
                       );
                     })}
                   </ul>
+                ) : null}
+
+                {mode.dayRowsVisible && selectedDayProgressionStatusSurfaceItems.length > 0 ? (
+                  <ProgressionStatusSection items={selectedDayProgressionStatusSurfaceItems} />
                 ) : null}
               </div>
             ) : null}

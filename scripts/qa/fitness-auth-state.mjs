@@ -27,6 +27,7 @@ export const PROTECTED_LLEL_ROUTES = [
   "/today",
   "/routines",
   "/history",
+  "/history/progression",
   "/settings",
   "/dev/progression-audit",
 ];
@@ -39,6 +40,7 @@ export const LLEL_OPEN_ROUTES = [
   "/today",
   "/routines",
   "/history",
+  "/history/progression",
   "/settings",
 ];
 

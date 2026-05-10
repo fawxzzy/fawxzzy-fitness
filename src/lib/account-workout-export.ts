@@ -1,7 +1,7 @@
 import "server-only";
 
 import * as XLSX from "xlsx";
-import type { ProfileRow, RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
+import type { ProfileRow, ProgressionEventRow, RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
 export type AccountWorkoutExportFileType = "csv" | "json" | "xlsx";
 export type AccountWorkoutExportScope = "all" | "completed_only" | "current_routine";
@@ -34,6 +34,7 @@ export type AccountWorkoutExportPayload = {
       routineDays: number;
       routineDayExercises: number;
       exercises: number;
+      progressionEvents: number;
     };
   };
   profile: ProfileRow | null;
@@ -43,6 +44,7 @@ export type AccountWorkoutExportPayload = {
   routines: RoutineRow[];
   routineDays: RoutineDayRow[];
   routineDayExercises: RoutineDayExerciseRow[];
+  progressionEvents: ProgressionEventRow[];
   exercises: Array<{
     id: string;
     name: string;
@@ -88,6 +90,24 @@ export type AccountWorkoutExportCsvRow = {
   set_notes: string | null;
 };
 
+export type AccountWorkoutExportProgressionEventCsvRow = {
+  event_id: string;
+  created_at: string;
+  event_type: string;
+  routine_id: string;
+  routine_name: string | null;
+  routine_day_exercise_id: string;
+  exercise_id: string;
+  exercise_name: string | null;
+  source_session_id: string | null;
+  method: string;
+  vector: string;
+  step: string | null;
+  reason: string;
+  from_target_json: string;
+  to_target_json: string;
+};
+
 type WorkbookSheetRow = Record<string, string | number | boolean | null>;
 type AccountWorkoutExportWorkbookSheet = {
   name:
@@ -99,10 +119,23 @@ type AccountWorkoutExportWorkbookSheet = {
     | "Routines"
     | "Routine Days"
     | "Routine Day Exercises"
+    | "Progression Events"
     | "Progression Summary";
   headers: string[];
   rows: WorkbookSheetRow[];
 };
+
+type AccountWorkoutExportCsvTable =
+  | {
+      name: "workout_log";
+      headers: Array<keyof AccountWorkoutExportCsvRow>;
+      rows: AccountWorkoutExportCsvRow[];
+    }
+  | {
+      name: "progression_events";
+      headers: Array<keyof AccountWorkoutExportProgressionEventCsvRow>;
+      rows: AccountWorkoutExportProgressionEventCsvRow[];
+    };
 
 function escapeCsvValue(value: unknown) {
   if (value === null || value === undefined) {
@@ -318,8 +351,8 @@ export function buildAccountWorkoutExportCsvRows(payload: AccountWorkoutExportPa
   });
 }
 
-export function serializeAccountWorkoutExportCsv(rows: AccountWorkoutExportCsvRow[]) {
-  const headers = [
+function getAccountWorkoutExportCsvHeaders() {
+  return [
     "session_id",
     "performed_at",
     "session_status",
@@ -342,13 +375,116 @@ export function serializeAccountWorkoutExportCsv(rows: AccountWorkoutExportCsvRo
     "session_notes",
     "set_notes",
   ] as const;
+}
 
-  const lines = [
-    headers.join(","),
-    ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(",")),
+function getProgressionEventCsvHeaders() {
+  return [
+    "event_id",
+    "created_at",
+    "event_type",
+    "routine_id",
+    "routine_name",
+    "routine_day_exercise_id",
+    "exercise_id",
+    "exercise_name",
+    "source_session_id",
+    "method",
+    "vector",
+    "step",
+    "reason",
+    "from_target_json",
+    "to_target_json",
+  ] as const;
+}
+
+function getProgressionEventWorkbookHeaders() {
+  return [
+    "event_id",
+    "created_at",
+    "event_type",
+    "routine_id",
+    "routine_name",
+    "routine_day_exercise_id",
+    "exercise_id",
+    "exercise_name",
+    "source_session_id",
+    "method",
+    "vector",
+    "step",
+    "reason",
+    "from_target_json",
+    "to_target_json",
+  ];
+}
+
+export function buildAccountWorkoutExportProgressionEventCsvRows(payload: AccountWorkoutExportPayload): AccountWorkoutExportProgressionEventCsvRow[] {
+  const routineNameById = new Map(payload.routines.map((routine) => [routine.id, routine.name] as const));
+  const exerciseNameById = new Map(payload.exercises.map((exercise) => [exercise.id, exercise.name] as const));
+
+  return payload.progressionEvents.map((event) => ({
+    event_id: event.id,
+    created_at: event.created_at,
+    event_type: event.event_type,
+    routine_id: event.routine_id,
+    routine_name: routineNameById.get(event.routine_id) ?? null,
+    routine_day_exercise_id: event.routine_day_exercise_id,
+    exercise_id: event.exercise_id,
+    exercise_name: exerciseNameById.get(event.exercise_id) ?? null,
+    source_session_id: event.source_session_id ?? null,
+    method: event.method,
+    vector: event.vector,
+    step: JSON.stringify(event.step ?? null),
+    reason: event.reason,
+    from_target_json: JSON.stringify(event.from_target ?? null),
+    to_target_json: JSON.stringify(event.to_target ?? null),
+  }));
+}
+
+export function buildAccountWorkoutExportCsvTables(payload: AccountWorkoutExportPayload): AccountWorkoutExportCsvTable[] {
+  return [
+    {
+      name: "workout_log",
+      headers: [...getAccountWorkoutExportCsvHeaders()],
+      rows: buildAccountWorkoutExportCsvRows(payload),
+    },
+    {
+      name: "progression_events",
+      headers: [...getProgressionEventCsvHeaders()],
+      rows: buildAccountWorkoutExportProgressionEventCsvRows(payload),
+    },
+  ];
+}
+
+function serializeCsvSection<Row extends Record<string, unknown>>(args: {
+  name: string;
+  headers: readonly string[];
+  rows: Row[];
+}) {
+  const sectionLines = [
+    `table,${escapeCsvValue(args.name)}`,
+    args.headers.join(","),
+    ...args.rows.map((row) => args.headers.map((header) => escapeCsvValue(row[header])).join(",")),
   ];
 
-  return `${lines.join("\n")}\n`;
+  return sectionLines.join("\n");
+}
+
+export function serializeAccountWorkoutExportCsv(input: AccountWorkoutExportCsvRow[] | AccountWorkoutExportCsvTable[]) {
+  const tables = Array.isArray(input) && input.length > 0 && "name" in input[0]
+    ? input as AccountWorkoutExportCsvTable[]
+    : [{
+        name: "workout_log" as const,
+        headers: [...getAccountWorkoutExportCsvHeaders()],
+        rows: input as AccountWorkoutExportCsvRow[],
+      }];
+
+  const sections = tables.map((table) => serializeCsvSection({
+    name: table.name,
+    headers: table.headers,
+    rows: table.rows as Array<Record<string, unknown>>,
+  }));
+
+  return `${sections.join("\n\n")}\n`;
 }
 
 function serializeWorkbookValue(value: unknown): string | number | boolean | null {
@@ -503,6 +639,23 @@ function buildWorkbookSheetRows(payload: AccountWorkoutExportPayload): AccountWo
       notes: exercise.notes ?? null,
     };
   });
+  const progressionEventRows = payload.progressionEvents.map((event) => ({
+    event_id: event.id,
+    created_at: event.created_at,
+    event_type: event.event_type,
+    routine_id: event.routine_id,
+    routine_name: routineNameById.get(event.routine_id) ?? null,
+    routine_day_exercise_id: event.routine_day_exercise_id,
+    exercise_id: event.exercise_id,
+    exercise_name: exerciseNameById.get(event.exercise_id) ?? null,
+    source_session_id: event.source_session_id ?? null,
+    method: event.method,
+    vector: event.vector,
+    step: serializeWorkbookValue(event.step ?? null),
+    reason: event.reason,
+    from_target_json: serializeWorkbookValue(event.from_target ?? null),
+    to_target_json: serializeWorkbookValue(event.to_target ?? null),
+  }));
   const progressionSummaryRows = payload.routineDayExercises
     .filter((exercise) => Boolean(exercise.progression_playbook_id || exercise.progression_playbook_config))
     .map((exercise) => {
@@ -545,6 +698,7 @@ function buildWorkbookSheetRows(payload: AccountWorkoutExportPayload): AccountWo
     { name: "Routines", rows: routineRows, headers: toHeaders(routineRows) },
     { name: "Routine Days", rows: routineDayRows, headers: toHeaders(routineDayRows) },
     { name: "Routine Day Exercises", rows: routineDayExerciseRows, headers: toHeaders(routineDayExerciseRows) },
+    { name: "Progression Events", rows: progressionEventRows, headers: progressionEventRows.length > 0 ? toHeaders(progressionEventRows) : getProgressionEventWorkbookHeaders() },
     { name: "Progression Summary", rows: progressionSummaryRows, headers: toHeaders(progressionSummaryRows) },
   ];
 }
@@ -611,6 +765,27 @@ export async function buildAccountWorkoutExportPayload(args: {
       .order("position", { ascending: true })
     : { data: [] };
   const routineDayExercises = ((routineDayExercisesData ?? []) as RoutineDayExerciseRow[]);
+  let progressionEventsQuery = supabase
+    .from("progression_events")
+    .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+    .eq("user_id", userId);
+  if (currentRoutineId) {
+    progressionEventsQuery = progressionEventsQuery.eq("routine_id", currentRoutineId);
+  }
+  if (dateFrom) {
+    progressionEventsQuery = progressionEventsQuery.gte("created_at", dateFrom);
+  }
+  if (dateTo) {
+    progressionEventsQuery = progressionEventsQuery.lte("created_at", dateTo);
+  }
+  const { data: progressionEventsData } = await progressionEventsQuery;
+  const progressionEvents = ((progressionEventsData ?? []) as ProgressionEventRow[])
+    .sort((left, right) => {
+      if (left.created_at === right.created_at) {
+        return left.id.localeCompare(right.id);
+      }
+      return left.created_at.localeCompare(right.created_at);
+    });
 
   let sessionsQuery = supabase
     .from("sessions")
@@ -681,6 +856,7 @@ export async function buildAccountWorkoutExportPayload(args: {
         routineDays: routineDays.length,
         routineDayExercises: routineDayExercises.length,
         exercises: exercises.length,
+        progressionEvents: progressionEvents.length,
       },
     },
     profile,
@@ -690,6 +866,7 @@ export async function buildAccountWorkoutExportPayload(args: {
     routines,
     routineDays,
     routineDayExercises,
+    progressionEvents,
     exercises,
   };
 }

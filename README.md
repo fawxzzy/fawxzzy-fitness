@@ -55,7 +55,7 @@ env -u PLAYBOOK_BIN node scripts/playbook-runtime.mjs ai-context
 
 Expected behavior:
 - clean dependency install succeeds without any Playbook registry package assumption
-- official runtime acquisition downloads the pinned release tarball to a temp `.tgz` under `.playbook/runtime/`
+- official runtime acquisition downloads the pinned release tarball to a temp `.tgz` under `.playbook/cache/` before installing into `.playbook/runtime/`
 - installer logs the source URL, final resolved URL, HTTP status, local tarball path, and artifact size
 - runtime writes under `.playbook/`
 
@@ -187,6 +187,27 @@ The script mirrors only the `public` schema and destructively refreshes local da
 npm run lint
 npm run build
 ```
+
+## Release readiness
+
+Use the release ledger flow before any production deploy:
+
+```bash
+npm run verify
+npm run qa:llel:progression
+npm run migration:validate
+npm run release:fitness:prepare
+npm run release:fitness:diff
+npm run release:fitness:ready
+```
+
+Current expected-red linked-remote migration order for the stacked Progression V2 work:
+
+1. `20260508090000_remove_zone_2_cardio_catalog_exercise.sql`
+2. `20260509103000_profile_qa_visibility.sql`
+3. `20260509113000_051_progression_events.sql`
+
+`npm run release:fitness:ready` is a reporting guard only. It does not deploy, apply migrations, or repair Supabase history. It fails production readiness when the working tree is dirty, the release draft is missing or incomplete, the progression LLEL receipt is stale, or pending migrations still block deploy.
 
 ## Install gate
 

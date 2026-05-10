@@ -13,7 +13,7 @@ type HistoryOverviewRouteScaffoldProps = {
   mode: "overview";
   title: string;
   subtitle?: string;
-  activeTab: "sessions" | "exercises";
+  activeTab: "sessions" | "exercises" | "progression";
   children: ReactNode;
   showTopChrome?: boolean;
   floatingHeaderSlot?: ReactNode;
@@ -52,6 +52,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
                     value={props.activeTab}
                     sessionsHref="/history"
                     exercisesHref="/history/exercises"
+                    progressionHref="/history/progression"
                   />
                 ) : null}
                 {props.floatingHeaderSlot}

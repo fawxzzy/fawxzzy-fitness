@@ -50,11 +50,14 @@ That file is not canonical release history. It is a working draft used to fill i
 - deployment URLs
 - feature flags
 
+For stacked local work, this draft is also the right place to document release scope that is still broader than the current committed git diff. If there is no prior ledger baseline yet, or the branch is still dirty, the generated diff view is only one input to release review and should be supplemented by the draft summary, lanes, migrations, and known gaps.
+
 ## Commands
 
 ```powershell
 npm run release:fitness:prepare
 npm run release:fitness:diff
+npm run release:fitness:ready
 npm run release:fitness:record
 ```
 
@@ -76,6 +79,14 @@ npm run release:fitness:record
 - Appends a JSONL ledger entry.
 - Updates the root `CHANGELOG.md`.
 - Writes the final markdown release note.
+
+### `release:fitness:ready`
+
+- Reports `PASS`, `WARN`, or `FAIL` for production deploy readiness.
+- Runs `npm run verify` as part of the readiness check.
+- Reads the latest progression LLEL receipt from `runtime/fitness/llel-captures/latest/report.json`.
+- Reads the linked-remote migration drift from `npm run migration:validate` helpers without mutating Supabase state.
+- Fails readiness when the working tree is dirty, the release draft is missing or incomplete, the LLEL receipt is stale, or pending migrations still block production deploy.
 
 ## Ledger fields
 
@@ -106,9 +117,27 @@ Each JSONL entry records:
 ## Rules
 
 - Every production deploy needs a release ledger entry.
+- Every production deploy should pass `npm run release:fitness:ready` before deploy and `npm run release:fitness:record` after deployment facts are final.
 - The ledger is detailed internal truth; the changelog is the short user-facing summary.
 - Do not store secrets in the release draft, release notes, changelog, or ledger.
 - Do not treat chat summaries as canonical release memory.
+
+## Recommended sequence
+
+```powershell
+npm run verify
+npm run qa:llel:progression
+npm run migration:validate
+npm run release:fitness:prepare
+npm run release:fitness:diff
+npm run release:fitness:ready
+```
+
+If `release:fitness:ready` reports pending migrations, apply them remotely in order before production deploy. After the deployment facts are known, finish with:
+
+```powershell
+npm run release:fitness:record
+```
 
 ## Notes
 

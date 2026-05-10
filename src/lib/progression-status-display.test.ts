@@ -1,11 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildProgressionStatusSurfaceItem,
   formatProgressionStatusDisplayItem,
   getProgressionTargetFingerprint,
 } from "@/lib/progression-status-display";
 import type {
   ProgressionHistorySetRow,
+  ProgressionPlaybookSelection,
   ProgressionReviewCandidate,
   ProgressionTargetPlan,
 } from "@/lib/progression-playbooks";
@@ -53,6 +55,19 @@ function buildRows(reps: number[], weight = 225): ProgressionHistorySetRow[] {
     calories: null,
     isWarmup: false,
   }));
+}
+
+function buildSelection(overrides: Partial<Extract<ProgressionPlaybookSelection, { id: "double_progression" }>["config"]> = {}): ProgressionPlaybookSelection {
+  return {
+    id: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionBasis: "weight_and_reps",
+      repPromotionThreshold: "top_of_range",
+      ...overrides,
+    },
+  };
 }
 
 test("formats incomplete strength work as non-actionable Progress Status", () => {
@@ -280,6 +295,131 @@ test("does not format ready candidates as status rows", () => {
   });
 
   assert.equal(item, null);
+});
+
+test("builds a ready status surface row with top-half rep guidance", () => {
+  const item = buildProgressionStatusSurfaceItem({
+    id: "bench-ready",
+    exerciseName: "Barbell Bench Press",
+    candidate: {
+      type: "promote",
+      playbookId: "double_progression",
+      label: "Double Progression",
+      currentTarget: buildTarget({ setsMin: 3, setsMax: 3, repsMin: 8, repsMax: 12, weightMin: 225, weightMax: 225 }),
+      proposedTarget: buildTarget({ setsMin: 3, setsMax: 3, repsMin: 8, repsMax: 12, weightMin: 230, weightMax: 230 }),
+      reason: "Double Progression: top-half rep target complete - increase load next cycle.",
+      sourceSession: {
+        sessionId: "session-exercise-1",
+        performedAt: "2026-05-07T12:00:00.000Z",
+        isLatest: true,
+      },
+    },
+    rejectionReason: null,
+    historyRows: buildRows([12, 11, 10], 225),
+    plan: buildTarget({ setsMin: 3, setsMax: 3, repsMin: 8, repsMax: 12, weightMin: 225, weightMax: 225 }),
+    selection: buildSelection({ repPromotionThreshold: "top_half_of_range" }),
+  });
+
+  assert.equal(item.readinessState, "ready");
+  assert.equal(item.readinessLabel, "Ready");
+  assert.equal(item.promotionBasisLabel, "Weight + reps");
+  assert.equal(item.repTargetLine, "Rep target for promotion: Top half of range · 8-12 => 10+ reps");
+  assert.equal(item.nextUpdateLine, "Next update: 230 lbs x 12");
+});
+
+test("builds a weight-only status surface row that explains reps do not block readiness", () => {
+  const item = buildProgressionStatusSurfaceItem({
+    id: "press-weight-only",
+    exerciseName: "Strict Press",
+    candidate: buildNoneCandidate("Double Progression: no completed target-load session is ready for cycle review.", buildTarget({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 5,
+      repsMax: 8,
+      weightMin: 135,
+      weightMax: 135,
+    })),
+    rejectionReason: "incomplete_sets",
+    historyRows: buildRows([6, 6], 135),
+    plan: buildTarget({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 5,
+      repsMax: 8,
+      weightMin: 135,
+      weightMax: 135,
+    }),
+    selection: buildSelection({ promotionBasis: "weight_only" }),
+  });
+
+  assert.equal(item.readinessState, "not_ready");
+  assert.equal(item.promotionBasisLabel, "Weight only");
+  assert.equal(item.promotionBasisDetail, "Weight-only promotion: reps are tracked for guidance but do not block readiness.");
+  assert.equal(item.repTargetLine, null);
+});
+
+test("builds a reps-only status surface row that explains load does not block readiness", () => {
+  const item = buildProgressionStatusSurfaceItem({
+    id: "rehab-reps-only",
+    exerciseName: "Heel Raise",
+    candidate: buildNoneCandidate("Double Progression: range is not complete yet.", buildTarget({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 12,
+      repsMax: 15,
+      weightMin: null,
+      weightMax: null,
+      weightUnit: null,
+    })),
+    rejectionReason: "top_range_not_met",
+    historyRows: buildRows([14, 13, 12], 0),
+    plan: buildTarget({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 12,
+      repsMax: 15,
+      weightMin: null,
+      weightMax: null,
+      weightUnit: null,
+    }),
+    selection: buildSelection({ promotionBasis: "reps_only", repPromotionThreshold: "custom", customRepPromotionTarget: 14 }),
+  });
+
+  assert.equal(item.readinessState, "not_ready");
+  assert.equal(item.promotionBasisLabel, "Reps only");
+  assert.equal(item.promotionBasisDetail, "Reps-only promotion: load is tracked for context but does not block readiness.");
+  assert.equal(item.repTargetLine, "Rep target for promotion: Custom rep target · 12-15 => 14+ reps");
+});
+
+test("builds an insufficient-evidence surface row for legacy config defaults", () => {
+  const item = buildProgressionStatusSurfaceItem({
+    id: "legacy-defaults",
+    exerciseName: "Machine Row",
+    candidate: buildNoneCandidate("Double Progression: no completed history yet.", buildTarget({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 140,
+      weightMax: 140,
+    })),
+    rejectionReason: "no_completed_history",
+    historyRows: [],
+    plan: buildTarget({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 140,
+      weightMax: 140,
+    }),
+    selection: buildSelection(),
+  });
+
+  assert.equal(item.readinessState, "insufficient_evidence");
+  assert.equal(item.readinessLabel, "Insufficient evidence");
+  assert.equal(item.promotionBasisLabel, "Weight + reps");
+  assert.equal(item.repTargetLine, "Rep target for promotion: Top of range · 8-12 => 12+ reps");
 });
 
 test("fingerprint links only identical exercise targets and config", () => {

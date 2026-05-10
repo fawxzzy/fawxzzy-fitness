@@ -62,6 +62,141 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-10 - Release draft and migration runbook should precede remote mutation
+- Type: Checklist
+- Summary: Before any production migration apply or deploy, Fitness should prepare the local release draft, inspect the release diff, and write the exact ordered migration apply runbook so operators do not improvise around stacked branch drift.
+- Suggested Playbook File: docs/CHECKLISTS/release-predeploy-runbook.md
+- Rationale: The Progression V2 stack now spans enough product and ops surfaces that migration apply is no longer a safe “remember the order from chat” step.
+- Rule: Release draft and diff preparation happen before migration apply or deploy.
+- Rule: Pending branch-stack migrations must be applied in documented order before production deploy.
+- Rule: Do not use Supabase migration repair to silence validation unless remote schema truth is known.
+- Pattern: Use the local release draft to capture stack scope when dirty branch state makes the raw git diff incomplete.
+- Failure Mode: A release note is treated as complete before production deploy succeeds.
+- Failure Mode: Operators apply the wrong migrations because the runbook drifted from the current expected-red list.
+- Evidence: runtime/fitness/release-draft.json, docs/releases/README.md, docs/releases/fitness/2026/2026-05-10-progression-v2-migration-runbook.md, scripts/release/fitness-release-note.mjs, scripts/release/fitness-release-readiness.mjs
+- Status: Proposed
+## 2026-05-10 - Release readiness should fail honestly before production deploy
+- Type: Guardrail
+- Summary: Fitness production deploy checks should combine release draft state, `npm run verify`, progression LLEL receipt coverage, linked-remote migration drift, and working-tree cleanliness into one reporting guard that blocks deploy without mutating Supabase or deployment targets.
+- Suggested Playbook File: docs/GUARDRAILS/release-readiness-receipts.md
+- Rationale: The Progression V2 stack now spans engine rules, UI, ledger writes, export, analytics, and history surfaces, so deploy discipline needs one explicit readiness command instead of relying on memory across release notes, screenshots, and migration receipts.
+- Rule: Every production deploy must have a release ledger entry.
+- Rule: Expected-red migration validation is acceptable for stacked local work but blocks production deploy until pending migrations are applied in order.
+- Rule: Release readiness checks report state; they do not mutate Supabase or deploy.
+- Pattern: Separate release readiness from feature implementation.
+- Failure Mode: A release is treated as complete before migrations and LLEL receipts are current.
+- Failure Mode: Deploy wrappers silently skip migration drift or release-draft gaps.
+- Evidence: scripts/release/fitness-release-readiness.mjs, scripts/release/fitness-release-readiness.test.mjs, scripts/release/fitness-release-note.mjs, scripts/qa/progression-visual-receipt.mjs, scripts/migration/validate-supabase-chain.mjs, docs/releases/README.md, docs/ops/FITNESS-LLEL-CHECKLIST.md, README.md
+- Status: Proposed
+## 2026-05-10 - Progression History filters should stay URL-backed and ledger-driven
+- Type: Pattern
+- Summary: Progression History filters should parse URL search params into a small typed model, narrow durable `progression_events` server-side where practical, and keep the visible list and dashboard cards on the same filtered event set.
+- Suggested Playbook File: docs/PATTERNS/history-ledger-surfaces.md
+- Rationale: Once the ledger route has enough rows to be useful, the next risk is a noisy history surface or a React-only filter state that diverges from reloads, links, export expectations, or the shared analytics card strip.
+- Rule: Progression History filters operate on durable `progression_events`, not status or readiness rows.
+- Rule: Filtered dashboard cards must use the same filtered event set as the visible list unless labeled otherwise.
+- Pattern: URL-backed filters make history views shareable and reload-safe.
+- Failure Mode: Replay or revert controls appear while implementing read filters.
+- Failure Mode: Migration receipt docs drift from current `migration:validate` output.
+- Evidence: src/app/history/progression/page.tsx, src/components/history/ProgressionHistorySurface.tsx, src/lib/progression-history-filters.ts, src/lib/progression-history-page-loader.ts, src/lib/progression-history-display.ts, scripts/qa/progression-visual-receipt.mjs
+- Status: Proposed
+## 2026-05-10 - Release-readiness receipts must track live migration drift and durable bootstrap paths
+- Type: Guardrail
+- Summary: Release-readiness lanes must refresh migration receipts from the current linked-remote output and classify local verification prerequisites as either canonical bootstrap steps or local install drift, instead of carrying stale missing-version lists or no-save runtime fixes forward.
+- Suggested Playbook File: docs/GUARDRAILS/release-readiness-receipts.md
+- Rationale: The progression stack can be feature-complete locally while still carrying stale migration notes or machine-specific runtime workarounds, and that makes deploy-readiness claims unreliable right when the branch stack is broadest.
+- Rule: Expected-red migration validation must list the current pending migration order, not stale branch history.
+- Rule: Do not mutate Supabase migration history just to make a stacked branch validate.
+- Rule: Verification prerequisites must be durable through package metadata or documented bootstrap, not ad-hoc no-save installs.
+- Pattern: Separate deploy-readiness reconciliation from product feature lanes.
+- Failure Mode: More UI ships while release or migration receipts are stale.
+- Failure Mode: Generated runtime artifacts are committed to hide local bootstrap drift.
+- Evidence: scripts/migration/validate-supabase-chain.mjs, scripts/qa/progression-visual-receipt.mjs, scripts/playbook-runtime.mjs, scripts/playbook-runtime.test.mjs, docs/architecture/PROGRESSION-EVENT-LEDGER.md, README.md, docs/PROJECT_GOVERNANCE.md
+- Status: Proposed
+## 2026-05-10 - Progression analytics should be pure transforms over ledger rows
+- Type: Pattern
+- Summary: Progression analytics should summarize durable `progression_events` through pure helper transforms so history UI, dashboard cards, export, and reports reuse the same tested interpretation layer.
+- Suggested Playbook File: docs/PATTERNS/data-export-contracts.md
+- Rationale: Once the ledger exists and export proves the table shape, the next risk is letting every future component invent its own counts, latest-event logic, and target delta interpretation.
+- Rule: Progression analytics read durable `progression_events`; they do not reconstruct history from status rows.
+- Rule: Unknown target shapes should produce unknown or null analytics, not invented deltas.
+- Pattern: Keep analytics helpers pure so UI, export, and reports can reuse the same tested model.
+- Failure Mode: Dashboard components invent their own progression interpretation.
+- Failure Mode: Supabase migration history is mutated just to make an analytics lane pass.
+- Evidence: src/lib/progression-event-analytics.ts, src/lib/progression-event-analytics.test.ts, src/lib/progression-events.ts, docs/architecture/PROGRESSION-EVENT-LEDGER.md
+- Status: Proposed
+## 2026-05-10 - Progression History should stay read-only and ledger-driven
+- Type: Pattern
+- Summary: Progression History should render durable `progression_events` through shared analytics and display helpers so the History area explains applied changes without inventing its own ledger interpretation or mutation semantics.
+- Suggested Playbook File: docs/PATTERNS/history-ledger-surfaces.md
+- Rationale: Once the ledger has write paths, export, and summary helpers, the next risk is a route-level UI rebuilding change history from status rows or quietly turning a history list into a mutation surface.
+- Rule: Progression History reads `progression_events`; it does not reconstruct history from status rows.
+- Rule: History UI is read-only until mutation or replay semantics are explicitly designed.
+- Pattern: UI consumes analytics and display helpers instead of inventing ledger interpretation inside components.
+- Failure Mode: Revert or replay buttons appear in history rows before a dedicated mutation lane exists.
+- Failure Mode: Supabase migration history is mutated just to make a history UI lane pass.
+- Evidence: src/app/history/progression/page.tsx, src/components/history/ProgressionHistorySurface.tsx, src/lib/progression-history-display.ts, src/lib/progression-event-analytics.ts, docs/architecture/PROGRESSION-EVENT-LEDGER.md
+- Status: Proposed
+## 2026-05-10 - Progression event export must read durable ledger rows directly
+- Type: Pattern
+- Summary: Account export should expose progression change history by reading `progression_events` as a table-first dataset instead of reverse-engineering promotions from readiness or status surfaces.
+- Suggested Playbook File: docs/PATTERNS/data-export-contracts.md
+- Rationale: Export is the first downstream consumer of the event ledger, so it needs to prove that durable change records are shaped and scoped well before analytics or history UI interpret them.
+- Rule: Progression event export reads `progression_events`; it does not reconstruct change history from status rows.
+- Rule: Export data should be table-first, not UI-first.
+- Pattern: Event ledger writes create durable change records; export exposes those records without interpretation.
+- Failure Mode: Export synthesizes fake progression events from ready or not-ready status rows.
+- Failure Mode: Supabase migration history is mutated just to make an export lane pass.
+- Evidence: src/lib/account-workout-export.ts, src/lib/account-workout-export.test.ts, docs/architecture/PROGRESSION-EVENT-LEDGER.md
+- Status: Proposed
+## 2026-05-10 - Stacked Supabase migrations must be classified before any remote repair
+- Type: Guardrail
+- Summary: When `migration:validate` shows newer local versions missing on the linked remote, classify whether they are pending stacked-branch migrations or actual remote history drift before using any repair command.
+- Suggested Playbook File: docs/GUARDRAILS/supabase-migration-chain-integrity.md
+- Rationale: A feature branch can be deployable in code while still carrying unapplied schema versions from earlier local lanes, and treating every missing remote version as corruption encourages unsafe history edits.
+- Rule: Migration validation failures must be classified before repair.
+- Rule: Do not repair Supabase migration history unless remote schema truth is known.
+- Pattern: For stacked branch migrations, document the pending apply order instead of mutating remote history prematurely.
+- Failure Mode: Marking a migration applied remotely just to silence validation hides real deploy state and can desynchronize schema truth from the checked-in chain.
+- Evidence: scripts/migration/validate-supabase-chain.mjs, docs/ops/fitness-legacy-migration-plan.md, docs/recovery/FULL-QUARANTINE-RECOVERY-LEDGER.md, docs/architecture/PROGRESSION-EVENT-LEDGER.md, supabase/migrations/20260508090000_remove_zone_2_cardio_catalog_exercise.sql, supabase/migrations/20260509103000_profile_qa_visibility.sql, supabase/migrations/20260509113000_051_progression_events.sql
+- Status: Proposed
+## 2026-05-10 - Progression visual QA should emit deterministic receipts when browser capture is fragile
+- Type: Checklist
+- Summary: New progression surfaces should extend the existing seam and recovered-browser receipt path so Today Progression Status, Progression History, and export coverage produce one deterministic QA receipt before dashboard work expands the UI.
+- Suggested Playbook File: docs/CHECKLISTS/visual-proof-receipts.md
+- Rationale: The progression loop now spans readiness, status, ledger writes, export, analytics, and history UI, so relying on ad-hoc browser checks or broken launcher assumptions leaves presentation coverage unproven exactly where the product just got broader.
+- Rule: Visual capture validates presentation; unit and scenario tests validate logic.
+- Rule: Expected-red migration validation must list the full current pending migration order.
+- Pattern: When browser capture fails, emit a deterministic QA report instead of pretending screenshots passed.
+- Failure Mode: Product behavior changes just to satisfy a visual runner.
+- Failure Mode: Supabase migration history is mutated inside a QA lane.
+- Evidence: docs/ops/FITNESS-LLEL-CHECKLIST.md, scripts/qa/progression-visual-receipt.mjs, scripts/qa/visual-fitness-suites.mjs, scripts/qa/fitness-auth-state.mjs, src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx, src/features/mobile-regression/fixtures.ts
+- Status: Proposed
+## 2026-05-10 - Progression dashboard cards should consume shared analytics and display models
+- Type: Pattern
+- Summary: Dashboard summary UI for progression should be built from prepared analytics and display-card models so History, future dashboard strips, and reports all render the same ledger interpretation without copying React-side math.
+- Suggested Playbook File: docs/PATTERNS/history-ledger-surfaces.md
+- Rationale: Once History has a ledger route and analytics helpers, the next risk is letting every new card strip compute its own “latest change,” “most active vector,” or “top progressed” logic in components.
+- Rule: Dashboard cards consume `progression-event-analytics`; they do not interpret ledger rows inline.
+- Rule: Progression dashboard UI is read-only until mutation semantics are explicitly designed.
+- Pattern: Promote repeated summary UI into reusable card-model helpers before adding more dashboard surfaces.
+- Failure Mode: Analytics math is duplicated in React components.
+- Failure Mode: Replay or revert controls appear in dashboard cards.
+- Evidence: src/components/history/ProgressionDashboardCards.tsx, src/components/history/ProgressionHistorySurface.tsx, src/lib/progression-history-display.ts, src/lib/progression-event-analytics.ts
+- Status: Proposed
+## 2026-05-09 - Progression events record durable target changes, not readiness snapshots
+- Type: Pattern
+- Summary: Progression history should be written only when a durable target mutation happens, while readiness and status remain live calculations built from session evidence and normalized progression rules.
+- Suggested Playbook File: docs/PATTERNS/deterministic-progression-playbooks.md
+- Rationale: The app now explains current eligibility in Today, but analytics, export, and future history views need a durable target-change ledger that does not spam rows for every not-ready exercise.
+- Rule: Progression events are durable applied-change records, not readiness/status snapshots.
+- Rule: Ready status alone does not write an event.
+- Pattern: Status explains current eligibility; event ledger records target changes over time.
+- Pattern: Event payloads should include before/after target snapshots plus source evidence when available.
+- Failure Mode: Event recording mutates or reinterprets progression eligibility instead of observing the final applied change.
+- Failure Mode: Non-ready status rows create event spam.
+- Evidence: docs/architecture/PROGRESSION-EVENT-LEDGER.md, supabase/migrations/20260509113000_051_progression_events.sql, src/lib/progression-events.ts, src/app/progression-review/actions.ts, src/app/today/page.tsx, src/app/routines/[id]/edit/day/actions.ts
+- Status: Proposed
 ## 2026-05-09 - Horizontal metric rails and progression drafts must preserve canonical touch and state contracts
 - Type: Guardrail
 - Summary: Shared horizontal metric-entry rails must allow side-scroll even when focus lands on the input shell, and every routine/edit-day draft path that renders progression controls must carry the full canonical progression form state instead of hand-built partial objects.
@@ -134,6 +269,30 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: User-facing controls stay simple while engine-facing config stays explicit.
 - Failure Mode: Normalizing legacy progression config in the component layer can silently rewrite existing exercise overrides or drift from the stored engine rules.
 - Evidence: src/components/routines/ProgressionPlaybookEditor.tsx, src/components/exercises/ExerciseChooserAddFlowForm.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/lib/progression-playbook-form-state.ts, src/lib/progression-promotion.ts
+- Status: Proposed
+## 2026-05-09 - Eligibility should consume promotion basis and rep-threshold helpers directly
+- Type: Pattern
+- Summary: Ready-update qualification should resolve `promotionBasis` and `repPromotionThreshold` from normalized progression config, then let those helpers decide which dimensions gate readiness instead of hardcoding top-of-range and target-load checks everywhere.
+- Suggested Playbook File: docs/PATTERNS/deterministic-progression-playbooks.md
+- Rationale: The progression editor can now save explicit promotion controls, so the engine needs one canonical qualification path that honors weight-only, reps-only, and top-half/custom thresholds without drifting from stored config.
+- Rule: Promotion basis decides which dimensions gate auto-promotion.
+- Rule: Rep range guidance is not promotion proof by itself.
+- Pattern: UI saves canonical progression config; eligibility consumes normalized domain helpers.
+- Failure Mode: Disabled promotion dimensions must not fail readiness checks.
+- Failure Mode: Optional cardio weight must not become load progression.
+- Evidence: src/lib/progression-playbooks.ts, src/lib/progression-playbooks.test.ts, src/lib/progression-promotion.ts, docs/architecture/PROGRESSION-ENGINE-V2.md
+- Status: Proposed
+## 2026-05-09 - Progression explanation belongs in a dedicated status surface, not the ready-update tray
+- Type: Pattern
+- Summary: Ready-update UI should stay scoped to actionable promotions and regressions, while deeper progression explanation lives in a separate status surface built from the same normalized helper path and evidence lines.
+- Suggested Playbook File: docs/PATTERNS/deterministic-progression-playbooks.md
+- Rationale: Users need to understand why an exercise is ready, not ready, weight-only, reps-only, or top-half qualified without flooding normal Today or Routines update trays with non-actionable rows.
+- Rule: Actionable update trays show ready updates only. Explanation/status surfaces may show non-ready rows.
+- Rule: Progression Status must consume the same normalized helper path as eligibility.
+- Pattern: Build explanation surfaces from existing evidence instead of inventing parallel readiness math.
+- Failure Mode: Progress Status noise leaks back into normal Progression Updates trays.
+- Failure Mode: Display labels become a second source of progression truth instead of reflecting canonical engine state.
+- Evidence: src/app/today/TodayDayPicker.tsx, src/components/progression/ProgressionReviewCard.tsx, src/components/progression/ProgressionStatusSection.tsx, src/lib/progression-review-loader.ts, src/lib/progression-status-display.ts
 - Status: Proposed
 ## 2026-05-09 - Branch-level verification notes must cite the actual changed execution surfaces
 - Type: Guardrail
