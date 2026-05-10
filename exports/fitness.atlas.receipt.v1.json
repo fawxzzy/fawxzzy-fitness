@@ -1,0 +1,40 @@
+{
+  "contract_version": "atlas.receipt.v1",
+  "receipt_id": "rcpt-20260509-fitness-atlas-wave2a",
+  "recorded_at": "2026-05-09T23:30:00Z",
+  "repo_id": "fitness",
+  "app_id": "fawxzzy-fitness",
+  "kind": "contract-adoption",
+  "status": "passed",
+  "subject": {
+    "kind": "atlas-contracts",
+    "id": "fitness-wave-2a",
+    "path": "exports/fitness.atlas.app-registration.v1.json"
+  },
+  "evidence": [
+    {
+      "kind": "json",
+      "ref": "exports/fitness.atlas.app-registration.v1.json",
+      "digest": null,
+      "summary": "Repo-owned ATLAS app registration declaration."
+    },
+    {
+      "kind": "workflow",
+      "ref": ".github/workflows/atlas-contracts.yml",
+      "digest": null,
+      "summary": "Reusable ATLAS contract lane for Fitness."
+    }
+  ],
+  "links": [
+    {
+      "rel": "health",
+      "href": "/api/health"
+    },
+    {
+      "rel": "adoption-doc",
+      "href": "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md"
+    }
+  ],
+  "summary": "Fitness owner-lane ATLAS platform v1 adoption is declared and validated.",
+  "event_id": "evt-20260509-fitness-shadow-001"
+}

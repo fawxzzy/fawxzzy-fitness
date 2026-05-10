@@ -40,6 +40,7 @@ npm run
 | `npm run verify:mobile-regression` | Run the mobile-regression parity guard (`typecheck:mobile-regression-harness` + fixture suite). |
 | `npm run verify` | Run the Playbook repo verification workflow. |
 | `npm run verify:strict` | Full local gate (`lint` + mobile-regression parity guard + `build`). |
+| `npm run test:atlas-contracts` | Validate the repo-owned ATLAS v1 exports, health helper, and reusable contract lane wiring. |
 | `npm run test:playbook-adoption` | Validate the repo-local Playbook adoption export against the local schema and owner contract ids. |
 | `npm run test:playbook-verification` | Validate the repo-local Playbook verification report against the ATLAS root schema and live command surface. |
 | `npm run test:fitness-event-contracts` | Validate the Fitness-owned event contract and shadow receipt validators. |
