@@ -7,6 +7,8 @@ import {
   DEFAULT_PROGRESSION_PROMOTION_BASIS,
   DEFAULT_REP_PROMOTION_THRESHOLD,
   normalizeProgressionPromotionConfig,
+  normalizePromotionBasis,
+  normalizeRepPromotionThreshold,
   type ProgressionPromotionBasis,
   type RepPromotionThreshold,
 } from "@/lib/progression-promotion";
@@ -345,7 +347,7 @@ export type DeloadAfterStallConfig = {
   setFlow?: SetFlowId;
   stallThreshold: number;
   deloadPercent: number;
-};
+} & ProgressionPromotionConfigFields;
 
 export type ProgressionPlaybookConfig =
   | DoubleProgressionConfig
@@ -1558,9 +1560,24 @@ export function parseProgressionPlaybookPayload(formData: FormData):
   const setFlow = normalizeSetFlowId(String(formData.get("progressionSetFlow") ?? "").trim());
   const stepOverrides = parseProgressionStepOverridesFromFormData(formData);
   const setFlowSteps = parseSetFlowStepsFromFormData(formData);
+  const promotionConfig = normalizeProgressionPromotionConfig({
+    promotionBasis: normalizePromotionBasis(String(formData.get("progressionPromotionBasis") ?? "").trim(), DEFAULT_PROGRESSION_PROMOTION_BASIS),
+    repPromotionThreshold: normalizeRepPromotionThreshold(String(formData.get("progressionRepPromotionThreshold") ?? "").trim(), DEFAULT_REP_PROMOTION_THRESHOLD),
+    customRepPromotionTarget: parseOptionalPositiveInteger(formData.get("progressionCustomRepPromotionTarget")),
+    fallbackBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    fallbackThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+  });
 
   if (stallPolicy === "none" && (playbookId === "double_progression" || playbookId === "fixed_load_rep_range_progression")) {
-    let config: ProgressionPlaybookConfig = { version: 1, loadIncrement, stallPolicy, autoUpdateRoutineGoals };
+    let config: ProgressionPlaybookConfig = {
+      version: 1,
+      loadIncrement,
+      stallPolicy,
+      autoUpdateRoutineGoals,
+      promotionBasis: promotionConfig.promotionBasis,
+      repPromotionThreshold: promotionConfig.repPromotionThreshold,
+      ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
+    };
     config = attachProgressionStepOverrides(config, stepOverrides);
     config = attachSetFlowSteps(config, setFlowSteps);
     if (setFlow) {
@@ -1586,6 +1603,9 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     stallThreshold,
     deloadPercent,
     autoUpdateRoutineGoals,
+    promotionBasis: promotionConfig.promotionBasis,
+    repPromotionThreshold: promotionConfig.repPromotionThreshold,
+    ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
   };
   config = attachProgressionStepOverrides(config, stepOverrides);
   config = attachSetFlowSteps(config, setFlowSteps);

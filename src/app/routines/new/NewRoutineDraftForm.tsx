@@ -109,6 +109,9 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           progressionSetFlowRepStep?: string;
           progressionSetFlowDurationStep?: string;
           progressionSetFlowDistanceStep?: string;
+          progressionPromotionBasis?: "weight_only" | "reps_only" | "weight_and_reps";
+          progressionRepPromotionThreshold?: "top_of_range" | "top_half_of_range" | "custom";
+          progressionCustomRepPromotionTarget?: string;
           progressionTrainingGoal?: string | null;
         };
         const normalizedParsed = normalizeRoutineDetailsDraft(parsed, normalizedDefaults);
@@ -141,6 +144,9 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           progressionSetFlowRepStep: typeof parsed.progressionSetFlowRepStep === "string" ? parsed.progressionSetFlowRepStep : current.progressionSetFlowRepStep,
           progressionSetFlowDurationStep: typeof parsed.progressionSetFlowDurationStep === "string" ? parsed.progressionSetFlowDurationStep : current.progressionSetFlowDurationStep,
           progressionSetFlowDistanceStep: typeof parsed.progressionSetFlowDistanceStep === "string" ? parsed.progressionSetFlowDistanceStep : current.progressionSetFlowDistanceStep,
+          progressionPromotionBasis: typeof parsed.progressionPromotionBasis === "string" ? parsed.progressionPromotionBasis : current.progressionPromotionBasis,
+          progressionRepPromotionThreshold: typeof parsed.progressionRepPromotionThreshold === "string" ? parsed.progressionRepPromotionThreshold : current.progressionRepPromotionThreshold,
+          progressionCustomRepPromotionTarget: typeof parsed.progressionCustomRepPromotionTarget === "string" ? parsed.progressionCustomRepPromotionTarget : current.progressionCustomRepPromotionTarget,
         }));
         setSelectedTrainingGoal(normalizeTrainingGoalId(parsed.progressionTrainingGoal));
         setCycleLengthInput(String(nextDraft.cycleLengthDays));

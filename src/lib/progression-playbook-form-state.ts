@@ -9,6 +9,13 @@ import {
   type TrainingGoalId,
 } from "@/lib/progression-playbooks";
 import {
+  DEFAULT_PROGRESSION_PROMOTION_BASIS,
+  DEFAULT_REP_PROMOTION_THRESHOLD,
+  normalizeProgressionPromotionConfig,
+  type ProgressionPromotionBasis,
+  type RepPromotionThreshold,
+} from "@/lib/progression-promotion";
+import {
   getDefaultSetFlowForTrainingGoal,
   normalizeSetFlowId,
 } from "@/lib/set-flow";
@@ -33,6 +40,9 @@ export type ProgressionPlaybookFormState = {
   progressionSetFlowRepStep: string;
   progressionSetFlowDurationStep: string;
   progressionSetFlowDistanceStep: string;
+  progressionPromotionBasis: ProgressionPromotionBasis;
+  progressionRepPromotionThreshold: RepPromotionThreshold;
+  progressionCustomRepPromotionTarget: string;
 };
 
 function formatNumber(value: number) {
@@ -101,6 +111,11 @@ export function createProgressionPlaybookFormState({
     progressionDeloadPercent: deloadConfig ? formatNumber(deloadConfig.deloadPercent) : "10",
     progressionAutoUpdateRoutineGoals: Boolean(selection?.id !== "deload_after_stall" && selection?.config.autoUpdateRoutineGoals),
     progressionSetFlow,
+    progressionPromotionBasis: defaultConfig?.promotionBasis ?? DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    progressionRepPromotionThreshold: defaultConfig?.repPromotionThreshold ?? DEFAULT_REP_PROMOTION_THRESHOLD,
+    progressionCustomRepPromotionTarget: typeof defaultConfig?.customRepPromotionTarget === "number"
+      ? formatNumber(defaultConfig.customRepPromotionTarget)
+      : "",
   };
 }
 
@@ -164,6 +179,9 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionSetFlowRepStep: state.progressionSetFlowRepStep,
     progressionSetFlowDurationStep: state.progressionSetFlowDurationStep,
     progressionSetFlowDistanceStep: state.progressionSetFlowDistanceStep,
+    progressionPromotionBasis: state.progressionPromotionBasis,
+    progressionRepPromotionThreshold: state.progressionRepPromotionThreshold,
+    progressionCustomRepPromotionTarget: state.progressionCustomRepPromotionTarget,
   });
 }
 
@@ -209,6 +227,18 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     Object.entries(setFlowSteps).filter(([, value]) => typeof value === "number"),
   );
   const hasSetFlowSteps = Object.keys(normalizedSetFlowSteps).length > 0;
+  const promotionConfig = normalizeProgressionPromotionConfig({
+    promotionBasis: state.progressionPromotionBasis,
+    repPromotionThreshold: state.progressionRepPromotionThreshold,
+    customRepPromotionTarget: parsePositiveInteger(state.progressionCustomRepPromotionTarget),
+    fallbackBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    fallbackThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+  });
+  const serializedPromotionConfig = {
+    promotionBasis: promotionConfig.promotionBasis,
+    repPromotionThreshold: promotionConfig.repPromotionThreshold,
+    ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
+  };
 
   if (state.progressionStallPolicy === "none") {
     return {
@@ -219,6 +249,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       setFlow: state.progressionSetFlow,
       stallPolicy: "none",
       autoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
+      ...serializedPromotionConfig,
     };
   }
 
@@ -238,6 +269,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     stallThreshold,
     deloadPercent,
     autoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
+    ...serializedPromotionConfig,
   };
 }
 
@@ -299,6 +331,9 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionSetFlowRepStep", state.progressionSetFlowRepStep);
   formData.set("progressionSetFlowDurationStep", state.progressionSetFlowDurationStep);
   formData.set("progressionSetFlowDistanceStep", state.progressionSetFlowDistanceStep);
+  formData.set("progressionPromotionBasis", state.progressionPromotionBasis);
+  formData.set("progressionRepPromotionThreshold", state.progressionRepPromotionThreshold);
+  formData.set("progressionCustomRepPromotionTarget", state.progressionCustomRepPromotionTarget);
   formData.set("progressionStallThreshold", state.progressionStallThreshold);
   formData.set("progressionDeloadPercent", state.progressionDeloadPercent);
   formData.set("progressionSetFlow", state.progressionSetFlow);

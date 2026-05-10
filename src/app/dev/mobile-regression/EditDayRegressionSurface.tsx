@@ -11,6 +11,7 @@ import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } fr
 import { cn } from "@/lib/cn";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import { DEFAULT_PROGRESSION_PROMOTION_BASIS, DEFAULT_REP_PROMOTION_THRESHOLD } from "@/lib/progression-promotion";
 
 type EditDayFixture = "default" | "reorder" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
 
@@ -94,6 +95,9 @@ export function EditDayRegressionSurface({
       progressionSetFlowRepStep: "",
       progressionSetFlowDurationStep: "",
       progressionSetFlowDistanceStep: "",
+      progressionPromotionBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+      progressionRepPromotionThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+      progressionCustomRepPromotionTarget: "",
     }
     : null;
 

@@ -21,6 +21,10 @@ import {
   type ProgressionPlaybookFormState,
 } from "@/lib/progression-playbook-form-state";
 import {
+  getRepPromotionTarget,
+  usesRepsForPromotion,
+} from "@/lib/progression-promotion";
+import {
   getDefaultProgressionPlaybookConfig,
   listProgressionMethodDefinitions,
   PROGRESSION_INFO_TERM_DEFINITIONS,
@@ -48,6 +52,23 @@ const progressionFieldInputClassName = cn(
 
 function formatSetFlowButtonLabel(label: string) {
   return label.replace(/\s+Sets$/i, "");
+}
+
+function parsePositiveIntegerInput(value: string) {
+  const parsed = Number(value.trim());
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function formatRepRangePreview(minReps: number, maxReps: number) {
+  return minReps === maxReps ? `${minReps}` : `${minReps}\u2013${maxReps}`;
+}
+
+function parseOptionalPositiveInteger(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return parsePositiveIntegerInput(value);
 }
 
 export function ProgressionNumberField({
@@ -443,6 +464,8 @@ export function ProgressionPlaybookEditor({
   visiblePromotionStepFields,
   showProgressionSettingsRow = true,
   extraPanelContent,
+  repRangeMin,
+  repRangeMax,
   trainingFocusValue = "",
   trainingFocusCustomized = false,
   onTrainingFocusChange,
@@ -465,6 +488,8 @@ export function ProgressionPlaybookEditor({
   visiblePromotionStepFields?: PromotionStepFieldId[] | null;
   showProgressionSettingsRow?: boolean;
   extraPanelContent?: ReactNode;
+  repRangeMin?: number | null;
+  repRangeMax?: number | null;
   trainingFocusValue?: TrainingGoalId | "";
   trainingFocusCustomized?: boolean;
   onTrainingFocusChange?: (goal: TrainingGoalId) => void;
@@ -509,6 +534,9 @@ export function ProgressionPlaybookEditor({
       progressionDeloadPercent: value.progressionDeloadPercent,
       progressionAutoUpdateRoutineGoals: value.progressionAutoUpdateRoutineGoals,
       progressionSetFlow: value.progressionSetFlow,
+      progressionPromotionBasis: value.progressionPromotionBasis,
+      progressionRepPromotionThreshold: value.progressionRepPromotionThreshold,
+      progressionCustomRepPromotionTarget: value.progressionCustomRepPromotionTarget,
     });
   };
   const setStallPolicy = (nextPolicy: ProgressionStallPolicy) => {
@@ -533,10 +561,42 @@ export function ProgressionPlaybookEditor({
     && Boolean(onApplyRoutineDefault);
   const isRoutineDefaultContext = context === "routine-default";
   const shouldRenderProgressionInfo = context === "routine-default";
+  const supportsPromotionQualificationControls = isRoutineDefaultContext
+    || (context === "exercise" && showDefaultState && Boolean(onApplyRoutineDefault));
   const visiblePromotionStepFieldIds = visiblePromotionStepFields ?? getVisiblePromotionStepFieldIds({
     isRoutineDefaultContext,
     progressionStepPolicy,
   });
+  const repsParticipateInPromotion = usesRepsForPromotion(value.progressionPromotionBasis);
+  const resolvedRepRangeMin = typeof repRangeMin === "number" ? repRangeMin : null;
+  const resolvedRepRangeMax = typeof repRangeMax === "number" ? repRangeMax : null;
+  const repPromotionTarget = repsParticipateInPromotion
+    ? getRepPromotionTarget({
+      minReps: resolvedRepRangeMin,
+      maxReps: resolvedRepRangeMax,
+      thresholdType: value.progressionRepPromotionThreshold,
+      customTarget: parseOptionalPositiveInteger(value.progressionCustomRepPromotionTarget),
+    })
+    : null;
+  const hasRepRangePreview = repPromotionTarget !== null
+    && resolvedRepRangeMin !== null
+    && resolvedRepRangeMax !== null;
+  const repRangePreviewLabel = hasRepRangePreview
+    ? formatRepRangePreview(resolvedRepRangeMin, resolvedRepRangeMax)
+    : null;
+  const activeRepPromotionPreview = hasRepRangePreview && repRangePreviewLabel
+    ? `${repRangePreviewLabel} + ${value.progressionRepPromotionThreshold === "top_half_of_range"
+      ? "Top half of range"
+      : value.progressionRepPromotionThreshold === "custom"
+        ? "Custom rep target"
+        : "Top of range"} => ${repPromotionTarget}+ reps`
+    : null;
+  const customRepTargetInputInvalid = value.progressionRepPromotionThreshold === "custom"
+    && parseOptionalPositiveInteger(value.progressionCustomRepPromotionTarget) === null;
+  const customRepTargetOutOfRange = value.progressionRepPromotionThreshold === "custom"
+    && parseOptionalPositiveInteger(value.progressionCustomRepPromotionTarget) !== null
+    && hasRepRangePreview
+    && repPromotionTarget !== parseOptionalPositiveInteger(value.progressionCustomRepPromotionTarget);
   const shouldRenderPromotionStepSettings = Boolean(selectedPlaybookId) && visiblePromotionStepFieldIds.length > 0;
   const shouldRenderDeloadSettings = Boolean(selectedPlaybookId) && value.progressionStallPolicy === "deload_after_stall";
   const shouldRenderSetStepSettings = Boolean(selectedPlaybookId) && (isRoutineDefaultContext || value.progressionSetFlow !== "straight_sets");
@@ -655,6 +715,24 @@ export function ProgressionPlaybookEditor({
     });
     setActiveInfoSection("custom");
     setHasInfoSelection(true);
+  };
+  const setPromotionBasis = (promotionBasis: ProgressionPlaybookFormState["progressionPromotionBasis"]) => {
+    onChange({
+      ...value,
+      progressionPromotionBasis: promotionBasis,
+    });
+  };
+  const setRepPromotionThreshold = (repPromotionThreshold: ProgressionPlaybookFormState["progressionRepPromotionThreshold"]) => {
+    onChange({
+      ...value,
+      progressionRepPromotionThreshold: repPromotionThreshold,
+    });
+  };
+  const setCustomRepPromotionTarget = (nextValue: string) => {
+    onChange({
+      ...value,
+      progressionCustomRepPromotionTarget: nextValue,
+    });
   };
   const renderPromotionStepField = (fieldId: PromotionStepFieldId) => {
     switch (fieldId) {
@@ -1139,6 +1217,134 @@ export function ProgressionPlaybookEditor({
           </ProgressionControlsSection>
         ) : null}
 
+        {selectedPlaybookId && supportsPromotionQualificationControls ? (
+          <ProgressionControlsSection title="Promotion uses">
+            <div className="space-y-2" {...getInfoSectionHandlers("progression_method")}>
+              <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}>
+                {[
+                  {
+                    id: "weight_only" as const,
+                    label: "Weight only",
+                  },
+                  {
+                    id: "reps_only" as const,
+                    label: "Reps only",
+                  },
+                  {
+                    id: "weight_and_reps" as const,
+                    label: "Weight + reps",
+                  },
+                ].map((option) => {
+                  const isActive = value.progressionPromotionBasis === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setPromotionBasis(option.id)}
+                      data-action-chrome-intent={isActive ? "positive" : "neutral"}
+                      data-action-chrome-selected={isActive ? "true" : undefined}
+                      data-action-chrome-segmented="true"
+                      className={cn(
+                        ACTION_CHROME_CONTROL_CLASS_NAME,
+                        ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                        "min-h-10 min-w-[7.2rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                        isActive
+                          ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
+                          : "text-[rgb(var(--text-secondary)/0.9)]",
+                      )}
+                      aria-pressed={isActive}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                {value.progressionPromotionBasis === "weight_only"
+                  ? "Weight only: Reps are tracked for guidance but do not affect auto-promotion."
+                  : value.progressionPromotionBasis === "reps_only"
+                    ? "Reps only: Weight is tracked/manual but does not affect auto-promotion."
+                    : "Weight + reps: Both dimensions participate in auto-promotion."}
+              </p>
+            </div>
+          </ProgressionControlsSection>
+        ) : null}
+
+        {selectedPlaybookId && supportsPromotionQualificationControls && repsParticipateInPromotion ? (
+          <ProgressionControlsSection title="Rep target for promotion">
+            <div className="space-y-2" {...getInfoSectionHandlers("progression_method")}>
+              <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}>
+                {[
+                  {
+                    id: "top_of_range" as const,
+                    label: "Top of range",
+                  },
+                  {
+                    id: "top_half_of_range" as const,
+                    label: "Top half of range",
+                  },
+                  {
+                    id: "custom" as const,
+                    label: "Custom rep target",
+                  },
+                ].map((option) => {
+                  const isActive = value.progressionRepPromotionThreshold === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setRepPromotionThreshold(option.id)}
+                      data-action-chrome-intent={isActive ? "positive" : "neutral"}
+                      data-action-chrome-selected={isActive ? "true" : undefined}
+                      data-action-chrome-segmented="true"
+                      className={cn(
+                        ACTION_CHROME_CONTROL_CLASS_NAME,
+                        ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                        "min-h-10 min-w-[7.5rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                        isActive
+                          ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
+                          : "text-[rgb(var(--text-secondary)/0.9)]",
+                      )}
+                      aria-pressed={isActive}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {value.progressionRepPromotionThreshold === "custom" ? (
+                <div className="mx-auto max-w-[8.25rem]">
+                  <ProgressionNumberField
+                    label="CUSTOM REPS"
+                    name="progressionCustomRepPromotionTarget"
+                    inputMode="numeric"
+                    value={value.progressionCustomRepPromotionTarget}
+                    onChange={setCustomRepPromotionTarget}
+                  />
+                </div>
+              ) : null}
+              {activeRepPromotionPreview ? (
+                <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                  {activeRepPromotionPreview}
+                </p>
+              ) : hasRepRangePreview ? null : (
+                <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                  Add a rep range on the exercise goal to preview the promotion target.
+                </p>
+              )}
+              {customRepTargetInputInvalid ? (
+                <p className="px-1 text-center text-[0.7rem] leading-5 text-[rgb(var(--secondary-action-rgb)/0.9)]">
+                  Enter a numeric rep target. Invalid custom values fall back to top of range.
+                </p>
+              ) : customRepTargetOutOfRange && repRangePreviewLabel ? (
+                <p className="px-1 text-center text-[0.7rem] leading-5 text-[rgb(var(--secondary-action-rgb)/0.9)]">
+                  Custom rep target should fit inside {repRangePreviewLabel}. Out-of-range values fall back to top of range.
+                </p>
+              ) : null}
+            </div>
+          </ProgressionControlsSection>
+        ) : null}
+
         {shouldRenderProgressionSettingsRow ? (
           renderProgressionSettingsRow()
         ) : null}
@@ -1266,6 +1472,9 @@ export function ProgressionPlaybookEditor({
       <input type="hidden" name="progressionSetFlowRepStep" value={value.progressionSetFlowRepStep} />
       <input type="hidden" name="progressionSetFlowDurationStep" value={value.progressionSetFlowDurationStep} />
       <input type="hidden" name="progressionSetFlowDistanceStep" value={value.progressionSetFlowDistanceStep} />
+      <input type="hidden" name="progressionPromotionBasis" value={value.progressionPromotionBasis} />
+      <input type="hidden" name="progressionRepPromotionThreshold" value={value.progressionRepPromotionThreshold} />
+      <input type="hidden" name="progressionCustomRepPromotionTarget" value={value.progressionCustomRepPromotionTarget} />
       <input type="hidden" name="progressionLoadIncrement" value={value.progressionLoadIncrement} />
       {!(isExpanded && selectedPlaybookId && value.progressionStallPolicy === "deload_after_stall") ? (
         <>

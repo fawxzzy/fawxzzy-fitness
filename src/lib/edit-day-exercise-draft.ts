@@ -2,6 +2,12 @@ import type { ExerciseGoalFormState } from "@/components/ui/measurements/Exercis
 import { formatDurationPreview } from "@/lib/duration";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
 import { deriveGoalMeasurementSelections, isFailureGoalSelection, type GoalModality } from "@/lib/exercise-goal-validation";
+import {
+  DEFAULT_PROGRESSION_PROMOTION_BASIS,
+  DEFAULT_REP_PROMOTION_THRESHOLD,
+  type ProgressionPromotionBasis,
+  type RepPromotionThreshold,
+} from "@/lib/progression-promotion";
 import { getDefaultProgressionPlaybookConfig, validateProgressionPlaybookSelection, type ProgressionPlaybookId, type ProgressionStallPolicy, type SetFlowId } from "@/lib/progression-playbooks";
 import { normalizeSetFlowId } from "@/lib/set-flow";
 
@@ -42,6 +48,9 @@ export type EditDayExerciseDraft = {
   progressionSetFlowRepStep: string;
   progressionSetFlowDurationStep: string;
   progressionSetFlowDistanceStep: string;
+  progressionPromotionBasis: ProgressionPromotionBasis;
+  progressionRepPromotionThreshold: RepPromotionThreshold;
+  progressionCustomRepPromotionTarget: string;
 };
 
 function formatDuration(seconds: number | null | undefined) {
@@ -209,6 +218,11 @@ export function createEditDayExerciseDraft({
     progressionSetFlowRepStep: formatNumber(defaultPlaybookConfig?.setFlowSteps?.repStep ?? DEFAULT_SET_FLOW_STEPS.repStep),
     progressionSetFlowDurationStep: formatNumber(defaultPlaybookConfig?.setFlowSteps?.durationSecondsStep ?? DEFAULT_SET_FLOW_STEPS.durationSecondsStep),
     progressionSetFlowDistanceStep: formatNumber(defaultPlaybookConfig?.setFlowSteps?.distanceStep ?? DEFAULT_SET_FLOW_STEPS.distanceStep),
+    progressionPromotionBasis: defaultPlaybookConfig?.promotionBasis ?? DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    progressionRepPromotionThreshold: defaultPlaybookConfig?.repPromotionThreshold ?? DEFAULT_REP_PROMOTION_THRESHOLD,
+    progressionCustomRepPromotionTarget: typeof defaultPlaybookConfig?.customRepPromotionTarget === "number"
+      ? formatNumber(defaultPlaybookConfig.customRepPromotionTarget)
+      : "",
     progressionStallThreshold: deloadDefaults
       ? String(deloadDefaults.stallThreshold)
       : "2",

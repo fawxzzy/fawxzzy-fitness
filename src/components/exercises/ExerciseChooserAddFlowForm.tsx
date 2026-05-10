@@ -654,6 +654,12 @@ export function ExerciseChooserAddFlowForm({
               modality: effectiveGoalModality,
               policy: activeProgressionStepPolicy,
             });
+            const repRangeMin = hasTextValue(goalState.repsMin)
+              ? Number(goalState.repsMin)
+              : null;
+            const repRangeMax = hasTextValue(goalState.repsMax)
+              ? Number(goalState.repsMax)
+              : repRangeMin;
 
             return (
               <ProgressionPlaybookEditor
@@ -678,6 +684,8 @@ export function ExerciseChooserAddFlowForm({
                 progressionStepPolicy={activeProgressionStepPolicy}
                 visiblePromotionStepFields={visiblePromotionStepFields}
                 showProgressionSettingsRow={false}
+                repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
+                repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
                 trainingFocusValue={selectedTrainingFocus}
                 trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, progressionDraft)}
                 onTrainingFocusChange={(goal) => {

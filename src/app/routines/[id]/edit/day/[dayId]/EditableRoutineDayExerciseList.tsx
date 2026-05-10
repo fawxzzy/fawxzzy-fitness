@@ -248,6 +248,8 @@ function ProgressionPlaybookInputs({
   progressionStepLabel,
   progressionStepPolicy,
   visiblePromotionStepFields,
+  repRangeMin,
+  repRangeMax,
   trainingFocusValue,
   trainingFocusCustomized,
   onTrainingFocusChange,
@@ -261,6 +263,8 @@ function ProgressionPlaybookInputs({
   progressionStepLabel?: string | null;
   progressionStepPolicy?: ProgressionStepPolicy | null;
   visiblePromotionStepFields?: PromotionStepFieldId[] | null;
+  repRangeMin?: number | null;
+  repRangeMax?: number | null;
   trainingFocusValue: TrainingGoalId | "";
   trainingFocusCustomized: boolean;
   onTrainingFocusChange: (goal: TrainingGoalId) => void;
@@ -281,6 +285,8 @@ function ProgressionPlaybookInputs({
       progressionStepPolicy={progressionStepPolicy}
       visiblePromotionStepFields={visiblePromotionStepFields}
       showProgressionSettingsRow={false}
+      repRangeMin={repRangeMin}
+      repRangeMax={repRangeMax}
       trainingFocusValue={trainingFocusValue}
       trainingFocusCustomized={trainingFocusCustomized}
       onTrainingFocusChange={onTrainingFocusChange}
@@ -1190,6 +1196,12 @@ export function EditableRoutineDayExerciseList({
                 policy: progressionStepPolicy,
               });
               const progressionStepLabel = getProgressionStepFieldLabel(progressionStepPolicy, weightUnit);
+              const repRangeMin = hasTextValue(draft.goalState.repsMin)
+                ? Number(draft.goalState.repsMin)
+                : null;
+              const repRangeMax = hasTextValue(draft.goalState.repsMax)
+                ? Number(draft.goalState.repsMax)
+                : repRangeMin;
               const selectedTrainingFocus = trainingFocusById[exercise.id] ?? "";
               return (
                 <div className={appTokens.routineEditorCompactStack}>
@@ -1330,6 +1342,8 @@ export function EditableRoutineDayExerciseList({
                         progressionStepLabel={progressionStepLabel}
                         progressionStepPolicy={progressionStepPolicy}
                         visiblePromotionStepFields={visiblePromotionStepFields}
+                        repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
+                        repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
                         trainingFocusValue={selectedTrainingFocus}
                         trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, draft)}
                         onTrainingFocusChange={(goal) => {

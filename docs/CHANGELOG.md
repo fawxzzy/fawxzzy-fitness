@@ -5,10 +5,16 @@ All notable changes to this project are documented in this file.
 ## 1.0.0 ? 2026-05-09
 
 ### WHAT
-- (fill in)
+- Restored horizontal drag on shared metric-entry rails by removing vertical-only touch constraints from the shared measurement input layer and allowing the field shell to preserve `pan-x` behavior in Current Session, history log edits, and routine editor surfaces.
+- Added canonical progression promotion controls and normalization helpers so progression configs now store explicit promotion basis, rep-threshold mode, and optional custom rep targets instead of inferring those rules from ad hoc component logic.
+- Wired the new progression promotion state through routine/edit-day draft paths, dev regression fixtures, and progression payload parsing so the routine editor family stays deployable on one shared form-state contract.
+- Added the Fitness-owned ATLAS v1 contract lane, including export payloads, `/api/health`, reusable workflow coverage, and repo-local tests/docs for that integration surface.
 
 ### WHY
-- (fill in)
+- Horizontal metric strips are a core mobile interaction and break down immediately when focused inputs swallow side-scroll gestures inside open workout cards.
+- Promotion qualification rules need to be inspectable, deterministic, and shared between stored config, editor defaults, and payload parsing rather than being recreated per screen.
+- Routine and edit-day surfaces drift quickly when they hand-build partial progression state, so the deployable contract has to stay centralized and complete.
+- The repo now owns its ATLAS integration truth directly, which gives operators a stable health/export/workflow surface instead of relying on chat or manual deployment context.
 
 ## 0.3.89 ? 2026-05-04
 

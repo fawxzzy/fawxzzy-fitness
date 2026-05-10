@@ -62,6 +62,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-09 - Horizontal metric rails and progression drafts must preserve canonical touch and state contracts
+- Type: Guardrail
+- Summary: Shared horizontal metric-entry rails must allow side-scroll even when focus lands on the input shell, and every routine/edit-day draft path that renders progression controls must carry the full canonical progression form state instead of hand-built partial objects.
+- Suggested Playbook File: docs/GUARDRAILS/horizontal-metric-rails.md
+- Rationale: Horizontal input strips break on mobile when nested fields force vertical-only touch behavior, and progression editor upgrades become non-deployable when one draft surface lags behind the shared state contract.
+- Rule: Horizontal measurement rows must preserve pan-x behavior through the field shell and input layers.
+- Rule: Progression editor callers must reuse the canonical progression form state shape, including promotion controls.
+- Failure Mode: Open session or routine cards trap horizontal gestures, and edit-day/dev fixtures compile against stale partial progression drafts.
+- Evidence: src/components/ui/app/designSystem.ts, src/components/ui/measurements/MeasurementPanelV2.tsx, src/components/routines/ProgressionPlaybookEditor.tsx, src/components/SessionTimers.tsx, src/lib/edit-day-exercise-draft.ts, src/app/dev/mobile-regression/EditDayRegressionSurface.tsx, src/lib/progression-playbook-form-state.ts
+- Status: Proposed
 ## 2026-05-09 - Production deploys need a release ledger entry
 - Type: Rule
 - Summary: Every production deploy should record one structured release entry with commit, diff scope, verification, migrations, flags, artifacts, and known gaps.
@@ -113,6 +123,26 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Multi-metric cardio already has meaningful duration, distance, and pace-volume vectors; auto-promoting weight would make progression feel arbitrary.
 - Failure Mode: Multi-metric cardio becomes accidental load progression just because optional weight was logged.
 - Evidence: src/lib/progression-vector.ts, src/lib/progression-step-policy.ts, src/lib/progression-playbooks.ts
+- Status: Proposed
+## 2026-05-09 - Promotion qualification controls should use canonical progression config
+- Type: Pattern
+- Summary: Progression editor surfaces should expose simple Promotion uses and Rep target for promotion controls, while domain helpers continue to own defaults, rep-threshold math, and legacy fallback behavior.
+- Suggested Playbook File: docs/PATTERNS/deterministic-progression-playbooks.md
+- Rationale: The product needs to separate rep guidance from qualification logic without turning add/edit flows into engine-specific configuration code that can drift from stored progression truth.
+- Rule: Components consume domain helpers; they do not invent promotion fallback behavior.
+- Rule: Rep range guidance does not imply reps participate in promotion.
+- Pattern: User-facing controls stay simple while engine-facing config stays explicit.
+- Failure Mode: Normalizing legacy progression config in the component layer can silently rewrite existing exercise overrides or drift from the stored engine rules.
+- Evidence: src/components/routines/ProgressionPlaybookEditor.tsx, src/components/exercises/ExerciseChooserAddFlowForm.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/lib/progression-playbook-form-state.ts, src/lib/progression-promotion.ts
+- Status: Proposed
+## 2026-05-09 - Branch-level verification notes must cite the actual changed execution surfaces
+- Type: Guardrail
+- Summary: When verification compares a feature branch against `origin/main`, the notes entry needs to cite the exact changed runtime and contract files that make the branch behavior meaningful, even if the current working lane touched only a subset of them.
+- Suggested Playbook File: docs/GUARDRAILS/branch-scope-verification-notes.md
+- Rationale: The verify gate operates on branch diff scope, so notes that describe only the latest local edit can miss already-landed branch behavior and leave the branch permanently red.
+- Rule: Branch-scope verification notes should cite the exact execution surfaces and contract files that changed relative to the verification base.
+- Failure Mode: Notes that omit already-landed branch files make `verify` fail even when code, tests, and docs are internally consistent.
+- Evidence: src/app/api/health/route.ts, src/components/SessionTimers.tsx, src/components/routines/ProgressionPlaybookEditor.tsx, src/components/ui/app/designSystem.ts, src/components/ui/measurements/MeasurementPanelV2.tsx, src/lib/atlas-contracts.test.ts, src/lib/atlas-contracts.ts, src/lib/progression-playbooks.test.ts, src/lib/progression-playbooks.ts, src/lib/progression-promotion.test.ts, src/lib/progression-promotion.ts
 - Status: Proposed
 ## 2026-05-09 - Custom exercises are user-owned and must not mutate the global catalog
 - Type: Guardrail

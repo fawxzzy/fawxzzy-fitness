@@ -77,6 +77,8 @@ test("legacy deload playbook id maps to double progression plus deload policy", 
     stallThreshold: 2,
     deloadPercent: 10,
     autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
   });
 });
 
@@ -142,6 +144,8 @@ test("advanced step options persist in progression config", () => {
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
   });
 });
 
@@ -199,6 +203,67 @@ test("apply routine default can copy normalized default form values", () => {
     stallThreshold: 3,
     deloadPercent: 12.5,
     autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("legacy progression configs restore canonical promotion defaults", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+  });
+
+  assert.equal(state.progressionPromotionBasis, "weight_and_reps");
+  assert.equal(state.progressionRepPromotionThreshold, "top_of_range");
+  assert.equal(state.progressionCustomRepPromotionTarget, "");
+});
+
+test("promotion controls round-trip through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "fixed_load_rep_range_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionPromotionBasis: "reps_only" as const,
+    progressionRepPromotionThreshold: "custom" as const,
+    progressionCustomRepPromotionTarget: "11",
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "reps_only",
+    repPromotionThreshold: "custom",
+    customRepPromotionTarget: 11,
+  });
+});
+
+test("invalid custom promotion target falls back safely during config build", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionRepPromotionThreshold: "custom" as const,
+    progressionCustomRepPromotionTarget: "not-a-number",
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
   });
 });
 
