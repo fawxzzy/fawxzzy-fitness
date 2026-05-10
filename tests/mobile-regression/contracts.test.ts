@@ -183,11 +183,13 @@ test("current session scroll hosts preserve horizontal pan for nested measuremen
   const scrollContainerSource = readSource("../../src/components/ui/app/ScrollContainer.tsx");
   const scrollScreenSource = readSource("../../src/components/layout/ScrollScreenWithBottomActions.tsx");
   const sessionSource = readSource("../../src/components/SessionTimers.tsx");
+  const measurementPanelSource = readSource("../../src/components/ui/measurements/MeasurementPanelV2.tsx");
 
   assert.match(shellSource, /\[touch-action:pan-x_pan-y\]/);
   assert.match(scrollContainerSource, /\[touch-action:pan-x_pan-y\]/);
   assert.match(scrollScreenSource, /\[touch-action:pan-x_pan-y\]/);
   assert.match(sessionSource, /layoutMode="horizontal-scroll"/);
+  assert.match(measurementPanelSource, /overflow-x-auto overflow-y-hidden/);
 });
 
 test("history family contracts catch floating-header, header-owner, and surface-token drift", () => {
