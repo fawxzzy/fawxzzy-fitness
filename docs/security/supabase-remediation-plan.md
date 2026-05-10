@@ -248,6 +248,8 @@ Telemetry-backed cleanup only after earlier waves settle.
     - tables: `profiles`, `exercises`, `exercise_stats`
     - policy count: 12
     - source migrations: `002_routines.sql`, `008_exercises_table_and_rls.sql`, `026_exercise_stats_cache.sql`
+    - implementation file: `supabase/migrations/20260510110000_053_profile_catalog_rls_initplan.sql`
+    - status: code-ready, not applied
   - Wave 2A-4 Follow-up jobs
     - table: `session_follow_up_jobs`
     - policy count: 4
