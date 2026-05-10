@@ -84,6 +84,14 @@ type HorizontalRailPointerState = {
   intent: "pending" | "horizontal" | "vertical";
 };
 
+type HorizontalRailTouchState = {
+  identifier: number;
+  startX: number;
+  startY: number;
+  startScrollLeft: number;
+  intent: "pending" | "horizontal" | "vertical";
+};
+
 function chunkFields<T>(items: T[], size: number) {
   const rows: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
@@ -424,6 +432,7 @@ export function MeasurementPanelV2({
 }) {
   const horizontalRailRef = useRef<HTMLDivElement | null>(null);
   const horizontalRailPointerStateRef = useRef<HorizontalRailPointerState | null>(null);
+  const horizontalRailTouchStateRef = useRef<HorizontalRailTouchState | null>(null);
   const suppressHorizontalRailClickRef = useRef(false);
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
   const resolvedDistanceUnit = values.distanceUnit === "km" || values.distanceUnit === "m" ? values.distanceUnit : "mi";
@@ -927,7 +936,127 @@ export function MeasurementPanelV2({
     }
 
     horizontalRailPointerStateRef.current = null;
+    horizontalRailTouchStateRef.current = null;
     suppressHorizontalRailClickRef.current = false;
+  }, [useHorizontalScrollLayout]);
+
+  useEffect(() => {
+    const rail = horizontalRailRef.current;
+    if (!useHorizontalScrollLayout || !rail) {
+      return;
+    }
+
+    const findTrackedTouch = (touchList: TouchList, identifier: number) => {
+      for (let index = 0; index < touchList.length; index += 1) {
+        const touch = touchList.item(index);
+        if (touch && touch.identifier === identifier) {
+          return touch;
+        }
+      }
+      return null;
+    };
+
+    const clearTrackedTouch = () => {
+      horizontalRailTouchStateRef.current = null;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 0 || rail.scrollWidth <= rail.clientWidth) {
+        return;
+      }
+
+      const touch = event.touches.item(0);
+      if (!touch) {
+        return;
+      }
+
+      horizontalRailTouchStateRef.current = {
+        identifier: touch.identifier,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startScrollLeft: rail.scrollLeft,
+        intent: "pending",
+      };
+      suppressHorizontalRailClickRef.current = false;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const touchState = horizontalRailTouchStateRef.current;
+      if (!touchState) {
+        return;
+      }
+
+      const touch = findTrackedTouch(event.touches, touchState.identifier);
+      if (!touch) {
+        return;
+      }
+
+      const deltaX = touch.clientX - touchState.startX;
+      const deltaY = touch.clientY - touchState.startY;
+
+      if (touchState.intent === "pending") {
+        if (Math.abs(deltaY) > horizontalRailTouchIntentThreshold && Math.abs(deltaY) > Math.abs(deltaX)) {
+          touchState.intent = "vertical";
+          return;
+        }
+
+        const horizontalIntentEstablished = Math.abs(deltaX) > horizontalRailTouchIntentThreshold
+          && Math.abs(deltaX) > Math.abs(deltaY) * horizontalRailTouchIntentRatio;
+
+        if (!horizontalIntentEstablished) {
+          return;
+        }
+
+        touchState.intent = "horizontal";
+        suppressHorizontalRailClickRef.current = true;
+      }
+
+      if (touchState.intent !== "horizontal") {
+        return;
+      }
+
+      event.preventDefault();
+      rail.scrollLeft = touchState.startScrollLeft - deltaX;
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const touchState = horizontalRailTouchStateRef.current;
+      if (!touchState) {
+        return;
+      }
+
+      const releasedTouch = findTrackedTouch(event.changedTouches, touchState.identifier);
+      if (!releasedTouch) {
+        return;
+      }
+
+      if (touchState.intent === "horizontal") {
+        window.setTimeout(() => {
+          suppressHorizontalRailClickRef.current = false;
+        }, 0);
+      } else {
+        suppressHorizontalRailClickRef.current = false;
+      }
+
+      clearTrackedTouch();
+    };
+
+    const handleTouchCancel = () => {
+      clearTrackedTouch();
+      suppressHorizontalRailClickRef.current = false;
+    };
+
+    rail.addEventListener("touchstart", handleTouchStart, { passive: true });
+    rail.addEventListener("touchmove", handleTouchMove, { passive: false });
+    rail.addEventListener("touchend", handleTouchEnd, { passive: true });
+    rail.addEventListener("touchcancel", handleTouchCancel, { passive: true });
+
+    return () => {
+      rail.removeEventListener("touchstart", handleTouchStart);
+      rail.removeEventListener("touchmove", handleTouchMove);
+      rail.removeEventListener("touchend", handleTouchEnd);
+      rail.removeEventListener("touchcancel", handleTouchCancel);
+    };
   }, [useHorizontalScrollLayout]);
 
   function getHorizontalFieldWidthClassName(fieldId: string) {

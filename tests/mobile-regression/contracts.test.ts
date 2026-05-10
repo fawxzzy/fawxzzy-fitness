@@ -193,6 +193,7 @@ test("current session scroll hosts preserve horizontal pan for nested measuremen
   assert.match(measurementPanelSource, /data-measurement-horizontal-rail="true"/);
   assert.match(measurementPanelSource, /onPointerMoveCapture=\{handleHorizontalRailPointerMoveCapture\}/);
   assert.match(measurementPanelSource, /\[touch-action:pan-y\]/);
+  assert.match(measurementPanelSource, /addEventListener\("touchmove", handleTouchMove, \{ passive: false \}\)/);
 });
 
 test("history family contracts catch floating-header, header-owner, and surface-token drift", () => {
