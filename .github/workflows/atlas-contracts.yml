@@ -1,0 +1,103 @@
+name: atlas-contracts
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/atlas-contracts.yml"
+      - "docs/COMMANDS.md"
+      - "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md"
+      - "exports/fitness.atlas.*.json"
+      - "package.json"
+      - "src/app/api/health/route.ts"
+      - "src/lib/atlas-contracts.ts"
+      - "src/lib/atlas-contracts.test.ts"
+      - "tests/atlas-platform-contracts.test.mjs"
+      - "README.md"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/atlas-contracts.yml"
+      - "docs/COMMANDS.md"
+      - "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md"
+      - "exports/fitness.atlas.*.json"
+      - "package.json"
+      - "src/app/api/health/route.ts"
+      - "src/lib/atlas-contracts.ts"
+      - "src/lib/atlas-contracts.test.ts"
+      - "tests/atlas-platform-contracts.test.mjs"
+      - "README.md"
+  workflow_dispatch:
+
+jobs:
+  contract-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Enable Corepack
+        shell: bash
+        run: corepack enable
+
+      - name: Install
+        shell: bash
+        run: npm ci
+
+      - name: Contract Check
+        shell: bash
+        run: npm run test:atlas-contracts
+
+  verify:
+    runs-on: ubuntu-latest
+    needs: contract-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Enable Corepack
+        shell: bash
+        run: corepack enable
+
+      - name: Install
+        shell: bash
+        run: npm ci
+
+      - name: Verify
+        shell: bash
+        run: npm run verify
+
+  artifact-summary:
+    runs-on: ubuntu-latest
+    needs:
+      - contract-check
+      - verify
+    if: ${{ always() }}
+    steps:
+      - name: Summarize contract lane
+        shell: bash
+        run: |
+          {
+            echo "## ATLAS contract adoption summary"
+            echo ""
+            echo "- repo_id: fitness"
+            echo "- app_id: fawxzzy-fitness"
+            echo "- repo_class: application"
+            echo "- package_manager: npm"
+            echo "- node_version: 22"
+            echo "- contract-check: ${{ needs.contract-check.result }}"
+            echo "- verify: ${{ needs.verify.result }}"
+            echo "- source_contract_commit: b48f820d3eca094800c2f3ccb36901dadfd259a9"
+          } >> "$GITHUB_STEP_SUMMARY"
