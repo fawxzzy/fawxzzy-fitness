@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
@@ -33,6 +33,8 @@ const floatingBorderLabelClassName = cn(
 );
 const topRightInlineLabelBaseClassName = "pointer-events-none absolute whitespace-nowrap text-right text-[8px] font-semibold uppercase leading-[1.02] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
 const floatingBorderFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] [touch-action:pan-x_pan-y] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
+const horizontalRailTouchIntentThreshold = 10;
+const horizontalRailTouchIntentRatio = 1.15;
 
 function sanitizeIntegerInput(value: string) {
   return value.replace(/[^\d]/g, "");
@@ -72,6 +74,14 @@ type MeasurementPanelAuxiliaryField = {
   valueLabelClassName?: string;
   emptyValueClassName?: string;
   renderInput?: (options: { inputClassName: string }) => ReactNode;
+};
+
+type HorizontalRailPointerState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startScrollLeft: number;
+  intent: "pending" | "horizontal" | "vertical";
 };
 
 function chunkFields<T>(items: T[], size: number) {
@@ -412,6 +422,9 @@ export function MeasurementPanelV2({
   layoutMode?: "grid" | "horizontal-scroll";
   labelTreatment?: "inline" | "floating-border";
 }) {
+  const horizontalRailRef = useRef<HTMLDivElement | null>(null);
+  const horizontalRailPointerStateRef = useRef<HorizontalRailPointerState | null>(null);
+  const suppressHorizontalRailClickRef = useRef(false);
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
   const resolvedDistanceUnit = values.distanceUnit === "km" || values.distanceUnit === "m" ? values.distanceUnit : "mi";
 
@@ -908,6 +921,15 @@ export function MeasurementPanelV2({
   const metricRows = useThreeAcrossMetrics ? chunkFields(orderedMetricFields, 3) : [orderedMetricFields];
   const useHorizontalScrollLayout = layoutMode === "horizontal-scroll" && orderedMetricFields.length > 0;
 
+  useEffect(() => {
+    if (useHorizontalScrollLayout) {
+      return;
+    }
+
+    horizontalRailPointerStateRef.current = null;
+    suppressHorizontalRailClickRef.current = false;
+  }, [useHorizontalScrollLayout]);
+
   function getHorizontalFieldWidthClassName(fieldId: string) {
     if (fieldId === "top-field") return "w-[6.35rem]";
     if (fieldId.startsWith("aux-field-")) return "w-[8.75rem]";
@@ -919,6 +941,116 @@ export function MeasurementPanelV2({
     if (fieldId === "calories") return "w-[5.55rem]";
     if (fieldId === "rpe") return "w-[5.15rem]";
     return "w-[5.75rem]";
+  }
+
+  function releaseHorizontalRailPointerCapture(target: HTMLDivElement, pointerId: number) {
+    try {
+      if (target.hasPointerCapture(pointerId)) {
+        target.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // Pointer capture is best-effort and can fail on some mobile browsers.
+    }
+  }
+
+  function handleHorizontalRailPointerDownCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!useHorizontalScrollLayout || event.pointerType === "mouse" || !event.isPrimary) {
+      return;
+    }
+
+    const rail = horizontalRailRef.current;
+    if (!rail || rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    horizontalRailPointerStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startScrollLeft: rail.scrollLeft,
+      intent: "pending",
+    };
+    suppressHorizontalRailClickRef.current = false;
+  }
+
+  function handleHorizontalRailPointerMoveCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    const pointerState = horizontalRailPointerStateRef.current;
+    if (!pointerState || pointerState.pointerId !== event.pointerId || event.pointerType === "mouse") {
+      return;
+    }
+
+    const rail = horizontalRailRef.current;
+    if (!rail) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointerState.startX;
+    const deltaY = event.clientY - pointerState.startY;
+
+    if (pointerState.intent === "pending") {
+      if (Math.abs(deltaY) > horizontalRailTouchIntentThreshold && Math.abs(deltaY) > Math.abs(deltaX)) {
+        pointerState.intent = "vertical";
+        return;
+      }
+
+      const horizontalIntentEstablished = Math.abs(deltaX) > horizontalRailTouchIntentThreshold
+        && Math.abs(deltaX) > Math.abs(deltaY) * horizontalRailTouchIntentRatio;
+
+      if (!horizontalIntentEstablished) {
+        return;
+      }
+
+      pointerState.intent = "horizontal";
+      suppressHorizontalRailClickRef.current = true;
+
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Some mobile browsers do not permit capture for delegated pointer events.
+      }
+    }
+
+    if (pointerState.intent !== "horizontal") {
+      return;
+    }
+
+    event.preventDefault();
+    rail.scrollLeft = pointerState.startScrollLeft - deltaX;
+  }
+
+  function handleHorizontalRailPointerUpCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    const pointerState = horizontalRailPointerStateRef.current;
+    if (!pointerState || pointerState.pointerId !== event.pointerId || event.pointerType === "mouse") {
+      return;
+    }
+
+    if (pointerState.intent === "horizontal") {
+      event.preventDefault();
+      window.setTimeout(() => {
+        suppressHorizontalRailClickRef.current = false;
+      }, 0);
+    } else {
+      suppressHorizontalRailClickRef.current = false;
+    }
+
+    releaseHorizontalRailPointerCapture(event.currentTarget, event.pointerId);
+    horizontalRailPointerStateRef.current = null;
+  }
+
+  function handleHorizontalRailPointerCancelCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    releaseHorizontalRailPointerCapture(event.currentTarget, event.pointerId);
+    horizontalRailPointerStateRef.current = null;
+    suppressHorizontalRailClickRef.current = false;
+  }
+
+  function handleHorizontalRailClickCapture(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!suppressHorizontalRailClickRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressHorizontalRailClickRef.current = false;
   }
 
   return (
@@ -949,7 +1081,16 @@ export function MeasurementPanelV2({
 
           {useHorizontalScrollLayout ? (
             <div className="relative overflow-visible">
-              <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
+              <div
+                ref={horizontalRailRef}
+                data-measurement-horizontal-rail="true"
+                className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
+                onPointerDownCapture={handleHorizontalRailPointerDownCapture}
+                onPointerMoveCapture={handleHorizontalRailPointerMoveCapture}
+                onPointerUpCapture={handleHorizontalRailPointerUpCapture}
+                onPointerCancelCapture={handleHorizontalRailPointerCancelCapture}
+                onClickCapture={handleHorizontalRailClickCapture}
+              >
                 <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5">
                   {horizontalRowPrefix ? (
                     <div className="shrink-0">

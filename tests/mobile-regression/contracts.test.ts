@@ -190,6 +190,9 @@ test("current session scroll hosts preserve horizontal pan for nested measuremen
   assert.match(scrollScreenSource, /\[touch-action:pan-x_pan-y\]/);
   assert.match(sessionSource, /layoutMode="horizontal-scroll"/);
   assert.match(measurementPanelSource, /overflow-x-auto overflow-y-hidden/);
+  assert.match(measurementPanelSource, /data-measurement-horizontal-rail="true"/);
+  assert.match(measurementPanelSource, /onPointerMoveCapture=\{handleHorizontalRailPointerMoveCapture\}/);
+  assert.match(measurementPanelSource, /\[touch-action:pan-y\]/);
 });
 
 test("history family contracts catch floating-header, header-owner, and surface-token drift", () => {
