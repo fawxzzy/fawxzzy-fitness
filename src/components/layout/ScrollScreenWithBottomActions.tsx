@@ -20,7 +20,7 @@ export function ScrollScreenWithBottomActions({ children, className, topChrome, 
 
   return (
     <MobileScreenScaffold
-      scrollClassName={cn("min-w-0 max-w-full overflow-x-hidden touch-pan-y", className)}
+      scrollClassName={cn("min-w-0 max-w-full overflow-x-hidden [touch-action:pan-x_pan-y]", className)}
       topChrome={topChrome}
       floatingHeader={floatingHeader}
       bottomDock={bottomDock}

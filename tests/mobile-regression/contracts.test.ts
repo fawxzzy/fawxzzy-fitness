@@ -178,6 +178,18 @@ test("mobile chrome/day editing contract regressions are detected", () => {
   assert.equal(sessionContracts.currentSessionSaveSetUsesPinnedFloatingHeader, false);
 });
 
+test("current session scroll hosts preserve horizontal pan for nested measurement rails", () => {
+  const shellSource = readSource("../../src/components/ui/app/AppShell.tsx");
+  const scrollContainerSource = readSource("../../src/components/ui/app/ScrollContainer.tsx");
+  const scrollScreenSource = readSource("../../src/components/layout/ScrollScreenWithBottomActions.tsx");
+  const sessionSource = readSource("../../src/components/SessionTimers.tsx");
+
+  assert.match(shellSource, /\[touch-action:pan-x_pan-y\]/);
+  assert.match(scrollContainerSource, /\[touch-action:pan-x_pan-y\]/);
+  assert.match(scrollScreenSource, /\[touch-action:pan-x_pan-y\]/);
+  assert.match(sessionSource, /layoutMode="horizontal-scroll"/);
+});
+
 test("history family contracts catch floating-header, header-owner, and surface-token drift", () => {
   const sessionsBaseline = requireScenario("history-sessions-compact");
   const sessionsContracts = validateMobileScenarioContracts({
