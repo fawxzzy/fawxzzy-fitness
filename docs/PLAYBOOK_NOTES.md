@@ -62,6 +62,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-11 - Contract workflows should fail inside observable jobs, not before job creation
+- Type: Guardrail
+- Summary: Repo-owned contract workflows should prefer locally observable jobs or otherwise prove their reusable-workflow pin stays resolvable so a GitHub Actions run never fails with zero jobs and no debuggable log surface.
+- Suggested Playbook File: docs/GUARDRAILS/observable-contract-workflows.md
+- Rationale: Package-triggered PRs become noisy and hard to diagnose when the workflow shell fails before any job starts, because the team loses both check-level signal and step logs.
+- Rule: Workflow health fixes must expose debuggable jobs instead of hiding broken triggers.
+- Pattern: Keep contract workflows narrow, pinned, and observable.
+- Failure Mode: A workflow-level failure with zero jobs blocks diagnosis and makes future package-triggered PRs noisy.
+- Evidence: .github/workflows/event-contracts.yml, src/lib/ecosystem/fitness-metrics-pack.test.ts, docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md
+- Status: Proposed
 ## 2026-05-10 - Environment-normalization tests must clear ambient CI flags
 - Type: Guardrail
 - Summary: Unit tests that assert Vercel or runtime environment classification must explicitly clear ambient CI-only variables so GitHub Actions runner state does not change the intended assertion.

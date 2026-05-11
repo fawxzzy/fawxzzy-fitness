@@ -24,11 +24,65 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate:
-    uses: ZachariahRedfield/playbook/.github/workflows/event-contract-pack.yml@9ce397e893e4007afbe93366770867ed64f66500
-    with:
-      node-version: "22"
-      working-directory: "."
-      install-command: npm ci
-      contract-check-command: npm run test:fitness-event-contracts
-      warehouse-check-command: npm run test:fitness-shadow-warehouse
+  contract-check:
+    name: Event Contract Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        shell: bash
+        run: npm ci
+
+      - name: Validate Fitness event contracts
+        shell: bash
+        run: npm run test:fitness-event-contracts
+
+  warehouse-check:
+    name: Shadow Warehouse Check
+    runs-on: ubuntu-latest
+    needs: contract-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        shell: bash
+        run: npm ci
+
+      - name: Validate shadow warehouse checks
+        shell: bash
+        run: npm run test:fitness-shadow-warehouse
+
+  artifact-summary:
+    name: Event Contract Lane Summary
+    runs-on: ubuntu-latest
+    needs:
+      - contract-check
+      - warehouse-check
+    if: ${{ always() }}
+    steps:
+      - name: Summarize event-contract lane
+        shell: bash
+        run: |
+          {
+            echo "## Fitness event-contract lane summary"
+            echo ""
+            echo "- contract-check: ${{ needs.contract-check.result }}"
+            echo "- warehouse-check: ${{ needs.warehouse-check.result }}"
+            echo "- workflow_mode: repo-owned local jobs"
+            echo "- failure_visibility: job-level logs"
+          } >> "$GITHUB_STEP_SUMMARY"

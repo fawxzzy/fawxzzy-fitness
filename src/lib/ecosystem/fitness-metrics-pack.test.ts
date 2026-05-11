@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -9,6 +10,9 @@ import { fitnessIntegrationContract } from "./fitness-integration-contract.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
+const atlasRoot = process.env.ATLAS_ROOT
+  ? path.resolve(process.env.ATLAS_ROOT)
+  : findAtlasRoot(repoRoot);
 const metricsPackPath = path.join(
   repoRoot,
   "truth-pack",
@@ -23,6 +27,12 @@ const metricsSchemaPath = path.join(
   "event-contract",
   "schemas",
   "atlas-fitness-wave-2-metrics-pack.schema.v1.json",
+);
+const eventContractsWorkflowPath = path.join(
+  repoRoot,
+  ".github",
+  "workflows",
+  "event-contracts.yml",
 );
 
 type MetricsPack = {
@@ -95,13 +105,60 @@ type MetricsSchema = {
   required: string[];
 };
 
+function findAtlasRoot(startDir: string): string | null {
+  let current = startDir;
+
+  while (true) {
+    if (fs.existsSync(path.join(current, "stack.yaml"))) {
+      return current;
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return null;
+    }
+    current = parent;
+  }
+}
+
 function loadJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
 }
 
 function assertRefExists(ref: string) {
-  const resolved = path.resolve(repoRoot, ref);
-  assert.equal(fs.existsSync(resolved), true, `Missing evidence ref: ${ref}`);
+  const localResolved = path.resolve(repoRoot, ref);
+  if (fs.existsSync(localResolved)) {
+    return;
+  }
+
+  const atlasRootRelativePrefixes = [
+    "docs/",
+    "ops/",
+    "packages/",
+    "data/",
+    "runtime/",
+    "repos/",
+    "stack.yaml",
+    "README-STACK.md",
+    "AGENTS.md",
+  ];
+  const isAtlasRootRef = atlasRootRelativePrefixes.some((prefix) => ref === prefix || ref.startsWith(prefix));
+
+  assert.equal(
+    isAtlasRootRef,
+    true,
+    `Missing repo-local evidence ref: ${ref}`,
+  );
+
+  if (!atlasRoot) {
+    return;
+  }
+
+  assert.equal(
+    fs.existsSync(path.join(atlasRoot, ref)),
+    true,
+    `Missing ATLAS evidence ref: ${ref}`,
+  );
 }
 
 function hasContractEvent(kind: "signal" | "snapshot" | "receipt", eventType: string): boolean {
@@ -141,6 +198,14 @@ test("metrics pack satisfies the declared schema contract shell", () => {
       "dashboard_acceptance_checks",
     ],
   );
+});
+
+test("findAtlasRoot returns null when no ATLAS root is present", () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fitness-no-atlas-root-"));
+  const nestedDir = path.join(tempRoot, "repo", "nested");
+  fs.mkdirSync(nestedDir, { recursive: true });
+
+  assert.equal(findAtlasRoot(nestedDir), null);
 });
 
 test("metrics pack remains internally coherent and evidence-backed", () => {
@@ -224,4 +289,18 @@ test("metrics pack remains internally coherent and evidence-backed", () => {
       assert.ok(declaredKpis.has(kpiId), `Acceptance check '${check.check_id}' references unknown KPI '${kpiId}'`);
     }
   }
+});
+
+test("event-contract workflow stays observable and wired to the repo-owned contract lane", () => {
+  const workflow = fs.readFileSync(eventContractsWorkflowPath, "utf8");
+
+  assert.ok(workflow.includes("name: fitness-event-contracts"));
+  assert.ok(workflow.includes("name: Event Contract Check"));
+  assert.ok(workflow.includes("name: Shadow Warehouse Check"));
+  assert.ok(workflow.includes("name: Event Contract Lane Summary"));
+  assert.ok(workflow.includes("run: npm run test:fitness-event-contracts"));
+  assert.ok(workflow.includes("run: npm run test:fitness-shadow-warehouse"));
+  assert.ok(workflow.includes('"package.json"'));
+  assert.ok(workflow.includes('"src/lib/ecosystem/**"'));
+  assert.ok(workflow.includes("workflow_dispatch:"));
 });

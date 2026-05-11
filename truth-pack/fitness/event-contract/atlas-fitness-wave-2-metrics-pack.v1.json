@@ -29,8 +29,8 @@
     "src/lib/ecosystem/fitness-integration-contract.ts",
     "src/lib/ecosystem/fitness-shadow-events.ts",
     "src/lib/session-follow-up-jobs.ts",
-    "../fawxzzy-atlas/docs/ATLAS_UAPI.md",
-    "../fawxzzy-atlas/docs/BOTTOM_ACTION_INTENT_CONTRACT.md"
+    "docs/ops/ATLAS-CODEX-CONTEXT-RUNBOOK.md",
+    "docs/registry/STACK-SYNERGY-REGISTRY.json"
   ],
   "shared_nouns": [
     {
@@ -108,7 +108,7 @@
         "atlas.bottom_action_intent"
       ],
       "evidence_refs": [
-        "../fawxzzy-atlas/docs/BOTTOM_ACTION_INTENT_CONTRACT.md"
+        "docs/registry/STACK-SYNERGY-REGISTRY.json"
       ]
     }
   ],
