@@ -237,19 +237,19 @@ Telemetry-backed cleanup only after earlier waves settle.
     - policy count: 12
     - source migrations: `001_init.sql`, `005_ui_core_fix_pack.sql`, `006_session_status.sql`, `015_history_log_audit_notes.sql`
     - implementation file: `supabase/migrations/20260509100000_050_session_core_rls_initplan.sql`
-    - status: code-ready, not applied
+    - status: applied and proved
   - Wave 2A-2 Routine core
     - tables: `routines`, `routine_days`, `routine_day_exercises`
     - policy count: 12
     - source migration: `002_routines.sql`
     - implementation file: `supabase/migrations/20260510090000_052_routine_core_rls_initplan.sql`
-    - status: code-ready, not applied
+    - status: applied and proved
   - Wave 2A-3 Profile and catalog core
     - tables: `profiles`, `exercises`, `exercise_stats`
     - policy count: 12
     - source migrations: `002_routines.sql`, `008_exercises_table_and_rls.sql`, `026_exercise_stats_cache.sql`
     - implementation file: `supabase/migrations/20260510110000_053_profile_catalog_rls_initplan.sql`
-    - status: code-ready, not applied
+    - status: applied and proved
   - Wave 2A-4 Follow-up jobs
     - table: `session_follow_up_jobs`
     - policy count: 4
