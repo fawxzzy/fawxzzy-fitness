@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import {
+  type ProfileSettingsClient,
   updateProfileQaLlelVisibility,
   updateProfileUnitPreferences,
 } from "@/lib/dal/profile-settings";
@@ -97,7 +98,7 @@ export async function updateUnitPreferencesAction(formData: FormData): Promise<{
 
   const result = await updateProfileUnitPreferences({
     distanceUnit,
-    supabase: supabase as never,
+    supabase: supabase as unknown as ProfileSettingsClient,
     userId: user.id,
     weightUnit,
   });
@@ -118,7 +119,7 @@ export async function updateQaLlelVisibilityAction(formData: FormData): Promise<
 
   const result = await updateProfileQaLlelVisibility({
     showQaLlelData,
-    supabase: supabase as never,
+    supabase: supabase as unknown as ProfileSettingsClient,
     userId: user.id,
   });
 

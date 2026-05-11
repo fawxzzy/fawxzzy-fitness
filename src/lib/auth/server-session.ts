@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
+import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from "@/lib/auth-session";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 import { resolveServerSessionTokens, type ServerSessionTokenSnapshot } from "@/lib/auth/server-session-core";
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
@@ -33,8 +34,8 @@ export function readCurrentRequestServerSessionTokens(): ServerSessionTokenSnaps
   const requestHeaders = headers();
 
   return resolveServerSessionTokens({
-    cookieAccessToken: cookieStore.get("sb-access-token")?.value,
-    cookieRefreshToken: cookieStore.get("sb-refresh-token")?.value,
+    cookieAccessToken: cookieStore.get(ACCESS_COOKIE_NAME)?.value,
+    cookieRefreshToken: cookieStore.get(REFRESH_COOKIE_NAME)?.value,
     headerAccessToken: requestHeaders.get("x-atlas-access-token"),
     headerRefreshToken: requestHeaders.get("x-atlas-refresh-token"),
     hostHeader: requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"),

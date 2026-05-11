@@ -2,7 +2,7 @@ type ProfileSettingsError = {
   message?: string;
 };
 
-type ProfileSettingsClient = {
+export type ProfileSettingsClient = {
   from(table: "profiles"): {
     update(values: Record<string, unknown>): {
       eq(column: "id", value: string): Promise<{ error: ProfileSettingsError | null }>;
