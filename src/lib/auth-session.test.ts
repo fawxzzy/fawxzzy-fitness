@@ -113,6 +113,10 @@ test("setSessionCookies writes both auth cookies with secure session settings", 
   assert.equal(typeof writes[0]?.options.maxAge, "number");
   assert.ok((writes[0]?.options.maxAge as number) > 0);
   assert.ok(writes[0]?.options.expires instanceof Date);
+  assert.equal(writes[0]?.options.httpOnly, true);
+  assert.equal(writes[0]?.options.sameSite, "lax");
+  assert.equal(writes[0]?.options.path, "/");
+  assert.equal(writes[0]?.options.secure, false);
 });
 
 test("clearSessionCookies expires both auth cookies", () => {
@@ -127,6 +131,9 @@ test("clearSessionCookies expires both auth cookies", () => {
   assert.equal(writes[1]?.value, "");
   assert.ok(writes[0]?.options.expires instanceof Date);
   assert.ok(writes[1]?.options.expires instanceof Date);
+  assert.equal(writes[0]?.options.path, "/");
+  assert.equal(writes[0]?.options.httpOnly, true);
+  assert.equal(writes[1]?.options.sameSite, "lax");
 });
 
 test("serializeRequestCookiesWithSession preserves unrelated cookies and replaces auth cookies", () => {

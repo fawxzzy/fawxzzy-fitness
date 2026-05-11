@@ -129,3 +129,15 @@ test("recoverSupabaseSessionFromCookies classifies invalid refresh token failure
     loginErrorCode: "session_expired",
   });
 });
+
+test("recoverSupabaseSessionFromCookies treats whitespace-only tokens as anonymous", async () => {
+  const result = await recoverSupabaseSessionFromCookies({
+    accessToken: "   ",
+    refreshToken: "   ",
+  });
+
+  assert.deepEqual(result, {
+    status: "anonymous",
+    authState: "no-cookies",
+  });
+});

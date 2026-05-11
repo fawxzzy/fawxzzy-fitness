@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
+import {
+  updateProfileQaLlelVisibility,
+  updateProfileUnitPreferences,
+} from "@/lib/dal/profile-settings";
 import { QA_LLEL_VISIBILITY_COOKIE } from "@/lib/qa-data-visibility";
 import { supabaseServer, supabaseServerWithSession } from "@/lib/supabase/server";
 
@@ -14,26 +18,6 @@ export type EmailUpdateState = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[A-Za-z0-9._-]{2,15}$/;
-const PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE =
-  "Unit preferences require the latest profile migration. Run migrations and try again.";
-const PROFILE_QA_VISIBILITY_COLUMN_MISSING_MESSAGE =
-  "QA visibility settings require the latest profile migration. Run migrations and try again.";
-
-function isMissingProfileSettingsColumnError(error: { message?: string } | null | undefined) {
-  const message = error?.message?.toLowerCase() ?? "";
-  const referencesPreferenceColumn =
-    message.includes("preferred_weight_unit") || message.includes("preferred_distance_unit") || message.includes("show_qa_llel_data");
-  const referencesProfilesTable = message.includes("profiles");
-  const schemaCacheMissingColumn = message.includes("schema cache");
-  const postgresMissingColumn =
-    message.includes("column") && message.includes("does not exist") && referencesProfilesTable;
-
-  return (
-    referencesPreferenceColumn &&
-    referencesProfilesTable &&
-    (schemaCacheMissingColumn || postgresMissingColumn)
-  );
-}
 
 function toMetadataRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -111,19 +95,15 @@ export async function updateUnitPreferencesAction(formData: FormData): Promise<{
     return { ok: false, error: "Distance unit must be mi or km." };
   }
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      preferred_weight_unit: weightUnit,
-      preferred_distance_unit: distanceUnit,
-    })
-    .eq("id", user.id);
+  const result = await updateProfileUnitPreferences({
+    distanceUnit,
+    supabase: supabase as never,
+    userId: user.id,
+    weightUnit,
+  });
 
-  if (error) {
-    if (isMissingProfileSettingsColumnError(error)) {
-      return { ok: false, error: PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE };
-    }
-    return { ok: false, error: error.message || "Unable to save preferences." };
+  if (!result.ok) {
+    return { ok: false, error: result.error };
   }
 
   revalidatePath("/settings");
@@ -136,28 +116,24 @@ export async function updateQaLlelVisibilityAction(formData: FormData): Promise<
   const showQaLlelData = String(formData.get("showQaLlelData") ?? "") === "1";
   const cookieStore = cookies();
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      show_qa_llel_data: showQaLlelData,
-    })
-    .eq("id", user.id);
+  const result = await updateProfileQaLlelVisibility({
+    showQaLlelData,
+    supabase: supabase as never,
+    userId: user.id,
+  });
 
-  if (error) {
-    if (isMissingProfileSettingsColumnError(error)) {
-      if (process.env.NODE_ENV !== "production") {
-        cookieStore.set(QA_LLEL_VISIBILITY_COOKIE, showQaLlelData ? "1" : "0", {
-          path: "/",
-          sameSite: "lax",
-        });
-        revalidatePath("/settings");
-        revalidatePath("/routines");
-        revalidatePath("/history");
-        return { ok: true };
-      }
-      return { ok: false, error: PROFILE_QA_VISIBILITY_COLUMN_MISSING_MESSAGE };
+  if (!result.ok) {
+    if (result.reason === "missing-column" && process.env.NODE_ENV !== "production") {
+      cookieStore.set(QA_LLEL_VISIBILITY_COOKIE, showQaLlelData ? "1" : "0", {
+        path: "/",
+        sameSite: "lax",
+      });
+      revalidatePath("/settings");
+      revalidatePath("/routines");
+      revalidatePath("/history");
+      return { ok: true };
     }
-    return { ok: false, error: error.message || "Unable to save QA visibility." };
+    return { ok: false, error: result.error };
   }
 
   cookieStore.set(QA_LLEL_VISIBILITY_COOKIE, showQaLlelData ? "1" : "0", {
