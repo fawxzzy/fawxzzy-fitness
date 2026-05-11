@@ -254,6 +254,8 @@ Telemetry-backed cleanup only after earlier waves settle.
     - table: `session_follow_up_jobs`
     - policy count: 4
     - source migration: `036_session_follow_up_jobs.sql`
+    - implementation file: `supabase/migrations/20260511093000_054_follow_up_jobs_rls_initplan.sql`
+    - status: applied and proved
 - Policy map:
   - Session core
     - `sessions_select_own`, `sessions_insert_own`, `sessions_update_own`, `sessions_delete_own`
