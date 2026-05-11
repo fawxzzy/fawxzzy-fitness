@@ -69,7 +69,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Hosted CI commonly injects `CI=true`, and letting that leak into targeted environment-normalization tests makes failures look like runtime regressions when the real issue is non-hermetic test setup.
 - Evidence: src/lib/atlas-contracts.ts, src/lib/atlas-contracts.test.ts
 - Status: Proposed
-
+## 2026-05-10 - Server auth boundaries should distinguish durable cookies from local-dev headers
+- Type: Guardrail
+- Summary: Server-side auth helpers may fall back to trusted local-dev headers for localhost workflows, but only real session cookies should count as durable session state for redirect and recovery decisions.
+- Suggested Playbook File: docs/GUARDRAILS/server-session-boundaries.md
+- Rationale: Local-dev convenience should not silently change production auth semantics or make cookie-backed recovery logic depend on header-only state.
+- Rule: Trusted local-dev headers are a development-only transport, not durable session truth.
+- Pattern: Centralize request token resolution, session recovery, and redirect decisions behind one repo-owned server-session boundary before extracting a shared package.
+- Failure Mode: Treating dev headers like real cookies sends anonymous or stale sessions through the wrong recovery path and makes auth failures harder to isolate.
+- Evidence: src/lib/auth/server-session-core.ts, src/lib/auth/server-session.ts, src/lib/auth.ts, src/lib/supabase/server.ts, src/middleware.ts
+- Status: Proposed
 ## 2026-05-09 - Production deploys need a release ledger entry
 - Type: Rule
 - Summary: Every production deploy should record one structured release entry with commit, diff scope, verification, migrations, flags, artifacts, and known gaps.
