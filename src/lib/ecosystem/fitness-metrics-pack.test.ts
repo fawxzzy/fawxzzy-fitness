@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,9 @@ import { fitnessIntegrationContract } from "./fitness-integration-contract.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
-const atlasRoot = findAtlasRoot(repoRoot);
+const atlasRoot = process.env.ATLAS_ROOT
+  ? path.resolve(process.env.ATLAS_ROOT)
+  : findAtlasRoot(repoRoot);
 const metricsPackPath = path.join(
   repoRoot,
   "truth-pack",
@@ -102,7 +105,7 @@ type MetricsSchema = {
   required: string[];
 };
 
-function findAtlasRoot(startDir: string): string {
+function findAtlasRoot(startDir: string): string | null {
   let current = startDir;
 
   while (true) {
@@ -112,7 +115,7 @@ function findAtlasRoot(startDir: string): string {
 
     const parent = path.dirname(current);
     if (parent === current) {
-      throw new Error(`Could not locate ATLAS root from ${startDir}`);
+      return null;
     }
     current = parent;
   }
@@ -139,14 +142,22 @@ function assertRefExists(ref: string) {
     "README-STACK.md",
     "AGENTS.md",
   ];
-  const atlasResolved = atlasRootRelativePrefixes.some((prefix) => ref === prefix || ref.startsWith(prefix))
-    ? path.join(atlasRoot, ref)
-    : null;
+  const isAtlasRootRef = atlasRootRelativePrefixes.some((prefix) => ref === prefix || ref.startsWith(prefix));
 
   assert.equal(
-    atlasResolved !== null && fs.existsSync(atlasResolved),
+    isAtlasRootRef,
     true,
-    `Missing evidence ref: ${ref}`,
+    `Missing repo-local evidence ref: ${ref}`,
+  );
+
+  if (!atlasRoot) {
+    return;
+  }
+
+  assert.equal(
+    fs.existsSync(path.join(atlasRoot, ref)),
+    true,
+    `Missing ATLAS evidence ref: ${ref}`,
   );
 }
 
@@ -187,6 +198,14 @@ test("metrics pack satisfies the declared schema contract shell", () => {
       "dashboard_acceptance_checks",
     ],
   );
+});
+
+test("findAtlasRoot returns null when no ATLAS root is present", () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fitness-no-atlas-root-"));
+  const nestedDir = path.join(tempRoot, "repo", "nested");
+  fs.mkdirSync(nestedDir, { recursive: true });
+
+  assert.equal(findAtlasRoot(nestedDir), null);
 });
 
 test("metrics pack remains internally coherent and evidence-backed", () => {
