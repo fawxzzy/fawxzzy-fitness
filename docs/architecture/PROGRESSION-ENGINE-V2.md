@@ -253,6 +253,8 @@ This is not a new engine. It is a different mutation choice inside the same engi
 
 Prompt 12 is implemented at the helper/runtime boundary.
 
+Prompt 13 is implemented at the qualification-window boundary.
+
 Implemented now:
 
 - `targetMutation` is an optional normalized config field
@@ -261,11 +263,16 @@ Implemented now:
 - cardio promotion now applies mutation separately from readiness
 - `increase_load_and_reps` is supported for ranged and fixed rep targets
 - `increase_duration_and_distance` is supported as an explicit mutation option
+- `qualificationWindow` is an optional normalized config field
+- default qualification-window behavior remains `requiredQualifiedSessions = 1`, `mode = latest`, `resetOnMiss = false`
+- readiness can now require multiple independently qualifying sessions before promotion or review becomes ready
+- qualification-window gating applies before target mutation
+- `within_cycle` mode only evaluates when cycle-window evidence is supplied
 
 Still deferred:
 
 - editor controls for `targetMutation`
-- qualification window / multi-session gating
+- editor controls for `qualificationWindow`
 - effort-wave runtime
 - focus-rotation runtime
 - capability-anchor onboarding
@@ -290,8 +297,7 @@ Documented but intentionally deferred:
 
 ## Non-Goals For This Lane
 
-- no editor UI changes in this target-mutation lane
-- no qualification window changes in this lane
+- no editor UI changes in the target-mutation or qualification-window lanes
 - no routine scheduling changes
 - no Current Session or SessionTimers changes
 - no migrations

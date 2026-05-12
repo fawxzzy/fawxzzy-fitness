@@ -82,6 +82,20 @@ export function inferProgressionAuditRejectionReason(args: {
     return "no_completed_history";
   }
 
+  if (args.candidate.qualificationWindow) {
+    if (args.candidate.qualificationWindow.status === "unsupported") {
+      return "outside_review_window";
+    }
+
+    if (
+      args.candidate.qualificationWindow.status === "partial"
+      || args.candidate.qualificationWindow.status === "not_qualified"
+      || args.candidate.qualificationWindow.status === "insufficient_evidence"
+    ) {
+      return "top_range_not_met";
+    }
+  }
+
   const reason = normalizeReasonText(args.candidate.reason);
 
   if (reason.includes("already applied")) {

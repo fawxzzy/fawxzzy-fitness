@@ -374,6 +374,116 @@ test("progression review creates promote candidate for double progression top ra
   assert.match(candidate.reason, /increase load next cycle/i);
 });
 
+test("qualification window requirement 2 blocks promotion after one qualified session", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [10, 10, 10],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 10,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: {
+        requiredQualifiedSessions: 2,
+      },
+    },
+    plan: buildPlan(),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+  assert.equal(candidate.qualificationWindow?.ready, false);
+  assert.equal(candidate.qualificationWindow?.qualifiedSessions, 1);
+  assert.equal(candidate.qualificationWindow?.summary, "1 of 2 qualifying sessions complete");
+});
+
+test("qualification window requirement 2 allows promotion after two independent qualified sessions", () => {
+  const rows = [
+    ...buildHistoryRows({
+      sessionId: "session-2",
+      performedAt: "2026-05-06T10:00:00.000Z",
+      reps: [10, 10, 10],
+      weight: 100,
+    }),
+    ...buildHistoryRows({
+      sessionId: "session-1",
+      performedAt: "2026-05-04T10:00:00.000Z",
+      reps: [10, 10, 10],
+      weight: 100,
+    }),
+  ];
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 10,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: {
+        requiredQualifiedSessions: 2,
+      },
+    },
+    plan: buildPlan(),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.qualificationWindow?.ready, true);
+  assert.equal(candidate.qualificationWindow?.qualifiedSessions, 2);
+  assert.equal(candidate.proposedTarget?.weightMin, 105);
+});
+
+test("within-cycle qualification does not invent a cycle window", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [10, 10, 10],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 10,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: {
+        requiredQualifiedSessions: 1,
+        mode: "within_cycle",
+      },
+    },
+    plan: buildPlan(),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+  assert.equal(candidate.qualificationWindow?.status, "unsupported");
+  assert.equal(candidate.qualificationWindow?.summary, "Cycle window unavailable");
+});
+
 test("progression review counts above-target load when all checked sets hit top reps", () => {
   const rows = buildHistoryRows({
     sessionId: "session-1",
@@ -669,6 +779,53 @@ test("progression review does not pool qualified load sets across sessions", () 
   });
 
   assert.equal(candidate.type, "none");
+});
+
+test("qualification window does not pool partial sets across sessions into a fake qualified session", () => {
+  const rows = [
+    ...buildHistoryRows({
+      sessionId: "session-1",
+      performedAt: "2026-05-04T10:00:00.000Z",
+      reps: [8, 8],
+      weight: 100,
+    }),
+    ...buildHistoryRows({
+      sessionId: "session-2",
+      performedAt: "2026-05-06T10:00:00.000Z",
+      reps: [8],
+      weight: 100,
+    }),
+  ];
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 8,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: {
+        requiredQualifiedSessions: 2,
+      },
+    },
+    plan: buildPlan({
+      setsMin: 3,
+      setsMax: 3,
+      repsMin: 6,
+      repsMax: 8,
+      weightMin: 100,
+      weightMax: 100,
+    }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+  assert.equal(candidate.qualificationWindow?.qualifiedSessions, 0);
 });
 
 test("progression review promotes time targets by duration step", () => {
@@ -1222,6 +1379,30 @@ test("valid target mutation round-trips through normalized playbook config and i
   if (invalidSelection.id === "double_progression") {
     assert.equal(invalidSelection.config.targetMutation, undefined);
     assert.equal(invalidSelection.config.promotionBasis, "reps_only");
+  }
+});
+
+test("qualification window config round-trips through normalized playbook config", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: {
+        requiredQualifiedSessions: 2,
+        mode: "consecutive",
+        resetOnMiss: true,
+      },
+    },
+  });
+
+  assert.ok(selection);
+  if (selection.id === "double_progression") {
+    assert.deepEqual(selection.config.qualificationWindow, {
+      requiredQualifiedSessions: 2,
+      mode: "consecutive",
+      resetOnMiss: true,
+    });
   }
 });
 

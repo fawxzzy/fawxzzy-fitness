@@ -26,6 +26,14 @@ import {
   PROGRESSION_TARGET_MUTATION_IDS,
   type ProgressionTargetMutationId,
 } from "@/lib/progression-target-mutation";
+import {
+  buildQualificationWindowStatus,
+  evaluateQualificationWindow,
+  normalizeQualificationWindowConfig,
+  type QualificationSessionEvidence,
+  type QualificationWindowConfig,
+  type QualificationWindowResult,
+} from "@/lib/progression-qualification-window";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
 
 export const PROGRESSION_PLAYBOOK_IDS = [
@@ -327,6 +335,7 @@ export type ProgressionPromotionConfigFields = {
   repPromotionThreshold?: RepPromotionThreshold;
   customRepPromotionTarget?: number | null;
   targetMutation?: ProgressionTargetMutationId;
+  qualificationWindow?: QualificationWindowConfig;
 };
 
 export type DoubleProgressionConfig = {
@@ -457,6 +466,7 @@ export type ProgressionReviewCandidate = {
   proposedTarget: ProgressionTargetPlan | null;
   reason: string;
   cycleWindow?: ProgressionReviewCycleWindow | null;
+  qualificationWindow?: QualificationWindowResult | null;
   sourceSession?: {
     sessionId: string;
     performedAt: string;
@@ -1165,6 +1175,63 @@ function resolveConfiguredTargetMutation(input: unknown) {
     : undefined;
 }
 
+function resolveConfiguredQualificationWindow(input: unknown) {
+  return normalizeQualificationWindowConfig(input);
+}
+
+function formatQualificationWindowReason(args: {
+  methodLabel: string;
+  result: QualificationWindowResult;
+}) {
+  return `${args.methodLabel}: ${buildQualificationWindowStatus(args.result)}.`;
+}
+
+function buildStrengthQualificationEvidence(args: {
+  history: ProgressionHistorySession[];
+  qualification: PromotionQualificationArgs;
+}) {
+  return args.history.map((session) => ({
+    sessionId: session.sessionId,
+    performedAt: session.performedAt,
+    qualified: sessionQualifiesForPromotion(session, args.qualification),
+  })) satisfies QualificationSessionEvidence[];
+}
+
+function buildCardioQualificationEvidence(args: {
+  rows: ProgressionHistorySetRow[] | null | undefined;
+  qualification: PromotionQualificationArgs;
+}) {
+  const grouped = new Map<string, QualificationSessionEvidence>();
+  for (const row of args.rows ?? []) {
+    if (row.isWarmup) {
+      continue;
+    }
+
+    const qualified = rowMeetsPromotionMeasurements({
+      row,
+      qualification: args.qualification,
+    });
+    const current = grouped.get(row.sessionId) ?? {
+      sessionId: row.sessionId,
+      performedAt: row.performedAt,
+      qualified: false,
+    };
+    current.qualified = current.qualified || qualified;
+    const currentPerformedAt = typeof current.performedAt === "string" ? current.performedAt : null;
+    if (!currentPerformedAt || currentPerformedAt.localeCompare(row.performedAt) < 0) {
+      current.performedAt = row.performedAt;
+    }
+    grouped.set(row.sessionId, current);
+  }
+
+  return [...grouped.values()]
+    .sort((left, right) => {
+      const leftPerformedAt = typeof left.performedAt === "string" ? left.performedAt : "";
+      const rightPerformedAt = typeof right.performedAt === "string" ? right.performedAt : "";
+      return rightPerformedAt.localeCompare(leftPerformedAt);
+    });
+}
+
 function buildActiveMeasurementTargetInput(plan: ProgressionTargetPlan) {
   return {
     measurementType: plan.measurementType,
@@ -1443,12 +1510,52 @@ function deriveCardioProgressionReviewCandidate(args: {
   methodId: ProgressionMethodId;
   methodLabel: string;
   plan: ProgressionTargetPlan;
+  historyRows?: ProgressionHistorySetRow[] | null;
   progressionStepPolicy?: ProgressionStepPolicy | null;
   cycleWindow?: ProgressionReviewCycleWindow | null;
+  allowSimulatedCandidateWithoutHistory?: boolean;
 }): ProgressionReviewCandidate {
   const basePlan = buildCardioBaseTargetPlan(args.plan);
+  const targetSets = resolveSingleValue(args.plan.setsMin, args.plan.setsMax) ?? 0;
+  const qualification = getPromotionQualificationArgs({
+    plan: args.plan,
+    config: args.selection.config,
+    targetSets,
+    targetWeight: args.plan.weightMax ?? args.plan.weightMin ?? null,
+    minReps: args.plan.repsMin ?? args.plan.repsTarget ?? args.plan.repsMax ?? 0,
+    maxReps: args.plan.repsMax ?? args.plan.repsTarget ?? args.plan.repsMin ?? 0,
+  });
+  const sessionEvidence = buildCardioQualificationEvidence({
+    rows: args.historyRows,
+    qualification,
+  });
+  const qualificationWindow = evaluateQualificationWindow({
+    config: args.selection.config.qualificationWindow,
+    evidence: sessionEvidence.length > 0 || args.allowSimulatedCandidateWithoutHistory !== true
+      ? sessionEvidence
+      : [{
+          sessionId: "simulated-session",
+          qualified: true,
+          performedAt: args.cycleWindow?.endDate ? `${args.cycleWindow.endDate}T12:00:00.000Z` : null,
+        }],
+    cycleWindow: args.cycleWindow,
+  });
 
   if (args.methodId === "fixed_load_rep_range_progression") {
+    if (!qualificationWindow.ready) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: args.selection.id,
+        label: args.methodLabel,
+        currentTarget: basePlan,
+        reason: formatQualificationWindowReason({
+          methodLabel: args.methodLabel,
+          result: qualificationWindow,
+        }),
+        cycleWindow: args.cycleWindow,
+        qualificationWindow,
+      });
+    }
+
     return {
       type: "review",
       playbookId: args.selection.id,
@@ -1457,6 +1564,7 @@ function deriveCardioProgressionReviewCandidate(args: {
       proposedTarget: basePlan,
       reason: `${args.methodLabel}: cardio target complete - review before increasing.`,
       cycleWindow: args.cycleWindow ?? null,
+      qualificationWindow,
     };
   }
 
@@ -1467,6 +1575,7 @@ function deriveCardioProgressionReviewCandidate(args: {
       currentTarget: basePlan,
       reason: `${args.methodLabel}: no cardio progression candidate.`,
       cycleWindow: args.cycleWindow,
+      qualificationWindow,
     });
   }
 
@@ -1478,6 +1587,7 @@ function deriveCardioProgressionReviewCandidate(args: {
         currentTarget: basePlan,
         reason: `${args.methodLabel}: current duration target is incomplete.`,
         cycleWindow: args.cycleWindow,
+        qualificationWindow,
       });
     }
 
@@ -1506,6 +1616,21 @@ function deriveCardioProgressionReviewCandidate(args: {
           })
           : `${args.methodLabel}: promotion step is unavailable.`,
         cycleWindow: args.cycleWindow,
+        qualificationWindow,
+      });
+    }
+
+    if (!qualificationWindow.ready) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: args.selection.id,
+        label: args.methodLabel,
+        currentTarget: basePlan,
+        reason: formatQualificationWindowReason({
+          methodLabel: args.methodLabel,
+          result: qualificationWindow,
+        }),
+        cycleWindow: args.cycleWindow,
+        qualificationWindow,
       });
     }
 
@@ -1522,6 +1647,7 @@ function deriveCardioProgressionReviewCandidate(args: {
         wasCapped: progression.wasCapped,
       }),
       cycleWindow: args.cycleWindow ?? null,
+      qualificationWindow,
     };
   }
 
@@ -1533,6 +1659,7 @@ function deriveCardioProgressionReviewCandidate(args: {
         currentTarget: basePlan,
         reason: `${args.methodLabel}: current distance target is incomplete.`,
         cycleWindow: args.cycleWindow,
+        qualificationWindow,
       });
     }
 
@@ -1561,6 +1688,21 @@ function deriveCardioProgressionReviewCandidate(args: {
           })
           : `${args.methodLabel}: promotion step is unavailable.`,
         cycleWindow: args.cycleWindow,
+        qualificationWindow,
+      });
+    }
+
+    if (!qualificationWindow.ready) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: args.selection.id,
+        label: args.methodLabel,
+        currentTarget: basePlan,
+        reason: formatQualificationWindowReason({
+          methodLabel: args.methodLabel,
+          result: qualificationWindow,
+        }),
+        cycleWindow: args.cycleWindow,
+        qualificationWindow,
       });
     }
 
@@ -1577,6 +1719,7 @@ function deriveCardioProgressionReviewCandidate(args: {
         wasCapped: progression.wasCapped,
       }),
       cycleWindow: args.cycleWindow ?? null,
+      qualificationWindow,
     };
   }
 
@@ -1588,6 +1731,7 @@ function deriveCardioProgressionReviewCandidate(args: {
         currentTarget: basePlan,
         reason: `${args.methodLabel}: current time and distance target is incomplete.`,
         cycleWindow: args.cycleWindow,
+        qualificationWindow,
       });
     }
 
@@ -1621,6 +1765,21 @@ function deriveCardioProgressionReviewCandidate(args: {
           })
           : `${args.methodLabel}: promotion step is unavailable.`,
         cycleWindow: args.cycleWindow,
+        qualificationWindow,
+      });
+    }
+
+    if (!qualificationWindow.ready) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: args.selection.id,
+        label: args.methodLabel,
+        currentTarget: basePlan,
+        reason: formatQualificationWindowReason({
+          methodLabel: args.methodLabel,
+          result: qualificationWindow,
+        }),
+        cycleWindow: args.cycleWindow,
+        qualificationWindow,
       });
     }
 
@@ -1637,6 +1796,7 @@ function deriveCardioProgressionReviewCandidate(args: {
         wasCapped: progression.wasCapped,
       }),
       cycleWindow: args.cycleWindow ?? null,
+      qualificationWindow,
     };
   }
 
@@ -1646,6 +1806,7 @@ function deriveCardioProgressionReviewCandidate(args: {
     currentTarget: basePlan,
     reason: `${args.methodLabel}: cardio progression is not available for this target.`,
     cycleWindow: args.cycleWindow,
+    qualificationWindow,
   });
 }
 
@@ -1740,6 +1901,10 @@ export function validateProgressionPlaybookSelection(args: {
   const stepOverrides = normalizeProgressionStepOverrides(config.stepOverrides);
   const setFlowSteps = normalizeSetFlowSteps(config.setFlowSteps);
   const targetMutation = resolveConfiguredTargetMutation(config.targetMutation);
+  const hasQualificationWindow = Object.prototype.hasOwnProperty.call(config, "qualificationWindow");
+  const qualificationWindow = hasQualificationWindow
+    ? resolveConfiguredQualificationWindow(config.qualificationWindow)
+    : undefined;
   const promotionConfig = normalizeProgressionPromotionConfig({
     promotionBasis: config.promotionBasis,
     repPromotionThreshold: config.repPromotionThreshold,
@@ -1771,6 +1936,9 @@ export function validateProgressionPlaybookSelection(args: {
     }
     if (targetMutation) {
       nextConfig.targetMutation = targetMutation;
+    }
+    if (qualificationWindow) {
+      nextConfig.qualificationWindow = qualificationWindow;
     }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
@@ -1807,6 +1975,9 @@ export function validateProgressionPlaybookSelection(args: {
     if (targetMutation) {
       nextConfig.targetMutation = targetMutation;
     }
+    if (qualificationWindow) {
+      nextConfig.qualificationWindow = qualificationWindow;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;
@@ -1832,6 +2003,9 @@ export function validateProgressionPlaybookSelection(args: {
   };
   if (targetMutation) {
     nextConfig.targetMutation = targetMutation;
+  }
+  if (qualificationWindow) {
+    nextConfig.qualificationWindow = qualificationWindow;
   }
   const setFlow = normalizeSetFlowId(config.setFlow);
   if (setFlow) {
@@ -2093,6 +2267,22 @@ export function deriveProgressionPlaybookTarget(args: {
     fallbackWeightUnit: args.fallbackWeightUnit,
     progressionStepPolicy: args.progressionStepPolicy,
   });
+  const promotionWindow = evaluateQualificationWindow({
+    config: selection.config.qualificationWindow,
+    evidence: buildStrengthQualificationEvidence({
+      history,
+      qualification: promotionQualification,
+    }),
+  });
+  const currentRepWindow = currentRepQualification
+    ? evaluateQualificationWindow({
+      config: selection.config.qualificationWindow,
+      evidence: buildStrengthQualificationEvidence({
+        history,
+        qualification: currentRepQualification,
+      }),
+    })
+    : promotionWindow;
 
   const bestTargetLoadSession = includesPromotionMeasurement(promotionQualification, "weight") && isFinitePositiveNumber(targetWeight)
     ? findBestTargetLoadSession({ history, targetWeight })
@@ -2156,6 +2346,18 @@ export function deriveProgressionPlaybookTarget(args: {
     })
       : null;
     if (bestCurrentRepSession && currentRepTarget < (promotionQualification.repTarget ?? topRep)) {
+      if (!currentRepWindow.ready) {
+        return {
+          playbookId: selection.id,
+          label: methodDefinition.label,
+          plan: basePlan,
+          changed: false,
+          reason: formatQualificationWindowReason({
+            methodLabel: methodDefinition.label,
+            result: currentRepWindow,
+          }),
+        };
+      }
       const nextReps = Math.min(topRep, currentRepTarget + 1);
       return {
         playbookId: selection.id,
@@ -2176,6 +2378,18 @@ export function deriveProgressionPlaybookTarget(args: {
     });
 
     if (bestPromotionSession) {
+      if (!promotionWindow.ready) {
+        return {
+          playbookId: selection.id,
+          label: methodDefinition.label,
+          plan: basePlan,
+          changed: false,
+          reason: formatQualificationWindowReason({
+            methodLabel: methodDefinition.label,
+            result: promotionWindow,
+          }),
+        };
+      }
       const promotionTarget = applyTargetMutation({
         plan: basePlan,
         promotionBasis: selection.config.promotionBasis,
@@ -2223,6 +2437,18 @@ export function deriveProgressionPlaybookTarget(args: {
       qualification: promotionQualification,
     });
     if (bestTopRangeSession) {
+      if (!promotionWindow.ready) {
+        return {
+          playbookId: selection.id,
+          label: methodDefinition.label,
+          plan: basePlan,
+          changed: false,
+          reason: formatQualificationWindowReason({
+            methodLabel: methodDefinition.label,
+            result: promotionWindow,
+          }),
+        };
+      }
       return {
         playbookId: selection.id,
         label: methodDefinition.label,
@@ -2257,6 +2483,7 @@ function buildNoProgressionReviewCandidate(args: {
   currentTarget?: ProgressionTargetPlan | null;
   reason: string;
   cycleWindow?: ProgressionReviewCycleWindow | null;
+  qualificationWindow?: QualificationWindowResult | null;
 }): ProgressionReviewCandidate {
   return {
     type: "none",
@@ -2266,6 +2493,7 @@ function buildNoProgressionReviewCandidate(args: {
     proposedTarget: null,
     reason: args.reason,
     cycleWindow: args.cycleWindow ?? null,
+    qualificationWindow: args.qualificationWindow ?? null,
   };
 }
 
@@ -2338,8 +2566,10 @@ export function deriveProgressionReviewCandidate(args: {
       methodId,
       methodLabel: methodDefinition.label,
       plan: args.plan,
+      historyRows: args.historyRows,
       progressionStepPolicy: args.progressionStepPolicy,
       cycleWindow: args.cycleWindow,
+      allowSimulatedCandidateWithoutHistory: args.allowSimulatedCandidateWithoutHistory,
     });
   }
 
@@ -2400,6 +2630,24 @@ export function deriveProgressionReviewCandidate(args: {
     fallbackWeightUnit: args.fallbackWeightUnit,
     progressionStepPolicy: args.progressionStepPolicy,
   });
+  const promotionWindow = evaluateQualificationWindow({
+    config: selection.config.qualificationWindow,
+    evidence: buildStrengthQualificationEvidence({
+      history,
+      qualification: promotionQualification,
+    }),
+    cycleWindow: args.cycleWindow,
+  });
+  const currentRepWindow = currentRepQualification
+    ? evaluateQualificationWindow({
+      config: selection.config.qualificationWindow,
+      evidence: buildStrengthQualificationEvidence({
+        history,
+        qualification: currentRepQualification,
+      }),
+      cycleWindow: args.cycleWindow,
+    })
+    : promotionWindow;
 
   if (!latestSession) {
     return buildNoProgressionReviewCandidate({
@@ -2429,6 +2677,7 @@ export function deriveProgressionReviewCandidate(args: {
         ? `${methodDefinition.label}: complete ${targetSets} work sets${includesPromotionMeasurement(promotionQualification, "weight") ? ` at ${formatWeightLabel(targetWeight, targetWeightUnit)}` : ""} to evaluate next cycle.`
         : `${methodDefinition.label}: no completed ${includesPromotionMeasurement(promotionQualification, "weight") ? "target-load " : ""}session is ready for cycle review.`,
       cycleWindow: args.cycleWindow,
+      qualificationWindow: promotionWindow,
     });
   }
 
@@ -2473,6 +2722,19 @@ export function deriveProgressionReviewCandidate(args: {
     })
     : null;
   if (bestCurrentRepSession && currentRepTarget < (promotionQualification.repTarget ?? topRep)) {
+    if (!currentRepWindow.ready) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: selection.id,
+        label: methodDefinition.label,
+        currentTarget: basePlan,
+        reason: formatQualificationWindowReason({
+          methodLabel: methodDefinition.label,
+          result: currentRepWindow,
+        }),
+        cycleWindow: args.cycleWindow,
+        qualificationWindow: currentRepWindow,
+      });
+    }
     const nextReps = Math.min(topRep, currentRepTarget + 1);
     return {
       type: "promote",
@@ -2485,6 +2747,7 @@ export function deriveProgressionReviewCandidate(args: {
       },
       reason: `${methodDefinition.label}: target reps complete - build reps at the same load.`,
       cycleWindow: args.cycleWindow ?? null,
+      qualificationWindow: currentRepWindow,
       sourceSession: buildSourceSession(bestCurrentRepSession.session, latestSession),
     };
   }
@@ -2505,6 +2768,19 @@ export function deriveProgressionReviewCandidate(args: {
   }
 
   if (methodId === "double_progression") {
+    if (!promotionWindow.ready) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: selection.id,
+        label: methodDefinition.label,
+        currentTarget: basePlan,
+        reason: formatQualificationWindowReason({
+          methodLabel: methodDefinition.label,
+          result: promotionWindow,
+        }),
+        cycleWindow: args.cycleWindow,
+        qualificationWindow: promotionWindow,
+      });
+    }
     const promotionTarget = applyTargetMutation({
       plan: basePlan,
       promotionBasis: selection.config.promotionBasis,
@@ -2542,11 +2818,25 @@ export function deriveProgressionReviewCandidate(args: {
         wasCapped: promotionTarget.wasCapped,
       }),
       cycleWindow: args.cycleWindow ?? null,
+      qualificationWindow: promotionWindow,
       sourceSession: buildSourceSession(bestPromotionSession.session, latestSession),
     };
   }
 
   if (methodId === "fixed_load_rep_range_progression") {
+    if (!promotionWindow.ready) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: selection.id,
+        label: methodDefinition.label,
+        currentTarget: basePlan,
+        reason: formatQualificationWindowReason({
+          methodLabel: methodDefinition.label,
+          result: promotionWindow,
+        }),
+        cycleWindow: args.cycleWindow,
+        qualificationWindow: promotionWindow,
+      });
+    }
     return {
       type: "review",
       playbookId: selection.id,
@@ -2555,6 +2845,7 @@ export function deriveProgressionReviewCandidate(args: {
       proposedTarget: basePlan,
       reason: `${methodDefinition.label}: range complete - review before increasing.`,
       cycleWindow: args.cycleWindow ?? null,
+      qualificationWindow: promotionWindow,
       sourceSession: buildSourceSession(bestPromotionSession.session, latestSession),
     };
   }

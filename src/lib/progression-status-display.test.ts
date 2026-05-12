@@ -328,6 +328,32 @@ test("does not format ready candidates as status rows", () => {
   assert.equal(item, null);
 });
 
+test("formats multi-session partial qualification copy for not-ready status rows", () => {
+  const item = formatProgressionStatusDisplayItem({
+    id: "bench-window-partial",
+    exerciseName: "Barbell Bench Press",
+    candidate: {
+      ...buildNoneCandidate("Double Progression: 1 of 2 qualifying sessions complete."),
+      qualificationWindow: {
+        ready: false,
+        requiredQualifiedSessions: 2,
+        qualifiedSessions: 1,
+        mode: "latest",
+        resetOnMiss: false,
+        status: "partial",
+        summary: "1 of 2 qualifying sessions complete",
+      },
+    },
+    rejectionReason: "top_range_not_met",
+    historyRows: buildRows([6, 6, 6], 225),
+    plan: buildTarget(),
+  });
+
+  assert.ok(item);
+  assert.equal(item.label, "Not ready yet");
+  assert.equal(item.detailLine, "Result: 1 of 2 qualifying sessions complete.");
+});
+
 test("builds a ready status surface row with top-half rep guidance", () => {
   const item = buildProgressionStatusSurfaceItem({
     id: "bench-ready",
@@ -339,6 +365,15 @@ test("builds a ready status surface row with top-half rep guidance", () => {
       currentTarget: buildTarget({ setsMin: 3, setsMax: 3, repsMin: 8, repsMax: 12, weightMin: 225, weightMax: 225 }),
       proposedTarget: buildTarget({ setsMin: 3, setsMax: 3, repsMin: 8, repsMax: 12, weightMin: 230, weightMax: 230 }),
       reason: "Double Progression: top-half rep target complete - increase load next cycle.",
+      qualificationWindow: {
+        ready: true,
+        requiredQualifiedSessions: 2,
+        qualifiedSessions: 2,
+        mode: "latest",
+        resetOnMiss: false,
+        status: "qualified",
+        summary: "2 of 2 qualifying sessions complete",
+      },
       sourceSession: {
         sessionId: "session-exercise-1",
         performedAt: "2026-05-07T12:00:00.000Z",
@@ -355,6 +390,7 @@ test("builds a ready status surface row with top-half rep guidance", () => {
   assert.equal(item.readinessLabel, "Ready");
   assert.equal(item.promotionBasisLabel, "Weight + reps");
   assert.equal(item.repTargetLine, "Rep target for promotion: Top half of range · 8-12 => 10+ reps");
+  assert.equal(item.detailLine, "Result: 2 of 2 qualifying sessions complete.");
   assert.equal(item.nextUpdateLine, "Next update: 230 lbs x 12");
 });
 
@@ -451,6 +487,33 @@ test("builds an insufficient-evidence surface row for legacy config defaults", (
   assert.equal(item.readinessLabel, "Insufficient evidence");
   assert.equal(item.promotionBasisLabel, "Weight + reps");
   assert.equal(item.repTargetLine, "Rep target for promotion: Top of range · 8-12 => 12+ reps");
+});
+
+test("builds clear unsupported cycle-window copy when within-cycle evidence is unavailable", () => {
+  const item = buildProgressionStatusSurfaceItem({
+    id: "bench-cycle-window",
+    exerciseName: "Barbell Bench Press",
+    candidate: {
+      ...buildNoneCandidate("Double Progression: Cycle window unavailable."),
+      qualificationWindow: {
+        ready: false,
+        requiredQualifiedSessions: 1,
+        qualifiedSessions: 0,
+        mode: "within_cycle",
+        resetOnMiss: false,
+        status: "unsupported",
+        summary: "Cycle window unavailable",
+      },
+    },
+    rejectionReason: "outside_review_window",
+    historyRows: buildRows([6, 6, 6], 225),
+    plan: buildTarget(),
+    selection: buildSelection(),
+  });
+
+  assert.equal(item.readinessState, "insufficient_evidence");
+  assert.equal(item.readinessLabel, "Insufficient evidence");
+  assert.equal(item.detailLine, "Result: Cycle window unavailable.");
 });
 
 test("builds a manual surface row without progress fill", () => {

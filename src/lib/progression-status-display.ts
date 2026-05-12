@@ -369,6 +369,10 @@ function resolveReadinessState(args: {
   candidate: ProgressionReviewCandidate;
   rejectionReason: ProgressionAuditRejectionReason | null;
 }) : ProgressionStatusSurfaceState {
+  if (args.candidate.qualificationWindow?.status === "unsupported") {
+    return "insufficient_evidence";
+  }
+
   if (args.candidate.type !== "none") {
     return "ready";
   }
@@ -494,14 +498,18 @@ export function formatProgressionCalculationEvidence(args: {
   return {
     usedLine: formatLatestLine(args.historyRows, args.plan.measurementType),
     needsLine: getTargetLine(args.plan),
-    resultLine: args.candidate.type === "none"
-      ? getDetailLine({
-        statusType,
-        plan: args.plan,
-        rows: args.historyRows,
-        linkedMatchCount: args.linkedMatchCount,
-      })
-      : "Result: ready update.",
+    resultLine: args.candidate.qualificationWindow
+      && (args.candidate.qualificationWindow.requiredQualifiedSessions > 1
+        || args.candidate.qualificationWindow.status === "unsupported")
+      ? `Result: ${args.candidate.qualificationWindow.summary}.`
+      : args.candidate.type === "none"
+        ? getDetailLine({
+          statusType,
+          plan: args.plan,
+          rows: args.historyRows,
+          linkedMatchCount: args.linkedMatchCount,
+        })
+        : "Result: ready update.",
   };
 }
 

@@ -75,8 +75,10 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
   - `repPromotionThreshold = top_of_range`
   - `targetMutation = increase_load_reset_reps`
 - Prompt 12 foundation note: runtime target mutation now resolves separately from readiness, with legacy double progression preserved as the default and explicit `increase_load_and_reps` available without changing readiness rules.
+- Prompt 13 foundation note: qualification windows now gate readiness with explicit per-session counts, default one-session behavior stays unchanged, and `within_cycle` only evaluates when a real cycle window is supplied.
 - Future effort-wave, focus-rotation, and capability-anchor layers should stay modeled as modifiers or seed layers around the same engine, not as separate progression engines.
 - Failure Mode: treating `weight_and_reps` as both qualification logic and mutation strategy hides important behavior choices and creates UI drift.
+- Failure Mode: pooling partial set evidence across sessions into one fake qualifying session breaks progression truth.
 - Failure Mode: letting future wave logic mutate stored baseline targets makes schedule modifiers look like promotions.
 - Failure Mode: claiming speed or power progression without explicit measured speed/power data confuses execution intent with measurement truth.
 
