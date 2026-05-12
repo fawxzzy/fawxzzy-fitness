@@ -62,6 +62,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-11 - Narrow DAL slices should extract one authenticated mutation at a time
+- Type: Pattern
+- Summary: Fitness should prove Atlas-aligned server boundaries by moving one authenticated persistence path at a time into `src/lib/dal/*`, while server actions retain validation, user lookup, and revalidation ownership.
+- Suggested Playbook File: docs/PATTERNS/owner-repo-dal-slices.md
+- Rationale: Small DAL slices keep regressions attributable and prove the owner-repo boundary before any shared auth/data package discussion.
+- Rule: Server action owns request validation and revalidation; DAL owns authenticated persistence mutation.
+- Pattern: Delete routine is a good second DAL slice because it has a narrow read-delete-replace-update shape.
+- Failure Mode: Extracting create, update, and delete together makes routine behavior regressions difficult to isolate.
+- Evidence: src/app/routines/actions.ts, src/lib/dal/routine-delete.ts, src/lib/dal/routine-delete.test.ts
+- Status: Proposed
 ## 2026-05-11 - Contract workflows should fail inside observable jobs, not before job creation
 - Type: Guardrail
 - Summary: Repo-owned contract workflows should prefer locally observable jobs or otherwise prove their reusable-workflow pin stays resolvable so a GitHub Actions run never fails with zero jobs and no debuggable log surface.

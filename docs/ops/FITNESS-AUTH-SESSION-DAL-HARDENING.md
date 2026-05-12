@@ -43,6 +43,7 @@ This slice keeps Fitness implementation ownership local while ATLAS continues to
 - `src/lib/dal/profile-settings.ts` is the first repo-owned auth-aware DAL slice.
 - Settings profile mutations now flow through that DAL instead of issuing `profiles` table writes directly from the app action layer.
 - The DAL classifies missing profile-migration failures separately from generic backend failures so actions can keep the existing fallback behavior.
+- `src/lib/dal/routine-delete.ts` is the second narrow DAL slice and moves authenticated routine deletion plus active-routine replacement persistence behind the same owner-repo boundary.
 
 ## Receipt plan
 
