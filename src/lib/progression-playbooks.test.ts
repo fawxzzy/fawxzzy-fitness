@@ -207,6 +207,87 @@ test("progression review bumps load after the rep phase reaches the range top", 
   assert.match(candidate.reason, /increase load/i);
 });
 
+test("progression review keeps legacy weight-and-reps mutation as load plus rep reset by default", () => {
+  const rows = buildHistoryRows({
+    sessionId: "bench-225x12",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+    weight: 225,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionBasis: "weight_and_reps",
+    },
+    plan: buildPlan({
+      repsTarget: 12,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 225,
+      weightMax: 225,
+    }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 230);
+  assert.equal(candidate.proposedTarget?.repsTarget, 8);
+  assert.equal(candidate.proposedTarget?.repsMin, 8);
+  assert.equal(candidate.proposedTarget?.repsMax, 12);
+  assert.doesNotMatch(candidate.reason, /increase load and reps/i);
+});
+
+test("progression review can explicitly increase load and reps together without changing readiness rules", () => {
+  const rows = buildHistoryRows({
+    sessionId: "bench-225x12",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+    weight: 225,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionBasis: "weight_and_reps",
+      targetMutation: "increase_load_and_reps",
+    },
+    plan: buildPlan({
+      repsTarget: 12,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 225,
+      weightMax: 225,
+    }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 230);
+  assert.equal(candidate.proposedTarget?.repsTarget, 13);
+  assert.equal(candidate.proposedTarget?.repsMin, 9);
+  assert.equal(candidate.proposedTarget?.repsMax, 13);
+  assert.match(candidate.reason, /increase load and reps/i);
+});
+
 
 test("fixed-load rep range builds reps while holding load", () => {
   const history = buildProgressionHistorySessions({
@@ -705,6 +786,40 @@ test("progression review promotes time distance targets by holding time and incr
   assert.match(candidate.reason, /hold time and increase distance/i);
 });
 
+test("time-distance promotion can explicitly increase both time and distance", () => {
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      targetMutation: "increase_duration_and_distance",
+    },
+    plan: {
+      measurementType: "time_distance",
+      durationSeconds: 1200,
+      distance: 2,
+      distanceUnit: "mi",
+    },
+    history: [],
+    historyRows: buildCardioHistoryRows({ durationSeconds: 1200, distance: 2, distanceUnit: "mi" }),
+    fallbackWeightUnit: "lbs",
+    progressionStepPolicy: {
+      kind: "pace_or_volume",
+      equipmentFamily: "cardio",
+      label: "Pace / volume step",
+      defaultValue: 0.1,
+      unit: "mi",
+      description: "Cardio progression defaults to adding distance while time is held.",
+      source: "equipment_default",
+    },
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.durationSeconds, 1260);
+  assert.equal(candidate.proposedTarget?.distance, 2.1);
+  assert.match(candidate.reason, /increase time and distance/i);
+});
+
 test("time-distance promotion does not fake readiness when distance evidence is missing", () => {
   const candidate = deriveProgressionReviewCandidate({
     playbookId: "double_progression",
@@ -1074,6 +1189,39 @@ test("legacy double progression config resolves default promotion controls", () 
   if (selection.id === "double_progression") {
     assert.equal(selection.config.promotionBasis, "weight_and_reps");
     assert.equal(selection.config.repPromotionThreshold, "top_of_range");
+    assert.equal(selection.config.targetMutation, undefined);
+  }
+});
+
+test("valid target mutation round-trips through normalized playbook config and invalid values fall back safely", () => {
+  const validSelection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      targetMutation: "increase_load_and_reps",
+    },
+  });
+
+  assert.ok(validSelection);
+  if (validSelection.id === "double_progression") {
+    assert.equal(validSelection.config.targetMutation, "increase_load_and_reps");
+  }
+
+  const invalidSelection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionBasis: "reps_only",
+      targetMutation: "bad-value",
+    },
+  });
+
+  assert.ok(invalidSelection);
+  if (invalidSelection.id === "double_progression") {
+    assert.equal(invalidSelection.config.targetMutation, undefined);
+    assert.equal(invalidSelection.config.promotionBasis, "reps_only");
   }
 });
 

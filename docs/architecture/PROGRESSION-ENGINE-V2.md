@@ -249,6 +249,27 @@ Example:
 
 This is not a new engine. It is a different mutation choice inside the same engine.
 
+## Current Foundation Status
+
+Prompt 12 is implemented at the helper/runtime boundary.
+
+Implemented now:
+
+- `targetMutation` is an optional normalized config field
+- legacy configs with no `targetMutation` still resolve safely at runtime
+- strength promotion now applies mutation separately from readiness
+- cardio promotion now applies mutation separately from readiness
+- `increase_load_and_reps` is supported for ranged and fixed rep targets
+- `increase_duration_and_distance` is supported as an explicit mutation option
+
+Still deferred:
+
+- editor controls for `targetMutation`
+- qualification window / multi-session gating
+- effort-wave runtime
+- focus-rotation runtime
+- capability-anchor onboarding
+
 ## Implementation Scope
 
 Stable core for the next batch:
@@ -269,8 +290,10 @@ Documented but intentionally deferred:
 
 ## Non-Goals For This Lane
 
-- no runtime changes
-- no editor UI changes
+- no editor UI changes in this target-mutation lane
+- no qualification window changes in this lane
+- no routine scheduling changes
+- no Current Session or SessionTimers changes
 - no migrations
 - no deploy
 - no release record

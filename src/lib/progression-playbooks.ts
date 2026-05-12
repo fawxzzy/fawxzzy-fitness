@@ -21,7 +21,11 @@ import {
   type ProgressionPromotionBasis,
   type RepPromotionThreshold,
 } from "@/lib/progression-promotion";
-import { applyProgressionVector } from "@/lib/progression-vector";
+import {
+  applyTargetMutation,
+  PROGRESSION_TARGET_MUTATION_IDS,
+  type ProgressionTargetMutationId,
+} from "@/lib/progression-target-mutation";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
 
 export const PROGRESSION_PLAYBOOK_IDS = [
@@ -322,6 +326,7 @@ export type ProgressionPromotionConfigFields = {
   promotionBasis?: ProgressionPromotionBasis;
   repPromotionThreshold?: RepPromotionThreshold;
   customRepPromotionTarget?: number | null;
+  targetMutation?: ProgressionTargetMutationId;
 };
 
 export type DoubleProgressionConfig = {
@@ -1076,33 +1081,35 @@ function resolveHighestQualifiedLoadResult(args: {
     })[0] ?? null;
 }
 
-function resolveLoadPromotionTarget(args: {
-  plan: ProgressionTargetPlan;
-  targetWeight: number;
-  qualifiedLoad: number | null;
-  increment: number;
-  progressionStepPolicy?: ProgressionStepPolicy | null;
+function describeTargetMutationReason(args: {
+  methodLabel: string;
+  mutationId: ProgressionTargetMutationId;
+  measurementType: ProgressionMeasurementType;
+  wasCapped?: boolean;
 }) {
-  const result = applyProgressionVector({
-    vectorId: "coupled_load_reps",
-    plan: args.plan,
-    progressionStepPolicy: args.progressionStepPolicy ?? {
-      kind: "load",
-      equipmentFamily: "unknown",
-      label: "Load step",
-      defaultValue: args.increment,
-      unit: args.plan.weightUnit ?? "lbs",
-      description: "Resolved progression load step.",
-      source: "app_fallback",
-    },
-    qualifiedValue: args.qualifiedLoad,
-  });
+  if (args.wasCapped) {
+    return `${args.methodLabel}: target surpassed - update capped for review.`;
+  }
 
-  return {
-    nextWeight: result?.proposedTarget.weightMax ?? result?.proposedTarget.weightMin ?? args.targetWeight + args.increment,
-    wasCapped: result?.wasCapped === true,
-    qualifiedLoad: result?.qualifiedValue ?? args.targetWeight,
-  };
+  switch (args.mutationId) {
+  case "increase_load":
+  case "increase_load_reset_reps":
+    return `${args.methodLabel}: promotion threshold reached - increase load next cycle.`;
+  case "increase_load_and_reps":
+    return `${args.methodLabel}: promotion threshold reached - increase load and reps next cycle.`;
+  case "increase_reps":
+    return `${args.methodLabel}: promotion threshold reached - increase reps next cycle.`;
+  case "increase_duration":
+    return `${args.methodLabel}: time target complete - increase duration next cycle.`;
+  case "increase_distance":
+    return args.measurementType === "time_distance"
+      ? `${args.methodLabel}: time + distance target complete - hold time and increase distance next cycle.`
+      : `${args.methodLabel}: distance target complete - increase distance next cycle.`;
+  case "increase_duration_and_distance":
+    return `${args.methodLabel}: time + distance target complete - increase time and distance next cycle.`;
+  case "none":
+    return `${args.methodLabel}: promotion mutation is disabled.`;
+  }
 }
 
 function findBestTargetLoadSession(args: {
@@ -1150,6 +1157,12 @@ function resolveLegacyPromotionMeasurements(args: {
   default:
     return [] satisfies ProgressionMeasurementKey[];
   }
+}
+
+function resolveConfiguredTargetMutation(input: unknown) {
+  return PROGRESSION_TARGET_MUTATION_IDS.includes(input as ProgressionTargetMutationId)
+    ? (input as ProgressionTargetMutationId)
+    : undefined;
 }
 
 function buildActiveMeasurementTargetInput(plan: ProgressionTargetPlan) {
@@ -1468,27 +1481,46 @@ function deriveCardioProgressionReviewCandidate(args: {
       });
     }
 
-    const progression = applyProgressionVector({
-      vectorId: "duration",
+    const progression = applyTargetMutation({
       plan: basePlan,
+      promotionBasis: args.selection.config.promotionBasis,
+      targetMutation: args.selection.config.targetMutation,
       progressionStepPolicy: args.progressionStepPolicy,
-    });
-    const proposedTarget = progression?.proposedTarget ?? {
-      ...basePlan,
-      durationSeconds: args.plan.durationSeconds + resolveDurationStepSeconds({
+      durationSecondsStep: resolveDurationStepSeconds({
         plan: args.plan,
         configLoadIncrement: args.selection.config.loadIncrement,
         progressionStepPolicy: args.progressionStepPolicy,
       }),
-    };
+    });
+    if (!progression || !progression.changed) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: args.selection.id,
+        label: args.methodLabel,
+        currentTarget: basePlan,
+        reason: progression
+          ? describeTargetMutationReason({
+            methodLabel: args.methodLabel,
+            mutationId: progression.mutationId,
+            measurementType: args.plan.measurementType,
+            wasCapped: progression.wasCapped,
+          })
+          : `${args.methodLabel}: promotion step is unavailable.`,
+        cycleWindow: args.cycleWindow,
+      });
+    }
 
     return {
       type: "promote",
       playbookId: args.selection.id,
       label: args.methodLabel,
       currentTarget: basePlan,
-      proposedTarget,
-      reason: `${args.methodLabel}: time target complete - increase duration next cycle.`,
+      proposedTarget: progression.proposedTarget,
+      reason: describeTargetMutationReason({
+        methodLabel: args.methodLabel,
+        mutationId: progression.mutationId,
+        measurementType: args.plan.measurementType,
+        wasCapped: progression.wasCapped,
+      }),
       cycleWindow: args.cycleWindow ?? null,
     };
   }
@@ -1504,27 +1536,46 @@ function deriveCardioProgressionReviewCandidate(args: {
       });
     }
 
-    const progression = applyProgressionVector({
-      vectorId: "distance",
+    const progression = applyTargetMutation({
       plan: basePlan,
+      promotionBasis: args.selection.config.promotionBasis,
+      targetMutation: args.selection.config.targetMutation,
       progressionStepPolicy: args.progressionStepPolicy,
-    });
-    const proposedTarget = progression?.proposedTarget ?? {
-      ...basePlan,
-      distance: Number((args.plan.distance + resolveDistanceStep({
+      distanceStep: resolveDistanceStep({
         plan: args.plan,
         configLoadIncrement: args.selection.config.loadIncrement,
         progressionStepPolicy: args.progressionStepPolicy,
-      })).toFixed(3)),
-    };
+      }),
+    });
+    if (!progression || !progression.changed) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: args.selection.id,
+        label: args.methodLabel,
+        currentTarget: basePlan,
+        reason: progression
+          ? describeTargetMutationReason({
+            methodLabel: args.methodLabel,
+            mutationId: progression.mutationId,
+            measurementType: args.plan.measurementType,
+            wasCapped: progression.wasCapped,
+          })
+          : `${args.methodLabel}: promotion step is unavailable.`,
+        cycleWindow: args.cycleWindow,
+      });
+    }
 
     return {
       type: "promote",
       playbookId: args.selection.id,
       label: args.methodLabel,
       currentTarget: basePlan,
-      proposedTarget,
-      reason: `${args.methodLabel}: distance target complete - increase distance next cycle.`,
+      proposedTarget: progression.proposedTarget,
+      reason: describeTargetMutationReason({
+        methodLabel: args.methodLabel,
+        mutationId: progression.mutationId,
+        measurementType: args.plan.measurementType,
+        wasCapped: progression.wasCapped,
+      }),
       cycleWindow: args.cycleWindow ?? null,
     };
   }
@@ -1540,27 +1591,51 @@ function deriveCardioProgressionReviewCandidate(args: {
       });
     }
 
-    const progression = applyProgressionVector({
-      vectorId: "coupled_duration_distance",
+    const progression = applyTargetMutation({
       plan: basePlan,
+      promotionBasis: args.selection.config.promotionBasis,
+      targetMutation: args.selection.config.targetMutation,
       progressionStepPolicy: args.progressionStepPolicy,
-    });
-    const proposedTarget = progression?.proposedTarget ?? {
-      ...basePlan,
-      distance: Number((args.plan.distance + resolveDistanceStep({
+      durationSecondsStep: resolveDurationStepSeconds({
         plan: args.plan,
         configLoadIncrement: args.selection.config.loadIncrement,
         progressionStepPolicy: args.progressionStepPolicy,
-      })).toFixed(3)),
-    };
+      }),
+      distanceStep: resolveDistanceStep({
+        plan: args.plan,
+        configLoadIncrement: args.selection.config.loadIncrement,
+        progressionStepPolicy: args.progressionStepPolicy,
+      }),
+    });
+    if (!progression || !progression.changed) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: args.selection.id,
+        label: args.methodLabel,
+        currentTarget: basePlan,
+        reason: progression
+          ? describeTargetMutationReason({
+            methodLabel: args.methodLabel,
+            mutationId: progression.mutationId,
+            measurementType: args.plan.measurementType,
+            wasCapped: progression.wasCapped,
+          })
+          : `${args.methodLabel}: promotion step is unavailable.`,
+        cycleWindow: args.cycleWindow,
+      });
+    }
 
     return {
       type: "promote",
       playbookId: args.selection.id,
       label: args.methodLabel,
       currentTarget: basePlan,
-      proposedTarget,
-      reason: `${args.methodLabel}: time + distance target complete - hold time and increase distance next cycle.`,
+      proposedTarget: progression.proposedTarget,
+      reason: describeTargetMutationReason({
+        methodLabel: args.methodLabel,
+        mutationId: progression.mutationId,
+        measurementType: args.plan.measurementType,
+        wasCapped: progression.wasCapped,
+      }),
       cycleWindow: args.cycleWindow ?? null,
     };
   }
@@ -1664,6 +1739,7 @@ export function validateProgressionPlaybookSelection(args: {
   }
   const stepOverrides = normalizeProgressionStepOverrides(config.stepOverrides);
   const setFlowSteps = normalizeSetFlowSteps(config.setFlowSteps);
+  const targetMutation = resolveConfiguredTargetMutation(config.targetMutation);
   const promotionConfig = normalizeProgressionPromotionConfig({
     promotionBasis: config.promotionBasis,
     repPromotionThreshold: config.repPromotionThreshold,
@@ -1692,6 +1768,9 @@ export function validateProgressionPlaybookSelection(args: {
     };
     if (promotionConfig.customRepPromotionTarget !== null) {
       nextConfig.customRepPromotionTarget = promotionConfig.customRepPromotionTarget;
+    }
+    if (targetMutation) {
+      nextConfig.targetMutation = targetMutation;
     }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
@@ -1725,6 +1804,9 @@ export function validateProgressionPlaybookSelection(args: {
     if (promotionConfig.customRepPromotionTarget !== null) {
       nextConfig.customRepPromotionTarget = promotionConfig.customRepPromotionTarget;
     }
+    if (targetMutation) {
+      nextConfig.targetMutation = targetMutation;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;
@@ -1748,6 +1830,9 @@ export function validateProgressionPlaybookSelection(args: {
     stallThreshold: config.stallThreshold,
     deloadPercent: config.deloadPercent,
   };
+  if (targetMutation) {
+    nextConfig.targetMutation = targetMutation;
+  }
   const setFlow = normalizeSetFlowId(config.setFlow);
   if (setFlow) {
     nextConfig.setFlow = setFlow;
@@ -2091,39 +2176,15 @@ export function deriveProgressionPlaybookTarget(args: {
     });
 
     if (bestPromotionSession) {
-      const weightParticipatesInPromotion = includesPromotionMeasurement(promotionQualification, "weight");
-      if (weightParticipatesInPromotion) {
-        const promotionTarget = resolveLoadPromotionTarget({
-          plan: basePlan,
-          targetWeight: targetWeight ?? 0,
-          qualifiedLoad: bestPromotionSession.qualifiedLoad,
-          increment: resolvedLoadIncrement,
-          progressionStepPolicy: args.progressionStepPolicy,
-        });
-        return {
-          playbookId: selection.id,
-          label: methodDefinition.label,
-          plan: {
-            ...basePlan,
-            repsTarget: bottomRep,
-            repsMin: bottomRep,
-            repsMax: topRep,
-            weightMin: promotionTarget.nextWeight,
-            weightMax: promotionTarget.nextWeight,
-          },
-          changed: true,
-          reason: promotionTarget.wasCapped
-            ? `${methodDefinition.label}: target surpassed - update capped for review.`
-            : `${methodDefinition.label}: promotion threshold reached - increase load next cycle.`,
-        };
-      }
-
-      const repPromotion = applyProgressionVector({
-          vectorId: "reps",
-          plan: basePlan,
-          progressionStepPolicy: args.progressionStepPolicy,
-        });
-      if (!repPromotion) {
+      const promotionTarget = applyTargetMutation({
+        plan: basePlan,
+        promotionBasis: selection.config.promotionBasis,
+        targetMutation: selection.config.targetMutation,
+        progressionStepPolicy: args.progressionStepPolicy,
+        loadStep: resolvedLoadIncrement,
+        qualifiedValue: bestPromotionSession.qualifiedLoad,
+      });
+      if (!promotionTarget) {
         return {
           playbookId: selection.id,
           label: methodDefinition.label,
@@ -2132,13 +2193,18 @@ export function deriveProgressionPlaybookTarget(args: {
           reason: `${methodDefinition.label}: promotion step is unavailable.`,
         };
       }
-        return {
-          playbookId: selection.id,
-          label: methodDefinition.label,
-          plan: repPromotion.proposedTarget,
-          changed: true,
-          reason: `${methodDefinition.label}: promotion threshold reached - increase reps next cycle.`,
-        };
+      return {
+        playbookId: selection.id,
+        label: methodDefinition.label,
+        plan: promotionTarget.proposedTarget,
+        changed: promotionTarget.changed,
+        reason: describeTargetMutationReason({
+          methodLabel: methodDefinition.label,
+          mutationId: promotionTarget.mutationId,
+          measurementType: basePlan.measurementType,
+          wasCapped: promotionTarget.wasCapped,
+        }),
+      };
     }
 
     return {
@@ -2439,46 +2505,27 @@ export function deriveProgressionReviewCandidate(args: {
   }
 
   if (methodId === "double_progression") {
-    if (includesPromotionMeasurement(promotionQualification, "weight")) {
-      const promotionTarget = resolveLoadPromotionTarget({
-        plan: basePlan,
-        targetWeight: targetWeight ?? 0,
-        qualifiedLoad: bestPromotionSession.qualifiedLoad,
-        increment: resolvedLoadIncrement,
-        progressionStepPolicy: args.progressionStepPolicy,
-      });
-      return {
-        type: "promote",
-        playbookId: selection.id,
-        label: methodDefinition.label,
-        currentTarget: basePlan,
-        proposedTarget: {
-          ...basePlan,
-          repsTarget: bottomRep,
-          repsMin: bottomRep,
-          repsMax: topRep,
-          weightMin: promotionTarget.nextWeight,
-          weightMax: promotionTarget.nextWeight,
-        },
-        reason: promotionTarget.wasCapped
-          ? `${methodDefinition.label}: target surpassed - update capped for review.`
-          : `${methodDefinition.label}: promotion threshold reached - increase load next cycle.`,
-        cycleWindow: args.cycleWindow ?? null,
-        sourceSession: buildSourceSession(bestPromotionSession.session, latestSession),
-      };
-    }
-
-    const repPromotion = applyProgressionVector({
-      vectorId: "reps",
+    const promotionTarget = applyTargetMutation({
       plan: basePlan,
+      promotionBasis: selection.config.promotionBasis,
+      targetMutation: selection.config.targetMutation,
       progressionStepPolicy: args.progressionStepPolicy,
+      loadStep: resolvedLoadIncrement,
+      qualifiedValue: bestPromotionSession.qualifiedLoad,
     });
-    if (!repPromotion) {
+    if (!promotionTarget || !promotionTarget.changed) {
       return buildNoProgressionReviewCandidate({
         playbookId: selection.id,
         label: methodDefinition.label,
         currentTarget: basePlan,
-        reason: `${methodDefinition.label}: promotion step is unavailable.`,
+        reason: promotionTarget
+          ? describeTargetMutationReason({
+            methodLabel: methodDefinition.label,
+            mutationId: promotionTarget.mutationId,
+            measurementType: basePlan.measurementType,
+            wasCapped: promotionTarget.wasCapped,
+          })
+          : `${methodDefinition.label}: promotion step is unavailable.`,
         cycleWindow: args.cycleWindow,
       });
     }
@@ -2487,8 +2534,13 @@ export function deriveProgressionReviewCandidate(args: {
       playbookId: selection.id,
       label: methodDefinition.label,
       currentTarget: basePlan,
-      proposedTarget: repPromotion.proposedTarget,
-      reason: `${methodDefinition.label}: promotion threshold reached - increase reps next cycle.`,
+      proposedTarget: promotionTarget.proposedTarget,
+      reason: describeTargetMutationReason({
+        methodLabel: methodDefinition.label,
+        mutationId: promotionTarget.mutationId,
+        measurementType: basePlan.measurementType,
+        wasCapped: promotionTarget.wasCapped,
+      }),
       cycleWindow: args.cycleWindow ?? null,
       sourceSession: buildSourceSession(bestPromotionSession.session, latestSession),
     };
