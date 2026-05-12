@@ -62,6 +62,23 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-12 - Fitness progression layers must separate readiness from mutation
+- Type: Pattern
+- Summary: `promotionBasis` should decide which measurements prove readiness, while `targetMutation` should decide which target values change after that readiness is earned.
+- Suggested Playbook File: docs/PATTERNS/progression-layer-separation.md
+- Rationale: Prevents readiness logic, target mutation rules, and future wave/focus modifiers from collapsing into one overloaded progression toggle that creates factorial UI drift and ambiguous behavior.
+- Evidence: src/lib/progression-playbooks.ts, src/lib/progression-promotion.ts, src/lib/progression-vector.ts, src/lib/progression-status-display.ts, src/components/routines/ProgressionPlaybookEditor.tsx
+- Status: Proposed
+- Qualification windows must count independently qualifying sessions and must never pool partial evidence across sessions into one fake promotion pass.
+- Legacy double progression should be documented as an explicit mapping:
+  - `promotionBasis = weight_and_reps`
+  - `repPromotionThreshold = top_of_range`
+  - `targetMutation = increase_load_reset_reps`
+- Future effort-wave, focus-rotation, and capability-anchor layers should stay modeled as modifiers or seed layers around the same engine, not as separate progression engines.
+- Failure Mode: treating `weight_and_reps` as both qualification logic and mutation strategy hides important behavior choices and creates UI drift.
+- Failure Mode: letting future wave logic mutate stored baseline targets makes schedule modifiers look like promotions.
+- Failure Mode: claiming speed or power progression without explicit measured speed/power data confuses execution intent with measurement truth.
+
 ## 2026-03-21 — Settings screens should compose DetailHeader and DetailSection
 - Type: Pattern
 - Summary: Section-heavy settings surfaces should use the shared detail header, metadata row, and section primitives instead of route-local summary cards or custom grouping wrappers.
