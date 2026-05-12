@@ -23,12 +23,15 @@ import {
 import type {
   ProgressionPromotionUiModel,
   ProgressionPromotionUiOptionId,
+  ProgressionTargetMutationUiModel,
   PromotionStepFieldId,
 } from "@/lib/progression-playbook-ui-options";
+import { QUALIFICATION_SESSION_COUNT_OPTIONS } from "@/lib/progression-playbook-ui-options";
 import {
   getRepPromotionTarget,
   usesRepsForPromotion,
 } from "@/lib/progression-promotion";
+import { DEFAULT_QUALIFICATION_WINDOW_MODE } from "@/lib/progression-qualification-window";
 import {
   getDefaultProgressionPlaybookConfig,
   listProgressionMethodDefinitions,
@@ -42,6 +45,7 @@ import {
   type TrainingGoalId,
 } from "@/lib/progression-playbooks";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
+import { shouldPersistExplicitTargetMutation } from "@/lib/progression-target-mutation";
 import { listSupportedSetFlowDefinitions } from "@/lib/set-flow";
 
 export type { PromotionStepFieldId } from "@/lib/progression-playbook-ui-options";
@@ -460,7 +464,10 @@ export function ProgressionPlaybookEditor({
   progressionStepPolicy,
   visiblePromotionStepFields,
   promotionUiModel,
+  targetMutationUiModel,
   showProgressionSettingsRow = true,
+  showTargetMutationControls = false,
+  showQualificationWindowControls = false,
   extraPanelContent,
   repRangeMin,
   repRangeMax,
@@ -485,7 +492,10 @@ export function ProgressionPlaybookEditor({
   progressionStepPolicy?: ProgressionStepPolicy | null;
   visiblePromotionStepFields?: PromotionStepFieldId[] | null;
   promotionUiModel?: ProgressionPromotionUiModel | null;
+  targetMutationUiModel?: ProgressionTargetMutationUiModel | null;
   showProgressionSettingsRow?: boolean;
+  showTargetMutationControls?: boolean;
+  showQualificationWindowControls?: boolean;
   extraPanelContent?: ReactNode;
   repRangeMin?: number | null;
   repRangeMax?: number | null;
@@ -584,6 +594,10 @@ export function ProgressionPlaybookEditor({
     },
   ];
   const selectedPromotionOptionId: ProgressionPromotionUiOptionId | null = promotionUiModel?.selectedOptionId ?? value.progressionPromotionBasis;
+  const targetMutationOptions = targetMutationUiModel?.visibleOptions ?? [];
+  const selectedTargetMutationOptionId = targetMutationUiModel?.selectedOptionId ?? value.progressionTargetMutation;
+  const targetMutationSummary = targetMutationUiModel?.summary ?? null;
+  const selectedQualificationSessionCount = value.progressionRequiredQualifiedSessions;
   const promotionSummary = promotionUiModel?.summary ?? (
     value.progressionPromotionBasis === "weight_only"
       ? "Weight only: Reps are tracked for guidance but do not affect auto-promotion."
@@ -744,6 +758,10 @@ export function ProgressionPlaybookEditor({
     onChange({
       ...value,
       progressionPromotionBasis: promotionBasis,
+      progressionHasExplicitTargetMutation: shouldPersistExplicitTargetMutation({
+        targetMutation: value.progressionTargetMutation,
+        promotionBasis,
+      }),
     });
   };
   const setRepPromotionThreshold = (repPromotionThreshold: ProgressionPlaybookFormState["progressionRepPromotionThreshold"]) => {
@@ -756,6 +774,25 @@ export function ProgressionPlaybookEditor({
     onChange({
       ...value,
       progressionCustomRepPromotionTarget: nextValue,
+    });
+  };
+  const setTargetMutation = (targetMutation: ProgressionPlaybookFormState["progressionTargetMutation"]) => {
+    onChange({
+      ...value,
+      progressionTargetMutation: targetMutation,
+      progressionHasExplicitTargetMutation: shouldPersistExplicitTargetMutation({
+        targetMutation,
+        promotionBasis: value.progressionPromotionBasis,
+      }),
+    });
+  };
+  const setRequiredQualifiedSessions = (requiredQualifiedSessions: string) => {
+    onChange({
+      ...value,
+      progressionRequiredQualifiedSessions: requiredQualifiedSessions,
+      progressionQualificationWindowMode: DEFAULT_QUALIFICATION_WINDOW_MODE,
+      progressionQualificationWindowResetOnMiss: false,
+      progressionHasExplicitQualificationWindow: requiredQualifiedSessions !== "1",
     });
   };
   const renderPromotionStepField = (fieldId: PromotionStepFieldId) => {
@@ -1285,6 +1322,84 @@ export function ProgressionPlaybookEditor({
           </ProgressionControlsSection>
         ) : null}
 
+        {showTargetMutationControls && selectedPlaybookId && supportsPromotionQualificationControls && targetMutationOptions.length > 0 ? (
+          <ProgressionControlsSection title="Target changes">
+            <div className="space-y-2" {...getInfoSectionHandlers("progression_method")}>
+              <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}>
+                {targetMutationOptions.map((option) => {
+                  const isActive = selectedTargetMutationOptionId === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => {
+                        if (option.isSelectable) {
+                          setTargetMutation(option.id);
+                        }
+                      }}
+                      disabled={!option.isSelectable}
+                      data-action-chrome-intent={isActive ? "positive" : "neutral"}
+                      data-action-chrome-selected={isActive ? "true" : undefined}
+                      data-action-chrome-segmented="true"
+                      className={cn(
+                        ACTION_CHROME_CONTROL_CLASS_NAME,
+                        ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                        "min-h-10 min-w-[7.6rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                        isActive
+                          ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
+                          : "text-[rgb(var(--text-secondary)/0.9)]",
+                        !option.isSelectable ? "cursor-default opacity-100" : undefined,
+                      )}
+                      aria-pressed={isActive}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {targetMutationSummary ? (
+                <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                  {targetMutationSummary}
+                </p>
+              ) : null}
+            </div>
+          </ProgressionControlsSection>
+        ) : null}
+
+        {showQualificationWindowControls && selectedPlaybookId && supportsPromotionQualificationControls ? (
+          <ProgressionControlsSection title="Require successful sessions">
+            <div className="space-y-2" {...getInfoSectionHandlers("progression_method")}>
+              <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}>
+                {QUALIFICATION_SESSION_COUNT_OPTIONS.map((count) => {
+                  const countValue = String(count);
+                  const isActive = selectedQualificationSessionCount === countValue;
+                  return (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setRequiredQualifiedSessions(countValue)}
+                      data-action-chrome-intent={isActive ? "positive" : "neutral"}
+                      data-action-chrome-selected={isActive ? "true" : undefined}
+                      data-action-chrome-segmented="true"
+                      className={cn(
+                        ACTION_CHROME_CONTROL_CLASS_NAME,
+                        ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                        "min-h-10 min-w-[4.5rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                        isActive
+                          ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
+                          : "text-[rgb(var(--text-secondary)/0.9)]",
+                      )}
+                      aria-pressed={isActive}
+                    >
+                      {count}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </ProgressionControlsSection>
+        ) : null}
+
         {selectedPlaybookId && supportsPromotionQualificationControls && repsParticipateInPromotion ? (
           <ProgressionControlsSection title="Rep target for promotion">
             <div className="space-y-2" {...getInfoSectionHandlers("progression_method")}>
@@ -1490,6 +1605,12 @@ export function ProgressionPlaybookEditor({
       <input type="hidden" name="progressionPromotionBasis" value={value.progressionPromotionBasis} />
       <input type="hidden" name="progressionRepPromotionThreshold" value={value.progressionRepPromotionThreshold} />
       <input type="hidden" name="progressionCustomRepPromotionTarget" value={value.progressionCustomRepPromotionTarget} />
+      <input type="hidden" name="progressionTargetMutation" value={value.progressionTargetMutation} />
+      <input type="hidden" name="progressionRequiredQualifiedSessions" value={value.progressionRequiredQualifiedSessions} />
+      <input type="hidden" name="progressionQualificationWindowMode" value={value.progressionQualificationWindowMode} />
+      <input type="hidden" name="progressionQualificationWindowResetOnMiss" value={value.progressionQualificationWindowResetOnMiss ? "1" : "0"} />
+      <input type="hidden" name="progressionHasExplicitTargetMutation" value={value.progressionHasExplicitTargetMutation ? "1" : "0"} />
+      <input type="hidden" name="progressionHasExplicitQualificationWindow" value={value.progressionHasExplicitQualificationWindow ? "1" : "0"} />
       <input type="hidden" name="progressionLoadIncrement" value={value.progressionLoadIncrement} />
       {!(isExpanded && selectedPlaybookId && value.progressionStallPolicy === "deload_after_stall") ? (
         <>

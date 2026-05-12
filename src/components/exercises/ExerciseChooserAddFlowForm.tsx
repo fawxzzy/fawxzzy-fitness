@@ -23,6 +23,7 @@ import {
 } from "@/lib/progression-playbook-form-state";
 import {
   buildProgressionPromotionUiModel,
+  buildProgressionTargetMutationUiModel,
   getVisiblePromotionStepFieldsForGoal,
   getVisibleSetStepFieldsForGoal,
   type PromotionStepFieldId,
@@ -562,6 +563,13 @@ export function ExerciseChooserAddFlowForm({
               modality: effectiveGoalModality,
               values: goalState,
             });
+            const targetMutationUiModel = buildProgressionTargetMutationUiModel({
+              context: "exercise",
+              targetMutation: progressionDraft.progressionTargetMutation,
+              promotionBasis: progressionDraft.progressionPromotionBasis,
+              modality: effectiveGoalModality,
+              values: goalState,
+            });
             const repRangeMin = hasTextValue(goalState.repsMin)
               ? Number(goalState.repsMin)
               : null;
@@ -592,7 +600,10 @@ export function ExerciseChooserAddFlowForm({
                 progressionStepPolicy={activeProgressionStepPolicy}
                 visiblePromotionStepFields={visiblePromotionStepFields}
                 promotionUiModel={promotionUiModel}
+                targetMutationUiModel={targetMutationUiModel}
                 showProgressionSettingsRow={false}
+                showTargetMutationControls
+                showQualificationWindowControls
                 repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
                 repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
                 trainingFocusValue={selectedTrainingFocus}

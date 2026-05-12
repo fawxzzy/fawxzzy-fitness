@@ -47,6 +47,7 @@ import { MetricAccentBar } from "@/components/ui/MetricItem";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { toQuickLogTargetFromSuggestedValues, type SessionQuickLogTarget } from "@/lib/session-quick-log";
 import {
+  appendProgressionPlaybookFormData,
   buildProgressionPlaybookConfigFromFormState,
   buildProgressionPlaybookFormSnapshot,
   type ProgressionPlaybookFormState,
@@ -817,26 +818,7 @@ export function SetLoggerCard({
       formData.set("sessionId", sessionId);
       formData.set("sessionExerciseId", sessionExerciseId);
       formData.set("exerciseRowId", routineDayExerciseId);
-      formData.set("progressionPlaybookId", progressionDraft.progressionPlaybookId);
-      formData.set("progressionStallPolicy", progressionDraft.progressionStallPolicy);
-      formData.set("progressionLoadIncrement", progressionDraft.progressionLoadIncrement);
-      formData.set("progressionBarbellLoadIncrement", progressionDraft.progressionBarbellLoadIncrement);
-      formData.set("progressionDumbbellLoadIncrement", progressionDraft.progressionDumbbellLoadIncrement);
-      formData.set("progressionMachineLoadIncrement", progressionDraft.progressionMachineLoadIncrement);
-      formData.set("progressionCableLoadIncrement", progressionDraft.progressionCableLoadIncrement);
-      formData.set("progressionBodyweightRepIncrement", progressionDraft.progressionBodyweightRepIncrement);
-      formData.set("progressionDurationIncrementSeconds", progressionDraft.progressionDurationIncrementSeconds);
-      formData.set("progressionDistanceIncrement", progressionDraft.progressionDistanceIncrement);
-      formData.set("progressionSetFlowLoadStep", progressionDraft.progressionSetFlowLoadStep);
-      formData.set("progressionSetFlowRepStep", progressionDraft.progressionSetFlowRepStep);
-      formData.set("progressionSetFlowDurationStep", progressionDraft.progressionSetFlowDurationStep);
-      formData.set("progressionSetFlowDistanceStep", progressionDraft.progressionSetFlowDistanceStep);
-      formData.set("progressionStallThreshold", progressionDraft.progressionStallThreshold);
-      formData.set("progressionDeloadPercent", progressionDraft.progressionDeloadPercent);
-      formData.set("progressionSetFlow", progressionDraft.progressionSetFlow);
-      if (progressionDraft.progressionAutoUpdateRoutineGoals) {
-        formData.set("progressionAutoUpdateRoutineGoals", "1");
-      }
+      appendProgressionPlaybookFormData(formData, progressionDraft);
 
       void updateProgressionAction(formData).then((result) => {
         if (!result.ok) {

@@ -217,6 +217,10 @@ test("legacy progression configs restore canonical promotion defaults", () => {
   assert.equal(state.progressionPromotionBasis, "weight_and_reps");
   assert.equal(state.progressionRepPromotionThreshold, "top_of_range");
   assert.equal(state.progressionCustomRepPromotionTarget, "");
+  assert.equal(state.progressionTargetMutation, "increase_load_reset_reps");
+  assert.equal(state.progressionRequiredQualifiedSessions, "1");
+  assert.equal(state.progressionHasExplicitTargetMutation, false);
+  assert.equal(state.progressionHasExplicitQualificationWindow, false);
 });
 
 test("promotion controls round-trip through progression config serialization", () => {
@@ -242,6 +246,75 @@ test("promotion controls round-trip through progression config serialization", (
     repPromotionThreshold: "custom",
     customRepPromotionTarget: 11,
   });
+});
+
+test("target changes round-trip through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionTargetMutation: "increase_load_and_reps" as const,
+    progressionHasExplicitTargetMutation: true,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+    targetMutation: "increase_load_and_reps",
+  });
+});
+
+test("qualification window count round-trips through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionRequiredQualifiedSessions: "3",
+    progressionHasExplicitQualificationWindow: true,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+    qualificationWindow: {
+      requiredQualifiedSessions: 3,
+      mode: "latest",
+      resetOnMiss: false,
+    },
+  });
+});
+
+test("invalid qualification window input restores safe defaults", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: {
+        requiredQualifiedSessions: 0,
+      },
+    },
+  });
+
+  assert.equal(state.progressionRequiredQualifiedSessions, "1");
+  assert.equal(state.progressionQualificationWindowMode, "latest");
+  assert.equal(state.progressionQualificationWindowResetOnMiss, false);
 });
 
 test("invalid custom promotion target falls back safely during config build", () => {

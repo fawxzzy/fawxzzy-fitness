@@ -16,6 +16,11 @@ import {
   type ProgressionPromotionBasis,
 } from "@/lib/progression-promotion";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
+import {
+  getDefaultStrengthTargetMutationForPromotionBasis,
+  normalizeTargetMutation,
+  type ProgressionTargetMutationId,
+} from "@/lib/progression-target-mutation";
 
 export type PromotionStepFieldId =
   | "barbellLoad"
@@ -51,6 +56,22 @@ export type ProgressionPromotionUiModel = {
   showsRepThresholdControls: boolean;
   hasDeferredCalories: boolean;
 };
+
+export type ProgressionTargetMutationUiOption = {
+  id: ProgressionTargetMutationId;
+  label: string;
+  isSelectable: boolean;
+};
+
+export type ProgressionTargetMutationUiModel = {
+  activeMeasurements: ProgressionMeasurementKey[];
+  visibleOptions: ProgressionTargetMutationUiOption[];
+  selectedOptionId: ProgressionTargetMutationId | null;
+  summary: string | null;
+  hasDeferredCalories: boolean;
+};
+
+export const QUALIFICATION_SESSION_COUNT_OPTIONS = [1, 2, 3] as const;
 
 type GoalLikeValues = {
   repsMin: string;
@@ -151,6 +172,109 @@ function getCardioPromotionOptionLabel(optionId: Exclude<ProgressionPromotionUiO
   case "time_and_distance":
     return "Time + distance";
   }
+}
+
+function getTargetMutationLabel(optionId: ProgressionTargetMutationId) {
+  switch (optionId) {
+  case "increase_load":
+    return "Load only";
+  case "increase_reps":
+    return "Reps only";
+  case "increase_load_reset_reps":
+    return "Load + reset reps";
+  case "increase_load_and_reps":
+    return "Load + reps";
+  case "increase_duration":
+    return "Time only";
+  case "increase_distance":
+    return "Distance only";
+  case "increase_duration_and_distance":
+    return "Time + distance";
+  case "none":
+    return "None / Manual";
+  }
+}
+
+function describeTargetMutation(optionId: ProgressionTargetMutationId) {
+  switch (optionId) {
+  case "increase_load":
+    return "Target changes: Increase load when readiness is earned.";
+  case "increase_reps":
+    return "Target changes: Increase reps when readiness is earned.";
+  case "increase_load_reset_reps":
+    return "Target changes: Increase load and reset reps to the floor of the range.";
+  case "increase_load_and_reps":
+    return "Target changes: Increase load and reps together after a qualifying update.";
+  case "increase_duration":
+    return "Target changes: Increase time when readiness is earned.";
+  case "increase_distance":
+    return "Target changes: Increase distance when readiness is earned.";
+  case "increase_duration_and_distance":
+    return "Target changes: Increase time and distance together after a qualifying update.";
+  case "none":
+    return "Target changes: Keep the current target and review manually.";
+  }
+}
+
+function buildTargetMutationOption(optionId: ProgressionTargetMutationId, isSelectable = true): ProgressionTargetMutationUiOption {
+  return {
+    id: optionId,
+    label: getTargetMutationLabel(optionId),
+    isSelectable,
+  };
+}
+
+function getStrengthTargetMutationOptions(measurements: ProgressionMeasurementKey[]) {
+  if (measurements.includes("reps") && measurements.includes("weight")) {
+    return [
+      buildTargetMutationOption("increase_load"),
+      buildTargetMutationOption("increase_reps"),
+      buildTargetMutationOption("increase_load_reset_reps"),
+      buildTargetMutationOption("increase_load_and_reps"),
+    ];
+  }
+
+  if (measurements.includes("reps")) {
+    return [buildTargetMutationOption("increase_reps", false)];
+  }
+
+  if (measurements.includes("weight")) {
+    return [buildTargetMutationOption("increase_load", false)];
+  }
+
+  return [] as ProgressionTargetMutationUiOption[];
+}
+
+function getCardioTargetMutationOptions(measurements: ProgressionMeasurementKey[]) {
+  if (measurements.includes("time") && measurements.includes("distance")) {
+    return [
+      buildTargetMutationOption("increase_duration"),
+      buildTargetMutationOption("increase_distance"),
+      buildTargetMutationOption("increase_duration_and_distance"),
+    ];
+  }
+
+  if (measurements.includes("time")) {
+    return [buildTargetMutationOption("increase_duration", false)];
+  }
+
+  if (measurements.includes("distance")) {
+    return [buildTargetMutationOption("increase_distance", false)];
+  }
+
+  return [] as ProgressionTargetMutationUiOption[];
+}
+
+function resolveTargetMutationSelection(args: {
+  targetMutation?: unknown;
+  promotionBasis?: unknown;
+  visibleOptions: ProgressionTargetMutationUiOption[];
+}) {
+  const fallback = getDefaultStrengthTargetMutationForPromotionBasis(args.promotionBasis);
+  const selectedOptionId = normalizeTargetMutation(args.targetMutation, fallback);
+  return args.visibleOptions.some((option) => option.id === selectedOptionId)
+    ? selectedOptionId
+    : null;
 }
 
 function getCardioPromotionSummary(optionId: Exclude<ProgressionPromotionUiOptionId, ProgressionPromotionBasis>) {
@@ -278,6 +402,91 @@ export function buildProgressionPromotionUiModel(args: {
     showsRepThresholdControls: false,
     hasDeferredCalories,
   };
+}
+
+export function buildProgressionTargetMutationUiModel(args: {
+  context: "routine-default" | "exercise";
+  targetMutation?: unknown;
+  promotionBasis?: unknown;
+  modality?: GoalModality | null;
+  values?: GoalLikeValues | null;
+}) : ProgressionTargetMutationUiModel {
+  const resolvedTargetMutation = normalizeTargetMutation(
+    args.targetMutation,
+    getDefaultStrengthTargetMutationForPromotionBasis(args.promotionBasis),
+  );
+  const buildResult = (visibleOptions: ProgressionTargetMutationUiOption[], activeMeasurements: ProgressionMeasurementKey[], hasDeferredCalories = false) => ({
+    activeMeasurements,
+    visibleOptions,
+    selectedOptionId: resolveTargetMutationSelection({
+      targetMutation: resolvedTargetMutation,
+      promotionBasis: args.promotionBasis,
+      visibleOptions,
+    }),
+    summary: visibleOptions.length > 0 && resolveTargetMutationSelection({
+      targetMutation: resolvedTargetMutation,
+      promotionBasis: args.promotionBasis,
+      visibleOptions,
+    })
+      ? describeTargetMutation(resolveTargetMutationSelection({
+        targetMutation: resolvedTargetMutation,
+        promotionBasis: args.promotionBasis,
+        visibleOptions,
+      })!)
+      : hasDeferredCalories
+        ? "Calories targets are detected, but calories-aware target changes stay deferred."
+        : null,
+    hasDeferredCalories,
+  });
+
+  if (args.context === "routine-default" || !args.modality || !args.values) {
+    switch (resolvedTargetMutation) {
+    case "increase_duration":
+    case "increase_distance":
+    case "increase_duration_and_distance":
+      return buildResult([
+        buildTargetMutationOption("increase_duration"),
+        buildTargetMutationOption("increase_distance"),
+        buildTargetMutationOption("increase_duration_and_distance"),
+      ], []);
+    case "none":
+      return buildResult([buildTargetMutationOption("none", false)], []);
+    case "increase_load":
+    case "increase_reps":
+    case "increase_load_reset_reps":
+    case "increase_load_and_reps":
+    default:
+      return buildResult([
+        buildTargetMutationOption("increase_load"),
+        buildTargetMutationOption("increase_reps"),
+        buildTargetMutationOption("increase_load_reset_reps"),
+        buildTargetMutationOption("increase_load_and_reps"),
+      ], []);
+    }
+  }
+
+  const activeMeasurements = sortPromotionMeasurementsByHierarchy({
+    measurements: detectActiveProgressionMeasurementsFromGoal({
+      modality: args.modality,
+      values: args.values,
+    }),
+    cardioVectorMode: resolveCardioVectorMode(buildActiveMeasurementInput({
+      modality: args.modality,
+      values: args.values,
+    })),
+  });
+  const hasDeferredCalories = activeMeasurements.includes("calories");
+  const supportedMeasurements = activeMeasurements.filter((measurement) => measurement !== "calories");
+
+  if (supportedMeasurements.includes("reps") || supportedMeasurements.includes("weight")) {
+    return buildResult(getStrengthTargetMutationOptions(supportedMeasurements), activeMeasurements, hasDeferredCalories);
+  }
+
+  if (supportedMeasurements.includes("time") || supportedMeasurements.includes("distance")) {
+    return buildResult(getCardioTargetMutationOptions(supportedMeasurements), activeMeasurements, hasDeferredCalories);
+  }
+
+  return buildResult([], activeMeasurements, hasDeferredCalories);
 }
 
 export function getVisiblePromotionStepFieldsForGoal(args: {

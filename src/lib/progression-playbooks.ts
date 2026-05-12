@@ -23,6 +23,8 @@ import {
 } from "@/lib/progression-promotion";
 import {
   applyTargetMutation,
+  getDefaultStrengthTargetMutationForPromotionBasis,
+  normalizeTargetMutation,
   PROGRESSION_TARGET_MUTATION_IDS,
   type ProgressionTargetMutationId,
 } from "@/lib/progression-target-mutation";
@@ -2044,6 +2046,24 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     fallbackBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
     fallbackThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
   });
+  const hasExplicitTargetMutation = formData.get("progressionHasExplicitTargetMutation") === "1";
+  const resolvedTargetMutation = normalizeTargetMutation(
+    String(formData.get("progressionTargetMutation") ?? "").trim(),
+    getDefaultStrengthTargetMutationForPromotionBasis(promotionConfig.promotionBasis),
+  );
+  const qualificationWindow = normalizeQualificationWindowConfig({
+    requiredQualifiedSessions: parseOptionalPositiveInteger(formData.get("progressionRequiredQualifiedSessions")),
+    mode: String(formData.get("progressionQualificationWindowMode") ?? "").trim(),
+    resetOnMiss: formData.get("progressionQualificationWindowResetOnMiss") === "1",
+  });
+  const hasExplicitQualificationWindow = formData.get("progressionHasExplicitQualificationWindow") === "1"
+    || qualificationWindow.requiredQualifiedSessions > 1
+    || qualificationWindow.mode !== "latest"
+    || qualificationWindow.resetOnMiss;
+  const serializedMutationConfig = hasExplicitTargetMutation ? { targetMutation: resolvedTargetMutation } : {};
+  const serializedQualificationWindow = hasExplicitQualificationWindow
+    ? { qualificationWindow }
+    : {};
 
   if (stallPolicy === "none" && (playbookId === "double_progression" || playbookId === "fixed_load_rep_range_progression")) {
     let config: ProgressionPlaybookConfig = {
@@ -2054,6 +2074,8 @@ export function parseProgressionPlaybookPayload(formData: FormData):
       promotionBasis: promotionConfig.promotionBasis,
       repPromotionThreshold: promotionConfig.repPromotionThreshold,
       ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
+      ...serializedMutationConfig,
+      ...serializedQualificationWindow,
     };
     config = attachProgressionStepOverrides(config, stepOverrides);
     config = attachSetFlowSteps(config, setFlowSteps);
@@ -2083,6 +2105,8 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     promotionBasis: promotionConfig.promotionBasis,
     repPromotionThreshold: promotionConfig.repPromotionThreshold,
     ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
+    ...serializedMutationConfig,
+    ...serializedQualificationWindow,
   };
   config = attachProgressionStepOverrides(config, stepOverrides);
   config = attachSetFlowSteps(config, setFlowSteps);

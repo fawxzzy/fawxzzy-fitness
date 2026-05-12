@@ -35,6 +35,7 @@ import {
   createProgressionPlaybookFormStateForTrainingGoal,
   isTrainingGoalCustomized,
 } from "@/lib/progression-playbook-form-state";
+import { buildProgressionTargetMutationUiModel } from "@/lib/progression-playbook-ui-options";
 import { TRAINING_GOAL_IDS, type TrainingGoalId } from "@/lib/progression-playbooks";
 
 const STORAGE_KEY = "routine-new-draft-v1";
@@ -81,6 +82,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
   const [draft, setDraft] = useState<RoutineDetailsDraft>(normalizedDefaults);
   const [progressionDraft, setProgressionDraft] = useState(() => createProgressionPlaybookFormState());
   const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
+  const targetMutationUiModel = useMemo(() => buildProgressionTargetMutationUiModel({
+    context: "routine-default",
+    targetMutation: progressionDraft.progressionTargetMutation,
+    promotionBasis: progressionDraft.progressionPromotionBasis,
+  }), [progressionDraft.progressionPromotionBasis, progressionDraft.progressionTargetMutation]);
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(normalizedDefaults.cycleLengthDays));
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
@@ -282,6 +288,9 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
             collapsible
             defaultExpanded={false}
             separateInfoBox
+            targetMutationUiModel={targetMutationUiModel}
+            showTargetMutationControls
+            showQualificationWindowControls
             trainingFocusValue={selectedTrainingGoal}
             trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
             onTrainingFocusChange={(goal) => {

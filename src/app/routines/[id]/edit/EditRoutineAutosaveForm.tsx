@@ -30,6 +30,7 @@ import {
   createProgressionPlaybookFormStateForTrainingGoal,
   isTrainingGoalCustomized,
 } from "@/lib/progression-playbook-form-state";
+import { buildProgressionTargetMutationUiModel } from "@/lib/progression-playbook-ui-options";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
 
 type Props = {
@@ -76,6 +77,11 @@ export function EditRoutineAutosaveForm(props: Props) {
     config: props.defaultProgressionPlaybookConfig ?? null,
   }));
   const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
+  const targetMutationUiModel = useMemo(() => buildProgressionTargetMutationUiModel({
+    context: "routine-default",
+    targetMutation: progressionDraft.progressionTargetMutation,
+    promotionBasis: progressionDraft.progressionPromotionBasis,
+  }), [progressionDraft.progressionPromotionBasis, progressionDraft.progressionTargetMutation]);
   const [pendingProgressionCascadeSave, setPendingProgressionCascadeSave] = useState<{
     formData: FormData;
     nextDraft: RoutineDetailsDraft;
@@ -285,6 +291,9 @@ export function EditRoutineAutosaveForm(props: Props) {
               collapsible
               defaultExpanded={false}
               separateInfoBox
+              targetMutationUiModel={targetMutationUiModel}
+              showTargetMutationControls
+              showQualificationWindowControls
               trainingFocusValue={selectedTrainingGoal}
               trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
               onTrainingFocusChange={(goal) => {

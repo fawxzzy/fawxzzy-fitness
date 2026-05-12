@@ -1,15 +1,11 @@
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { formatDurationPreview } from "@/lib/duration";
-import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
 import { deriveGoalMeasurementSelections, isFailureGoalSelection, type GoalModality } from "@/lib/exercise-goal-validation";
 import {
-  DEFAULT_PROGRESSION_PROMOTION_BASIS,
-  DEFAULT_REP_PROMOTION_THRESHOLD,
-  type ProgressionPromotionBasis,
-  type RepPromotionThreshold,
-} from "@/lib/progression-promotion";
-import { getDefaultProgressionPlaybookConfig, validateProgressionPlaybookSelection, type ProgressionPlaybookId, type ProgressionStallPolicy, type SetFlowId } from "@/lib/progression-playbooks";
-import { normalizeSetFlowId } from "@/lib/set-flow";
+  createProgressionPlaybookFormState,
+  type ProgressionPlaybookFormState,
+} from "@/lib/progression-playbook-form-state";
+import type { ProgressionPlaybookId } from "@/lib/progression-playbooks";
 
 export type EditDayExerciseDefaults = {
   targetSets?: number | null;
@@ -26,31 +22,10 @@ export type EditDayExerciseDefaults = {
   progressionPlaybookConfig?: Record<string, unknown> | null;
 };
 
-export type EditDayExerciseDraft = {
+export type EditDayExerciseDraft = ProgressionPlaybookFormState & {
   goalState: ExerciseGoalFormState;
   manualOrder: string;
   modality: GoalModality;
-  progressionPlaybookId: ProgressionPlaybookId | "";
-  progressionStallPolicy: ProgressionStallPolicy;
-  progressionLoadIncrement: string;
-  progressionStallThreshold: string;
-  progressionDeloadPercent: string;
-  progressionAutoUpdateRoutineGoals: boolean;
-  progressionSetFlow: SetFlowId;
-  progressionBarbellLoadIncrement: string;
-  progressionDumbbellLoadIncrement: string;
-  progressionMachineLoadIncrement: string;
-  progressionCableLoadIncrement: string;
-  progressionBodyweightRepIncrement: string;
-  progressionDurationIncrementSeconds: string;
-  progressionDistanceIncrement: string;
-  progressionSetFlowLoadStep: string;
-  progressionSetFlowRepStep: string;
-  progressionSetFlowDurationStep: string;
-  progressionSetFlowDistanceStep: string;
-  progressionPromotionBasis: ProgressionPromotionBasis;
-  progressionRepPromotionThreshold: RepPromotionThreshold;
-  progressionCustomRepPromotionTarget: string;
 };
 
 function formatDuration(seconds: number | null | undefined) {
@@ -77,16 +52,16 @@ function parseDurationInput(value: string) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function formatNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
+
 function clampOrderValue(rawValue: number, listLength: number) {
   if (!Number.isFinite(rawValue)) return 1;
   const normalized = Math.trunc(rawValue);
   if (normalized < 1) return 1;
   if (normalized > listLength) return listLength;
   return normalized;
-}
-
-function formatNumber(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
 }
 
 function formatSetCountLabel(count: number | null) {
@@ -157,30 +132,10 @@ export function createEditDayExerciseDraft({
     repsMin: defaults.targetRepsMin ?? defaults.targetReps,
     repsMax: defaults.targetRepsMax ?? defaults.targetReps,
   });
-
-  const progressionSelection = validateProgressionPlaybookSelection({
+  const progressionState = createProgressionPlaybookFormState({
     playbookId: defaults.progressionPlaybookId ?? null,
     config: defaults.progressionPlaybookConfig ?? null,
   });
-  const defaultPlaybookConfig = progressionSelection
-    ? progressionSelection.config
-    : (defaults.progressionPlaybookId ? getDefaultProgressionPlaybookConfig(defaults.progressionPlaybookId) : null);
-  const effectiveProgressionPlaybookId = defaults.progressionPlaybookId === "deload_after_stall"
-    ? "double_progression"
-    : defaults.progressionPlaybookId ?? "";
-  const progressionStallPolicy = progressionSelection?.id === "deload_after_stall" || progressionSelection?.config.stallPolicy === "deload_after_stall"
-    ? "deload_after_stall"
-    : "none";
-  const deloadDefaults = progressionSelection?.id === "deload_after_stall"
-    ? progressionSelection.config
-    : progressionSelection?.config.stallPolicy === "deload_after_stall" && progressionSelection.config.stallThreshold && progressionSelection.config.deloadPercent
-      ? {
-          version: 1 as const,
-          loadIncrement: progressionSelection.config.loadIncrement,
-          stallThreshold: progressionSelection.config.stallThreshold,
-          deloadPercent: progressionSelection.config.deloadPercent,
-        }
-    : null;
 
   return {
     goalState: {
@@ -204,33 +159,7 @@ export function createEditDayExerciseDraft({
     },
     manualOrder: String(orderNumber),
     modality,
-    progressionPlaybookId: effectiveProgressionPlaybookId,
-    progressionStallPolicy,
-    progressionLoadIncrement: defaultPlaybookConfig ? formatNumber(defaultPlaybookConfig.loadIncrement) : "5",
-    progressionBarbellLoadIncrement: formatNumber(defaultPlaybookConfig?.stepOverrides?.barbellLoadIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.barbellLoadIncrement),
-    progressionDumbbellLoadIncrement: formatNumber(defaultPlaybookConfig?.stepOverrides?.dumbbellLoadIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.dumbbellLoadIncrement),
-    progressionMachineLoadIncrement: formatNumber(defaultPlaybookConfig?.stepOverrides?.machineLoadIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.machineLoadIncrement),
-    progressionCableLoadIncrement: formatNumber(defaultPlaybookConfig?.stepOverrides?.cableLoadIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.cableLoadIncrement),
-    progressionBodyweightRepIncrement: formatNumber(defaultPlaybookConfig?.stepOverrides?.bodyweightRepIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.bodyweightRepIncrement),
-    progressionDurationIncrementSeconds: formatNumber(defaultPlaybookConfig?.stepOverrides?.durationSecondsIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.durationSecondsIncrement),
-    progressionDistanceIncrement: formatNumber(defaultPlaybookConfig?.stepOverrides?.distanceIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.distanceIncrement),
-    progressionSetFlowLoadStep: formatNumber(defaultPlaybookConfig?.setFlowSteps?.loadStep ?? DEFAULT_SET_FLOW_STEPS.loadStep),
-    progressionSetFlowRepStep: formatNumber(defaultPlaybookConfig?.setFlowSteps?.repStep ?? DEFAULT_SET_FLOW_STEPS.repStep),
-    progressionSetFlowDurationStep: formatNumber(defaultPlaybookConfig?.setFlowSteps?.durationSecondsStep ?? DEFAULT_SET_FLOW_STEPS.durationSecondsStep),
-    progressionSetFlowDistanceStep: formatNumber(defaultPlaybookConfig?.setFlowSteps?.distanceStep ?? DEFAULT_SET_FLOW_STEPS.distanceStep),
-    progressionPromotionBasis: defaultPlaybookConfig?.promotionBasis ?? DEFAULT_PROGRESSION_PROMOTION_BASIS,
-    progressionRepPromotionThreshold: defaultPlaybookConfig?.repPromotionThreshold ?? DEFAULT_REP_PROMOTION_THRESHOLD,
-    progressionCustomRepPromotionTarget: typeof defaultPlaybookConfig?.customRepPromotionTarget === "number"
-      ? formatNumber(defaultPlaybookConfig.customRepPromotionTarget)
-      : "",
-    progressionStallThreshold: deloadDefaults
-      ? String(deloadDefaults.stallThreshold)
-      : "2",
-    progressionDeloadPercent: deloadDefaults
-      ? formatNumber(deloadDefaults.deloadPercent)
-      : "10",
-    progressionAutoUpdateRoutineGoals: Boolean(progressionSelection?.id !== "deload_after_stall" && progressionSelection?.config.autoUpdateRoutineGoals),
-    progressionSetFlow: normalizeSetFlowId(defaultPlaybookConfig?.setFlow) ?? "straight_sets",
+    ...progressionState,
   };
 }
 

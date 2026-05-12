@@ -182,6 +182,31 @@ function resolveRepStep(args: {
   }) ?? 1;
 }
 
+export function getDefaultStrengthTargetMutationForPromotionBasis(
+  promotionBasis: unknown,
+): "increase_load" | "increase_reps" | "increase_load_reset_reps" {
+  switch (normalizePromotionBasis(promotionBasis, DEFAULT_PROGRESSION_PROMOTION_BASIS)) {
+  case "reps_only":
+    return "increase_reps";
+  case "weight_only":
+    return "increase_load";
+  case "weight_and_reps":
+  default:
+    return "increase_load_reset_reps";
+  }
+}
+
+export function shouldPersistExplicitTargetMutation(args: {
+  targetMutation: unknown;
+  promotionBasis: unknown;
+}) {
+  const mutationId = normalizeTargetMutation(
+    args.targetMutation,
+    getDefaultStrengthTargetMutationForPromotionBasis(args.promotionBasis),
+  );
+  return mutationId !== getDefaultStrengthTargetMutationForPromotionBasis(args.promotionBasis);
+}
+
 export function normalizeTargetMutation(
   input: unknown,
   fallback: ProgressionTargetMutationId = "none",
@@ -211,10 +236,7 @@ export function getDefaultTargetMutationForConfig(args: {
     return "none";
   case "reps":
   default: {
-    const promotionBasis = normalizePromotionBasis(
-      args.promotionBasis,
-      DEFAULT_PROGRESSION_PROMOTION_BASIS,
-    );
+    const promotionBasis = normalizePromotionBasis(args.promotionBasis, DEFAULT_PROGRESSION_PROMOTION_BASIS);
 
     if (promotionBasis === "reps_only" || !hasWeightTarget(args.plan)) {
       return "increase_reps";
@@ -224,7 +246,7 @@ export function getDefaultTargetMutationForConfig(args: {
       return "increase_load";
     }
 
-    return "increase_load_reset_reps";
+    return getDefaultStrengthTargetMutationForPromotionBasis(promotionBasis);
   }
   }
 }

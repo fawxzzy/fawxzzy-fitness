@@ -42,6 +42,7 @@ import {
 } from "@/lib/progression-playbook-form-state";
 import {
   buildProgressionPromotionUiModel,
+  buildProgressionTargetMutationUiModel,
   getVisiblePromotionStepFieldsForGoal,
   getVisibleSetStepFieldsForGoal,
   type PromotionStepFieldId,
@@ -254,6 +255,15 @@ function ProgressionPlaybookInputs({
       progressionStepPolicy={progressionStepPolicy}
       visiblePromotionStepFields={visiblePromotionStepFields}
       promotionUiModel={promotionUiModel}
+      targetMutationUiModel={buildProgressionTargetMutationUiModel({
+        context: "exercise",
+        targetMutation: draft.progressionTargetMutation,
+        promotionBasis: draft.progressionPromotionBasis,
+        modality: draft.modality,
+        values: draft.goalState,
+      })}
+      showTargetMutationControls
+      showQualificationWindowControls
       showProgressionSettingsRow={false}
       repRangeMin={repRangeMin}
       repRangeMax={repRangeMax}
@@ -811,6 +821,15 @@ export function EditableRoutineDayExerciseList({
       "progressionSetFlowRepStep",
       "progressionSetFlowDurationStep",
       "progressionSetFlowDistanceStep",
+      "progressionPromotionBasis",
+      "progressionRepPromotionThreshold",
+      "progressionCustomRepPromotionTarget",
+      "progressionTargetMutation",
+      "progressionRequiredQualifiedSessions",
+      "progressionQualificationWindowMode",
+      "progressionQualificationWindowResetOnMiss",
+      "progressionHasExplicitTargetMutation",
+      "progressionHasExplicitQualificationWindow",
     ];
     const snapshotPayload = {
       fields: Object.fromEntries(trackedKeys.map((key) => [key, String(formData.get(key) ?? "").trim()])),

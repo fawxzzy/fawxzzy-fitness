@@ -83,6 +83,8 @@ Rules:
 - Never pool sets from separate sessions into one fake qualified exposure.
 - Each counted session must independently satisfy the qualification policy.
 - Unsupported cycle-window evidence must degrade safely instead of inventing certainty.
+- The compact editor currently exposes only `requiredQualifiedSessions` values `1`, `2`, and `3`.
+- Advanced UI controls for `mode` and `resetOnMiss` remain deferred even though the runtime layer supports them.
 
 ### Promotion Basis
 
@@ -139,6 +141,22 @@ Rule:
 promotionBasis decides readiness.
 targetMutation decides what changes.
 ```
+
+UI surface:
+
+- Editor label: `Promotion uses`
+- Editor label: `Target changes`
+- Legacy default display: `Load + reset reps`
+- Strength with active load + reps exposes:
+  - `Load only`
+  - `Reps only`
+  - `Load + reset reps`
+  - `Load + reps`
+- Cardio with active time + distance exposes:
+  - `Time only`
+  - `Distance only`
+  - `Time + distance`
+- Calories remain detected but not exposed as mutation controls yet.
 
 ### Progression Step
 

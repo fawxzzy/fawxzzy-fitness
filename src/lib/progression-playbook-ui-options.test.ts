@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildProgressionPromotionUiModel,
+  buildProgressionTargetMutationUiModel,
   detectActiveProgressionMeasurementsFromGoal,
   getVisiblePromotionStepFieldsForGoal,
   getVisibleSetStepFieldsForGoal,
@@ -163,6 +164,84 @@ test("calories are detected but not exposed as promotion options", () => {
   assert.equal(model.hasDeferredCalories, true);
   assert.deepEqual(model.visibleOptions, []);
   assert.match(model.summary ?? "", /calories-aware promotion controls stay deferred/i);
+});
+
+test("legacy routine-default context exposes strength target change options", () => {
+  const model = buildProgressionTargetMutationUiModel({
+    context: "routine-default",
+    targetMutation: "increase_load_reset_reps",
+    promotionBasis: "weight_and_reps",
+  });
+
+  assert.deepEqual(model.visibleOptions.map((option) => option.id), [
+    "increase_load",
+    "increase_reps",
+    "increase_load_reset_reps",
+    "increase_load_and_reps",
+  ]);
+  assert.equal(model.selectedOptionId, "increase_load_reset_reps");
+});
+
+test("reps plus weight targets expose all supported strength target changes", () => {
+  const model = buildProgressionTargetMutationUiModel({
+    context: "exercise",
+    targetMutation: "increase_load_and_reps",
+    promotionBasis: "weight_and_reps",
+    modality: "strength",
+    values: buildGoalValues({ repsMin: "8", repsMax: "12", weight: "135" }),
+  });
+
+  assert.deepEqual(model.visibleOptions.map((option) => option.id), [
+    "increase_load",
+    "increase_reps",
+    "increase_load_reset_reps",
+    "increase_load_and_reps",
+  ]);
+  assert.equal(model.selectedOptionId, "increase_load_and_reps");
+});
+
+test("time target exposes time-only target changes", () => {
+  const model = buildProgressionTargetMutationUiModel({
+    context: "exercise",
+    targetMutation: "increase_duration",
+    promotionBasis: "weight_and_reps",
+    modality: "cardio_time",
+    values: buildGoalValues({ duration: "12:00" }),
+  });
+
+  assert.deepEqual(model.visibleOptions.map((option) => option.id), ["increase_duration"]);
+  assert.equal(model.selectedOptionId, "increase_duration");
+});
+
+test("time plus distance targets expose all supported cardio target changes", () => {
+  const model = buildProgressionTargetMutationUiModel({
+    context: "exercise",
+    targetMutation: "increase_duration_and_distance",
+    promotionBasis: "weight_and_reps",
+    modality: "cardio_time_distance",
+    values: buildGoalValues({ duration: "12:00", distance: "2.5" }),
+  });
+
+  assert.deepEqual(model.visibleOptions.map((option) => option.id), [
+    "increase_duration",
+    "increase_distance",
+    "increase_duration_and_distance",
+  ]);
+  assert.equal(model.selectedOptionId, "increase_duration_and_distance");
+});
+
+test("calories are detected but not exposed as target change options", () => {
+  const model = buildProgressionTargetMutationUiModel({
+    context: "exercise",
+    targetMutation: "increase_duration",
+    promotionBasis: "weight_and_reps",
+    modality: "cardio_time",
+    values: buildGoalValues({ calories: "250" }),
+  });
+
+  assert.equal(model.hasDeferredCalories, true);
+  assert.deepEqual(model.visibleOptions, []);
+  assert.match(model.summary ?? "", /calories-aware target changes stay deferred/i);
 });
 
 test("failure targets still register reps as active progression measurements", () => {

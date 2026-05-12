@@ -67,4 +67,6 @@ test("edit-day draft restores promotion control defaults from legacy progression
   assert.equal(draft.progressionPromotionBasis, "weight_and_reps");
   assert.equal(draft.progressionRepPromotionThreshold, "top_of_range");
   assert.equal(draft.progressionCustomRepPromotionTarget, "");
+  assert.equal(draft.progressionTargetMutation, "increase_load_reset_reps");
+  assert.equal(draft.progressionRequiredQualifiedSessions, "1");
 });

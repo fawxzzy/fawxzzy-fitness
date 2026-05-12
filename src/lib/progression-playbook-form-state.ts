@@ -16,10 +16,21 @@ import {
   type RepPromotionThreshold,
 } from "@/lib/progression-promotion";
 import {
+  DEFAULT_QUALIFICATION_WINDOW_MODE,
+  normalizeQualificationWindowConfig,
+  type QualificationWindowMode,
+} from "@/lib/progression-qualification-window";
+import {
   getDefaultSetFlowForTrainingGoal,
   normalizeSetFlowId,
 } from "@/lib/set-flow";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
+import {
+  normalizeTargetMutation,
+  shouldPersistExplicitTargetMutation,
+  getDefaultStrengthTargetMutationForPromotionBasis,
+  type ProgressionTargetMutationId,
+} from "@/lib/progression-target-mutation";
 
 export type ProgressionPlaybookFormState = {
   progressionPlaybookId: ProgressionPlaybookId | "";
@@ -43,6 +54,12 @@ export type ProgressionPlaybookFormState = {
   progressionPromotionBasis: ProgressionPromotionBasis;
   progressionRepPromotionThreshold: RepPromotionThreshold;
   progressionCustomRepPromotionTarget: string;
+  progressionTargetMutation: ProgressionTargetMutationId;
+  progressionRequiredQualifiedSessions: string;
+  progressionQualificationWindowMode: QualificationWindowMode;
+  progressionQualificationWindowResetOnMiss: boolean;
+  progressionHasExplicitTargetMutation: boolean;
+  progressionHasExplicitQualificationWindow: boolean;
 };
 
 function formatNumber(value: number) {
@@ -57,6 +74,10 @@ function normalizeProgressionPlaybookId(value: unknown): ProgressionPlaybookId |
   return PROGRESSION_PLAYBOOK_IDS.includes(value as ProgressionPlaybookId)
     ? (value as ProgressionPlaybookId)
     : "";
+}
+
+function hasConfigKey(config: Record<string, unknown> | null | undefined, key: string) {
+  return Boolean(config && Object.prototype.hasOwnProperty.call(config, key));
 }
 
 export function createProgressionPlaybookFormState({
@@ -91,6 +112,22 @@ export function createProgressionPlaybookFormState({
           }
         : getDefaultProgressionPlaybookConfig("deload_after_stall")
     : null;
+  const promotionConfig = normalizeProgressionPromotionConfig({
+    promotionBasis: defaultConfig?.promotionBasis,
+    repPromotionThreshold: defaultConfig?.repPromotionThreshold,
+    customRepPromotionTarget: defaultConfig?.customRepPromotionTarget,
+    fallbackBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    fallbackThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+  });
+  const hasExplicitTargetMutation = hasConfigKey(config ?? null, "targetMutation");
+  const progressionTargetMutation = hasExplicitTargetMutation
+    ? normalizeTargetMutation(
+      defaultConfig?.targetMutation,
+      getDefaultStrengthTargetMutationForPromotionBasis(promotionConfig.promotionBasis),
+    )
+    : getDefaultStrengthTargetMutationForPromotionBasis(promotionConfig.promotionBasis);
+  const hasExplicitQualificationWindow = hasConfigKey(config ?? null, "qualificationWindow");
+  const qualificationWindow = normalizeQualificationWindowConfig(defaultConfig?.qualificationWindow);
 
   return {
     progressionPlaybookId: effectivePlaybookId,
@@ -111,11 +148,17 @@ export function createProgressionPlaybookFormState({
     progressionDeloadPercent: deloadConfig ? formatNumber(deloadConfig.deloadPercent) : "10",
     progressionAutoUpdateRoutineGoals: Boolean(selection?.id !== "deload_after_stall" && selection?.config.autoUpdateRoutineGoals),
     progressionSetFlow,
-    progressionPromotionBasis: defaultConfig?.promotionBasis ?? DEFAULT_PROGRESSION_PROMOTION_BASIS,
-    progressionRepPromotionThreshold: defaultConfig?.repPromotionThreshold ?? DEFAULT_REP_PROMOTION_THRESHOLD,
-    progressionCustomRepPromotionTarget: typeof defaultConfig?.customRepPromotionTarget === "number"
-      ? formatNumber(defaultConfig.customRepPromotionTarget)
+    progressionPromotionBasis: promotionConfig.promotionBasis,
+    progressionRepPromotionThreshold: promotionConfig.repPromotionThreshold,
+    progressionCustomRepPromotionTarget: typeof promotionConfig.customRepPromotionTarget === "number"
+      ? formatNumber(promotionConfig.customRepPromotionTarget)
       : "",
+    progressionTargetMutation,
+    progressionRequiredQualifiedSessions: String(qualificationWindow.requiredQualifiedSessions),
+    progressionQualificationWindowMode: qualificationWindow.mode,
+    progressionQualificationWindowResetOnMiss: qualificationWindow.resetOnMiss,
+    progressionHasExplicitTargetMutation: hasExplicitTargetMutation,
+    progressionHasExplicitQualificationWindow: hasExplicitQualificationWindow,
   };
 }
 
@@ -182,6 +225,12 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionPromotionBasis: state.progressionPromotionBasis,
     progressionRepPromotionThreshold: state.progressionRepPromotionThreshold,
     progressionCustomRepPromotionTarget: state.progressionCustomRepPromotionTarget,
+    progressionTargetMutation: state.progressionTargetMutation,
+    progressionRequiredQualifiedSessions: state.progressionRequiredQualifiedSessions,
+    progressionQualificationWindowMode: state.progressionQualificationWindowMode,
+    progressionQualificationWindowResetOnMiss: state.progressionQualificationWindowResetOnMiss,
+    progressionHasExplicitTargetMutation: state.progressionHasExplicitTargetMutation,
+    progressionHasExplicitQualificationWindow: state.progressionHasExplicitQualificationWindow,
   });
 }
 
@@ -239,6 +288,32 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     repPromotionThreshold: promotionConfig.repPromotionThreshold,
     ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
   };
+  const qualificationWindow = normalizeQualificationWindowConfig({
+    requiredQualifiedSessions: parsePositiveInteger(state.progressionRequiredQualifiedSessions),
+    mode: state.progressionQualificationWindowMode,
+    resetOnMiss: state.progressionQualificationWindowResetOnMiss,
+  });
+  const shouldSerializeQualificationWindow = state.progressionHasExplicitQualificationWindow
+    || qualificationWindow.requiredQualifiedSessions > 1
+    || qualificationWindow.mode !== DEFAULT_QUALIFICATION_WINDOW_MODE
+    || qualificationWindow.resetOnMiss;
+  const serializedQualificationWindow = shouldSerializeQualificationWindow
+    ? {
+        qualificationWindow: {
+          requiredQualifiedSessions: qualificationWindow.requiredQualifiedSessions,
+          mode: qualificationWindow.mode,
+          resetOnMiss: qualificationWindow.resetOnMiss,
+        },
+      }
+    : {};
+  const serializedTargetMutation = state.progressionHasExplicitTargetMutation
+    ? {
+        targetMutation: normalizeTargetMutation(
+          state.progressionTargetMutation,
+          getDefaultStrengthTargetMutationForPromotionBasis(promotionConfig.promotionBasis),
+        ),
+      }
+    : {};
 
   if (state.progressionStallPolicy === "none") {
     return {
@@ -250,6 +325,8 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       stallPolicy: "none",
       autoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
       ...serializedPromotionConfig,
+      ...serializedTargetMutation,
+      ...serializedQualificationWindow,
     };
   }
 
@@ -270,6 +347,8 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     deloadPercent,
     autoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
     ...serializedPromotionConfig,
+    ...serializedTargetMutation,
+    ...serializedQualificationWindow,
   };
 }
 
@@ -334,6 +413,12 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionPromotionBasis", state.progressionPromotionBasis);
   formData.set("progressionRepPromotionThreshold", state.progressionRepPromotionThreshold);
   formData.set("progressionCustomRepPromotionTarget", state.progressionCustomRepPromotionTarget);
+  formData.set("progressionTargetMutation", state.progressionTargetMutation);
+  formData.set("progressionRequiredQualifiedSessions", state.progressionRequiredQualifiedSessions);
+  formData.set("progressionQualificationWindowMode", state.progressionQualificationWindowMode);
+  formData.set("progressionQualificationWindowResetOnMiss", state.progressionQualificationWindowResetOnMiss ? "1" : "0");
+  formData.set("progressionHasExplicitTargetMutation", state.progressionHasExplicitTargetMutation ? "1" : "0");
+  formData.set("progressionHasExplicitQualificationWindow", state.progressionHasExplicitQualificationWindow ? "1" : "0");
   formData.set("progressionStallThreshold", state.progressionStallThreshold);
   formData.set("progressionDeloadPercent", state.progressionDeloadPercent);
   formData.set("progressionSetFlow", state.progressionSetFlow);
