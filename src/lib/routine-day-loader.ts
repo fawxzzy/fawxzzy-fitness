@@ -4,8 +4,25 @@ import { getExerciseNameMap } from "@/lib/exercises";
 import { getRunnableDayState, normalizeRunnableDayExercises, type RunnableDayInvalidReason, type RunnableDayState } from "@/lib/runnable-day";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
-import type { RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
+import type { ExerciseRow, RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+const EXERCISE_DETAILS_SELECT =
+  "id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_icon_path, image_howto_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories";
+const EXERCISE_DETAILS_SELECT_LEGACY =
+  "id, name, primary_muscle, equipment, movement_pattern, measurement_type, default_unit";
+const EXERCISE_DETAILS_OPTIONAL_COLUMNS = [
+  "exercise_id",
+  "image_path",
+  "image_icon_path",
+  "image_howto_path",
+  "slug",
+  "how_to_short",
+  "kind",
+  "type",
+  "tags",
+  "categories",
+] as const;
 
 type ExerciseDetailsRow = {
   id: string;
@@ -14,17 +31,101 @@ type ExerciseDetailsRow = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
+  image_path?: string | null;
   image_howto_path: string | null;
   image_icon_path: string | null;
   slug: string | null;
   how_to_short: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;
   kind?: string | null;
   type?: string | null;
   tags?: string[] | string | null;
   categories?: string[] | string | null;
 };
+
+type ExerciseDetailsQueryError = {
+  message?: string;
+} | null | undefined;
+
+type ExerciseDetailsQueryResult<T> = {
+  data: T | null;
+  error: ExerciseDetailsQueryError;
+};
+
+type ExerciseDetailsQueryRawResult = {
+  data: unknown;
+  error: ExerciseDetailsQueryError;
+};
+
+type ExerciseDetailsQueryFn = (columns: string) => PromiseLike<ExerciseDetailsQueryRawResult>;
+
+function isMissingExerciseDetailsColumnError(error: ExerciseDetailsQueryError) {
+  const message = error?.message?.toLowerCase() ?? "";
+  if (!message.includes("exercises")) {
+    return false;
+  }
+
+  return EXERCISE_DETAILS_OPTIONAL_COLUMNS.some((column) => {
+    const normalizedColumn = column.toLowerCase();
+    return (
+      message.includes(normalizedColumn)
+      && (
+        message.includes("schema cache")
+        || (message.includes("column") && message.includes("does not exist"))
+      )
+    );
+  });
+}
+
+function hydrateExerciseDetailsRow(row: Partial<ExerciseDetailsRow> & Pick<ExerciseRow, "id">): ExerciseDetailsRow {
+  return {
+    id: row.id,
+    exercise_id: row.exercise_id ?? null,
+    name: row.name ?? null,
+    primary_muscle: row.primary_muscle ?? null,
+    equipment: row.equipment ?? null,
+    movement_pattern: row.movement_pattern ?? null,
+    image_path: row.image_path ?? null,
+    image_howto_path: row.image_howto_path ?? null,
+    image_icon_path: row.image_icon_path ?? null,
+    slug: row.slug ?? null,
+    how_to_short: row.how_to_short ?? null,
+    measurement_type: row.measurement_type ?? null,
+    default_unit: row.default_unit ?? null,
+    kind: row.kind ?? null,
+    type: row.type ?? null,
+    tags: row.tags ?? null,
+    categories: row.categories ?? null,
+  };
+}
+
+async function runExerciseDetailsQuery(
+  query: ExerciseDetailsQueryFn,
+  columns: string,
+): Promise<ExerciseDetailsQueryRawResult> {
+  return await Promise.resolve(query(columns));
+}
+
+async function readExerciseDetailsWithMetadataFallback<T>(args: {
+  query: ExerciseDetailsQueryFn;
+}): Promise<ExerciseDetailsRow[]> {
+  const primaryResult = await runExerciseDetailsQuery(args.query, EXERCISE_DETAILS_SELECT);
+  if (!primaryResult.error) {
+    return (primaryResult.data ?? []) as ExerciseDetailsRow[];
+  }
+
+  if (!isMissingExerciseDetailsColumnError(primaryResult.error)) {
+    return [];
+  }
+
+  const fallbackResult = await runExerciseDetailsQuery(args.query, EXERCISE_DETAILS_SELECT_LEGACY);
+  if (fallbackResult.error) {
+    return [];
+  }
+
+  return ((fallbackResult.data ?? []) as Array<Partial<ExerciseDetailsRow> & Pick<ExerciseDetailsRow, "id">>).map(hydrateExerciseDetailsRow);
+}
 
 export type CanonicalDayExercise = RoutineDayExerciseRow & {
   exercise_id: string;
@@ -35,6 +136,7 @@ export type CanonicalDayExercise = RoutineDayExerciseRow & {
     primary_muscle: string | null;
     equipment: string | null;
     movement_pattern: string | null;
+    image_path: string | null;
     image_howto_path: string | null;
     image_icon_path: string | null;
     slug: string | null;
@@ -136,27 +238,33 @@ export async function loadCanonicalExerciseCatalog(args: {
 
   const [exerciseRowsByIdResult, exerciseRowsByAliasResult, exerciseRowsByNameResult] = await Promise.all([
     candidateExerciseIds.length === 0
-      ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
-      : args.supabase
-          .from("exercises")
-          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories")
-          .in("id", candidateExerciseIds),
+      ? Promise.resolve([] as ExerciseDetailsRow[])
+      : readExerciseDetailsWithMetadataFallback({
+          query: (columns) => args.supabase
+            .from("exercises")
+            .select(columns)
+            .in("id", candidateExerciseIds),
+        }),
     rawExerciseIds.length === 0
-      ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
-      : args.supabase
-          .from("exercises")
-          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories")
-          .in("exercise_id", rawExerciseIds),
+      ? Promise.resolve([] as ExerciseDetailsRow[])
+      : readExerciseDetailsWithMetadataFallback({
+          query: (columns) => args.supabase
+            .from("exercises")
+            .select(columns)
+            .in("exercise_id", rawExerciseIds),
+        }),
     legacyExerciseNames.length === 0
-      ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
-      : args.supabase
-          .from("exercises")
-          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories")
-          .in("name", legacyExerciseNames),
+      ? Promise.resolve([] as ExerciseDetailsRow[])
+      : readExerciseDetailsWithMetadataFallback({
+          query: (columns) => args.supabase
+            .from("exercises")
+            .select(columns)
+            .in("name", legacyExerciseNames),
+        }),
   ]);
 
   const exerciseDetailsRows = Array.from(new Map(
-    [...(exerciseRowsByIdResult.data ?? []), ...(exerciseRowsByAliasResult.data ?? []), ...(exerciseRowsByNameResult.data ?? [])].map((exercise) => [exercise.id, exercise]),
+    [...exerciseRowsByIdResult, ...exerciseRowsByAliasResult, ...exerciseRowsByNameResult].map((exercise) => [exercise.id, exercise]),
   ).values());
   const canonicalExerciseIdByRawId = buildCanonicalExerciseIdByRawId({ rawExerciseIds, exerciseDetailsRows });
   const canonicalExerciseIdSet = new Set(exerciseDetailsRows.map((exercise) => exercise.id));
@@ -182,12 +290,12 @@ export async function buildCanonicalDaySummaries(args: {
     exercises: allDayExercises,
   });
 
-  const normalizedDayExercises = allDayExercises.map((exercise) => ({
+  const normalizedDayExercises: RoutineDayExerciseRow[] = allDayExercises.map((exercise) => ({
     ...exercise,
     exercise_id: canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id,
   }));
 
-  const summaries = routineDays.map((day) => {
+  const summaries: CanonicalDaySummary[] = routineDays.map((day) => {
     const dayExercises = normalizedDayExercises.filter((exercise) => exercise.routine_day_id === day.id);
     const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIdSet, {
       logSource: "buildCanonicalDaySummaries",
@@ -224,6 +332,7 @@ export async function buildCanonicalDaySummaries(args: {
                 primary_muscle: details.primary_muscle,
                 equipment: details.equipment,
                 movement_pattern: details.movement_pattern,
+                image_path: details.image_path ?? null,
                 image_howto_path: details.image_howto_path,
                 image_icon_path: details.image_icon_path,
                 slug: details.slug,

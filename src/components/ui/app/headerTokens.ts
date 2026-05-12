@@ -1,10 +1,16 @@
+import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
+
 export const headerTokens = {
-  horizontalPadding: "px-4 sm:px-5",
-  primaryRowGap: "gap-2",
-  actionRailGap: "gap-2",
-  trailingSlot: "min-h-10 min-w-10",
-  titleClassName: "text-[1.3rem] font-semibold leading-[1.08] tracking-[-0.015em] sm:text-[1.4rem]",
-  titleToSecondaryGap: "mt-0.25",
-  secondaryBlockGap: "space-y-0.5",
-  contentBottomGap: "pb-1.5",
+  horizontalPadding: fitnessDesignPrimitiveClassNames.header.horizontalPadding,
+  primaryRowGap: fitnessDesignPrimitiveClassNames.header.primaryRowGap,
+  actionRailGap: fitnessDesignPrimitiveClassNames.header.actionRailGap,
+  trailingSlot: fitnessDesignPrimitiveClassNames.header.trailingSlot,
+  titleClassName: fitnessDesignPrimitiveClassNames.header.titleClassName,
+  titleToSecondaryGap: fitnessDesignPrimitiveClassNames.header.titleToSecondaryGap,
+  secondaryBlockGap: fitnessDesignPrimitiveClassNames.header.secondaryBlockGap,
+  contentBottomGap: fitnessDesignPrimitiveClassNames.header.contentBottomGap,
+  eyebrowClassName: fitnessDesignPrimitiveClassNames.header.eyebrowClassName,
+  subtitleClassName: fitnessDesignPrimitiveClassNames.header.subtitleClassName,
+  metaClassName: fitnessDesignPrimitiveClassNames.header.metaClassName,
+  titleTextClassName: fitnessDesignPrimitiveClassNames.header.titleTextClassName,
 } as const;

@@ -40,7 +40,6 @@ test("sanitizeEnabledMeasurementValues drops stale values when toggling back on 
   assert.equal(toggledBackOn.duration, "6:00");
 });
 
-
 test("formatGoalSummaryText excludes disabled measurements from summaries", async () => {
   const { formatGoalSummaryText } = await import("./measurement-display.ts");
   const summary = formatGoalSummaryText({
@@ -78,5 +77,18 @@ test("goal and draft summaries share canonical grammar with omitted zero metrics
   assert.equal(
     formatCurrentDraftSummaryText(values),
     "4 sets • 8–10 reps • 155 lbs",
+  );
+});
+
+test("time previews append the shared seconds suffix", async () => {
+  const { formatGoalInlineSummaryText } = await import("./measurement-display.ts");
+
+  assert.equal(
+    formatGoalInlineSummaryText({
+      sets: 3,
+      durationSeconds: 45,
+      enabledMeasurements: { reps: false, weight: false, time: true, distance: false, calories: false },
+    }),
+    "3 sets • 0:45 s",
   );
 });

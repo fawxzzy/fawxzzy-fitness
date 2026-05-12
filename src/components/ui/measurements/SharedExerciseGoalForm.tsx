@@ -1,36 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
-import { cn } from "@/lib/cn";
-import { deriveGoalMeasurementSelections, getVisibleMetricsForModality, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
-
-function getDefaultMeasurements(modality: GoalModality): MeasurementSelection[] {
-  switch (modality) {
-    case "bodyweight":
-      return ["reps"];
-    case "cardio_time":
-      return ["time"];
-    case "cardio_distance":
-      return ["distance"];
-    case "cardio_time_distance":
-      return ["time", "distance"];
-    case "strength":
-    default:
-      return ["reps", "weight"];
-  }
-}
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { deriveGoalMeasurementSelections, getDefaultMeasurementsForGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
 export function inferGoalModeFromState(state: ExerciseGoalFormState): GoalModality {
   const selections = deriveGoalMeasurementSelections("cardio_time_distance", {
     repsMin: state.repsMin,
+    repsMax: state.repsMax,
+    failure: state.failure,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
     calories: state.calories,
   });
-  const hasTime = selections.includes("time");
-  const hasDistance = selections.includes("distance");
+  const hasTime = state.measurements.includes("time") || selections.includes("time");
+  const hasDistance = state.measurements.includes("distance") || selections.includes("distance");
   if (hasTime && hasDistance) return "cardio_time_distance";
   if (hasDistance) return "cardio_distance";
   return "cardio_time";
@@ -45,6 +32,13 @@ export function SharedExerciseGoalForm({
   emptySummaryLabel,
   showValidationMessage,
   hideEmptySummary,
+  hideSummary,
+  betweenInputsAndFooterContent,
+  footerContent,
+  footerClassName,
+  visibleMetrics,
+  visibleMetricOrder,
+  measurementLayoutMode,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -54,10 +48,18 @@ export function SharedExerciseGoalForm({
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
   hideEmptySummary?: boolean;
+  hideSummary?: boolean;
+  betweenInputsAndFooterContent?: ReactNode;
+  footerContent?: ReactNode;
+  footerClassName?: string;
+  visibleMetrics?: Array<keyof MeasurementMetrics>;
+  visibleMetricOrder?: Array<keyof MeasurementMetrics>;
+  measurementLayoutMode?: "grid" | "horizontal-scroll";
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
     : modality;
+  const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
 
   const goalModeChoices = useMemo(() => {
     if (modality !== "cardio_time_distance") return [];
@@ -69,37 +71,26 @@ export function SharedExerciseGoalForm({
   }, [modality]);
 
   return (
-    <div className="space-y-3">
+    <div className={stackClassName}>
       {goalModeChoices.length ? (
         <div className="space-y-1">
-          <p className="px-0.5 text-xs text-muted">Goal mode</p>
-          <div className="flex flex-wrap gap-2">
-            {goalModeChoices.map((choice) => {
-              const active = effectiveGoalModality === choice.value;
-              return (
-                <button
-                  key={choice.value}
-                  type="button"
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
-                    active
-                      ? "border-emerald-300/45 bg-emerald-400/16 text-text"
-                      : "border-border/40 bg-[rgb(var(--bg)/0.35)] text-muted hover:text-text",
-                  )}
-                  onClick={() => {
-                    onStateChange({
-                      ...state,
-                      measurements: getDefaultMeasurements(choice.value),
-                      duration: choice.value === "cardio_distance" ? "" : state.duration,
-                      distance: choice.value === "cardio_time" ? "" : state.distance,
-                    });
-                  }}
-                >
-                  {choice.label}
-                </button>
-              );
-            })}
-          </div>
+          <SegmentedControl
+            options={goalModeChoices}
+            value={effectiveGoalModality}
+            size="sm"
+            activeIntent="info"
+            ariaLabel="Goal mode"
+            onChange={(nextValue) => {
+              const nextMode = nextValue as GoalModality;
+              onStateChange({
+                ...state,
+                measurements: getDefaultMeasurementsForGoalModality(nextMode),
+                failure: false,
+                duration: nextMode === "cardio_distance" ? "" : state.duration,
+                distance: nextMode === "cardio_time" ? "" : state.distance,
+              });
+            }}
+          />
         </div>
       ) : null}
 
@@ -112,9 +103,16 @@ export function SharedExerciseGoalForm({
         emptySummaryLabel={emptySummaryLabel}
         showValidationMessage={showValidationMessage}
         hideEmptySummary={hideEmptySummary}
+        hideSummary={hideSummary}
+        betweenInputsAndFooterContent={betweenInputsAndFooterContent}
+        footerContent={footerContent}
+        footerClassName={footerClassName}
+        visibleMetrics={visibleMetrics}
+        visibleMetricOrder={visibleMetricOrder}
+        measurementLayoutMode={measurementLayoutMode}
       />
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
-      <input type="hidden" name="defaultUnit" value={getVisibleMetricsForModality(effectiveGoalModality).includes("distance") ? state.distanceUnit : "mi"} />
+      <input type="hidden" name="defaultUnit" value={state.distanceUnit} />
     </div>
   );
 }

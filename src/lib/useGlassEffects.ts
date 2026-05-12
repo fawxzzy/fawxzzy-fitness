@@ -12,10 +12,10 @@ function isGlassEffectsMode(value: string | null): value is GlassEffectsMode {
 
 function resolveDefaultMode(): GlassEffectsMode {
   if (typeof window === "undefined") {
-    return "on";
+    return "reduced";
   }
 
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduced" : "on";
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "off" : "reduced";
 }
 
 function applyModeToDocument(mode: GlassEffectsMode) {

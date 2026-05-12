@@ -1,13 +1,13 @@
-import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { AppShell } from "@/components/ui/app/AppShell";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { quickAddExerciseAction } from "@/app/session/[id]/actions";
+import { appTokens } from "@/components/ui/app/tokens";
+import { addExerciseAction } from "@/app/session/[id]/actions";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
+import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { cn } from "@/lib/cn";
+import { loadExerciseChooserRouteData } from "@/lib/exercise-chooser-route-data";
 import { getSessionPageData } from "@/app/session/[id]/queries";
-import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { isSafeAppPath } from "@/lib/navigation-return";
+import type { RoutineRow } from "@/types/db";
 
 type PageProps = {
   params: {
@@ -15,46 +15,49 @@ type PageProps = {
   };
   searchParams?: {
     returnTo?: string;
+    exerciseId?: string;
   };
 };
 
 export default async function SessionAddExercisePage({ params, searchParams }: PageProps) {
   const {
-    sessionRow,
     routine,
-    exerciseOptions,
-    exerciseStatsByExerciseId,
+    sessionRow,
   } = await getSessionPageData(params.id);
+  const { exercises, exerciseStats } = await loadExerciseChooserRouteData(sessionRow.user_id);
 
   const backHref = isSafeAppPath(searchParams?.returnTo)
     ? searchParams?.returnTo
     : `/session/${params.id}`;
+  const dayName = sessionRow.routine_day_name?.trim()
+    || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : null);
 
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions
-        className="px-4 pb-0"
-        floatingHeader={(
-          <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md">
-            <RoutineEditorPageHeader
-              recipe="sessionAddExercise"
-              title="Add Exercise"
-              action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
-            />
-          </ScreenScaffold>
-        )}
-      >
-        <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md">
-          <SessionQuickAddExerciseForm
-            sessionId={params.id}
-            exercises={exerciseOptions}
-            weightUnit={routine?.weight_unit ?? "kg"}
-            exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
-            backHref={backHref}
-            quickAddExerciseAction={quickAddExerciseAction}
-          />
-        </ScreenScaffold>
-      </ScrollScreenWithBottomActions>
-    </AppShell>
+    <ExerciseChooserRouteScaffold
+      recipe="sessionAddExercise"
+      title={(
+        <RoutineDayHeaderTitle
+          leadingItems={["Add Exercise to", routine?.name ?? sessionRow.name]}
+          dayLabel={dayName}
+        />
+      )}
+      backHref={backHref}
+      backAriaLabel="Back to session"
+      headerAlign="center"
+      floatingHeaderRailClassName={cn(appTokens.historyFloatingHeaderRail, "relative z-30 pointer-events-auto")}
+      backButtonClassName="relative z-30 pointer-events-auto"
+    >
+      <SessionQuickAddExerciseForm
+        sessionId={params.id}
+        exercises={exercises}
+        initialSelectedId={searchParams?.exerciseId}
+        weightUnit={routine?.weight_unit ?? "kg"}
+        defaultProgressionPlaybookId={(routine as RoutineRow | null)?.default_progression_playbook_id ?? null}
+        defaultProgressionPlaybookConfig={(routine as RoutineRow | null)?.default_progression_playbook_config ?? null}
+        exerciseStats={exerciseStats}
+        backHref={backHref}
+        addExerciseAction={addExerciseAction}
+      />
+    </ExerciseChooserRouteScaffold>
   );
 }

@@ -1,9 +1,10 @@
 import "server-only";
 
 import { supabaseServer } from "@/lib/supabase/server";
-import { formatDurationClock } from "@/lib/duration";
+import { formatDurationPreview } from "@/lib/duration";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { requireUser } from "@/lib/auth";
+import type { RoutineDayExerciseRow, SessionExerciseRow } from "@/types/db";
 
 export type DisplayTarget = {
   setsMin?: number;
@@ -17,7 +18,7 @@ export type DisplayTarget = {
   distance?: number;
   distanceUnit?: "mi" | "km" | "m";
   calories?: number;
-  measurementType?: "reps" | "time" | "distance" | "time_distance";
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none";
   source: "engine" | "template";
 };
 
@@ -53,7 +54,7 @@ function resolveRangeValue(minValue: number | null | undefined, maxValue: number
 }
 
 function formatDurationText(durationSeconds: number) {
-  return formatDurationClock(durationSeconds);
+  return formatDurationPreview(durationSeconds);
 }
 
 function formatRangeValue(minValue: number | undefined, maxValue: number | undefined, suffix: string) {
@@ -65,16 +66,12 @@ function formatRangeValue(minValue: number | undefined, maxValue: number | undef
 }
 
 function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {
-  if (unit === "lbs") {
-    return "lb";
-  }
-
   return unit;
 }
 
 
-function resolveMeasurementType(value: unknown): "reps" | "time" | "distance" | "time_distance" | null {
-  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" ? value : null;
+function resolveMeasurementType(value: unknown): "reps" | "time" | "distance" | "time_distance" | "none" | null {
+  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" || value === "none" ? value : null;
 }
 
 function resolveWeightUnit(value: unknown): "lbs" | "kg" | null {
@@ -160,7 +157,8 @@ function buildDisplayTargetFromGoalFields(fields: {
     target.calories = Number(resolvedCalories);
   }
 
-  const hasMeasurementTarget = target.setsMin !== undefined
+  const hasMeasurementTarget = target.measurementType === "none"
+    || target.setsMin !== undefined
     || target.setsMax !== undefined
     || target.repsMin !== undefined
     || target.repsMax !== undefined
@@ -233,31 +231,55 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
   });
 }
 
-export async function getSessionTargets(sessionId: string) {
-  const user = await requireUser();
-  const supabase = supabaseServer();
+type SessionTargetInputRow = Pick<
+  SessionExerciseRow,
+  | "id"
+  | "routine_day_exercise_id"
+  | "measurement_type"
+  | "default_unit"
+  | "target_sets_min"
+  | "target_sets_max"
+  | "target_reps_min"
+  | "target_reps_max"
+  | "target_weight_min"
+  | "target_weight_max"
+  | "target_weight_unit"
+  | "target_time_seconds_min"
+  | "target_time_seconds_max"
+  | "target_distance_min"
+  | "target_distance_max"
+  | "target_distance_unit"
+  | "target_calories_min"
+  | "target_calories_max"
+>;
 
-  const { data: session } = await supabase
-    .from("sessions")
-    .select("id, routine_id, routine_day_index, user_id")
-    .eq("id", sessionId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+type RoutineDayTargetInputRow = Pick<
+  RoutineDayExerciseRow,
+  | "id"
+  | "exercise_id"
+  | "measurement_type"
+  | "default_unit"
+  | "target_sets"
+  | "target_reps"
+  | "target_reps_min"
+  | "target_reps_max"
+  | "target_weight"
+  | "target_weight_unit"
+  | "target_duration_seconds"
+  | "target_distance"
+  | "target_distance_unit"
+  | "target_calories"
+>;
 
-  if (!session) {
-    return new Map<string, DisplayTarget>();
-  }
-
-  const { data: sessionExercises } = await supabase
-    .from("session_exercises")
-    .select("id, exercise_id, position, routine_day_exercise_id, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, measurement_type, default_unit")
-    .eq("session_id", sessionId)
-    .eq("user_id", user.id)
-    .order("position", { ascending: true });
-
+export function buildSessionTargetsFromRows(args: {
+  sessionExercises: SessionTargetInputRow[];
+  routineDayExercises?: RoutineDayTargetInputRow[];
+}) {
   const targetMap = new Map<string, DisplayTarget>();
+  const routineRows = args.routineDayExercises ?? [];
+  const routineRowsById = new Map(routineRows.map((row) => [row.id, row]));
 
-  for (const sessionExercise of sessionExercises ?? []) {
+  for (const sessionExercise of args.sessionExercises) {
     const sessionTarget = buildDisplayTargetFromGoalFields({
       source: "engine",
       measurementType: sessionExercise.measurement_type,
@@ -283,8 +305,70 @@ export async function getSessionTargets(sessionId: string) {
     }
   }
 
+  for (const sessionExercise of args.sessionExercises) {
+    if (targetMap.has(sessionExercise.id)) {
+      continue;
+    }
+
+    const matchedRoutine = sessionExercise.routine_day_exercise_id
+      ? (routineRowsById.get(sessionExercise.routine_day_exercise_id) ?? null)
+      : null;
+
+    if (!matchedRoutine) {
+      continue;
+    }
+
+    const templateTarget = buildDisplayTargetFromGoalFields({
+      source: "template",
+      measurementType: matchedRoutine.measurement_type,
+      setsMin: matchedRoutine.target_sets,
+      setsMax: matchedRoutine.target_sets,
+      repsMin: matchedRoutine.target_reps_min,
+      repsMax: matchedRoutine.target_reps_max,
+      repsFallback: matchedRoutine.target_reps,
+      weightFallback: matchedRoutine.target_weight,
+      weightUnit: matchedRoutine.target_weight_unit,
+      durationFallback: matchedRoutine.target_duration_seconds,
+      distanceFallback: matchedRoutine.target_distance,
+      distanceUnit: matchedRoutine.target_distance_unit,
+      defaultUnit: matchedRoutine.default_unit,
+      caloriesFallback: matchedRoutine.target_calories,
+    });
+
+    if (templateTarget) {
+      targetMap.set(sessionExercise.id, templateTarget);
+    }
+  }
+
+  return targetMap;
+}
+
+export async function getSessionTargets(sessionId: string) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("id, routine_id, routine_day_index, user_id")
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!session) {
+    return new Map<string, DisplayTarget>();
+  }
+
+  const { data: sessionExercises } = await supabase
+    .from("session_exercises")
+    .select("id, exercise_id, position, routine_day_exercise_id, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, measurement_type, default_unit")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id)
+    .order("position", { ascending: true });
+
   if (!session.routine_id || !session.routine_day_index) {
-    return targetMap;
+    return buildSessionTargetsFromRows({
+      sessionExercises: (sessionExercises ?? []) as SessionTargetInputRow[],
+    });
   }
 
   const { data: routineDay } = await supabase
@@ -296,7 +380,9 @@ export async function getSessionTargets(sessionId: string) {
     .maybeSingle();
 
   if (!routineDay) {
-    return targetMap;
+    return buildSessionTargetsFromRows({
+      sessionExercises: (sessionExercises ?? []) as SessionTargetInputRow[],
+    });
   }
 
   const { data: routineDayExercises } = await supabase
@@ -320,43 +406,13 @@ export async function getSessionTargets(sessionId: string) {
     }
   }
 
-  const routineRows = routineDayExercises ?? [];
-  const routineRowsById = new Map(routineRows.map((row) => [row.id, row]));
+  const routineRows = (routineDayExercises ?? []).map((row) => ({
+    ...row,
+    measurement_type: row.measurement_type ?? measurementTypeByExerciseId.get(row.exercise_id) ?? null,
+  }));
 
-  for (const sessionExercise of sessionExercises ?? []) {
-    if (targetMap.has(sessionExercise.id)) {
-      continue;
-    }
-
-    const matchedRoutine = sessionExercise.routine_day_exercise_id
-      ? (routineRowsById.get(sessionExercise.routine_day_exercise_id) ?? null)
-      : null;
-
-    if (!matchedRoutine) {
-      continue;
-    }
-
-    const templateTarget = buildDisplayTargetFromGoalFields({
-      source: "template",
-      measurementType: matchedRoutine.measurement_type ?? measurementTypeByExerciseId.get(matchedRoutine.exercise_id),
-      setsMin: matchedRoutine.target_sets,
-      setsMax: matchedRoutine.target_sets,
-      repsMin: matchedRoutine.target_reps_min,
-      repsMax: matchedRoutine.target_reps_max,
-      repsFallback: matchedRoutine.target_reps,
-      weightFallback: matchedRoutine.target_weight,
-      weightUnit: matchedRoutine.target_weight_unit,
-      durationFallback: matchedRoutine.target_duration_seconds,
-      distanceFallback: matchedRoutine.target_distance,
-      distanceUnit: matchedRoutine.target_distance_unit,
-      defaultUnit: matchedRoutine.default_unit,
-      caloriesFallback: matchedRoutine.target_calories,
-    });
-
-    if (templateTarget) {
-      targetMap.set(sessionExercise.id, templateTarget);
-    }
-  }
-
-  return targetMap;
+  return buildSessionTargetsFromRows({
+    sessionExercises: (sessionExercises ?? []) as SessionTargetInputRow[],
+    routineDayExercises: routineRows as RoutineDayTargetInputRow[],
+  });
 }

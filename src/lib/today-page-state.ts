@@ -10,6 +10,12 @@ export function getTodayGlobalErrorMessage(args: {
   return error;
 }
 
+export function formatTodayHeaderTitle(routineName: string | null | undefined, dayName: string | null | undefined) {
+  const normalizedRoutineName = routineName?.trim() || "Routine";
+  const normalizedDayName = dayName?.trim();
+  return normalizedDayName ? `${normalizedRoutineName} | ${normalizedDayName}` : normalizedRoutineName;
+}
+
 type SessionDaySnapshot = {
   routine_day_index: number | null;
   routine_day_name: string | null;
@@ -22,13 +28,18 @@ type RoutineDayIdentity = {
   is_rest: boolean;
 };
 
+type TodayDisplayDaySource = "session" | "calendar" | "template";
+
 export function resolveTodayDisplayDay(args: {
   calendarDayIndex: number | null;
   todayRoutineDay: RoutineDayIdentity | null;
+  fallbackRoutineDay?: RoutineDayIdentity | null;
   routineDays: RoutineDayIdentity[];
   inProgressSession: SessionDaySnapshot | null;
 }) {
   const sessionDayIndex = args.inProgressSession?.routine_day_index ?? null;
+  const calendarRoutineDay = args.todayRoutineDay
+    ?? (args.calendarDayIndex === null ? null : args.routineDays.find((day) => day.day_index === args.calendarDayIndex) ?? null);
 
   if (sessionDayIndex !== null) {
     const matchedRoutineDay = args.routineDays.find((day) => day.day_index === sessionDayIndex) ?? null;
@@ -38,19 +49,85 @@ export function resolveTodayDisplayDay(args: {
       dayIndex: sessionDayIndex,
       routineDay: matchedRoutineDay,
       dayName: sessionDayName ?? matchedRoutineDay?.name ?? `Day ${sessionDayIndex}`,
-      source: "session" as const,
+      hasScheduledDayToday: Boolean(calendarRoutineDay),
+      source: "session" as TodayDisplayDaySource,
     };
   }
 
-  const fallbackDay = args.todayRoutineDay
-    ?? (args.calendarDayIndex === null ? null : args.routineDays.find((day) => day.day_index === args.calendarDayIndex) ?? null);
+  if (calendarRoutineDay) {
+    return {
+      dayIndex: calendarRoutineDay.day_index,
+      routineDay: calendarRoutineDay,
+      dayName: calendarRoutineDay.name ?? `Day ${calendarRoutineDay.day_index}`,
+      hasScheduledDayToday: true,
+      source: "calendar" as TodayDisplayDaySource,
+    };
+  }
+
+  const fallbackDay = args.fallbackRoutineDay
+    ?? args.routineDays[0]
+    ?? null;
   const fallbackDayIndex = fallbackDay?.day_index ?? args.calendarDayIndex;
 
   return {
     dayIndex: fallbackDayIndex,
     routineDay: fallbackDay,
     dayName: fallbackDay ? fallbackDay.name ?? `Day ${fallbackDay.day_index}` : null,
-    source: "calendar" as const,
+    hasScheduledDayToday: false,
+    source: (fallbackDay ? "template" : "calendar") as TodayDisplayDaySource,
+  };
+}
+
+type ActiveRoutineIdentity = {
+  id: string;
+  name: string | null;
+};
+
+export type TodayRoutinePayloadState = {
+  id: string;
+  name: string;
+  dayIndex: number;
+  dayName: string;
+  dayWeekday: string | null;
+  isRest: boolean;
+  state: TodayPickerDayState;
+  routineId: string;
+  routineDayId: string | null;
+};
+
+export function buildTodayRoutinePayloadState(args: {
+  activeRoutine: ActiveRoutineIdentity | null;
+  effectiveDayIndex: number | null;
+  routineDayName: string | null;
+  routineDayWeekday?: string | null;
+  isRest: boolean;
+  state: TodayPickerDayState;
+  routineDayId: string | null;
+  fallbackDayIndex: number | null;
+}): TodayRoutinePayloadState | null {
+  if (!args.activeRoutine) {
+    return null;
+  }
+
+  const dayIndex = args.effectiveDayIndex ?? args.fallbackDayIndex;
+  if (dayIndex === null) {
+    return null;
+  }
+
+  const dayName = args.routineDayName?.trim() || `Day ${dayIndex}`;
+  const dayWeekday = args.routineDayWeekday?.trim() || null;
+  const routineName = args.activeRoutine.name?.trim() || "Routine";
+
+  return {
+    id: args.activeRoutine.id,
+    name: routineName,
+    dayIndex,
+    dayName,
+    dayWeekday,
+    isRest: args.isRest,
+    state: args.state,
+    routineId: args.activeRoutine.id,
+    routineDayId: args.routineDayId,
   };
 }
 
@@ -82,10 +159,6 @@ export function getTodayDaySummary(day: TodayPickerDay): string | null {
     return "This day has invalid exercises. Edit the day before starting a workout.";
   }
 
-  if (day.state === "empty") {
-    return "No exercises yet.";
-  }
-
   if (day.state === "partial") {
     return "Some exercises could not be loaded and will be skipped when you start this workout.";
   }
@@ -111,35 +184,47 @@ export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
   dayPickerOpen: boolean;
   restDay: boolean;
   emptyState: boolean;
+  emptyTrainingDay: boolean;
   noRoutine: boolean;
   runnableSelection: boolean;
   hasInProgressSession: boolean;
+  contentShellVisible: boolean;
   dayListVisible: boolean;
   dayRowsVisible: boolean;
   summaryVisible: boolean;
   cta: {
     showPrimary: boolean;
-    primaryLabel: "Resume Session" | "Begin" | null;
+    primaryLabel: "Resume" | "Start" | null;
     showSecondarySelectDay: boolean;
-    secondaryLabel: "Days" | "Hide";
+    secondaryLabel: "Switch" | "Hide";
   };
 };
 
 export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
   days: TDay[];
-  selectedDayIndex: number;
-  currentDayIndex: number;
+  selectedDayIndex: number | null;
+  currentDayIndex: number | null;
   dayPickerOpen: boolean;
   inProgressSessionId?: string | null;
 }): TodayScreenMode<TDay> {
   const selectedDay = args.days.find((day) => day.dayIndex === args.selectedDayIndex)
     ?? args.days.find((day) => day.dayIndex === args.currentDayIndex)
+    ?? args.days[0]
     ?? null;
   const hasInProgressSession = Boolean(args.inProgressSessionId);
   const runnableSelection = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
   const restDay = selectedDay?.state === "rest";
   const noRoutine = args.days.length === 0 || selectedDay === null;
   const emptyState = Boolean(selectedDay && selectedDay.exercises.length === 0);
+  const emptyTrainingDay = Boolean(
+    selectedDay
+      && selectedDay.state === "empty"
+      && selectedDay.invalidExerciseCount === 0,
+  );
+  const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
+  const summary = selectedDay ? getTodayDaySummary(selectedDay) : null;
+  const summaryVisible = !args.dayPickerOpen && !noRoutine && Boolean(summary);
+  const contentShellVisible = args.dayPickerOpen || summaryVisible || hasSelectedDayRows || emptyTrainingDay;
 
   return {
     selectedDay,
@@ -147,17 +232,19 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
     dayPickerOpen: args.dayPickerOpen,
     restDay: Boolean(restDay),
     emptyState,
+    emptyTrainingDay,
     noRoutine,
     runnableSelection: Boolean(runnableSelection),
     hasInProgressSession,
+    contentShellVisible,
     dayListVisible: args.dayPickerOpen,
-    dayRowsVisible: !args.dayPickerOpen && !restDay && !noRoutine,
-    summaryVisible: !args.dayPickerOpen && !restDay && !noRoutine && Boolean(getTodayDaySummary(selectedDay)),
+    dayRowsVisible: !args.dayPickerOpen && !restDay && !noRoutine && hasSelectedDayRows,
+    summaryVisible,
     cta: {
       showPrimary: hasInProgressSession || Boolean(runnableSelection),
-      primaryLabel: hasInProgressSession ? "Resume Session" : runnableSelection ? "Begin" : null,
+      primaryLabel: hasInProgressSession ? "Resume" : runnableSelection ? "Start" : null,
       showSecondarySelectDay: true,
-      secondaryLabel: args.dayPickerOpen ? "Hide" : "Days",
+      secondaryLabel: args.dayPickerOpen ? "Hide" : "Switch",
     },
   };
 }

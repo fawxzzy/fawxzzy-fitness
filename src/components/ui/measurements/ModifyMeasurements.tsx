@@ -30,6 +30,7 @@ export function ModifyMeasurements({
   onChange,
   tapFeedbackClass = "",
   showHeader = false,
+  layoutMode = "grid",
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -39,6 +40,7 @@ export function ModifyMeasurements({
   onChange: (patch: Partial<MeasurementValues>) => void;
   tapFeedbackClass?: string;
   showHeader?: boolean;
+  layoutMode?: "grid" | "horizontal-scroll";
 }) {
-  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} description={undefined} collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." showHeader={showHeader} />;
+  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} description={undefined} collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." showHeader={showHeader} layoutMode={layoutMode} />;
 }

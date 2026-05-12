@@ -1,10 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Button } from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
+import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { PillButton } from "@/components/ui/Pill";
 import { cn } from "@/lib/cn";
+import {
+  clearGroupBySelection,
+  hasActiveGroupBySelection,
+  orderGroupByOptions,
+  toggleGroupBySelection,
+} from "@/lib/exercise-tag-filter-order";
+import { formatExerciseTagLabel } from "@/lib/exercise-curation";
 
 export type ExerciseTagGroup = {
   key: string;
@@ -19,17 +28,18 @@ type ExerciseTagFilterControlProps = {
   countDisplayMode?: "never" | "whenNonZero" | "always";
   defaultOpen?: boolean;
   headerLabel?: string;
+  trailingMeta?: string;
   className?: string;
   variant?: "default" | "compact";
+  buttonClassName?: string;
+  panelClassName?: string;
+  summaryClassName?: string;
+  open?: boolean;
+  onOpenChange?: (nextValue: boolean) => void;
+  hideButton?: boolean;
+  tagLayout?: "horizontal" | "stacked";
+  showScrollEdgeFades?: boolean;
 };
-
-function formatTagLabel(tag: string) {
-  return tag
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-}
 
 export function ExerciseTagFilterControl({
   selectedTags,
@@ -38,96 +48,255 @@ export function ExerciseTagFilterControl({
   countDisplayMode = "whenNonZero",
   defaultOpen = false,
   headerLabel = "Filters",
+  trailingMeta,
   className,
   variant = "default",
+  buttonClassName,
+  panelClassName,
+  summaryClassName,
+  open,
+  onOpenChange,
+  hideButton = false,
+  tagLayout = "horizontal",
+  showScrollEdgeFades = true,
 }: ExerciseTagFilterControlProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(defaultOpen);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+  const isOpen = typeof open === "boolean" ? open : uncontrolledIsOpen;
+
+  const setIsOpen = (nextValue: boolean | ((previous: boolean) => boolean)) => {
+    const resolvedValue = typeof nextValue === "function" ? nextValue(isOpen) : nextValue;
+    if (typeof open !== "boolean") {
+      setUncontrolledIsOpen(resolvedValue);
+    }
+    onOpenChange?.(resolvedValue);
+  };
 
   const selectedSummary = useMemo(() => {
     if (selectedTags.length === 0) return "No filters active";
 
     const labelByValue = new Map(groups.flatMap((group) => group.tags.map((tag) => [tag.value, tag.label] as const)));
-    const labels = selectedTags.map((tag) => labelByValue.get(tag) ?? formatTagLabel(tag));
-    return `${selectedTags.length} selected · ${labels.join(", ")}`;
+    const labels = selectedTags.map((tag) => labelByValue.get(tag) ?? formatExerciseTagLabel(tag));
+    return `${selectedTags.length} selected \u00b7 ${labels.join(", ")}`;
   }, [groups, selectedTags]);
 
-  const shouldShowSummary =
-    countDisplayMode === "always" || (countDisplayMode === "whenNonZero" && selectedTags.length > 0);
+  const groupByOptions = useMemo(
+    () => orderGroupByOptions(groups.map((group) => ({ key: group.key, label: group.label })), selectedGroupKey),
+    [groups, selectedGroupKey],
+  );
+  const showGroupByClearButton = hasActiveGroupBySelection(selectedGroupKey);
+
+  const orderedGroups = useMemo(() => {
+    if (!selectedGroupKey) {
+      return groups;
+    }
+
+    const pinnedGroup = groups.find((group) => group.key === selectedGroupKey);
+    if (!pinnedGroup) {
+      return groups;
+    }
+
+    return [
+      pinnedGroup,
+      ...groups.filter((group) => group.key !== selectedGroupKey),
+    ];
+  }, [groups, selectedGroupKey]);
+
+  useEffect(() => {
+    if (!selectedGroupKey) {
+      return;
+    }
+
+    if (!groups.some((group) => group.key === selectedGroupKey)) {
+      setSelectedGroupKey(null);
+    }
+  }, [groups, selectedGroupKey]);
 
   const compact = variant === "compact";
+  const useStackedTagLayout = tagLayout === "stacked";
 
   return (
     <div className={className ?? "space-y-2"}>
-      <Button
-        type="button"
-        variant={compact ? "secondary" : "ghost"}
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-expanded={isOpen}
-        className={compact
-          ? "min-h-10 w-full justify-between rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-sm font-medium [-webkit-tap-highlight-color:transparent]"
-          : "w-full justify-between border border-white/10 bg-black/10 [-webkit-tap-highlight-color:transparent]"}
-      >
-        <span className="inline-flex items-center gap-2">
-          <span>{headerLabel}</span>
-          <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.45)] px-1.5 text-[11px] font-semibold text-muted">
-            {selectedTags.length}
+      {hideButton ? null : (
+        <Button
+          type="button"
+          variant={compact ? "secondary" : "ghost"}
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-expanded={isOpen}
+          className={cn(
+            compact
+              ? appTokens.exercisePickerFilterToggle
+              : "w-full justify-between rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] [-webkit-tap-highlight-color:transparent]",
+            buttonClassName,
+          )}
+        >
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <span>{headerLabel}</span>
           </span>
-        </span>
-        <span className="ml-auto inline-flex items-center gap-2">
-          {compact && selectedTags.length > 0 ? <span className="text-[11px] font-medium text-muted">Active</span> : null}
-          {isOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
-        </span>
-      </Button>
+          <span className="ml-auto inline-flex min-w-0 items-center gap-2 pl-2">
+            {trailingMeta ? (
+              <span className={cn(appTokens.exercisePickerSectionMeta, selectedTags.length > 0 ? "text-[rgb(var(--accent)/0.96)]" : undefined)}>
+                {trailingMeta}
+              </span>
+            ) : null}
+            {isOpen ? (
+              <ChevronUpIcon className={cn("h-4 w-4", selectedTags.length > 0 ? "text-[rgb(var(--accent)/0.92)]" : "text-muted")} />
+            ) : (
+              <ChevronDownIcon className={cn("h-4 w-4", selectedTags.length > 0 ? "text-[rgb(var(--accent)/0.92)]" : "text-muted")} />
+            )}
+          </span>
+        </Button>
+      )}
 
-      {shouldShowSummary ? <p className={compact ? "px-1 text-[11px] text-muted" : "text-xs text-muted"}>{selectedSummary}</p> : null}
+      {compact || hideButton || !(countDisplayMode === "always" || (countDisplayMode === "whenNonZero" && selectedTags.length > 0)) ? null : (
+        <p className={cn("text-xs text-muted", summaryClassName)}>
+          {selectedSummary}
+        </p>
+      )}
 
       {isOpen ? (
-        <div className={compact ? "space-y-2 rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.16)] p-2.5" : "space-y-2"}>
-          <div className="flex items-center justify-end">
-            {selectedTags.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => onChange([])}
-                className="inline-flex min-h-7 items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 text-[11px] font-medium uppercase tracking-[0.1em] text-muted transition-colors hover:text-text"
+        <div
+          className={cn(
+            compact ? appTokens.exercisePickerFilterPanel : "space-y-2",
+            panelClassName,
+          )}
+        >
+          {groupByOptions.length > 1 ? (
+            <div className="space-y-1.5">
+              <p
+                className={cn(
+                  compact
+                    ? appTokens.exercisePickerFilterGroupLabel
+                    : "text-[11px] font-medium uppercase tracking-wide",
+                  "pl-[4px] pt-[4px]",
+                )}
               >
-                Clear
-              </button>
-            ) : null}
-          </div>
-          {groups.map((group) => (
-            <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
-              <p className={compact ? "text-[10px] font-medium uppercase tracking-[0.14em] text-muted/80" : "text-[11px] font-medium uppercase tracking-wide text-muted"}>{group.label}</p>
-              <div className={compact
-                ? "flex flex-wrap gap-1.5 px-0.5 py-0.5"
-                : "flex flex-wrap gap-1 px-0.5 py-0.5"}
-              >
-                {group.tags.map((tag) => {
-                  const isSelected = selectedTags.includes(tag.value);
-                  return (
-                    <PillButton
-                      key={tag.value}
+                Group By
+              </p>
+              <div className="hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1">
+                <div className={cn(compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1")}>
+                  {showGroupByClearButton ? (
+                    <button
                       type="button"
-                      active={isSelected}
+                      onClick={() => setSelectedGroupKey(clearGroupBySelection())}
                       className={cn(
-                        "max-w-full justify-start whitespace-normal text-left leading-tight [word-break:normal]",
-                        compact ? "px-2 py-1 text-[10px]" : undefined,
+                        appTokens.exercisePickerFilterClearButton,
+                        "shrink-0 whitespace-nowrap",
+                        compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
                       )}
-                      onClick={() => {
-                        if (isSelected) {
-                          onChange(selectedTags.filter((value) => value !== tag.value));
-                          return;
-                        }
-
-                        onChange([...selectedTags, tag.value]);
-                      }}
                     >
-                      {tag.label}
-                    </PillButton>
-                  );
-                })}
+                      Clear
+                    </button>
+                  ) : null}
+                  {groupByOptions.map((option) => {
+                    const isSelected = selectedGroupKey === option.key;
+                    return (
+                      <PillButton
+                        key={option.key}
+                        type="button"
+                        active={isSelected}
+                        className={cn(
+                          "shrink-0 whitespace-nowrap",
+                          compact ? "px-2 py-1 text-[10px]" : undefined,
+                          isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                        )}
+                        onClick={() => setSelectedGroupKey((current) => toggleGroupBySelection(current, option.key))}
+                      >
+                        {option.label}
+                      </PillButton>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          ))}
+          ) : null}
+          <FilterScrollPanel
+            showEdgeFades={showScrollEdgeFades}
+            viewportClassName={compact ? "max-h-[min(42vh,20rem)] space-y-3" : "max-h-[min(48vh,24rem)] space-y-2"}
+          >
+              {orderedGroups.map((group) => {
+                const selectedTagsForGroup = group.tags
+                  .map((tag) => tag.value)
+                  .filter((tagValue) => selectedTags.includes(tagValue));
+
+                return (
+                <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
+                  <p
+                    className={cn(
+                      compact
+                        ? appTokens.exercisePickerFilterGroupLabel
+                        : "text-[11px] font-medium uppercase tracking-wide",
+                      "pl-[4px] pt-[4px]",
+                    )}
+                  >
+                    {group.label}
+                  </p>
+                  <div
+                    className={cn(
+                      useStackedTagLayout
+                        ? "px-0.5 pb-1"
+                        : "hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1",
+                      compact ? "pt-0.5" : undefined,
+                    )}
+                    >
+                      <div
+                        className={cn(
+                          useStackedTagLayout
+                            ? "flex flex-col gap-1.5"
+                          : compact
+                            ? "flex min-w-max flex-nowrap gap-1.5"
+                            : "flex min-w-max flex-nowrap gap-1",
+                        )}
+                      >
+                      {selectedTagsForGroup.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => onChange(selectedTags.filter((value) => !selectedTagsForGroup.includes(value)))}
+                          className={cn(
+                            appTokens.exercisePickerFilterClearButton,
+                            "shrink-0 whitespace-nowrap",
+                            compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+                          )}
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                      {[...group.tags].sort((left, right) => {
+                        const leftSelected = selectedTags.includes(left.value);
+                        const rightSelected = selectedTags.includes(right.value);
+                        if (leftSelected === rightSelected) return left.label.localeCompare(right.label);
+                        return leftSelected ? -1 : 1;
+                      }).map((tag) => {
+                        const isSelected = selectedTags.includes(tag.value);
+                        return (
+                          <PillButton
+                            key={tag.value}
+                            type="button"
+                            active={isSelected}
+                            className={cn(
+                              "max-w-full justify-start text-left leading-tight [word-break:normal]",
+                              useStackedTagLayout ? "w-full whitespace-normal" : "shrink-0 whitespace-nowrap",
+                              compact ? "px-2 py-1 text-[10px]" : undefined,
+                              isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                            )}
+                            onClick={() => {
+                              if (isSelected) {
+                                onChange(selectedTags.filter((value) => value !== tag.value));
+                                return;
+                              }
+
+                              onChange([...selectedTags, tag.value]);
+                            }}
+                          >
+                            {tag.label}
+                          </PillButton>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )})}
+          </FilterScrollPanel>
         </div>
       ) : null}
     </div>

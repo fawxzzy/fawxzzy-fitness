@@ -1,12 +1,33 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+
+const reorderHandleSelectionChromeStyle = {
+  borderColor: "rgb(var(--selection-rgb) / 0.3)",
+  color: "rgb(var(--text-primary) / 0.96)",
+  background: "linear-gradient(180deg, rgb(var(--selection-rgb) / 0.05), rgb(var(--surface-1-rgb) / 0.3))",
+  boxShadow: "inset 0 0 0 1px rgb(var(--selection-rgb) / 0.16), 0 0 0 1px rgb(var(--selection-rgb) / 0.05), 0 0 16px rgb(var(--selection-rgb) / 0.12), 0 12px 24px rgba(0, 0, 0, 0.16)",
+} as CSSProperties;
 
 type Props = {
   exerciseId: string;
   exerciseName: string;
   metadata: string;
-  iconSrc: string;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
+  primary_muscle?: string | null;
+  equipment?: string | null;
+  movement_pattern?: string | null;
+  isCardio?: boolean | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
+  slug?: string | null;
+  image_path?: string | null;
+  image_icon_path?: string | null;
+  image_howto_path?: string | null;
   orderNumber: number;
   isDragging: boolean;
   onHandlePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
@@ -19,7 +40,19 @@ export function ReorderExerciseRow({
   exerciseId,
   exerciseName,
   metadata,
-  iconSrc,
+  measurementType,
+  primary_muscle,
+  equipment,
+  movement_pattern,
+  isCardio,
+  kind,
+  type,
+  tags,
+  categories,
+  slug,
+  image_path,
+  image_icon_path,
+  image_howto_path,
   orderNumber,
   isDragging,
   onHandlePointerDown,
@@ -27,34 +60,41 @@ export function ReorderExerciseRow({
   onHandlePointerUp,
   onHandlePointerCancel,
 }: Props) {
+  const policy = resolveWorkoutCardSurfacePolicy("reorder", "compact");
+
   return (
     <div data-exercise-row-id={exerciseId}>
       <StandardExerciseRow
-        exercise={{ name: exerciseName, image_icon_path: iconSrc }}
+        exercise={{ name: exerciseName, slug, image_path, image_icon_path, image_howto_path }}
         summary={metadata}
+        summaryLabel="Goal"
+        subtitleTone="plain"
         variant="reorder"
         state={isDragging ? "selected" : "default"}
-        className={cn("shadow-none", isDragging ? "scale-[0.99] opacity-85" : undefined)}
-        trailingStackClassName="grid-rows-[auto_auto_1fr] gap-1.5 py-0"
+        badgeText={undefined}
+        bodyClassName={appTokens.routineEditorReorderBody}
+        className={cn(appTokens.routineEditorReorderBase, isDragging ? appTokens.routineEditorReorderDragging : undefined)}
+        trailingStackClassName={appTokens.routineEditorReorderTrailingStack}
+        showLeadingVisual={policy.showMedia}
         rightIcon={(
           <button
             type="button"
             aria-label={`Reorder ${exerciseName}`}
             title="Drag to reorder"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.3)] text-muted hover:bg-[rgb(var(--bg)/0.46)] touch-none"
+            className={cn(
+              appTokens.routineEditorReorderHandle,
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
+            )}
+            style={reorderHandleSelectionChromeStyle}
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}
             onPointerCancel={onHandlePointerCancel}
           >
-            <span aria-hidden="true" className="text-base leading-none tracking-[-0.08em]">⋮⋮</span>
+            <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>::</span>
           </button>
         )}
-      >
-        <span className="inline-flex w-fit items-center justify-center rounded-full border border-emerald-400/35 bg-emerald-400/14 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-100">
-          Order {orderNumber}
-        </span>
-      </StandardExerciseRow>
+      />
     </div>
   );
 }

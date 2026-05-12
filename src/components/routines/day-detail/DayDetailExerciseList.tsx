@@ -1,21 +1,38 @@
 "use client";
 
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { listShellClasses } from "@/components/ui/listShellClasses";
+import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import { isStretchHubExercise } from "@/lib/stretch-library";
+import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 export type DayDetailExerciseListItem = {
   id: string;
   name: string;
   summary: string | null;
-  iconSrc: string;
   orderNumber: number;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
+  primary_muscle?: string | null;
+  equipment?: string | null;
+  movement_pattern?: string | null;
+  isCardio?: boolean | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
+  slug?: string | null;
+  image_path?: string | null;
+  image_icon_path?: string | null;
+  image_howto_path?: string | null;
 };
 
 type Props = {
   items: DayDetailExerciseListItem[];
   mode: "read_only" | "editable";
+  density?: "compact" | "detailed";
   activeItemId?: string | null;
+  showOrderBadges?: boolean;
   onSelectItem?: (item: DayDetailExerciseListItem) => void;
   renderExpandedContent?: (item: DayDetailExerciseListItem) => React.ReactNode;
   className?: string;
@@ -24,41 +41,72 @@ type Props = {
 export function DayDetailExerciseList({
   items,
   mode,
+  density,
   activeItemId = null,
+  showOrderBadges = mode === "editable",
   onSelectItem,
   renderExpandedContent,
   className,
 }: Props) {
   const interactive = Boolean(onSelectItem);
+  const policy = resolveWorkoutCardSurfacePolicy(mode === "editable" ? "edit-day" : "view-day", "compact");
 
   return (
-    <ul className={cn("space-y-2", className)}>
+    <ul className={cn("space-y-1.5", className)}>
       {items.map((item) => {
         const isActive = activeItemId === item.id;
-        return (
-          <li key={item.id} className="rounded-[1.3rem] transition-all">
-            <div className="overflow-hidden rounded-[1.25rem]">
-              <StandardExerciseRow
-                exercise={{ name: item.name, image_icon_path: item.iconSrc }}
-                summary={item.summary ?? undefined}
-                variant="interactive"
-                state={isActive && mode === "editable" ? "selected" : "default"}
-                onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
-                className={cn(
-                  listShellClasses.card,
-                  "w-full",
-                  isActive && mode === "editable" ? "rounded-b-none" : undefined,
-                )}
-                rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
-              />
+        const isStretchHub = isStretchHubExercise(item);
+        const resolvedSummary = isStretchHub ? undefined : item.summary;
+        const exerciseVisual = {
+          name: item.name,
+          slug: item.slug,
+          image_path: item.image_path,
+          image_icon_path: item.image_icon_path,
+          image_howto_path: item.image_howto_path,
+        };
 
-              {isActive && mode === "editable" && renderExpandedContent ? (
-                <div className="border-t border-border/30 px-3.5 pb-3.5 pt-2 sm:px-4">
-                  {renderExpandedContent(item)}
-                </div>
-              ) : null}
-            </div>
+        return (
+          <li key={item.id} className={appTokens.routineEditorReorderItem}>
+            {mode === "editable" && interactive ? (
+              <ExerciseDisclosureCard
+                scope="day-detail"
+                itemId={item.id}
+                expanded={isActive}
+                onToggle={() => onSelectItem?.(item)}
+                exercise={exerciseVisual}
+                summary={resolvedSummary}
+                summaryLabel={isStretchHub ? "" : "Goal"}
+                state={isActive ? "selected" : "default"}
+                badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
+                bodyClassName={appTokens.routineEditorReorderBody}
+                subtitleTone="plain"
+                showLeadingVisual={policy.showMedia}
+                showAccentRail={!isStretchHub}
+                hideEmptySummary={isStretchHub}
+                rightIconMode="overlay"
+                rightRailClassName={mode === "editable" ? "right-[0.8rem] top-auto bottom-[0.62rem] translate-y-0" : undefined}
+              >
+                {renderExpandedContent?.(item)}
+              </ExerciseDisclosureCard>
+            ) : (
+              <StandardExerciseRow
+                exercise={exerciseVisual}
+                summary={resolvedSummary}
+                summaryLabel={mode === "editable" ? (isStretchHub ? "" : "Goal") : undefined}
+                subtitleTone="plain"
+                variant={interactive ? "interactive" : "standard"}
+                density={density}
+                state="default"
+                onPress={interactive ? () => onSelectItem?.(item) : undefined}
+                badgeText={mode === "editable" && showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
+                bodyClassName={mode === "editable" ? appTokens.routineEditorReorderBody : undefined}
+                className={cn("w-full", appTokens.routineEditorReorderBase)}
+                contentClassName={mode === "editable" ? undefined : "pl-3"}
+                showLeadingVisual={policy.showMedia}
+                showAccentRail={!isStretchHub}
+                hideEmptySummary={isStretchHub}
+              />
+            )}
           </li>
         );
       })}

@@ -1,8 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EmailOtpType } from "@supabase/supabase-js";
+import { setSessionCookies } from "@/lib/auth-session";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+function renderRecoveryFragmentBridge(request: NextRequest) {
+  const recoveryRedirect = new URL("/reset-password?recovery=1", request.url).toString();
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <script>
+      const target = new URL(${JSON.stringify(recoveryRedirect)});
+      if (window.location.hash) {
+        target.hash = window.location.hash;
+      }
+      window.location.replace(target.toString());
+    </script>
+    <noscript>
+      <p>Password reset links require JavaScript to finish signing you in.</p>
+      <p><a href="${recoveryRedirect}">Continue to reset password</a></p>
+    </noscript>
+  </body>
+</html>`;
+
+  return new NextResponse(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -52,6 +86,8 @@ export async function GET(request: NextRequest) {
     }
 
     session = data.session;
+  } else if (isRecoveryFlow) {
+    return renderRecoveryFragmentBridge(request);
   } else {
     return NextResponse.redirect(failureRedirect);
   }
@@ -70,21 +106,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(confirmedRedirect);
   }
 
-  const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/today";
+  const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/entry";
 
   const response = NextResponse.redirect(new URL(redirectPath, request.url));
-  response.cookies.set("sb-access-token", session.access_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-  response.cookies.set("sb-refresh-token", session.refresh_token, {
-    path: "/",
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
+  setSessionCookies(response.cookies, {
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
   });
 
   return response;

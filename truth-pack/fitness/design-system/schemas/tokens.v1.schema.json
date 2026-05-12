@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fitness.design-system.tokens.schema.v1",
+  "title": "Fitness Design System Tokens v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "packId",
+    "packVersion",
+    "status",
+    "ownerRepoId",
+    "tokenGroups"
+  ],
+  "properties": {
+    "packId": { "type": "string" },
+    "packVersion": { "type": "string" },
+    "status": { "type": "string" },
+    "ownerRepoId": { "type": "string" },
+    "tokenGroups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spacing",
+        "typography",
+        "colors",
+        "radii",
+        "shadows",
+        "borders"
+      ],
+      "properties": {
+        "spacing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "0",
+            "0.5",
+            "1",
+            "1.5",
+            "2",
+            "2.5",
+            "3",
+            "3.5",
+            "4",
+            "5",
+            "6",
+            "8",
+            "10",
+            "12"
+          ],
+          "properties": {
+            "0": { "type": "string" },
+            "0.5": { "type": "string" },
+            "1": { "type": "string" },
+            "1.5": { "type": "string" },
+            "2": { "type": "string" },
+            "2.5": { "type": "string" },
+            "3": { "type": "string" },
+            "3.5": { "type": "string" },
+            "4": { "type": "string" },
+            "5": { "type": "string" },
+            "6": { "type": "string" },
+            "8": { "type": "string" },
+            "10": { "type": "string" },
+            "12": { "type": "string" }
+          }
+        },
+        "typography": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["eyebrow", "title", "subtitle", "accentSubtitle", "body", "sectionLabel", "badge"],
+          "properties": {
+            "eyebrow": { "type": "string" },
+            "title": { "type": "string" },
+            "subtitle": { "type": "string" },
+            "accentSubtitle": { "type": "string" },
+            "body": { "type": "string" },
+            "sectionLabel": { "type": "string" },
+            "badge": { "type": "string" }
+          }
+        },
+        "colors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["background", "surface", "text", "accent", "status", "border"],
+          "properties": {
+            "background": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["app", "panel", "card", "shell"],
+              "properties": {
+                "app": { "type": "string" },
+                "panel": { "type": "string" },
+                "card": { "type": "string" },
+                "shell": { "type": "string" }
+              }
+            },
+            "surface": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["1", "2", "3"],
+              "properties": {
+                "1": { "type": "string" },
+                "2": { "type": "string" },
+                "3": { "type": "string" }
+              }
+            },
+            "text": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["primary", "secondary", "muted", "onAccent"],
+              "properties": {
+                "primary": { "type": "string" },
+                "secondary": { "type": "string" },
+                "muted": { "type": "string" },
+                "onAccent": { "type": "string" }
+              }
+            },
+            "accent": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["base", "strong"],
+              "properties": {
+                "base": { "type": "string" },
+                "strong": { "type": "string" }
+              }
+            },
+            "status": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["success", "warning", "danger"],
+              "properties": {
+                "success": { "type": "string" },
+                "warning": { "type": "string" },
+                "danger": { "type": "string" }
+              }
+            },
+            "border": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["soft", "strong", "focus"],
+              "properties": {
+                "soft": { "type": "string" },
+                "strong": { "type": "string" },
+                "focus": { "type": "string" }
+              }
+            }
+          }
+        },
+        "radii": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sm", "md", "lg", "xl", "pill"],
+          "properties": {
+            "sm": { "type": "string" },
+            "md": { "type": "string" },
+            "lg": { "type": "string" },
+            "xl": { "type": "string" },
+            "pill": { "type": "string" }
+          }
+        },
+        "shadows": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["glassBase", "glassRaised", "glassOverlay", "actionChromeShell"],
+          "properties": {
+            "glassBase": { "type": "string" },
+            "glassRaised": { "type": "string" },
+            "glassOverlay": { "type": "string" },
+            "actionChromeShell": { "type": "string" }
+          }
+        },
+        "borders": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hairline", "soft", "strong", "focus"],
+          "properties": {
+            "hairline": { "type": "string" },
+            "soft": { "type": "string" },
+            "strong": { "type": "string" },
+            "focus": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

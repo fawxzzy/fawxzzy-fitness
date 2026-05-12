@@ -1,42 +1,48 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { AppButton } from "@/components/ui/AppButton";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { cn } from "@/lib/cn";
 import {
-  BOTTOM_ACTION_INTENT_CLASS_NAMES,
-  getBottomActionAppButtonVariant,
+  getBottomActionButtonClassName,
   resolveBottomActionIntent,
   type BottomActionIntent,
   type BottomDockButtonVariant,
 } from "@/components/layout/bottomActionIntents";
-import { cn } from "@/lib/cn";
 
 export type { BottomActionIntent, BottomDockButtonVariant };
-
-const bottomDockBaseClassName = "min-h-[3.1rem] rounded-[1.08rem] px-4 text-sm font-semibold tracking-[0.01em]";
 
 type BottomDockButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
   children: ReactNode;
   intent?: BottomActionIntent;
   variant?: BottomDockButtonVariant;
   loading?: boolean;
+  loadingLabel?: string;
   fullWidth?: boolean;
 };
 
-export function BottomDockButton({ children, intent, variant, className, ...props }: BottomDockButtonProps) {
+export function BottomDockButton({ children, intent, variant, className, loading = false, loadingLabel: configuredLoadingLabel, fullWidth = true, ...props }: BottomDockButtonProps) {
   const resolvedIntent = resolveBottomActionIntent({ intent, variant });
-  const resolvedVariant = getBottomActionAppButtonVariant(resolvedIntent);
+  const isDisabled = Boolean(props.disabled || loading);
+  const loadingLabel = configuredLoadingLabel ?? (typeof children === "string" && children.trim().length > 0 ? `${children}...` : "Loading...");
 
   return (
-    <AppButton
+    <button
       {...props}
-      variant={resolvedVariant}
+      disabled={isDisabled}
+      aria-busy={loading}
       data-bottom-action-intent={resolvedIntent}
-      fullWidth
-      className={cn(bottomDockBaseClassName, BOTTOM_ACTION_INTENT_CLASS_NAMES[resolvedIntent], className)}
+      className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >
-      {children}
-    </AppButton>
+      <span className={cn("bottom-action__label", loading ? "opacity-0" : "")}>{children}</span>
+      {loading ? (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span aria-hidden="true" className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-r-transparent" />
+          <span className="sr-only">{loadingLabel}</span>
+        </span>
+      ) : null}
+    </button>
   );
 }
 
@@ -45,29 +51,28 @@ export function BottomDockLink({
   children,
   intent,
   variant,
+  fullWidth = true,
   className,
 }: {
   href: string;
   children: ReactNode;
   intent?: BottomActionIntent;
   variant?: BottomDockButtonVariant;
+  fullWidth?: boolean;
   className?: string;
 }) {
+  const pathname = usePathname();
   const resolvedIntent = resolveBottomActionIntent({ intent, variant });
-  const resolvedVariant = getBottomActionAppButtonVariant(resolvedIntent);
+  const shouldPrefetch = !(pathname === "/dev" || pathname?.startsWith("/dev/"));
 
   return (
     <Link
       href={href}
+      prefetch={shouldPrefetch}
       data-bottom-action-intent={resolvedIntent}
-      className={getAppButtonClassName({
-        variant: resolvedVariant,
-        size: "md",
-        fullWidth: true,
-        className: cn(bottomDockBaseClassName, BOTTOM_ACTION_INTENT_CLASS_NAMES[resolvedIntent], className),
-      })}
+      className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >
-      <span>{children}</span>
+      <span className="bottom-action__label">{children}</span>
     </Link>
   );
 }

@@ -1,3 +1,5 @@
+import { fitnessDesignPrimitiveClassNames, fitnessDesignTokens } from "@/components/ui/app/designSystem";
+
 export type ScreenScaffoldType = "standard" | "session" | "editor" | "detail";
 export type ScreenHeaderType = "shared";
 export type ScreenHeaderRecipe = "sharedScreenHeader";
@@ -31,10 +33,14 @@ export type ScreenRecipe = ScreenContract & {
   sectionBodyClassName: string;
 };
 
-const topChromeHeaderPanelClassName = "px-4 pb-2 pt-1";
-const standaloneHeaderPanelClassName = "px-4 pb-3 pt-1.5";
-const topChromeHeaderPanelClassNameWithSpacing = `space-y-1.5 ${topChromeHeaderPanelClassName}`;
-const standaloneHeaderPanelClassNameWithSpacing = `space-y-2 ${standaloneHeaderPanelClassName}`;
+const headerTokens = fitnessDesignPrimitiveClassNames.header;
+const sectionTokens = fitnessDesignPrimitiveClassNames.sectionLayout;
+const spacing = fitnessDesignTokens.spacing;
+
+const topChromeHeaderPanelClassName = `${headerTokens.horizontalPadding} pb-[${spacing["2"]}] pt-[${spacing["1"]}]`;
+const standaloneHeaderPanelClassName = `${headerTokens.horizontalPadding} pb-[${spacing["3"]}] pt-[${spacing["1.5"]}]`;
+const topChromeHeaderPanelClassNameWithSpacing = `space-y-[${spacing["1.5"]}] ${topChromeHeaderPanelClassName}`;
+const standaloneHeaderPanelClassNameWithSpacing = `space-y-[${spacing["2"]}] ${standaloneHeaderPanelClassName}`;
 
 const sharedStatBaseContract = {
   header: "shared",
@@ -131,81 +137,81 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
     headerInsetMode: "topChrome",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: topChromeHeaderPanelClassNameWithSpacing,
-    sectionClassName: "space-y-3 p-4",
-    sectionShellClassName: "space-y-4 p-4",
-    sectionBodyClassName: "space-y-3",
+    sectionClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellSpaciousClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
   },
   exerciseLog: {
     ...screenContracts.exerciseLog,
     headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: standaloneHeaderPanelClassName,
-    sectionClassName: "space-y-3",
-    sectionShellClassName: "space-y-3 p-4",
-    sectionBodyClassName: "space-y-3",
+    sectionClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
   },
   sessionAddExercise: {
     ...screenContracts.sessionAddExercise,
     headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: standaloneHeaderPanelClassNameWithSpacing,
-    sectionClassName: "space-y-3",
-    sectionShellClassName: "space-y-3 p-4",
-    sectionBodyClassName: "space-y-3",
+    sectionClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
   },
   editDay: {
     ...screenContracts.editDay,
     headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: standaloneHeaderPanelClassNameWithSpacing,
-    sectionClassName: "space-y-3",
-    sectionShellClassName: "space-y-3 p-4",
-    sectionBodyClassName: "space-y-3",
+    sectionClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
   },
   viewDay: {
     ...screenContracts.viewDay,
     headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: standaloneHeaderPanelClassNameWithSpacing,
-    sectionClassName: "space-y-3",
-    sectionShellClassName: "space-y-3 p-4",
-    sectionBodyClassName: "space-y-3",
+    sectionClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
   },
   historyDetail: {
     ...screenContracts.historyDetail,
     headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: standaloneHeaderPanelClassName,
-    sectionClassName: "space-y-3",
-    sectionShellClassName: "space-y-3 p-4",
-    sectionBodyClassName: "space-y-3",
+    sectionClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
   },
   exerciseDetail: {
     ...screenContracts.exerciseDetail,
     headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: standaloneHeaderPanelClassName,
-    sectionClassName: "space-y-3",
-    sectionShellClassName: "space-y-3 p-4",
-    sectionBodyClassName: "space-y-3",
+    sectionClassName: sectionTokens.sectionBodyStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyStandardClassName,
   },
   routinesOverview: {
     ...screenContracts.routinesOverview,
     headerInsetMode: "topChrome",
-    scaffoldClassName: "space-y-4",
-    headerPanelClassName: `space-y-2.5 ${topChromeHeaderPanelClassName}`,
-    sectionClassName: "space-y-3 p-4",
-    sectionShellClassName: "space-y-4 p-4",
-    sectionBodyClassName: "space-y-3",
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: `space-y-2 ${headerTokens.horizontalPadding} pb-[${spacing["1.5"]}] pt-[${spacing["1"]}]`,
+    sectionClassName: sectionTokens.sectionShellStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyDenseClassName,
   },
   todayOverview: {
     ...screenContracts.todayOverview,
     headerInsetMode: "topChrome",
     scaffoldClassName: "space-y-3",
     headerPanelClassName: topChromeHeaderPanelClassNameWithSpacing,
-    sectionClassName: "space-y-2.5 p-4",
-    sectionShellClassName: "space-y-3 p-4",
-    sectionBodyClassName: "space-y-2.5",
+    sectionClassName: sectionTokens.sectionShellStandardClassName,
+    sectionShellClassName: sectionTokens.sectionShellStandardClassName,
+    sectionBodyClassName: sectionTokens.sectionBodyDenseClassName,
   },
 };
 

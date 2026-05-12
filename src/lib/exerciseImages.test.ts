@@ -1,0 +1,246 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { resolveExerciseThumb } from "./exerciseImages.ts";
+
+function withSuppressedMissingIconWarnings<T>(callback: () => T): T {
+  const originalWarn = console.warn;
+  console.warn = () => {};
+
+  try {
+    return callback();
+  } finally {
+    console.warn = originalWarn;
+  }
+}
+
+test("resolveExerciseThumb prefers icon sources over legacy image paths", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Barbell Bench Press",
+    iconSrc: "/icons/barbell-bench-press.png",
+    imageUrl: "/legacy/bench-press.png",
+  });
+
+  assert.deepEqual(resolved, {
+    src: "/icons/barbell-bench-press.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb prefers explicit card art over repo legacy image paths on row cards", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Incline Dumbbell Bench Press",
+    cardSrc: "/images/custom-incline-thumb.png",
+    image_path: "/images/legacy-incline-howto.png",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(resolved, {
+    src: "/images/custom-incline-thumb.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb prefers trusted thumbnails before card art on row cards", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Incline Dumbbell Bench Press",
+    cardSrc: "/images/custom-incline-card.png",
+    thumbnailUrl: "/images/session-photo-thumb.png",
+    thumbnailSource: "session-log",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(resolved, {
+    src: "/images/session-photo-thumb.png",
+    mode: "photo",
+  });
+});
+
+test("resolveExerciseThumb prefers generated manifest icons before legacy image paths", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Ignore Me",
+    slug: "back-squat",
+    image_path: "/images/back-squat-howto.png",
+  });
+
+  assert.deepEqual(resolved, {
+    src: "/exercises/icons/back-squat.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb keeps manifest card art ahead of legacy row art on row cards", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Lateral Raise",
+    image_howto_path: "/images/lateral-raise-row-art.png",
+    imageUrl: "/images/lateral-raise-composite.png",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(resolved, {
+    src: "/exercises/cards/lateral-raise.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb keeps exercise-specific icons for row cards when no alternate media exists", () => {
+  const barbellBench = resolveExerciseThumb({
+    name: "Barbell Bench Press",
+  }, { intent: "row-card" });
+  const lateralRaise = resolveExerciseThumb({
+    name: "Lateral Raise",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(barbellBench, {
+    src: "/exercises/cards/barbell-bench-press.png",
+    mode: "icon",
+  });
+  assert.deepEqual(lateralRaise, {
+    src: "/exercises/cards/lateral-raise.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb normalizes punctuation-heavy names to manifest icon slugs", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Dips (Triceps)",
+  });
+
+  assert.deepEqual(resolved, {
+    src: "/exercises/icons/dips-triceps.png",
+    mode: "icon",
+  });
+  const lateralRaise = resolveExerciseThumb({
+    name: "Lateral Raise",
+  });
+
+  assert.deepEqual(lateralRaise, {
+    src: "/exercises/icons/lateral-raise.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb normalizes hyphenated names to manifest icon slugs", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Single-Arm Lat Pulldown",
+  });
+
+  assert.deepEqual(resolved, {
+    src: "/exercises/icons/single-arm-lat-pulldown.png",
+    mode: "icon",
+  });
+  const abWheelRollout = resolveExerciseThumb({
+    name: "Ab Wheel Rollout",
+  });
+
+  assert.deepEqual(abWheelRollout, {
+    src: "/exercises/icons/ab-wheel-rollout.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb resolves cardio exercise names through the shared manifest", () => {
+  const treadmillRun = resolveExerciseThumb({
+    name: "Treadmill Run",
+  });
+  const inclineWalk = resolveExerciseThumb({
+    name: "Incline Walk",
+  });
+
+  assert.deepEqual(treadmillRun, {
+    src: "/exercises/icons/treadmill-run.png",
+    mode: "icon",
+  });
+  assert.deepEqual(inclineWalk, {
+    src: "/exercises/icons/incline-walk.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb keeps explicit custom icons ahead of library defaults", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Barbell Bench Press",
+    image_icon_path: "/images/custom-bench-thumb.png",
+    image_path: "/images/legacy-bench-howto.png",
+  });
+
+  assert.deepEqual(resolved, {
+    src: "/images/custom-bench-thumb.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb prefers thumbnail photos over legacy composite art", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Photo Exercise",
+    thumbnailUrl: "/images/photo-thumb.png",
+    imageUrl: "/images/legacy-composite.png",
+  }));
+
+  assert.deepEqual(resolved, {
+    src: "/images/photo-thumb.png",
+    mode: "photo",
+  });
+});
+
+test("resolveExerciseThumb ignores untrusted thumbnails for row cards and keeps card art ahead of legacy composites", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Incline Dumbbell Bench Press",
+    thumbnailUrl: "/images/catalog-incline-thumb.png",
+    thumbnailSource: "catalog-thumbnail",
+    imageUrl: "/images/catalog-incline-composite.png",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(resolved, {
+    src: "/exercises/cards/incline-dumbbell-bench-press.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb allows trusted thumbnails for row cards", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Session Photo Exercise",
+    thumbnailUrl: "/images/session-photo-thumb.png",
+    thumbnailSource: "session-log",
+    imageUrl: "/images/session-photo-composite.png",
+  }, { intent: "row-card" }));
+
+  assert.deepEqual(resolved, {
+    src: "/images/session-photo-thumb.png",
+    mode: "photo",
+  });
+});
+
+test("resolveExerciseThumb falls back to legacy composite art for row cards when the thumbnail is untrusted and no icon exists", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Catalog Only Exercise",
+    thumbnailUrl: "/images/catalog-only-thumb.png",
+    thumbnailSource: "catalog-thumbnail",
+    imageUrl: "/images/catalog-only-composite.png",
+  }, { intent: "row-card" }));
+
+  assert.deepEqual(resolved, {
+    src: "/images/catalog-only-composite.png",
+    mode: "legacy-composite",
+  });
+});
+
+test("resolveExerciseThumb marks legacy-only image paths as composite", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Custom Exercise",
+    image_path: "/images/custom-howto.png",
+  }));
+
+  assert.deepEqual(resolved, {
+    src: "/images/custom-howto.png",
+    mode: "legacy-composite",
+  });
+});
+
+test("resolveExerciseThumb marks fallback art when no icon or legacy image exists", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Missing Exercise",
+  }));
+
+  assert.deepEqual(resolved, {
+    src: "/exercises/icons/_placeholder.svg",
+    mode: "fallback",
+  });
+});

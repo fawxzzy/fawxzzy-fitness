@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
+import { appTokens } from "@/components/ui/app/tokens";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
+import { getMeasurementToggleButtonClassName, getMeasurementToggleIntent } from "@/components/ui/measurements/measurementToggleButton";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
-import { deriveGoalMeasurementSelections, getVisibleMetricsForModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
 export type ExerciseGoalFormState = {
   sets: string;
   repsMin: string;
   repsMax: string;
+  failure: boolean;
   weight: string;
   duration: string;
   distance: string;
@@ -28,6 +33,10 @@ function parseDurationInput(value: string) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function sanitizeIntegerInput(value: string) {
+  return value.replace(/[^\d]/g, "");
+}
+
 export function ExerciseGoalForm({
   modality,
   state,
@@ -37,37 +46,61 @@ export function ExerciseGoalForm({
   emptySummaryLabel = "Goal missing",
   showValidationMessage = false,
   hideEmptySummary,
+  hideSummary = false,
   validationOverride,
+  betweenInputsAndFooterContent,
+  footerContent,
+  footerClassName,
+  visibleMetrics,
+  visibleMetricOrder,
+  measurementLayoutMode = "grid",
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
   onStateChange: (next: ExerciseGoalFormState) => void;
-  names: Partial<Record<"sets" | "repsMin" | "repsMax" | "weight" | "duration" | "distance" | "calories" | "weightUnit" | "distanceUnit", string>>;
+  names: Partial<Record<"sets" | "repsMin" | "repsMax" | "failure" | "weight" | "duration" | "distance" | "calories" | "weightUnit" | "distanceUnit", string>>;
   includeSetsInSummary?: boolean;
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
   hideEmptySummary?: boolean;
+  hideSummary?: boolean;
   validationOverride?: string;
+  betweenInputsAndFooterContent?: ReactNode;
+  footerContent?: ReactNode;
+  footerClassName?: string;
+  visibleMetrics?: Array<keyof MeasurementMetrics>;
+  visibleMetricOrder?: Array<keyof MeasurementMetrics>;
+  measurementLayoutMode?: "grid" | "horizontal-scroll";
 }) {
   const [expanded, setExpanded] = useState(true);
-  const visibleMetrics = useMemo(() => getVisibleMetricsForModality(modality), [modality]);
+  const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
+  const resolvedMetricOrder = useMemo(
+    () => visibleMetricOrder ?? getGoalMeasurementOrder(modality),
+    [modality, visibleMetricOrder],
+  );
+  const baseVisibleMetrics = visibleMetrics ?? resolvedMetricOrder;
+  const supportsFailure = baseVisibleMetrics.includes("reps");
+  const isFailureMode = supportsFailure && state.failure;
   const derivedSelections = useMemo(() => deriveGoalMeasurementSelections(modality, {
     repsMin: state.repsMin,
+    repsMax: state.repsMax,
+    failure: isFailureMode,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
     calories: state.calories,
-  }), [modality, state.calories, state.distance, state.duration, state.repsMin, state.weight]);
+  }), [isFailureMode, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.weight]);
 
-  useEffect(() => {
-    const current = [...state.measurements].sort().join("|");
-    const derived = [...derivedSelections].sort().join("|");
-    if (current === derived) return;
-    onStateChange({ ...state, measurements: derivedSelections });
-  }, [derivedSelections, onStateChange, state]);
+  const resolvedVisibleMetrics = useMemo(() => {
+    if (!isFailureMode) {
+      return baseVisibleMetrics;
+    }
+
+    return baseVisibleMetrics.filter((metric) => metric !== "reps");
+  }, [baseVisibleMetrics, isFailureMode]);
 
   const activeMetrics = {
-    reps: derivedSelections.includes("reps"),
+    reps: !isFailureMode && derivedSelections.includes("reps"),
     weight: derivedSelections.includes("weight"),
     time: derivedSelections.includes("time"),
     distance: derivedSelections.includes("distance"),
@@ -79,12 +112,13 @@ export function ExerciseGoalForm({
     sets: state.sets,
     repsMin: state.repsMin,
     repsMax: state.repsMax,
+    failure: isFailureMode,
     weight: state.weight,
     duration: state.duration,
     distance: state.distance,
     calories: state.calories,
     measurementSelections: new Set(derivedSelections),
-  }), [derivedSelections, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.sets, state.weight]);
+  }), [derivedSelections, isFailureMode, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.sets, state.weight]);
 
   const summaryValues = sanitizeEnabledMeasurementValues(activeMetrics, {
     reps: state.repsMin ? Number(state.repsMin) : null,
@@ -94,10 +128,12 @@ export function ExerciseGoalForm({
     calories: state.calories ? Number(state.calories) : null,
   });
   const shouldHideEmptySummary = hideEmptySummary ?? showValidationMessage;
+  const setsHasValue = Boolean(state.sets.trim());
 
   return (
-    <div className="space-y-3">
+    <div className={stackClassName}>
       {derivedSelections.map((metric) => <input key={`selected-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
+      {names.failure ? <input type="hidden" name={names.failure} value={isFailureMode ? "true" : "false"} /> : null}
       <MeasurementConfigurator
         values={{
           reps: state.repsMin,
@@ -135,41 +171,80 @@ export function ExerciseGoalForm({
           distanceUnit: names.distanceUnit,
         }}
         showHeader={false}
-        visibleMetrics={visibleMetrics}
+        betweenInputsAndFooterContent={betweenInputsAndFooterContent}
+        footerContent={footerContent}
+        footerClassName={footerClassName}
+        auxiliaryFields={supportsFailure ? [{
+          title: "Failure",
+          input: null,
+          inlineLabel: "",
+          useInlineFieldShell: false,
+          hasValue: isFailureMode,
+          labelClassName: "hidden",
+          valueLabelClassName: "hidden",
+          renderInput: () => (
+            <button
+              type="button"
+                className={getMeasurementToggleButtonClassName()}
+                data-action-chrome-intent={getMeasurementToggleIntent(isFailureMode)}
+                aria-pressed={isFailureMode}
+                aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+              onClick={() => onStateChange({
+                ...state,
+                failure: !isFailureMode,
+              })}
+            >
+              <span className="measurement-toggle__label text-xs font-semibold uppercase tracking-[0.06em]">Failure</span>
+            </button>
+          ),
+        }] : undefined}
+        repRangeLabels={{ min: "MIN REPS", max: "MAX REPS" }}
+        metricOrder={resolvedMetricOrder}
+        visibleMetrics={resolvedVisibleMetrics}
+        layoutMode={measurementLayoutMode}
+        labelTreatment="floating-border"
         topField={{
           title: "Sets",
           suffix: "target",
-          input: (
+          inlineLabel: "SETS",
+          showEmptyValue: false,
+          hasValue: setsHasValue,
+          input: null,
+          renderInput: ({ inputClassName }) => (
             <input
-              type="number"
-              min={1}
+              type="text"
+              inputMode="text"
               name={names.sets}
               value={state.sets}
-              onChange={(event) => onStateChange({ ...state, sets: event.target.value })}
-              placeholder="Sets"
+              onChange={(event) => onStateChange({ ...state, sets: sanitizeIntegerInput(event.target.value) })}
+              placeholder=""
               required
-              className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+              className={cn(appTokens.measurementInput, inputClassName)}
             />
           ),
         }}
       />
 
-      <GoalSummaryInline
-        hideWhenEmpty={shouldHideEmptySummary}
-        includeSets={includeSetsInSummary}
-        values={{
-          ...summaryValues,
-          sets: state.sets ? Number(state.sets) : null,
-          repsMax: activeMetrics.reps && state.repsMax ? Number(state.repsMax) : null,
-          weightUnit: state.weightUnit,
-          distanceUnit: state.distanceUnit,
-          emptyLabel: emptySummaryLabel,
-        }}
-      />
+      {hideSummary ? null : (
+        <GoalSummaryInline
+          hideWhenEmpty={shouldHideEmptySummary}
+          includeSets={includeSetsInSummary}
+          values={{
+            ...summaryValues,
+            sets: state.sets ? Number(state.sets) : null,
+            reps: isFailureMode ? 0 : summaryValues.reps,
+            repsMax: isFailureMode ? 0 : (activeMetrics.reps && state.repsMax ? Number(state.repsMax) : null),
+            failure: isFailureMode,
+            weightUnit: state.weightUnit,
+            distanceUnit: state.distanceUnit,
+            emptyLabel: emptySummaryLabel,
+          }}
+        />
+      )}
 
       {showValidationMessage ? (
         goalValidation.isValid ? null : (
-          <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/95">
+          <p className={appTokens.measurementValidation}>
             {validationOverride ?? goalValidation.message}
           </p>
         )

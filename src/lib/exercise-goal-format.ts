@@ -1,5 +1,6 @@
 import type { RoutineDayExerciseRow } from "@/types/db";
-import { formatGoalSummaryText } from "./measurement-display";
+import { formatGoalSummaryItems } from "./measurement-display";
+import { isFailureGoalSelection } from "./exercise-goal-validation";
 
 type GoalFields = Pick<
   RoutineDayExerciseRow,
@@ -23,11 +24,61 @@ type GoalFields = Pick<
   } | null;
 };
 
+export type ExerciseGoalSummaryFields = {
+  sets?: number | null;
+  reps?: number | null;
+  repsMax?: number | null;
+  failure?: boolean;
+  weight?: number | null;
+  weightUnit?: string | null;
+  durationSeconds?: number | null;
+  distance?: number | null;
+  distanceUnit?: string | null;
+  calories?: number | null;
+  enabledMeasurements?: GoalFields["enabledMeasurements"];
+  emptyLabel?: string;
+};
+
+export function resolveExerciseGoalCurrentReps(goal: Pick<GoalFields, "target_reps" | "target_reps_min" | "target_reps_max">) {
+  return goal.target_reps ?? goal.target_reps_min ?? goal.target_reps_max ?? null;
+}
+
+export function formatExerciseGoalSummary(goal: ExerciseGoalSummaryFields) {
+  const items = formatGoalSummaryItems({
+    sets: goal.sets,
+    reps: goal.reps,
+    repsMax: goal.repsMax,
+    failure: goal.failure,
+    weight: goal.weight,
+    weightUnit: goal.weightUnit ?? "lbs",
+    durationSeconds: goal.durationSeconds,
+    distance: goal.distance,
+    distanceUnit: goal.distanceUnit ?? "mi",
+    calories: goal.calories,
+    enabledMeasurements: goal.enabledMeasurements ?? null,
+    emptyLabel: goal.emptyLabel ?? "Goal missing",
+  });
+
+  const labels = items.map((item) => item.label);
+  if (labels.length <= 1) {
+    return labels[0] ?? (goal.emptyLabel ?? "Goal missing");
+  }
+
+  const [first, second, ...rest] = labels;
+  return [`${first} | ${second}`, ...rest].join(" \u00e2\u20ac\u00a2 ");
+}
+
 export function formatExerciseGoal(goal: GoalFields) {
-  return formatGoalSummaryText({
+  const currentReps = resolveExerciseGoalCurrentReps(goal);
+
+  return formatExerciseGoalSummary({
     sets: goal.target_sets,
-    reps: goal.target_reps_min ?? goal.target_reps,
-    repsMax: goal.target_reps_max ?? goal.target_reps,
+    reps: currentReps,
+    repsMax: currentReps,
+    failure: isFailureGoalSelection({
+      repsMin: currentReps,
+      repsMax: currentReps,
+    }),
     weight: goal.target_weight,
     weightUnit: goal.target_weight_unit ?? "lbs",
     durationSeconds: goal.target_duration_seconds,

@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: "FawxzzyFitness",
     short_name: "FawxzzyFitness",
     description: "Track sessions and progress with a focused training workflow.",
@@ -9,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    theme_color: "#0b0f0d",
-    background_color: "#0b0f0d",
+    theme_color: "#07111b",
+    background_color: "#07111b",
     icons: [
       {
         src: "/app/icon-192.png",
@@ -23,6 +24,58 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "any maskable" as any,
+      },
+    ],
+    screenshots: [
+      {
+        src: "/app/previews/today.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/session.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/routines.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/routine-list.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/view-day.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/edit-day.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/history.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/add-exercise.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/history-detail.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/exercise-detail.png",
+        sizes: "430x932",
+        type: "image/png",
       },
     ],
   };

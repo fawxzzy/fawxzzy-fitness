@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { clearPersistedWorkoutClientState } from "@/lib/offline/client-storage";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const AUTH_ENTRY_PATH = "/login";
@@ -11,22 +12,28 @@ export function SignOutButton() {
   const supabase = createBrowserSupabase();
 
   const handleSignOut = async () => {
+    clearPersistedWorkoutClientState();
     await supabase.auth.signOut();
-    document.cookie = "sb-access-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    try {
+      await fetch("/auth/session-sync", {
+        method: "DELETE",
+        credentials: "same-origin",
+        keepalive: true,
+      });
+    } catch {
+      // Ignore cookie cleanup failures and continue to the login screen.
+    }
     router.replace(AUTH_ENTRY_PATH);
     window.location.assign(AUTH_ENTRY_PATH);
   };
 
   return (
-    <button
+    <BottomDockButton
+      type="button"
+      intent="danger"
       onClick={handleSignOut}
-      className={getAppButtonClassName({
-        variant: "destructive",
-        fullWidth: true,
-        className: "bg-red-500/7 text-red-200 border-red-400/28 shadow-none hover:bg-red-500/12",
-      })}
     >
       Sign out
-    </button>
+    </BottomDockButton>
   );
 }

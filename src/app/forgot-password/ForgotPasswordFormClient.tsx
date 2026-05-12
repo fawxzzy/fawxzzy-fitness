@@ -1,30 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { type FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { requestPasswordReset } from "@/app/auth/actions";
-import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
-import { BackButton } from "@/components/ui/BackButton";
-import { PrimaryButton } from "@/components/ui/AppButton";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import {
+  AuthCard,
+  AuthDock,
+  AuthFooter,
+  AuthFooterSeparator,
+  AuthFooterText,
+  AuthForm,
+  AuthFormFields,
+  AuthIntro,
+  AuthShell,
+} from "@/components/auth/AuthShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
+import { cn } from "@/lib/cn";
 
 const COOLDOWN_SECONDS = 60;
 const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
-
-function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
-  const { pending } = useFormStatus();
-  const isCoolingDown = cooldownRemaining > 0;
-  const isDisabled = pending || isCoolingDown;
-
-  const label = pending ? "Sending..." : isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
-
-  return (
-    <PrimaryButton type="submit" disabled={isDisabled} fullWidth>
-      {label}
-    </PrimaryButton>
-  );
-}
+const RESET_FORM_ID = "reset-password-request-form";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 
 type ForgotPasswordFormClientProps = {
   errorMessage: string | null;
@@ -38,19 +40,11 @@ export default function ForgotPasswordFormClient({
   shouldStartCooldown,
 }: ForgotPasswordFormClientProps) {
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const copy = AUTH_MODE_COPY["reset-password"];
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [email, setEmail] = useState("");
 
-  const message = useMemo(() => {
-    if (errorMessage) {
-      return <AuthMessage tone="error">{errorMessage}</AuthMessage>;
-    }
-
-    if (infoMessage) {
-      return <AuthMessage tone="success">{infoMessage}</AuthMessage>;
-    }
-
-    return null;
-  }, [errorMessage, infoMessage]);
+  useToastMessageEffect("error", errorMessage, { id: "forgot-password-error" });
+  useToastMessageEffect("success", infoMessage, { id: "forgot-password-info" });
 
   useEffect(() => {
     const now = Date.now();
@@ -80,27 +74,72 @@ export default function ForgotPasswordFormClient({
     return () => window.clearInterval(timer);
   }, [cooldownRemaining]);
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const formData = new FormData(event.currentTarget);
+    const identifier = String(formData.get("email") ?? "").trim();
+
+    if ((!EMAIL_PATTERN.test(identifier.toLowerCase()) && !USERNAME_PATTERN.test(identifier)) || cooldownRemaining > 0) {
+      event.preventDefault();
+      return;
+    }
+
+    setIsSubmitting(true);
+  }
+
+  const isCoolingDown = cooldownRemaining > 0;
+  const identifierValue = email.trim();
+  const emailValid = EMAIL_PATTERN.test(identifierValue.toLowerCase()) || USERNAME_PATTERN.test(identifierValue);
+  const submitLabel = isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
+
   return (
     <AuthShell>
-      <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
-
-      <AuthCard>
-        <form action={requestPasswordReset} className="space-y-5">
-          <div className="space-y-3">
-            <p className="text-sm leading-6 text-slate-300">Enter your email and we’ll send a reset link.</p>
-            <AuthField label="Email">
-              <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
-            </AuthField>
-          </div>
-          {message}
-          <SubmitButton cooldownRemaining={cooldownRemaining} />
-          {copy.helper ? <p className="text-xs leading-5 text-slate-500">{copy.helper}</p> : null}
-        </form>
+      <AuthCard className={appTokens.authInteractiveCard}>
+        <AuthIntro eyebrow="" title="" subtitle="" />
+        <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
+          <AuthFormFields>
+            <LabeledEditorField label="Email or username" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
+              <Input
+                type="text"
+                name="email"
+                required
+                autoComplete="username"
+                className={cn(
+                  labeledEditorFieldControlClassName,
+                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                )}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </LabeledEditorField>
+          </AuthFormFields>
+        </AuthForm>
 
         <AuthFooter>
-          <BackButton href="/login" label="Back to log in" className="ml-auto" />
+          <AuthFooterText>
+            <Link href="/signup" className={appTokens.authInlineLink}>
+              Create account
+            </Link>
+            <AuthFooterSeparator />
+            <Link href="/login" className={appTokens.authInlineLink}>
+              Log In
+            </Link>
+          </AuthFooterText>
         </AuthFooter>
       </AuthCard>
+
+      <AuthDock>
+        <BottomActionSingle>
+          <BottomDockButton
+            type="submit"
+            form={RESET_FORM_ID}
+            intent="positive"
+            disabled={!emailValid || isSubmitting || isCoolingDown}
+            loading={isSubmitting}
+            loadingLabel="Sending..."
+          >
+            {submitLabel}
+          </BottomDockButton>
+        </BottomActionSingle>
+      </AuthDock>
     </AuthShell>
   );
 }

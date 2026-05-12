@@ -55,20 +55,20 @@ test("routine day view back falls back to routines when returnTo is missing or u
   assert.equal(resolveRoutineDayViewBackHref("https://example.com/phish"), "/routines");
 });
 
-test("routine day edit back prefers day view and blocks edit-route loops", () => {
+test("routine day edit back returns to routine home and blocks legacy loops", () => {
   assert.equal(
     resolveRoutineDayEditBackHref("routine-1", "day-2", "%2Froutines%2Froutine-1%2Fdays%2Fday-2"),
-    "/routines/routine-1/days/day-2",
+    "/routines",
   );
 
-  assert.equal(resolveRoutineDayEditBackHref("routine-1", "day-2", undefined), "/routines/routine-1/days/day-2");
+  assert.equal(resolveRoutineDayEditBackHref("routine-1", "day-2", undefined), "/routines");
   assert.equal(
     resolveRoutineDayEditBackHref("routine-1", "day-2", "%2Froutines%2Froutine-1%2Fedit"),
-    "/routines/routine-1/days/day-2",
+    "/routines",
   );
 });
 
-test("routine day edit href keeps only safe non-self returnTo targets", () => {
+test("routine day edit href keeps only safe non-self returnTo targets for compatibility", () => {
   assert.equal(
     getRoutineDayEditHref("routine-1", "day-2", "/routines/routine-1/days/day-2"),
     "/routines/routine-1/edit/day/day-2?returnTo=%2Froutines%2Froutine-1%2Fdays%2Fday-2",

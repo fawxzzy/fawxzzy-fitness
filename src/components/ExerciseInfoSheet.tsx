@@ -1,17 +1,55 @@
 "use client";
 
-import { useCallback, useEffect, useId } from "react";
+import { Fragment, useCallback, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { ContentRail } from "@/components/layout/ContentRail";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SignatureDot, SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { AmbientBackground } from "@/components/ui/AmbientBackground";
+import { appTokens } from "@/components/ui/app/tokens";
+import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { EyebrowText } from "@/components/ui/text-roles";
+import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
+import { Glass } from "@/components/ui/Glass";
+import { cn } from "@/lib/cn";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
-import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
-import { formatCalories, formatDistance, formatDurationShort, formatPace } from "@/lib/exercise-stats-formatting";
+import { getRecoveryExerciseFallbackDescription } from "@/lib/exercise-metadata";
+import { STRETCH_HUB_GUIDE_COPY, STRETCH_HUB_HERO_SRC, isStretchHubExercise } from "@/lib/stretch-library";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
+
+function toTitleCase(value: string) {
+  return value.replace(/\b([a-z])/g, (match) => match.toUpperCase());
+}
+
+function mergeExerciseInfoSummaryMetrics(
+  quickMetrics: MetricDatum[],
+  performanceMetrics: MetricDatum[],
+) {
+  const redundantPerformanceLabels = new Set(["Top Set", "Last"]);
+  const seenSignatures = new Set(
+    quickMetrics.map((item) => `${item.label.toLowerCase()}::${item.value.toLowerCase()}`),
+  );
+
+  const uniquePerformanceMetrics = performanceMetrics.filter((item) => {
+    if (redundantPerformanceLabels.has(item.label)) {
+      return false;
+    }
+
+    const signature = `${item.label.toLowerCase()}::${item.value.toLowerCase()}`;
+    if (seenSignatures.has(signature)) {
+      return false;
+    }
+
+    seenSignatures.add(signature);
+    return true;
+  });
+
+  return [...quickMetrics, ...uniquePerformanceMetrics];
+}
 
 export type ExerciseInfoSheetExercise = {
   id: string;
@@ -29,6 +67,7 @@ export type ExerciseInfoSheetExercise = {
 export type ExerciseInfoSheetStats = {
   exercise_id?: string;
   kind: "strength" | "cardio";
+  presentationKind?: "strength" | "bodyweight" | "cardio" | "timed";
   recent: {
     lastPerformedAt: string | null;
     lastSummary: string | null;
@@ -58,85 +97,252 @@ export type ExerciseInfoSheetStats = {
     bestCalories?: number;
   };
   prLabel: string;
-};
-
-type ExerciseInfoStatRow = {
-  label: string;
-  value: string | null;
+  prCount: number;
+  quickMetrics: MetricDatum[];
+  performanceMetrics?: MetricDatum[];
+  progress: {
+    metrics: MetricDatum[];
+    performances: Array<{
+      label: string;
+      value: string;
+      context?: string | null;
+    }>;
+  };
 };
 
 function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
   return [
-    exercise.equipment ? { label: "Equipment", value: exercise.equipment } : null,
-    exercise.primary_muscle ? { label: "Primary", value: exercise.primary_muscle } : null,
-    exercise.movement_pattern ? { label: "Pattern", value: exercise.movement_pattern } : null,
-  ].filter((item): item is { label: string; value: string } => Boolean(item));
+    exercise.equipment ? toTitleCase(exercise.equipment) : null,
+    exercise.primary_muscle ? toTitleCase(exercise.primary_muscle) : null,
+    exercise.movement_pattern ? toTitleCase(exercise.movement_pattern) : null,
+  ].filter((item): item is string => Boolean(item));
 }
 
-function buildExerciseInfoStatSections(stats: ExerciseInfoSheetStats | null) {
-  if (!stats) return [] as Array<{ title: string; rows: ExerciseInfoStatRow[] }>;
-
-  const bestWeightLabel = stats.bests.bestWeight ? formatWeight(stats.bests.bestWeight, null) : null;
-
-  return [
-    {
-      title: "Recent",
-      rows: [
-        { label: "Last performed", value: stats.recent.lastPerformedAt ? formatDateShort(stats.recent.lastPerformedAt) : null },
-        { label: stats.kind === "cardio" ? "Last effort" : "Last", value: stats.recent.lastSummary ?? null },
-        ...(stats.kind === "strength" ? [{ label: "PRs", value: stats.prLabel || null }] : []),
-      ],
-    },
-    {
-      title: "Totals",
-      rows: [
-        { label: "Sessions", value: stats.totals.sessions > 0 ? formatCount(stats.totals.sessions, "session") : null },
-        { label: "Sets", value: stats.totals.sets > 0 ? formatCount(stats.totals.sets, "set") : null },
-        ...(stats.kind === "strength"
-          ? [{ label: "Reps", value: stats.totals.reps ? formatCount(stats.totals.reps, "rep") : null }]
-          : [
-            { label: "Duration", value: formatDurationShort(stats.totals.durationSeconds) },
-            { label: "Distance", value: formatDistance(stats.totals.distance, stats.bests.bestDistanceUnit) },
-            { label: "Calories", value: formatCalories(stats.totals.calories) },
-          ]),
-      ],
-    },
-    {
-      title: "Bests",
-      rows: stats.kind === "cardio"
-        ? [
-          { label: "Best effort", value: stats.bests.bestSetSummary ?? null },
-          { label: "Best duration", value: formatDurationShort(stats.bests.bestDurationSeconds) },
-          { label: "Best distance", value: formatDistance(stats.bests.bestDistance, stats.bests.bestDistanceUnit) },
-          { label: "Best pace", value: formatPace(stats.bests.bestPace, stats.bests.bestDistanceUnit) },
-          { label: "Best calories", value: formatCalories(stats.bests.bestCalories) },
-        ]
-        : [
-          { label: "Best bodyweight reps", value: stats.bests.bestBodyweightReps ? formatCount(stats.bests.bestBodyweightReps, "rep") : null },
-          { label: "Best weight", value: bestWeightLabel },
-          { label: "Best reps at best weight", value: stats.bests.bestRepsAtBestWeight ? formatCount(stats.bests.bestRepsAtBestWeight, "rep") : null },
-          { label: "Best set", value: stats.bests.bestSetSummary ?? null },
-          { label: "PRs", value: stats.prLabel || null },
-        ],
-    },
-  ];
-}
-
-function ExerciseInfoStatGrid({ title, rows }: { title: string; rows: ExerciseInfoStatRow[] }) {
-  const visibleRows = rows.filter((row): row is { label: string; value: string } => Boolean(row.value));
-  if (!visibleRows.length) return null;
+function ExerciseInfoHeaderMetaLine({
+  items,
+}: {
+  items: string[];
+}) {
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="space-y-1.5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{title}</p>
-      <div className="grid gap-1.5 text-left sm:grid-cols-2">
-        {visibleRows.map((row) => (
-          <div key={`${title}-${row.label}`} className="rounded-[0.95rem] border border-white/6 bg-black/5 px-3 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{row.label}</p>
-            <p className="mt-0.5 break-words text-sm leading-5 text-[rgb(var(--text)/0.93)]">{row.value}</p>
+    <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-[5px] text-center text-[11px] font-medium leading-[1.15] text-[rgb(var(--text-secondary)/0.84)]">
+      {items.map((item, index) => (
+        <div key={`${item}-${index}`} className="flex min-w-0 max-w-full items-center gap-2">
+          {index > 0 ? <SignatureDot /> : null}
+          <p className="min-w-0 [text-wrap:balance]">{item}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function getAutoMetricSpanClassName(totalItems: number, index: number) {
+  if (totalItems <= 1) return "col-span-6";
+  if (totalItems === 2) return "col-span-3";
+  if (totalItems === 3) return "col-span-2";
+
+  const remainder = totalItems % 3;
+  const tailStart = totalItems - remainder;
+
+  if (remainder === 1 && index === totalItems - 1) {
+    return "col-span-2 col-start-3";
+  }
+
+  if (remainder === 2 && index >= tailStart) {
+    return "col-span-3";
+  }
+
+  return "col-span-2";
+}
+
+function resolveMetricValueToneClassName(tone: MetricDatum["valueTone"]) {
+  switch (tone) {
+    case "success":
+      return "text-[rgb(var(--success-rgb)/0.94)]";
+    case "danger":
+      return "text-[rgb(255,116,116)]";
+    case "muted":
+      return "text-[rgb(var(--text-secondary)/0.82)]";
+    default:
+      return "text-[rgb(var(--text-primary)/0.96)]";
+  }
+}
+
+function renderMetricValuePrefix(valuePrefix: string | null | undefined) {
+  if (!valuePrefix) {
+    return null;
+  }
+
+  if (valuePrefix === "\u2191" || valuePrefix === "â†‘") {
+    return <span aria-hidden="true" className="inline-block h-0 w-0 border-x-[5px] border-x-transparent border-b-[7px] border-b-current translate-y-[-1px]" />;
+  }
+
+  if (valuePrefix === "\u2193" || valuePrefix === "â†“") {
+    return <span aria-hidden="true" className="inline-block h-0 w-0 border-x-[5px] border-x-transparent border-t-[7px] border-t-current translate-y-[1px]" />;
+  }
+
+  if (valuePrefix === "\u2192" || valuePrefix === "â†’") {
+    return <span aria-hidden="true" className="inline-block h-[2px] w-[10px] rounded-full bg-current" />;
+  }
+
+  return <span aria-hidden="true">{valuePrefix}</span>;
+}
+
+function renderMetricMetaLine(parts: string[]) {
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={cn(appTokens.workoutMetricMeta, "mt-0 justify-center px-px leading-[1.02] flex flex-wrap items-center gap-x-2 gap-y-1")}>
+      {parts.map((part, index) => (
+        <div key={`${part}-${index}`} className="flex min-w-0 items-center gap-2">
+          {index > 0 ? <SignatureDot /> : null}
+          <p className="min-w-0">{part}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExerciseInfoDetailedMetricGrid({ items }: { items: MetricDatum[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-6 gap-1">
+      {items.map((item, index) => {
+        const metaParts = [item.delta, item.timeframe, item.trend].filter((part): part is string => Boolean(part));
+
+        return (
+          <div
+            key={`${item.label}-${item.value}-${index}`}
+            className={cn(
+              getAutoMetricSpanClassName(items.length, index),
+              appTokens.workoutMetricChrome,
+              appTokens.workoutMetricCompact,
+              "flex min-h-[2.8rem] flex-col items-center justify-start overflow-hidden border-transparent bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%] px-2.75 py-1 shadow-none ring-0 backdrop-blur-0",
+            )}
+          >
+            <p className={cn(appTokens.workoutMetricLabel, "block w-full px-px pt-px text-center leading-[1.02] text-[rgb(var(--accent)/0.92)]")}>
+              {item.label}
+            </p>
+            <div className="mt-[2px] flex w-full min-h-0 justify-center self-start pb-[0.7rem]">
+              <div className="flex w-fit min-w-0 max-w-full flex-col items-center justify-start text-center">
+                <p className={cn(appTokens.workoutMetricValue, appTokens.workoutMetricValueCompact, "mt-0 block px-px leading-[0.98]")}>
+                  <span className={cn("inline-flex flex-wrap items-center gap-1.5", resolveMetricValueToneClassName(item.valueTone))}>
+                    {renderMetricValuePrefix(item.valuePrefix)}
+                    <span>{item.value}</span>
+                  </span>
+                </p>
+                {renderMetricMetaLine(metaParts)}
+              </div>
+            </div>
           </div>
-        ))}
+        );
+      })}
+    </div>
+  );
+}
+
+function ExerciseInfoLoadingMetrics() {
+  return (
+    <div className="space-y-2 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
       </div>
+    </div>
+  );
+}
+
+function ExerciseInfoLoadingRows() {
+  return (
+    <div className="space-y-2" aria-hidden="true">
+      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+    </div>
+  );
+}
+
+function ExerciseInfoOverviewMedia({
+  exercise,
+  howToImageSrc,
+}: {
+  exercise: ExerciseInfoSheetExercise;
+  howToImageSrc: string;
+}) {
+  const fallbackDescription = getRecoveryExerciseFallbackDescription(exercise);
+  const overviewCopy = exercise.how_to_short?.trim() || fallbackDescription;
+
+  return (
+    <div className={cn(appTokens.detailMediaCard, "gap-0 overflow-hidden border-transparent bg-transparent p-0 shadow-none")}>
+      <div className={cn(appTokens.detailMediaFrame, "border-transparent bg-transparent shadow-none")}>
+        <ExerciseAssetImage
+          src={howToImageSrc}
+          alt={`${exercise.name} demonstration`}
+          className="h-full w-full"
+          preferNaturalAspectRatio
+          containerStyle={{ minHeight: "11.4rem", maxHeight: "16.25rem" }}
+          imageClassName="object-contain object-center"
+          imageStyle={{ padding: "clamp(0.12rem, 0.7vw, 0.26rem)" }}
+          sizes="(max-width: 768px) 100vw, 520px"
+          priority
+        />
+      </div>
+      <MetricAccentBar variant="thin" className="mx-3 mt-1.5" />
+      {overviewCopy ? (
+        <p className={cn(appTokens.detailBodyText, "px-3 pb-2 pt-1.5 text-center text-[13px] leading-[1.55] [text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
+          {overviewCopy}
+        </p>
+      ) : (
+        <p className={cn(appTokens.detailBodyMutedText, "px-3 pb-2 pt-1.5 text-center text-[13px] leading-[1.5]")}>
+          Log a few sessions to unlock more specific cues and trends for this exercise.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
+  if (stats.progress.performances.length === 0) {
+    return <p className={appTokens.detailBodyMutedText}>No recent performances logged yet.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {stats.progress.performances.map((entry) => (
+        <div
+          key={`${entry.label}-${entry.value}`}
+          className={cn(appTokens.detailHistoryRow, "px-2.5 py-2")}
+        >
+          <EyebrowText as="p" className="min-w-0 px-px pt-px text-[10px] text-[rgb(var(--text-muted)/0.88)]">
+            <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <span>{entry.label}</span>
+              {entry.context ? (
+                <>
+                  <SignatureDot />
+                  <span>{entry.context}</span>
+                </>
+              ) : null}
+            </span>
+          </EyebrowText>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <SignatureInlineList
+              items={entry.value.split(" | ")}
+              separator="pipe"
+              itemClassName={cn(appTokens.detailBodyText, "whitespace-nowrap text-[13px] leading-[1.35] text-[rgb(var(--text-primary)/0.95)]")}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -148,6 +354,8 @@ export function ExerciseInfoSheet({
   open,
   onOpenChange,
   onClose,
+  inline = false,
+  sourceContext,
 }: {
   exercise: ExerciseInfoSheetExercise | null;
   stats: ExerciseInfoSheetStats | null;
@@ -155,10 +363,17 @@ export function ExerciseInfoSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onClose?: () => void;
+  inline?: boolean;
+  sourceContext?: string;
 }) {
   const router = useRouter();
   const statsPanelId = useId();
-  useBodyScrollLock(open);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useBodyScrollLock(open && !inline);
+
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
 
   const handleClose = useCallback(() => {
     if (onClose) {
@@ -182,39 +397,41 @@ export function ExerciseInfoSheet({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [handleClose, open]);
 
-  const resolvedHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
-  const metadata = exercise ? buildExerciseInfoMeta(exercise) : [];
-  const statSections = buildExerciseInfoStatSections(stats);
+  const isStretchHub = isStretchHubExercise(exercise);
+  const stretchPanelContext = sourceContext === "SessionExerciseFocus" ? "session" : "detail";
+  const metadata = exercise && !isStretchHub ? buildExerciseInfoMeta(exercise) : [];
+  const howToImageSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
+  const stretchHeroImageSrc = howToImageSrc.includes("/placeholders/") ? STRETCH_HUB_HERO_SRC : howToImageSrc;
   const detailHeader = (
-    <DetailHeader
-      title={exercise?.name ?? "Exercise"}
-      action={(
-        <TopRightBackButton
-          onClick={(event) => {
-            event.preventDefault();
-            if (onClose) {
-              onClose();
-              return;
-            }
-            router.back();
-          }}
-          ariaLabel="Back"
-        />
-      )}
-      meta={metadata.length > 0 ? (
-        <DetailMetaRow>
-          {metadata.map((item) => (
-            <DetailMetaChip key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
-          ))}
-        </DetailMetaRow>
-      ) : undefined}
-      className="px-4"
-    />
+    <div className="sticky top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.25rem)] z-30">
+      <DetailHeader
+        title={exercise?.name ?? "Exercise"}
+        titleClassName="pl-[4px] pt-[5px] pr-3 text-[1.02rem] leading-[1.12]"
+        className="!border-transparent !bg-[rgba(var(--bg-app),0.48)] !shadow-none backdrop-blur-[14px]"
+        align="center"
+        action={(
+          <TopRightBackButton
+            onClick={(event) => {
+              event.preventDefault();
+              if (onClose) {
+                onClose();
+                return;
+              }
+              router.back();
+            }}
+            ariaLabel="Back"
+          />
+        )}
+        meta={metadata.length > 0 ? (
+          <ExerciseInfoHeaderMetaLine items={metadata} />
+        ) : undefined}
+      />
+    </div>
   );
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || !open || !exercise) return;
+    if (process.env.NODE_ENV !== "development" || !open || !exercise || isStretchHub) return;
 
     const statsNode = document.getElementById(statsPanelId);
     if (!statsNode) {
@@ -222,67 +439,88 @@ export function ExerciseInfoSheet({
         exerciseId: canonicalExerciseId,
       });
     }
-  }, [canonicalExerciseId, exercise, open, statsPanelId]);
+  }, [canonicalExerciseId, exercise, isStretchHub, open, statsPanelId]);
 
-  if (!open || !exercise) return null;
+  if (!open || !exercise || (!inline && !portalTarget)) return null;
+  const resolvedPortalTarget = portalTarget;
+  const performanceMetrics = stats?.performanceMetrics ?? [];
+  const progressMetrics = stats?.progress.metrics ?? [];
+  const summaryMetrics = stats ? mergeExerciseInfoSummaryMetrics(stats.quickMetrics, performanceMetrics) : [];
+  const combinedMetrics = [...summaryMetrics, ...progressMetrics];
+
+  const sheetBody = (
+    <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
+      <AmbientBackground />
+      <main className="app-page-scroll relative z-10 min-h-[100dvh]">
+        <ContentRail className="flex min-h-[100dvh] flex-col gap-2 pt-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.7rem)]">
+          {detailHeader}
+
+          <Glass variant="base" className="overflow-hidden rounded-[34px]">
+            <div className="px-3 pb-4 pt-2.5">
+              <div className="space-y-2">
+                {isStretchHub ? (
+                  <StretchLibraryPanel
+                    context={stretchPanelContext}
+                    heroCopy={STRETCH_HUB_GUIDE_COPY}
+                    heroImageSrc={stretchHeroImageSrc}
+                  />
+                ) : (
+                  <>
+                    <AppPanel className={cn(appTokens.detailSection, "border-0 bg-transparent p-0 shadow-none")}>
+                      <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
+                    </AppPanel>
+
+                    <AppPanel className={cn(appTokens.detailSection, "p-2.5")}>
+                      <div
+                        id={statsPanelId}
+                        data-testid="exercise-info-stats-box"
+                        className="space-y-2 text-xs text-muted"
+                      >
+                        {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
+                        {!statsLoading && stats ? (
+                          <ExerciseInfoDetailedMetricGrid items={combinedMetrics} />
+                        ) : null}
+                        {!statsLoading && !stats ? (
+                          <p className={appTokens.detailBodyMutedText}>
+                            No stats yet. Log a set to generate performance history for this exercise.
+                          </p>
+                        ) : null}
+                      </div>
+                    </AppPanel>
+
+                    {statsLoading || stats ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+                        <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Recent History</h3>
+                        {statsLoading ? <ExerciseInfoLoadingRows /> : stats ? <ExerciseInfoRecentHistoryList stats={stats} /> : null}
+                      </AppPanel>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </div>
+          </Glass>
+        </ContentRail>
+      </main>
+    </div>
+  );
+
+  if (inline) {
+    return sheetBody;
+  }
+
+  if (!resolvedPortalTarget) {
+    return null;
+  }
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 pointer-events-auto"
+      className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto overscroll-none bg-[rgb(var(--bg))]"
       role="dialog"
       aria-modal="true"
       aria-label="Exercise info"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          handleClose();
-        }
-      }}
     >
-      <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
-        <ScrollScreenWithBottomActions
-          className="overscroll-contain"
-          floatingHeader={detailHeader}
-        >
-          <section className="flex h-full w-full flex-col">
-            <ScreenScaffold recipe="exerciseDetail" className="mx-auto w-full max-w-md px-4 pb-[calc(var(--app-safe-bottom)+0.75rem)]">
-              <DetailSection title="How to">
-                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
-                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
-                  <ExerciseAssetImage
-                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
-                    src={resolvedHowToSrc}
-                    alt="How-to visual"
-                    className="h-full w-full"
-                    imageClassName="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 480px"
-                  />
-                </div>
-              </DetailSection>
-
-              <DetailSection title="Stats">
-                <div
-                  id={statsPanelId}
-                  data-testid="exercise-info-stats-box"
-                  className="min-h-[94px] space-y-2.5 text-xs text-muted"
-                >
-                  {statsLoading ? (
-                    <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
-                      <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
-                    </div>
-                  ) : stats ? (
-                    statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
-                  ) : (
-                    <p className="text-muted">No stats yet — log a set to generate stats.</p>
-                  )}
-                </div>
-              </DetailSection>
-            </ScreenScaffold>
-          </section>
-        </ScrollScreenWithBottomActions>
-      </div>
+      {sheetBody}
     </div>,
-    document.body,
+    resolvedPortalTarget,
   );
 }

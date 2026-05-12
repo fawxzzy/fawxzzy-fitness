@@ -17,3 +17,6 @@ public/splash/*.png
 
 # Playbook runtime state
 .playbook/
+
+# Supabase local link and CLI cache state
+supabase/.temp/

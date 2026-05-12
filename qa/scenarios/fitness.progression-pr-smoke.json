@@ -1,0 +1,163 @@
+{
+  "contract_version": "atlas.qa.scenario.v1",
+  "scenario_id": "fitness.progression-pr-smoke",
+  "title": "Fitness progression PR smoke",
+  "summary": "Repo-owned QA intent for the progression smoke lane with required emulated browser evidence and release-only physical proof.",
+  "repo_id": "fitness",
+  "repo_path": "repos/fawxzzy-fitness",
+  "adapter_id": "fitness.web",
+  "criticality": "high",
+  "tags": [
+    "fitness",
+    "progression",
+    "ui",
+    "release-surface"
+  ],
+  "entrypoint": {
+    "path": "/dev/mobile-regression?scenario=today-progression-status",
+    "ready_path": "/api/health"
+  },
+  "auth": {
+    "strategy": "bootstrap_command",
+    "bootstrap_command": "npm run qa:auth:bootstrap"
+  },
+  "seed": {
+    "strategy": "command",
+    "command": "npm run qa:zac:llel:seed:dry-run"
+  },
+  "proof": {
+    "lens_manifest_ref": "ops/atlas/qa/lenses/atlas-default-web.v1.json",
+    "pr_lenses": [
+      "desktop.chromium.emulated",
+      "android.chrome.emulated",
+      "iphone.webkit.emulated"
+    ],
+    "certify_lenses": [
+      "desktop.chromium.real",
+      "android.chrome.real",
+      "iphone.webkit.real"
+    ],
+    "real_device_strategy": "preview_first_local_tunnel_fallback"
+  },
+  "required_artifacts": [
+    {
+      "artifact_key": "screens",
+      "artifact_kind": "screenshot",
+      "step_id": "main",
+      "required_lenses": [
+        "desktop.chromium.emulated",
+        "android.chrome.emulated",
+        "iphone.webkit.emulated",
+        "desktop.chromium.real",
+        "android.chrome.real",
+        "iphone.webkit.real"
+      ]
+    },
+    {
+      "artifact_key": "traces",
+      "artifact_kind": "trace",
+      "step_id": "main",
+      "required_lenses": [
+        "desktop.chromium.emulated",
+        "android.chrome.emulated",
+        "iphone.webkit.emulated"
+      ],
+      "required_on_failure": true
+    },
+    {
+      "artifact_key": "console",
+      "artifact_kind": "console_log",
+      "step_id": "main",
+      "required_lenses": [
+        "desktop.chromium.emulated",
+        "android.chrome.emulated",
+        "iphone.webkit.emulated",
+        "android.chrome.real",
+        "iphone.webkit.real"
+      ]
+    },
+    {
+      "artifact_key": "network",
+      "artifact_kind": "network_log",
+      "step_id": "main",
+      "required_lenses": [
+        "desktop.chromium.emulated",
+        "android.chrome.emulated",
+        "iphone.webkit.emulated",
+        "android.chrome.real",
+        "iphone.webkit.real"
+      ]
+    },
+    {
+      "artifact_key": "execution",
+      "artifact_kind": "executable_report",
+      "step_id": "main",
+      "required_lenses": [
+        "desktop.chromium.emulated",
+        "android.chrome.emulated",
+        "iphone.webkit.emulated"
+      ]
+    }
+  ],
+  "execution": {
+    "preflight_command_sequence": [
+      "lint",
+      "typecheck"
+    ],
+    "pr_command_sequence": [
+      "qa_visual"
+    ],
+    "certify_command_sequence": []
+  },
+  "test_evidence": [
+    {
+      "evidence_id": "fitness.mobile-regression-fixtures",
+      "kind": "unit",
+      "runner": "npm",
+      "command_ref": "test_mobile_regression_fixtures",
+      "required_for": [
+        "promotion"
+      ]
+    },
+    {
+      "evidence_id": "fitness.progression-visual-receipt",
+      "kind": "custom",
+      "runner": "npm",
+      "command_ref": "qa_visual",
+      "required_for": [
+        "evidence"
+      ]
+    }
+  ],
+  "visual_assertions": [
+    {
+      "lens_id": "desktop.chromium.emulated",
+      "baseline_ref": "data/atlas/qa/baselines/fitness.progression-pr-smoke/desktop.chromium.emulated.png",
+      "max_pixel_delta": 30000
+    },
+    {
+      "lens_id": "android.chrome.emulated",
+      "baseline_ref": "data/atlas/qa/baselines/fitness.progression-pr-smoke/android.chrome.emulated.png",
+      "max_pixel_delta": 60000
+    },
+    {
+      "lens_id": "iphone.webkit.emulated",
+      "baseline_ref": "data/atlas/qa/baselines/fitness.progression-pr-smoke/iphone.webkit.emulated.png",
+      "max_pixel_delta": 30000
+    }
+  ],
+  "promotion": {
+    "require_executable_truth": true,
+    "require_pr_artifacts": true,
+    "require_real_device_on": "release",
+    "allow_manual_certification": true,
+    "max_flaky_lenses": 0,
+    "blocking_artifact_kinds": [
+      "screenshot",
+      "trace",
+      "console_log",
+      "network_log",
+      "executable_report"
+    ]
+  }
+}

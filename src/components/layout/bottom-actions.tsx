@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
-import { BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
+import { BOTTOM_ACTION_SHELL_CLASSNAME, BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 
 type BottomActionRegistration = symbol;
 
@@ -176,7 +176,7 @@ export function BottomActionsSlot() {
 
   return (
     <div ref={slotRef} className="pointer-events-none">
-      <div className="pointer-events-auto mx-auto w-full max-w-md">
+      <div className={`${BOTTOM_ACTION_SHELL_CLASSNAME} pointer-events-auto`}>
         <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
           {published.node}
         </div>

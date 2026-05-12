@@ -1,20 +1,18 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
-import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
-
-const ROUTINES_OVERVIEW_RECIPE = "routinesOverview" as const;
 
 type RoutinesPageScaffoldProps = {
   children: ReactNode;
 };
 
 export function RoutinesPageScaffold({ children }: RoutinesPageScaffoldProps) {
-  return <div className="space-y-4">{children}</div>;
+  return <div className={appTokens.routinesOverviewPageStack}>{children}</div>;
 }
 
 export function ActiveRoutineSummaryCard({
@@ -26,14 +24,19 @@ export function ActiveRoutineSummaryCard({
   metadata?: ReactNode;
   status?: ReactNode;
 }) {
-  return (
-    <SharedScreenHeader
-      recipe={ROUTINES_OVERVIEW_RECIPE}
-      title={title}
-      meta={metadata}
-      action={status}
-    />
-  );
+  return <SharedScreenHeader recipe="routinesOverview" title={title} meta={metadata} action={status} align="center" />;
+}
+
+export function RoutinesRouteHeaderCard({
+  title,
+  subtitle,
+  action,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  action?: ReactNode;
+}) {
+  return <SharedScreenHeader recipe="routinesOverview" title={title} subtitle={subtitle} action={action} align="center" />;
 }
 
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
@@ -51,30 +54,22 @@ export function RoutinesSectionCard({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const recipe = resolveScreenRecipe(ROUTINES_OVERVIEW_RECIPE);
   return (
-    <AppPanel
-      data-screen-scaffold={recipe.scaffold}
-      data-section-chrome={recipe.sectionChrome}
-      data-footer-dock={recipe.footerDock}
-      className={recipe.sectionClassName}
+    <SharedSectionShell
+      recipe="routinesOverview"
+      label={title}
+      context={meta}
+      action={action}
+      className={appTokens.routinesOverviewSectionStack}
+      bodyClassName={appTokens.routinesOverviewSectionStack}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <TitleText as="h2" className="text-base">
-            {title}
-          </TitleText>
-          {meta ? <SubtitleText>{meta}</SubtitleText> : null}
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
       {children}
-    </AppPanel>
+    </SharedSectionShell>
   );
 }
 
 export function RoutinesCardList({ children }: { children: ReactNode }) {
-  return <ul className="space-y-2">{children}</ul>;
+  return <ul className={cn(appTokens.dayListStack, "space-y-[0.375rem] sm:space-y-[0.375rem]")}>{children}</ul>;
 }
 
 export function RoutinesListItem({ children }: { children: ReactNode }) {
@@ -82,22 +77,18 @@ export function RoutinesListItem({ children }: { children: ReactNode }) {
 }
 
 export function RoutinesListEmpty({ children }: { children: ReactNode }) {
-  return <SubtitleText className="px-1">{children}</SubtitleText>;
+  return <SubtitleText className={appTokens.routinesOverviewListEmpty}>{children}</SubtitleText>;
 }
 
 export function SharedDayListSection({
-  title = "Days",
-  meta,
   children,
 }: {
-  title?: ReactNode;
-  meta?: ReactNode;
   children: ReactNode;
 }) {
-  return <RoutinesSectionCard title={title} meta={meta}>{children}</RoutinesSectionCard>;
+  return <div className={appTokens.dayListStack}>{children}</div>;
 }
 
 
 export function RoutinesListItemCard(props: ComponentProps<typeof ExerciseCard>) {
-  return <ExerciseCard {...props} className={cn("shadow-none", props.className)} variant="compact" />;
+  return <ExerciseCard {...props} className={cn(appTokens.routinesOverviewCardFlat, props.className)} variant="compact" />;
 }

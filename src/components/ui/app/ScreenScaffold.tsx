@@ -19,7 +19,7 @@ export function ScreenScaffold({
       data-section-chrome={resolvedRecipe?.sectionChrome}
       data-footer-dock={resolvedRecipe?.footerDock}
       data-row-interaction={resolvedRecipe?.rowInteraction}
-      className={cn("bg-[rgb(var(--bg))]", resolvedRecipe?.scaffoldClassName, className)}
+      className={cn("bg-transparent", resolvedRecipe?.scaffoldClassName, className)}
     >
       {children}
     </section>

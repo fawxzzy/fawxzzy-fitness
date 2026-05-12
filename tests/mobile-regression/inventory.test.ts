@@ -1,0 +1,79 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { mobileRegressionScenarios } from "../../src/features/mobile-regression/fixtures.ts";
+
+test("fixture inventory covers all mobile screens from the pre-fix set", () => {
+  const byRoute = new Map<string, number>();
+  for (const scenario of mobileRegressionScenarios) {
+    byRoute.set(scenario.route, (byRoute.get(scenario.route) ?? 0) + 1);
+  }
+
+  assert.equal(byRoute.get("today"), 6);
+  assert.equal(byRoute.get("session"), 12);
+  assert.equal(byRoute.get("routines"), 2);
+  assert.equal(byRoute.get("viewDay"), 3);
+  assert.equal(byRoute.get("editDay"), 6);
+  assert.equal(byRoute.get("createRoutine"), 1);
+  assert.equal(byRoute.get("editRoutine"), 1);
+  assert.equal(byRoute.get("addExercise"), 2);
+  assert.equal(byRoute.get("historySessions"), 2);
+  assert.equal(byRoute.get("historyProgression"), 2);
+  assert.equal(byRoute.get("historyExercises"), 5);
+  assert.equal(byRoute.get("historyDetail"), 1);
+  assert.equal(byRoute.get("settings"), 2);
+  assert.equal(byRoute.get("exerciseDetail"), 4);
+});
+
+test("major mobile routes declare floatingHeader usage", () => {
+  const byRoute = new Map<string, boolean[]>();
+  for (const scenario of mobileRegressionScenarios) {
+    const existing = byRoute.get(scenario.route) ?? [];
+    existing.push(scenario.usesFloatingHeader);
+    byRoute.set(scenario.route, existing);
+  }
+
+  for (const [route, usesFloatingHeaderValues] of byRoute.entries()) {
+    assert.equal(
+      usesFloatingHeaderValues.every(Boolean),
+      true,
+      `${route}: one or more scenarios do not use floatingHeader`,
+    );
+  }
+});
+
+test("hardening fixtures keep long Exercise Info scroll and day-card parity coverage in the matrix", () => {
+  const longExerciseInfo = mobileRegressionScenarios.find((scenario) => scenario.id === "exercise-detail-long-scroll");
+  assert.ok(longExerciseInfo);
+  assert.equal(longExerciseInfo.route, "exerciseDetail");
+  assert.equal(longExerciseInfo.captureScrollPosition, "bottom");
+
+  const dayCardParity = mobileRegressionScenarios.find((scenario) => scenario.id === "edit-day-card-parity");
+  assert.ok(dayCardParity);
+  assert.equal(dayCardParity.route, "editDay");
+  assert.deepEqual(dayCardParity.cardParityModes, ["view", "edit", "reorder"]);
+
+  const historyExerciseDetail = mobileRegressionScenarios.find((scenario) => scenario.id === "history-exercises-detailed");
+  assert.ok(historyExerciseDetail);
+  assert.equal(historyExerciseDetail.route, "historyExercises");
+  assert.deepEqual(historyExerciseDetail.detailedMode, { extraMetricCount: 3, analyticsSlotsReady: true });
+
+  const historyExerciseCompact = mobileRegressionScenarios.find((scenario) => scenario.id === "history-exercises-compact");
+  assert.ok(historyExerciseCompact);
+  assert.equal(historyExerciseCompact.route, "historyExercises");
+
+  const todayDetailed = mobileRegressionScenarios.find((scenario) => scenario.id === "today-detailed");
+  assert.ok(todayDetailed);
+  assert.equal(todayDetailed.route, "today");
+  assert.deepEqual(todayDetailed.detailedMode, { extraMetricCount: 3, analyticsSlotsReady: true });
+
+  const bodyweightDetail = mobileRegressionScenarios.find((scenario) => scenario.id === "exercise-detail-bodyweight");
+  assert.ok(bodyweightDetail);
+  assert.equal(bodyweightDetail.route, "exerciseDetail");
+
+  const customExerciseSmoke = mobileRegressionScenarios.find((scenario) => scenario.id === "add-exercise-custom-taxonomy");
+  assert.ok(customExerciseSmoke);
+  assert.equal(customExerciseSmoke.route, "addExercise");
+  assert.equal(customExerciseSmoke.fixture, "custom-taxonomy");
+  assert.equal(customExerciseSmoke.goalForm?.fieldLabels.includes("Primary Muscle"), true);
+});

@@ -2,6 +2,7 @@
 
 import type { MouseEventHandler } from "react";
 import { BackButton } from "@/components/ui/BackButton";
+import { selectionChromeStyle } from "@/components/ui/selectionChromeStyle";
 import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 
 type TopRightBackButtonProps = {
@@ -23,6 +24,7 @@ export function TopRightBackButton({ href, ariaLabel = "Back", onClick, historyB
         standaloneHeaderFamily.actionButtonClassName,
         className,
       ].filter(Boolean).join(" ")}
+      style={selectionChromeStyle}
       iconOnly
       historyBehavior={historyBehavior}
     />

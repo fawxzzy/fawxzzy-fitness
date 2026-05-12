@@ -1,25 +1,33 @@
 import type { ReactNode } from "react";
+import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
-import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 
 export function HistoryPageHeader({
   title,
   subtitle,
   children,
+  withPanel = true,
 }: {
   title: string;
   subtitle?: string;
   children?: ReactNode;
+  withPanel?: boolean;
 }) {
   return (
     <SharedScreenHeader
       recipe="historyDetail"
       title={title}
       subtitle={subtitle}
+      className="px-1"
+      align="center"
+      withPanel={withPanel}
     >
       {children}
     </SharedScreenHeader>
@@ -28,30 +36,39 @@ export function HistoryPageHeader({
 
 export function HistoryDetailHeader({
   title,
+  titleClassName,
   subtitle,
   eyebrow = "History",
   meta,
   action,
   children,
   className,
+  actionClassName,
+  align = "left",
 }: {
   title: ReactNode;
+  titleClassName?: string;
   subtitle?: ReactNode;
   eyebrow?: ReactNode;
   meta?: ReactNode;
   action?: ReactNode;
   children?: ReactNode;
   className?: string;
+  actionClassName?: string;
+  align?: "left" | "center";
 }) {
   return (
     <SharedScreenHeader
       recipe="historyDetail"
       eyebrow={eyebrow}
       title={title}
+      titleClassName={titleClassName}
       subtitle={subtitle}
       action={action}
       meta={meta}
-      className={className}
+      align={align}
+      className={cn("pl-1", className)}
+      actionClassName={actionClassName}
     >
       {children}
     </SharedScreenHeader>
@@ -72,25 +89,49 @@ export function HistorySection({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 p-4", className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <TitleText as="h3" className="text-base">{title}</TitleText>
-          {description ? <SubtitleText className="text-sm">{description}</SubtitleText> : null}
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
+    <SharedSectionShell
+      recipe="historyDetail"
+      label={<span className={appTokens.historySectionTitle}>{title}</span>}
+      context={description ? <span className={appTokens.historySectionDescription}>{description}</span> : undefined}
+      action={action}
+      className={cn("pl-1", appTokens.historySectionPanel, className)}
+      bodyClassName={appTokens.historySectionBody}
+    >
       {children}
-    </AppPanel>
+    </SharedSectionShell>
   );
 }
 
 export function HistoryControlPanel({ children, className }: { children: ReactNode; className?: string }) {
-  return <AppPanel className={cn("space-y-3 p-3", className)}>{children}</AppPanel>;
+  return (
+    <SharedSectionShell
+      recipe="historyDetail"
+      className={cn("pl-1", appTokens.historyControlPanel, className)}
+      bodyClassName={appTokens.historyControlPanelBody}
+    >
+      {children}
+    </SharedSectionShell>
+  );
+}
+
+export function HistoryRouteErrorShell({
+  title,
+  caption,
+}: {
+  title: string;
+  caption: string;
+}) {
+  return (
+    <AppPanel className={appTokens.historyRouteMessage}>
+      <p className={appTokens.historyRouteMessageTitle}>{title}</p>
+      <p className={appTokens.historyRouteMessageCaption}>{caption}</p>
+    </AppPanel>
+  );
 }
 
 export function HistoryTitleControlShell({
   label,
+  caption,
   viewMode,
   onViewModeChange,
   showViewModeToggle = true,
@@ -98,77 +139,82 @@ export function HistoryTitleControlShell({
   className,
 }: {
   label?: string;
+  caption?: string;
   viewMode: "compact" | "detailed";
   onViewModeChange: (nextMode: "compact" | "detailed") => void;
   showViewModeToggle?: boolean;
   children?: ReactNode;
   className?: string;
 }) {
+  const hasChrome = Boolean(label || caption || showViewModeToggle);
+
+  if (!hasChrome) {
+    return children ? <div className={className}>{children}</div> : null;
+  }
+
   return (
-    <HistoryControlPanel className={cn("space-y-2", className)}>
-      {(label || showViewModeToggle) ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {label ? <p className="text-sm font-semibold text-slate-100">{label}</p> : null}
-          {showViewModeToggle ? (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => onViewModeChange("compact")}
-                aria-pressed={viewMode === "compact"}
-                className={cn(
-                  "inline-flex min-h-8 min-w-[5.6rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-                  viewMode === "compact"
-                    ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                    : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-                )}
-              >
-                Compact
-              </button>
-              <button
-                type="button"
-                onClick={() => onViewModeChange("detailed")}
-                aria-pressed={viewMode === "detailed"}
-                className={cn(
-                  "inline-flex min-h-8 min-w-[5.6rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-                  viewMode === "detailed"
-                    ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                    : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-                )}
-              >
-                Detailed
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+    <HistoryControlPanel className={cn(appTokens.historyTitleControlStack, className)}>
+      <div className={appTokens.historyTitleControlRow}>
+        {(label || caption) ? (
+          <div className="min-w-0">
+            {label ? <p className={appTokens.historyTitleControlLabel}>{label}</p> : null}
+            {caption ? <p className={appTokens.historyTitleControlCaption}>{caption}</p> : null}
+          </div>
+        ) : null}
+        {showViewModeToggle ? (
+          <div className={appTokens.historyTitleControlToggleSlot}>
+            <SegmentedControl
+              options={[
+                { label: "Compact", value: "compact" },
+                { label: "Detailed", value: "detailed" },
+              ]}
+              value={viewMode}
+              size="sm"
+              activeIntent="toggleActive"
+              inactiveIntent="toggleInactive"
+              ariaLabel="History view mode"
+              onChange={(nextValue) => onViewModeChange(nextValue as "compact" | "detailed")}
+            />
+          </div>
+        ) : null}
+      </div>
       {children}
     </HistoryControlPanel>
   );
 }
 
-export function HistoryTabs({ value, sessionsHref, exercisesHref }: { value: "sessions" | "exercises"; sessionsHref: string; exercisesHref: string }) {
+export function HistoryTabs({
+  value,
+  sessionsHref,
+  exercisesHref,
+  progressionHref,
+}: {
+  value: "sessions" | "exercises" | "progression";
+  sessionsHref: string;
+  exercisesHref: string;
+  progressionHref: string;
+}) {
   return (
     <SegmentedControl
       options={[
         { label: "Sessions", value: "sessions", href: sessionsHref },
         { label: "Exercises", value: "exercises", href: exercisesHref },
+        { label: "Progression", value: "progression", href: progressionHref },
       ]}
       value={value}
       size="sm"
+      activeIntent="info"
       ariaLabel="History tabs"
-      shellClassName="bg-[rgb(var(--surface-rgb)/0.34)] border-white/10"
-      activeClassName="bg-[rgb(var(--surface-rgb)/0.86)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.82)]"
-      inactiveClassName="text-slate-300 hover:bg-white/6 hover:text-white"
     />
   );
 }
 
 export function HistoryControlGroup({ label, children, summary }: { label: string; children: ReactNode; summary?: string }) {
   return (
-    <div className="space-y-2 rounded-[1.15rem] border border-white/8 bg-black/10 px-3 py-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{label}</p>
-        {summary ? <SubtitleText className="text-xs">{summary}</SubtitleText> : null}
+    <div className={appTokens.historyControlGroup}>
+      <div className={appTokens.historyControlGroupHeader}>
+        <p className={appTokens.historySectionTitle}>{label}</p>
+        {summary ? <SubtitleText className={appTokens.historyControlGroupSummary}>{summary}</SubtitleText> : null}
       </div>
       {children}
     </div>
@@ -176,22 +222,18 @@ export function HistoryControlGroup({ label, children, summary }: { label: strin
 }
 
 export function HistoryMetaRow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex flex-wrap gap-1.5", className)}>{children}</div>;
+  return <div className={cn(appTokens.detailMetaRow, className)}>{children}</div>;
 }
 
 export function HistoryMetaChip({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
   return (
-    <div
-      className={cn(
-        "min-w-0 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
-        emphasized
-          ? "border-[rgb(var(--button-primary-border)/0.45)] bg-[rgb(var(--button-primary-bg)/0.18)] text-slate-100"
-          : "border-white/10 bg-white/5 text-slate-300",
-      )}
+    <AppBadge
+      tone={emphasized ? "success" : "default"}
+      className={cn(appTokens.detailMetaChip, emphasized ? appTokens.detailMetaChipEmphasized : appTokens.detailMetaChipDefault)}
     >
-      <span className="text-slate-400">{label}</span>
-      <span className="ml-1 text-slate-100">{value}</span>
-    </div>
+      <span className={appTokens.detailMetaChipLabel}>{label}</span>
+      <span className={appTokens.detailMetaChipValue}>{value}</span>
+    </AppBadge>
   );
 }
 

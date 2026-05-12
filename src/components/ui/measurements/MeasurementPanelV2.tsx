@@ -1,10 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
+import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { StatFieldLabel } from "@/components/ui/measurements/StatFieldLabel";
+import { resolveDefaultMeasurementMetricLabel } from "@/lib/measurement-metric-labels";
 
 const METRICS: Array<{
   key: keyof MeasurementMetrics;
@@ -14,15 +17,336 @@ const METRICS: Array<{
   { key: "reps", title: "REPS", suffix: () => "range" },
   { key: "weight", title: "WEIGHT", suffix: (values) => values.weightUnit },
   { key: "time", title: "TIME", suffix: () => "mm:ss" },
-  { key: "distance", title: "DISTANCE", suffix: (values) => (values.distanceUnit === "km" ? "km" : "mi") },
+  { key: "distance", title: "DISTANCE", suffix: (values) => (values.distanceUnit === "km" || values.distanceUnit === "m" ? values.distanceUnit : "mi") },
   { key: "calories", title: "CALORIES", suffix: () => "cal" },
 ];
 
-const shellClassName = "space-y-2";
-const metricCardClassName = "min-h-[4.7rem] rounded-xl border px-2.5 py-2 transition-colors";
-const valueInputClassName = "input-no-spinner mt-1 h-9 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-2.5 text-[15px] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
-function MetricHeader({ title, suffix }: { title: string; suffix: string }) {
-  return <StatFieldLabel title={title} suffix={suffix} emphasis="default" />;
+const shellClassName = "space-y-0";
+const metricCardClassName = appTokens.measurementField;
+const valueInputClassName = appTokens.measurementInput;
+const bottomRightInlineLabelClassName = appTokens.measurementInlineValueLabel;
+const lowerBottomRightInlineLabelClassName = appTokens.measurementInlineValueLabelLower;
+const compactTopRowInlineLabelClassName = cn(lowerBottomRightInlineLabelClassName, "right-2.5 text-[8px] tracking-[0.06em]");
+const topRightInlineLabelClassName = "top-2.5 right-2.5 translate-y-0 text-[8px] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
+const floatingBorderLabelClassName = cn(
+  labeledEditorFieldFloatingLabelClassName,
+  "px-1 py-0 leading-none",
+);
+const topRightInlineLabelBaseClassName = "pointer-events-none absolute whitespace-nowrap text-right text-[8px] font-semibold uppercase leading-[1.02] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
+const floatingBorderFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] [touch-action:pan-x_pan-y] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
+const horizontalRailTouchIntentThreshold = 10;
+const horizontalRailTouchIntentRatio = 1.15;
+
+function sanitizeIntegerInput(value: string) {
+  return value.replace(/[^\d]/g, "");
+}
+
+function sanitizeDecimalInput(value: string) {
+  const cleaned = value.replace(/[^\d.]/g, "");
+  const [whole = "", ...fractionParts] = cleaned.split(".");
+  if (fractionParts.length === 0) {
+    return cleaned;
+  }
+  return `${whole}.${fractionParts.join("")}`;
+}
+
+function sanitizeDurationTextInput(value: string) {
+  const cleaned = value.replace(/[^\d:]/g, "");
+  const separatorIndex = cleaned.indexOf(":");
+  const minutes = separatorIndex >= 0 ? cleaned.slice(0, separatorIndex) : cleaned;
+  const secondsParts = separatorIndex >= 0 ? cleaned.slice(separatorIndex + 1) : "";
+  if (!cleaned.includes(":")) {
+    return minutes;
+  }
+  return `${minutes}:${secondsParts.replace(/:/g, "")}`;
+}
+
+type FieldWidth = "compact" | "standard" | "wide";
+
+type MeasurementPanelAuxiliaryField = {
+  title: string;
+  suffix?: string;
+  input: ReactNode;
+  inlineLabel?: string;
+  useInlineFieldShell?: boolean;
+  showEmptyValue?: boolean;
+  hasValue?: boolean;
+  labelClassName?: string;
+  valueLabelClassName?: string;
+  emptyValueClassName?: string;
+  renderInput?: (options: { inputClassName: string }) => ReactNode;
+};
+
+type HorizontalRailPointerState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startScrollLeft: number;
+  intent: "pending" | "horizontal" | "vertical";
+};
+
+type HorizontalRailTouchState = {
+  identifier: number;
+  startX: number;
+  startY: number;
+  startScrollLeft: number;
+  intent: "pending" | "horizontal" | "vertical";
+};
+
+function chunkFields<T>(items: T[], size: number) {
+  const rows: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
+}
+
+function getFieldSpanClassName(width: FieldWidth, gridColumnCount: 2 | 3) {
+  if (width !== "wide") {
+    return undefined;
+  }
+
+  return gridColumnCount === 3 ? "col-span-3" : "col-span-2";
+}
+
+function getFieldChromeClassName(width: FieldWidth) {
+  if (width === "compact") {
+    return appTokens.measurementFieldCompact;
+  }
+
+  if (width === "wide") {
+    return appTokens.measurementFieldWide;
+  }
+
+  return appTokens.measurementFieldStandard;
+}
+
+function getMetricRowLaneClassName(fieldCount: number, gridColumnCount: 2 | 3) {
+  if (fieldCount >= 3) {
+    return "w-full max-w-[20.25rem]";
+  }
+
+  if (fieldCount === 2) {
+    return "w-full max-w-[15.25rem]";
+  }
+
+  return gridColumnCount === 3
+    ? "w-[calc((100%-1rem)/3)] min-w-[5.5rem] max-w-[6.5rem]"
+    : "w-[calc((100%-0.5rem)/2)] min-w-[6.75rem] max-w-[7.5rem]";
+}
+
+function getBelowRpeContentWidthClassName(width: FieldWidth = "wide") {
+  if (width === "compact") {
+    return "w-[7.25rem] min-w-[7.25rem] max-w-[7.25rem]";
+  }
+
+  if (width === "standard") {
+    return "w-[8.75rem] min-w-[8.75rem] max-w-[9.25rem]";
+  }
+
+  return "w-[52%] min-w-[10.5rem] max-w-[14rem]";
+}
+
+function renderMetricCard({
+  testId,
+  width,
+  gridColumnCount,
+  children,
+  dimmed = false,
+}: {
+  testId: string;
+  width: FieldWidth;
+  gridColumnCount: 2 | 3;
+  children: ReactNode;
+  dimmed?: boolean;
+}) {
+  return (
+    <div
+        className={cn(
+          metricCardClassName,
+          "min-h-0 min-w-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
+          getFieldSpanClassName(width, gridColumnCount),
+          getFieldChromeClassName(width),
+          dimmed ? "opacity-55" : undefined,
+        )}
+      data-testid={testId}
+      data-field-width={width}
+    >
+      <div className="h-full">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+type InlineFieldLabelPlacement = "side" | "top-right" | "floating-border";
+
+function InlineFieldLabel({
+  label,
+  className,
+  placement = "side",
+}: {
+  label: string;
+  className?: string;
+  placement?: InlineFieldLabelPlacement;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+        className={cn(
+          placement === "floating-border"
+            ? undefined
+            : placement === "top-right"
+              ? topRightInlineLabelBaseClassName
+              : appTokens.measurementInlineSideLabel,
+        className,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+function InlineFieldControl({
+  label,
+  children,
+  labelClassName,
+  showEmptyValue = false,
+  emptyValueClassName,
+  hasValue = false,
+  valueLabelClassName,
+  labelPlacement = "side",
+}: {
+  label: string;
+  children: ReactNode;
+  labelClassName?: string;
+  showEmptyValue?: boolean;
+  emptyValueClassName?: string;
+  hasValue?: boolean;
+  valueLabelClassName?: string;
+  labelPlacement?: InlineFieldLabelPlacement;
+}) {
+  if (labelPlacement === "floating-border") {
+    return (
+      <fieldset className={floatingBorderFieldShellClassName}>
+        <legend
+          className={cn(
+            floatingBorderLabelClassName,
+            hasValue ? valueLabelClassName : labelClassName,
+          )}
+        >
+          {label}
+        </legend>
+        {children}
+        {showEmptyValue ? (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-0 flex items-center justify-center px-3.5 text-center text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
+              emptyValueClassName,
+            )}
+          >
+            -
+          </span>
+        ) : null}
+      </fieldset>
+    );
+  }
+
+  return (
+    <div className="relative min-w-0">
+      {children}
+      {showEmptyValue ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 flex items-center justify-center px-3.5 text-center text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
+            emptyValueClassName,
+          )}
+        >
+          -
+        </span>
+      ) : null}
+      <InlineFieldLabel
+        label={label}
+        placement={labelPlacement}
+        className={
+          hasValue
+            ? cn(
+                valueLabelClassName,
+              )
+            : labelClassName
+        }
+      />
+    </div>
+  );
+}
+
+function resolveMetricWidth({
+  metric,
+  singlePrimaryMetric,
+  hasRpeInput,
+  shareRowWithRpe,
+}: {
+  metric: keyof MeasurementMetrics;
+  singlePrimaryMetric: keyof MeasurementMetrics | null;
+  hasRpeInput: boolean;
+  shareRowWithRpe: boolean;
+}): FieldWidth {
+  if (shareRowWithRpe) {
+    return "standard";
+  }
+
+  if (metric === "time" && hasRpeInput) {
+    return "compact";
+  }
+
+  return singlePrimaryMetric === metric ? "wide" : "standard";
+}
+
+function getInputClassName({
+  tripleRow = false,
+  hasValue = false,
+  topRightLabel = false,
+  floatingBorder = false,
+  extraClassName,
+}: {
+  tripleRow?: boolean;
+  hasValue?: boolean;
+  topRightLabel?: boolean;
+  floatingBorder?: boolean;
+  extraClassName?: string;
+}) {
+  if (floatingBorder) {
+    return cn(
+      valueInputClassName,
+      labeledEditorFieldControlClassName,
+      "h-11 rounded-[inherit] !border-0 !bg-transparent px-3 py-0 text-center !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+      extraClassName,
+    );
+  }
+
+  if (topRightLabel) {
+    return cn(
+      valueInputClassName,
+      tripleRow
+        ? "px-3 pb-2 pt-4 text-center"
+        : "px-3 pb-2 pt-4 text-center",
+      extraClassName,
+    );
+  }
+
+  return cn(
+    valueInputClassName,
+    tripleRow
+      ? hasValue
+        ? "pl-3 pr-7 pb-4 pt-2.5 text-left"
+        : "pl-3 pr-7 text-left"
+      : hasValue
+        ? "pl-3 pr-10 pb-4 pt-2.5 text-left"
+        : "pl-3 pr-10 text-left",
+    extraClassName,
+  );
 }
 
 export function MeasurementPanelV2({
@@ -35,12 +359,24 @@ export function MeasurementPanelV2({
   showHeader = false,
   leadingContent,
   trailingContent,
+  belowRpeContent,
+  belowRpeField,
   rpe,
   onRpeChange,
+  betweenInputsAndFooterContent,
   footerContent,
+  footerClassName,
   showInnerHeader = false,
   topField,
+  auxiliaryFields,
+  horizontalRowPrefix,
+  metricLabelOverrides,
+  repRangeLabels,
   visibleMetrics,
+  metricOrder,
+  dimmedMetrics,
+  layoutMode = "grid",
+  labelTreatment = "inline",
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -57,198 +393,890 @@ export function MeasurementPanelV2({
   showHeader?: boolean;
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
+  belowRpeContent?: ReactNode;
+  belowRpeField?: {
+    title?: string;
+    suffix?: string;
+    width?: FieldWidth;
+  };
   rpe?: string;
   onRpeChange?: (value: string) => void;
+  betweenInputsAndFooterContent?: ReactNode;
   footerContent?: ReactNode;
+  footerClassName?: string;
   showInnerHeader?: boolean;
   topField?: {
     title: string;
     suffix?: string;
     input: ReactNode;
+    inlineLabel?: string;
+    useInlineFieldShell?: boolean;
+    showEmptyValue?: boolean;
+    hasValue?: boolean;
+    labelClassName?: string;
+    valueLabelClassName?: string;
+    emptyValueClassName?: string;
+    renderInput?: (options: { inputClassName: string }) => ReactNode;
+  };
+  auxiliaryFields?: MeasurementPanelAuxiliaryField[];
+  horizontalRowPrefix?: ReactNode;
+  metricLabelOverrides?: Partial<Record<keyof MeasurementMetrics, string>>;
+  repRangeLabels?: {
+    min: string;
+    max: string;
   };
   visibleMetrics?: Array<keyof MeasurementMetrics>;
+  metricOrder?: Array<keyof MeasurementMetrics>;
+  dimmedMetrics?: Array<keyof MeasurementMetrics>;
+  layoutMode?: "grid" | "horizontal-scroll";
+  labelTreatment?: "inline" | "floating-border";
 }) {
+  const horizontalRailRef = useRef<HTMLDivElement | null>(null);
+  const horizontalRailPointerStateRef = useRef<HorizontalRailPointerState | null>(null);
+  const horizontalRailTouchStateRef = useRef<HorizontalRailTouchState | null>(null);
+  const suppressHorizontalRailClickRef = useRef(false);
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
-  const resolvedDistanceUnit = values.distanceUnit === "km" ? "km" : "mi";
+  const resolvedDistanceUnit = values.distanceUnit === "km" || values.distanceUnit === "m" ? values.distanceUnit : "mi";
 
   const hasRpeInput = typeof onRpeChange === "function";
   const contract = resolveScreenContract("exerciseLog");
   const allowedMetrics = new Set<keyof MeasurementMetrics>(visibleMetrics ?? ["reps", "weight", "time", "distance", "calories"]);
+  const dimmedMetricSet = new Set<keyof MeasurementMetrics>(dimmedMetrics ?? []);
+  const resolvedMetricOrder = (metricOrder ?? ["reps", "weight", "time", "distance", "calories"]).filter((metric) => allowedMetrics.has(metric));
+  const standardMetrics = (["reps", "weight", "time", "distance", "calories"] as const).filter((metric) => allowedMetrics.has(metric));
+  const singlePrimaryMetric = standardMetrics.length === 1 ? standardMetrics[0] : null;
+  const usesRepRange = "repsMax" in values;
+  const resolvedRepRangeLabels = repRangeLabels ?? { min: "Min", max: "Max" };
+  const repFieldCount = allowedMetrics.has("reps") ? (usesRepRange ? 2 : 1) : 0;
+  const visibleInlineFieldCount = repFieldCount
+    + (allowedMetrics.has("weight") ? 1 : 0)
+    + (allowedMetrics.has("time") ? 1 : 0)
+    + (allowedMetrics.has("distance") ? 1 : 0)
+    + (allowedMetrics.has("calories") ? 1 : 0)
+    + (hasRpeInput ? 1 : 0)
+    + (topField ? 1 : 0);
+  const shareSingleMetricRowWithRpe = hasRpeInput && standardMetrics.length === 1;
+  const useThreeAcrossMetrics = visibleInlineFieldCount >= 3 && !belowRpeContent;
+  const useFloatingBorderLabels = labelTreatment === "floating-border";
+  const useCenteredLowerLabels = false;
+  const useTopRightInlineLabels = !useFloatingBorderLabels;
+  const useTopAnchoredLabels = !useCenteredLowerLabels && (useTopRightInlineLabels || useFloatingBorderLabels);
+  const gridColumnCount: 2 | 3 = useThreeAcrossMetrics ? 3 : 2;
+  const metricFields: Array<{ id: string; node: ReactNode }> = [];
+  const resolvedFloatingLabelPlacement: InlineFieldLabelPlacement = useCenteredLowerLabels
+    ? "top-right"
+    : useFloatingBorderLabels
+      ? "floating-border"
+      : useTopRightInlineLabels
+        ? "top-right"
+        : "side";
+  const resolveInlineLabelClassName = (fallback?: string) => (
+    useFloatingBorderLabels
+      ? floatingBorderLabelClassName
+      : useTopRightInlineLabels
+        ? topRightInlineLabelClassName
+        : fallback
+  );
+  const resolveValueLabelClassName = (fallback?: string) => (
+    useFloatingBorderLabels
+      ? floatingBorderLabelClassName
+      : useTopRightInlineLabels
+        ? topRightInlineLabelClassName
+        : fallback
+  );
+  const resolveMetricLabel = (metric: keyof MeasurementMetrics, fallback: string) => metricLabelOverrides?.[metric] ?? resolveDefaultMeasurementMetricLabel(metric, fallback);
+
+  function pushAuxiliaryField(field: MeasurementPanelAuxiliaryField, index: number) {
+    const useInlineFieldShell = field.useInlineFieldShell ?? true;
+    metricFields.push({
+      id: `aux-field-${index}`,
+      node: renderMetricCard({
+        testId: `measurement-field-aux-${index}`,
+        width: useThreeAcrossMetrics ? "compact" : "standard",
+        gridColumnCount,
+        children: field.inlineLabel !== undefined && useInlineFieldShell ? (
+          <InlineFieldControl
+            label={field.inlineLabel}
+            showEmptyValue={field.showEmptyValue}
+            hasValue={field.hasValue}
+            labelClassName={field.labelClassName}
+            valueLabelClassName={field.valueLabelClassName}
+            emptyValueClassName={field.emptyValueClassName}
+            labelPlacement={resolvedFloatingLabelPlacement}
+          >
+            {field.renderInput
+              ? field.renderInput({
+                inputClassName: getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: field.hasValue,
+                  topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
+                }),
+              })
+              : field.input}
+          </InlineFieldControl>
+        ) : field.inlineLabel !== undefined ? (
+          <div className="flex h-full items-center justify-center">
+            {field.renderInput
+              ? field.renderInput({
+                inputClassName: getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: field.hasValue,
+                  topRightLabel: false,
+                  floatingBorder: false,
+                }),
+              })
+              : field.input}
+          </div>
+        ) : (
+          <>
+            <StatFieldLabel title={field.title} suffix={field.suffix} emphasis="target" />
+            <div className="mt-2">{field.input}</div>
+          </>
+        ),
+      }),
+    });
+  }
+
+  if (topField) {
+    const useInlineFieldShell = topField.useInlineFieldShell ?? true;
+    metricFields.push({
+      id: "top-field",
+      node: renderMetricCard({
+        testId: "measurement-field-summary",
+        width: useThreeAcrossMetrics ? "compact" : "standard",
+        gridColumnCount,
+        children: topField.inlineLabel !== undefined && useInlineFieldShell ? (
+          <InlineFieldControl
+            label={topField.inlineLabel}
+            showEmptyValue={topField.showEmptyValue}
+            hasValue={topField.hasValue}
+            labelClassName={topField.labelClassName}
+            valueLabelClassName={topField.valueLabelClassName}
+            emptyValueClassName={topField.emptyValueClassName}
+            labelPlacement={resolvedFloatingLabelPlacement}
+          >
+            {topField.renderInput
+              ? topField.renderInput({
+                inputClassName: getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: topField.hasValue,
+                  topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
+                }),
+              })
+              : topField.input}
+          </InlineFieldControl>
+        ) : topField.inlineLabel !== undefined ? (
+          <div className="flex h-full items-center justify-center">
+            {topField.renderInput
+              ? topField.renderInput({
+                inputClassName: getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: topField.hasValue,
+                  topRightLabel: false,
+                  floatingBorder: false,
+                }),
+              })
+              : topField.input}
+          </div>
+        ) : (
+          <>
+            <StatFieldLabel title={topField.title} suffix={topField.suffix} emphasis="target" />
+            <div className="mt-2">{topField.input}</div>
+          </>
+        ),
+      }),
+    });
+  }
+
+  auxiliaryFields?.forEach((field, index) => pushAuxiliaryField(field, index));
+
+  if (allowedMetrics.has("reps")) {
+    if (usesRepRange) {
+      metricFields.push({
+        id: "reps-min",
+        node: renderMetricCard({
+          testId: "measurement-field-reps-min",
+          width: useThreeAcrossMetrics ? "compact" : "standard",
+          gridColumnCount,
+          dimmed: dimmedMetricSet.has("reps"),
+          children: (
+            <InlineFieldControl
+              label={resolvedRepRangeLabels.min}
+              showEmptyValue={!values.reps.trim()}
+              hasValue={Boolean(values.reps.trim())}
+              labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
+              valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
+              emptyValueClassName={undefined}
+              labelPlacement={resolvedFloatingLabelPlacement}
+            >
+              <input
+                name={names?.reps}
+                type="text"
+                inputMode="text"
+                value={values.reps}
+                onChange={(event) => {
+                  onChange({ reps: sanitizeIntegerInput(event.target.value) });
+                }}
+                className={getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: Boolean(values.reps.trim()),
+                  topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
+                })}
+                placeholder=""
+              />
+            </InlineFieldControl>
+          ),
+        }),
+      });
+      metricFields.push({
+        id: "reps-max",
+        node: renderMetricCard({
+          testId: "measurement-field-reps-max",
+          width: useThreeAcrossMetrics ? "compact" : "standard",
+          gridColumnCount,
+          dimmed: dimmedMetricSet.has("reps"),
+          children: (
+            <InlineFieldControl
+              label={resolvedRepRangeLabels.max}
+              showEmptyValue={!(values.repsMax ?? "").trim()}
+              hasValue={Boolean((values.repsMax ?? "").trim())}
+              labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
+              valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
+              emptyValueClassName={undefined}
+              labelPlacement={resolvedFloatingLabelPlacement}
+            >
+              <input
+                name={names?.repsMax}
+                type="text"
+                inputMode="text"
+                value={values.repsMax ?? ""}
+                onChange={(event) => {
+                  onChange({ repsMax: sanitizeIntegerInput(event.target.value) });
+                }}
+                className={getInputClassName({
+                  tripleRow: useThreeAcrossMetrics,
+                  hasValue: Boolean((values.repsMax ?? "").trim()),
+                  topRightLabel: useTopAnchoredLabels,
+                  floatingBorder: useFloatingBorderLabels,
+                })}
+                placeholder=""
+              />
+            </InlineFieldControl>
+          ),
+        }),
+      });
+    } else {
+      metricFields.push({ id: "reps", node: renderMetricCard({
+              testId: "measurement-field-reps",
+              width: shareSingleMetricRowWithRpe
+                ? "standard"
+                : singlePrimaryMetric === "reps"
+                  ? "wide"
+                  : (useThreeAcrossMetrics ? "compact" : "standard"),
+              gridColumnCount,
+              dimmed: dimmedMetricSet.has("reps"),
+              children: (
+                <InlineFieldControl
+                  label={METRICS[0].title}
+                  showEmptyValue={!values.reps.trim()}
+                  hasValue={Boolean(values.reps.trim())}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
+                  emptyValueClassName={undefined}
+                  labelPlacement={resolvedFloatingLabelPlacement}
+                >
+                  <input
+                    name={names?.reps}
+                    type="text"
+                    inputMode="text"
+                    value={values.reps}
+                    onChange={(event) => {
+                      onChange({ reps: sanitizeIntegerInput(event.target.value) });
+                    }}
+                    className={getInputClassName({
+                      tripleRow: useThreeAcrossMetrics,
+                      hasValue: Boolean(values.reps.trim()),
+                      topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
+                    })}
+                    placeholder=""
+                  />
+                </InlineFieldControl>
+              ),
+            })});
+    }
+  }
+
+  if (allowedMetrics.has("weight")) {
+    metricFields.push({ id: "weight", node: renderMetricCard({
+            testId: "measurement-field-weight",
+            width: useThreeAcrossMetrics ? "compact" : resolveMetricWidth({ metric: "weight", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
+            gridColumnCount,
+            dimmed: dimmedMetricSet.has("weight"),
+            children: (
+              <>
+                <InlineFieldControl
+                  label={values.weightUnit}
+                  showEmptyValue={!values.weight.trim()}
+                  hasValue={Boolean(values.weight.trim())}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
+                  emptyValueClassName={undefined}
+                  labelPlacement={resolvedFloatingLabelPlacement}
+                >
+                  <input
+                    name={names?.weight}
+                    type="text"
+                    inputMode="text"
+                    value={values.weight}
+                    onChange={(event) => {
+                      onChange({ weight: sanitizeDecimalInput(event.target.value) });
+                    }}
+                    className={getInputClassName({
+                      tripleRow: useThreeAcrossMetrics,
+                      hasValue: Boolean(values.weight.trim()),
+                      topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
+                    })}
+                    placeholder=""
+                  />
+                </InlineFieldControl>
+                {names?.weightUnit ? <input type="hidden" name={names.weightUnit} value={values.weightUnit} /> : null}
+              </>
+            ),
+          })});
+  }
+
+  if (allowedMetrics.has("time")) {
+    metricFields.push({ id: "time", node: renderMetricCard({
+            testId: "measurement-field-time",
+            width: resolveMetricWidth({ metric: "time", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
+            gridColumnCount,
+            dimmed: dimmedMetricSet.has("time"),
+            children: (
+              <>
+                <InlineFieldControl
+                  label={resolveMetricLabel("time", "s")}
+                  showEmptyValue={!values.duration.trim()}
+                  hasValue={Boolean(values.duration.trim())}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
+                  emptyValueClassName={undefined}
+                  labelPlacement={resolvedFloatingLabelPlacement}
+                >
+                  <input
+                    name={names?.duration}
+                    type="text"
+                    inputMode="text"
+                    value={values.duration}
+                    onChange={(event) => {
+                      onChange({ duration: sanitizeDurationTextInput(event.target.value) });
+                    }}
+                    className={getInputClassName({
+                      tripleRow: useThreeAcrossMetrics,
+                      hasValue: Boolean(values.duration.trim()),
+                      topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
+                    })}
+                    placeholder=""
+                  />
+                </InlineFieldControl>
+              </>
+            ),
+          })});
+  }
+
+  if (allowedMetrics.has("distance")) {
+    metricFields.push({ id: "distance", node: renderMetricCard({
+            testId: "measurement-field-distance",
+            width: resolveMetricWidth({ metric: "distance", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
+            gridColumnCount,
+            dimmed: dimmedMetricSet.has("distance"),
+            children: (
+              <>
+                <InlineFieldControl
+                  label={resolveMetricLabel("distance", resolvedDistanceUnit)}
+                  showEmptyValue={!values.distance.trim()}
+                  hasValue={Boolean(values.distance.trim())}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
+                  emptyValueClassName={undefined}
+                  labelPlacement={resolvedFloatingLabelPlacement}
+                >
+                  <input
+                    name={names?.distance}
+                    type="text"
+                    inputMode="text"
+                    value={values.distance}
+                    onChange={(event) => {
+                      onChange({ distance: sanitizeDecimalInput(event.target.value) });
+                    }}
+                    className={getInputClassName({
+                      tripleRow: useThreeAcrossMetrics,
+                      hasValue: Boolean(values.distance.trim()),
+                      topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
+                    })}
+                    placeholder=""
+                  />
+                </InlineFieldControl>
+                {names?.distanceUnit ? <input type="hidden" name={names.distanceUnit} value={resolvedDistanceUnit} /> : null}
+              </>
+            ),
+          })});
+  }
+
+  if (allowedMetrics.has("calories")) {
+    metricFields.push({ id: "calories", node: renderMetricCard({
+            testId: "measurement-field-calories",
+            width: resolveMetricWidth({ metric: "calories", singlePrimaryMetric, hasRpeInput, shareRowWithRpe: shareSingleMetricRowWithRpe }),
+            gridColumnCount,
+            dimmed: dimmedMetricSet.has("calories"),
+            children: (
+              <>
+                <InlineFieldControl
+                  label="cal"
+                  showEmptyValue={!values.calories.trim()}
+                  hasValue={Boolean(values.calories.trim())}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  valueLabelClassName={resolveValueLabelClassName()}
+                  emptyValueClassName={undefined}
+                  labelPlacement={resolvedFloatingLabelPlacement}
+                >
+                  <input
+                    name={names?.calories}
+                    type="text"
+                    inputMode="text"
+                    value={values.calories}
+                    onChange={(event) => {
+                      onChange({ calories: sanitizeIntegerInput(event.target.value) });
+                    }}
+                    className={getInputClassName({
+                      tripleRow: useThreeAcrossMetrics,
+                      hasValue: Boolean(values.calories.trim()),
+                      topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
+                      extraClassName: useThreeAcrossMetrics ? undefined : "pr-16",
+                    })}
+                    placeholder=""
+                  />
+                </InlineFieldControl>
+              </>
+            ),
+          })});
+  }
+
+  if (hasRpeInput) {
+    metricFields.push({ id: "rpe", node: renderMetricCard({
+            testId: "measurement-field-rpe",
+            width: shareSingleMetricRowWithRpe ? "standard" : "compact",
+            gridColumnCount,
+            children: (
+              <>
+                <InlineFieldControl
+                  label="/ 10"
+                  showEmptyValue={!(rpe ?? "").trim()}
+                  hasValue={Boolean((rpe ?? "").trim())}
+                  labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
+                  emptyValueClassName={undefined}
+                  valueLabelClassName={resolveValueLabelClassName("bottom-3 right-3 text-[9px] tracking-[0.06em]")}
+                  labelPlacement={resolvedFloatingLabelPlacement}
+                >
+                  <input
+                    type="text"
+                    inputMode="text"
+                    value={rpe ?? ""}
+                    onChange={(event) => onRpeChange(sanitizeDecimalInput(event.target.value))}
+                    className={getInputClassName({
+                      tripleRow: useThreeAcrossMetrics,
+                      hasValue: Boolean((rpe ?? "").trim()),
+                      topRightLabel: useTopAnchoredLabels,
+                      floatingBorder: useFloatingBorderLabels,
+                      extraClassName: useThreeAcrossMetrics ? undefined : "pl-18 pr-12 [text-indent:0.45rem]",
+                    })}
+                    placeholder=""
+                  />
+                </InlineFieldControl>
+              </>
+            ),
+          })});
+  }
+
+  const metricSortOrder = new Map<string, number>();
+  metricSortOrder.set("top-field", -10);
+  resolvedMetricOrder.forEach((metric, index) => {
+    const baseOrder = index * 10;
+    if (metric === "reps") {
+      metricSortOrder.set("reps", baseOrder);
+      metricSortOrder.set("reps-min", baseOrder);
+      metricSortOrder.set("reps-max", baseOrder + 1);
+      return;
+    }
+
+    metricSortOrder.set(metric, baseOrder);
+  });
+  const repsOrder = metricSortOrder.get("reps-min") ?? metricSortOrder.get("reps") ?? 0;
+  auxiliaryFields?.forEach((_, index) => {
+    metricSortOrder.set(`aux-field-${index}`, -20 + (index * 0.01));
+  });
+  metricSortOrder.set("rpe", resolvedMetricOrder.length * 10 + 5);
+
+  const orderedMetricFields = [...metricFields].sort(
+    (left, right) => (metricSortOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (metricSortOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+  );
+
+  const metricRows = useThreeAcrossMetrics ? chunkFields(orderedMetricFields, 3) : [orderedMetricFields];
+  const useHorizontalScrollLayout = layoutMode === "horizontal-scroll" && orderedMetricFields.length > 0;
+
+  useEffect(() => {
+    if (useHorizontalScrollLayout) {
+      return;
+    }
+
+    horizontalRailPointerStateRef.current = null;
+    horizontalRailTouchStateRef.current = null;
+    suppressHorizontalRailClickRef.current = false;
+  }, [useHorizontalScrollLayout]);
+
+  useEffect(() => {
+    const rail = horizontalRailRef.current;
+    if (!useHorizontalScrollLayout || !rail) {
+      return;
+    }
+
+    const findTrackedTouch = (touchList: TouchList, identifier: number) => {
+      for (let index = 0; index < touchList.length; index += 1) {
+        const touch = touchList.item(index);
+        if (touch && touch.identifier === identifier) {
+          return touch;
+        }
+      }
+      return null;
+    };
+
+    const clearTrackedTouch = () => {
+      horizontalRailTouchStateRef.current = null;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 0 || rail.scrollWidth <= rail.clientWidth) {
+        return;
+      }
+
+      const touch = event.touches.item(0);
+      if (!touch) {
+        return;
+      }
+
+      horizontalRailTouchStateRef.current = {
+        identifier: touch.identifier,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startScrollLeft: rail.scrollLeft,
+        intent: "pending",
+      };
+      suppressHorizontalRailClickRef.current = false;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const touchState = horizontalRailTouchStateRef.current;
+      if (!touchState) {
+        return;
+      }
+
+      const touch = findTrackedTouch(event.touches, touchState.identifier);
+      if (!touch) {
+        return;
+      }
+
+      const deltaX = touch.clientX - touchState.startX;
+      const deltaY = touch.clientY - touchState.startY;
+
+      if (touchState.intent === "pending") {
+        if (Math.abs(deltaY) > horizontalRailTouchIntentThreshold && Math.abs(deltaY) > Math.abs(deltaX)) {
+          touchState.intent = "vertical";
+          return;
+        }
+
+        const horizontalIntentEstablished = Math.abs(deltaX) > horizontalRailTouchIntentThreshold
+          && Math.abs(deltaX) > Math.abs(deltaY) * horizontalRailTouchIntentRatio;
+
+        if (!horizontalIntentEstablished) {
+          return;
+        }
+
+        touchState.intent = "horizontal";
+        suppressHorizontalRailClickRef.current = true;
+      }
+
+      if (touchState.intent !== "horizontal") {
+        return;
+      }
+
+      event.preventDefault();
+      rail.scrollLeft = touchState.startScrollLeft - deltaX;
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const touchState = horizontalRailTouchStateRef.current;
+      if (!touchState) {
+        return;
+      }
+
+      const releasedTouch = findTrackedTouch(event.changedTouches, touchState.identifier);
+      if (!releasedTouch) {
+        return;
+      }
+
+      if (touchState.intent === "horizontal") {
+        window.setTimeout(() => {
+          suppressHorizontalRailClickRef.current = false;
+        }, 0);
+      } else {
+        suppressHorizontalRailClickRef.current = false;
+      }
+
+      clearTrackedTouch();
+    };
+
+    const handleTouchCancel = () => {
+      clearTrackedTouch();
+      suppressHorizontalRailClickRef.current = false;
+    };
+
+    rail.addEventListener("touchstart", handleTouchStart, { passive: true });
+    rail.addEventListener("touchmove", handleTouchMove, { passive: false });
+    rail.addEventListener("touchend", handleTouchEnd, { passive: true });
+    rail.addEventListener("touchcancel", handleTouchCancel, { passive: true });
+
+    return () => {
+      rail.removeEventListener("touchstart", handleTouchStart);
+      rail.removeEventListener("touchmove", handleTouchMove);
+      rail.removeEventListener("touchend", handleTouchEnd);
+      rail.removeEventListener("touchcancel", handleTouchCancel);
+    };
+  }, [useHorizontalScrollLayout]);
+
+  function getHorizontalFieldWidthClassName(fieldId: string) {
+    if (fieldId === "top-field") return "w-[6.35rem]";
+    if (fieldId.startsWith("aux-field-")) return "w-[8.75rem]";
+    if (fieldId === "reps-min" || fieldId === "reps-max") return "w-[6.35rem]";
+    if (fieldId === "reps") return "w-[5.85rem]";
+    if (fieldId === "weight") return "w-[5.95rem]";
+    if (fieldId === "time") return "w-[5.6rem]";
+    if (fieldId === "distance") return "w-[5.75rem]";
+    if (fieldId === "calories") return "w-[5.55rem]";
+    if (fieldId === "rpe") return "w-[5.15rem]";
+    return "w-[5.75rem]";
+  }
+
+  function releaseHorizontalRailPointerCapture(target: HTMLDivElement, pointerId: number) {
+    try {
+      if (target.hasPointerCapture(pointerId)) {
+        target.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // Pointer capture is best-effort and can fail on some mobile browsers.
+    }
+  }
+
+  function handleHorizontalRailPointerDownCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!useHorizontalScrollLayout || event.pointerType === "mouse" || !event.isPrimary) {
+      return;
+    }
+
+    const rail = horizontalRailRef.current;
+    if (!rail || rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    horizontalRailPointerStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startScrollLeft: rail.scrollLeft,
+      intent: "pending",
+    };
+    suppressHorizontalRailClickRef.current = false;
+  }
+
+  function handleHorizontalRailPointerMoveCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    const pointerState = horizontalRailPointerStateRef.current;
+    if (!pointerState || pointerState.pointerId !== event.pointerId || event.pointerType === "mouse") {
+      return;
+    }
+
+    const rail = horizontalRailRef.current;
+    if (!rail) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointerState.startX;
+    const deltaY = event.clientY - pointerState.startY;
+
+    if (pointerState.intent === "pending") {
+      if (Math.abs(deltaY) > horizontalRailTouchIntentThreshold && Math.abs(deltaY) > Math.abs(deltaX)) {
+        pointerState.intent = "vertical";
+        return;
+      }
+
+      const horizontalIntentEstablished = Math.abs(deltaX) > horizontalRailTouchIntentThreshold
+        && Math.abs(deltaX) > Math.abs(deltaY) * horizontalRailTouchIntentRatio;
+
+      if (!horizontalIntentEstablished) {
+        return;
+      }
+
+      pointerState.intent = "horizontal";
+      suppressHorizontalRailClickRef.current = true;
+
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Some mobile browsers do not permit capture for delegated pointer events.
+      }
+    }
+
+    if (pointerState.intent !== "horizontal") {
+      return;
+    }
+
+    event.preventDefault();
+    rail.scrollLeft = pointerState.startScrollLeft - deltaX;
+  }
+
+  function handleHorizontalRailPointerUpCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    const pointerState = horizontalRailPointerStateRef.current;
+    if (!pointerState || pointerState.pointerId !== event.pointerId || event.pointerType === "mouse") {
+      return;
+    }
+
+    if (pointerState.intent === "horizontal") {
+      event.preventDefault();
+      window.setTimeout(() => {
+        suppressHorizontalRailClickRef.current = false;
+      }, 0);
+    } else {
+      suppressHorizontalRailClickRef.current = false;
+    }
+
+    releaseHorizontalRailPointerCapture(event.currentTarget, event.pointerId);
+    horizontalRailPointerStateRef.current = null;
+  }
+
+  function handleHorizontalRailPointerCancelCapture(event: ReactPointerEvent<HTMLDivElement>) {
+    releaseHorizontalRailPointerCapture(event.currentTarget, event.pointerId);
+    horizontalRailPointerStateRef.current = null;
+    suppressHorizontalRailClickRef.current = false;
+  }
+
+  function handleHorizontalRailClickCapture(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!suppressHorizontalRailClickRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressHorizontalRailClickRef.current = false;
+  }
 
   return (
-    <section className={cn("space-y-2.5", className)} data-field-label-style={contract.fieldLabelStyle}>
-      {showHeader ? <div className="space-y-0.5">{description ? <p className="text-xs text-muted">{description}</p> : null}</div> : null}
+    <section className={cn(appTokens.measurementPanelStack, useHorizontalScrollLayout ? "space-y-0.5" : undefined, className)} data-field-label-style={contract.fieldLabelStyle} data-testid="measurement-panel">
+      {showHeader ? <div className={appTokens.measurementPanelGrid}>{description ? <p className={appTokens.measurementHeaderMeta}>{description}</p> : null}</div> : null}
 
       {leadingContent}
 
       <div className={shellClassName}>
         {showInnerHeader ? (
           <div className="mb-1.5 flex items-center justify-end gap-2">
-            <p className="text-[11px] text-muted">{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
+            <p className={appTokens.measurementHeaderMeta}>{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-2">
-          {topField ? (
-            <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
-              <StatFieldLabel title={topField.title} suffix={topField.suffix} emphasis="target" />
-              <div className="mt-1">{topField.input}</div>
-            </div>
-          ) : null}
-
-          {allowedMetrics.has("reps") ? (
-            <div
-            className={cn(metricCardClassName, "col-span-2 border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
-          >
-            <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} />
-            {"repsMax" in values ? (
-              <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <label className="space-y-1 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                  <span>Min</span>
-                  <input
-                    name={names?.reps}
-                    type="number"
-                    min={0}
-                    value={values.reps}
-                    onChange={(event) => {
-                      onChange({ reps: event.target.value });
-                    }}
-                    className={valueInputClassName}
-                    placeholder="Required"
-                  />
-                </label>
-                <label className="space-y-1 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                  <span>Max</span>
-                  <input
-                    name={names?.repsMax}
-                    type="number"
-                    min={0}
-                    value={values.repsMax ?? ""}
-                    onChange={(event) => {
-                      onChange({ repsMax: event.target.value });
-                    }}
-                    className={valueInputClassName}
-                    placeholder="Optional"
-                  />
-                </label>
+        <div className={appTokens.measurementPanelGrid} data-testid="measurement-grid">
+          {belowRpeContent ? renderMetricCard({
+            testId: "measurement-field-secondary",
+            width: belowRpeField?.width ?? "wide",
+            gridColumnCount,
+            children: (
+              <div className="relative flex justify-center py-2">
+                <div className={getBelowRpeContentWidthClassName(belowRpeField?.width)}>{belowRpeContent}</div>
+                {belowRpeField?.title ? <InlineFieldLabel label={belowRpeField.title} /> : null}
               </div>
-            ) : (
-              <input
-                name={names?.reps}
-                type="number"
-                min={0}
-                value={values.reps}
-                onChange={(event) => {
-                  onChange({ reps: event.target.value });
-                }}
-                className={valueInputClassName}
-                placeholder="-"
-              />
-            )}
-            </div>
-          ) : null}
+            ),
+          }) : null}
 
-          {allowedMetrics.has("weight") ? (
-            <div
-            className={cn(metricCardClassName, "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
-          >
-            <MetricHeader title={METRICS[1].title} suffix={METRICS[1].suffix(values)} />
-            <input
-              name={names?.weight}
-              type="number"
-              min={0}
-              step="0.5"
-              value={values.weight}
-              onChange={(event) => {
-                onChange({ weight: event.target.value });
-              }}
-              className={valueInputClassName}
-              placeholder="-"
-            />
-            {names?.weightUnit ? <input type="hidden" name={names.weightUnit} value={values.weightUnit} /> : null}
+          {useHorizontalScrollLayout ? (
+            <div className="relative overflow-visible">
+              <div
+                ref={horizontalRailRef}
+                data-measurement-horizontal-rail="true"
+                className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
+                onPointerDownCapture={handleHorizontalRailPointerDownCapture}
+                onPointerMoveCapture={handleHorizontalRailPointerMoveCapture}
+                onPointerUpCapture={handleHorizontalRailPointerUpCapture}
+                onPointerCancelCapture={handleHorizontalRailPointerCancelCapture}
+                onClickCapture={handleHorizontalRailClickCapture}
+              >
+                <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5">
+                  {horizontalRowPrefix ? (
+                    <div className="shrink-0">
+                      {horizontalRowPrefix}
+                    </div>
+                  ) : null}
+                  {orderedMetricFields.map((field) => (
+                    <div key={field.id} className={cn("shrink-0", getHorizontalFieldWidthClassName(field.id))}>
+                      {field.node}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          ) : null}
+          ) : metricRows.map((row, rowIndex) => {
+            if (row.length === 1) {
+              return (
+                <div key={`measurement-row-${rowIndex}`} className="flex justify-center">
+                  <div className={getMetricRowLaneClassName(row.length, gridColumnCount)}>
+                    {row[0]?.node}
+                  </div>
+                </div>
+              );
+            }
 
-          {allowedMetrics.has("time") ? (
-            <div
-            className={cn(metricCardClassName, "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
-          >
-            <MetricHeader title={METRICS[2].title} suffix={METRICS[2].suffix(values)} />
-            <input
-              name={names?.duration}
-              type="text"
-              inputMode="numeric"
-              value={values.duration}
-              onChange={(event) => {
-                onChange({ duration: event.target.value });
-              }}
-              className={valueInputClassName}
-              placeholder="-"
-            />
-            </div>
-          ) : null}
+            const rowClassName = row.length === 3
+              ? "grid grid-cols-3 gap-x-2.5 gap-y-2"
+              : "grid grid-cols-2 gap-x-2.5 gap-y-2";
 
-          {allowedMetrics.has("distance") ? (
-            <div
-            className={cn(metricCardClassName, "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
-          >
-            <MetricHeader title={METRICS[3].title} suffix={METRICS[3].suffix(values)} />
-            <input
-              name={names?.distance}
-              type="number"
-              min={0}
-              step="0.01"
-              value={values.distance}
-              onChange={(event) => {
-                onChange({ distance: event.target.value });
-              }}
-              className={valueInputClassName}
-              placeholder="-"
-            />
-            {names?.distanceUnit ? <input type="hidden" name={names.distanceUnit} value={resolvedDistanceUnit} /> : null}
-            </div>
-          ) : null}
-
-          {allowedMetrics.has("calories") ? (
-            <div
-            className={cn(metricCardClassName, "col-span-2 border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
-          >
-            <MetricHeader title={METRICS[4].title} suffix={METRICS[4].suffix(values)} />
-            <input
-              name={names?.calories}
-              type="number"
-              min={0}
-              step="1"
-              value={values.calories}
-              onChange={(event) => {
-                onChange({ calories: event.target.value });
-              }}
-              className={valueInputClassName}
-              placeholder="-"
-            />
-            </div>
-          ) : null}
-
-          {hasRpeInput ? (
-            <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
-              <StatFieldLabel title="RPE" suffix="0–10" />
-              <input
-                type="number"
-                min={0}
-                step="0.5"
-                value={rpe ?? ""}
-                onChange={(event) => onRpeChange(event.target.value)}
-                className={valueInputClassName}
-                placeholder="-"
-              />
-            </div>
-          ) : null}
+            return (
+              <div key={`measurement-row-${rowIndex}`} className="flex justify-center">
+                <div className={getMetricRowLaneClassName(row.length, gridColumnCount)}>
+                  <div className={rowClassName}>
+                    {row.map((field) => (
+                      <div key={field.id} className="min-w-0">
+                        {field.node}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {footerContent ? <div className="mt-2">{footerContent}</div> : null}
+        {betweenInputsAndFooterContent ? (
+          <div className="mt-1">
+            {betweenInputsAndFooterContent}
+          </div>
+        ) : null}
+
+        {footerContent ? <div className={cn("-mt-9", footerClassName)}>{footerContent}</div> : null}
       </div>
 
       {trailingContent ? <div>{trailingContent}</div> : null}
     </section>
   );
 }
+

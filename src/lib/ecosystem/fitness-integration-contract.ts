@@ -15,6 +15,11 @@ export const fitnessSignalTypes = [
   "recovery_warning",
   "weekly_goal_hit",
   "streak_broken",
+  "pilot_shadow_impression_logged",
+  "pilot_shadow_click_logged",
+  "pilot_placement_dismissed",
+  "pilot_support_complaint_opened",
+  "pilot_activation_retained",
 ] as const;
 
 export type FitnessSignalType = (typeof fitnessSignalTypes)[number];
@@ -42,6 +47,8 @@ export const fitnessActionTypes = [
 ] as const;
 
 export type FitnessActionType = (typeof fitnessActionTypes)[number];
+
+type SchemaValue = string | number | boolean;
 
 const fitnessSignals: readonly SignalContract<FitnessSignalType>[] = [
   {
@@ -136,6 +143,103 @@ const fitnessSignals: readonly SignalContract<FitnessSignalType>[] = [
       channel: "fitness.streak.events",
       priority: "high",
       maxDeliveryLatencySeconds: 60,
+    },
+    requiresPlaybookIngestion: true,
+  },
+  {
+    type: "pilot_shadow_impression_logged",
+    version: 1,
+    description: "Emitted when the shadow-only recovery reset placement would have been shown to an eligible member.",
+    payloadSchema: {
+      memberId: "string",
+      sourceOutboundId: "string",
+      placementId: "string",
+      surfaceId: "string",
+      cohortId: "string",
+      observedAt: "ISO-8601",
+    },
+    routing: {
+      target: "playbook",
+      channel: "fitness.growth.shadow.events",
+      priority: "normal",
+      maxDeliveryLatencySeconds: 60,
+    },
+    requiresPlaybookIngestion: true,
+  },
+  {
+    type: "pilot_shadow_click_logged",
+    version: 1,
+    description: "Emitted when a member clicks the shadow-measured recovery reset destination.",
+    payloadSchema: {
+      memberId: "string",
+      sourceOutboundId: "string",
+      placementId: "string",
+      destinationPath: "string",
+      cohortId: "string",
+      clickedAt: "ISO-8601",
+    },
+    routing: {
+      target: "playbook",
+      channel: "fitness.growth.shadow.events",
+      priority: "high",
+      maxDeliveryLatencySeconds: 60,
+    },
+    requiresPlaybookIngestion: true,
+  },
+  {
+    type: "pilot_placement_dismissed",
+    version: 1,
+    description: "Emitted when a member dismisses the recovery reset placement.",
+    payloadSchema: {
+      memberId: "string",
+      sourceOutboundId: "string",
+      placementId: "string",
+      dismissalReasonCode: "string",
+      dismissedAt: "ISO-8601",
+    },
+    routing: {
+      target: "playbook",
+      channel: "fitness.growth.feedback.events",
+      priority: "normal",
+      maxDeliveryLatencySeconds: 120,
+    },
+    requiresPlaybookIngestion: true,
+  },
+  {
+    type: "pilot_support_complaint_opened",
+    version: 1,
+    description: "Emitted when the pilot placement results in a support complaint that must count against widening.",
+    payloadSchema: {
+      memberId: "string",
+      sourceOutboundId: "string",
+      placementId: "string",
+      complaintCode: "string",
+      openedAt: "ISO-8601",
+    },
+    routing: {
+      target: "playbook",
+      channel: "fitness.growth.feedback.events",
+      priority: "high",
+      maxDeliveryLatencySeconds: 300,
+    },
+    requiresPlaybookIngestion: true,
+  },
+  {
+    type: "pilot_activation_retained",
+    version: 1,
+    description: "Emitted when a destination activation remains retained through the frozen pilot window.",
+    payloadSchema: {
+      memberId: "string",
+      sourceOutboundId: "string",
+      placementId: "string",
+      retentionWindowDays: "number",
+      retainedAt: "ISO-8601",
+    },
+    routing: {
+      target: "playbook",
+      channel: "fitness.growth.retention.events",
+      priority: "normal",
+      maxDeliveryLatencySeconds: 300,
     },
     requiresPlaybookIngestion: true,
   },
@@ -323,6 +427,73 @@ export const fitnessIntegrationContract: EcosystemIntegrationContract = {
   receipts: fitnessReceipts,
 };
 
+function validateSchemaValue(
+  value: unknown,
+  schemaType: string,
+  options: {
+    fieldName: string;
+    errors: string[];
+  },
+): void {
+  const { fieldName, errors } = options;
+  if (schemaType === "number") {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      errors.push(`Field '${fieldName}' must be a number`);
+    }
+    return;
+  }
+
+  if (schemaType === "boolean") {
+    if (typeof value !== "boolean") {
+      errors.push(`Field '${fieldName}' must be a boolean`);
+    }
+    return;
+  }
+
+  if (schemaType === "YYYY-MM-DD") {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      errors.push(`Field '${fieldName}' must be a YYYY-MM-DD string`);
+    }
+    return;
+  }
+
+  if (schemaType === "ISO-8601") {
+    if (typeof value !== "string" || Number.isNaN(Date.parse(value))) {
+      errors.push(`Field '${fieldName}' must be an ISO-8601 string`);
+    }
+    return;
+  }
+
+  if (typeof value !== "string") {
+    errors.push(`Field '${fieldName}' must be a string`);
+  }
+}
+
+function validatePayloadSchema(
+  schema: Readonly<Record<string, string>>,
+  payload: Readonly<Record<string, SchemaValue>>,
+  options: {
+    contextLabel: string;
+  },
+): string[] {
+  const { contextLabel } = options;
+  const errors: string[] = [];
+
+  for (const [fieldName, schemaType] of Object.entries(schema)) {
+    if (!(fieldName in payload)) {
+      errors.push(`Missing payload field '${fieldName}' on ${contextLabel}`);
+      continue;
+    }
+
+    validateSchemaValue(payload[fieldName], schemaType, {
+      fieldName,
+      errors,
+    });
+  }
+
+  return errors;
+}
+
 export function validateSignalFixture(
   fixture: DeterministicSignalFixture,
   contract: EcosystemIntegrationContract = fitnessIntegrationContract,
@@ -337,11 +508,11 @@ export function validateSignalFixture(
       errors.push(`Routing channel mismatch for ${fixture.fixtureId}`);
     }
 
-    for (const key of Object.keys(signalContract.payloadSchema)) {
-      if (!(key in fixture.payload)) {
-        errors.push(`Missing payload field '${key}' on signal fixture ${fixture.fixtureId}`);
-      }
-    }
+    errors.push(
+      ...validatePayloadSchema(signalContract.payloadSchema, fixture.payload, {
+        contextLabel: `signal fixture ${fixture.fixtureId}`,
+      }),
+    );
   }
 
   if (fixture.appId !== contract.identity.appId) {
@@ -373,6 +544,61 @@ export function validateStateSnapshotFixture(
 
   if (fixture.appId !== contract.identity.appId) {
     errors.push(`Fixture appId '${fixture.appId}' does not match contract appId '${contract.identity.appId}'`);
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+  };
+}
+
+export function validateReceiptFixture(
+  fixture: {
+    readonly receiptType: string;
+    readonly receiptId: string;
+    readonly actionType: string;
+    readonly memberId: string;
+    readonly appliedAt: string;
+    readonly sourceOutboundId: string;
+    readonly payload: Readonly<Record<string, SchemaValue>>;
+  },
+  contract: EcosystemIntegrationContract = fitnessIntegrationContract,
+): ValidationResult {
+  const errors: string[] = [];
+  const receiptContract = contract.receipts.find((receipt) => receipt.type === fixture.receiptType);
+
+  if (!receiptContract) {
+    errors.push(`Unknown receipt type: ${fixture.receiptType}`);
+  } else {
+    for (const fieldName of receiptContract.requiredFields) {
+      if (fieldName in fixture) {
+        continue;
+      }
+
+      if (!(fieldName in fixture.payload)) {
+        errors.push(`Missing receipt field '${fieldName}' on receipt ${fixture.receiptId}`);
+      }
+    }
+  }
+
+  if (typeof fixture.receiptId !== "string" || fixture.receiptId.length === 0) {
+    errors.push("Receipt id must be a non-empty string");
+  }
+
+  if (typeof fixture.actionType !== "string" || fixture.actionType.length === 0) {
+    errors.push("Action type must be a non-empty string");
+  }
+
+  if (typeof fixture.memberId !== "string" || fixture.memberId.length === 0) {
+    errors.push("Member id must be a non-empty string");
+  }
+
+  if (typeof fixture.sourceOutboundId !== "string" || fixture.sourceOutboundId.length === 0) {
+    errors.push("sourceOutboundId must be a non-empty string");
+  }
+
+  if (typeof fixture.appliedAt !== "string" || Number.isNaN(Date.parse(fixture.appliedAt))) {
+    errors.push("appliedAt must be an ISO-8601 string");
   }
 
   return {

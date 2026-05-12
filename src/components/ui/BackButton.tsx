@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEventHandler } from "react";
+import type { CSSProperties, MouseEventHandler } from "react";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { useBackNavigation } from "@/components/ui/useBackNavigation";
 
@@ -10,6 +10,7 @@ type BackButtonProps = {
   label?: string;
   ariaLabel?: string;
   className?: string;
+  style?: CSSProperties;
   onClick?: MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>;
   iconOnly?: boolean;
   historyBehavior?: "history-first" | "fallback-only";
@@ -37,6 +38,7 @@ export function BackButton({
   label = "Back",
   ariaLabel,
   className = "",
+  style,
   onClick,
   iconOnly = false,
   historyBehavior = "fallback-only",
@@ -68,6 +70,7 @@ export function BackButton({
       type="button"
       aria-label={resolvedAriaLabel}
       className={`group ${classes}`}
+      style={style}
       onClick={(event) => {
         onClick?.(event);
         if (event.defaultPrevented) {

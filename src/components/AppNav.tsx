@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { SVGProps } from "react";
-import { useEffect } from "react";
-import { Glass } from "@/components/ui/Glass";
+import type { MouseEvent, SVGProps } from "react";
+import { useEffect, useState } from "react";
+import { ContentRail } from "@/components/layout/ContentRail";
 
 type NavLink = {
   href: string;
@@ -15,6 +15,12 @@ type NavLink = {
 type AppNavProps = {
   mode?: "fixed" | "topChrome";
 };
+
+const NAV_PENDING_HINT_DELAY_MS = 140;
+const DISCARD_CONFIRM_BAR_SURFACE_CLASSNAME =
+  "relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.14)] px-2 pb-1 shadow-[0_20px_44px_rgba(0,0,0,0.16)] supports-[backdrop-filter]:bg-[rgb(var(--surface-1-rgb)/0.08)]";
+const TOP_CHROME_BAR_SURFACE_CLASSNAME =
+  "relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-transparent bg-transparent px-2 pb-1 shadow-none";
 
 const links: NavLink[] = [
   {
@@ -71,37 +77,70 @@ const links: NavLink[] = [
 export function AppNav({ mode = "fixed" }: AppNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const activeLink = links.find((link) => pathname === link.href || pathname.startsWith(`${link.href}/`));
-
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [showPendingHint, setShowPendingHint] = useState(false);
   useEffect(() => {
-    for (const link of links) {
-      if (pathname === link.href || pathname.startsWith(`${link.href}/`)) {
-        continue;
-      }
+    if (!pathname || pathname === "/dev" || pathname.startsWith("/dev/")) {
+      return;
+    }
 
+    for (const link of links) {
       router.prefetch(link.href);
     }
   }, [pathname, router]);
 
+  useEffect(() => {
+    setPendingHref(null);
+    setShowPendingHint(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!pendingHref) {
+      return;
+    }
+
+    setShowPendingHint(false);
+
+    const timer = window.setTimeout(() => {
+      setShowPendingHint(true);
+    }, NAV_PENDING_HINT_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [pendingHref]);
+
+  function handleNavClick(event: MouseEvent<HTMLAnchorElement>, href: string, isActive: boolean) {
+    if (
+      isActive ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    setPendingHref(href);
+  }
+
   return (
     <div
-      className={`pointer-events-none inset-x-0 flex max-w-full justify-center overflow-x-clip px-4 ${
+      className={`pointer-events-none inset-x-0 flex max-w-full justify-center overflow-x-clip ${
         mode === "fixed"
           ? "fixed top-[calc(var(--app-top-nav-safe-top,var(--app-safe-top))+var(--header-floating-gap))] z-[60]"
           : "relative z-30"
       }`}
     >
-      <div className="pointer-events-auto w-full max-w-md min-w-0">
-        <Glass
-          variant="raised"
-          className="relative isolate min-h-[var(--header-h)] rounded-xl border border-white/15 bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0.3] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"
-          interactive={false}
-        >
-          <div className="flex h-[var(--header-h)] flex-col justify-center gap-1 pt-0.5">
-            <p className="px-2 pt-0.5 text-center text-sm font-bold leading-none text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
+      <ContentRail className="pointer-events-auto min-w-0">
+        <div className={mode === "topChrome" ? TOP_CHROME_BAR_SURFACE_CLASSNAME : DISCARD_CONFIRM_BAR_SURFACE_CLASSNAME}>
+          <div className="flex h-[var(--header-h)] items-center justify-center pt-0.5">
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {
                 const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                const isPending = !isActive && pendingHref === link.href && showPendingHint;
                 const Icon = link.Icon;
 
                 return (
@@ -110,24 +149,33 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
                     href={link.href}
                     prefetch
                     aria-current={isActive ? "page" : undefined}
-                    className={`group relative flex min-h-11 items-center justify-center rounded-[10px] px-2 py-1 transition-colors ${
+                    aria-busy={isPending ? true : undefined}
+                    onClick={(event) => handleNavClick(event, link.href, isActive)}
+                    className={`group relative flex min-h-11 items-center justify-center rounded-[10px] px-2 py-1 transition-[transform,filter,background-color,color,box-shadow] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985] active:brightness-[0.98] ${
                       isActive
-                        ? "bg-accent/28 font-semibold text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.28),0_0_16px_rgb(var(--accent-rgb)/0.18)]"
+                        ? "font-semibold text-[rgb(var(--accent)/0.98)]"
                         : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
                     }`}
                   >
                     <span className="flex flex-col items-center gap-0.5">
-                      <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[rgb(var(--accent-rgb)/1)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
-                      <span>{link.label}</span>
+                      <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[rgb(var(--accent)/0.98)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
+                      <span className="inline-flex flex-col items-center gap-0.5">
+                        <span>{link.label}</span>
+                      </span>
                     </span>
-                    {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)]" aria-hidden="true" /> : null}
+                    {isPending ? (
+                      <span
+                        aria-hidden="true"
+                        className="absolute right-2 top-2 h-1.5 w-1.5 animate-pulse rounded-full bg-[rgb(var(--accent)/0.88)] shadow-[0_0_10px_rgb(var(--accent)/0.4)]"
+                      />
+                    ) : null}
                   </Link>
                 );
               })}
             </nav>
           </div>
-        </Glass>
-      </div>
+        </div>
+      </ContentRail>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   resolveSessionExerciseMeasurementType,
   warnOnSessionExerciseUnitMismatch,
 } from "@/lib/session-exercise-measurement";
-import { getRoutineDayComputation } from "@/lib/routines";
+import { formatRoutineDayDisplayName, getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
 
@@ -20,6 +20,7 @@ type SessionStartContext = {
   userId: string;
   routineId: string;
   routineName: string;
+  routineStartDate: string | null;
   day: RoutineDayRow;
   context: string;
 };
@@ -47,7 +48,7 @@ async function findExistingInProgressSession(args: {
 }
 
 async function createSessionFromDay(context: SessionStartContext): Promise<ActionResult<{ sessionId: string }>> {
-  const { supabase, userId, routineId, routineName, day, context: logContext } = context;
+  const { supabase, userId, routineId, routineName, routineStartDate, day, context: logContext } = context;
 
   const existingSession = await findExistingInProgressSession({
     supabase,
@@ -88,7 +89,11 @@ async function createSessionFromDay(context: SessionStartContext): Promise<Actio
     return { ok: false, error: startError };
   }
 
-  const routineDayName = day.name || `Day ${day.day_index}`;
+  const routineDayName = formatRoutineDayDisplayName({
+    name: day.name,
+    dayIndex: day.day_index,
+    startDate: routineStartDate,
+  });
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
     .insert({
@@ -201,6 +206,7 @@ export async function startSessionForActiveRoutineDay(payload?: { dayIndex?: num
     userId: user.id,
     routineId: activeRoutine.id,
     routineName: activeRoutine.name,
+    routineStartDate: activeRoutine.start_date,
     day: routineDay as RoutineDayRow,
     context: "startSessionForActiveRoutineDay",
   });
@@ -213,7 +219,7 @@ export async function startSessionForRoutineDay(payload: { routineId: string; da
 
   const { data: routine, error: routineError } = await supabase
     .from("routines")
-    .select("id, user_id, name")
+    .select("id, user_id, name, start_date")
     .eq("id", payload.routineId)
     .eq("user_id", user.id)
     .single();
@@ -239,6 +245,7 @@ export async function startSessionForRoutineDay(payload: { routineId: string; da
     userId: user.id,
     routineId: routine.id,
     routineName: routine.name,
+    routineStartDate: routine.start_date,
     day: day as RoutineDayRow,
     context: "startSessionForRoutineDay",
   });

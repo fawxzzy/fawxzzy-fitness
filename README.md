@@ -4,6 +4,8 @@ Fawxzzy Fitness is a Next.js app for tracking workouts, routines, and exercise h
 
 Repo-local agent guidance lives in `AGENT.md`. Treat it as the product-specific operating layer for app behavior, UI language, and implementation preferences in this repository.
 
+Canonical roadmap planning lives in `docs/ROADMAP.md`.
+
 ## Playbook runtime command path (canonical)
 
 This repository uses the top-level npm commands backed by `scripts/playbook-runtime.mjs`, which resolves the runtime through the canonical official fallback path or an explicitly enabled package install. Treat those top-level npm commands as the only supported operator path for Playbook in this repo.
@@ -12,6 +14,19 @@ Canonical model:
 - shared Playbook core runtime
 - repo-local state in `.playbook/`
 - one documented operator path in repo scripts/docs
+- repo-local adoption evidence in `exports/fitness.playbook.adoption.evidence.v1.json` and `docs/ops/FITNESS-PLAYBOOK-ADOPTION.md`
+
+## ATLAS platform v1 adoption
+
+Fitness now carries repo-owned ATLAS platform v1 declarations in `exports/fitness.atlas.*.json`.
+
+Wave 2A adds:
+
+- a pinned ATLAS schema validation lane via `npm run test:atlas-contracts`
+- a live `/api/health` route that returns the ATLAS v1 health payload
+- a reusable contract workflow at `.github/workflows/atlas-contracts.yml`
+
+Implementation notes live in `docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md`.
 
 ## Playbook runtime setup
 
@@ -40,7 +55,7 @@ env -u PLAYBOOK_BIN node scripts/playbook-runtime.mjs ai-context
 
 Expected behavior:
 - clean dependency install succeeds without any Playbook registry package assumption
-- official runtime acquisition downloads the pinned release tarball to a temp `.tgz` under `.playbook/runtime/`
+- official runtime acquisition downloads the pinned release tarball to a temp `.tgz` under `.playbook/cache/` before installing into `.playbook/runtime/`
 - installer logs the source URL, final resolved URL, HTTP status, local tarball path, and artifact size
 - runtime writes under `.playbook/`
 
@@ -145,12 +160,62 @@ npm install
 npm run dev
 ```
 
+## Prod to local mirror
+
+Use the existing mirror script for a one-time prod -> local data load before local launch or debugging. This is a controlled snapshot into local Postgres, not a live loop against production.
+
+Keep the mirror env file outside the repo root under `C:\ATLAS\secrets\local\...`. The current local target for this repo is Postgres on `127.0.0.1:5432`, so `LOCAL_DATABASE_URL` must point there rather than the Supabase CLI port `54322`.
+
+```powershell
+cd C:\ATLAS\repos\fawxzzy-fitness
+node .\scripts\sync-prod-to-local.mjs --env C:\ATLAS\secrets\local\fitness-prod-to-local.env --yes
+```
+
+Required env keys:
+
+```env
+PROD_SUPABASE_PROJECT_REF=lpswxoyfniocuhljgzbc
+PROD_DATABASE_URL=postgresql://...
+LOCAL_DATABASE_URL=postgresql://...127.0.0.1:5432...
+```
+
+The script mirrors only the `public` schema and destructively refreshes local data before reload, so treat the env file and resulting dataset as controlled production-derived material.
+
 ## Quality checks
 
 ```bash
 npm run lint
 npm run build
 ```
+
+## Release readiness
+
+Use the release ledger flow before any production deploy:
+
+```bash
+npm run verify
+npm run qa:llel:progression
+npm run migration:validate
+npm run release:fitness:prepare
+npm run release:fitness:diff
+npm run release:fitness:ready
+```
+
+Current expected-red linked-remote migration order for the stacked Progression V2 work:
+
+1. `20260508090000_remove_zone_2_cardio_catalog_exercise.sql`
+2. `20260509103000_profile_qa_visibility.sql`
+3. `20260509113000_051_progression_events.sql`
+
+`npm run release:fitness:ready` is a reporting guard only. It does not deploy, apply migrations, or repair Supabase history. It fails production readiness when the working tree is dirty, the release draft is missing or incomplete, the progression LLEL receipt is stale, or pending migrations still block deploy.
+
+## Install gate
+
+Browser visits to `/` now land on an install-first entry surface. Installed or standalone launches skip that gate and continue into the normal app flow automatically.
+
+- Chromium browsers use the native install prompt only after the browser exposes `beforeinstallprompt`.
+- iPhone and iPad use manual Add to Home Screen instructions instead of a fake install button.
+- Unsupported browsers still expose a small Continue in browser fallback so auth, recovery, and deep app flows remain usable.
 
 ## Routine Details save contract
 

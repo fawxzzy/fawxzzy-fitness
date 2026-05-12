@@ -1,15 +1,18 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AppButton } from "@/components/ui/AppButton";
+import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { cn } from "@/lib/cn";
 
 export function ConfirmedServerFormButton({
   action,
+  onBeforeSubmit,
   onSuccess,
   hiddenFields,
   triggerLabel,
   triggerAriaLabel,
+  triggerIntent,
   triggerClassName,
   modalTitle,
   modalConsequenceText,
@@ -20,12 +23,15 @@ export function ConfirmedServerFormButton({
   bullets,
   size = "sm",
   disabled = false,
+  confirmVariant = "destructive",
 }: {
   action: (formData: FormData) => unknown | Promise<unknown>;
+  onBeforeSubmit?: () => void;
   onSuccess?: () => void | Promise<void>;
   hiddenFields: Record<string, string>;
   triggerLabel: string;
   triggerAriaLabel?: string;
+  triggerIntent?: BottomActionIntent;
   triggerClassName?: string;
   modalTitle: string;
   modalConsequenceText?: string;
@@ -37,6 +43,7 @@ export function ConfirmedServerFormButton({
   bullets?: string[];
   size?: "sm" | "md";
   disabled?: boolean;
+  confirmVariant?: "primary" | "destructive";
 }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,17 +73,25 @@ export function ConfirmedServerFormButton({
       {Object.entries(hiddenFields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <AppButton
+      <button
         type="button"
-        variant="destructive"
-        size={size}
         aria-label={triggerAriaLabel}
-        className={[triggerClassName, open ? "pointer-events-none opacity-0" : null].filter(Boolean).join(" ")}
+        data-bottom-action-intent={triggerIntent}
+        className={cn(
+          triggerIntent
+            ? getBottomActionButtonClassName({
+              intent: triggerIntent,
+              size,
+              className: triggerClassName,
+            })
+            : triggerClassName,
+          open ? "pointer-events-none opacity-0" : "",
+        )}
         disabled={isLoading || disabled}
         onClick={() => setOpen(true)}
       >
-        {triggerLabel}
-      </AppButton>
+        <span className={triggerIntent ? "bottom-action__label" : undefined}>{triggerLabel}</span>
+      </button>
       <ConfirmDestructiveModal
         open={open}
         title={modalTitle}
@@ -86,8 +101,12 @@ export function ConfirmedServerFormButton({
         details={details}
         bullets={bullets}
         isLoading={isLoading}
+        confirmVariant={confirmVariant}
         onCancel={() => setOpen(false)}
-        onConfirm={() => formRef.current?.requestSubmit()}
+        onConfirm={() => {
+          onBeforeSubmit?.();
+          formRef.current?.requestSubmit();
+        }}
       />
     </form>
   );

@@ -1,0 +1,134 @@
+{
+  "contract_version": "atlas.qa.adapter.v1",
+  "adapter_id": "fitness.web",
+  "repo_id": "fitness",
+  "repo_path": "repos/fawxzzy-fitness",
+  "framework": "nextjs",
+  "lens_manifest_ref": "ops/atlas/qa/lenses/atlas-default-web.v1.json",
+  "start": {
+    "kind": "command",
+    "command": "npm run qa:dev",
+    "default_url": "http://127.0.0.1:3000",
+    "ready_path": "/api/health"
+  },
+  "prepare": {
+    "kind": "command",
+    "command": "npx playwright install chromium webkit"
+  },
+  "commands": {
+    "lint": {
+      "command": "npm run lint"
+    },
+    "typecheck": {
+      "command": "npm run typecheck"
+    },
+    "verify": {
+      "command": "npm run verify"
+    },
+    "test_mobile_regression_fixtures": {
+      "command": "npm run test:mobile-regression-fixtures"
+    },
+    "qa_smoke": {
+      "command": "npm run qa:ui-pass"
+    },
+    "qa_api": {
+      "command": "npm run qa:auth:check"
+    },
+    "qa_visual": {
+      "command": "npm run qa:llel:progression"
+    }
+  },
+  "capture": {
+    "tool": "playwright",
+    "wait_until": "networkidle",
+    "settle_ms": 750,
+    "full_page": false,
+    "disable_animations": true
+  },
+  "lenses": [
+    {
+      "lens_id": "desktop.chromium.emulated",
+      "profile_id": "desktop.chromium",
+      "proof_kind": "emulated",
+      "evidence_kind": "emulated_browser",
+      "required_for": [
+        "evidence",
+        "promotion"
+      ],
+      "promotion_tier": "emulated_browser",
+      "fallback_behavior": "blocked",
+      "execution_mode": "browser_capture",
+      "command_ref": "qa_visual"
+    },
+    {
+      "lens_id": "android.chrome.emulated",
+      "profile_id": "android.chrome",
+      "proof_kind": "emulated",
+      "evidence_kind": "emulated_browser",
+      "required_for": [
+        "evidence",
+        "promotion"
+      ],
+      "promotion_tier": "emulated_browser",
+      "fallback_behavior": "blocked",
+      "execution_mode": "browser_capture",
+      "command_ref": "qa_visual"
+    },
+    {
+      "lens_id": "iphone.webkit.emulated",
+      "profile_id": "iphone.webkit",
+      "proof_kind": "emulated",
+      "evidence_kind": "emulated_browser",
+      "required_for": [
+        "evidence",
+        "promotion"
+      ],
+      "promotion_tier": "emulated_browser",
+      "fallback_behavior": "blocked",
+      "execution_mode": "browser_capture",
+      "command_ref": "qa_visual"
+    },
+    {
+      "lens_id": "desktop.chromium.real",
+      "profile_id": "desktop.chromium",
+      "proof_kind": "real",
+      "evidence_kind": "physical_device",
+      "required_for": [
+        "promotion"
+      ],
+      "promotion_tier": "physical_device",
+      "fallback_behavior": "manual_attestation",
+      "execution_mode": "manual_external",
+      "provider_hint": "preview_or_tunnel_real_browser"
+    },
+    {
+      "lens_id": "android.chrome.real",
+      "profile_id": "android.chrome",
+      "proof_kind": "real",
+      "evidence_kind": "physical_device",
+      "required_for": [
+        "promotion"
+      ],
+      "promotion_tier": "physical_device",
+      "fallback_behavior": "manual_attestation",
+      "execution_mode": "manual_external",
+      "provider_hint": "preview_or_tunnel_real_device"
+    },
+    {
+      "lens_id": "iphone.webkit.real",
+      "profile_id": "iphone.webkit",
+      "proof_kind": "real",
+      "evidence_kind": "physical_device",
+      "required_for": [
+        "promotion"
+      ],
+      "promotion_tier": "physical_device",
+      "fallback_behavior": "manual_attestation",
+      "execution_mode": "manual_external",
+      "provider_hint": "preview_or_tunnel_real_device"
+    }
+  ],
+  "supported_scenarios": [
+    "fitness.progression-pr-smoke"
+  ]
+}

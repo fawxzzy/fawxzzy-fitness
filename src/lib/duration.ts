@@ -4,3 +4,7 @@ export function formatDurationClock(totalSeconds: number): string {
   const seconds = safeSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
+
+export function formatDurationPreview(totalSeconds: number): string {
+  return `${formatDurationClock(totalSeconds)} s`;
+}

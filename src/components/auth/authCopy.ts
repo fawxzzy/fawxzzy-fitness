@@ -7,12 +7,36 @@ export type AuthModeCopy = {
   helper?: string;
 };
 
+export type PasswordLoginUiCopy = {
+  wordmark: string;
+  helper: {
+    default: string;
+    remembered: string;
+    reauth: string;
+    emailValid: string;
+    ready: string;
+  };
+  cta: {
+    idle: string;
+    continue: string;
+    ready: string;
+    reauth: string;
+    pending: string;
+    restoring: string;
+  };
+  returningUserLabel: string;
+  switchAction: string;
+  forgotPassword: string;
+  createAccountPrefix: string;
+  createAccountAction: string;
+};
+
 export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
   "password-login": {
-    eyebrow: "Welcome back",
-    title: "Log in to your training app",
-    subtitle: "Use your email and password to get back to your routines and workouts.",
-    helper: "Use the Forgot password link below if you need a reset email.",
+    eyebrow: "",
+    title: "Welcome",
+    subtitle: "",
+    helper: "Use Forgot password if you need a reset email.",
   },
   "magic-link": {
     eyebrow: "Check your inbox",
@@ -28,7 +52,31 @@ export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
   },
   "create-account": {
     eyebrow: "Get started",
-    title: "Create your account",
-    subtitle: "Create your login to start tracking routines, workouts, and progression.",
+    title: "Create account",
+    subtitle: "Choose your username, email, and password.",
   },
+};
+
+export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
+  wordmark: "Fawxzzy Fitness",
+  helper: {
+    default: "",
+    remembered: "Continue with this account to log in.",
+    reauth: "Your session ended. Enter your password to continue.",
+    emailValid: "",
+    ready: "",
+  },
+  cta: {
+    idle: "Enter Gym",
+    continue: "Continue",
+    ready: "Enter Gym",
+    reauth: "Continue",
+    pending: "Entering...",
+    restoring: "Restoring session...",
+  },
+  returningUserLabel: "Account",
+  switchAction: "Switch account",
+  forgotPassword: "Reset password",
+  createAccountPrefix: "",
+  createAccountAction: "Create account",
 };

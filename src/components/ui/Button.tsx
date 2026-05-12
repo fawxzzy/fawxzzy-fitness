@@ -1,26 +1,28 @@
 import type { ButtonHTMLAttributes } from "react";
-import { cn } from "@/lib/cn";
+import { AppButton } from "@/components/ui/AppButton";
+import type { AppButtonSize, AppButtonVariant } from "@/components/ui/appButtonClasses";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "tertiary" | "ghost" | "danger";
 
 export function Button({
-  className,
   variant = "secondary",
   type = "button",
+  size = "md",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: AppButtonSize }) {
+  const mappedVariant: AppButtonVariant =
+    variant === "danger"
+      ? "destructive"
+      : variant === "ghost"
+        ? "tertiary"
+        : variant;
+
   return (
-    <button
-      type={type}
-      className={cn(
-        "inline-flex h-11 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 disabled:cursor-not-allowed disabled:opacity-55",
-        variant === "primary" && "bg-emerald-500/80 text-white hover:bg-emerald-500",
-        variant === "secondary" && "border border-border bg-surface-2-soft text-text hover:bg-surface-2-active",
-        variant === "ghost" && "text-muted hover:bg-white/5 hover:text-text",
-        variant === "danger" && "bg-red-600 text-white hover:bg-red-700",
-        className,
-      )}
+    <AppButton
       {...props}
+      type={type}
+      variant={mappedVariant}
+      size={size}
     />
   );
 }

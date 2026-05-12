@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { DockButton } from "@/components/layout/BottomActionDock";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { deleteRoutineAction } from "@/app/routines/actions";
 
@@ -21,21 +21,20 @@ export function DeleteRoutineButton({
 
   return (
     <>
-      <DockButton
+      <BottomDockButton
         type="button"
         intent="danger"
         onClick={() => setIsOpen(true)}
         disabled={isPending}
       >
-        {isPending ? "Deleting..." : "Delete Routine"}
-      </DockButton>
+        {isPending ? "Deleting..." : "Delete"}
+      </BottomDockButton>
 
       <ConfirmDestructiveModal
         open={isOpen}
         title="Delete routine?"
-        consequenceText="This will permanently delete this routine and all its days/exercises. This can’t be undone."
-        confirmLabel="Delete Routine"
-        contextLines={[`Routine: ${routineName}`]}
+        details={routineName}
+        confirmLabel="Delete"
         isLoading={isPending}
         onCancel={() => {
           if (!isPending) {

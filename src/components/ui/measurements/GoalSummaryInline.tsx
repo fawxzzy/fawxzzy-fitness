@@ -1,4 +1,6 @@
-import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
+import { appTokens } from "@/components/ui/app/tokens";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
+import { formatGoalInlineSummaryText, formatGoalSummaryItems } from "@/lib/measurement-display";
 import { cn } from "@/lib/cn";
 
 export function GoalSummaryInline({
@@ -11,6 +13,7 @@ export function GoalSummaryInline({
     sets?: number | null;
     reps?: number | null;
     repsMax?: number | null;
+    failure?: boolean;
     weight?: number | null;
     weightUnit?: string | null;
     durationSeconds?: number | null;
@@ -24,17 +27,21 @@ export function GoalSummaryInline({
   hideWhenEmpty?: boolean;
 }) {
   const summary = formatGoalInlineSummaryText(includeSets ? values : { ...values, sets: null });
+  const summaryItems = formatGoalSummaryItems(includeSets ? values : { ...values, sets: null });
   const isMissing = summary === (values.emptyLabel ?? "Goal missing");
   if (hideWhenEmpty && isMissing) return null;
 
   return (
     <div className={cn("px-0.5 py-1", className)}>
       {isMissing ? (
-        <span className="inline-flex items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.24)] px-2.5 py-1 text-[11px] font-medium tracking-wide text-muted">
+        <span className={cn(appTokens.badgeBase, appTokens.summaryMutedBadge)}>
           {summary}
         </span>
       ) : (
-        <p className="text-sm text-[rgb(var(--text)/0.88)]">{summary}</p>
+        <SignatureInlineList
+          items={summaryItems.map((item) => item.label)}
+          className={cn(appTokens.measurementInlineSummary, "justify-center text-center")}
+        />
       )}
     </div>
   );

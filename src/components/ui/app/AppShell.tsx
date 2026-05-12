@@ -1,13 +1,30 @@
+"use client";
+
 import type { CSSProperties, ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { AppAmbientBackdrop } from "@/components/layout/AppAmbientBackdrop";
+import { AppEdgeFrame } from "@/components/layout/AppEdgeFrame";
 import { cn } from "@/lib/cn";
+import { shouldRenderLocalAppChrome } from "@/lib/ambient/route-preset";
+import type { AmbientPreset } from "@/lib/ambient/tuning";
 
 type AppShellProps = {
   children: ReactNode;
   className?: string;
   topNavMode?: "main" | "none";
+  ambientPreset?: AmbientPreset;
+  showEdgeFrame?: boolean;
 };
 
-export function AppShell({ children, className, topNavMode = "main" }: AppShellProps) {
+export function AppShell({
+  children,
+  className,
+  topNavMode = "main",
+  ambientPreset = "viewDay",
+  showEdgeFrame = true,
+}: AppShellProps) {
+  const pathname = usePathname();
+  const shouldRenderLocalChrome = shouldRenderLocalAppChrome(pathname);
   const shellStyle = ({
     "--app-top-nav-safe-top": "max(env(safe-area-inset-top, 0px), var(--vv-top, 0px))",
     "--app-header-offset": topNavMode === "none" ? "0px" : "calc(var(--header-floating-gap) + var(--header-h))",
@@ -20,14 +37,21 @@ export function AppShell({ children, className, topNavMode = "main" }: AppShellP
     "--app-standalone-safe-top": topNavMode === "none" ? "max(var(--app-safe-top), var(--vv-top, 0px))" : "0px",
     "--app-top-offset": "calc(var(--app-top-inset) + var(--app-header-offset) + var(--app-header-gap))",
     "--app-bottom-inset": "var(--app-safe-bottom)",
-    "--app-bottom-gap": "3px",
+    "--app-bottom-gap": "0px",
     "--app-top-chrome-content-gap": "12px",
-    "--app-mobile-dock-clearance-gap": "0px",
   } as CSSProperties);
 
   return (
-    <div className={cn("app-shell flex h-[100dvh] min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden overflow-y-hidden pt-[var(--app-top-offset)] touch-pan-y [overscroll-behavior-x:none]", className)} data-top-nav-mode={topNavMode} style={shellStyle}>
-      {children}
+    <div
+      className={cn("app-shell relative isolate flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-hidden bg-transparent pt-[var(--app-top-offset)] [touch-action:pan-x_pan-y] [overscroll-behavior-x:none]", className)}
+      data-top-nav-mode={topNavMode}
+      style={shellStyle}
+    >
+      {shouldRenderLocalChrome ? <AppAmbientBackdrop preset={ambientPreset} /> : null}
+      {shouldRenderLocalChrome && showEdgeFrame ? <AppEdgeFrame preset={ambientPreset} /> : null}
+      <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
+        {children}
+      </div>
     </div>
   );
 }

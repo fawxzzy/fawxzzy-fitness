@@ -5,7 +5,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-import { classifyFallbackSpec, isPackageAcquisitionEnabled, normalizeFallbackInstallTarget } from './playbook-runtime.mjs';
+import {
+  classifyFallbackSpec,
+  isPackageAcquisitionEnabled,
+  normalizeFallbackInstallTarget,
+  resolveNpmCommand,
+  shouldUseShellForExecutable
+} from './playbook-runtime.mjs';
 
 test('package acquisition stays disabled unless explicitly enabled by env or spec override', () => {
   assert.equal(isPackageAcquisitionEnabled({}), false);
@@ -25,6 +31,18 @@ test('classifyFallbackSpec normalizes and accepts https tarball URL', () => {
   assert.equal(result.valid, true);
   assert.equal(result.kind, 'https-url');
   assert.equal(result.normalized, 'https://example.com/playbook-cli.tgz');
+});
+
+test('shouldUseShellForExecutable only enables shell execution for Windows batch wrappers', () => {
+  assert.equal(shouldUseShellForExecutable('C:\\repo\\.playbook\\runtime\\node_modules\\.bin\\playbook.cmd', 'win32'), true);
+  assert.equal(shouldUseShellForExecutable('C:\\repo\\.playbook\\runtime\\node_modules\\.bin\\playbook.bat', 'win32'), true);
+  assert.equal(shouldUseShellForExecutable('C:\\repo\\.playbook\\runtime\\node_modules\\@fawxzzy\\playbook-cli\\bin\\playbook.js', 'win32'), false);
+  assert.equal(shouldUseShellForExecutable('/tmp/playbook.cmd', 'linux'), false);
+});
+
+test('resolveNpmCommand chooses the Windows npm wrapper when needed', () => {
+  assert.equal(resolveNpmCommand('win32'), 'npm.cmd');
+  assert.equal(resolveNpmCommand('linux'), 'npm');
 });
 
 test('normalizeFallbackInstallTarget keeps local file fallback spec unchanged and verifies file size', async () => {

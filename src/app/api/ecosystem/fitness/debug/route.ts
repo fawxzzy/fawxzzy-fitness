@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { fitnessIntegrationClient, type FitnessInboundReceipt } from "@/lib/ecosystem/fitness-integration-client";
-import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
+import {
+  mergeFitnessShadowTelemetryResults,
+  publishFitnessIntegrationStateForMember,
+  recordFitnessReceiptForMember,
+  recordFitnessSignalForMember,
+} from "@/lib/ecosystem/fitness-integration-server";
 import { fitnessSignalFixtures } from "@/lib/ecosystem/fixtures/signals";
 import { fitnessStateSnapshotFixtures } from "@/lib/ecosystem/fixtures/state-snapshots";
 
@@ -25,9 +30,10 @@ export async function POST(request: Request) {
 
   if (command === "replay-fixtures") {
     const now = new Date();
+    const shadowTelemetryResults = [];
 
     for (const fixture of fitnessSignalFixtures) {
-      fitnessIntegrationClient.packageSignal({
+      const recorded = await recordFitnessSignalForMember({
         memberId: user.id,
         signalType: fixture.signalType,
         payload: {
@@ -37,6 +43,7 @@ export async function POST(request: Request) {
         reason: "manual_debug",
         emittedAt: now,
       });
+      shadowTelemetryResults.push(recorded.shadowTelemetry);
     }
 
     const published = await publishFitnessIntegrationStateForMember({
@@ -50,6 +57,7 @@ export async function POST(request: Request) {
       replayedSignals: fitnessSignalFixtures.length,
       availableSnapshotFixtures: fitnessStateSnapshotFixtures.length,
       sourceState: published.sourceState,
+      shadowTelemetry: mergeFitnessShadowTelemetryResults(...shadowTelemetryResults, published.shadowTelemetry),
       debugState: fitnessIntegrationClient.getDebugState(user.id),
     });
   }
@@ -65,10 +73,11 @@ export async function POST(request: Request) {
       memberId: user.id,
     };
 
-    fitnessIntegrationClient.ingestReceipt(normalizedReceipt);
+    const ingested = await recordFitnessReceiptForMember(normalizedReceipt);
 
     return NextResponse.json({
       ok: true,
+      shadowTelemetry: ingested.shadowTelemetry,
       debugState: fitnessIntegrationClient.getDebugState(user.id),
     });
   }
@@ -85,6 +94,7 @@ export async function POST(request: Request) {
       sourceState: published.sourceState,
       outboundSignals: published.outboundSignals,
       outboundSnapshots: published.snapshotExport.exported,
+      shadowTelemetry: published.shadowTelemetry,
       debugState: fitnessIntegrationClient.getDebugState(user.id),
     });
   }

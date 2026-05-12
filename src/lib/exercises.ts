@@ -1,22 +1,54 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
+import { normalizeExerciseCurationTags, type ExerciseCurationTags } from "@/lib/exercise-curation";
+import { filterSuppressedGlobalExercises, shouldSuppressGlobalExerciseFromPicker } from "@/lib/global-exercise-picker";
 import { supabaseServerAnon } from "@/lib/supabase/server-anon";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
 import { logDebugSummary } from "@/lib/observability";
+import globalExercisesCanonical from "../../supabase/data/global_exercises_canonical.json";
 
 const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
 let hasLoggedMissingExerciseId = false;
 
 const VALID_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
-const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight"] as const;
+const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight", "cardio machine", "plate", "sled", "smith machine"] as const;
+const EXERCISE_LIST_SELECT =
+  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, kind, type, tags, categories, how_to_short, curation_tags, created_at";
+const EXERCISE_LIST_SELECT_LEGACY =
+  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, created_at";
+const EXERCISE_OPTIONAL_METADATA_COLUMNS = [
+  "image_path",
+  "image_icon_path",
+  "image_howto_path",
+  "slug",
+  "kind",
+  "type",
+  "tags",
+  "categories",
+  "how_to_short",
+  "curation_tags",
+] as const;
 
 const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
 const LEGACY_PLACEHOLDER_IDS = new Set<string>([SENTINEL_EXERCISE_ID, ...EXERCISE_OPTIONS.map((exercise) => exercise.id)]);
+const canonicalCurationTagsByName = new Map<string, ExerciseCurationTags>(
+  (globalExercisesCanonical as Array<{ name?: string; curation_tags?: unknown }>)
+    .flatMap((exercise) => {
+      const normalizedName = typeof exercise.name === "string" ? normalizeExerciseName(exercise.name).toLowerCase() : "";
+      const curationTags = normalizeExerciseCurationTags(exercise.curation_tags);
+      if (!normalizedName || !curationTags) {
+        return [];
+      }
+
+      return [[normalizedName, curationTags] as const];
+    }),
+);
 
 function isLegacyPlaceholderExercise(exercise: ExerciseRow) {
   const id = typeof exercise.id === "string" ? exercise.id.trim() : "";
@@ -31,6 +63,99 @@ function logExerciseLoaderEvent(event: string, details?: Record<string, unknown>
   logDebugSummary("exercises", event, details);
 }
 
+type ExerciseQueryError = {
+  code?: string;
+  message?: string;
+} | null | undefined;
+
+type ExerciseQueryResult<T> = {
+  data: T;
+  error: ExerciseQueryError;
+};
+
+type ExerciseQueryRawResult = {
+  data: unknown;
+  error: ExerciseQueryError;
+};
+
+type ExerciseQueryFn = (columns: string) => PromiseLike<ExerciseQueryRawResult>;
+
+function isMissingExerciseMetadataColumnError(error: ExerciseQueryError) {
+  const message = error?.message?.toLowerCase() ?? "";
+  if (!message.includes("exercises")) {
+    return false;
+  }
+
+  return EXERCISE_OPTIONAL_METADATA_COLUMNS.some((column) => {
+    const normalizedColumn = column.toLowerCase();
+    return (
+      message.includes(normalizedColumn)
+      && (
+        message.includes("schema cache")
+        || (message.includes("column") && message.includes("does not exist"))
+      )
+    );
+  });
+}
+
+function hydrateExerciseRow(row: Partial<ExerciseRow>): ExerciseRow {
+  return {
+    id: row.id ?? "",
+    name: row.name ?? "",
+    user_id: row.user_id ?? null,
+    is_global: row.is_global ?? false,
+    primary_muscle: row.primary_muscle ?? null,
+    equipment: row.equipment ?? null,
+    movement_pattern: row.movement_pattern ?? null,
+    measurement_type: row.measurement_type ?? "reps",
+    default_unit: row.default_unit ?? null,
+    calories_estimation_method: row.calories_estimation_method ?? null,
+    image_path: row.image_path ?? null,
+    image_icon_path: row.image_icon_path ?? null,
+    image_howto_path: row.image_howto_path ?? null,
+    slug: row.slug ?? null,
+    kind: row.kind ?? null,
+    type: row.type ?? null,
+    tags: row.tags ?? null,
+    categories: row.categories ?? null,
+    how_to_short: row.how_to_short ?? null,
+    curation_tags: row.curation_tags ?? null,
+    created_at: row.created_at ?? FALLBACK_CREATED_AT,
+  };
+}
+
+async function runExerciseQuery(
+  query: ExerciseQueryFn,
+  columns: string,
+): Promise<ExerciseQueryRawResult> {
+  return await Promise.resolve(query(columns));
+}
+
+async function readExercisesWithMetadataFallback<T>(args: {
+  query: ExerciseQueryFn;
+}): Promise<ExerciseQueryResult<T>> {
+  const primaryResult = await runExerciseQuery(args.query, EXERCISE_LIST_SELECT);
+  if (!primaryResult.error) {
+    return {
+      data: (primaryResult.data ?? []) as T,
+      error: null,
+    };
+  }
+
+  if (!isMissingExerciseMetadataColumnError(primaryResult.error)) {
+    return {
+      data: [] as T,
+      error: primaryResult.error,
+    };
+  }
+
+  const fallbackResult = await runExerciseQuery(args.query, EXERCISE_LIST_SELECT_LEGACY);
+  return {
+    data: (fallbackResult.data ?? []) as T,
+    error: fallbackResult.error,
+  };
+}
+
 function fallbackGlobalExercises(): ExerciseRow[] {
   return EXERCISE_OPTIONS.map((exercise) => ({
     id: exercise.id,
@@ -43,14 +168,33 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     measurement_type: "reps",
     default_unit: "reps",
     calories_estimation_method: null,
+    image_path: null,
+    image_icon_path: null,
     image_howto_path: null,
+    slug: null,
+    kind: null,
+    type: null,
+    tags: null,
+    categories: null,
     how_to_short: exercise.how_to_short,
+    curation_tags: null,
     created_at: FALLBACK_CREATED_AT,
   }));
 }
 
 function normalizeExerciseName(name: string) {
   return name.trim().replace(/\s+/g, " ");
+}
+
+function enrichExerciseMetadata(exercise: ExerciseRow): ExerciseRow {
+  const normalizedName = normalizeExerciseName(exercise.name).toLowerCase();
+  const canonicalCurationTags = canonicalCurationTagsByName.get(normalizedName) ?? null;
+  const normalizedCurationTags = normalizeExerciseCurationTags(exercise.curation_tags) ?? canonicalCurationTags;
+
+  return {
+    ...exercise,
+    curation_tags: normalizedCurationTags,
+  };
 }
 
 export function validateExerciseName(name: string) {
@@ -83,11 +227,11 @@ export function validateMovementPattern(value: string) {
   throw new Error(`Movement pattern must be one of: ${VALID_MOVEMENT_PATTERNS.join(", ")}.`);
 }
 
-export async function listExercises() {
-  const user = await requireUser();
-  const globalExercises = await listGlobalExercisesCached();
-  const customExercises = await listUserExercises(user.id);
-
+function mergeAndNormalizeExercises(args: {
+  globalExercises: ExerciseRow[];
+  customExercises: ExerciseRow[];
+}) {
+  const { globalExercises, customExercises } = args;
   const mergedExercises = [...customExercises, ...globalExercises];
   let suppressedLegacyPlaceholderCount = 0;
   const validExercises = mergedExercises.flatMap((exercise) => {
@@ -102,6 +246,10 @@ export async function listExercises() {
     }
 
     const normalizedExercise = { ...exercise, id };
+
+    if (shouldSuppressGlobalExerciseFromPicker(normalizedExercise)) {
+      return [];
+    }
 
     if (isLegacyPlaceholderExercise(normalizedExercise)) {
       suppressedLegacyPlaceholderCount += 1;
@@ -125,17 +273,33 @@ export async function listExercises() {
   }
 
   return Array.from(dedupedExercises.values())
-    .map((exercise) => ({ ...exercise, name: normalizeExerciseDisplayName({ exerciseId: exercise.id, name: exercise.name }) }))
+    .map((exercise) => enrichExerciseMetadata({
+      ...exercise,
+      name: normalizeExerciseDisplayName({ exerciseId: exercise.id, name: exercise.name }),
+    }))
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
-  const supabase = supabaseServer();
-  const { data: customData, error: customError } = await supabase
-    .from("exercises")
-    .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, how_to_short, created_at")
-    .eq("user_id", userId)
-    .order("name", { ascending: true });
+export async function listExercisesForUser(userId: string, client?: SupabaseClient) {
+  const globalExercises = await listGlobalExercisesCached();
+  const customExercises = await listUserExercises(userId, client);
+  return mergeAndNormalizeExercises({ globalExercises, customExercises });
+}
+
+export async function listExercises() {
+  const user = await requireUser();
+  return listExercisesForUser(user.id);
+}
+
+async function listUserExercises(userId: string, client?: SupabaseClient): Promise<ExerciseRow[]> {
+  const supabase = client ?? supabaseServer();
+  const { data: customData, error: customError } = await readExercisesWithMetadataFallback<Partial<ExerciseRow>[]>({
+    query: (columns) => supabase
+      .from("exercises")
+      .select(columns)
+      .eq("user_id", userId)
+      .order("name", { ascending: true }),
+  });
 
   if (customError) {
     if (customError.code === "42P01") {
@@ -145,18 +309,20 @@ async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
     throw new Error(customError.message);
   }
 
-  return (customData ?? []) as ExerciseRow[];
+  return customData.map(hydrateExerciseRow);
 }
 
 const listGlobalExercisesCached = unstable_cache(
   async (): Promise<ExerciseRow[]> => {
     const supabase = supabaseServerAnon();
-    const { data, error } = await supabase
-      .from("exercises")
-      .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, how_to_short, created_at")
-      .is("user_id", null)
-      .eq("is_global", true)
-      .order("name", { ascending: true });
+    const { data, error } = await readExercisesWithMetadataFallback<Partial<ExerciseRow>[]>({
+      query: (columns) => supabase
+        .from("exercises")
+        .select(columns)
+        .is("user_id", null)
+        .eq("is_global", true)
+        .order("name", { ascending: true }),
+    });
 
     if (error) {
       logExerciseLoaderEvent("global-db-query-failed", {
@@ -182,11 +348,11 @@ const listGlobalExercisesCached = unstable_cache(
       return [];
     }
 
-    const rows = (data ?? []) as ExerciseRow[];
+    const rows = filterSuppressedGlobalExercises(data.map(hydrateExerciseRow));
 
     return rows;
   },
-  ["global-exercise-list-v3"],
+  ["global-exercise-list-v4"],
 );
 
 export async function getExerciseNameMap() {

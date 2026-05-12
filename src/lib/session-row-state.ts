@@ -1,5 +1,7 @@
+import type { ActionChromeIntent } from "@/components/ui/actionChrome";
+import type { BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress";
-import { formatQuickLogPreviewLabel, type SessionQuickLogTarget } from "./session-quick-log";
+import { formatQuickLogPreviewLabelForResolvedTarget, resolveEffectiveQuickLogTarget, type SessionQuickLogTarget } from "./session-quick-log";
 
 export type SessionRowVisualVariant = "pending" | "active";
 
@@ -11,6 +13,9 @@ export type DeriveSessionRowStateInput = {
   targetSetsMax?: number | null;
   surface?: SessionExercisePresentationSurface;
   quickLogTarget?: SessionQuickLogTarget;
+  quickLogNextTarget?: SessionQuickLogTarget;
+  quickLogLastTarget?: SessionQuickLogTarget;
+  quickLogBestTarget?: SessionQuickLogTarget;
   fallbackWeightUnit: "lbs" | "kg";
 };
 
@@ -20,28 +25,44 @@ export type SessionRowState = {
   badgeText?: string;
   progressLabel?: string;
   chips: SessionExerciseProgressChip[];
-  skipActionLabel: "Skip" | "Unskip";
+  skipActionLabel: "Skip" | "Unskip" | "Hide" | "Unhide";
+  quickLogActionIntent: ActionChromeIntent;
+  skipActionIntent: BottomActionIntent;
   actionRowClassName: string;
   quickLogActionClassName: string;
   skipActionClassName: string;
   isQuickLogDisabled: boolean;
+  isSkipDisabled: boolean;
   quickLogDisabledMessage: string;
   quickLogLabel: string;
 };
 
 export function deriveSessionRowState(input: DeriveSessionRowStateInput): SessionRowState {
   const progressState = deriveSessionExerciseProgressState(input);
+  const resolvedQuickLogTarget = resolveEffectiveQuickLogTarget({
+    quickLogTarget: input.quickLogTarget,
+    nextTarget: input.quickLogNextTarget,
+    lastTarget: input.quickLogLastTarget,
+    bestTarget: input.quickLogBestTarget,
+  });
+  const quickLogPreviewLabel = formatQuickLogPreviewLabelForResolvedTarget({
+    resolvedTarget: resolvedQuickLogTarget,
+    loggedSetCount: progressState.loggedSetCount,
+    targetSetsMin: input.targetSetsMin,
+    targetSetsMax: input.targetSetsMax,
+    fallbackWeightUnit: input.fallbackWeightUnit,
+  });
   const variant: SessionRowVisualVariant = input.isPending ? "pending" : "active";
   const variantStyles: Record<SessionRowVisualVariant, Pick<SessionRowState, "actionRowClassName" | "quickLogActionClassName" | "skipActionClassName">> = {
     pending: {
       actionRowClassName: "opacity-85",
-      quickLogActionClassName: "text-[rgb(var(--text)/0.62)]",
-      skipActionClassName: "text-[rgb(var(--text)/0.62)]",
+      quickLogActionClassName: "",
+      skipActionClassName: "",
     },
     active: {
       actionRowClassName: "opacity-100",
-      quickLogActionClassName: "text-[rgb(var(--text)/0.74)]",
-      skipActionClassName: progressState.skipActionLabel === "Unskip" ? "text-amber-100" : "text-[rgb(var(--text)/0.74)]",
+      quickLogActionClassName: "",
+      skipActionClassName: "",
     },
   };
 
@@ -52,15 +73,12 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
     progressLabel: progressState.progressLabel,
     chips: progressState.chips,
     skipActionLabel: progressState.skipActionLabel,
+    quickLogActionIntent: progressState.allowQuickLog ? "positive" : "neutral",
+    skipActionIntent: input.isSkipped ? "toggleActive" : "toggleInactive",
     isQuickLogDisabled: !progressState.allowQuickLog,
+    isSkipDisabled: !progressState.allowSkipToggle,
     quickLogDisabledMessage: "Unskip to log",
-    quickLogLabel: `Log: ${formatQuickLogPreviewLabel({
-      target: input.quickLogTarget,
-      loggedSetCount: progressState.loggedSetCount,
-      targetSetsMin: input.targetSetsMin,
-      targetSetsMax: input.targetSetsMax,
-      fallbackWeightUnit: input.fallbackWeightUnit,
-    })}`,
+    quickLogLabel: quickLogPreviewLabel ? `Log: ${quickLogPreviewLabel}` : "Log",
     ...variantStyles[variant],
   };
 }

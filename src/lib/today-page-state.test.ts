@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildTodayRoutinePayloadState,
   deriveTodayScreenMode,
+  formatTodayHeaderTitle,
   getTodayGlobalErrorMessage,
   getTodayDaySummary,
   getTodayDaySummaryTone,
@@ -42,6 +44,7 @@ test("resolveTodayDisplayDay falls back to the calendar day when no active sessi
     dayIndex: 2,
     routineDay: { id: "day-2", day_index: 2, name: "Push", is_rest: false },
     dayName: "Push",
+    hasScheduledDayToday: true,
     source: "calendar",
   });
 });
@@ -61,6 +64,7 @@ test("resolveTodayDisplayDay restores the manually selected session day instead 
     dayIndex: 4,
     routineDay: { id: "day-4", day_index: 4, name: "Legs", is_rest: false },
     dayName: "Legs",
+    hasScheduledDayToday: true,
     source: "session",
   });
 });
@@ -77,11 +81,72 @@ test("resolveTodayDisplayDay keeps the session snapshot label even if the routin
     dayIndex: 5,
     routineDay: null,
     dayName: "Travel Day",
+    hasScheduledDayToday: true,
     source: "session",
   });
 });
 
-test("deriveTodayScreenMode returns begin dock for runnable day", () => {
+test("resolveTodayDisplayDay falls back to a template day when today is unscheduled", () => {
+  const result = resolveTodayDisplayDay({
+    calendarDayIndex: null,
+    todayRoutineDay: null,
+    fallbackRoutineDay: { id: "day-1", day_index: 1, name: "Push", is_rest: false },
+    routineDays: [
+      { id: "day-1", day_index: 1, name: "Push", is_rest: false },
+      { id: "day-2", day_index: 2, name: "Pull", is_rest: false },
+    ],
+    inProgressSession: null,
+  });
+
+  assert.deepEqual(result, {
+    dayIndex: 1,
+    routineDay: { id: "day-1", day_index: 1, name: "Push", is_rest: false },
+    dayName: "Push",
+    hasScheduledDayToday: false,
+    source: "template",
+  });
+});
+
+test("buildTodayRoutinePayloadState preserves an active routine when downstream day loading fails", () => {
+  const payload = buildTodayRoutinePayloadState({
+    activeRoutine: { id: "routine-1", name: "Strength Base" },
+    effectiveDayIndex: null,
+    routineDayName: null,
+    routineDayWeekday: null,
+    isRest: false,
+    state: "empty",
+    routineDayId: null,
+    fallbackDayIndex: 3,
+  });
+
+  assert.deepEqual(payload, {
+    id: "routine-1",
+    name: "Strength Base",
+    dayIndex: 3,
+    dayName: "Day 3",
+    dayWeekday: null,
+    isRest: false,
+    state: "empty",
+    routineId: "routine-1",
+    routineDayId: null,
+  });
+});
+
+test("buildTodayRoutinePayloadState reserves no-routine state for a genuinely missing active routine", () => {
+  const payload = buildTodayRoutinePayloadState({
+    activeRoutine: null,
+    effectiveDayIndex: null,
+    routineDayName: null,
+    isRest: false,
+    state: "empty",
+    routineDayId: null,
+    fallbackDayIndex: 1,
+  });
+
+  assert.equal(payload, null);
+});
+
+test("deriveTodayScreenMode returns start dock for runnable day", () => {
   const mode = deriveTodayScreenMode({
     days: [{
       id: "day-1",
@@ -99,8 +164,8 @@ test("deriveTodayScreenMode returns begin dock for runnable day", () => {
 
   assert.equal(mode.runnableSelection, true);
   assert.equal(mode.dayRowsVisible, true);
-  assert.equal(mode.cta.primaryLabel, "Begin");
-  assert.equal(mode.cta.secondaryLabel, "Days");
+  assert.equal(mode.cta.primaryLabel, "Start");
+  assert.equal(mode.cta.secondaryLabel, "Switch");
 });
 
 test("deriveTodayScreenMode hides rows and switches secondary CTA when picker is open", () => {
@@ -142,10 +207,57 @@ test("deriveTodayScreenMode keeps resume CTA available for closed picker empty s
   });
 
   assert.equal(mode.dayPickerOpen, false);
-  assert.equal(mode.dayRowsVisible, true);
+  assert.equal(mode.dayRowsVisible, false);
+  assert.equal(mode.summaryVisible, false);
+  assert.equal(mode.contentShellVisible, true);
+  assert.equal(mode.emptyTrainingDay, true);
   assert.equal(mode.cta.showPrimary, true);
-  assert.equal(mode.cta.primaryLabel, "Resume Session");
-  assert.equal(mode.cta.secondaryLabel, "Days");
+  assert.equal(mode.cta.primaryLabel, "Resume");
+  assert.equal(mode.cta.secondaryLabel, "Switch");
+});
+
+test("deriveTodayScreenMode keeps rest-day detail content visible when the picker is closed", () => {
+  const mode = deriveTodayScreenMode({
+    days: [{
+      id: "day-4",
+      dayIndex: 4,
+      name: "Recovery",
+      isRest: true,
+      state: "rest",
+      invalidExerciseCount: 0,
+      exercises: [],
+    }],
+    selectedDayIndex: 4,
+    currentDayIndex: 4,
+    dayPickerOpen: false,
+  });
+
+  assert.equal(mode.restDay, true);
+  assert.equal(mode.summaryVisible, true);
+  assert.equal(mode.dayRowsVisible, false);
+  assert.equal(mode.contentShellVisible, true);
+  assert.equal(mode.cta.showPrimary, false);
+});
+
+test("deriveTodayScreenMode falls back to the first template day when no calendar day is scheduled", () => {
+  const mode = deriveTodayScreenMode({
+    days: [{
+      id: "day-4",
+      dayIndex: 4,
+      name: "Travel Reset",
+      isRest: false,
+      state: "runnable",
+      invalidExerciseCount: 0,
+      exercises: [{ id: "ex-1", name: "Carry" }],
+    }],
+    selectedDayIndex: null,
+    currentDayIndex: null,
+    dayPickerOpen: false,
+  });
+
+  assert.equal(mode.selectedDay?.dayIndex, 4);
+  assert.equal(mode.runnableSelection, true);
+  assert.equal(mode.cta.primaryLabel, "Start");
 });
 
 test("rest and invalid-empty summaries resolve from pure summary selectors", () => {
@@ -167,7 +279,22 @@ test("rest and invalid-empty summaries resolve from pure summary selectors", () 
     invalidExerciseCount: 2,
     exercises: [],
   });
+  const neutralEmptySummary = getTodayDaySummary({
+    id: "day-3",
+    dayIndex: 3,
+    name: "Travel",
+    isRest: false,
+    state: "empty",
+    invalidExerciseCount: 0,
+    exercises: [],
+  });
 
   assert.equal(restSummary, "Rest day.");
   assert.equal(invalidEmptyTone, "blocking");
+  assert.equal(neutralEmptySummary, null);
+});
+
+test("formatTodayHeaderTitle joins routine and day names", () => {
+  assert.equal(formatTodayHeaderTitle("4Dayz", "Chest"), "4Dayz | Chest");
+  assert.equal(formatTodayHeaderTitle("4Dayz", ""), "4Dayz");
 });

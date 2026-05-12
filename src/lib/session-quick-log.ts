@@ -1,4 +1,4 @@
-import { formatSetCountLabel } from "./measurement-display";
+import { formatDurationPreview } from "./duration";
 
 export type SessionQuickLogTarget = {
   repsMin?: number;
@@ -10,8 +10,11 @@ export type SessionQuickLogTarget = {
   distance?: number;
   distanceUnit?: "mi" | "km" | "m";
   calories?: number;
-  measurementType?: "reps" | "time" | "distance" | "time_distance";
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none";
+  allowMeasurementlessLog?: boolean;
 };
+
+export type SessionQuickLogSource = "goal" | "next" | "last" | "best";
 
 type QuickLogPayload = {
   weight: number;
@@ -27,24 +30,88 @@ type QuickLogResolution =
   | { ok: true; payload: QuickLogPayload }
   | { ok: false; reason: string };
 
+export type EffectiveSessionQuickLogTarget = {
+  source: SessionQuickLogSource;
+  target: SessionQuickLogTarget;
+};
+
 function hasValue(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
-function formatDurationPreview(totalSeconds: number) {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-  const minutes = Math.floor(safeSeconds / 60);
-  const seconds = safeSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+function resolveSingleValue(min?: number, max?: number) {
+  if (hasValue(max)) return max ?? null;
+  if (hasValue(min)) return min ?? null;
+  return null;
 }
 
-function formatRange(min?: number, max?: number, suffix = "") {
-  const hasMin = hasValue(min);
-  const hasMax = hasValue(max);
-  if (hasMin && hasMax && min !== max) return `${min}–${max}${suffix}`;
-  if (hasMin) return `${min}${suffix}`;
-  if (hasMax) return `${max}${suffix}`;
-  return null;
+function hasTargetMetrics(target: SessionQuickLogTarget | undefined) {
+  if (!target) return false;
+  if (target.allowMeasurementlessLog || target.measurementType === "none") {
+    return true;
+  }
+
+  const measurementType = target.measurementType ?? "reps";
+  if (measurementType === "reps") {
+    return hasValue(resolveSingleValue(target.repsMin, target.repsMax) ?? undefined)
+      || hasValue(resolveSingleValue(target.weightMin, target.weightMax) ?? undefined);
+  }
+
+  if (measurementType === "time") {
+    return hasValue(target.durationSeconds);
+  }
+
+  if (measurementType === "distance" || measurementType === "time_distance") {
+    return hasValue(target.durationSeconds) || hasValue(target.distance) || hasValue(target.calories);
+  }
+
+  return false;
+}
+
+export function toQuickLogTargetFromSuggestedValues(
+  values: {
+    measurementType: "reps" | "time" | "distance" | "time_distance" | "none";
+    weight: number | null;
+    reps: number | null;
+    durationSeconds: number | null;
+    distance: number | null;
+    distanceUnit: "mi" | "km" | "m" | null;
+    calories: number | null;
+    weightUnit: "lbs" | "kg" | null;
+  } | null | undefined,
+): SessionQuickLogTarget | undefined {
+  if (!values) {
+    return undefined;
+  }
+
+  return {
+    measurementType: values.measurementType,
+    repsMin: values.reps ?? undefined,
+    repsMax: values.reps ?? undefined,
+    weightMin: values.weight ?? undefined,
+    weightMax: values.weight ?? undefined,
+    weightUnit: values.weightUnit ?? undefined,
+    durationSeconds: values.durationSeconds ?? undefined,
+    distance: values.distance ?? undefined,
+    distanceUnit: values.distanceUnit ?? undefined,
+    calories: values.calories ?? undefined,
+  };
+}
+
+export function resolveEffectiveQuickLogTarget(args: {
+  quickLogTarget?: SessionQuickLogTarget;
+  nextTarget?: SessionQuickLogTarget;
+  lastTarget?: SessionQuickLogTarget;
+  bestTarget?: SessionQuickLogTarget;
+}): EffectiveSessionQuickLogTarget | null {
+  const candidates: Array<EffectiveSessionQuickLogTarget | null> = [
+    args.quickLogTarget ? { source: "goal", target: args.quickLogTarget } : null,
+    args.nextTarget ? { source: "next", target: args.nextTarget } : null,
+    args.lastTarget ? { source: "last", target: args.lastTarget } : null,
+    args.bestTarget ? { source: "best", target: args.bestTarget } : null,
+  ];
+
+  return candidates.find((candidate) => candidate !== null && hasTargetMetrics(candidate.target)) ?? null;
 }
 
 export function formatQuickLogPreviewLabel({
@@ -61,18 +128,25 @@ export function formatQuickLogPreviewLabel({
   fallbackWeightUnit: "lbs" | "kg";
 }) {
   const weightUnit = target?.weightUnit ?? fallbackWeightUnit;
-  const repsSummary = formatRange(target?.repsMin, target?.repsMax, " reps");
-  const weightSummary = formatRange(target?.weightMin, target?.weightMax, ` ${weightUnit}`);
+  const repsValue = resolveSingleValue(target?.repsMin, target?.repsMax);
+  const weightValue = resolveSingleValue(target?.weightMin, target?.weightMax);
+  const repsSummary = hasValue(repsValue ?? undefined) ? `${repsValue} reps` : null;
+  const weightSummary = hasValue(weightValue ?? undefined) ? `${weightValue} ${weightUnit}` : null;
   const durationSummary = hasValue(target?.durationSeconds) ? formatDurationPreview(Number(target?.durationSeconds)) : null;
   const distanceSummary = hasValue(target?.distance) ? `${target?.distance} ${target?.distanceUnit ?? "mi"}` : null;
   const caloriesSummary = hasValue(target?.calories) ? `${target?.calories} cal` : null;
 
   const measurementType = target?.measurementType ?? "reps";
-  const metricSummaryByType: Record<"reps" | "time" | "distance" | "time_distance", string | null> = {
+  if (target?.allowMeasurementlessLog || measurementType === "none") {
+    return "";
+  }
+
+  const metricSummaryByType: Record<"reps" | "time" | "distance" | "time_distance" | "none", string | null> = {
     reps: [repsSummary, weightSummary].filter(Boolean).join(" • ") || null,
     time: [durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
     distance: [distanceSummary, durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
     time_distance: [durationSummary, distanceSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
+    none: null,
   };
 
   const primarySummary = metricSummaryByType[measurementType] ?? null;
@@ -80,13 +154,43 @@ export function formatQuickLogPreviewLabel({
     return primarySummary;
   }
 
-  const nextSet = loggedSetCount + 1;
-  const goalSetCount = targetSetsMax ?? targetSetsMin;
-  if (goalSetCount && goalSetCount > 0) {
-    return `Set ${nextSet} of ${goalSetCount}`;
+  void loggedSetCount;
+  void targetSetsMin;
+  void targetSetsMax;
+  return "";
+}
+
+export function formatQuickLogPreviewLabelForResolvedTarget({
+  resolvedTarget,
+  loggedSetCount,
+  targetSetsMin,
+  targetSetsMax,
+  fallbackWeightUnit,
+}: {
+  resolvedTarget: EffectiveSessionQuickLogTarget | null;
+  loggedSetCount: number;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
+  fallbackWeightUnit: "lbs" | "kg";
+}) {
+  return formatQuickLogPreviewLabel({
+    target: resolvedTarget?.target,
+    loggedSetCount,
+    targetSetsMin,
+    targetSetsMax,
+    fallbackWeightUnit,
+  });
+}
+
+export function resolveQuickLogFromResolvedTarget(
+  resolvedTarget: EffectiveSessionQuickLogTarget | null,
+  fallbackWeightUnit: "lbs" | "kg",
+): QuickLogResolution {
+  if (!resolvedTarget) {
+    return { ok: false, reason: "No goal, next, last, or best quick log target is available." };
   }
 
-  return formatSetCountLabel(nextSet) ?? `Set ${nextSet}`;
+  return resolveQuickLogFromTarget(resolvedTarget.target, fallbackWeightUnit);
 }
 
 export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): QuickLogResolution {
@@ -94,7 +198,22 @@ export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefi
     return { ok: false, reason: "No goal target available for quick log." };
   }
 
-  const reps = target.repsMin ?? target.repsMax;
+  if (target.allowMeasurementlessLog || target.measurementType === "none") {
+    return {
+      ok: true,
+      payload: {
+        weight: 0,
+        reps: 0,
+        durationSeconds: null,
+        distance: null,
+        distanceUnit: null,
+        calories: null,
+        weightUnit: target.weightUnit ?? fallbackWeightUnit,
+      },
+    };
+  }
+
+  const reps = target.repsMax ?? target.repsMin;
   const weight = target.weightMin ?? target.weightMax ?? 0;
   const durationSeconds = target.durationSeconds ?? null;
   const distance = target.distance ?? null;

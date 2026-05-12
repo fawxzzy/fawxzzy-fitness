@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 const sessionActions = readFileSync(new URL("../src/app/session/[id]/actions.ts", import.meta.url), "utf8");
 const historyActions = readFileSync(new URL("../src/app/actions/history.ts", import.meta.url), "utf8");
-const migration = readFileSync(new URL("../supabase/migrations/030_backfill_session_exercises_exercise_id.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../supabase/migrations/0302_backfill_session_exercises_exercise_id.sql", import.meta.url), "utf8");
 
 assert.match(sessionActions, /resolveCanonicalExercise|requireCanonicalExercise/);
 assert.match(sessionActions, /exercise_id:\s*canonicalExerciseId/);

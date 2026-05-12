@@ -34,6 +34,41 @@
       "target": "playbook",
       "priority": "high",
       "emitPoints": ["snapshot-evaluation"]
+    },
+    {
+      "type": "pilot_shadow_impression_logged",
+      "channel": "fitness.growth.shadow.events",
+      "target": "playbook",
+      "priority": "normal",
+      "emitPoints": ["src/lib/ecosystem/fitness-pilot-evidence.ts#recordFitnessPilotEvidenceSignal", "src/lib/ecosystem/fitness-pilot-evidence.ts#backfillFitnessPilotShadowImpressions"]
+    },
+    {
+      "type": "pilot_shadow_click_logged",
+      "channel": "fitness.growth.shadow.events",
+      "target": "playbook",
+      "priority": "high",
+      "emitPoints": ["src/lib/ecosystem/fitness-pilot-evidence.ts#recordFitnessPilotEvidenceSignal"]
+    },
+    {
+      "type": "pilot_placement_dismissed",
+      "channel": "fitness.growth.feedback.events",
+      "target": "playbook",
+      "priority": "normal",
+      "emitPoints": ["src/lib/ecosystem/fitness-pilot-evidence.ts#recordFitnessPilotEvidenceSignal"]
+    },
+    {
+      "type": "pilot_support_complaint_opened",
+      "channel": "fitness.growth.feedback.events",
+      "target": "playbook",
+      "priority": "high",
+      "emitPoints": ["src/lib/ecosystem/fitness-pilot-evidence.ts#recordFitnessPilotEvidenceSignal"]
+    },
+    {
+      "type": "pilot_activation_retained",
+      "channel": "fitness.growth.retention.events",
+      "target": "playbook",
+      "priority": "normal",
+      "emitPoints": ["src/lib/ecosystem/fitness-pilot-evidence.ts#recordFitnessPilotEvidenceSignal"]
     }
   ]
 }

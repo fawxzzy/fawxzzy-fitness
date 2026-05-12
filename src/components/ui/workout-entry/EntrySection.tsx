@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { appTokens } from "@/components/ui/app/tokens";
+import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { cn } from "@/lib/cn";
 
 export function WorkoutEntrySection({
   eyebrow,
@@ -21,17 +24,20 @@ export function WorkoutEntrySection({
   contentClassName?: string;
 }) {
   return (
-    <SharedSectionShell
-      recipe="exerciseLog"
-      label={eyebrow}
-      context={title}
-      meta={description}
-      action={aside}
-      className={cn("rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.48)]", className)}
-      bodyClassName={cn("space-y-3", contentClassName)}
-    >
-      {children}
-    </SharedSectionShell>
+    <AppPanel className={cn(appTokens.exerciseLogSectionPanel, className)}>
+      <div className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionHeaderClassName}>
+        <div className={appTokens.exerciseLogSectionHeaderCopy}>
+          {eyebrow ? <p className={appTokens.measurementLabel}>{eyebrow}</p> : null}
+          {title ? <TitleText as="h3" className={appTokens.exerciseLogSectionTitle}>{title}</TitleText> : null}
+          {description ? <SubtitleText>{description}</SubtitleText> : null}
+        </div>
+        {aside ? <div className={appTokens.exerciseLogSectionAside}>{aside}</div> : null}
+      </div>
+
+      <div className={cn(fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName, contentClassName)}>
+        {children}
+      </div>
+    </AppPanel>
   );
 }
 
@@ -76,9 +82,9 @@ export function WorkoutEntryMetric({
   tone?: "default" | "warning";
 }) {
   return (
-    <div className={cn("min-w-0 rounded-2xl border px-3 py-2.5", tone === "warning" ? "border-amber-400/20 bg-amber-400/10" : "border-white/8 bg-white/5")}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
-      <p className={cn("mt-1 text-sm font-medium", tone === "warning" ? "text-amber-100" : "text-text")}>{value}</p>
+    <div className={cn(appTokens.exerciseLogMetric, tone === "warning" ? appTokens.exerciseLogMetricWarning : undefined)}>
+      <p className={appTokens.exerciseLogMetricLabel}>{label}</p>
+      <p className={cn(appTokens.exerciseLogMetricValue, tone === "warning" ? appTokens.exerciseLogMetricValueWarning : undefined)}>{value}</p>
     </div>
   );
 }

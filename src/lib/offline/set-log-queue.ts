@@ -1,8 +1,14 @@
-export const SET_LOG_QUEUE_SCHEMA_VERSION = 3;
+import { buildSetQueueDedupeKey, isQueueItemPendingSync } from "@/lib/offline/set-log-reconciliation";
+
+export const SET_LOG_QUEUE_SCHEMA_VERSION = 4;
 
 const OFFLINE_DB_NAME = "fawxzzy-fitness-offline";
-const OFFLINE_DB_VERSION = 3;
+const OFFLINE_DB_VERSION = 4;
 const SET_LOG_QUEUE_STORE = "set-log-queue";
+
+function isSupportedQueueSchemaVersion(schemaVersion: number) {
+  return schemaVersion >= 3 && schemaVersion <= SET_LOG_QUEUE_SCHEMA_VERSION;
+}
 
 export type OfflineSetPayload = {
   weight: number;
@@ -21,6 +27,7 @@ export type SetLogQueueStatus = "queued" | "syncing" | "failed" | "synced";
 
 export type SetLogQueueItem = {
   id: string;
+  userId?: string;
   clientLogId: string;
   dedupeKey: string;
   schemaVersion: number;
@@ -36,6 +43,30 @@ export type SetLogQueueItem = {
   syncedAt?: string;
   serverSetId?: string;
 };
+
+function hasReadableUserScope(item: SetLogQueueItem) {
+  return typeof item.userId === "string" && item.userId.length > 0;
+}
+
+export function isQueueItemReadableForUser(item: SetLogQueueItem, userId?: string) {
+  if (!isSupportedQueueSchemaVersion(item.schemaVersion)) {
+    return false;
+  }
+
+  if (!hasReadableUserScope(item)) {
+    return false;
+  }
+
+  if (userId && item.userId !== userId) {
+    return false;
+  }
+
+  return isQueueItemPendingSync(item);
+}
+
+function sortQueueItems(items: SetLogQueueItem[]) {
+  return items.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
 
 function canUseIndexedDb() {
   return typeof window !== "undefined" && typeof window.indexedDB !== "undefined";
@@ -58,6 +89,9 @@ function openOfflineDb(): Promise<IDBDatabase> {
       if (store && !store.indexNames.contains("bySessionExerciseId")) {
         store.createIndex("bySessionExerciseId", "sessionExerciseId", { unique: false });
       }
+      if (store && !store.indexNames.contains("byUserId")) {
+        store.createIndex("byUserId", "userId", { unique: false });
+      }
       if (store && !store.indexNames.contains("byDedupeKey")) {
         store.createIndex("byDedupeKey", "dedupeKey", { unique: true });
       }
@@ -72,25 +106,14 @@ function openOfflineDb(): Promise<IDBDatabase> {
 }
 
 function buildDedupeKey(item: Omit<SetLogQueueItem, "dedupeKey">): string {
-  return [
-    item.sessionExerciseId,
-    item.payload.weight,
-    item.payload.reps,
-    item.payload.durationSeconds ?? "",
-    item.payload.distance ?? "",
-    item.payload.distanceUnit ?? "",
-    item.payload.calories ?? "",
-    item.payload.rpe ?? "",
-    item.payload.isWarmup ? "1" : "0",
-    item.payload.notes ?? "",
-    item.payload.weightUnit,
-    item.createdAt,
-  ].join("|");
+  return buildSetQueueDedupeKey(item.clientLogId);
 }
 
 export async function enqueueSetLog(input: {
+  userId: string;
   sessionId: string;
   sessionExerciseId: string;
+  clientLogId: string;
   payload: OfflineSetPayload;
 }): Promise<SetLogQueueItem | null> {
   if (!canUseIndexedDb()) {
@@ -100,7 +123,8 @@ export async function enqueueSetLog(input: {
   const now = new Date().toISOString();
   const baseItem: Omit<SetLogQueueItem, "dedupeKey"> = {
     id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `queued-${Date.now()}`,
-    clientLogId: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `client-${Date.now()}`,
+    userId: input.userId,
+    clientLogId: input.clientLogId,
     schemaVersion: SET_LOG_QUEUE_SCHEMA_VERSION,
     sessionId: input.sessionId,
     sessionExerciseId: input.sessionExerciseId,
@@ -146,6 +170,10 @@ export async function enqueueSetLog(input: {
 }
 
 export async function readQueuedSetLogsBySessionExerciseId(sessionExerciseId: string): Promise<SetLogQueueItem[]> {
+  return readQueuedSetLogsBySessionExerciseIdForUser("", sessionExerciseId);
+}
+
+export async function readQueuedSetLogsBySessionExerciseIdForUser(userId: string, sessionExerciseId: string): Promise<SetLogQueueItem[]> {
   if (!canUseIndexedDb()) {
     return [];
   }
@@ -163,15 +191,16 @@ export async function readQueuedSetLogsBySessionExerciseId(sessionExerciseId: st
       request.onerror = () => reject(request.error ?? new Error("Unable to read queued set logs."));
     });
 
-    return items
-      .filter((item) => item.schemaVersion === SET_LOG_QUEUE_SCHEMA_VERSION)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return sortQueueItems(
+      items.filter((item) => item.sessionExerciseId === sessionExerciseId)
+        .filter((item) => isQueueItemReadableForUser(item, userId)),
+    );
   } finally {
     db.close();
   }
 }
 
-export async function readPendingSetLogs(): Promise<SetLogQueueItem[]> {
+export async function readPendingSetLogs(userId?: string): Promise<SetLogQueueItem[]> {
   if (!canUseIndexedDb()) {
     return [];
   }
@@ -189,9 +218,7 @@ export async function readPendingSetLogs(): Promise<SetLogQueueItem[]> {
       request.onerror = () => reject(request.error ?? new Error("Unable to read queued set logs."));
     });
 
-    return items
-      .filter((item) => item.schemaVersion === SET_LOG_QUEUE_SCHEMA_VERSION && item.status !== "synced")
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return sortQueueItems(items.filter((item) => isQueueItemReadableForUser(item, userId)));
   } finally {
     db.close();
   }

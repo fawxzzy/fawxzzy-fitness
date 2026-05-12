@@ -1,22 +1,34 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import type { ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
+import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
+import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { HistoryMetaLine } from "@/components/history/HistoryMetaLine";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
+import {
+  EXERCISE_CURATION_GROUPS,
+  flattenExerciseCurationTagValues,
+  formatExerciseTagLabel,
+  normalizeExerciseCurationTags,
+  buildScopedExerciseCurationTagValue,
+} from "@/lib/exercise-curation";
+import { getStretchHubMetaItems, isStretchHubExercise } from "@/lib/stretch-library";
+import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
+
+const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
 
 type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
+  showBottomActions?: boolean;
 };
 
 function getExerciseDisplayName(row: ExerciseBrowserRow) {
@@ -37,15 +49,6 @@ function getExerciseDisplayName(row: ExerciseBrowserRow) {
   return "Unknown exercise";
 }
 
-function formatShortDate(dateValue: string | null) {
-  if (!dateValue) return null;
-
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return null;
-
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
-}
-
 function toTagArray(value: string | null | undefined) {
   if (!value) return [];
   return value
@@ -54,12 +57,57 @@ function toTagArray(value: string | null | undefined) {
     .filter(Boolean);
 }
 
-function formatTagLabel(tag: string) {
-  return tag
-    .split(/[\_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
+function buildExerciseHeaderMetaItems(row: ExerciseBrowserRow) {
+  if (isStretchHubExercise(row)) {
+    return getStretchHubMetaItems();
+  }
+
+  return [row.equipment, row.primary_muscle, row.movement_pattern]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map((value) => formatExerciseTagLabel(value));
+}
+
+function HistoryExerciseFilters({
+  query,
+  onQueryChange,
+  selectedTags,
+  onTagsChange,
+  groups,
+  resultCount,
+  initialOpen = false,
+}: {
+  query: string;
+  onQueryChange: (next: string) => void;
+  selectedTags: string[];
+  onTagsChange: (next: string[]) => void;
+  groups: ExerciseTagGroup[];
+  resultCount: number;
+  initialOpen?: boolean;
+}) {
+  return (
+    <ExerciseSearchFilters
+      query={query}
+      onQueryChange={onQueryChange}
+      selectedTags={selectedTags}
+      onTagsChange={onTagsChange}
+      groups={groups}
+      resultCount={resultCount}
+      filterLabel="Filters"
+      defaultFilterOpen={initialOpen}
+      className={cn(appTokens.historyExerciseFilterStack, DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME)}
+      filterClassName="space-y-1.5"
+      filterButtonClassName={appTokens.historyExerciseFilterButton}
+      filterPanelClassName={appTokens.historyExerciseFilterPanel}
+      searchInputClassName={appTokens.historyExerciseSearchInput}
+      clearButtonClassName={appTokens.exercisePickerSearchClearButton}
+      searchPlaceholder="Search exercises"
+      resultSingularLabel="exercise"
+      resultPluralLabel="exercises"
+      clearSearchAriaLabel="Clear exercise search"
+      toggleFiltersAriaLabel="Toggle exercise filters"
+      chromeVariant="history"
+    />
+  );
 }
 
 const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
@@ -72,67 +120,50 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   viewMode: "compact" | "detailed";
 }) {
   const displayName = getExerciseDisplayName(row);
-  const lastDate = formatShortDate(row.last_performed_at);
-  const strengthPrSummary = typeof row.pr_est_1rm === "number" && Number.isFinite(row.pr_est_1rm) && row.pr_est_1rm > 0
-    ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
-    : null;
-  const hasSignal = Boolean(row.lastSummary || row.bestSummary || row.prLabel || strengthPrSummary || row.last_performed_at);
-  const primaryLine = row.kind === "strength"
-    ? [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ")
-    : [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ");
-  const secondaryLine = row.kind === "strength"
-    ? [row.bestSummary ? `Best ${row.bestSummary}` : null, row.prLabel ? `PRs ${row.prLabel}` : null, strengthPrSummary ? `1RM ${strengthPrSummary}` : null].filter(Boolean).join(" • ")
-    : row.bestSummary ? `Best ${row.bestSummary}` : null;
-
-  const fallbackLine = row.kind === "strength" ? "Strength history" : "Cardio history";
-
-  if (viewMode === "compact") {
-    return (
-      <StandardExerciseRow
-        exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
-        summary={primaryLine || fallbackLine}
-        onPress={() => {
-          if (process.env.NODE_ENV === "development") {
-            console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
-          }
-          onOpen(row.exerciseId);
-        }}
-        rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-        variant="list"
-        state={hasSignal ? "selected" : "default"}
-        className="shadow-none"
-        titleClassName="line-clamp-2"
-      />
-    );
-  }
+  const viewModel = buildHistoryExerciseCardViewModel(row);
+  const headerMetaItems = buildExerciseHeaderMetaItems(row);
+  const metadata = headerMetaItems.length > 0 ? <HistoryMetaLine items={headerMetaItems} /> : undefined;
 
   return (
-    <StandardExerciseRow
-      exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
-      summary={primaryLine || fallbackLine}
-      onPress={() => {
-        if (process.env.NODE_ENV === "development") {
-          console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
-        }
-        onOpen(row.exerciseId);
+    <HistoryExerciseCard
+      exercise={{
+        name: displayName,
+        slug: row.slug,
+        image_path: row.image_path,
+        image_icon_path: row.image_icon_path,
+        image_howto_path: row.image_howto_path,
       }}
-      rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-      variant="list"
-      state={hasSignal ? "selected" : "default"}
-      className="shadow-none"
-    >
-      {secondaryLine ? <p className={cn("line-clamp-2 text-xs text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
-    </StandardExerciseRow>
+      title={displayName}
+      summaryLabel={viewModel.summaryLabel}
+      summary={viewModel.summary}
+      metadata={metadata}
+      badgeText={viewModel.badgeText}
+      metrics={viewModel.detailedMetrics}
+      density={viewMode}
+      tone={viewModel.semanticTone}
+      onPress={() => onOpen(row.exerciseId)}
+    />
   );
 });
 
-export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps) {
+export function ExerciseBrowserClient({
+  rows = [],
+  inlineHeaderControls = false,
+  initialViewMode = "compact",
+  initialFiltersOpen = false,
+  showBottomActions = true,
+}: ExerciseBrowserClientProps & { inlineHeaderControls?: boolean; initialViewMode?: "compact" | "detailed"; initialFiltersOpen?: boolean }) {
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
-  const router = useRouter();
-  const inverseViewLabel = viewMode === "compact" ? "Detailed" : "Compact";
+  const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
+  const deferredQuery = useDeferredValue(query);
+  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
+
+  const applyViewMode = (nextMode: "compact" | "detailed") => {
+    setViewMode(nextMode);
+    document.cookie = `${HISTORY_EXERCISE_VIEW_MODE_COOKIE}=${nextMode}; Max-Age=31536000; Path=/; SameSite=Lax`;
+  };
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -141,6 +172,9 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       const tags = new Set<string>();
       for (const raw of [...toTagArray(row.primary_muscle), ...toTagArray(row.movement_pattern), ...toTagArray(row.equipment)]) {
         tags.add(raw.toLowerCase());
+      }
+      for (const raw of flattenExerciseCurationTagValues(normalizeExerciseCurationTags(row.curation_tags))) {
+        tags.add(raw);
       }
       tagsById.set(row.exerciseId, tags);
     }
@@ -152,22 +186,50 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
     const muscles = new Map<string, string>();
     const movements = new Map<string, string>();
     const equipment = new Map<string, string>();
+    const curationGroups = new Map(
+      EXERCISE_CURATION_GROUPS.map((group) => [group.key, { label: group.label, tags: new Map<string, string>() }]),
+    );
 
     for (const row of rows) {
-      for (const item of toTagArray(row.primary_muscle)) muscles.set(item.toLowerCase(), formatTagLabel(item));
-      for (const item of toTagArray(row.movement_pattern)) movements.set(item.toLowerCase(), formatTagLabel(item));
-      for (const item of toTagArray(row.equipment)) equipment.set(item.toLowerCase(), formatTagLabel(item));
+      for (const item of toTagArray(row.primary_muscle)) muscles.set(item.toLowerCase(), formatExerciseTagLabel(item));
+      for (const item of toTagArray(row.movement_pattern)) movements.set(item.toLowerCase(), formatExerciseTagLabel(item));
+      for (const item of toTagArray(row.equipment)) equipment.set(item.toLowerCase(), formatExerciseTagLabel(item));
+
+      const curationTags = normalizeExerciseCurationTags(row.curation_tags);
+      if (!curationTags) {
+        continue;
+      }
+
+      for (const group of EXERCISE_CURATION_GROUPS) {
+        const values = curationTags[group.key] ?? [];
+        const targetGroup = curationGroups.get(group.key);
+        if (!targetGroup) {
+          continue;
+        }
+
+        for (const value of values) {
+          targetGroup.tags.set(buildScopedExerciseCurationTagValue(group.key, value), formatExerciseTagLabel(value));
+        }
+      }
     }
 
     return [
       { key: "muscle", label: "Muscle", tags: Array.from(muscles, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
       { key: "movement", label: "Movement", tags: Array.from(movements, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
       { key: "equipment", label: "Equipment", tags: Array.from(equipment, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
+      ...EXERCISE_CURATION_GROUPS.map((group) => {
+        const targetGroup = curationGroups.get(group.key);
+        return {
+          key: group.key,
+          label: group.label,
+          tags: Array.from(targetGroup?.tags ?? [], ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)),
+        };
+      }),
     ].filter((group) => group.tags.length > 0);
   }, [rows]);
 
   const filteredRows = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
 
     return rows.filter((row) => {
       if (selectedTags.length > 0) {
@@ -186,7 +248,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       const slugMatch = row.slug?.toLowerCase().includes(normalizedQuery) ?? false;
       return nameMatch || slugMatch;
     });
-  }, [exerciseTagsById, query, rows, selectedTags]);
+  }, [deferredQuery, exerciseTagsById, rows, selectedTags]);
 
   const selectedRow = useMemo(
     () => (selectedExerciseId ? rows.find((row) => row.exerciseId === selectedExerciseId) ?? null : null),
@@ -199,36 +261,52 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   }, []);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {floatingHeaderContainer
+    <div className={appTokens.historyBrowserStack}>
+      {inlineHeaderControls ? (
+        <HistoryTitleControlShell
+          viewMode={viewMode}
+          onViewModeChange={applyViewMode}
+          showViewModeToggle={false}
+        >
+          <HistoryExerciseFilters
+            query={query}
+            onQueryChange={setQuery}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            groups={availableTagGroups}
+            resultCount={filteredRows.length}
+            initialOpen={initialFiltersOpen}
+          />
+        </HistoryTitleControlShell>
+      ) : floatingHeaderContainer
         ? createPortal(
-          <HistoryTitleControlShell
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            showViewModeToggle={false}
-          >
-            <ExerciseSearchFilters
-              query={query}
-              onQueryChange={setQuery}
-              selectedTags={selectedTags}
-              onTagsChange={setSelectedTags}
-              groups={availableTagGroups}
-            />
-            <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
-          </HistoryTitleControlShell>,
-          floatingHeaderContainer,
-        )
+            <HistoryTitleControlShell
+              viewMode={viewMode}
+              onViewModeChange={applyViewMode}
+              showViewModeToggle={false}
+            >
+              <HistoryExerciseFilters
+                query={query}
+                onQueryChange={setQuery}
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
+                groups={availableTagGroups}
+                resultCount={filteredRows.length}
+                initialOpen={initialFiltersOpen}
+              />
+            </HistoryTitleControlShell>,
+            floatingHeaderContainer,
+          )
         : null}
 
-      <div className="relative min-h-0">
-        <ul className="space-y-1.5 scroll-py-2">
+      <div className={cn(appTokens.historyExerciseResultsViewport, "pt-2")}>
+        <ul className={appTokens.historyExerciseResults}>
           {filteredRows.map((row) => (
-            <li key={row.exerciseId}>
+            <li key={`${viewMode}:${row.exerciseId}`}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
             </li>
           ))}
         </ul>
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
       </div>
 
       <ExerciseInfo
@@ -244,24 +322,28 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         }}
         sourceContext="ExerciseBrowserClient"
       />
-      <PublishBottomActions>
-        <BottomActionSplit
-          secondary={(
-            <BottomDockButton
-              type="button"
-              intent="info"
-              onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
-            >
-              {inverseViewLabel}
-            </BottomDockButton>
-          )}
-          primary={(
-            <BottomDockButton type="button" intent="positive" onClick={() => router.push("/history")}>
-              Sessions
-            </BottomDockButton>
-          )}
-        />
-      </PublishBottomActions>
+      {showBottomActions ? (
+        <PublishBottomActions>
+          <BottomActionSplit
+            secondary={(
+              <BottomDockButton
+                type="button"
+                intent="toggleActive"
+                data-history-density-toggle="exercises"
+                onClick={() => applyViewMode(viewMode === "compact" ? "detailed" : "compact")}
+              >
+                {nextViewModeLabel}
+              </BottomDockButton>
+            )}
+            primary={(
+              <BottomDockLink href="/history" intent="positive">
+                Sessions
+              </BottomDockLink>
+            )}
+          />
+        </PublishBottomActions>
+      ) : null}
     </div>
   );
 }
+

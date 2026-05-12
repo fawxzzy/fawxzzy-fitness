@@ -19,7 +19,7 @@ export type HistoryAuditExercise = {
   exercise_image_icon_path?: string | null;
   exercise_image_howto_path?: string | null;
   notes: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   sets: HistoryAuditSet[];
 };
@@ -32,7 +32,7 @@ export type IncomingHistoryAuditSet = Partial<HistoryAuditSet> & {
   weightUnit?: "lbs" | "kg" | null;
 };
 
-export type IncomingHistoryAuditExercise = Partial<HistoryAuditExercise> & {
+export type IncomingHistoryAuditExercise = Omit<Partial<HistoryAuditExercise>, "sets"> & {
   name?: string | null;
   exerciseId?: string;
   exerciseName?: string | null;

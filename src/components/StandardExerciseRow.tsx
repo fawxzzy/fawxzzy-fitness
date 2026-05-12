@@ -1,23 +1,38 @@
-import type { ReactNode } from "react";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { ExerciseCard } from "@/components/ExerciseCard";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import type { CSSProperties, ReactNode } from "react";
+import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
+import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardContentVerticalAlign, type ExerciseCardMediaLeftCornerMode, type ExerciseCardRightIconMode } from "@/components/ExerciseCard";
+import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
-import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
+import {
+  getExerciseGoalSummaryState,
+  getExerciseGoalSummaryText,
+  hasMeaningfulExerciseGoalSummary,
+  type ExerciseGoalSummaryValue,
+} from "@/lib/exercise-goal-summary";
+import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
+import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
+import { resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 type StandardExerciseRowProps = {
   exercise: {
     name: string;
+    cardSrc?: string | null;
     slug?: string | null;
     image_path?: string | null;
     image_icon_path?: string | null;
     image_howto_path?: string | null;
+    thumbnailUrl?: string | null;
+    thumbnailSource?: ExerciseThumbSourceKind | null;
   };
   summary?: ExerciseGoalSummaryValue;
+  subtitle?: ExerciseGoalSummaryValue;
   onPress?: () => void;
   badgeText?: string;
   rightIcon?: ReactNode;
+  actions?: ReactNode;
   className?: string;
+  shellClassName?: string;
+  shellStyle?: CSSProperties;
   trailingClassName?: string;
   rightRailClassName?: string;
   trailingStackClassName?: string;
@@ -26,19 +41,40 @@ type StandardExerciseRowProps = {
   contentClassName?: string;
   titleContainerClassName?: string;
   titleClassName?: string;
+  titleMeta?: ReactNode;
   subtitleClassName?: string;
+  headerDivider?: ReactNode;
+  summaryLabel?: string;
+  subtitleTone?: "panel" | "plain";
   variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
   state?: "default" | "selected" | "active" | "completed" | "empty";
+  density?: "compact" | "detailed";
+  semanticTone?: CardSemanticTone;
   children?: ReactNode;
+  leadingVisual?: ReactNode;
+  showLeadingVisual?: boolean;
+  imageSizes?: string;
+  buttonProps?: ExerciseCardButtonProps;
+  surface?: WorkoutCardSurface;
+  showAccentRail?: boolean;
+  mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
+  hideEmptySummary?: boolean;
+  rightIconMode?: ExerciseCardRightIconMode;
+  contentVerticalAlign?: ExerciseCardContentVerticalAlign;
+  progressFill?: ProgressionProgressFill | null;
 };
 
 export function StandardExerciseRow({
   exercise,
   summary,
+  subtitle,
   onPress,
   badgeText,
   rightIcon,
+  actions,
   className,
+  shellClassName,
+  shellStyle,
   trailingClassName,
   rightRailClassName,
   trailingStackClassName,
@@ -47,32 +83,75 @@ export function StandardExerciseRow({
   contentClassName,
   titleContainerClassName,
   titleClassName,
+  titleMeta,
   subtitleClassName,
+  headerDivider,
+  summaryLabel,
+  subtitleTone,
   variant = "standard",
   state,
+  density,
+  semanticTone,
   children,
+  leadingVisual,
+  showLeadingVisual = true,
+  imageSizes,
+  buttonProps,
+  surface = "exercise-picker",
+  showAccentRail = true,
+  mediaLeftCornerMode,
+  hideEmptySummary = false,
+  rightIconMode,
+  contentVerticalAlign,
+  progressFill,
 }: StandardExerciseRowProps) {
-  const resolvedState = state ?? getExerciseGoalSummaryState(summary);
+  const resolvedSummary = summary ?? subtitle;
+  const hasMeaningfulSummary = hasMeaningfulExerciseGoalSummary(resolvedSummary);
+  const resolvedSubtitle = hideEmptySummary && !hasMeaningfulSummary
+    ? undefined
+    : getExerciseGoalSummaryText(resolvedSummary);
+  const resolvedState = state ?? (hideEmptySummary && !hasMeaningfulSummary ? "default" : getExerciseGoalSummaryState(resolvedSummary));
+  const resolvedDensity = density ?? (variant === "standard" || variant === "expanded" || variant === "summary" ? "detailed" : "compact");
+  const usesCompactDensity = resolvedDensity === "compact";
+  const surfacePolicy = resolveWorkoutCardSurfacePolicy(surface, resolvedDensity);
+  const mediaRailWidth = surfacePolicy.mediaRailWidth;
+  const allowsSurfaceMedia = surfacePolicy.showMedia && mediaRailWidth > 0;
+  const resolvedImageSizes = imageSizes ?? `${Math.max(mediaRailWidth, 1)}px`;
+  const resolvedLeadingVisual = allowsSurfaceMedia
+    ? (
+        leadingVisual ?? (showLeadingVisual ? (
+          <ExerciseThumb
+            exercise={exercise}
+            detailed={!usesCompactDensity}
+            layout="rail"
+            railWidth={mediaRailWidth}
+            sizes={resolvedImageSizes}
+            intent="row-card"
+          />
+        ) : undefined)
+      )
+    : undefined;
 
   return (
     <ExerciseCard
       title={exercise.name}
-      subtitle={getExerciseGoalSummaryText(summary)}
+      titleMeta={titleMeta}
+      subtitle={resolvedSubtitle}
       variant={variant}
       state={resolvedState}
-      leadingVisual={(
-        <ExerciseAssetImage
-          src={getExerciseIconSrc(exercise)}
-          alt={`${exercise.name} icon`}
-          className="h-full w-full"
-          imageClassName="object-cover object-center"
-          sizes="44px"
-        />
-      )}
+      density={resolvedDensity}
+      semanticTone={semanticTone}
+      leadingVisual={resolvedLeadingVisual}
+      mediaLayout="rail"
+      mediaRailWidth={resolvedLeadingVisual ? mediaRailWidth : undefined}
+      mediaLeftCornerMode={mediaLeftCornerMode}
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}
-      className={cn("shadow-none", className)}
+      rightIconMode={rightIconMode}
+      actions={actions}
+      className={cn("shadow-none", shellClassName, className)}
+      shellStyle={shellStyle}
       trailingClassName={trailingClassName}
       rightRailClassName={rightRailClassName}
       trailingStackClassName={trailingStackClassName}
@@ -82,6 +161,13 @@ export function StandardExerciseRow({
       titleContainerClassName={titleContainerClassName}
       titleClassName={titleClassName}
       subtitleClassName={subtitleClassName}
+      headerDivider={headerDivider}
+      subtitleLabel={summaryLabel}
+      subtitleTone={subtitleTone}
+      showAccentRail={showAccentRail}
+      buttonProps={buttonProps}
+      contentVerticalAlign={contentVerticalAlign}
+      progressFill={progressFill}
     >
       {children}
     </ExerciseCard>

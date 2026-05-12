@@ -28,8 +28,9 @@ export type SessionExerciseProgressState = {
   badgeText?: string;
   chips: SessionExerciseProgressChip[];
   progressLabel?: string;
-  skipActionLabel: "Skip" | "Unskip";
+  skipActionLabel: "Skip" | "Unskip" | "Hide" | "Unhide";
   allowQuickLog: boolean;
+  allowSkipToggle: boolean;
 };
 
 export type ReadOnlyExercisePresentation = {
@@ -88,6 +89,7 @@ function derivePresentationFromExecutionState({
         chips: [],
         skipActionLabel: "Skip",
         allowQuickLog: true,
+        allowSkipToggle: true,
       };
     case "in_progress":
       return {
@@ -98,6 +100,7 @@ function derivePresentationFromExecutionState({
         progressLabel: formatLoggedProgress(loggedSetCount, goalSetTarget),
         skipActionLabel: "Skip",
         allowQuickLog: true,
+        allowSkipToggle: true,
       };
     case "completed":
       return {
@@ -105,8 +108,9 @@ function derivePresentationFromExecutionState({
         cardState: "completed",
         badgeText: "Completed",
         chips: [],
-        skipActionLabel: isSkipped ? "Unskip" : "Skip",
-        allowQuickLog: !isSkipped,
+        skipActionLabel: isSkipped ? "Unhide" : "Hide",
+        allowQuickLog: true,
+        allowSkipToggle: true,
       };
     case "skipped":
       return {
@@ -116,6 +120,7 @@ function derivePresentationFromExecutionState({
         chips: surface === "summary" ? [] : ["skipped"],
         skipActionLabel: "Unskip",
         allowQuickLog: false,
+        allowSkipToggle: true,
       };
     case "partial":
       return {
@@ -126,6 +131,7 @@ function derivePresentationFromExecutionState({
         progressLabel: formatLoggedProgress(loggedSetCount, goalSetTarget),
         skipActionLabel: "Unskip",
         allowQuickLog: false,
+        allowSkipToggle: true,
       };
   }
 }

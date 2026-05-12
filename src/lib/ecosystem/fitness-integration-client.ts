@@ -1,5 +1,6 @@
-import { fitnessIntegrationContract, type FitnessReceiptType, type FitnessSignalType, type FitnessStateSnapshotType } from "./fitness-integration-contract";
-import type { DeterministicSignalFixture, DeterministicStateSnapshotFixture, EcosystemRoutingMetadata } from "./contract-types";
+import { randomUUID } from "node:crypto";
+import { fitnessIntegrationContract, type FitnessReceiptType, type FitnessSignalType, type FitnessStateSnapshotType } from "./fitness-integration-contract.ts";
+import type { DeterministicSignalFixture, DeterministicStateSnapshotFixture, EcosystemRoutingMetadata } from "./contract-types.ts";
 
 export type FitnessSignalPayload = Readonly<Record<string, string | number | boolean>>;
 export type FitnessSnapshotPayload = Readonly<Record<string, string | number | boolean>>;
@@ -9,6 +10,7 @@ export type FitnessOutboundReason =
   | "session_discarded"
   | "streak_evaluation"
   | "recovery_evaluation"
+  | "pilot_measurement"
   | "manual_debug";
 
 export interface FitnessOutboundSignal extends DeterministicSignalFixture<FitnessSignalType> {
@@ -96,10 +98,8 @@ function getOrCreateMemberDebugState(memberId: string) {
   return created;
 }
 
-let outboundCounter = 0;
 function createOutboundId(prefix: string): string {
-  outboundCounter += 1;
-  return `${prefix}-${String(outboundCounter).padStart(6, "0")}`;
+  return `${prefix}-${randomUUID()}`;
 }
 
 export function buildFitnessSnapshots(source: FitnessSnapshotSourceState): {

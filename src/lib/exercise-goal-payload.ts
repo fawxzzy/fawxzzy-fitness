@@ -1,7 +1,7 @@
 import "server-only";
 
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
-import { getVisibleMetricsForModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import { getMissingGoalMeasurementMessage, inferMeasurementTypeFromGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 
 export type MeasurementSelection = "reps" | "weight" | "time" | "distance" | "calories";
 
@@ -24,7 +24,7 @@ type ParsedGoalPayload = {
   target_distance_unit: "mi" | "km" | "m" | null;
   target_calories_min: number | null;
   target_calories_max: number | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: "mi" | "km" | "m" | null;
 };
 
@@ -87,12 +87,14 @@ function parseMeasurementSelections(formData: FormData) {
 
 function deriveMeasurementSelectionsFromFields({
   reps,
+  repsMax,
   weight,
   duration,
   distance,
   calories,
 }: {
   reps: string;
+  repsMax: string;
   weight: string;
   duration: string;
   distance: string;
@@ -100,6 +102,7 @@ function deriveMeasurementSelectionsFromFields({
 }) {
   const presence = deriveMeasurementPresenceFromValues({
     reps,
+    repsMax,
     weight,
     duration,
     distance,
@@ -115,6 +118,7 @@ function deriveMeasurementSelectionsFromFields({
 }
 
 function deriveMeasurementType(selections: Set<MeasurementSelection>) {
+  if (selections.size === 0) return "none" as const;
   if (selections.has("time") && selections.has("distance")) return "time_distance" as const;
   if (selections.has("time")) return "time" as const;
   if (selections.has("distance")) return "distance" as const;
@@ -133,6 +137,10 @@ function parseGoalModality(value: FormDataEntryValue | null): GoalModality | nul
     return normalized;
   }
   return null;
+}
+
+function parseFailureFlag(value: FormDataEntryValue | null) {
+  return String(value ?? "").trim().toLowerCase() === "true";
 }
 
 
@@ -185,14 +193,14 @@ export function mapRoutineDayGoalToSessionColumns(goal: {
   target_distance: number | null;
   target_distance_unit: "mi" | "km" | "m" | null;
   target_calories: number | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit: "mi" | "km" | "m" | null;
 }) {
   return {
     target_sets_min: goal.target_sets,
     target_sets_max: goal.target_sets,
-    target_reps_min: goal.target_reps_min ?? goal.target_reps,
-    target_reps_max: goal.target_reps_max ?? goal.target_reps,
+    target_reps_min: goal.target_reps ?? goal.target_reps_min,
+    target_reps_max: goal.target_reps ?? goal.target_reps_max,
     target_weight_min: goal.target_weight,
     target_weight_max: goal.target_weight,
     target_weight_unit: goal.target_weight_unit,
@@ -203,7 +211,7 @@ export function mapRoutineDayGoalToSessionColumns(goal: {
     target_distance_unit: goal.target_distance_unit,
     target_calories_min: goal.target_calories,
     target_calories_max: goal.target_calories,
-    measurement_type: goal.measurement_type ?? "reps",
+    measurement_type: goal.measurement_type ?? null,
     default_unit: goal.default_unit,
   };
 }
@@ -218,22 +226,26 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   const targetDistanceRaw = String(formData.get("targetDistance") ?? "").trim();
   const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? "").trim();
   const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
+  const targetFailure = parseFailureFlag(formData.get("targetFailure"));
   const defaultUnit = parseDistanceUnit(formData.get("defaultUnit"));
   const explicitSelections = parseMeasurementSelections(formData);
   const modality = parseGoalModality(formData.get("goalModality"));
-  const modalityVisibleMetrics = modality ? new Set<MeasurementSelection>(getVisibleMetricsForModality(modality)) : null;
   const valueSelections = deriveMeasurementSelectionsFromFields({
     reps: targetRepsMinRaw,
+    repsMax: targetRepsMaxRaw,
     weight: targetWeightRaw,
     duration: targetDurationRaw,
     distance: targetDistanceRaw,
     calories: targetCaloriesRaw,
   });
-  const rawSelections = new Set<MeasurementSelection>([...explicitSelections, ...valueSelections]);
-  const selections = modalityVisibleMetrics
-    ? new Set<MeasurementSelection>([...rawSelections].filter((selection) => modalityVisibleMetrics.has(selection)))
-    : rawSelections;
-  const measurementType = deriveMeasurementType(selections);
+  const selections = new Set<MeasurementSelection>([...explicitSelections, ...valueSelections]);
+  if (targetFailure) {
+    selections.add("reps");
+  }
+  const derivedMeasurementType = deriveMeasurementType(selections);
+  const measurementType = derivedMeasurementType === "none"
+    ? "none"
+    : (modality ? inferMeasurementTypeFromGoalModality(modality) : derivedMeasurementType);
 
   const sanitizedTargets = sanitizeEnabledMeasurementValues({
     reps: selections.has("reps"),
@@ -250,35 +262,39 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   });
 
   const targetSets = targetSetsRaw ? Number(targetSetsRaw) : null;
-  const targetRepsMin = sanitizedTargets.reps ? Number(sanitizedTargets.reps) : null;
-  const targetRepsMax = selections.has("reps") && targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
+  const targetRepsMin = targetFailure ? 0 : (sanitizedTargets.reps ? Number(sanitizedTargets.reps) : null);
+  const targetRepsMax = targetFailure ? 0 : (selections.has("reps") && targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null);
   const targetWeight = sanitizedTargets.weight ? Number(sanitizedTargets.weight) : null;
   const targetDurationSeconds = parseTargetDurationSeconds(sanitizedTargets.duration);
   const targetDistance = parseOptionalNumeric(sanitizedTargets.distance);
   const targetCalories = parseOptionalNumeric(sanitizedTargets.calories);
 
   if (options.requireSets && (targetSets === null || !Number.isInteger(targetSets) || targetSets < 1)) {
-    return { ok: false, error: "Target sets must be a whole number greater than 0" };
+    return { ok: false, error: getMissingGoalMeasurementMessage("sets") };
   }
 
   if (targetSets !== null && (!Number.isInteger(targetSets) || targetSets < 1)) {
-    return { ok: false, error: "Target sets must be a whole number greater than 0" };
+    return { ok: false, error: getMissingGoalMeasurementMessage("sets") };
   }
 
-  if (targetRepsMin !== null && (!Number.isInteger(targetRepsMin) || targetRepsMin < 1)) {
-    return { ok: false, error: "Min reps must be a whole number greater than 0" };
+  if (!targetFailure && targetRepsMin !== null && (!Number.isInteger(targetRepsMin) || targetRepsMin < 1)) {
+    return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (targetRepsMax !== null && (!Number.isInteger(targetRepsMax) || targetRepsMax < 1)) {
-    return { ok: false, error: "Max reps must be a whole number greater than 0" };
+  if (!targetFailure && targetRepsMax !== null && (!Number.isInteger(targetRepsMax) || targetRepsMax < 1)) {
+    return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
   }
 
-  if (targetRepsMin !== null && targetRepsMax !== null && targetRepsMin > targetRepsMax) {
-    return { ok: false, error: "Rep range must use min <= max" };
+  if (!targetFailure && targetRepsMax !== null && targetRepsMin === null) {
+    return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
+  }
+
+  if (!targetFailure && targetRepsMin !== null && targetRepsMax !== null && targetRepsMin > targetRepsMax) {
+    return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
   }
 
   if (targetWeight !== null && (!Number.isFinite(targetWeight) || targetWeight < 0)) {
-    return { ok: false, error: "Weight must be 0 or greater" };
+    return { ok: false, error: getMissingGoalMeasurementMessage("weight") };
   }
 
   if (targetWeight !== null && targetWeightUnit && targetWeightUnit !== "lbs" && targetWeightUnit !== "kg") {
@@ -286,7 +302,7 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   }
 
   if (targetDistance !== null && (!Number.isFinite(targetDistance) || targetDistance < 0)) {
-    return { ok: false, error: "Distance must be 0 or greater" };
+    return { ok: false, error: getMissingGoalMeasurementMessage("distance") };
   }
 
   if (targetDistance !== null && targetDistanceUnit && targetDistanceUnit !== "mi" && targetDistanceUnit !== "km" && targetDistanceUnit !== "m") {
@@ -298,7 +314,38 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   }
 
   if (Number.isNaN(targetDurationSeconds)) {
-    return { ok: false, error: "Time must be seconds or mm:ss" };
+    return { ok: false, error: getMissingGoalMeasurementMessage("duration") };
+  }
+
+  if (measurementType !== "none") {
+    switch (modality) {
+    case "bodyweight":
+    case "strength":
+      if (!targetFailure && targetRepsMin === null) {
+        return { ok: false, error: getMissingGoalMeasurementMessage("repsMin") };
+      }
+      break;
+    case "cardio_time":
+      if (targetDurationSeconds === null || targetDurationSeconds <= 0) {
+        return { ok: false, error: getMissingGoalMeasurementMessage("duration") };
+      }
+      break;
+    case "cardio_distance":
+      if (targetDistance === null || targetDistance <= 0) {
+        return { ok: false, error: getMissingGoalMeasurementMessage("distance") };
+      }
+      break;
+    case "cardio_time_distance": {
+      const hasDuration = targetDurationSeconds !== null && targetDurationSeconds > 0;
+      const hasDistance = targetDistance !== null && targetDistance > 0;
+      if (!hasDuration && !hasDistance) {
+        return { ok: false, error: getMissingGoalMeasurementMessage("duration") };
+      }
+      break;
+    }
+    default:
+      break;
+    }
   }
 
   const useRepsTargets = selections.has("reps");

@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 export function CompactLogRow({
+  label,
   summary,
+  meta,
   action,
   className,
   actionClassName,
@@ -15,16 +18,17 @@ export function CompactLogRow({
   actionClassName?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "flex items-stretch justify-between gap-0 overflow-hidden rounded-[1rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.34)] shadow-[0_10px_22px_-20px_rgba(0,0,0,0.95)]",
-        className,
-      )}
-    >
-      <div className="min-w-0 flex-1 px-3 py-2.5">
-        {summary}
+    <div className={cn(appTokens.exerciseLogRow, className)}>
+      <div className="min-w-0 flex-1">
+        {label || meta ? (
+          <div className="flex min-w-0 items-start justify-between gap-2 pb-1">
+            {label ? <div className="min-w-0">{label}</div> : <span aria-hidden="true" />}
+            {meta ? <div className="shrink-0">{meta}</div> : null}
+          </div>
+        ) : null}
+        <div className="min-w-0">{summary}</div>
       </div>
-      {action ? <div className={cn("flex shrink-0 items-stretch self-stretch", actionClassName)}>{action}</div> : null}
+      {action ? <div className={cn(appTokens.exerciseLogRowAction, actionClassName)}>{action}</div> : null}
     </div>
   );
 }

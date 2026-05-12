@@ -6,6 +6,7 @@ import {
   normalizeHistoryLogExercises,
   type IncomingHistoryAuditExercise,
 } from "@/lib/history-log-normalization";
+import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
 
 
 function pickPreferredArray<T>(candidates: Array<T[] | null | undefined>): T[] {
@@ -32,7 +33,9 @@ export function HistoryLogPageClient(props: {
   logExercises?: IncomingHistoryAuditExercise[];
   workoutExercises?: IncomingHistoryAuditExercise[];
   sessionSummary: SessionSummary;
+  recapArtifact?: WorkoutRecapArtifact | null;
   backHref: string;
+  initialExpandedExerciseId?: string | null;
 }) {
   const incomingExercises = pickPreferredArray([
     props.exercises,

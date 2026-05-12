@@ -1,9 +1,9 @@
-import type { DeterministicStateSnapshotFixture } from "../../contract-types";
-import type { FitnessStateSnapshotType } from "../../fitness-integration-contract";
+import type { DeterministicStateSnapshotFixture } from "../../contract-types.ts";
+import type { FitnessStateSnapshotType } from "../../fitness-integration-contract.ts";
 
-import { athleteReadinessStateFixture } from "./athlete-readiness-state.fixture";
-import { streakHealthStateFixture } from "./streak-health-state.fixture";
-import { weeklyProgressStateFixture } from "./weekly-progress-state.fixture";
+import { athleteReadinessStateFixture } from "./athlete-readiness-state.fixture.ts";
+import { streakHealthStateFixture } from "./streak-health-state.fixture.ts";
+import { weeklyProgressStateFixture } from "./weekly-progress-state.fixture.ts";
 
 export const fitnessStateSnapshotFixtures: readonly DeterministicStateSnapshotFixture<FitnessStateSnapshotType>[] = [
   athleteReadinessStateFixture,

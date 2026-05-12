@@ -20,8 +20,16 @@ export function MeasurementConfigurator({
   showHeader = false,
   leadingContent,
   trailingContent,
+  betweenInputsAndFooterContent,
+  footerContent,
+  footerClassName,
   topField,
+  auxiliaryFields,
+  repRangeLabels,
   visibleMetrics,
+  metricOrder,
+  layoutMode,
+  labelTreatment,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -38,12 +46,42 @@ export function MeasurementConfigurator({
   showHeader?: boolean;
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
+  betweenInputsAndFooterContent?: ReactNode;
+  footerContent?: ReactNode;
+  footerClassName?: string;
   topField?: {
     title: string;
     suffix?: string;
     input: ReactNode;
+    inlineLabel?: string;
+    showEmptyValue?: boolean;
+    hasValue?: boolean;
+    labelClassName?: string;
+    valueLabelClassName?: string;
+    emptyValueClassName?: string;
+    renderInput?: (options: { inputClassName: string }) => ReactNode;
+  };
+  auxiliaryFields?: Array<{
+    title: string;
+    suffix?: string;
+    input: ReactNode;
+    inlineLabel?: string;
+    useInlineFieldShell?: boolean;
+    showEmptyValue?: boolean;
+    hasValue?: boolean;
+    labelClassName?: string;
+    valueLabelClassName?: string;
+    emptyValueClassName?: string;
+    renderInput?: (options: { inputClassName: string }) => ReactNode;
+  }>;
+  repRangeLabels?: {
+    min: string;
+    max: string;
   };
   visibleMetrics?: Array<keyof MeasurementMetrics>;
+  metricOrder?: Array<keyof MeasurementMetrics>;
+  layoutMode?: "grid" | "horizontal-scroll";
+  labelTreatment?: "inline" | "floating-border";
 }) {
   return (
     <MeasurementPanelV2
@@ -62,8 +100,16 @@ export function MeasurementConfigurator({
       showHeader={showHeader}
       leadingContent={leadingContent}
       trailingContent={trailingContent}
+      betweenInputsAndFooterContent={betweenInputsAndFooterContent}
+      footerContent={footerContent}
+      footerClassName={footerClassName}
       topField={topField}
+      auxiliaryFields={auxiliaryFields}
+      repRangeLabels={repRangeLabels}
       visibleMetrics={visibleMetrics}
+      metricOrder={metricOrder}
+      layoutMode={layoutMode}
+      labelTreatment={labelTreatment}
     />
   );
 }

@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
-import { AppButton } from "@/components/ui/AppButton";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -17,7 +19,7 @@ type ExerciseOption = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
@@ -67,12 +69,36 @@ export function SessionAddExerciseForm({
           initialSelectedId={initialSelectedId}
           routineTargetConfig={{ weightUnit }}
           exerciseStats={exerciseStats}
-          renderFooter={({ goalValidation }) => (
-            <div className="space-y-2 rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
-              <AppButton type="submit" variant="primary" fullWidth disabled={!goalValidation.isValid}>
-                Add Exercise
-              </AppButton>
-            </div>
+          renderFooter={({ goalValidation, selectedCanonicalExerciseId, openExerciseInfo }) => (
+            <PublishBottomActions>
+              <BottomActionSplit
+                secondary={(
+                  <BottomDockButton
+                    type="button"
+                    intent="toggleActive"
+                    onClick={openExerciseInfo}
+                    disabled={!selectedCanonicalExerciseId}
+                  >
+                    View
+                  </BottomDockButton>
+                )}
+                primary={(
+                  <BottomDockButton
+                    type="submit"
+                    intent="positive"
+                    onClick={(event) => {
+                      if (goalValidation.isValid) {
+                        return;
+                      }
+                      event.preventDefault();
+                      toast.warning(goalValidation.message, { id: "exercise-goal-validation" });
+                    }}
+                  >
+                    Add
+                  </BottomDockButton>
+                )}
+              />
+            </PublishBottomActions>
           )}
         />
       </div>

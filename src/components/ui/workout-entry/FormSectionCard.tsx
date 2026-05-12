@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { appTokens } from "@/components/ui/app/tokens";
+import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
 import { cn } from "@/lib/cn";
 
 export function FormSectionCard({
@@ -11,8 +14,8 @@ export function FormSectionCard({
   insetClassName?: string;
 }) {
   return (
-    <div className={cn("rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] p-2.5", className)}>
-      <div className={cn("space-y-2.5", insetClassName)}>{children}</div>
-    </div>
+    <AppPanel className={cn(appTokens.exerciseLogInsetPanel, className)}>
+      <div className={cn(fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName, insetClassName)}>{children}</div>
+    </AppPanel>
   );
 }

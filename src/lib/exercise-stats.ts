@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseServer } from "@/lib/supabase/server";
 import { unstable_noStore as noStore } from "next/cache";
 import { aggregateExerciseStatsFromSets, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
@@ -22,8 +23,27 @@ function uniqueExerciseIds(exerciseIds: Array<string | null | undefined>): strin
   return Array.from(new Set(exerciseIds.filter((exerciseId): exerciseId is string => Boolean(exerciseId))));
 }
 
-export async function getExerciseIdsForSession(userId: string, sessionId: string): Promise<string[]> {
+export async function getExerciseIdsForCompletedSessions(userId: string): Promise<string[]> {
   const supabase = supabaseServer();
+  const { data, error } = await supabase
+    .from("session_exercises")
+    .select("exercise_id, session:sessions!inner(status)")
+    .eq("user_id", userId)
+    .eq("session.status", "completed");
+
+  if (error || !data) {
+    return [];
+  }
+
+  return uniqueExerciseIds(data.map((row) => row.exercise_id));
+}
+
+export async function getExerciseIdsForSession(
+  userId: string,
+  sessionId: string,
+  client?: SupabaseClient,
+): Promise<string[]> {
+  const supabase = client ?? supabaseServer();
   const { data, error } = await supabase
     .from("session_exercises")
     .select("exercise_id")
@@ -72,13 +92,17 @@ export async function recomputeExerciseStatsForSessionExercises(userId: string, 
   await recomputeExerciseStatsForExercises(userId, exerciseIds);
 }
 
-export async function recomputeExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<void> {
+export async function recomputeExerciseStatsForExercises(
+  userId: string,
+  exerciseIds: string[],
+  client?: SupabaseClient,
+): Promise<void> {
   const uniqueIds = uniqueExerciseIds(exerciseIds);
   if (!uniqueIds.length) {
     return;
   }
 
-  const supabase = supabaseServer();
+  const supabase = client ?? supabaseServer();
 
   const { data: historySets, error } = await supabase
     .from("sets")
@@ -135,14 +159,41 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
   }
 }
 
-export async function getExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<Map<string, ExerciseStatsRow>> {
+export async function rebuildExerciseStatsFromLoggedSessions(userId: string): Promise<string[]> {
+  const supabase = supabaseServer();
+  const [completedSessionExerciseIds, existingStatsRows] = await Promise.all([
+    getExerciseIdsForCompletedSessions(userId),
+    supabase
+      .from("exercise_stats")
+      .select("exercise_id")
+      .eq("user_id", userId),
+  ]);
+
+  const affectedExerciseIds = uniqueExerciseIds([
+    ...completedSessionExerciseIds,
+    ...((existingStatsRows.data ?? []).map((row) => row.exercise_id)),
+  ]);
+
+  if (!affectedExerciseIds.length) {
+    return [];
+  }
+
+  await recomputeExerciseStatsForExercises(userId, affectedExerciseIds);
+  return affectedExerciseIds;
+}
+
+export async function getExerciseStatsForExercises(
+  userId: string,
+  exerciseIds: string[],
+  client?: SupabaseClient,
+): Promise<Map<string, ExerciseStatsRow>> {
   noStore();
 
   if (!exerciseIds.length) {
     return new Map();
   }
 
-  const supabase = supabaseServer();
+  const supabase = client ?? supabaseServer();
   const { data } = await supabase
     .from("exercise_stats")
     .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at, actual_pr_weight, actual_pr_reps, actual_pr_at")
@@ -172,10 +223,14 @@ export type ExerciseStatsLookupResult = {
   error: ExerciseStatsLookupError | null;
 };
 
-export async function getExerciseStatsForExercise(userId: string, exerciseId: string): Promise<ExerciseStatsLookupResult> {
+export async function getExerciseStatsForExercise(
+  userId: string,
+  exerciseId: string,
+  client?: SupabaseClient,
+): Promise<ExerciseStatsLookupResult> {
   noStore();
 
-  const supabase = supabaseServer();
+  const supabase = client ?? supabaseServer();
 
   const { data: canonicalExercise, error: canonicalExerciseError } = await supabase
     .from("exercises")

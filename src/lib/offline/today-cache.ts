@@ -1,8 +1,12 @@
-export const TODAY_CACHE_SCHEMA_VERSION = 3;
+import {
+  buildTodayCacheDbKey,
+  buildTodayCacheStorageKey,
+  isOfflineSnapshotStale,
+} from "@/lib/offline/client-storage";
+
+export const TODAY_CACHE_SCHEMA_VERSION = 4;
 const TODAY_CACHE_DB_NAME = "fawxzzy-fitness-offline";
 const TODAY_CACHE_STORE_NAME = "today-cache";
-const TODAY_CACHE_KEY = "today";
-const TODAY_CACHE_LOCALSTORAGE_KEY = "offline:today-cache";
 
 export type CachedTodayRoutineSummary = {
   id: string;
@@ -21,7 +25,7 @@ export type CachedTodayExercise = {
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   isCardio?: boolean | null;
   kind?: string | null;
   type?: string | null;
@@ -41,6 +45,7 @@ export type CachedTodayHints = {
 
 export type TodayCacheSnapshot = {
   schemaVersion: number;
+  userId: string;
   capturedAt: string;
   routine: CachedTodayRoutineSummary;
   exercises: CachedTodayExercise[];
@@ -80,7 +85,7 @@ async function writeIndexedDb(snapshot: TodayCacheSnapshot): Promise<void> {
   const db = await openTodayCacheDb();
   await new Promise<void>((resolve, reject) => {
     const transaction = db.transaction(TODAY_CACHE_STORE_NAME, "readwrite");
-    transaction.objectStore(TODAY_CACHE_STORE_NAME).put(snapshot, TODAY_CACHE_KEY);
+    transaction.objectStore(TODAY_CACHE_STORE_NAME).put(snapshot, buildTodayCacheDbKey(snapshot.userId));
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error("Unable to write today cache."));
     transaction.onabort = () => reject(transaction.error ?? new Error("Today cache write aborted."));
@@ -88,11 +93,11 @@ async function writeIndexedDb(snapshot: TodayCacheSnapshot): Promise<void> {
   db.close();
 }
 
-async function readIndexedDb(): Promise<TodayCacheSnapshot | null> {
+async function readIndexedDb(userId: string): Promise<TodayCacheSnapshot | null> {
   const db = await openTodayCacheDb();
   const result = await new Promise<TodayCacheSnapshot | null>((resolve, reject) => {
     const transaction = db.transaction(TODAY_CACHE_STORE_NAME, "readonly");
-    const request = transaction.objectStore(TODAY_CACHE_STORE_NAME).get(TODAY_CACHE_KEY);
+    const request = transaction.objectStore(TODAY_CACHE_STORE_NAME).get(buildTodayCacheDbKey(userId));
 
     request.onsuccess = () => {
       resolve((request.result as TodayCacheSnapshot | undefined) ?? null);
@@ -107,11 +112,11 @@ async function readIndexedDb(): Promise<TodayCacheSnapshot | null> {
 }
 
 function writeLocalStorage(snapshot: TodayCacheSnapshot) {
-  window.localStorage.setItem(TODAY_CACHE_LOCALSTORAGE_KEY, JSON.stringify(snapshot));
+  window.localStorage.setItem(buildTodayCacheStorageKey(snapshot.userId), JSON.stringify(snapshot));
 }
 
-function readLocalStorage(): TodayCacheSnapshot | null {
-  const raw = window.localStorage.getItem(TODAY_CACHE_LOCALSTORAGE_KEY);
+function readLocalStorage(userId: string): TodayCacheSnapshot | null {
+  const raw = window.localStorage.getItem(buildTodayCacheStorageKey(userId));
   if (!raw) {
     return null;
   }
@@ -124,7 +129,13 @@ function readLocalStorage(): TodayCacheSnapshot | null {
 }
 
 function isSnapshotCompatible(snapshot: TodayCacheSnapshot | null): snapshot is TodayCacheSnapshot {
-  return Boolean(snapshot && snapshot.schemaVersion === TODAY_CACHE_SCHEMA_VERSION && snapshot.routine?.id);
+  return Boolean(
+    snapshot
+    && snapshot.schemaVersion === TODAY_CACHE_SCHEMA_VERSION
+    && snapshot.userId
+    && snapshot.routine?.id
+    && !isOfflineSnapshotStale(snapshot.capturedAt),
+  );
 }
 
 export async function writeTodayCache(snapshot: TodayCacheSnapshot): Promise<void> {
@@ -148,14 +159,14 @@ export async function writeTodayCache(snapshot: TodayCacheSnapshot): Promise<voi
   }
 }
 
-export async function readTodayCache(): Promise<TodayCacheSnapshot | null> {
+export async function readTodayCache(userId: string): Promise<TodayCacheSnapshot | null> {
   if (!isBrowser()) {
     return null;
   }
 
   if (supportsIndexedDb()) {
     try {
-      const snapshot = await readIndexedDb();
+      const snapshot = await readIndexedDb(userId);
       if (isSnapshotCompatible(snapshot)) {
         return snapshot;
       }
@@ -165,7 +176,7 @@ export async function readTodayCache(): Promise<TodayCacheSnapshot | null> {
   }
 
   try {
-    const snapshot = readLocalStorage();
+    const snapshot = readLocalStorage(userId);
     return isSnapshotCompatible(snapshot) ? snapshot : null;
   } catch {
     return null;

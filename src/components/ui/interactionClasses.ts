@@ -1,2 +1,2 @@
 export const tapFeedbackClass =
-  "transition-all duration-100 ease-out active:scale-[0.98] active:opacity-90 motion-reduce:transform-none motion-reduce:transition-none";
+  "transition-[filter,opacity] duration-75 ease-out active:brightness-[1.02] motion-reduce:transition-none";

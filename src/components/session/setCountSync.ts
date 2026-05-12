@@ -9,13 +9,6 @@ export function mergeLoggedSetCountState(
 ): Record<string, number> {
   const next = Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount]));
 
-  for (const exercise of exercises) {
-    const existing = current[exercise.id];
-    if (typeof existing === "number" && existing > (next[exercise.id] ?? 0)) {
-      next[exercise.id] = existing;
-    }
-  }
-
   const currentKeys = Object.keys(current);
   const nextKeys = Object.keys(next);
   if (currentKeys.length !== nextKeys.length) {

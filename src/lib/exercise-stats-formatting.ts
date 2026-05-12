@@ -3,7 +3,11 @@ export function positive(value: number | null | undefined): number {
 }
 
 function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+  if (Number.isInteger(value)) {
+    return String(value);
+  }
+
+  return value.toFixed(2).replace(/\.?0+$/, "");
 }
 
 export function formatDurationShort(seconds?: number | null): string | null {
@@ -36,7 +40,7 @@ export function formatPace(paceSecondsPerUnit?: number | null, unit?: string | n
 
   const minutes = Math.floor(safePace / 60);
   const seconds = Math.floor(safePace % 60);
-  return `${minutes}:${seconds.toString().padStart(2, "0")} / ${normalizedUnit}`;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}/${normalizedUnit}`;
 }
 
 export function formatCalories(calories?: number | null): string | null {

@@ -1,21 +1,64 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { AppNav } from "@/components/AppNav";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
-import { ActiveRoutineStatusBadge, ActiveRoutineSummaryCard } from "@/components/routines/RoutinesScreenFamily";
 import { requireUser } from "@/lib/auth";
-import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import { getTimeZoneDayWindow, resolveRoutineScheduleForToday } from "@/lib/routines";
+import {
+  filterQaLlelRows,
+  QA_LLEL_VISIBILITY_COOKIE,
+  resolveQaLlelVisibilityOverride,
+  resolveShowQaLlelDataPreferenceWithOverride,
+} from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
-import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
+import {
+  getRestDayExerciseCountSummaryFromCanonicalDay,
+  getRestDayExerciseCountSummaryFromCanonicalDayOrFallback,
+} from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function parseDateStringAsUtc(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function formatUtcDate(timestamp: number) {
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+function addDaysToDateString(dateString: string, days: number) {
+  return formatUtcDate(parseDateStringAsUtc(dateString) + (days * MS_PER_DAY));
+}
+
+function formatDateInTimeZone(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
 
 async function setActiveRoutineAction(formData: FormData) {
   "use server";
@@ -56,30 +99,63 @@ export default async function RoutinesPage({
 }: {
   searchParams?: Promise<{ view?: string }>;
 }) {
+  const diagnostics = new LoadingDiagnosticsCollector("/routines");
   const resolvedSearchParams = await searchParams;
   const initialRoutineListOpen = resolvedSearchParams?.view === "list";
-  const user = await requireUser();
-  const profile = await ensureProfile(user.id);
+  const user = await requireUser({
+    gate: "routines.auth.session",
+    route: "/routines",
+    blockingReason: "Waiting for authenticated session before loading routines.",
+    timeoutMs: 5000,
+    collector: diagnostics,
+  });
+  const profile = await diagnostics.measure("routines.profile.bootstrap", () => ensureProfile(user.id), {
+    blockingReason: "Waiting for routines profile bootstrap.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 5000,
+  });
   const supabase = supabaseServer();
+  const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
+    profile,
+    resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+  );
 
-  const { data } = await supabase
+  const { data } = await diagnostics.measure("routines.list.fetch", async () => await supabase
     .from("routines")
     .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
     .eq("user_id", user.id)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false }), {
+    blockingReason: "Waiting for routines overview list.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 7000,
+  });
 
   const routines = (data ?? []) as RoutineRow[];
-  const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? routines[0] ?? null;
+  const visibleRoutines = showQaLlelData
+    ? routines
+    : filterQaLlelRows(routines, (routine) => [routine.name]);
+  const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? visibleRoutines[0] ?? null;
   const routineIds = routines.map((routine) => routine.id);
 
   const { data: allRoutineDaysData } = routineIds.length
-    ? await supabase
+    ? await diagnostics.measure("routines.days.fetch", async () => await supabase
       .from("routine_days")
-      .select("id, routine_id, is_rest")
+      .select("id, user_id, routine_id, day_index, name, is_rest, notes")
       .in("routine_id", routineIds)
-      .eq("user_id", user.id)
+      .eq("user_id", user.id), {
+      blockingReason: "Waiting for routines day summaries.",
+      metadata: {
+        routineCount: routineIds.length,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    })
     : { data: [] };
-  const allRoutineDays = (allRoutineDaysData ?? []) as Array<Pick<RoutineDayRow, "id" | "routine_id" | "is_rest">>;
+  const allRoutineDays = (allRoutineDaysData ?? []) as RoutineDayRow[];
 
   const allRoutineDayIds = allRoutineDays.map((day) => day.id);
   const { data: allRoutineDayExercisesData } = allRoutineDayIds.length
@@ -109,35 +185,32 @@ export default async function RoutinesPage({
   }
 
   let activeRoutineDays: RoutineDayRow[] = [];
-  let activeRoutineExerciseSummaries = new Map<string, string>();
+  let activeRoutineDayExercises: RoutineDayExerciseRow[] = [];
+  let activeRoutineExerciseSummaries = new Map<string, ReturnType<typeof getRestDayExerciseCountSummaryFromCanonicalDay>>();
 
   if (activeRoutine) {
-    const { data: routineDays } = await supabase
-      .from("routine_days")
-      .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-      .eq("routine_id", activeRoutine.id)
-      .eq("user_id", user.id)
-      .order("day_index", { ascending: true });
-
-    activeRoutineDays = (routineDays ?? []) as RoutineDayRow[];
+    activeRoutineDays = allRoutineDays
+      .filter((day) => day.routine_id === activeRoutine.id)
+      .sort((left, right) => left.day_index - right.day_index);
 
     if (activeRoutineDays.length > 0) {
       const { data: routineDayExercises } = await supabase
         .from("routine_day_exercises")
-        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
+        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config")
         .in("routine_day_id", activeRoutineDays.map((day) => day.id))
         .eq("user_id", user.id);
+      activeRoutineDayExercises = (routineDayExercises ?? []) as RoutineDayExerciseRow[];
 
       const { summaries } = await buildCanonicalDaySummaries({
         supabase,
         routineDays: activeRoutineDays,
-        allDayExercises: (routineDayExercises ?? []) as RoutineDayExerciseRow[],
+        allDayExercises: activeRoutineDayExercises,
       });
 
       activeRoutineExerciseSummaries = new Map(
         summaries.map((summary) => [
           summary.day.id,
-          getExerciseCountSummaryFromCanonicalExercises(summary.runnableExercises).label,
+          getRestDayExerciseCountSummaryFromCanonicalDay(summary),
         ]),
       );
     }
@@ -170,14 +243,14 @@ export default async function RoutinesPage({
   const trainingDays = Math.max(totalDays - restDays, 0);
   const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
   const cycleSummary = activeRoutine ? `${trainingDays} training • ${restDays} rest` : undefined;
-  const todayRoutineDayComputation = activeRoutine?.start_date && cycleLength > 0
-    ? getRoutineDayComputation({
+  const todayRoutineSchedule = activeRoutine?.start_date && cycleLength > 0
+    ? resolveRoutineScheduleForToday({
         cycleLengthDays: cycleLength,
         startDate: activeRoutine.start_date,
         profileTimeZone: activeRoutine.timezone || profile.timezone,
       })
     : null;
-  const todayRoutineDayIndex = todayRoutineDayComputation?.dayIndex ?? null;
+  const todayRoutineDayIndex = todayRoutineSchedule?.dayIndex ?? null;
   const todayRowIndex = todayRoutineDayIndex === null
     ? -1
     : sortedActiveRoutineDays.findIndex((day, index) => {
@@ -186,25 +259,92 @@ export default async function RoutinesPage({
       });
 
   let completedDayIndexSet = new Set<number>();
+  let skippedDayIndexSet = new Set<number>();
   let inSessionDayIndex: number | null = null;
-  let inSessionLoggedSetCount = 0;
 
   if (activeRoutine) {
-    const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
-    const { data: completedTodaySessions } = await supabase
-      .from("sessions")
-      .select("routine_day_index")
-      .eq("user_id", user.id)
-      .eq("status", "completed")
-      .eq("routine_id", activeRoutine.id)
-      .gte("performed_at", startIso)
-      .lt("performed_at", endIso);
+    const routineTimeZone = activeRoutine.timezone || profile.timezone;
+    const safeCycleLength = Number.isFinite(cycleLength) && cycleLength > 0 ? Math.floor(cycleLength) : 1;
 
-    completedDayIndexSet = new Set(
-      (completedTodaySessions ?? [])
-        .map((session) => session.routine_day_index)
-        .filter((value): value is number => Number.isFinite(value)),
-    );
+    if (activeRoutine.start_date && todayRoutineSchedule?.resolution.status === "scheduled" && todayRoutineSchedule.dayIndex !== null) {
+      const todayDate = todayRoutineSchedule.todayDate;
+      const startDateTimestamp = Date.parse(`${activeRoutine.start_date}T00:00:00Z`);
+      const todayDateTimestamp = Date.parse(`${todayDate}T00:00:00Z`);
+      const daysSinceStart = Number.isFinite(startDateTimestamp) && Number.isFinite(todayDateTimestamp)
+        ? Math.floor((todayDateTimestamp - startDateTimestamp) / MS_PER_DAY)
+        : Number.NaN;
+      const currentCycleStartOffset = Number.isFinite(daysSinceStart)
+        ? Math.floor(daysSinceStart / safeCycleLength) * safeCycleLength
+        : 0;
+      const currentCycleStartDate = addDaysToDateString(activeRoutine.start_date, currentCycleStartOffset);
+      const occurrenceDateByDayIndex = new Map<number, string>();
+
+      for (const [index, day] of sortedActiveRoutineDays.entries()) {
+        const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+        occurrenceDateByDayIndex.set(dayNumber, addDaysToDateString(currentCycleStartDate, dayNumber - 1));
+      }
+
+      const queryStartDate = addDaysToDateString(currentCycleStartDate, -1);
+      const queryEndDate = addDaysToDateString(todayDate, 2);
+      const { data: completedCycleSessions } = await supabase
+        .from("sessions")
+        .select("routine_day_index, performed_at")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .eq("routine_id", activeRoutine.id)
+        .gte("performed_at", `${queryStartDate}T00:00:00.000Z`)
+        .lt("performed_at", `${queryEndDate}T00:00:00.000Z`);
+
+      completedDayIndexSet = new Set(
+        (completedCycleSessions ?? [])
+          .filter((session) => {
+            const dayIndex = session.routine_day_index;
+            if (!Number.isFinite(dayIndex) || !session.performed_at) {
+              return false;
+            }
+
+            const occurrenceDate = occurrenceDateByDayIndex.get(dayIndex);
+            const performedDate = formatDateInTimeZone(new Date(session.performed_at), routineTimeZone);
+            return Boolean(occurrenceDate && performedDate === occurrenceDate);
+          })
+          .map((session) => session.routine_day_index)
+          .filter((value): value is number => Number.isFinite(value)),
+      );
+
+      skippedDayIndexSet = new Set(
+        sortedActiveRoutineDays
+          .map((day, index) => ({
+            day,
+            dayNumber: Number.isFinite(day.day_index) ? day.day_index : index + 1,
+          }))
+          .filter(({ day, dayNumber }) => {
+            const occurrenceDate = occurrenceDateByDayIndex.get(dayNumber);
+            return Boolean(
+              occurrenceDate
+              && occurrenceDate < todayDate
+              && !day.is_rest
+              && !completedDayIndexSet.has(dayNumber),
+            );
+          })
+          .map(({ dayNumber }) => dayNumber),
+      );
+    } else {
+      const { startIso, endIso } = getTimeZoneDayWindow(routineTimeZone);
+      const { data: completedTodaySessions } = await supabase
+        .from("sessions")
+        .select("routine_day_index")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .eq("routine_id", activeRoutine.id)
+        .gte("performed_at", startIso)
+        .lt("performed_at", endIso);
+
+      completedDayIndexSet = new Set(
+        (completedTodaySessions ?? [])
+          .map((session) => session.routine_day_index)
+          .filter((value): value is number => Number.isFinite(value)),
+      );
+    }
 
     const { data: inProgressSession } = await supabase
       .from("sessions")
@@ -219,24 +359,6 @@ export default async function RoutinesPage({
     const resolvedInProgressDayIndex = inProgressSession?.routine_day_index;
     inSessionDayIndex = Number.isFinite(resolvedInProgressDayIndex) ? resolvedInProgressDayIndex : null;
 
-    if (inProgressSession?.id) {
-      const { data: sessionExercises } = await supabase
-        .from("session_exercises")
-        .select("id")
-        .eq("session_id", inProgressSession.id)
-        .eq("user_id", user.id);
-
-      const sessionExerciseIds = (sessionExercises ?? []).map((row) => row.id);
-      if (sessionExerciseIds.length > 0) {
-        const { count: loggedSetCount } = await supabase
-          .from("sets")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .in("session_exercise_id", sessionExerciseIds);
-
-        inSessionLoggedSetCount = loggedSetCount ?? 0;
-      }
-    }
   }
 
   if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
@@ -247,36 +369,41 @@ export default async function RoutinesPage({
   }
 
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="viewDay">
+      <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
-          <div className="mx-auto w-full max-w-md px-1">
-            <ActiveRoutineSummaryCard
-              title={activeRoutine?.name ?? "Select routine"}
-              metadata={cycleSummary}
-              status={<ActiveRoutineStatusBadge active={Boolean(activeRoutine?.id)} />}
-            />
-          </div>
+          <ContentRail>
+            <div id="routines-floating-header" />
+          </ContentRail>
         )}
       >
-        <div className="space-y-3 px-1">
+        <ContentRail className="space-y-3">
           {routines.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
-              <p className="text-sm text-muted">No routines yet.</p>
-              <Link
-                href="/routines/new"
-                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-              >
-                Create your first routine
-              </Link>
-            </div>
+            <EmptyState
+              title="No routines yet"
+              body="Create a routine to unify Today, session tracking, and history around the same training plan."
+              action={(
+                <Link
+                  href="/routines/new"
+                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                >
+                  Create your first routine
+                </Link>
+              )}
+            />
           ) : (
             <RoutinesPageClient
               activeRoutineId={activeRoutine?.id ?? null}
+              activeRoutineName={activeRoutine?.name ?? null}
+              activeRoutineSummary={cycleSummary ?? null}
+              activeRoutineTrainingDays={activeRoutine ? trainingDays : null}
+              activeRoutineRestDays={activeRoutine ? restDays : null}
+              activeRoutineStartDate={activeRoutine?.start_date ?? null}
               activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
               newRoutineHref="/routines/new"
-              routines={routines.map((routine) => ({
+              routines={visibleRoutines.map((routine) => ({
                 id: routine.id,
                 name: routine.name,
                 summary: (() => {
@@ -293,22 +420,22 @@ export default async function RoutinesPage({
                 return {
                   id: day.id,
                   dayIndex: dayNumber,
-                  title: day.name?.trim() || (day.is_rest ? "Rest" : "Training"),
+                  name: day.name ?? null,
                   isRest: Boolean(day.is_rest),
-                  exerciseSummary: activeRoutineExerciseSummaries.get(day.id) ?? formatRestDayExerciseCountSummary([], Boolean(day.is_rest)).label,
-                  notes: day.notes ?? null,
-                  href: `/routines/${activeRoutine.id}/days/${day.id}`,
+                  splitSummary: activeRoutineExerciseSummaries.get(day.id)
+                    ?? getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(null, Boolean(day.is_rest)),
+                  href: `/routines/${activeRoutine.id}/edit/day/${day.id}`,
                   isToday: index === todayRowIndex,
                   isCompleted: completedDayIndexSet.has(dayNumber),
+                  isSkipped: skippedDayIndexSet.has(dayNumber),
                   isInSession: inSessionDayIndex === dayNumber,
-                  loggedSetCount: inSessionDayIndex === dayNumber ? inSessionLoggedSetCount : 0,
                 };
               }) : []}
               setActiveRoutineAction={setActiveRoutineAction}
               initialRoutineListOpen={initialRoutineListOpen}
             />
           )}
-        </div>
+        </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );

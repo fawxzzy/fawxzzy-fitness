@@ -3,18 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { TodayCacheSnapshot } from "@/lib/offline/today-cache";
-import { readTodayCache } from "@/lib/offline/today-cache";
-import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
-import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
-import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
+import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
+import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 
 type TodayPayload = {
   routine: {
@@ -22,6 +17,7 @@ type TodayPayload = {
     name: string;
     dayIndex: number;
     dayName: string;
+    dayWeekday?: string | null;
     isRest: boolean;
   } | null;
   exercises: Array<{
@@ -33,7 +29,7 @@ type TodayPayload = {
     primary_muscle?: string | null;
     equipment?: string | null;
     movement_pattern?: string | null;
-    measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+    measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
     isCardio?: boolean | null;
     kind?: string | null;
     type?: string | null;
@@ -53,14 +49,15 @@ type TodayPayload = {
 };
 
 export function TodayClientShell({
+  userId,
   payload,
   fetchFailed,
 }: {
+  userId: string;
   payload: TodayPayload;
   fetchFailed: boolean;
 }) {
   const [cachedSnapshot, setCachedSnapshot] = useState<TodayCacheSnapshot | null>(null);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -68,10 +65,10 @@ export function TodayClientShell({
       return;
     }
 
-    void readTodayCache().then((snapshot) => {
+    void readTodayCache(userId).then((snapshot) => {
       setCachedSnapshot(snapshot);
     });
-  }, [fetchFailed]);
+  }, [fetchFailed, userId]);
 
   useEffect(() => {
     const syncActiveSessionHint = () => {
@@ -123,91 +120,52 @@ export function TodayClientShell({
 
   if (!display) {
     return (
-      <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-        <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
-          <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">
-            Go to Routines
-          </Link>
-        </SharedSectionShell>
-      </ScreenScaffold>
+      <TodayOverviewContent>
+        <TodayOverviewScaffold>
+          <div className="flex flex-col gap-[0.625rem]">
+            <Link href="/routines" className="block rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center text-sm text-[rgb(var(--text-primary))] transition-colors hover:bg-[rgb(var(--surface-3-rgb)/0.9)]">
+              Go to Routines
+            </Link>
+          </div>
+        </TodayOverviewScaffold>
+      </TodayOverviewContent>
     );
   }
 
-
   return (
-    <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-      <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
-        <div className="px-1">
-          <OfflineSyncBadge />
-        </div>
-        {display.staleAt ? (
-          <AccentSubtitleText className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-            Offline snapshot · stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-          </AccentSubtitleText>
-        ) : null}
-
-        <ul className="space-y-2">
-          {display.exercises.map((exercise) => {
-            const cardVariantState = deriveReadOnlyExercisePresentation({
-              loggedSetCount: exercise.loggedSetCount ?? 0,
-              isSkipped: exercise.isSkipped === true,
-              targetSetsMin: exercise.targetSetsMin,
-              targetSetsMax: exercise.targetSetsMax,
-            });
-
-            return (
-              <li key={exercise.id}>
-                <StandardExerciseRow
-                  exercise={exercise}
-                  summary={exercise.targets}
-                  state={cardVariantState.cardState}
-                  badgeText={cardVariantState.badgeText}
-                  onPress={() => {
-                    const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
-                    if (process.env.NODE_ENV === "development") {
-                      console.debug("[ExerciseInfo:open] TodayClientShell", { exerciseId: canonicalExerciseId, exercise: { id: exercise.id, exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined, name: exercise.name } });
-                    }
-                    setSelectedExerciseId(canonicalExerciseId);
-                  }}
-                >
-                  <WorkoutExerciseRowChips chips={cardVariantState.chips} progressLabel={cardVariantState.progressLabel} />
-                </StandardExerciseRow>
-              </li>
-            );
-          })}
-          {display.exercises.length === 0 ? (
-            <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}</SubtitleText></li>
+    <TodayOverviewContent>
+      <TodayOverviewScaffold>
+        <div className="flex flex-col gap-[0.625rem]">
+          <OfflineSyncBadge userId={userId} />
+          {display.staleAt ? (
+            <AccentSubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--warning-rgb)/0.28)] bg-[rgb(var(--warning-rgb)/0.12)] px-3 py-2 text-xs text-[rgb(var(--warning-rgb))]">
+              Offline snapshot - stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+            </AccentSubtitleText>
           ) : null}
-        </ul>
 
-        {display.inProgressSessionId ? (
-          <TodayStartButton
-            sessionId={display.inProgressSessionId}
-            returnTo="/today"
-            fullWidth
-            className="w-full"
-            label="Resume Session"
+          <TodayExerciseRows
+            exercises={display.exercises.map((exercise) => ({
+              ...exercise,
+              exerciseId: exercise.exerciseId ?? exercise.id,
+            }))}
+            emptyMessage={display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}
           />
-        ) : (
-          <SubtitleText className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center">
-            Start session requires a live connection.
-          </SubtitleText>
-        )}
-      </SharedSectionShell>
 
-      <ExerciseInfo
-        exerciseId={selectedExerciseId}
-        open={Boolean(selectedExerciseId)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedExerciseId(null);
-          }
-        }}
-        onClose={() => {
-          setSelectedExerciseId(null);
-        }}
-        sourceContext="TodayClientShell"
-      />
-    </ScreenScaffold>
+          {display.inProgressSessionId ? (
+            <TodayStartButton
+              sessionId={display.inProgressSessionId}
+              returnTo="/today"
+              fullWidth
+              className="w-full"
+              label="Resume"
+            />
+          ) : (
+            <SubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center">
+              Start session requires a live connection.
+            </SubtitleText>
+          )}
+        </div>
+      </TodayOverviewScaffold>
+    </TodayOverviewContent>
   );
 }
