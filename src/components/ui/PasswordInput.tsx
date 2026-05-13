@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type InputHTMLAttributes } from "react";
+import { useMemo, useState, type ChangeEvent, type InputHTMLAttributes } from "react";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import {
@@ -10,6 +10,8 @@ import {
 
 type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
   toggleClassName?: string;
+  fitContent?: boolean;
+  minVisibleCharacters?: number;
 };
 
 function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
@@ -31,16 +33,55 @@ function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
   );
 }
 
-export function PasswordInput({ className, toggleClassName, ...props }: PasswordInputProps) {
+export function PasswordInput({
+  className,
+  toggleClassName,
+  fitContent = false,
+  minVisibleCharacters = 0,
+  onChange,
+  value,
+  defaultValue,
+  ...props
+}: PasswordInputProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [draftValue, setDraftValue] = useState(
+    typeof value === "string"
+      ? value
+      : typeof defaultValue === "string"
+        ? defaultValue
+        : "",
+  );
   const toggleLabel = resolvePasswordVisibilityToggleLabel(isVisible);
+  const resolvedValue = typeof value === "string" ? value : draftValue;
+  const contentWidthCharacterCount = useMemo(
+    () => Math.max(minVisibleCharacters, resolvedValue.length),
+    [minVisibleCharacters, resolvedValue.length],
+  );
+  const fitContentStyle = fitContent
+    ? {
+        width: `min(100%, calc(${contentWidthCharacterCount + 3}ch + 3.5rem))`,
+      }
+    : undefined;
+
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    if (typeof value !== "string") {
+      setDraftValue(event.target.value);
+    }
+    onChange?.(event);
+  }
 
   return (
-    <div className="relative">
+    <div
+      className={cn("relative", fitContent ? "mx-auto w-fit max-w-full" : undefined)}
+      style={fitContentStyle}
+    >
       <Input
         {...props}
+        value={value}
+        defaultValue={defaultValue}
         type={resolvePasswordInputType(isVisible)}
-        className={cn("pr-14", className)}
+        onChange={handleChange}
+        className={cn("pr-14", fitContent ? "w-full min-w-0" : undefined, className)}
       />
       <button
         type="button"
@@ -48,7 +89,7 @@ export function PasswordInput({ className, toggleClassName, ...props }: Password
         aria-pressed={isVisible}
         onClick={() => setIsVisible((current) => !current)}
         className={cn(
-          "absolute right-1.5 top-1/2 inline-flex h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-full px-2 text-[rgb(var(--text-muted)/0.96)] transition-colors hover:bg-[rgb(var(--surface-2-rgb)/0.54)] hover:text-[rgb(var(--text-primary)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]",
+          "absolute right-0.5 top-1/2 inline-flex h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-full px-2 text-[rgb(var(--text-muted)/0.96)] transition-colors hover:bg-[rgb(var(--surface-2-rgb)/0.54)] hover:text-[rgb(var(--text-primary)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]",
           toggleClassName,
         )}
       >

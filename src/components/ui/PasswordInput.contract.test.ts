@@ -8,4 +8,6 @@ test("PasswordInput keeps passwords hidden by default and binds input type and a
   assert.match(source, /useState\(false\)/);
   assert.match(source, /type=\{resolvePasswordInputType\(isVisible\)\}/);
   assert.match(source, /aria-label=\{toggleLabel\}/);
+  assert.match(source, /fitContent = false/);
+  assert.match(source, /width: `min\(100%, calc\(\$\{contentWidthCharacterCount \+ 3\}ch \+ 3\.5rem\)\)`/);
 });

@@ -358,6 +358,7 @@ export function LoginScreen({
       <AuthCard
         className={cn(
           appTokens.authInteractiveCard,
+          "!border-0 !bg-transparent shadow-none",
           highlightInteractiveCard ? appTokens.authInteractiveCardEmailValid : "",
           readyInteractiveCard ? appTokens.authInteractiveCardReady : "",
           isSubmitting ? appTokens.authInteractiveCardPending : "",
@@ -427,17 +428,19 @@ export function LoginScreen({
             ) : null}
 
             <AuthStack size="sm">
-              <LabeledEditorField label="Password" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
+              <LabeledEditorField label="Password" className="mx-auto w-fit max-w-full border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
                 <PasswordInput
                   id={PASSWORD_INPUT_ID}
                   name="password"
                   minLength={6}
                   required
                   autoComplete="current-password"
+                  fitContent
+                  minVisibleCharacters={11}
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
-                    "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    "auth-input-plain h-12 min-w-[11ch] px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     passwordValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => {
