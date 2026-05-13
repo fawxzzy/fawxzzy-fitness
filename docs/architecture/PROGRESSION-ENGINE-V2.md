@@ -214,12 +214,25 @@ Examples:
 
 ### Focus Rotation / Conjugate Modifier
 
-Future layer. This is not a separate engine.
+Implemented as an advisory modifier layer. This is not a separate engine.
 
 Rules:
 
 - strength, speed, hypertrophy, technique, and rehab are focus transforms, not separate engines
 - speed is execution intent unless speed is explicitly measured
+- generated focus targets are previews until the user explicitly saves a concrete baseline target change
+- manual override wins over advisory focus output
+
+UI surface:
+
+- Editor label: `Training focus for this day`
+- Options:
+  - `Strength`
+  - `Speed`
+  - `Muscle`
+  - `Technique`
+  - `Rehab`
+- The editor shows advisory preview copy and seed-source copy before save.
 
 Examples:
 
@@ -229,7 +242,7 @@ Examples:
 
 ### Capability Anchors
 
-Future layer that defines the baseline truth used to seed or re-seed targets.
+Implemented as a pure seed layer that defines the baseline truth used to suggest focus targets.
 
 Candidate anchors:
 
@@ -237,6 +250,12 @@ Candidate anchors:
 - current routine target
 - user-provided last/best/PR
 - safe manual fallback
+
+Rules:
+
+- anchors seed suggestions; they are not hidden truth
+- speed/power suggestions must not claim measured speed without velocity data
+- baseline routine targets remain canonical until an explicit save path changes them
 
 ## Legacy Mapping
 
@@ -257,6 +276,15 @@ The new explicit mutation strategy is:
 ```text
 targetMutation = increase_load_and_reps
 ```
+
+## Focus Rotation UI Status
+
+The compact focus-rotation lane is now live for exercise-level progression editing.
+
+- The UI exposes `Training focus for this day`.
+- The preview is advisory and uses the shared capability-anchor plus focus-seed helpers.
+- The preview must not silently overwrite baseline targets.
+- Current Session behavior remains unchanged.
 
 Example:
 

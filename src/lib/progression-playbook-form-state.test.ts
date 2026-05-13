@@ -356,6 +356,71 @@ test("effort wave config restores from saved progression config", () => {
   assert.equal(state.progressionHasExplicitEffortWave, true);
 });
 
+test("focus rotation round-trips through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionFocusRotation: "speed_power" as const,
+    progressionHasExplicitFocusRotation: true,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+    focusRotation: {
+      focus: "speed_power",
+    },
+  });
+});
+
+test("focus rotation restores from saved progression config", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      focusRotation: {
+        focus: "hypertrophy",
+      },
+    },
+  });
+
+  assert.equal(state.progressionFocusRotation, "hypertrophy");
+  assert.equal(state.progressionHasExplicitFocusRotation, true);
+});
+
+test("blank focus rotation does not serialize hidden advisory config", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionFocusRotation: "" as const,
+    progressionHasExplicitFocusRotation: false,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
 test("invalid qualification window input restores safe defaults", () => {
   const state = createProgressionPlaybookFormState({
     playbookId: "double_progression",

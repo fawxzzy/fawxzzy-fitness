@@ -3,6 +3,15 @@ import {
   type CapabilityAnchor,
   type TargetSnapshot,
 } from "@/lib/capability-anchors";
+import type { ProgressionTargetPlan } from "@/lib/progression-playbooks";
+
+export const FOCUS_TARGET_SEED_IDS = [
+  "strength",
+  "speed_power",
+  "hypertrophy",
+  "technique",
+  "rehab",
+] as const;
 
 export type FocusTargetSeedId =
   | "strength"
@@ -50,6 +59,43 @@ function applyRepDelta(snapshot: TargetSnapshot, delta: number) {
   return {
     ...snapshot,
     reps: Math.max(1, Math.round(snapshot.reps + delta)),
+  };
+}
+
+export function normalizeFocusTargetSeedId(value: unknown) {
+  return FOCUS_TARGET_SEED_IDS.includes(value as FocusTargetSeedId)
+    ? (value as FocusTargetSeedId)
+    : null;
+}
+
+export function getFocusTargetSeedLabel(focus: FocusTargetSeedId) {
+  switch (focus) {
+  case "strength":
+    return "Strength";
+  case "speed_power":
+    return "Speed";
+  case "hypertrophy":
+    return "Muscle";
+  case "technique":
+    return "Technique";
+  case "rehab":
+    return "Rehab";
+  }
+}
+
+export function buildTargetSnapshotFromPlan(plan: ProgressionTargetPlan | null | undefined): TargetSnapshot | null {
+  if (!plan) {
+    return null;
+  }
+
+  return {
+    weight: plan.weightMax ?? plan.weightMin ?? null,
+    weightUnit: plan.weightUnit ?? null,
+    reps: plan.repsTarget ?? plan.repsMax ?? plan.repsMin ?? null,
+    durationSeconds: plan.durationSeconds ?? null,
+    distance: plan.distance ?? null,
+    distanceUnit: plan.distanceUnit ?? null,
+    calories: plan.calories ?? null,
   };
 }
 

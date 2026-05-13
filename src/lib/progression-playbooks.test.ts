@@ -1436,6 +1436,26 @@ test("effort wave config round-trips through normalized playbook config", () => 
   }
 });
 
+test("focus rotation config round-trips through normalized playbook config", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      focusRotation: {
+        focus: "technique",
+      },
+    },
+  });
+
+  assert.ok(selection);
+  if (selection.id === "double_progression") {
+    assert.deepEqual(selection.config.focusRotation, {
+      focus: "technique",
+    });
+  }
+});
+
 test("invalid custom promotion target falls back to top-of-range in normalized config", () => {
   const selection = validateProgressionPlaybookSelection({
     playbookId: "double_progression",

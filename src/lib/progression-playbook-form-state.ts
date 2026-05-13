@@ -30,6 +30,10 @@ import {
 } from "@/lib/set-flow";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
 import {
+  normalizeFocusTargetSeedId,
+  type FocusTargetSeedId,
+} from "@/lib/focus-target-seeds";
+import {
   normalizeTargetMutation,
   shouldPersistExplicitTargetMutation,
   getDefaultStrengthTargetMutationForPromotionBasis,
@@ -66,6 +70,8 @@ export type ProgressionPlaybookFormState = {
   progressionHasExplicitQualificationWindow: boolean;
   progressionEffortWaveDays: EffortWaveDayConfig[];
   progressionHasExplicitEffortWave: boolean;
+  progressionFocusRotation: FocusTargetSeedId | "";
+  progressionHasExplicitFocusRotation: boolean;
 };
 
 function formatNumber(value: number) {
@@ -136,6 +142,8 @@ export function createProgressionPlaybookFormState({
   const qualificationWindow = normalizeQualificationWindowConfig(defaultConfig?.qualificationWindow);
   const hasExplicitEffortWave = hasConfigKey(config ?? null, "effortWave");
   const effortWave = normalizeEffortWaveConfig(defaultConfig?.effortWave);
+  const hasExplicitFocusRotation = hasConfigKey(config ?? null, "focusRotation");
+  const progressionFocusRotation = normalizeFocusTargetSeedId(defaultConfig?.focusRotation?.focus) ?? "";
 
   return {
     progressionPlaybookId: effectivePlaybookId,
@@ -169,6 +177,8 @@ export function createProgressionPlaybookFormState({
     progressionHasExplicitQualificationWindow: hasExplicitQualificationWindow,
     progressionEffortWaveDays: effortWave?.days ?? [],
     progressionHasExplicitEffortWave: hasExplicitEffortWave,
+    progressionFocusRotation,
+    progressionHasExplicitFocusRotation: hasExplicitFocusRotation && progressionFocusRotation !== "",
   };
 }
 
@@ -243,6 +253,8 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionHasExplicitQualificationWindow: state.progressionHasExplicitQualificationWindow,
     progressionEffortWaveDays: state.progressionEffortWaveDays,
     progressionHasExplicitEffortWave: state.progressionHasExplicitEffortWave,
+    progressionFocusRotation: state.progressionFocusRotation,
+    progressionHasExplicitFocusRotation: state.progressionHasExplicitFocusRotation,
   });
 }
 
@@ -336,6 +348,10 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       ? { effortWave }
       : {}
     : {};
+  const resolvedFocusRotation = normalizeFocusTargetSeedId(state.progressionFocusRotation);
+  const serializedFocusRotation = state.progressionHasExplicitFocusRotation && resolvedFocusRotation
+    ? { focusRotation: { focus: resolvedFocusRotation } }
+    : {};
 
   if (state.progressionStallPolicy === "none") {
     return {
@@ -350,6 +366,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       ...serializedTargetMutation,
       ...serializedQualificationWindow,
       ...serializedEffortWave,
+      ...serializedFocusRotation,
     };
   }
 
@@ -373,6 +390,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     ...serializedTargetMutation,
     ...serializedQualificationWindow,
     ...serializedEffortWave,
+    ...serializedFocusRotation,
   };
 }
 
@@ -445,6 +463,8 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionHasExplicitQualificationWindow", state.progressionHasExplicitQualificationWindow ? "1" : "0");
   formData.set("progressionEffortWaveDaysJson", JSON.stringify(state.progressionEffortWaveDays));
   formData.set("progressionHasExplicitEffortWave", state.progressionHasExplicitEffortWave ? "1" : "0");
+  formData.set("progressionFocusRotation", state.progressionFocusRotation);
+  formData.set("progressionHasExplicitFocusRotation", state.progressionHasExplicitFocusRotation ? "1" : "0");
   formData.set("progressionStallThreshold", state.progressionStallThreshold);
   formData.set("progressionDeloadPercent", state.progressionDeloadPercent);
   formData.set("progressionSetFlow", state.progressionSetFlow);

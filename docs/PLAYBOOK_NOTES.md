@@ -82,6 +82,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Prompt 18 foundation note: effort-wave logic now resolves an effective cycle-day target from the stored baseline plan without mutating canonical targets, and unsupported/custom magnitudes degrade back to baseline safely.
 - Prompt 19 UI note: routine-default progression editing now exposes compact cycle-day effort pills so up, baseline, and down planning targets can round-trip without persisting baseline rewrites.
 - Prompt 20 foundation note: capability anchors and focus target seeds now resolve from history, routine targets, or explicit user anchors, with manual fallback when no trustworthy baseline exists.
+- Prompt 21 UI note: exercise-level progression editing now exposes `Training focus for this day` with advisory preview copy sourced from the shared capability-anchor and focus-target-seed helpers, while baseline targets remain unchanged until an explicit save path writes a new target.
 - Future effort-wave, focus-rotation, and capability-anchor layers should stay modeled as modifiers or seed layers around the same engine, not as separate progression engines.
 - Failure Mode: treating `weight_and_reps` as both qualification logic and mutation strategy hides important behavior choices and creates UI drift.
 - Failure Mode: pooling partial set evidence across sessions into one fake qualifying session breaks progression truth.

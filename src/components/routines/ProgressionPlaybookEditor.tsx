@@ -36,6 +36,14 @@ import {
   setEffortWaveDayDirection,
   type EffortWaveDirection,
 } from "@/lib/progression-effort-wave";
+import {
+  buildFocusTargetSeed,
+  buildTargetSnapshotFromPlan,
+  FOCUS_TARGET_SEED_IDS,
+  getFocusTargetSeedLabel,
+  type FocusTargetSeedId,
+} from "@/lib/focus-target-seeds";
+import { resolveCapabilityAnchor } from "@/lib/capability-anchors";
 import { DEFAULT_QUALIFICATION_WINDOW_MODE } from "@/lib/progression-qualification-window";
 import { buildProgressionTargetPreview } from "@/lib/progression-target-preview";
 import {
@@ -101,6 +109,50 @@ function parseOptionalPositiveNumber(value: string | null | undefined) {
 
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function formatFocusSeedSource(source: "user_input" | "history" | "routine_target" | "manual_fallback") {
+  switch (source) {
+  case "history":
+    return "Seeded from recent history.";
+  case "user_input":
+    return "Seeded from a manual anchor.";
+  case "routine_target":
+    return "Seeded from routine target.";
+  case "manual_fallback":
+  default:
+    return "Manual target required.";
+  }
+}
+
+function formatFocusSeedTarget(args: {
+  weight?: number | null;
+  weightUnit?: "lbs" | "kg" | null;
+  reps?: number | null;
+  durationSeconds?: number | null;
+  distance?: number | null;
+  distanceUnit?: "mi" | "km" | "m" | null;
+  calories?: number | null;
+}) {
+  const parts: string[] = [];
+
+  if (typeof args.weight === "number" && Number.isFinite(args.weight) && args.weight > 0) {
+    parts.push(`${Number.isInteger(args.weight) ? args.weight : args.weight.toFixed(2).replace(/\.?0+$/, "")} ${args.weightUnit ?? "lbs"}`);
+  }
+  if (typeof args.reps === "number" && Number.isFinite(args.reps) && args.reps > 0) {
+    parts.push(`${Math.round(args.reps)} reps`);
+  }
+  if (typeof args.durationSeconds === "number" && Number.isFinite(args.durationSeconds) && args.durationSeconds > 0) {
+    parts.push(`${Math.round(args.durationSeconds / 60)} min`);
+  }
+  if (typeof args.distance === "number" && Number.isFinite(args.distance) && args.distance > 0) {
+    parts.push(`${Number(args.distance.toFixed(3)).toString()} ${args.distanceUnit ?? "mi"}`);
+  }
+  if (typeof args.calories === "number" && Number.isFinite(args.calories) && args.calories > 0) {
+    parts.push(`${Number(args.calories.toFixed(1)).toString()} cal`);
+  }
+
+  return parts.length > 0 ? parts.join(" • ") : null;
 }
 
 export function ProgressionNumberField({
@@ -637,6 +689,27 @@ export function ProgressionPlaybookEditor({
     value.progressionPromotionBasis,
     value.progressionTargetMutation,
   ]);
+  const focusSeedPreview = useMemo(() => {
+    if (!previewTargetPlan || !value.progressionFocusRotation) {
+      return null;
+    }
+
+    const anchor = resolveCapabilityAnchor({
+      routineTarget: buildTargetSnapshotFromPlan(previewTargetPlan),
+    });
+    const seed = buildFocusTargetSeed({
+      focus: value.progressionFocusRotation,
+      anchor,
+    });
+    const formattedTarget = seed.target ? formatFocusSeedTarget(seed.target) : null;
+
+    return {
+      label: getFocusTargetSeedLabel(seed.focus),
+      sourceLine: formatFocusSeedSource(seed.source),
+      targetLine: formattedTarget ? `Preview: ${formattedTarget}` : "Preview: Manual target required.",
+      summary: seed.summary,
+    };
+  }, [previewTargetPlan, value.progressionFocusRotation]);
   const resolvedCycleLengthDays = typeof cycleLengthDays === "number" && Number.isFinite(cycleLengthDays)
     ? Math.max(1, Math.floor(cycleLengthDays))
     : null;
@@ -707,6 +780,7 @@ export function ProgressionPlaybookEditor({
   const shouldRenderDeloadSettings = Boolean(selectedPlaybookId) && value.progressionStallPolicy === "deload_after_stall";
   const shouldRenderSetStepSettings = Boolean(selectedPlaybookId) && (isRoutineDefaultContext || value.progressionSetFlow !== "straight_sets");
   const shouldRenderEffortWaveControls = Boolean(selectedPlaybookId) && isRoutineDefaultContext && effortWaveDayStates.length > 0;
+  const shouldRenderFocusRotationControls = Boolean(selectedPlaybookId) && context === "exercise";
   const shouldRenderProgressionSettingsRow = showProgressionSettingsRow && (shouldRenderPromotionStepSettings || shouldRenderDeloadSettings || shouldRenderSetStepSettings);
   const keyTermRows = PROGRESSION_INFO_TERM_DEFINITIONS
     .filter((term) => ["Sets", "Min reps", "Max reps", "Load", "Progression step", "Duration step", "Distance step", "Pace / volume step", "Equipment step", "Sets flow", "Stall", "Deload"].includes(term.term))
@@ -862,6 +936,13 @@ export function ProgressionPlaybookEditor({
       progressionQualificationWindowMode: DEFAULT_QUALIFICATION_WINDOW_MODE,
       progressionQualificationWindowResetOnMiss: false,
       progressionHasExplicitQualificationWindow: requiredQualifiedSessions !== "1",
+    });
+  };
+  const setFocusRotation = (focus: FocusTargetSeedId) => {
+    onChange({
+      ...value,
+      progressionFocusRotation: focus,
+      progressionHasExplicitFocusRotation: true,
     });
   };
   const setEffortWaveDirectionForDay = (cycleDayIndex: number, direction: EffortWaveDirection) => {
@@ -1486,6 +1567,56 @@ export function ProgressionPlaybookEditor({
                   );
                 })}
               </div>
+            </div>
+          </ProgressionControlsSection>
+        ) : null}
+
+        {shouldRenderFocusRotationControls ? (
+          <ProgressionControlsSection title="Training focus for this day">
+            <div className="space-y-2" {...getInfoSectionHandlers("progression_method")}>
+              <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}>
+                {FOCUS_TARGET_SEED_IDS.map((focus) => {
+                  const isActive = value.progressionFocusRotation === focus;
+                  return (
+                    <button
+                      key={focus}
+                      type="button"
+                      onClick={() => setFocusRotation(focus)}
+                      data-action-chrome-intent={isActive ? "positive" : "neutral"}
+                      data-action-chrome-selected={isActive ? "true" : undefined}
+                      data-action-chrome-segmented="true"
+                      className={cn(
+                        ACTION_CHROME_CONTROL_CLASS_NAME,
+                        ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                        "min-h-10 min-w-[6.3rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                        isActive
+                          ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
+                          : "text-[rgb(var(--text-secondary)/0.9)]",
+                      )}
+                      aria-pressed={isActive}
+                    >
+                      {getFocusTargetSeedLabel(focus)}
+                    </button>
+                  );
+                })}
+              </div>
+              {focusSeedPreview ? (
+                <>
+                  <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                    {focusSeedPreview.sourceLine}
+                  </p>
+                  <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
+                    {focusSeedPreview.targetLine}
+                  </p>
+                  <p className="px-1 text-center text-[0.7rem] leading-5 text-[rgb(var(--text-secondary)/0.88)]">
+                    {focusSeedPreview.summary}
+                  </p>
+                </>
+              ) : (
+                <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                  Choose a focus to preview an advisory target. Saving keeps the baseline target until you explicitly change it.
+                </p>
+              )}
             </div>
           </ProgressionControlsSection>
         ) : null}

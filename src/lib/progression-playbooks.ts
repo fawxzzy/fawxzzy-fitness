@@ -33,6 +33,10 @@ import {
   type EffortWaveConfig,
 } from "@/lib/progression-effort-wave";
 import {
+  normalizeFocusTargetSeedId,
+  type FocusTargetSeedId,
+} from "@/lib/focus-target-seeds";
+import {
   buildQualificationWindowStatus,
   evaluateQualificationWindow,
   normalizeQualificationWindowConfig,
@@ -343,6 +347,9 @@ export type ProgressionPromotionConfigFields = {
   targetMutation?: ProgressionTargetMutationId;
   qualificationWindow?: QualificationWindowConfig;
   effortWave?: EffortWaveConfig;
+  focusRotation?: {
+    focus: FocusTargetSeedId;
+  };
 };
 
 export type DoubleProgressionConfig = {
@@ -1190,6 +1197,15 @@ function resolveConfiguredEffortWave(input: unknown) {
   return normalizeEffortWaveConfig(input as EffortWaveConfig | null | undefined) ?? undefined;
 }
 
+function resolveConfiguredFocusRotation(input: unknown) {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+
+  const focus = normalizeFocusTargetSeedId((input as { focus?: unknown }).focus);
+  return focus ? { focus } : undefined;
+}
+
 function formatQualificationWindowReason(args: {
   methodLabel: string;
   result: QualificationWindowResult;
@@ -1920,6 +1936,10 @@ export function validateProgressionPlaybookSelection(args: {
   const effortWave = hasEffortWave
     ? resolveConfiguredEffortWave(config.effortWave)
     : undefined;
+  const hasFocusRotation = Object.prototype.hasOwnProperty.call(config, "focusRotation");
+  const focusRotation = hasFocusRotation
+    ? resolveConfiguredFocusRotation(config.focusRotation)
+    : undefined;
   const promotionConfig = normalizeProgressionPromotionConfig({
     promotionBasis: config.promotionBasis,
     repPromotionThreshold: config.repPromotionThreshold,
@@ -1957,6 +1977,9 @@ export function validateProgressionPlaybookSelection(args: {
     }
     if (effortWave) {
       nextConfig.effortWave = effortWave;
+    }
+    if (focusRotation) {
+      nextConfig.focusRotation = focusRotation;
     }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
@@ -1999,6 +2022,9 @@ export function validateProgressionPlaybookSelection(args: {
     if (effortWave) {
       nextConfig.effortWave = effortWave;
     }
+    if (focusRotation) {
+      nextConfig.focusRotation = focusRotation;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;
@@ -2030,6 +2056,9 @@ export function validateProgressionPlaybookSelection(args: {
   }
   if (effortWave) {
     nextConfig.effortWave = effortWave;
+  }
+  if (focusRotation) {
+    nextConfig.focusRotation = focusRotation;
   }
   const setFlow = normalizeSetFlowId(config.setFlow);
   if (setFlow) {
@@ -2097,12 +2126,20 @@ export function parseProgressionPlaybookPayload(formData: FormData):
   }
   const hasExplicitEffortWave = formData.get("progressionHasExplicitEffortWave") === "1"
     || Boolean(parsedEffortWave && parsedEffortWave.days.length > 0);
+  const resolvedFocusRotation = resolveConfiguredFocusRotation({
+    focus: String(formData.get("progressionFocusRotation") ?? "").trim(),
+  });
+  const hasExplicitFocusRotation = formData.get("progressionHasExplicitFocusRotation") === "1"
+    || Boolean(resolvedFocusRotation);
   const serializedMutationConfig = hasExplicitTargetMutation ? { targetMutation: resolvedTargetMutation } : {};
   const serializedQualificationWindow = hasExplicitQualificationWindow
     ? { qualificationWindow }
     : {};
   const serializedEffortWave = hasExplicitEffortWave && parsedEffortWave
     ? { effortWave: parsedEffortWave }
+    : {};
+  const serializedFocusRotation = hasExplicitFocusRotation && resolvedFocusRotation
+    ? { focusRotation: resolvedFocusRotation }
     : {};
 
   if (stallPolicy === "none" && (playbookId === "double_progression" || playbookId === "fixed_load_rep_range_progression")) {
@@ -2117,6 +2154,7 @@ export function parseProgressionPlaybookPayload(formData: FormData):
       ...serializedMutationConfig,
       ...serializedQualificationWindow,
       ...serializedEffortWave,
+      ...serializedFocusRotation,
     };
     config = attachProgressionStepOverrides(config, stepOverrides);
     config = attachSetFlowSteps(config, setFlowSteps);
@@ -2149,6 +2187,7 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     ...serializedMutationConfig,
     ...serializedQualificationWindow,
     ...serializedEffortWave,
+    ...serializedFocusRotation,
   };
   config = attachProgressionStepOverrides(config, stepOverrides);
   config = attachSetFlowSteps(config, setFlowSteps);
