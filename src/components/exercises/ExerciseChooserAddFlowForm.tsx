@@ -13,7 +13,7 @@ import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
-import type { GoalModality } from "@/lib/exercise-goal-validation";
+import { inferMeasurementTypeFromGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import {
   buildProgressionPlaybookConfigFromFormState,
   createProgressionPlaybookFormState,
@@ -29,6 +29,10 @@ import {
   type PromotionStepFieldId,
   type SetStepFieldId,
 } from "@/lib/progression-playbook-ui-options";
+import {
+  buildProgressionTargetPreviewPlan,
+  parseProgressionPreviewDurationInput,
+} from "@/lib/progression-target-preview";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
 import {
   inferProgressionStepPolicy,
@@ -570,16 +574,28 @@ export function ExerciseChooserAddFlowForm({
               modality: effectiveGoalModality,
               values: goalState,
             });
-            const repRangeMin = hasTextValue(goalState.repsMin)
-              ? Number(goalState.repsMin)
-              : null;
-            const repRangeMax = hasTextValue(goalState.repsMax)
-              ? Number(goalState.repsMax)
-              : repRangeMin;
+              const repRangeMin = hasTextValue(goalState.repsMin)
+                ? Number(goalState.repsMin)
+                : null;
+              const repRangeMax = hasTextValue(goalState.repsMax)
+                ? Number(goalState.repsMax)
+                : repRangeMin;
+              const previewTargetPlan = buildProgressionTargetPreviewPlan({
+                measurementType: inferMeasurementTypeFromGoalModality(effectiveGoalModality),
+                repsTarget: repRangeMin,
+                repsMin: repRangeMin,
+                repsMax: repRangeMax,
+                weight: hasTextValue(goalState.weight) ? Number(goalState.weight) : null,
+                weightUnit,
+                durationSeconds: parseProgressionPreviewDurationInput(goalState.duration),
+                distance: hasTextValue(goalState.distance) ? Number(goalState.distance) : null,
+                distanceUnit: (activeExercise?.default_unit ?? selectedExercise?.default_unit) === "km" ? "km" : "mi",
+                calories: hasTextValue(goalState.calories) ? Number(goalState.calories) : null,
+              });
 
-            return (
-              <ProgressionPlaybookEditor
-                value={progressionDraft}
+              return (
+                <ProgressionPlaybookEditor
+                  value={progressionDraft}
                 onChange={(nextValue) => {
                   setHasCustomizedProgression(true);
                   setProgressionDraft(nextValue);
@@ -602,13 +618,14 @@ export function ExerciseChooserAddFlowForm({
                 promotionUiModel={promotionUiModel}
                 targetMutationUiModel={targetMutationUiModel}
                 showProgressionSettingsRow={false}
-                showTargetMutationControls
-                showQualificationWindowControls
-                repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
-                repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
-                trainingFocusValue={selectedTrainingFocus}
-                trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, progressionDraft)}
-                onTrainingFocusChange={(goal) => {
+                  showTargetMutationControls
+                  showQualificationWindowControls
+                  repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
+                  repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
+                  previewTargetPlan={previewTargetPlan}
+                  trainingFocusValue={selectedTrainingFocus}
+                  trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, progressionDraft)}
+                  onTrainingFocusChange={(goal) => {
                   setSelectedTrainingFocus(goal);
                   setHasCustomizedProgression(true);
                   setProgressionDraft(applyProgressionStepSeed(

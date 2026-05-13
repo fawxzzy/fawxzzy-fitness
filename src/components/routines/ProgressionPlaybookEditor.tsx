@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ACTION_CHROME_CONTROL_CLASS_NAME,
   ACTION_CHROME_RAIL_CLASS_NAME,
@@ -31,7 +31,13 @@ import {
   getRepPromotionTarget,
   usesRepsForPromotion,
 } from "@/lib/progression-promotion";
+import {
+  buildEffortWaveCycleDayStates,
+  setEffortWaveDayDirection,
+  type EffortWaveDirection,
+} from "@/lib/progression-effort-wave";
 import { DEFAULT_QUALIFICATION_WINDOW_MODE } from "@/lib/progression-qualification-window";
+import { buildProgressionTargetPreview } from "@/lib/progression-target-preview";
 import {
   getDefaultProgressionPlaybookConfig,
   listProgressionMethodDefinitions,
@@ -39,6 +45,7 @@ import {
   PROGRESSION_METHOD_DEFINITIONS,
   SET_FLOW_DEFINITIONS,
   STALL_POLICY_DEFINITIONS,
+  type ProgressionTargetPlan,
   type ProgressionMethodId,
   type ProgressionPlaybookId,
   type ProgressionStallPolicy,
@@ -60,6 +67,11 @@ const progressionFieldInputClassName = cn(
   labeledEditorFieldControlClassName,
   "h-11 rounded-[inherit] !border-0 !bg-transparent px-3 py-0 text-center !shadow-none placeholder:text-[rgb(var(--text-muted)/0.7)] focus-visible:!border-0 focus-visible:!ring-0",
 );
+const EFFORT_WAVE_DIRECTION_OPTIONS = [
+  { id: "down" as const, label: "Down", glyph: "\u2193" },
+  { id: "baseline" as const, label: "Baseline", glyph: "\u2192" },
+  { id: "up" as const, label: "Up", glyph: "\u2191" },
+] as const;
 
 function formatSetFlowButtonLabel(label: string) {
   return label.replace(/\s+Sets$/i, "");
@@ -80,6 +92,15 @@ function parseOptionalPositiveInteger(value: string | null | undefined) {
   }
 
   return parsePositiveIntegerInput(value);
+}
+
+function parseOptionalPositiveNumber(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 export function ProgressionNumberField({
@@ -471,6 +492,8 @@ export function ProgressionPlaybookEditor({
   extraPanelContent,
   repRangeMin,
   repRangeMax,
+  previewTargetPlan = null,
+  cycleLengthDays = null,
   trainingFocusValue = "",
   trainingFocusCustomized = false,
   onTrainingFocusChange,
@@ -499,6 +522,8 @@ export function ProgressionPlaybookEditor({
   extraPanelContent?: ReactNode;
   repRangeMin?: number | null;
   repRangeMax?: number | null;
+  previewTargetPlan?: ProgressionTargetPlan | null;
+  cycleLengthDays?: number | null;
   trainingFocusValue?: TrainingGoalId | "";
   trainingFocusCustomized?: boolean;
   onTrainingFocusChange?: (goal: TrainingGoalId) => void;
@@ -597,6 +622,49 @@ export function ProgressionPlaybookEditor({
   const targetMutationOptions = targetMutationUiModel?.visibleOptions ?? [];
   const selectedTargetMutationOptionId = targetMutationUiModel?.selectedOptionId ?? value.progressionTargetMutation;
   const targetMutationSummary = targetMutationUiModel?.summary ?? null;
+  const targetMutationPreview = useMemo(() => buildProgressionTargetPreview({
+    plan: previewTargetPlan,
+    promotionBasis: value.progressionPromotionBasis,
+    targetMutation: value.progressionTargetMutation,
+    progressionStepPolicy,
+    durationSecondsStep: parseOptionalPositiveNumber(value.progressionDurationIncrementSeconds),
+    distanceStep: parseOptionalPositiveNumber(value.progressionDistanceIncrement),
+  }), [
+    previewTargetPlan,
+    progressionStepPolicy,
+    value.progressionDistanceIncrement,
+    value.progressionDurationIncrementSeconds,
+    value.progressionPromotionBasis,
+    value.progressionTargetMutation,
+  ]);
+  const resolvedCycleLengthDays = typeof cycleLengthDays === "number" && Number.isFinite(cycleLengthDays)
+    ? Math.max(1, Math.floor(cycleLengthDays))
+    : null;
+  const effortWaveDayStates = useMemo(() => buildEffortWaveCycleDayStates({
+    cycleLengthDays: resolvedCycleLengthDays,
+    config: {
+      enabled: value.progressionHasExplicitEffortWave || value.progressionEffortWaveDays.length > 0,
+      anchor: "routine_cycle",
+      days: value.progressionEffortWaveDays,
+    },
+  }), [
+    resolvedCycleLengthDays,
+    value.progressionEffortWaveDays,
+    value.progressionHasExplicitEffortWave,
+  ]);
+  const [selectedEffortWaveDayIndex, setSelectedEffortWaveDayIndex] = useState(1);
+  useEffect(() => {
+    if (effortWaveDayStates.length === 0) {
+      return;
+    }
+
+    if (selectedEffortWaveDayIndex > effortWaveDayStates.length) {
+      setSelectedEffortWaveDayIndex(1);
+    }
+  }, [effortWaveDayStates.length, selectedEffortWaveDayIndex]);
+  const selectedEffortWaveDay = effortWaveDayStates.find((day) => day.cycleDayIndex === selectedEffortWaveDayIndex)
+    ?? effortWaveDayStates[0]
+    ?? null;
   const selectedQualificationSessionCount = value.progressionRequiredQualifiedSessions;
   const promotionSummary = promotionUiModel?.summary ?? (
     value.progressionPromotionBasis === "weight_only"
@@ -638,6 +706,7 @@ export function ProgressionPlaybookEditor({
   const shouldRenderPromotionStepSettings = Boolean(selectedPlaybookId) && visiblePromotionStepFieldIds.length > 0;
   const shouldRenderDeloadSettings = Boolean(selectedPlaybookId) && value.progressionStallPolicy === "deload_after_stall";
   const shouldRenderSetStepSettings = Boolean(selectedPlaybookId) && (isRoutineDefaultContext || value.progressionSetFlow !== "straight_sets");
+  const shouldRenderEffortWaveControls = Boolean(selectedPlaybookId) && isRoutineDefaultContext && effortWaveDayStates.length > 0;
   const shouldRenderProgressionSettingsRow = showProgressionSettingsRow && (shouldRenderPromotionStepSettings || shouldRenderDeloadSettings || shouldRenderSetStepSettings);
   const keyTermRows = PROGRESSION_INFO_TERM_DEFINITIONS
     .filter((term) => ["Sets", "Min reps", "Max reps", "Load", "Progression step", "Duration step", "Distance step", "Pace / volume step", "Equipment step", "Sets flow", "Stall", "Deload"].includes(term.term))
@@ -793,6 +862,22 @@ export function ProgressionPlaybookEditor({
       progressionQualificationWindowMode: DEFAULT_QUALIFICATION_WINDOW_MODE,
       progressionQualificationWindowResetOnMiss: false,
       progressionHasExplicitQualificationWindow: requiredQualifiedSessions !== "1",
+    });
+  };
+  const setEffortWaveDirectionForDay = (cycleDayIndex: number, direction: EffortWaveDirection) => {
+    const nextEffortWave = setEffortWaveDayDirection({
+      config: {
+        enabled: value.progressionHasExplicitEffortWave || value.progressionEffortWaveDays.length > 0,
+        anchor: "routine_cycle",
+        days: value.progressionEffortWaveDays,
+      },
+      cycleDayIndex,
+      direction,
+    });
+    onChange({
+      ...value,
+      progressionEffortWaveDays: nextEffortWave?.days ?? [],
+      progressionHasExplicitEffortWave: Boolean(nextEffortWave && nextEffortWave.days.length > 0),
     });
   };
   const renderPromotionStepField = (fieldId: PromotionStepFieldId) => {
@@ -1362,6 +1447,11 @@ export function ProgressionPlaybookEditor({
                   {targetMutationSummary}
                 </p>
               ) : null}
+              {targetMutationPreview ? (
+                <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
+                  {targetMutationPreview.summary}
+                </p>
+              ) : null}
             </div>
           </ProgressionControlsSection>
         ) : null}
@@ -1396,6 +1486,74 @@ export function ProgressionPlaybookEditor({
                   );
                 })}
               </div>
+            </div>
+          </ProgressionControlsSection>
+        ) : null}
+
+        {shouldRenderEffortWaveControls && selectedEffortWaveDay ? (
+          <ProgressionControlsSection title="Effort schedule">
+            <div className="space-y-2" {...getInfoSectionHandlers("progression_method")}>
+              <div className="max-w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto inline-flex w-max min-w-max justify-center")}>
+                  {effortWaveDayStates.map((day) => {
+                    const isActive = selectedEffortWaveDay.cycleDayIndex === day.cycleDayIndex;
+                    const directionOption = EFFORT_WAVE_DIRECTION_OPTIONS.find((option) => option.id === day.direction)
+                      ?? EFFORT_WAVE_DIRECTION_OPTIONS[1];
+                    return (
+                      <button
+                        key={day.cycleDayIndex}
+                        type="button"
+                        onClick={() => setSelectedEffortWaveDayIndex(day.cycleDayIndex)}
+                        data-action-chrome-intent={isActive || day.direction !== "baseline" ? "positive" : "neutral"}
+                        data-action-chrome-selected={isActive ? "true" : undefined}
+                        data-action-chrome-segmented="true"
+                        className={cn(
+                          ACTION_CHROME_CONTROL_CLASS_NAME,
+                          ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                          "min-h-10 min-w-[5.4rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                          isActive
+                            ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
+                            : day.direction !== "baseline"
+                              ? "border-[rgb(var(--accent)/0.42)] bg-[linear-gradient(180deg,rgba(71,215,196,0.16),rgba(18,31,48,0.92))] text-[rgb(var(--text-primary)/0.96)]"
+                              : "text-[rgb(var(--text-secondary)/0.9)]",
+                        )}
+                        aria-pressed={isActive}
+                      >
+                        {`Day ${day.cycleDayIndex} ${directionOption.glyph}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}>
+                {EFFORT_WAVE_DIRECTION_OPTIONS.map((option) => {
+                  const isActive = selectedEffortWaveDay.direction === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setEffortWaveDirectionForDay(selectedEffortWaveDay.cycleDayIndex, option.id)}
+                      data-action-chrome-intent={isActive ? "positive" : "neutral"}
+                      data-action-chrome-selected={isActive ? "true" : undefined}
+                      data-action-chrome-segmented="true"
+                      className={cn(
+                        ACTION_CHROME_CONTROL_CLASS_NAME,
+                        ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                        "min-h-10 min-w-[6.2rem] rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[10.5px] font-semibold uppercase tracking-[0.1em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                        isActive
+                          ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
+                          : "text-[rgb(var(--text-secondary)/0.9)]",
+                      )}
+                      aria-pressed={isActive}
+                    >
+                      {`${option.glyph} ${option.label}`}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="px-1 text-center text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                Baseline targets stay canonical. Effort schedule sets a day-level effective target for planning only.
+              </p>
             </div>
           </ProgressionControlsSection>
         ) : null}

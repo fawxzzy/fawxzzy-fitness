@@ -21,7 +21,12 @@ import { ProgressionNumberField, ProgressionPlaybookEditor } from "@/components/
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
-import { deriveGoalMeasurementSelections, resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import {
+  deriveGoalMeasurementSelections,
+  inferMeasurementTypeFromGoalModality,
+  resolveGoalModality,
+  type GoalModality,
+} from "@/lib/exercise-goal-validation";
 import {
   createEditDayExerciseDraft,
   formatEditDayExerciseDraftSummary,
@@ -48,6 +53,10 @@ import {
   type PromotionStepFieldId,
   type SetStepFieldId,
 } from "@/lib/progression-playbook-ui-options";
+import {
+  buildProgressionTargetPreviewPlan,
+  parseProgressionPreviewDurationInput,
+} from "@/lib/progression-target-preview";
 import {
   inferProgressionStepPolicy,
   type ProgressionStepPolicy,
@@ -219,6 +228,7 @@ function ProgressionPlaybookInputs({
   promotionUiModel,
   repRangeMin,
   repRangeMax,
+  previewTargetPlan,
   trainingFocusValue,
   trainingFocusCustomized,
   onTrainingFocusChange,
@@ -235,6 +245,7 @@ function ProgressionPlaybookInputs({
   promotionUiModel?: import("@/lib/progression-playbook-ui-options").ProgressionPromotionUiModel | null;
   repRangeMin?: number | null;
   repRangeMax?: number | null;
+  previewTargetPlan?: import("@/lib/progression-playbooks").ProgressionTargetPlan | null;
   trainingFocusValue: TrainingGoalId | "";
   trainingFocusCustomized: boolean;
   onTrainingFocusChange: (goal: TrainingGoalId) => void;
@@ -267,6 +278,7 @@ function ProgressionPlaybookInputs({
       showProgressionSettingsRow={false}
       repRangeMin={repRangeMin}
       repRangeMax={repRangeMax}
+      previewTargetPlan={previewTargetPlan ?? null}
       trainingFocusValue={trainingFocusValue}
       trainingFocusCustomized={trainingFocusCustomized}
       onTrainingFocusChange={onTrainingFocusChange}
@@ -1128,6 +1140,18 @@ export function EditableRoutineDayExerciseList({
               const repRangeMax = hasTextValue(draft.goalState.repsMax)
                 ? Number(draft.goalState.repsMax)
                 : repRangeMin;
+              const previewTargetPlan = buildProgressionTargetPreviewPlan({
+                measurementType: inferMeasurementTypeFromGoalModality(modality),
+                repsTarget: repRangeMin,
+                repsMin: repRangeMin,
+                repsMax: repRangeMax,
+                weight: hasTextValue(draft.goalState.weight) ? Number(draft.goalState.weight) : null,
+                weightUnit,
+                durationSeconds: parseProgressionPreviewDurationInput(draft.goalState.duration),
+                distance: hasTextValue(draft.goalState.distance) ? Number(draft.goalState.distance) : null,
+                distanceUnit: exercise.defaultDistanceUnit,
+                calories: hasTextValue(draft.goalState.calories) ? Number(draft.goalState.calories) : null,
+              });
               const selectedTrainingFocus = trainingFocusById[exercise.id] ?? "";
               return (
                 <div className={appTokens.routineEditorCompactStack}>
@@ -1271,6 +1295,7 @@ export function EditableRoutineDayExerciseList({
                         promotionUiModel={promotionUiModel}
                         repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
                         repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
+                        previewTargetPlan={previewTargetPlan}
                         trainingFocusValue={selectedTrainingFocus}
                         trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, draft)}
                         onTrainingFocusChange={(goal) => {

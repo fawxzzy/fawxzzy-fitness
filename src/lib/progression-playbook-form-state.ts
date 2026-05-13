@@ -21,6 +21,10 @@ import {
   type QualificationWindowMode,
 } from "@/lib/progression-qualification-window";
 import {
+  normalizeEffortWaveConfig,
+  type EffortWaveDayConfig,
+} from "@/lib/progression-effort-wave";
+import {
   getDefaultSetFlowForTrainingGoal,
   normalizeSetFlowId,
 } from "@/lib/set-flow";
@@ -60,6 +64,8 @@ export type ProgressionPlaybookFormState = {
   progressionQualificationWindowResetOnMiss: boolean;
   progressionHasExplicitTargetMutation: boolean;
   progressionHasExplicitQualificationWindow: boolean;
+  progressionEffortWaveDays: EffortWaveDayConfig[];
+  progressionHasExplicitEffortWave: boolean;
 };
 
 function formatNumber(value: number) {
@@ -128,6 +134,8 @@ export function createProgressionPlaybookFormState({
     : getDefaultStrengthTargetMutationForPromotionBasis(promotionConfig.promotionBasis);
   const hasExplicitQualificationWindow = hasConfigKey(config ?? null, "qualificationWindow");
   const qualificationWindow = normalizeQualificationWindowConfig(defaultConfig?.qualificationWindow);
+  const hasExplicitEffortWave = hasConfigKey(config ?? null, "effortWave");
+  const effortWave = normalizeEffortWaveConfig(defaultConfig?.effortWave);
 
   return {
     progressionPlaybookId: effectivePlaybookId,
@@ -159,6 +167,8 @@ export function createProgressionPlaybookFormState({
     progressionQualificationWindowResetOnMiss: qualificationWindow.resetOnMiss,
     progressionHasExplicitTargetMutation: hasExplicitTargetMutation,
     progressionHasExplicitQualificationWindow: hasExplicitQualificationWindow,
+    progressionEffortWaveDays: effortWave?.days ?? [],
+    progressionHasExplicitEffortWave: hasExplicitEffortWave,
   };
 }
 
@@ -231,6 +241,8 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionQualificationWindowResetOnMiss: state.progressionQualificationWindowResetOnMiss,
     progressionHasExplicitTargetMutation: state.progressionHasExplicitTargetMutation,
     progressionHasExplicitQualificationWindow: state.progressionHasExplicitQualificationWindow,
+    progressionEffortWaveDays: state.progressionEffortWaveDays,
+    progressionHasExplicitEffortWave: state.progressionHasExplicitEffortWave,
   });
 }
 
@@ -314,6 +326,16 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
         ),
       }
     : {};
+  const effortWave = normalizeEffortWaveConfig({
+    enabled: true,
+    anchor: "routine_cycle",
+    days: state.progressionEffortWaveDays,
+  });
+  const serializedEffortWave = state.progressionHasExplicitEffortWave || Boolean(effortWave && effortWave.days.length > 0)
+    ? effortWave
+      ? { effortWave }
+      : {}
+    : {};
 
   if (state.progressionStallPolicy === "none") {
     return {
@@ -327,6 +349,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       ...serializedPromotionConfig,
       ...serializedTargetMutation,
       ...serializedQualificationWindow,
+      ...serializedEffortWave,
     };
   }
 
@@ -349,6 +372,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     ...serializedPromotionConfig,
     ...serializedTargetMutation,
     ...serializedQualificationWindow,
+    ...serializedEffortWave,
   };
 }
 
@@ -419,6 +443,8 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionQualificationWindowResetOnMiss", state.progressionQualificationWindowResetOnMiss ? "1" : "0");
   formData.set("progressionHasExplicitTargetMutation", state.progressionHasExplicitTargetMutation ? "1" : "0");
   formData.set("progressionHasExplicitQualificationWindow", state.progressionHasExplicitQualificationWindow ? "1" : "0");
+  formData.set("progressionEffortWaveDaysJson", JSON.stringify(state.progressionEffortWaveDays));
+  formData.set("progressionHasExplicitEffortWave", state.progressionHasExplicitEffortWave ? "1" : "0");
   formData.set("progressionStallThreshold", state.progressionStallThreshold);
   formData.set("progressionDeloadPercent", state.progressionDeloadPercent);
   formData.set("progressionSetFlow", state.progressionSetFlow);

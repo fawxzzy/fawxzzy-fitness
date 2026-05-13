@@ -300,6 +300,62 @@ test("qualification window count round-trips through progression config serializ
   });
 });
 
+test("effort wave day overrides round-trip through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionEffortWaveDays: [
+      { cycleDayIndex: 2, direction: "up" as const, magnitude: "one_step" as const, percent: null },
+      { cycleDayIndex: 4, direction: "down" as const, magnitude: "one_step" as const, percent: null },
+    ],
+    progressionHasExplicitEffortWave: true,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+    effortWave: {
+      enabled: true,
+      anchor: "routine_cycle",
+      days: [
+        { cycleDayIndex: 2, direction: "up", magnitude: "one_step", percent: null },
+        { cycleDayIndex: 4, direction: "down", magnitude: "one_step", percent: null },
+      ],
+    },
+  });
+});
+
+test("effort wave config restores from saved progression config", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      effortWave: {
+        enabled: true,
+        anchor: "routine_cycle",
+        days: [
+          { cycleDayIndex: 3, direction: "up" },
+        ],
+      },
+    },
+  });
+
+  assert.deepEqual(state.progressionEffortWaveDays, [
+    { cycleDayIndex: 3, direction: "up", magnitude: "one_step", percent: null },
+  ]);
+  assert.equal(state.progressionHasExplicitEffortWave, true);
+});
+
 test("invalid qualification window input restores safe defaults", () => {
   const state = createProgressionPlaybookFormState({
     playbookId: "double_progression",

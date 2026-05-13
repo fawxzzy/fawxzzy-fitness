@@ -336,6 +336,7 @@ export function RoutinesPageClient({
         <HeaderInfoRail
           items={floatingHeaderInfoItems}
           ariaLabel={screenMode === "browse-routines" ? "Routine list summary" : "Routine cycle summary"}
+          layout="scroll"
           className="justify-center text-center"
         />
       ) : renderRoutineHeaderSubtitle(activeRoutineSummary)}

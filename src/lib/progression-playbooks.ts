@@ -29,6 +29,10 @@ import {
   type ProgressionTargetMutationId,
 } from "@/lib/progression-target-mutation";
 import {
+  normalizeEffortWaveConfig,
+  type EffortWaveConfig,
+} from "@/lib/progression-effort-wave";
+import {
   buildQualificationWindowStatus,
   evaluateQualificationWindow,
   normalizeQualificationWindowConfig,
@@ -338,6 +342,7 @@ export type ProgressionPromotionConfigFields = {
   customRepPromotionTarget?: number | null;
   targetMutation?: ProgressionTargetMutationId;
   qualificationWindow?: QualificationWindowConfig;
+  effortWave?: EffortWaveConfig;
 };
 
 export type DoubleProgressionConfig = {
@@ -1181,6 +1186,10 @@ function resolveConfiguredQualificationWindow(input: unknown) {
   return normalizeQualificationWindowConfig(input);
 }
 
+function resolveConfiguredEffortWave(input: unknown) {
+  return normalizeEffortWaveConfig(input as EffortWaveConfig | null | undefined) ?? undefined;
+}
+
 function formatQualificationWindowReason(args: {
   methodLabel: string;
   result: QualificationWindowResult;
@@ -1907,6 +1916,10 @@ export function validateProgressionPlaybookSelection(args: {
   const qualificationWindow = hasQualificationWindow
     ? resolveConfiguredQualificationWindow(config.qualificationWindow)
     : undefined;
+  const hasEffortWave = Object.prototype.hasOwnProperty.call(config, "effortWave");
+  const effortWave = hasEffortWave
+    ? resolveConfiguredEffortWave(config.effortWave)
+    : undefined;
   const promotionConfig = normalizeProgressionPromotionConfig({
     promotionBasis: config.promotionBasis,
     repPromotionThreshold: config.repPromotionThreshold,
@@ -1941,6 +1954,9 @@ export function validateProgressionPlaybookSelection(args: {
     }
     if (qualificationWindow) {
       nextConfig.qualificationWindow = qualificationWindow;
+    }
+    if (effortWave) {
+      nextConfig.effortWave = effortWave;
     }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
@@ -1980,6 +1996,9 @@ export function validateProgressionPlaybookSelection(args: {
     if (qualificationWindow) {
       nextConfig.qualificationWindow = qualificationWindow;
     }
+    if (effortWave) {
+      nextConfig.effortWave = effortWave;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;
@@ -2008,6 +2027,9 @@ export function validateProgressionPlaybookSelection(args: {
   }
   if (qualificationWindow) {
     nextConfig.qualificationWindow = qualificationWindow;
+  }
+  if (effortWave) {
+    nextConfig.effortWave = effortWave;
   }
   const setFlow = normalizeSetFlowId(config.setFlow);
   if (setFlow) {
@@ -2060,9 +2082,27 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     || qualificationWindow.requiredQualifiedSessions > 1
     || qualificationWindow.mode !== "latest"
     || qualificationWindow.resetOnMiss;
+  const rawEffortWaveJson = String(formData.get("progressionEffortWaveDaysJson") ?? "").trim();
+  let parsedEffortWave: EffortWaveConfig | undefined;
+  if (rawEffortWaveJson) {
+    try {
+      parsedEffortWave = resolveConfiguredEffortWave({
+        enabled: true,
+        anchor: "routine_cycle",
+        days: JSON.parse(rawEffortWaveJson),
+      });
+    } catch {
+      parsedEffortWave = undefined;
+    }
+  }
+  const hasExplicitEffortWave = formData.get("progressionHasExplicitEffortWave") === "1"
+    || Boolean(parsedEffortWave && parsedEffortWave.days.length > 0);
   const serializedMutationConfig = hasExplicitTargetMutation ? { targetMutation: resolvedTargetMutation } : {};
   const serializedQualificationWindow = hasExplicitQualificationWindow
     ? { qualificationWindow }
+    : {};
+  const serializedEffortWave = hasExplicitEffortWave && parsedEffortWave
+    ? { effortWave: parsedEffortWave }
     : {};
 
   if (stallPolicy === "none" && (playbookId === "double_progression" || playbookId === "fixed_load_rep_range_progression")) {
@@ -2076,6 +2116,7 @@ export function parseProgressionPlaybookPayload(formData: FormData):
       ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
       ...serializedMutationConfig,
       ...serializedQualificationWindow,
+      ...serializedEffortWave,
     };
     config = attachProgressionStepOverrides(config, stepOverrides);
     config = attachSetFlowSteps(config, setFlowSteps);
@@ -2107,6 +2148,7 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
     ...serializedMutationConfig,
     ...serializedQualificationWindow,
+    ...serializedEffortWave,
   };
   config = attachProgressionStepOverrides(config, stepOverrides);
   config = attachSetFlowSteps(config, setFlowSteps);

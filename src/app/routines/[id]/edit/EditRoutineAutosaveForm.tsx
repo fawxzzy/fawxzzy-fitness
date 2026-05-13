@@ -287,6 +287,7 @@ export function EditRoutineAutosaveForm(props: Props) {
                 setProgressionDraft(nextValue);
               }}
               weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
+              cycleLengthDays={draft.cycleLengthDays}
               context="routine-default"
               collapsible
               defaultExpanded={false}

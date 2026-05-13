@@ -289,11 +289,8 @@ Implemented now:
 
 Still deferred:
 
-- editor controls for `targetMutation`
-- editor controls for `qualificationWindow`
-- effort-wave runtime
-- focus-rotation runtime
-- capability-anchor onboarding
+- focus-rotation UI
+- capability-anchor onboarding UI
 
 ## Implementation Scope
 
@@ -307,11 +304,9 @@ Stable core for the next batch:
 
 Documented but intentionally deferred:
 
-- effort wave runtime
-- effort wave UI
-- conjugate/focus runtime
+- focus-rotation UI
 - conjugate/focus UI
-- capability anchor onboarding
+- capability anchor onboarding UI
 
 ## Non-Goals For This Lane
 

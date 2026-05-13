@@ -54,11 +54,13 @@ export function HeaderInfoRail({
   ariaLabel,
   emptyFallback = null,
   className,
+  layout = "wrap",
 }: {
   items: HeaderInfoRailItem[];
   ariaLabel?: string;
   emptyFallback?: ReactNode;
   className?: string;
+  layout?: "wrap" | "scroll";
 }) {
   const visibleItems = items
     .map((item) => ({
@@ -72,10 +74,21 @@ export function HeaderInfoRail({
   }
 
   return (
-    <span aria-label={ariaLabel} className="block w-full">
+    <span
+      aria-label={ariaLabel}
+      className={cn(
+        "block w-full",
+        layout === "scroll" ? "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : undefined,
+      )}
+    >
       <SignatureInlineList
         items={visibleItems.map((item) => renderHeaderInfoRailItem(item))}
-        className={cn("w-full min-w-0 flex-wrap text-[11.5px] leading-[1.22] [text-wrap:pretty]", className)}
+        className={cn(
+          layout === "scroll"
+            ? "min-w-max flex-nowrap whitespace-nowrap text-[11.5px] leading-[1.22]"
+            : "w-full min-w-0 flex-wrap text-[11.5px] leading-[1.22] [text-wrap:pretty]",
+          className,
+        )}
       />
     </span>
   );

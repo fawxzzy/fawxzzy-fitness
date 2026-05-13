@@ -77,6 +77,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Prompt 12 foundation note: runtime target mutation now resolves separately from readiness, with legacy double progression preserved as the default and explicit `increase_load_and_reps` available without changing readiness rules.
 - Prompt 13 foundation note: qualification windows now gate readiness with explicit per-session counts, default one-session behavior stays unchanged, and `within_cycle` only evaluates when a real cycle window is supplied.
 - Prompt 14 UI note: routine and exercise progression editors now expose `Target changes` and `Require successful sessions` as compact controls, while advanced qualification mode semantics stay deferred and calories-aware mutation options remain hidden.
+- Prompt 16 preview note: `Target changes` now renders a compact next-target preview only when the editor has a concrete exercise target to mutate, and that preview delegates mutation math to the shared target-mutation helper instead of recomputing it in React.
+- Prompt 17 header note: Today, Routines, and Current Session now share the same compact second-row rail implementation, with a safe horizontal-scroll layout instead of route-local ticker variants.
+- Prompt 18 foundation note: effort-wave logic now resolves an effective cycle-day target from the stored baseline plan without mutating canonical targets, and unsupported/custom magnitudes degrade back to baseline safely.
+- Prompt 19 UI note: routine-default progression editing now exposes compact cycle-day effort pills so up, baseline, and down planning targets can round-trip without persisting baseline rewrites.
+- Prompt 20 foundation note: capability anchors and focus target seeds now resolve from history, routine targets, or explicit user anchors, with manual fallback when no trustworthy baseline exists.
 - Future effort-wave, focus-rotation, and capability-anchor layers should stay modeled as modifiers or seed layers around the same engine, not as separate progression engines.
 - Failure Mode: treating `weight_and_reps` as both qualification logic and mutation strategy hides important behavior choices and creates UI drift.
 - Failure Mode: pooling partial set evidence across sessions into one fake qualifying session breaks progression truth.

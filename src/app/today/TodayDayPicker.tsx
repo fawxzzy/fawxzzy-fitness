@@ -43,7 +43,10 @@ import { ProgressionStatusSection } from "@/components/progression/ProgressionSt
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
-import { buildRoutineTrainingRestInfoRailItems } from "@/lib/header-info-rail";
+import {
+  buildDayTaxonomyInfoRailItems,
+  buildRoutineTrainingRestInfoRailItems,
+} from "@/lib/header-info-rail";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
@@ -546,6 +549,9 @@ export function TodayDayPicker({
         isRest: selectedDay.isRest,
       }).countsSummary
     : null;
+  const selectedDayHeaderInfoItems = selectedDay && !selectedDay.isRest
+    ? buildDayTaxonomyInfoRailItems(getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest))
+    : [];
   const routineHeaderInfoItems = useMemo(() => {
     const restDays = days.filter((day) => day.isRest).length;
     const trainingDays = Math.max(days.length - restDays, 0);
@@ -614,7 +620,14 @@ export function TodayDayPicker({
           />
         )}
         align="center"
-        subtitle={selectedDayHeaderSubtitle ? (
+        subtitle={selectedDayHeaderInfoItems.length > 0 ? (
+          <HeaderInfoRail
+            items={selectedDayHeaderInfoItems}
+            ariaLabel="Selected day summary"
+            layout="scroll"
+            className="justify-center text-center"
+          />
+        ) : selectedDayHeaderSubtitle ? (
           <AccentDotSeparatedText
             text={selectedDayHeaderSubtitle}
             separatorClassName="h-[3.5px] w-[3.5px]"
@@ -631,6 +644,7 @@ export function TodayDayPicker({
           <HeaderInfoRail
             items={routineHeaderInfoItems}
             ariaLabel="Routine cycle summary"
+            layout="scroll"
             className="justify-center text-center"
           />
         )}

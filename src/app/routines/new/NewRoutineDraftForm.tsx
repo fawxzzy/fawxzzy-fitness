@@ -284,6 +284,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
               setProgressionDraft(nextValue);
             }}
             weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
+            cycleLengthDays={draft.cycleLengthDays}
             context="routine-default"
             collapsible
             defaultExpanded={false}

@@ -1406,6 +1406,36 @@ test("qualification window config round-trips through normalized playbook config
   }
 });
 
+test("effort wave config round-trips through normalized playbook config", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      effortWave: {
+        enabled: true,
+        anchor: "routine_cycle",
+        days: [
+          { cycleDayIndex: 2, direction: "up" },
+          { cycleDayIndex: 5, direction: "down", magnitude: "percent", percent: 10 },
+        ],
+      },
+    },
+  });
+
+  assert.ok(selection);
+  if (selection.id === "double_progression") {
+    assert.deepEqual(selection.config.effortWave, {
+      enabled: true,
+      anchor: "routine_cycle",
+      days: [
+        { cycleDayIndex: 2, direction: "up", magnitude: "one_step", percent: null },
+        { cycleDayIndex: 5, direction: "down", magnitude: "percent", percent: 0.1 },
+      ],
+    });
+  }
+});
+
 test("invalid custom promotion target falls back to top-of-range in normalized config", () => {
   const selection = validateProgressionPlaybookSelection({
     playbookId: "double_progression",

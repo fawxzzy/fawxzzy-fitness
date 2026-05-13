@@ -2,9 +2,9 @@
 
 import { SessionBackButton } from "@/components/SessionBackButton";
 import { TodayOverviewHeader } from "@/components/today/TodayScreenFamily";
+import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
-import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
-import { getDayTaxonomyHeaderSummaryParts } from "@/lib/day-summary";
+import { buildDayTaxonomyInfoRailItems } from "@/lib/header-info-rail";
 
 export function SessionHeaderControls({
   routineName,
@@ -24,19 +24,20 @@ export function SessionHeaderControls({
   isRestDay?: boolean;
   backHref?: string;
 }) {
-  const { countsSummary } = getDayTaxonomyHeaderSummaryParts({
-    dayName: sessionDayName,
-    summary: sessionSummaryCounts,
-    isRest: isRestDay,
-  });
   const titleNode = <RoutineDayHeaderTitle leadingItems={[routineName.trim() || "Routine"]} dayLabel={sessionDayName} dayLabelOrder="day-first" />;
-  const subtitleNode = (
-    <AccentDotSeparatedText
-      text={countsSummary}
-      className="justify-center text-center"
-      separatorClassName="h-[3.5px] w-[3.5px]"
-    />
-  );
+  const subtitleItems = isRestDay
+    ? []
+    : buildDayTaxonomyInfoRailItems(sessionSummaryCounts);
+  const subtitleNode = subtitleItems.length > 0
+    ? (
+      <HeaderInfoRail
+        items={subtitleItems}
+        ariaLabel="Current session summary"
+        layout="scroll"
+        className="justify-center text-center"
+      />
+    )
+    : undefined;
 
   return (
     <TodayOverviewHeader

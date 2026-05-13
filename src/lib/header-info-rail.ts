@@ -67,3 +67,58 @@ export function buildRoutineBrowseInfoRailItems(args: {
 
   return items;
 }
+
+export function buildDayTaxonomyInfoRailItems(args: {
+  strength: number | null | undefined;
+  cardio: number | null | undefined;
+  bodyweight: number | null | undefined;
+  unknown?: number | null | undefined;
+}): HeaderInfoRailItem[] {
+  const items: HeaderInfoRailItem[] = [];
+  const strength = normalizeCount(args.strength);
+  const cardio = normalizeCount(args.cardio);
+  const bodyweight = normalizeCount(args.bodyweight);
+  const unknown = normalizeCount(args.unknown);
+
+  if (strength > 0) {
+    items.push({
+      id: "strength",
+      label: strength === 1 ? "strength" : "strength",
+      value: strength,
+      tone: "accent",
+      title: "Strength exercises on this day",
+    });
+  }
+
+  if (cardio > 0) {
+    items.push({
+      id: "cardio",
+      label: "cardio",
+      value: cardio,
+      tone: "success",
+      title: "Cardio exercises on this day",
+    });
+  }
+
+  if (bodyweight > 0) {
+    items.push({
+      id: "bodyweight",
+      label: "bodyweight",
+      value: bodyweight,
+      tone: "default",
+      title: "Bodyweight exercises on this day",
+    });
+  }
+
+  if (unknown > 0) {
+    items.push({
+      id: "other",
+      label: "other",
+      value: unknown,
+      tone: "muted",
+      title: "Other tracked exercises on this day",
+    });
+  }
+
+  return items;
+}
