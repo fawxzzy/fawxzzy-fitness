@@ -7,7 +7,10 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
-import { isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
+import {
+  isMissingRoutineDefaultProgressionColumnError,
+  isMissingRoutineScheduleColumnError,
+} from "@/lib/progression-schema-compat";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +21,8 @@ type PageProps = {
 };
 
 const ROUTINE_SELECT_LEGACY = "id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit";
-const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
+const ROUTINE_SELECT_WITH_SCHEDULE = `${ROUTINE_SELECT_LEGACY}, schedule_mode`;
+const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_WITH_SCHEDULE}, default_progression_playbook_id, default_progression_playbook_config`;
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
@@ -31,7 +35,16 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
-  const { data: legacyRoutine } = routineWithProgressionError && isMissingRoutineDefaultProgressionColumnError(routineWithProgressionError)
+  const { data: routineWithSchedule, error: routineWithScheduleError } = routineWithProgressionError
+    && (isMissingRoutineDefaultProgressionColumnError(routineWithProgressionError) || isMissingRoutineScheduleColumnError(routineWithProgressionError))
+    ? await supabase
+        .from("routines")
+        .select(ROUTINE_SELECT_WITH_SCHEDULE)
+        .eq("id", params.id)
+        .eq("user_id", user.id)
+        .single()
+    : { data: null, error: null };
+  const { data: legacyRoutine } = routineWithScheduleError && isMissingRoutineScheduleColumnError(routineWithScheduleError)
     ? await supabase
         .from("routines")
         .select(ROUTINE_SELECT_LEGACY)
@@ -39,7 +52,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         .eq("user_id", user.id)
         .single()
     : { data: null };
-  const routine = routineWithProgression ?? legacyRoutine;
+  const routine = routineWithProgression ?? routineWithSchedule ?? legacyRoutine;
 
   if (!routine) notFound();
 
@@ -55,6 +68,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         returnHref={returnHref}
         name={(routine as RoutineRow).name}
         cycleLengthDays={(routine as RoutineRow).cycle_length_days}
+        scheduleMode={(routine as RoutineRow).schedule_mode ?? "weekday_anchored"}
         startDate={(routine as RoutineRow).start_date}
         startWeekday={startWeekdayDefault}
         timezone={routineTimezoneDefault}

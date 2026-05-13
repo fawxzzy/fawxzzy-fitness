@@ -1,4 +1,4 @@
-import { resolveRoutineSchedule, type RoutineScheduleResolution } from "./routine-schedule-resolution";
+import { resolveRoutineSchedule, type RoutineScheduleMode, type RoutineScheduleResolution } from "./routine-schedule-resolution";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -41,6 +41,7 @@ export function getTodayDateInTimeZone(timeZone: string) {
 export function resolveRoutineScheduleForToday(params: {
   cycleLengthDays: number;
   startDate: string;
+  scheduleMode?: RoutineScheduleMode | null;
   profileTimeZone: string;
 }): {
   todayDate: string;
@@ -49,6 +50,7 @@ export function resolveRoutineScheduleForToday(params: {
 } {
   const todayDate = getTodayDateInTimeZone(params.profileTimeZone);
   const resolution = resolveRoutineSchedule({
+    scheduleMode: params.scheduleMode,
     cycleLengthDays: params.cycleLengthDays,
     anchorDate: params.startDate,
     today: todayDate,

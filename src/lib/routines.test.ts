@@ -113,3 +113,36 @@ test("resolveRoutineScheduleForToday does not fallback to Friday for a Monday-st
     globalThis.Date = RealDate;
   }
 });
+
+test("resolveRoutineScheduleForToday respects rolling schedules and repeats by modulo from the anchor date", () => {
+  const RealDate = Date;
+
+  class MockDate extends Date {
+    constructor(value?: string | number | Date) {
+      super(value ?? "2026-05-13T12:00:00.000Z");
+    }
+
+    static now() {
+      return new RealDate("2026-05-13T12:00:00.000Z").getTime();
+    }
+  }
+
+  // @ts-expect-error test-only global date override
+  globalThis.Date = MockDate;
+
+  try {
+    const result = resolveRoutineScheduleForToday({
+      scheduleMode: "rolling_n_day",
+      cycleLengthDays: 2,
+      startDate: "2026-05-11",
+      profileTimeZone: "America/New_York",
+    });
+
+    assert.equal(result.todayDate, "2026-05-13");
+    assert.equal(result.dayIndex, 1);
+    assert.equal(result.resolution.status, "scheduled");
+    assert.equal(result.resolution.scheduleMode, "rolling_n_day");
+  } finally {
+    globalThis.Date = RealDate;
+  }
+});

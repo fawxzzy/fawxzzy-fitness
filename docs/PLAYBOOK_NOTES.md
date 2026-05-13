@@ -83,11 +83,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Prompt 19 UI note: routine-default progression editing now exposes compact cycle-day effort pills so up, baseline, and down planning targets can round-trip without persisting baseline rewrites.
 - Prompt 20 foundation note: capability anchors and focus target seeds now resolve from history, routine targets, or explicit user anchors, with manual fallback when no trustworthy baseline exists.
 - Prompt 21 UI note: exercise-level progression editing now exposes `Training focus for this day` with advisory preview copy sourced from the shared capability-anchor and focus-target-seed helpers, while baseline targets remain unchanged until an explicit save path writes a new target.
+- Prompt 22 schedule note: routines now persist an explicit `schedule_mode`, keep weekday-anchored vs rolling `N`-day resolution out of cycle-length inference, and reuse the stored start date as the anchored Day 1 date or rolling anchor date.
 - Future effort-wave, focus-rotation, and capability-anchor layers should stay modeled as modifiers or seed layers around the same engine, not as separate progression engines.
 - Failure Mode: treating `weight_and_reps` as both qualification logic and mutation strategy hides important behavior choices and creates UI drift.
 - Failure Mode: pooling partial set evidence across sessions into one fake qualifying session breaks progression truth.
 - Failure Mode: letting future wave logic mutate stored baseline targets makes schedule modifiers look like promotions.
 - Failure Mode: claiming speed or power progression without explicit measured speed/power data confuses execution intent with measurement truth.
+- Failure Mode: inferring rolling vs weekday-anchored schedules from cycle length alone recreates fake Today matches and ambiguous day labels.
 
 ## 2026-03-21 — Settings screens should compose DetailHeader and DetailSection
 - Type: Pattern

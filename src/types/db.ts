@@ -75,6 +75,7 @@ export type RoutineRow = {
   user_id: string;
   name: string;
   cycle_length_days: number;
+  schedule_mode?: "weekday_anchored" | "rolling_n_day" | null;
   start_date: string;
   timezone: string;
   updated_at: string;

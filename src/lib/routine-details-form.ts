@@ -1,3 +1,5 @@
+import { ROUTINE_SCHEDULE_MODES, type RoutineScheduleMode } from "@/lib/routine-schedule-resolution";
+
 function sanitizeRoutineName(value: string) {
   return value.slice(0, 15);
 }
@@ -8,12 +10,19 @@ export const ROUTINE_CYCLE_LENGTH_MAX = 365;
 export type RoutineDetailsDraft = {
   name: string;
   cycleLengthDays: number;
+  scheduleMode: RoutineScheduleMode;
   startDate: string;
   startWeekday: string;
   timezone: string;
   weightUnit: string;
   distanceUnit: string;
 };
+
+function normalizeRoutineScheduleMode(value: unknown): RoutineScheduleMode {
+  return ROUTINE_SCHEDULE_MODES.includes(value as RoutineScheduleMode)
+    ? (value as RoutineScheduleMode)
+    : "weekday_anchored";
+}
 
 function isValidRoutineDateString(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -30,6 +39,7 @@ export function normalizeRoutineDetailsDraft(raw: Partial<RoutineDetailsDraft>, 
   return {
     name: typeof raw.name === "string" ? sanitizeRoutineName(raw.name) : sanitizeRoutineName(defaults.name),
     cycleLengthDays: Number.isInteger(cycleLengthCandidate) ? cycleLengthCandidate : defaults.cycleLengthDays,
+    scheduleMode: normalizeRoutineScheduleMode(raw.scheduleMode ?? defaults.scheduleMode),
     startDate: isValidRoutineDateString(rawStartDate) ? rawStartDate : defaults.startDate,
     startWeekday: typeof raw.startWeekday === "string" ? raw.startWeekday : defaults.startWeekday,
     timezone: typeof raw.timezone === "string" ? raw.timezone : defaults.timezone,
@@ -87,6 +97,9 @@ export function validateRoutineDetailsDraft(
   ) {
     return { valid: false, error: "Cycle length must be between 1 and 365." };
   }
+  if (!ROUTINE_SCHEDULE_MODES.includes(draft.scheduleMode)) {
+    return { valid: false, error: "Schedule mode must be weekday anchored or rolling N-day." };
+  }
   if (!isValidRoutineDateString(draft.startDate.trim())) return { valid: false, error: "Cycle start date is required." };
   if (!draft.timezone.trim()) return { valid: false, error: "Timezone is required." };
   if (draft.weightUnit !== "lbs" && draft.weightUnit !== "kg") return { valid: false, error: "Weight unit must be lbs or kg." };
@@ -98,6 +111,7 @@ export function buildRoutineDetailsSnapshot(draft: RoutineDetailsDraft): string 
   return JSON.stringify({
     name: sanitizeRoutineName(draft.name.trim()),
     cycleLengthDays: String(draft.cycleLengthDays),
+    scheduleMode: draft.scheduleMode,
     startDate: draft.startDate,
     startWeekday: draft.startWeekday,
     timezone: draft.timezone,

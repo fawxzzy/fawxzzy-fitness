@@ -62,6 +62,7 @@ import {
 } from "@/lib/progression-events";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { isMissingRoutineScheduleColumnError } from "@/lib/progression-schema-compat";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
 import {
@@ -981,12 +982,21 @@ export default async function TodayPage({
   if (profile.active_routine_id) {
     try {
       activeRoutine = await diagnostics.measure("today.active-routine.fetch", async () => {
-        const { data: routine, error: routineError } = await supabase
+        const { data: routineWithSchedule, error: routineWithScheduleError } = await supabase
           .from("routines")
-          .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+          .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit")
           .eq("id", profile.active_routine_id)
           .eq("user_id", user.id)
           .maybeSingle();
+
+        const { data: routine, error: routineError } = routineWithScheduleError && isMissingRoutineScheduleColumnError(routineWithScheduleError)
+          ? await supabase
+              .from("routines")
+              .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+              .eq("id", profile.active_routine_id)
+              .eq("user_id", user.id)
+              .maybeSingle()
+          : { data: routineWithSchedule, error: routineWithScheduleError };
 
         if (routineError) {
           throw routineError;
@@ -1009,6 +1019,7 @@ export default async function TodayPage({
   if (activeRoutine) {
     try {
       const { dayIndex } = resolveRoutineScheduleForToday({
+        scheduleMode: activeRoutine.schedule_mode ?? "weekday_anchored",
         cycleLengthDays: activeRoutine.cycle_length_days,
         startDate: activeRoutine.start_date,
         profileTimeZone: activeRoutine.timezone || profile.timezone,
@@ -1306,7 +1317,7 @@ export default async function TodayPage({
         startDate: activeRoutine?.start_date ?? null,
       })
     : displayDay.dayName;
-  const routineDayWeekday = activeRoutine?.start_date && effectiveDayIndex !== null
+  const routineDayWeekday = activeRoutine?.start_date && activeRoutine.schedule_mode !== "rolling_n_day" && effectiveDayIndex !== null
     ? getRoutineCycleOccurrence({
         cycleLengthDays: activeRoutine.cycle_length_days,
         startDate: activeRoutine.start_date,
@@ -1497,7 +1508,7 @@ export default async function TodayPage({
                 id: day.id,
                 dayIndex: day.day_index,
                 name: day.name || `Day ${day.day_index}`,
-                occurrenceWeekday: activeRoutine?.start_date
+                occurrenceWeekday: activeRoutine?.start_date && activeRoutine.schedule_mode !== "rolling_n_day"
                   ? getRoutineCycleOccurrence({
                       cycleLengthDays: activeRoutine.cycle_length_days,
                       startDate: activeRoutine.start_date,

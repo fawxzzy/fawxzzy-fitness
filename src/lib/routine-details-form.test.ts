@@ -6,6 +6,7 @@ function buildDraft(overrides: Partial<RoutineDetailsDraft> = {}): RoutineDetail
   return {
     name: "Routine",
     cycleLengthDays: 7,
+    scheduleMode: "weekday_anchored",
     startDate: "2026-05-06",
     startWeekday: "wednesday",
     timezone: "America/New_York",
@@ -25,6 +26,13 @@ test("new routine validation keeps the current routine name length cap", () => {
 test("edit routine validation can preserve legacy long names while saving other fields", () => {
   assert.deepEqual(
     validateRoutineDetailsDraft(buildDraft({ name: "Fitness QA Baseline" }), { allowLegacyLongName: true }),
+    { valid: true, error: null },
+  );
+});
+
+test("rolling schedules remain valid when the anchor date is present", () => {
+  assert.deepEqual(
+    validateRoutineDetailsDraft(buildDraft({ scheduleMode: "rolling_n_day", startDate: "2026-05-11" })),
     { valid: true, error: null },
   );
 });

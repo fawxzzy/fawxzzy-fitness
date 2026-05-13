@@ -164,6 +164,7 @@ export function RoutinesPageClient({
   activeRoutineTrainingDays,
   activeRoutineRestDays,
   activeRoutineStartDate,
+  activeRoutineScheduleMode,
   activeRoutineEditHref,
   newRoutineHref,
   routines,
@@ -177,6 +178,7 @@ export function RoutinesPageClient({
   activeRoutineTrainingDays?: number | null;
   activeRoutineRestDays?: number | null;
   activeRoutineStartDate?: string | null;
+  activeRoutineScheduleMode?: "weekday_anchored" | "rolling_n_day" | null;
   activeRoutineEditHref: string | null;
   newRoutineHref: string;
   routines: RoutineSwitcherItem[];
@@ -391,7 +393,7 @@ export function RoutinesPageClient({
                   return (
                     <DayCard
                       key={day.id}
-                      title={<RoutineDayCardTitle name={day.name ?? day.title ?? null} dayIndex={day.dayIndex} startDate={activeRoutineStartDate} />}
+                      title={<RoutineDayCardTitle name={day.name ?? day.title ?? null} dayIndex={day.dayIndex} startDate={activeRoutineScheduleMode === "rolling_n_day" ? null : activeRoutineStartDate} />}
                       subtitle={renderRoutineDaySubtitle(displayDay)}
                       subtitleTone="plain"
                       rightIcon={(

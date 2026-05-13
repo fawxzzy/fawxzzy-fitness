@@ -13,6 +13,10 @@ const ROUTINE_DEFAULT_PROGRESSION_COLUMNS = [
   "default_progression_playbook_config",
 ] as const;
 
+const ROUTINE_SCHEDULE_COLUMNS = [
+  "schedule_mode",
+] as const;
+
 const SCHEMA_CACHE_MISSING_COLUMN_PATTERN = /could not find the '([^']+)' column of '([^']+)' in the schema cache/i;
 const POSTGRES_MISSING_COLUMN_PATTERN = /column\s+(?:(?:public\.)?([a-z_][a-z0-9_]*)\.)?([a-z_][a-z0-9_]*)\s+does not exist/i;
 
@@ -89,6 +93,10 @@ export function isMissingRoutineDefaultProgressionColumnError(error: SupabaseLik
   return isMissingColumnOnTable(error, "routines", ROUTINE_DEFAULT_PROGRESSION_COLUMNS);
 }
 
+export function isMissingRoutineScheduleColumnError(error: SupabaseLikeError | null | undefined) {
+  return isMissingColumnOnTable(error, "routines", ROUTINE_SCHEDULE_COLUMNS);
+}
+
 function formatMissingColumn(diagnostic: MissingSchemaColumnDiagnostic) {
   return diagnostic.table ? `${diagnostic.table}.${diagnostic.column}` : diagnostic.column;
 }
@@ -98,6 +106,7 @@ export function getSchemaMismatchMessage(
   options: {
     operation?: string;
     progressionMigration?: "045" | "046" | "045/046";
+    routineScheduleMigration?: "055";
   } = {},
 ) {
   const diagnostic = getMissingSchemaColumnDiagnostic(error, options.operation);
@@ -109,9 +118,14 @@ export function getSchemaMismatchMessage(
   const isProgressionSchemaMissing =
     isMissingProgressionPlaybookColumnError(error)
     || isMissingRoutineDefaultProgressionColumnError(error);
+  const isRoutineScheduleSchemaMissing = isMissingRoutineScheduleColumnError(error);
 
   if (isProgressionSchemaMissing) {
     return `Progression schema is missing. Apply migration ${options.progressionMigration ?? "045/046"}. Missing ${missingColumn}.`;
+  }
+
+  if (isRoutineScheduleSchemaMissing) {
+    return `Routine schedule schema is missing. Apply migration ${options.routineScheduleMigration ?? "055"}. Missing ${missingColumn}.`;
   }
 
   return `Database schema is out of sync. Missing ${missingColumn}. Apply pending migrations before editing progression.`;
@@ -131,6 +145,15 @@ export function omitRoutineDefaultProgressionColumns<T extends Record<string, un
   const {
     default_progression_playbook_id: _defaultProgressionPlaybookId,
     default_progression_playbook_config: _defaultProgressionPlaybookConfig,
+    ...legacyPayload
+  } = payload;
+
+  return legacyPayload;
+}
+
+export function omitRoutineScheduleColumns<T extends Record<string, unknown>>(payload: T) {
+  const {
+    schedule_mode: _scheduleMode,
     ...legacyPayload
   } = payload;
 

@@ -25,6 +25,7 @@ import {
   getRestDayExerciseCountSummaryFromCanonicalDay,
   getRestDayExerciseCountSummaryFromCanonicalDayOrFallback,
 } from "@/lib/day-summary";
+import { isMissingRoutineScheduleColumnError } from "@/lib/progression-schema-compat";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -122,9 +123,9 @@ export default async function RoutinesPage({
     resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
   );
 
-  const { data } = await diagnostics.measure("routines.list.fetch", async () => await supabase
+  const { data: routinesWithSchedule, error: routinesWithScheduleError } = await diagnostics.measure("routines.list.fetch", async () => await supabase
     .from("routines")
-    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+    .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false }), {
     blockingReason: "Waiting for routines overview list.",
@@ -133,6 +134,13 @@ export default async function RoutinesPage({
     },
     timeoutMs: 7000,
   });
+  const { data } = routinesWithScheduleError && isMissingRoutineScheduleColumnError(routinesWithScheduleError)
+    ? await supabase
+        .from("routines")
+        .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+    : { data: routinesWithSchedule };
 
   const routines = (data ?? []) as RoutineRow[];
   const visibleRoutines = showQaLlelData
@@ -245,6 +253,7 @@ export default async function RoutinesPage({
   const cycleSummary = activeRoutine ? `${trainingDays} training • ${restDays} rest` : undefined;
   const todayRoutineSchedule = activeRoutine?.start_date && cycleLength > 0
     ? resolveRoutineScheduleForToday({
+        scheduleMode: activeRoutine.schedule_mode ?? "weekday_anchored",
         cycleLengthDays: cycleLength,
         startDate: activeRoutine.start_date,
         profileTimeZone: activeRoutine.timezone || profile.timezone,
@@ -401,6 +410,7 @@ export default async function RoutinesPage({
               activeRoutineTrainingDays={activeRoutine ? trainingDays : null}
               activeRoutineRestDays={activeRoutine ? restDays : null}
               activeRoutineStartDate={activeRoutine?.start_date ?? null}
+              activeRoutineScheduleMode={activeRoutine?.schedule_mode ?? "weekday_anchored"}
               activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
               newRoutineHref="/routines/new"
               routines={visibleRoutines.map((routine) => ({

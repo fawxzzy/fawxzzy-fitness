@@ -63,6 +63,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     () => normalizeRoutineDetailsDraft(defaults, {
       name: defaults.name,
       cycleLengthDays: defaults.cycleLengthDays,
+      scheduleMode: defaults.scheduleMode,
       startDate: defaults.startDate,
       startWeekday: defaults.startWeekday,
       timezone: defaults.timezone,
@@ -73,6 +74,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
       defaults.cycleLengthDays,
       defaults.distanceUnit,
       defaults.name,
+      defaults.scheduleMode,
       defaults.startDate,
       defaults.startWeekday,
       defaults.timezone,
@@ -255,9 +257,10 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
       <RoutineEditorPageBody className={appTokens.routineEditorSectionStack}>
         <div className="space-y-2 pt-4">
           <RoutineEditorFormFields
-            fields={["cycleLengthDays", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+            fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
             cycleLengthInputValue={cycleLengthInput}
             cycleLengthDefaultValue={draft.cycleLengthDays}
+            scheduleModeDefaultValue={draft.scheduleMode}
             startDateDefaultValue={draft.startDate}
             startWeekdayDefaultValue={draft.startWeekday}
             timezoneDefaultValue={draft.timezone}
@@ -329,6 +332,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
                   const formData = new FormData();
                   formData.set("name", trimmedRoutineName);
                   formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+                  formData.set("scheduleMode", nextDraft.scheduleMode);
                   formData.set("startDate", nextDraft.startDate);
                   formData.set("startWeekday", nextDraft.startWeekday);
                   formData.set("timezone", nextDraft.timezone);

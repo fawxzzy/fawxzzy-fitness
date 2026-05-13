@@ -39,6 +39,7 @@ type Props = {
   returnHref: string;
   name: string;
   cycleLengthDays: number;
+  scheduleMode: "weekday_anchored" | "rolling_n_day";
   startDate: string;
   startWeekday: string;
   timezone: string;
@@ -66,6 +67,7 @@ export function EditRoutineAutosaveForm(props: Props) {
   const [draft, setDraft] = useState<RoutineDetailsDraft>({
     name: props.name,
     cycleLengthDays: props.cycleLengthDays,
+    scheduleMode: props.scheduleMode,
     startDate: props.startDate,
     startWeekday: props.startWeekday,
     timezone: props.timezone,
@@ -102,13 +104,14 @@ export function EditRoutineAutosaveForm(props: Props) {
       buildRoutineDetailsSnapshot({
         name: props.name,
         cycleLengthDays: props.cycleLengthDays,
+        scheduleMode: props.scheduleMode,
         startDate: props.startDate,
         startWeekday: props.startWeekday,
         timezone: props.timezone,
         weightUnit: props.weightUnit,
         distanceUnit,
       }),
-    [distanceUnit, props.cycleLengthDays, props.name, props.startDate, props.startWeekday, props.timezone, props.weightUnit],
+    [distanceUnit, props.cycleLengthDays, props.name, props.scheduleMode, props.startDate, props.startWeekday, props.timezone, props.weightUnit],
   );
   const initialProgressionSnapshot = useMemo(() => buildProgressionPlaybookFormSnapshot(createProgressionPlaybookFormState({
     playbookId: props.defaultProgressionPlaybookId ?? null,
@@ -228,6 +231,7 @@ export function EditRoutineAutosaveForm(props: Props) {
       formData.set("existingStartDate", props.existingStartDate);
       formData.set("name", nextDraft.name.trim());
       formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+      formData.set("scheduleMode", nextDraft.scheduleMode);
       formData.set("startDate", nextDraft.startDate);
       formData.set("startWeekday", nextDraft.startWeekday);
       formData.set("timezone", nextDraft.timezone);
@@ -263,9 +267,10 @@ export function EditRoutineAutosaveForm(props: Props) {
         <RoutineEditorPageBody>
           <div className="space-y-2 pt-4">
             <RoutineEditorFormFields
-              fields={["cycleLengthDays", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
               cycleLengthInputValue={cycleLengthInput}
               cycleLengthDefaultValue={draft.cycleLengthDays}
+              scheduleModeDefaultValue={draft.scheduleMode}
               startDateDefaultValue={draft.startDate}
               startWeekdayDefaultValue={draft.startWeekday}
               timezoneDefaultValue={draft.timezone}

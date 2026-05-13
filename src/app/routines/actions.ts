@@ -13,8 +13,11 @@ import {
   getSchemaMismatchMessage,
   isMissingProgressionPlaybookColumnError,
   isMissingRoutineDefaultProgressionColumnError,
+  isMissingRoutineScheduleColumnError,
   omitRoutineDefaultProgressionColumns,
+  omitRoutineScheduleColumns,
 } from "@/lib/progression-schema-compat";
+import { ROUTINE_SCHEDULE_MODES, type RoutineScheduleMode } from "@/lib/routine-schedule-resolution";
 
 type CreateRoutineResult = ActionResult & { routineId?: string; firstDayId?: string };
 
@@ -37,6 +40,7 @@ function isMissingProfilePreferenceColumnError(error: { message?: string } | nul
 function parseRoutineForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const cycleLengthDays = Number(formData.get("cycleLengthDays"));
+  const scheduleMode = String(formData.get("scheduleMode") ?? "").trim();
   const timezone = String(formData.get("timezone") ?? "").trim();
   const startDate = String(formData.get("startDate") ?? "").trim();
   const startWeekday = String(formData.get("startWeekday") ?? "").trim().toLowerCase();
@@ -55,6 +59,9 @@ function parseRoutineForm(formData: FormData) {
   }
   if (!Number.isInteger(cycleLengthDays) || cycleLengthDays < 1 || cycleLengthDays > 365) {
     return { ok: false as const, error: "Cycle length must be between 1 and 365." };
+  }
+  if (!ROUTINE_SCHEDULE_MODES.includes(scheduleMode as RoutineScheduleMode)) {
+    return { ok: false as const, error: "Please select a valid schedule mode." };
   }
   if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
     return { ok: false as const, error: "Please select a valid cycle start date." };
@@ -76,6 +83,7 @@ function parseRoutineForm(formData: FormData) {
     payload: {
       name,
       cycleLengthDays,
+      scheduleMode: scheduleMode as RoutineScheduleMode,
       canonicalTimezone,
       startDate,
       startWeekday: startWeekday as (typeof ROUTINE_START_WEEKDAYS)[number],
@@ -124,6 +132,7 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
     user_id: user.id,
     name: parsed.payload.name,
     cycle_length_days: parsed.payload.cycleLengthDays,
+    schedule_mode: parsed.payload.scheduleMode,
     timezone: parsed.payload.canonicalTimezone,
     start_date: startDate,
     weight_unit: parsed.payload.weightUnit,
@@ -137,31 +146,48 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
     .select("id")
     .single();
 
-  if (
-    routineError
-    && isMissingRoutineDefaultProgressionColumnError(routineError)
-    && !selectedRoutineDefaultProgressionPlaybook(parsed.payload)
-  ) {
-    const fallback = await supabase
-      .from("routines")
-      .insert(omitRoutineDefaultProgressionColumns(routinePayload))
-      .select("id")
-      .single();
-    routine = fallback.data;
-    routineError = fallback.error;
+  if (routineError) {
+    const canOmitProgressionDefaults =
+      isMissingRoutineDefaultProgressionColumnError(routineError)
+      && !selectedRoutineDefaultProgressionPlaybook(parsed.payload);
+    const canOmitScheduleMode =
+      isMissingRoutineScheduleColumnError(routineError)
+      && parsed.payload.scheduleMode === "weekday_anchored";
+
+    if (canOmitProgressionDefaults || canOmitScheduleMode) {
+      const fallbackPayload = canOmitScheduleMode
+        ? omitRoutineScheduleColumns(routinePayload)
+        : routinePayload;
+      const safeFallbackPayload = canOmitProgressionDefaults
+        ? omitRoutineDefaultProgressionColumns(fallbackPayload)
+        : fallbackPayload;
+      const fallback = await supabase
+        .from("routines")
+        .insert(safeFallbackPayload)
+        .select("id")
+        .single();
+      routine = fallback.data;
+      routineError = fallback.error;
+    }
   }
 
-  if (
-    routineError
-    && isMissingRoutineDefaultProgressionColumnError(routineError)
-    && selectedRoutineDefaultProgressionPlaybook(parsed.payload)
-  ) {
+  if (routineError && isMissingRoutineDefaultProgressionColumnError(routineError) && selectedRoutineDefaultProgressionPlaybook(parsed.payload)) {
     return {
       ok: false,
       error: getSchemaMismatchMessage(routineError, {
         operation: "create routine progression default",
         progressionMigration: "046",
       }) ?? "Progression schema is missing. Apply migration 046.",
+    };
+  }
+
+  if (routineError && isMissingRoutineScheduleColumnError(routineError) && parsed.payload.scheduleMode === "rolling_n_day") {
+    return {
+      ok: false,
+      error: getSchemaMismatchMessage(routineError, {
+        operation: "create rolling schedule",
+        routineScheduleMigration: "055",
+      }) ?? "Routine schedule schema is missing. Apply migration 055.",
     };
   }
 
@@ -224,6 +250,7 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
     timezone: parsed.payload.canonicalTimezone,
     start_date: startDate,
     cycle_length_days: parsed.payload.cycleLengthDays,
+    schedule_mode: parsed.payload.scheduleMode,
     weight_unit: parsed.payload.weightUnit,
     default_progression_playbook_id: parsed.payload.defaultProgressionPlaybookId,
     default_progression_playbook_config: parsed.payload.defaultProgressionPlaybookConfig,
@@ -236,30 +263,47 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
     .eq("id", routineId)
     .eq("user_id", user.id);
 
-  if (
-    routineError
-    && isMissingRoutineDefaultProgressionColumnError(routineError)
-    && !selectedRoutineDefaultProgressionPlaybook(parsed.payload)
-  ) {
-    const fallback = await supabase
-      .from("routines")
-      .update(omitRoutineDefaultProgressionColumns(routinePayload))
-      .eq("id", routineId)
-      .eq("user_id", user.id);
-    routineError = fallback.error;
+  if (routineError) {
+    const canOmitProgressionDefaults =
+      isMissingRoutineDefaultProgressionColumnError(routineError)
+      && !selectedRoutineDefaultProgressionPlaybook(parsed.payload);
+    const canOmitScheduleMode =
+      isMissingRoutineScheduleColumnError(routineError)
+      && parsed.payload.scheduleMode === "weekday_anchored";
+
+    if (canOmitProgressionDefaults || canOmitScheduleMode) {
+      const fallbackPayload = canOmitScheduleMode
+        ? omitRoutineScheduleColumns(routinePayload)
+        : routinePayload;
+      const safeFallbackPayload = canOmitProgressionDefaults
+        ? omitRoutineDefaultProgressionColumns(fallbackPayload)
+        : fallbackPayload;
+      const fallback = await supabase
+        .from("routines")
+        .update(safeFallbackPayload)
+        .eq("id", routineId)
+        .eq("user_id", user.id);
+      routineError = fallback.error;
+    }
   }
 
-  if (
-    routineError
-    && isMissingRoutineDefaultProgressionColumnError(routineError)
-    && selectedRoutineDefaultProgressionPlaybook(parsed.payload)
-  ) {
+  if (routineError && isMissingRoutineDefaultProgressionColumnError(routineError) && selectedRoutineDefaultProgressionPlaybook(parsed.payload)) {
     return {
       ok: false,
       error: getSchemaMismatchMessage(routineError, {
         operation: "update routine progression default",
         progressionMigration: "046",
       }) ?? "Progression schema is missing. Apply migration 046.",
+    };
+  }
+
+  if (routineError && isMissingRoutineScheduleColumnError(routineError) && parsed.payload.scheduleMode === "rolling_n_day") {
+    return {
+      ok: false,
+      error: getSchemaMismatchMessage(routineError, {
+        operation: "update rolling schedule",
+        routineScheduleMigration: "055",
+      }) ?? "Routine schedule schema is missing. Apply migration 055.",
     };
   }
 

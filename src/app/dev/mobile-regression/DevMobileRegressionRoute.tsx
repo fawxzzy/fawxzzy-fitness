@@ -1804,6 +1804,7 @@ function renderCreateRoutineScenario(scenario: MobileFixtureScenario) {
           defaults={{
             name: PREVIEW_CREATE_ROUTINE_NAME,
             cycleLengthDays: 5,
+            scheduleMode: "weekday_anchored",
             startDate: "2026-04-07",
             startWeekday: "monday",
             timezone: "America/New_York",
@@ -1827,6 +1828,7 @@ function renderEditRoutineScenario(scenario: MobileFixtureScenario) {
           returnHref="/routines"
           name={PREVIEW_ROUTINE_NAME}
           cycleLengthDays={5}
+          scheduleMode="weekday_anchored"
           startDate="2026-04-07"
           startWeekday="monday"
           timezone="America/New_York"
