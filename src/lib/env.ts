@@ -13,6 +13,8 @@ const DISCORD_VERIFIED_ROLE_ID_ENV = "DISCORD_VERIFIED_ROLE_ID";
 const DISCORD_UNVERIFIED_ROLE_ID_ENV = "DISCORD_UNVERIFIED_ROLE_ID";
 const DISCORD_VERIFY_MESSAGE_TITLE_ENV = "DISCORD_VERIFY_MESSAGE_TITLE";
 const DISCORD_VERIFY_MESSAGE_BODY_ENV = "DISCORD_VERIFY_MESSAGE_BODY";
+const DISCORD_BUG_REPORT_CHANNEL_ID_ENV = "DISCORD_BUG_REPORT_CHANNEL_ID";
+const DISCORD_BUG_REPORT_FORUM_CHANNEL_ID_ENV = "DISCORD_BUG_REPORT_FORUM_CHANNEL_ID";
 const LEGACY_SUPABASE_URL_ENV = "LEGACY_SUPABASE_URL";
 const LEGACY_SUPABASE_ANON_KEY_ENV = "LEGACY_SUPABASE_ANON_KEY";
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{5,32}$/;
@@ -150,4 +152,30 @@ export function DISCORD_VERIFY_MESSAGE_TITLE(): string | null {
 
 export function DISCORD_VERIFY_MESSAGE_BODY(): string | null {
   return optionalEnv(DISCORD_VERIFY_MESSAGE_BODY_ENV);
+}
+
+export function DISCORD_BUG_REPORT_CHANNEL_ID(): string | null {
+  const value = optionalEnv(DISCORD_BUG_REPORT_CHANNEL_ID_ENV);
+  if (!value) {
+    return null;
+  }
+
+  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
+    throw new Error(`Invalid environment variable: ${DISCORD_BUG_REPORT_CHANNEL_ID_ENV}. Expected a Discord snowflake numeric string.`);
+  }
+
+  return value;
+}
+
+export function DISCORD_BUG_REPORT_FORUM_CHANNEL_ID(): string | null {
+  const value = optionalEnv(DISCORD_BUG_REPORT_FORUM_CHANNEL_ID_ENV);
+  if (!value) {
+    return null;
+  }
+
+  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
+    throw new Error(`Invalid environment variable: ${DISCORD_BUG_REPORT_FORUM_CHANNEL_ID_ENV}. Expected a Discord snowflake numeric string.`);
+  }
+
+  return value;
 }

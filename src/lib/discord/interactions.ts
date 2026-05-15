@@ -16,6 +16,13 @@ export const FITNESS_VERIFY_BUTTON_CUSTOM_ID = "fitness_verify_open";
 export const FITNESS_VERIFY_MODAL_CUSTOM_ID = "fitness_verify_modal";
 export const FITNESS_VERIFY_TOKEN_INPUT_CUSTOM_ID = "fitness_token";
 export const FITNESS_VERIFY_COMMAND_NAME = "setup-verify";
+export const FITNESS_BUG_REPORT_COMMAND_NAME = "bug";
+export const FITNESS_BUG_REPORT_MODAL_CUSTOM_ID = "fitness_bug_report_modal";
+export const FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID = "bug_summary";
+export const FITNESS_BUG_AREA_INPUT_CUSTOM_ID = "bug_area";
+export const FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID = "bug_severity";
+export const FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID = "bug_details";
+export const FITNESS_BUG_STEPS_INPUT_CUSTOM_ID = "bug_steps";
 export const DEFAULT_VERIFY_MESSAGE_TITLE = "Verify your Fawxzzy Fitness account";
 export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
   "1. Sign into the Fitness app",
@@ -117,6 +124,87 @@ export function buildDiscordVerifyModalResponse() {
               placeholder: "FWX-XXXX-XXXX",
               required: true,
               max_length: 80,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+export function buildDiscordBugReportModalResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_BUG_REPORT_MODAL_CUSTOM_ID,
+      title: "Report a bug",
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Summary",
+              placeholder: "Example: Copy button does not work",
+              required: true,
+              max_length: 120,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Area",
+              placeholder: "Settings, Discord verification, workout session...",
+              required: false,
+              max_length: 80,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Severity",
+              placeholder: "low, medium, high, blocker",
+              required: false,
+              max_length: 20,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "What happened?",
+              required: true,
+              max_length: 1000,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_STEPS_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "Steps / screenshot link",
+              placeholder: "Steps to reproduce or screenshot URL",
+              required: false,
+              max_length: 1000,
             },
           ],
         },

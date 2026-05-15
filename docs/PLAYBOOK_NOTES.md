@@ -36,3 +36,23 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: changing DB member numbers without refreshing Discord link snapshots and guild nicknames leaves the server showing stale member numbers.
 - Evidence: public.profiles.user_number, public.discord_member_links, Discord verification flow
 - Status: Proposed
+
+## 2026-05-15 - Discord bug reports should enter a governed queue before repo truth
+- Type: Guardrail
+- Summary: Discord user reports should be captured as structured review-queue records before Playbook, ATLAS, or GitHub issues promote them into durable engineering truth.
+- Rule: User bug reports are input signals, not repo truth.
+- Rule: Discord must not write directly to ATLAS or GitHub issues without review.
+- Pattern: Discord /bug modal -> structured Supabase queue -> Playbook export/triage -> reviewed issue or Codex task.
+- Failure Mode: Writing every Discord report directly into ATLAS creates noisy, abusive repo history.
+- Evidence: public.discord_bug_reports, /api/discord/interactions, scripts/export-discord-bug-reports.mjs
+- Status: Proposed
+
+## 2026-05-15 - Discord bug reports should stay bounded and review-queued
+- Type: Guardrail
+- Summary: Discord bug reports should be stored as small structured signals with bounded fields, duplicate folding, and retention controls before any reviewed promotion into ATLAS, Playbook, or GitHub.
+- Rule: Bug reports are bounded signals, not blob storage.
+- Rule: Screenshots and logs should be links or reviewed artifacts, not raw stored payloads.
+- Pattern: Discord /bug modal -> bounded Supabase row -> duplicate folding -> export/prune -> reviewed promotion.
+- Failure Mode: Unbounded text, raw payloads, files, or direct repo writes turn support intake into storage abuse.
+- Evidence: public.discord_bug_reports, scripts/export-discord-bug-reports.mjs, scripts/prune-discord-bug-reports.mjs
+- Status: Proposed

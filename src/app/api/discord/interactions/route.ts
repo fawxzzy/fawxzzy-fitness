@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   DISCORD_APPLICATION_ID,
+  DISCORD_BUG_REPORT_FORUM_CHANNEL_ID,
   DISCORD_GUILD_ID,
   DISCORD_UNVERIFIED_ROLE_ID,
   DISCORD_VERIFY_CHANNEL_ID,
@@ -10,12 +11,23 @@ import {
 } from "@/lib/env";
 import { verifyDiscordInteractionSignature } from "@/lib/discord/interaction-signature";
 import {
+  buildDiscordBugForumDuplicateReply,
+  buildDiscordBugForumThreadBody,
+  buildDiscordBugForumThreadTitle,
+  createDiscordBugReport,
+  extractDiscordBugReportModalFields,
+  recordDiscordBugReportForumThread,
+} from "@/lib/discord/bug-reports";
+import {
+  buildDiscordBugReportModalResponse,
   buildDiscordEphemeralMessageResponse,
   buildDiscordPongResponse,
   buildDiscordVerifyMessagePayload,
   buildDiscordVerifyModalResponse,
   discordMemberHasSetupPermission,
   discordMessageHasVerifyButton,
+  FITNESS_BUG_REPORT_COMMAND_NAME,
+  FITNESS_BUG_REPORT_MODAL_CUSTOM_ID,
   DISCORD_INTERACTION_TYPE,
   FITNESS_VERIFY_BUTTON_CUSTOM_ID,
   FITNESS_VERIFY_COMMAND_NAME,
@@ -25,6 +37,8 @@ import {
 import {
   addDiscordGuildMemberRole,
   createDiscordChannelMessage,
+  createDiscordForumThreadWithMessage,
+  createDiscordThreadMessage,
   fetchDiscordChannelMessages,
   patchDiscordChannelMessage,
   removeDiscordGuildMemberRole,
@@ -46,6 +60,7 @@ const NO_STORE_HEADERS = {
 };
 
 type DiscordInteraction = {
+  id?: unknown;
   type?: unknown;
   guild_id?: unknown;
   member?: {
@@ -311,6 +326,114 @@ async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
   return buildDiscordEphemeralMessageResponse("Verified. You now have access to the server.");
 }
 
+async function handleBugReportModalSubmit(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This bug report flow is only available in the configured server.");
+  }
+
+  const discordUser = resolveDiscordInteractionUser(interaction);
+  if (!discordUser.id) {
+    return buildDiscordEphemeralMessageResponse("Could not save that bug report. Make sure the summary and details are filled in.");
+  }
+
+  const creationResult = await createDiscordBugReport({
+    interactionId: typeof interaction.id === "string" ? interaction.id : null,
+    reporterDiscordUserId: discordUser.id,
+    reporterDiscordUsername: discordUser.username ?? discordUser.globalName,
+    modalFields: extractDiscordBugReportModalFields(interaction.data?.components, extractDiscordModalTextInputValue),
+  });
+
+  if (!creationResult.ok) {
+    if (creationResult.code === "DISCORD_BUG_REPORT_RATE_LIMITED") {
+      return buildDiscordEphemeralMessageResponse("You have submitted several reports recently. Please wait a few minutes before sending another.");
+    }
+
+    if (creationResult.code === "DISCORD_BUG_REPORT_INVALID_INPUT") {
+      return buildDiscordEphemeralMessageResponse("Could not save that bug report. Make sure the summary and details are filled in.");
+    }
+
+    return buildDiscordEphemeralMessageResponse("Could not save that bug report right now. Please try again in a moment.");
+  }
+
+  const reporterLabel = creationResult.reporterLink.memberNumber !== null
+    ? `Member #${creationResult.reporterLink.memberNumber}`
+    : discordUser.username ?? discordUser.globalName ?? "Unknown Discord user";
+  const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
+
+  if (forumChannelId && creationResult.duplicate && creationResult.report.discord_forum_thread_id) {
+    const duplicateReplyResult = await createDiscordThreadMessage({
+      threadId: creationResult.report.discord_forum_thread_id,
+      content: buildDiscordBugForumDuplicateReply({
+        reporterLabel,
+        duplicateCount: creationResult.report.duplicate_count,
+      }),
+    });
+
+    if (!duplicateReplyResult.ok) {
+      console.error("[discord-interactions] bug forum duplicate reply failed", {
+        requestId: randomUUID(),
+        reportId: creationResult.report.id,
+        code: duplicateReplyResult.code,
+        status: duplicateReplyResult.status,
+        message: duplicateReplyResult.message,
+      });
+    }
+  }
+
+  if (forumChannelId && !creationResult.duplicate) {
+    const forumThreadResult = await createDiscordForumThreadWithMessage({
+      channelId: forumChannelId,
+      threadName: buildDiscordBugForumThreadTitle({
+        severity: creationResult.report.severity,
+        area: creationResult.report.area,
+        summary: creationResult.report.summary,
+      }),
+      messageContent: buildDiscordBugForumThreadBody({
+        report: creationResult.report,
+        reporterLabel,
+      }),
+    });
+
+    if (!forumThreadResult.ok) {
+      console.error("[discord-interactions] bug forum thread creation failed", {
+        requestId: randomUUID(),
+        reportId: creationResult.report.id,
+        code: forumThreadResult.code,
+        status: forumThreadResult.status,
+        message: forumThreadResult.message,
+      });
+    } else if (forumThreadResult.threadId) {
+      const forumUpdateResult = await recordDiscordBugReportForumThread({
+        reportId: creationResult.report.id,
+        forumChannelId,
+        forumThreadId: forumThreadResult.threadId,
+        forumMessageId: forumThreadResult.messageId,
+      });
+
+      if (!forumUpdateResult.ok) {
+        console.error("[discord-interactions] bug forum thread metadata update failed", {
+          requestId: randomUUID(),
+          reportId: creationResult.report.id,
+        });
+      }
+    }
+  }
+
+  if (creationResult.duplicate) {
+    return buildDiscordEphemeralMessageResponse(
+      "Bug report received. It looks similar to an existing report, so we added your signal to that issue.",
+    );
+  }
+
+  if (creationResult.reporterLink.memberNumber !== null) {
+    return buildDiscordEphemeralMessageResponse(
+      `Bug report received from Member #${creationResult.reporterLink.memberNumber}. Thanks for helping improve Fitness.`,
+    );
+  }
+
+  return buildDiscordEphemeralMessageResponse("Bug report received. Thanks for helping improve Fitness.");
+}
+
 export async function POST(request: Request) {
   const requestId = randomUUID();
   let rawBody = "";
@@ -350,6 +473,13 @@ export async function POST(request: Request) {
 
     if (
       interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_BUG_REPORT_COMMAND_NAME
+    ) {
+      return jsonResponse(buildDiscordBugReportModalResponse());
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
       && interaction.data?.name === FITNESS_VERIFY_COMMAND_NAME
     ) {
       return jsonResponse(await handleSetupVerifyInteraction(interaction));
@@ -360,6 +490,13 @@ export async function POST(request: Request) {
       && interaction.data?.custom_id === FITNESS_VERIFY_BUTTON_CUSTOM_ID
     ) {
       return jsonResponse(buildDiscordVerifyModalResponse());
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
+      && interaction.data?.custom_id === FITNESS_BUG_REPORT_MODAL_CUSTOM_ID
+    ) {
+      return jsonResponse(await handleBugReportModalSubmit(interaction));
     }
 
     if (
@@ -376,6 +513,6 @@ export async function POST(request: Request) {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    return jsonResponse(buildDiscordEphemeralMessageResponse("Discord verification is temporarily unavailable."), { status: 500 });
+    return jsonResponse(buildDiscordEphemeralMessageResponse("Discord interactions are temporarily unavailable."), { status: 500 });
   }
 }

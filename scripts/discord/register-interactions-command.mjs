@@ -37,6 +37,10 @@ async function main() {
           name: "setup-verify",
           description: "Post or refresh the Fitness verification message.",
         },
+        {
+          name: "bug",
+          description: "Report a Fitness app bug.",
+        },
       ]),
     },
   );
@@ -54,7 +58,7 @@ async function main() {
   }
 
   const count = Array.isArray(payload) ? payload.length : 0;
-  console.log(`Registered ${count} Discord guild command${count === 1 ? "" : "s"} for setup verification.`);
+  console.log(`Registered ${count} Discord guild command${count === 1 ? "" : "s"} for setup verification and bug reports.`);
 }
 
 main().catch((error) => {
