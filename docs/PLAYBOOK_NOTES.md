@@ -17,3 +17,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Persisting verification tokens turns a short-lived proof into reusable account state.
 - Evidence: Settings Discord Access UI and /api/discord/verification-token
 - Status: Proposed
+
+## 2026-05-15 - Discord interactions should be signed HTTP when hosted by Fitness
+- Type: Guardrail
+- Summary: Fitness can host Discord interaction handling only when every request is verified with Discord's Ed25519 signature before parsing or executing interaction payloads.
+- Rule: Unsigned Discord interaction payloads must never reach role-grant logic.
+- Pattern: Discord HTTP interaction endpoint verifies signature, handles modal proof, consumes Fitness token, then grants the Discord role through REST.
+- Failure Mode: Accepting unsigned interaction requests lets arbitrary callers attempt Discord role grants.
+- Evidence: src/app/api/discord/interactions/route.ts, src/lib/discord/interaction-signature.ts, src/lib/discord/rest.ts
+- Status: Proposed

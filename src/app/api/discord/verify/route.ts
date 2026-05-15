@@ -2,13 +2,12 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { DISCORD_VERIFICATION_BOT_SECRET } from "@/lib/env";
 import {
-  hashDiscordVerificationToken,
   isValidDiscordUsername,
   isValidDiscordVerificationToken,
   normalizeDiscordUserId,
   normalizeDiscordUsername,
 } from "@/lib/discord-verification";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { consumeDiscordVerificationTokenForDiscordUser } from "@/lib/discord/verification-server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,23 +19,6 @@ type DiscordVerifyBody = {
   token?: unknown;
   discordUserId?: unknown;
   discordUsername?: unknown;
-};
-
-type ConsumeDiscordVerificationTokenResult = {
-  ok: boolean | null;
-  user_id: string | null;
-  user_number: number | null;
-  user_kind: "human" | "automation" | "unknown" | null;
-  expires_at: string | null;
-  consumed_at: string | null;
-  error: string | null;
-};
-
-type DiscordVerificationAdminClient = {
-  rpc: (
-    functionName: "consume_discord_verification_token",
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
 };
 
 function buildJsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
@@ -147,23 +129,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const tokenHash = hashDiscordVerificationToken(body.token);
-    const admin = supabaseAdmin() as unknown as DiscordVerificationAdminClient;
-    const { data, error } = await admin.rpc("consume_discord_verification_token", {
-      input_token_hash: tokenHash,
-      input_discord_user_id: discordUserId,
-      input_discord_username: discordUsername,
+    const result = await consumeDiscordVerificationTokenForDiscordUser({
+      token: body.token,
+      discordUserId,
+      discordUsername,
     });
-
-    if (error) {
-      throw new Error(`Failed to consume verification token: ${error.message}`);
-    }
-
-    const result = Array.isArray(data)
-      ? (data[0] as ConsumeDiscordVerificationTokenResult | null | undefined) ?? null
-      : data as ConsumeDiscordVerificationTokenResult | null;
-
-    if (!result?.ok || !result.user_id) {
+    if (!result.ok && result.code === "DISCORD_VERIFICATION_INVALID_OR_EXPIRED") {
       return buildErrorResponse({
         status: 404,
         code: "DISCORD_VERIFICATION_INVALID_OR_EXPIRED",
@@ -171,11 +142,15 @@ export async function POST(request: Request) {
       });
     }
 
+    if (!result.ok) {
+      throw new Error(`Failed to consume verification token: ${result.code}`);
+    }
+
     return buildJsonResponse({
       ok: true,
-      memberId: result.user_id,
-      userNumber: result.user_number,
-      userKind: result.user_kind,
+      memberId: result.memberId,
+      userNumber: result.userNumber,
+      userKind: result.userKind,
     });
   } catch (error) {
     console.error("[discord-verify] failed", {

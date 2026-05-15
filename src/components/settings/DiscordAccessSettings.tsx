@@ -109,15 +109,6 @@ export function DiscordAccessSettings() {
 
   return (
     <section className="space-y-3 border-t border-[rgb(var(--border-strong)/0.12)] pt-3">
-      <div className={appTokens.settingsBlockStack}>
-        <div className="space-y-1">
-          <h3 className={cn(appTokens.settingsSectionTitle, "text-left")}>Discord Access</h3>
-          <p className={appTokens.settingsBodyText}>
-            Generate a short-lived one-time token to verify your Fitness account in the Discord server.
-          </p>
-        </div>
-      </div>
-
       {token ? (
         <div className="space-y-3">
           <LabeledEditorField label="Verification token">
