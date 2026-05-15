@@ -27,6 +27,8 @@
     "lint:ci": "node scripts/next-cli.mjs lint --no-cache",
     "typecheck": "node scripts/tsc-cli.mjs -p tsconfig.json --pretty false --incremental false",
     "discord:commands:register": "node scripts/discord/register-interactions-command.mjs",
+    "discord:feedback:export": "node scripts/export-discord-bug-reports.mjs --markdown",
+    "discord:feedback:prune": "node scripts/prune-discord-bug-reports.mjs",
     "discord:bugs:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
     "prebuild": "npm run build:guard -- --stop-dev && npm run build:prepare",

@@ -3,13 +3,16 @@ import test from "node:test";
 import {
   createDiscordForumThreadWithMessage,
   createDiscordThreadMessage,
+  resolveDiscordForumTagIdsByName,
+  updateDiscordForumThreadTags,
+  updateDiscordForumThreadTitle,
   updateDiscordGuildMemberNickname,
 } from "./rest.ts";
 
 test("updateDiscordGuildMemberNickname PATCHes the guild member nickname", async () => {
   process.env.DISCORD_BOT_TOKEN = "test-bot-token";
   const originalFetch = globalThis.fetch;
-  let observedRequest: { url: string; method: string; authorization: string | null; body: string | null } | null = null;
+  let observedRequest = null;
 
   globalThis.fetch = async (input, init) => {
     observedRequest = {
@@ -19,7 +22,7 @@ test("updateDiscordGuildMemberNickname PATCHes the guild member nickname", async
         ? init.headers.get("Authorization")
         : Array.isArray(init?.headers)
           ? null
-          : String((init?.headers as Record<string, string> | undefined)?.Authorization ?? ""),
+          : String((init?.headers ?? {}).Authorization ?? ""),
       body: typeof init?.body === "string" ? init.body : null,
     };
 
@@ -75,10 +78,10 @@ test("updateDiscordGuildMemberNickname returns a safe forbidden failure", async 
   }
 });
 
-test("createDiscordForumThreadWithMessage POSTs the forum thread creation payload", async () => {
+test("createDiscordForumThreadWithMessage POSTs the forum thread creation payload with tags and safe mentions", async () => {
   process.env.DISCORD_BOT_TOKEN = "test-bot-token";
   const originalFetch = globalThis.fetch;
-  let observedRequest: { url: string; method: string; body: string | null } | null = null;
+  let observedRequest = null;
 
   globalThis.fetch = async (input, init) => {
     observedRequest = {
@@ -99,8 +102,15 @@ test("createDiscordForumThreadWithMessage POSTs the forum thread creation payloa
   try {
     const result = await createDiscordForumThreadWithMessage({
       channelId: "1504673475489562744",
-      threadName: "[Bug][Medium] Settings — Copy button does not work",
+      threadName: "Bug: Settings — Copy button does not work",
       messageContent: "**Bug Report**",
+      appliedTagIds: ["tag-bug", "tag-new", "tag-medium"],
+      allowedMentions: {
+        parse: [],
+        users: ["123456789012345678"],
+        roles: [],
+        replied_user: false,
+      },
     });
 
     assert.deepEqual(result, {
@@ -112,10 +122,16 @@ test("createDiscordForumThreadWithMessage POSTs the forum thread creation payloa
       url: "https://discord.com/api/v10/channels/1504673475489562744/threads",
       method: "POST",
       body: JSON.stringify({
-        name: "[Bug][Medium] Settings — Copy button does not work",
+        name: "Bug: Settings — Copy button does not work",
         message: {
           content: "**Bug Report**",
+          allowed_mentions: {
+            parse: [],
+            users: ["123456789012345678"],
+            replied_user: false,
+          },
         },
+        applied_tags: ["tag-bug", "tag-new", "tag-medium"],
       }),
     });
   } finally {
@@ -123,10 +139,10 @@ test("createDiscordForumThreadWithMessage POSTs the forum thread creation payloa
   }
 });
 
-test("createDiscordThreadMessage POSTs a message inside an existing thread", async () => {
+test("createDiscordThreadMessage POSTs a message inside an existing thread with safe mentions", async () => {
   process.env.DISCORD_BOT_TOKEN = "test-bot-token";
   const originalFetch = globalThis.fetch;
-  let observedRequest: { url: string; method: string; body: string | null } | null = null;
+  let observedRequest = null;
 
   globalThis.fetch = async (input, init) => {
     observedRequest = {
@@ -145,6 +161,12 @@ test("createDiscordThreadMessage POSTs a message inside an existing thread", asy
     const result = await createDiscordThreadMessage({
       threadId: "1504673475489562745",
       content: "Another report matched this bug.",
+      allowedMentions: {
+        parse: [],
+        users: [],
+        roles: [],
+        replied_user: false,
+      },
     });
 
     assert.deepEqual(result, {
@@ -156,6 +178,116 @@ test("createDiscordThreadMessage POSTs a message inside an existing thread", asy
       method: "POST",
       body: JSON.stringify({
         content: "Another report matched this bug.",
+        allowed_mentions: {
+          parse: [],
+          replied_user: false,
+        },
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("resolveDiscordForumTagIdsByName matches tags case-insensitively and reports missing tags", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    id: "1504673475489562744",
+    available_tags: [
+      { id: "tag-bug", name: "Bug" },
+      { id: "tag-new", name: "New" },
+      { id: "tag-medium", name: "Medium" },
+    ],
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const result = await resolveDiscordForumTagIdsByName({
+      channelId: "1504673475489562744",
+      tagNames: ["bug", "new", "High"],
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      matchedTagIds: ["tag-bug", "tag-new"],
+      missingTagNames: ["High"],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("updateDiscordForumThreadTags PATCHes the applied tags", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await updateDiscordForumThreadTags({
+      threadId: "1504673475489562745",
+      appliedTagIds: ["tag-bug", "tag-confirmed", "tag-medium"],
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745",
+      method: "PATCH",
+      body: JSON.stringify({
+        applied_tags: ["tag-bug", "tag-confirmed", "tag-medium"],
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("updateDiscordForumThreadTitle PATCHes the thread title", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await updateDiscordForumThreadTitle({
+      threadId: "1504673475489562745",
+      title: "Bug: Settings — Copy button does not work",
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745",
+      method: "PATCH",
+      body: JSON.stringify({
+        name: "Bug: Settings — Copy button does not work",
       }),
     });
   } finally {

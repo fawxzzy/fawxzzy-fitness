@@ -37,22 +37,40 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: public.profiles.user_number, public.discord_member_links, Discord verification flow
 - Status: Proposed
 
-## 2026-05-15 - Discord bug reports should enter a governed queue before repo truth
+## 2026-05-15 - Discord feedback reports should enter a governed queue before repo truth
 - Type: Guardrail
-- Summary: Discord user reports should be captured as structured review-queue records before Playbook, ATLAS, or GitHub issues promote them into durable engineering truth.
-- Rule: User bug reports are input signals, not repo truth.
+- Summary: Discord user feedback should be captured as structured review-queue records before Playbook, ATLAS, or GitHub issues promote them into durable engineering truth.
+- Rule: User feedback is input signal, not repo truth.
 - Rule: Discord must not write directly to ATLAS or GitHub issues without review.
-- Pattern: Discord /bug modal -> structured Supabase queue -> Playbook export/triage -> reviewed issue or Codex task.
+- Pattern: Discord /feedback modal -> structured Supabase queue -> Playbook export or triage -> reviewed issue or Codex task.
 - Failure Mode: Writing every Discord report directly into ATLAS creates noisy, abusive repo history.
-- Evidence: public.discord_bug_reports, /api/discord/interactions, scripts/export-discord-bug-reports.mjs
+- Evidence: public.discord_feedback_reports, /api/discord/interactions, scripts/export-discord-bug-reports.mjs
 - Status: Proposed
 
-## 2026-05-15 - Discord bug reports should stay bounded and review-queued
+## 2026-05-15 - Discord feedback reports should stay bounded and review-queued
 - Type: Guardrail
-- Summary: Discord bug reports should be stored as small structured signals with bounded fields, duplicate folding, and retention controls before any reviewed promotion into ATLAS, Playbook, or GitHub.
-- Rule: Bug reports are bounded signals, not blob storage.
+- Summary: Discord feedback should be stored as small structured signals with bounded fields, duplicate folding, and retention controls before any reviewed promotion into ATLAS, Playbook, or GitHub.
+- Rule: Feedback reports are bounded signals, not blob storage.
 - Rule: Screenshots and logs should be links or reviewed artifacts, not raw stored payloads.
-- Pattern: Discord /bug modal -> bounded Supabase row -> duplicate folding -> export/prune -> reviewed promotion.
+- Pattern: Discord /feedback modal -> bounded Supabase row -> duplicate folding -> export or prune -> reviewed promotion.
 - Failure Mode: Unbounded text, raw payloads, files, or direct repo writes turn support intake into storage abuse.
-- Evidence: public.discord_bug_reports, scripts/export-discord-bug-reports.mjs, scripts/prune-discord-bug-reports.mjs
+- Evidence: public.discord_feedback_reports, scripts/export-discord-bug-reports.mjs, scripts/prune-discord-bug-reports.mjs
+- Status: Proposed
+
+## 2026-05-15 - Discord forum feedback boards need source-of-truth status sync
+- Type: Pattern
+- Summary: Discord forum posts can make feedback visible, but status tags should be synced from the structured report queue so the forum remains a display surface rather than the only source of truth.
+- Rule: Forum tags are display state; Supabase remains the bounded index.
+- Rule: Reporter mentions must be explicit and controlled with allowed_mentions.
+- Pattern: Structured report row -> forum thread -> type and status tags -> staff status command -> synced row and thread update.
+- Failure Mode: Manual-only forum tags drift from the review queue and make Playbook exports unreliable.
+- Status: Proposed
+
+## 2026-05-15 - Feedback creators should withdraw details, not raw-delete review history
+- Type: Guardrail
+- Summary: Feedback reporters may withdraw their own details, but the system should keep bounded audit metadata so duplicates, triage, and Playbook exports remain trustworthy.
+- Rule: User-facing delete should mean withdraw or redact by default, not destructive history loss.
+- Rule: Forum posts are display state; Supabase remains the bounded index.
+- Pattern: Feedback modal -> bounded report row -> forum thread -> reporter withdraw or status update -> reviewed promotion.
+- Failure Mode: Raw user deletion breaks duplicate tracking and makes triage history unreliable.
 - Status: Proposed
