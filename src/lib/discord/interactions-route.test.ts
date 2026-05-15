@@ -535,7 +535,6 @@ test("Discord interactions route folds duplicate bug reports and posts only a co
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
   }
 });
-
 test("Discord interactions route verifies a numbered human member and syncs the nickname", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

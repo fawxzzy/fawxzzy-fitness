@@ -224,7 +224,6 @@ export async function createDiscordThreadMessage(args: {
     },
   });
 }
-
 export async function updateDiscordGuildMemberNickname(args: {
   guildId: string;
   userId: string;
