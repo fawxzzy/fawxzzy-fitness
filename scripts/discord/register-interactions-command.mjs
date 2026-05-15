@@ -1,3 +1,5 @@
+import { buildDiscordGuildCommandsDefinition } from "../../src/lib/discord/interactions.ts";
+
 const REQUIRED_ENV_VARS = [
   "DISCORD_APPLICATION_ID",
   "DISCORD_BOT_TOKEN",
@@ -32,16 +34,7 @@ async function main() {
         "Content-Type": "application/json",
         "User-Agent": "fawxzzy-fitness-discord-interactions/1.0",
       },
-      body: JSON.stringify([
-        {
-          name: "setup-verify",
-          description: "Post or refresh the Fitness verification message.",
-        },
-        {
-          name: "bug",
-          description: "Report a Fitness app bug.",
-        },
-      ]),
+      body: JSON.stringify(buildDiscordGuildCommandsDefinition()),
     },
   );
 
@@ -58,7 +51,7 @@ async function main() {
   }
 
   const count = Array.isArray(payload) ? payload.length : 0;
-  console.log(`Registered ${count} Discord guild command${count === 1 ? "" : "s"} for setup verification and bug reports.`);
+  console.log(`Registered ${count} Discord guild command${count === 1 ? "" : "s"} for setup verification and feedback workflows.`);
 }
 
 main().catch((error) => {

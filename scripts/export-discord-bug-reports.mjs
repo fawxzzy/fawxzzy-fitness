@@ -12,8 +12,8 @@ const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
 export const DEFAULT_STATUS = "new";
 export const DEFAULT_LIMIT = 25;
 export const MAX_LIMIT = 100;
-export const DEFAULT_MARKDOWN_OUT = "runtime/discord-bug-reports/latest.md";
-export const DEFAULT_JSON_OUT = "runtime/discord-bug-reports/latest.json";
+export const DEFAULT_MARKDOWN_OUT = "runtime/discord-feedback/latest.md";
+export const DEFAULT_JSON_OUT = "runtime/discord-feedback/latest.json";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
 const envPath = resolveEnvFilePath(repoRoot);
@@ -133,11 +133,14 @@ export function maskDiscordUserId(value) {
 export function toExportRecord(row, debug = false) {
   const guildId = getOptionalGuildId();
   const forumThreadId = typeof row.discord_forum_thread_id === "string" ? row.discord_forum_thread_id : null;
+
   return {
     id: row.id,
+    report_type: row.report_type ?? "bug",
     created_at: row.created_at,
     last_seen_at: row.last_seen_at,
     status: row.status,
+    status_updated_at: row.status_updated_at ?? null,
     severity: row.severity,
     area: row.area,
     reporter_member_number: row.reporter_member_number,
@@ -151,6 +154,7 @@ export function toExportRecord(row, debug = false) {
     duplicate_fingerprint: row.duplicate_fingerprint,
     discord_forum_channel_id: row.discord_forum_channel_id ?? null,
     discord_forum_thread_id: forumThreadId,
+    discord_forum_title: row.discord_forum_title ?? null,
     discord_forum_thread_link: guildId && forumThreadId
       ? `https://discord.com/channels/${guildId}/${forumThreadId}`
       : null,
@@ -159,7 +163,7 @@ export function toExportRecord(row, debug = false) {
 
 export function renderMarkdown(records, filterStatus, limit) {
   const lines = [
-    "# Discord bug reports",
+    "# Discord feedback reports",
     "",
     `- Generated: ${new Date().toISOString()}`,
     `- Status filter: ${filterStatus}`,
@@ -168,16 +172,18 @@ export function renderMarkdown(records, filterStatus, limit) {
   ];
 
   if (records.length === 0) {
-    lines.push("No bug reports matched the current filter.");
+    lines.push("No feedback reports matched the current filter.");
     return `${lines.join("\n")}\n`;
   }
 
   for (const record of records) {
     lines.push(`## ${record.summary}`);
     lines.push(`- id: ${record.id}`);
+    lines.push(`- report_type: ${record.report_type}`);
     lines.push(`- created_at: ${record.created_at}`);
     lines.push(`- last_seen_at: ${record.last_seen_at}`);
     lines.push(`- status: ${record.status}`);
+    lines.push(`- status_updated_at: ${record.status_updated_at ?? "None"}`);
     lines.push(`- severity: ${record.severity}`);
     lines.push(`- area: ${record.area ?? "Unspecified"}`);
     lines.push(`- reporter_member_number: ${record.reporter_member_number ?? "Unlinked"}`);
@@ -189,6 +195,7 @@ export function renderMarkdown(records, filterStatus, limit) {
     }
     lines.push(`- duplicate_count: ${record.duplicate_count ?? 1}`);
     lines.push(`- duplicate_fingerprint: ${record.duplicate_fingerprint ?? "None"}`);
+    lines.push(`- discord_forum_title: ${record.discord_forum_title ?? "None"}`);
     lines.push(`- discord_forum_thread_id: ${record.discord_forum_thread_id ?? "None"}`);
     lines.push(`- discord_forum_thread_link: ${record.discord_forum_thread_link ?? "None"}`);
     lines.push(`- screenshot_url: ${record.screenshot_url ?? "None"}`);
@@ -209,12 +216,14 @@ export async function exportDiscordBugReports({
   args = parseArgs(),
 } = {}) {
   const { data, error } = await client
-    .from("discord_bug_reports")
+    .from("discord_feedback_reports")
     .select([
       "id",
+      "report_type",
       "created_at",
       "last_seen_at",
       "status",
+      "status_updated_at",
       "severity",
       "area",
       "reporter_member_number",
@@ -227,13 +236,14 @@ export async function exportDiscordBugReports({
       "duplicate_fingerprint",
       "discord_forum_channel_id",
       "discord_forum_thread_id",
+      "discord_forum_title",
     ].join(", "))
     .eq("status", args.status)
     .order("last_seen_at", { ascending: false })
     .limit(args.limit);
 
   if (error) {
-    throw new Error(`Unable to load discord_bug_reports: ${error.message}`);
+    throw new Error(`Unable to load discord_feedback_reports: ${error.message}`);
   }
 
   const records = (data ?? []).map((row) => toExportRecord(row, args.debug));
@@ -246,13 +256,13 @@ export async function exportDiscordBugReports({
     fs.writeFileSync(outputPath, renderMarkdown(records, args.status, args.limit), "utf8");
   }
 
-  console.log(`Exported ${records.length} Discord bug report${records.length === 1 ? "" : "s"} to ${outputPath}`);
+  console.log(`Exported ${records.length} Discord feedback report${records.length === 1 ? "" : "s"} to ${outputPath}`);
   return { count: records.length, outputPath, records };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
   exportDiscordBugReports().catch((error) => {
-    console.error(`export-discord-bug-reports failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`export-discord-feedback-reports failed: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   });
 }

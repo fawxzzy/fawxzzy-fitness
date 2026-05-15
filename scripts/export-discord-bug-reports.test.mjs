@@ -20,13 +20,15 @@ test("export default output path stays under runtime", () => {
   assert.equal(outputPath, path.join(repoRoot, DEFAULT_MARKDOWN_OUT));
 });
 
-test("export masks discord ids unless debug is passed", () => {
+test("export masks discord ids unless debug is passed and includes forum metadata", () => {
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
   const record = {
     id: "report-1",
+    report_type: "bug",
     created_at: "2026-05-15T13:00:00.000Z",
     last_seen_at: "2026-05-15T13:05:00.000Z",
-    status: "new",
+    status: "confirmed",
+    status_updated_at: "2026-05-15T13:06:00.000Z",
     severity: "medium",
     area: "Settings",
     reporter_member_number: 4,
@@ -39,13 +41,20 @@ test("export masks discord ids unless debug is passed", () => {
     duplicate_fingerprint: "fingerprint-1",
     discord_forum_channel_id: "1504673475489562744",
     discord_forum_thread_id: "1504673475489562745",
+    discord_forum_title: "Bug: Settings \u2014 Token copy button failed",
   };
 
-  assert.equal(toExportRecord(record, false).reporter_discord_user_id, undefined);
-  assert.equal(toExportRecord(record, false).reporter_discord_user_id_masked, "**************5678");
-  assert.equal(toExportRecord(record, true).reporter_discord_user_id, "123456789012345678");
+  const masked = toExportRecord(record, false);
+  const debug = toExportRecord(record, true);
+
+  assert.equal(masked.reporter_discord_user_id, undefined);
+  assert.equal(masked.reporter_discord_user_id_masked, "**************5678");
+  assert.equal(debug.reporter_discord_user_id, "123456789012345678");
+  assert.equal(masked.report_type, "bug");
+  assert.equal(masked.status_updated_at, "2026-05-15T13:06:00.000Z");
+  assert.equal(masked.discord_forum_title, "Bug: Settings \u2014 Token copy button failed");
   assert.equal(
-    toExportRecord(record, false).discord_forum_thread_link,
+    masked.discord_forum_thread_link,
     "https://discord.com/channels/1504668396338413670/1504673475489562745",
   );
 });

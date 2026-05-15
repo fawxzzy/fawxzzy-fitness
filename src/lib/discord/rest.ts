@@ -5,12 +5,33 @@ import { DISCORD_BOT_TOKEN } from "@/lib/env";
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
 const DISCORD_API_USER_AGENT = "fawxzzy-fitness-discord-interactions/1.0";
 
+export type DiscordAllowedMentions = {
+  parse: string[];
+  users?: string[];
+  roles?: string[];
+  replied_user?: boolean;
+};
+
 export type DiscordChannelMessage = {
   id: string;
   author?: {
     id?: string;
   };
   components?: unknown[];
+};
+
+export type DiscordForumTag = {
+  id: string;
+  name: string;
+  moderated?: boolean;
+};
+
+export type DiscordChannel = {
+  id: string;
+  name?: string;
+  type?: number;
+  applied_tags?: string[];
+  available_tags?: DiscordForumTag[];
 };
 
 type DiscordRequestInit = {
@@ -59,6 +80,19 @@ async function discordRequest<T>(path: string, init: DiscordRequestInit): Promis
     status: response.status,
     data,
     errorMessage,
+  };
+}
+
+function normalizeAllowedMentions(allowedMentions?: DiscordAllowedMentions | null): DiscordAllowedMentions | undefined {
+  if (!allowedMentions) {
+    return undefined;
+  }
+
+  return {
+    parse: Array.isArray(allowedMentions.parse) ? allowedMentions.parse : [],
+    users: Array.isArray(allowedMentions.users) && allowedMentions.users.length > 0 ? allowedMentions.users : undefined,
+    roles: Array.isArray(allowedMentions.roles) && allowedMentions.roles.length > 0 ? allowedMentions.roles : undefined,
+    replied_user: allowedMentions.replied_user ?? false,
   };
 }
 
@@ -128,6 +162,66 @@ export async function fetchDiscordChannelMessages(args: {
   };
 }
 
+export async function fetchDiscordChannel(args: {
+  channelId: string;
+}): Promise<{ ok: true; channel: DiscordChannel } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel>(
+    `/channels/${args.channelId}`,
+    { method: "GET" },
+  );
+
+  if (result.ok && result.data && typeof result.data.id === "string") {
+    return { ok: true, channel: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_CHANNEL_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function resolveDiscordForumTagIdsByName(args: {
+  channelId: string;
+  tagNames: string[];
+}): Promise<
+  | { ok: true; matchedTagIds: string[]; missingTagNames: string[] }
+  | { ok: false; code: string; status: number; message: string | null }
+> {
+  const channelResult = await fetchDiscordChannel({ channelId: args.channelId });
+  if (!channelResult.ok) {
+    return channelResult;
+  }
+
+  const availableTags = Array.isArray(channelResult.channel.available_tags)
+    ? channelResult.channel.available_tags.filter((tag): tag is DiscordForumTag => Boolean(tag?.id && tag?.name))
+    : [];
+
+  const matchedTagIds: string[] = [];
+  const missingTagNames: string[] = [];
+
+  for (const tagName of args.tagNames) {
+    const normalizedTagName = String(tagName ?? "").trim().toLowerCase();
+    if (!normalizedTagName) {
+      continue;
+    }
+
+    const match = availableTags.find((tag) => tag.name.trim().toLowerCase() === normalizedTagName);
+    if (match) {
+      matchedTagIds.push(match.id);
+    } else {
+      missingTagNames.push(tagName);
+    }
+  }
+
+  return {
+    ok: true,
+    matchedTagIds: [...new Set(matchedTagIds)].slice(0, 3),
+    missingTagNames,
+  };
+}
+
 export async function patchDiscordChannelMessage(args: {
   channelId: string;
   messageId: string;
@@ -178,7 +272,8 @@ export async function createDiscordForumThreadWithMessage(args: {
   channelId: string;
   threadName: string;
   messageContent: string;
-  appliedTags?: string[];
+  appliedTagIds?: string[];
+  allowedMentions?: DiscordAllowedMentions | null;
 }): Promise<
   | { ok: true; threadId: string | null; messageId: string | null }
   | { ok: false; code: string; status: number; message: string | null }
@@ -191,8 +286,9 @@ export async function createDiscordForumThreadWithMessage(args: {
         name: args.threadName,
         message: {
           content: args.messageContent,
+          allowed_mentions: normalizeAllowedMentions(args.allowedMentions),
         },
-        applied_tags: Array.isArray(args.appliedTags) && args.appliedTags.length > 0 ? args.appliedTags : undefined,
+        applied_tags: Array.isArray(args.appliedTagIds) && args.appliedTagIds.length > 0 ? args.appliedTagIds.slice(0, 3) : undefined,
       },
     },
   );
@@ -216,14 +312,69 @@ export async function createDiscordForumThreadWithMessage(args: {
 export async function createDiscordThreadMessage(args: {
   threadId: string;
   content: string;
+  allowedMentions?: DiscordAllowedMentions | null;
 }): Promise<{ ok: true; messageId: string | null } | { ok: false; code: string; status: number; message: string | null }> {
   return createDiscordChannelMessage({
     channelId: args.threadId,
     body: {
       content: args.content,
+      allowed_mentions: normalizeAllowedMentions(args.allowedMentions),
     },
   });
 }
+
+export async function updateDiscordForumThreadTags(args: {
+  threadId: string;
+  appliedTagIds: string[];
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel>(
+    `/channels/${args.threadId}`,
+    {
+      method: "PATCH",
+      body: {
+        applied_tags: args.appliedTagIds.slice(0, 3),
+      },
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_UPDATE_FORUM_THREAD_TAGS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function updateDiscordForumThreadTitle(args: {
+  threadId: string;
+  title: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel>(
+    `/channels/${args.threadId}`,
+    {
+      method: "PATCH",
+      body: {
+        name: args.title,
+      },
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_UPDATE_FORUM_THREAD_TITLE_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function updateDiscordGuildMemberNickname(args: {
   guildId: string;
   userId: string;

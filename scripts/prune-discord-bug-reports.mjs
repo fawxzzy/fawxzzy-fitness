@@ -118,7 +118,7 @@ function buildCutoffIso(now, days) {
 async function collectPruneCandidates({ client, status, olderThanDays, limit, now }) {
   const cutoffIso = buildCutoffIso(now, resolveStatusCutoffDays(status, olderThanDays));
   const { data, error } = await client
-    .from("discord_bug_reports")
+    .from("discord_feedback_reports")
     .select("id, status, last_seen_at")
     .eq("status", status)
     .lt("last_seen_at", cutoffIso)
@@ -160,12 +160,12 @@ export async function runPruneDiscordBugReports({
 
       if (ids.length > 0) {
         const { error } = await client
-          .from("discord_bug_reports")
+          .from("discord_feedback_reports")
           .delete()
           .in("id", ids);
 
         if (error) {
-          throw new Error(`Unable to prune ${status} bug reports: ${error.message}`);
+          throw new Error(`Unable to prune ${status} feedback reports: ${error.message}`);
         }
 
         deletedCount += ids.length;
@@ -180,7 +180,7 @@ export async function runPruneDiscordBugReports({
     });
   }
 
-  console.log(`Discord bug report prune mode: ${args.apply ? "apply" : "dry-run"}`);
+  console.log(`Discord feedback report prune mode: ${args.apply ? "apply" : "dry-run"}`);
   console.log(`Statuses: ${args.statuses.join(", ")}`);
   console.log(`Limit per status: ${args.limit}`);
   for (const summary of summaries) {
@@ -200,7 +200,7 @@ export async function runPruneDiscordBugReports({
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
   runPruneDiscordBugReports().catch((error) => {
-    console.error(`prune-discord-bug-reports failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`prune-discord-feedback-reports failed: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   });
 }

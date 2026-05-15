@@ -66,7 +66,10 @@
 - Auth: Discord `X-Signature-Ed25519` and `X-Signature-Timestamp` headers must verify against `DISCORD_PUBLIC_KEY`.
 - Behavior:
   - responds to Discord `PING` with `{ "type": 1 }`
-  - opens the `/bug` modal and stores bug reports in `public.discord_bug_reports`
+  - opens the `/feedback` modal and stores bounded feedback in `public.discord_feedback_reports`
+  - keeps `/bug` as a backward-compatible alias for bug-type feedback
+  - handles the `/feedback-status` staff command and syncs forum tag and title state back into `public.discord_feedback_reports`
+  - handles `/feedback-withdraw` so reporters can redact details without raw-delete behavior
   - handles the guild `setup-verify` slash command
   - opens the verification modal for `fitness_verify_open`
   - consumes the Fitness token when `fitness_verify_modal` submits
@@ -86,7 +89,7 @@
 - Existing `#<number> ·` prefixes are replaced when the member reverifies or when the operator resync runs
 - Fallback nickname label: `#12 · Member`
 - Discord nickname sync is best-effort during verification
-- Bot/app requirements: the Discord app role must have `Manage Nicknames` and must sit high enough in the server role hierarchy
+- Bot or app requirements: the Discord app role must have `Manage Nicknames` and must sit high enough in the server role hierarchy
 
 ## Compact number semantics
 - Member numbers are compact public member slots, not permanent identity numbers
@@ -100,8 +103,8 @@
 ## Discord member links
 - Durable table: `public.discord_member_links`
 - Purpose: store the Fitness user id, Discord user id, the current member number snapshot, verified-role timestamp, and nickname sync status for each verified member
-- Access: server/admin only through the service role helper path
-- Compaction note: `discord_member_links.user_number` is a snapshot and can drift after delete-driven compaction until the operator refresh/sync path runs
+- Access: server and admin only through the service role helper path
+- Compaction note: `discord_member_links.user_number` is a snapshot and can drift after delete-driven compaction until the operator refresh or sync path runs
 
 ## Required environment variables
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -152,8 +155,10 @@
 - After deployment:
   - set the Interactions Endpoint URL in Discord
   - run `npm run discord:commands:register`
-  - run `/bug` and confirm the modal submits into `public.discord_bug_reports`
-  - confirm unique bugs create Feedback forum posts when `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set
+  - run `/feedback` and confirm the modal submits into `public.discord_feedback_reports`
+  - confirm unique feedback reports create Feedback forum posts when `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set
+  - run `/feedback-status` and confirm the forum tags and Supabase status stay in sync
+  - run `/feedback-withdraw` and confirm detail redaction works without deleting the audit row
   - run `/setup-verify` in Discord
   - generate a token from `Settings -> Account -> Discord Access`
   - paste the token into the Discord modal
@@ -164,9 +169,10 @@
 - Apply the Supabase migration for `discord_verification_tokens`.
 - Apply the Supabase migration for `discord_member_links`.
 - Apply the Supabase migration for compact public member-number compaction.
+- Apply feedback migrations `057`, `058`, and `059`.
 - Add `SUPABASE_SERVICE_ROLE_KEY`, `DISCORD_VERIFICATION_BOT_SECRET`, `DISCORD_VERIFICATION_TOKEN_PEPPER`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`, `DISCORD_APPLICATION_ID`, `DISCORD_GUILD_ID`, `DISCORD_VERIFY_CHANNEL_ID`, and `DISCORD_VERIFIED_ROLE_ID` in Vercel.
 - Optionally set `DISCORD_UNVERIFIED_ROLE_ID`, `DISCORD_VERIFY_MESSAGE_TITLE`, and `DISCORD_VERIFY_MESSAGE_BODY`.
-- Optionally set `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` to publish unique bugs into the Feedback forum board.
+- Optionally set `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` to publish unique feedback threads into the Feedback forum board.
 - Optionally set `DISCORD_VERIFICATION_TOKEN_TTL_MINUTES`.
 - Set `https://<fitness-domain>/api/discord/interactions` as the Discord Interactions Endpoint URL.
 - Run `npm run discord:commands:register`.
@@ -174,7 +180,9 @@
 - Run `npm run lint:ci`.
 - Run `node --import ./scripts/register-test-aliases.mjs --test src/lib/discord/*.test.ts`.
 - Test token generation while logged in to the Fitness app.
-- Test `/bug` and confirm the queue row is written.
+- Test `/feedback` and confirm the queue row is written.
+- Test `/feedback-status` and confirm the forum tags and title update.
+- Test `/feedback-withdraw` and confirm details are redacted but the row remains.
 - Test Discord modal verification end to end.
 - Run `node scripts/audit-member-numbers.mjs`.
 - Run `npm run sync:discord-member-numbers -- --dry-run` after any delete-driven compaction and rerun without `--dry-run` when you want to refresh link snapshots and Discord nicknames.
