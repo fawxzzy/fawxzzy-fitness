@@ -65,6 +65,7 @@ test("shouldRefreshAuthSession skips public auth and install routes", () => {
   assert.equal(shouldRefreshAuthSession("/install"), false);
   assert.equal(shouldRefreshAuthSession("/api/app-version"), false);
   assert.equal(shouldRefreshAuthSession("/api/discord/interactions"), false);
+  assert.equal(shouldRefreshAuthSession("/api/discord/member-numbers/sync"), false);
   assert.equal(shouldRefreshAuthSession("/api/discord/verify"), false);
 });
 
