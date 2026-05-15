@@ -341,11 +341,11 @@ async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
   }
 
   if (shouldDisplayMemberNumber && nicknameSyncStatus === "synced") {
-    return buildDiscordEphemeralMessageResponse(`Verified as Member #${verificationResult.userNumber}. You now have access to the server.`);
+    return buildDiscordEphemeralMessageResponse(`Verified as Member ${verificationResult.userNumber}. You now have access to the server.`);
   }
 
   if (shouldDisplayMemberNumber) {
-    return buildDiscordEphemeralMessageResponse(`Verified as Member #${verificationResult.userNumber}. Your access is active, but Discord could not update your nickname.`);
+    return buildDiscordEphemeralMessageResponse(`Verified as Member ${verificationResult.userNumber}. Your access is active, but Discord could not update your nickname.`);
   }
 
   return buildDiscordEphemeralMessageResponse("Verified. You now have access to the server.");
@@ -532,10 +532,10 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
   const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix });
   if (!lookupResult.ok) {
     if (lookupResult.code === "DISCORD_BUG_REPORT_AMBIGUOUS_ID") {
-      return buildDiscordEphemeralMessageResponse("Feedback id is ambiguous. Use a longer id.");
+      return buildDiscordEphemeralMessageResponse("That report id matched multiple feedback reports. Copy the full Report ID from the forum post.");
     }
 
-    return buildDiscordEphemeralMessageResponse("Feedback not found.");
+    return buildDiscordEphemeralMessageResponse("Could not find that feedback report. Copy the Report ID from the forum post and try again.");
   }
 
   const statusUpdateResult = await updateDiscordBugReportStatus({
@@ -686,10 +686,10 @@ async function handleFeedbackWithdrawInteraction(interaction: DiscordInteraction
   const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix });
   if (!lookupResult.ok) {
     if (lookupResult.code === "DISCORD_BUG_REPORT_AMBIGUOUS_ID") {
-      return buildDiscordEphemeralMessageResponse("Feedback id is ambiguous. Use a longer id.");
+      return buildDiscordEphemeralMessageResponse("That report id matched multiple feedback reports. Copy the full Report ID from the forum post.");
     }
 
-    return buildDiscordEphemeralMessageResponse("Feedback not found.");
+    return buildDiscordEphemeralMessageResponse("Could not find that feedback report. Copy the Report ID from the forum post and try again.");
   }
 
   const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
@@ -703,6 +703,7 @@ async function handleFeedbackWithdrawInteraction(interaction: DiscordInteraction
   const withdrawResult = await withdrawDiscordFeedbackReport({
     reportId: lookupResult.report.id,
     withdrawnByDiscordUserId: requester.id,
+    statusNote: isReporter ? "Withdrawn by reporter" : "Withdrawn by staff",
   });
 
   if (!withdrawResult.ok) {

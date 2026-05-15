@@ -11,10 +11,12 @@ const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
 const DISCORD_BOT_TOKEN_ENV = "DISCORD_BOT_TOKEN";
 const DISCORD_GUILD_ID_ENV = "DISCORD_GUILD_ID";
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
-const DISCORD_API_USER_AGENT = "fawxzzy-fitness-discord-member-sync/1.0";
+const DISCORD_API_USER_AGENT = "fawxzzy-fitness-discord-member-sync/1.1";
 const DISCORD_NICKNAME_MAX_LENGTH = 32;
-const EXISTING_MEMBER_NUMBER_PREFIX_PATTERN = /^#\d+\s+·\s+/;
+const EXISTING_MEMBER_NUMBER_PREFIX_PATTERN = /^#\d+\s+·\s+/u;
+const EXISTING_MEMBER_NUMBER_SUFFIX_PATTERN = /\s+·\s+\d+$/u;
 const DEFAULT_MEMBER_DISPLAY_NAME = "Member";
+const DEFAULT_BATCH_SIZE = 50;
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
 const envPath = resolveEnvFilePath(repoRoot);
@@ -30,6 +32,7 @@ for (const [key, value] of Object.entries(fileEnv)) {
 function parseArgs(argv = process.argv.slice(2)) {
   return {
     dryRun: argv.includes("--dry-run"),
+    batchSize: DEFAULT_BATCH_SIZE,
   };
 }
 
@@ -65,28 +68,29 @@ function createServiceClient() {
   });
 }
 
-function shouldDisplayDiscordMemberNumber(profile) {
-  return profile?.user_kind === "human"
-    && Number.isInteger(profile?.user_number)
-    && Number(profile.user_number) >= 0;
+function shouldDisplayDiscordMemberNumber(link) {
+  return link?.user_kind === "human"
+    && Number.isInteger(link?.user_number)
+    && Number(link.user_number) >= 0;
 }
 
 function sanitizeDiscordDisplayName(value) {
   const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
-  const withoutExistingPrefix = normalized.replace(EXISTING_MEMBER_NUMBER_PREFIX_PATTERN, "").trim();
-  return withoutExistingPrefix || DEFAULT_MEMBER_DISPLAY_NAME;
+  const withoutPrefix = normalized.replace(EXISTING_MEMBER_NUMBER_PREFIX_PATTERN, "").trim();
+  const withoutMemberNumber = withoutPrefix.replace(EXISTING_MEMBER_NUMBER_SUFFIX_PATTERN, "").trim();
+  return withoutMemberNumber || DEFAULT_MEMBER_DISPLAY_NAME;
 }
 
 function formatDiscordMemberNickname({ userNumber, currentDisplayName }) {
-  const prefix = `#${userNumber} · `;
+  const suffix = ` · ${userNumber}`;
   const safeDisplayName = sanitizeDiscordDisplayName(currentDisplayName);
-  const availableNameLength = DISCORD_NICKNAME_MAX_LENGTH - prefix.length;
+  const availableNameLength = DISCORD_NICKNAME_MAX_LENGTH - suffix.length;
 
   if (availableNameLength <= 0) {
-    return prefix.slice(0, DISCORD_NICKNAME_MAX_LENGTH).trimEnd();
+    return suffix.slice(-DISCORD_NICKNAME_MAX_LENGTH).trimStart();
   }
 
-  return `${prefix}${safeDisplayName.slice(0, availableNameLength)}`;
+  return `${safeDisplayName.slice(0, availableNameLength)}${suffix}`;
 }
 
 function maskDiscordUserId(value) {
@@ -149,115 +153,128 @@ async function main() {
   const botToken = getOptionalEnv(DISCORD_BOT_TOKEN_ENV);
   const guildId = getOptionalEnv(DISCORD_GUILD_ID_ENV);
   const canSyncDiscordNicknames = Boolean(botToken && guildId);
-  const [{ data: links, error: linksError }, { data: profiles, error: profilesError }] = await Promise.all([
-    client
-      .from("discord_member_links")
-      .select("id, fitness_user_id, discord_user_id, discord_username, user_number, user_kind, nickname_sync_status"),
-    client
-      .from("profiles")
-      .select("id, user_number, user_kind"),
-  ]);
+
+  const { data: links, error: linksError } = await client
+    .from("discord_member_links")
+    .select("id, discord_user_id, discord_username, user_number, user_kind, nickname_sync_status")
+    .in("nickname_sync_status", ["needs_sync", "failed", "not_attempted"])
+    .eq("user_kind", "human")
+    .gte("user_number", 0)
+    .order("updated_at", { ascending: true })
+    .limit(args.batchSize);
 
   if (linksError) {
     throw new Error(`Unable to load discord_member_links: ${linksError.message}`);
   }
 
-  if (profilesError) {
-    throw new Error(`Unable to load profiles: ${profilesError.message}`);
-  }
-
-  const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
   const summary = {
     scanned: 0,
-    linkRowsUpdated: 0,
-    staleLinkRows: 0,
-    missingProfiles: 0,
-    nicknameSyncEligible: 0,
-    nicknameSyncUpdated: 0,
-    nicknameSyncFailed: 0,
-    nicknameSyncSkipped: 0,
+    eligible: 0,
+    synced: 0,
+    failed: 0,
+    skipped: 0,
   };
   const notes = [];
 
   for (const link of links ?? []) {
     summary.scanned += 1;
-    const profile = profileById.get(link.fitness_user_id);
 
-    if (!profile) {
-      summary.missingProfiles += 1;
-      notes.push(`Missing profile for link ${link.id} -> discord ${maskDiscordUserId(link.discord_user_id)}`);
+    if (!shouldDisplayDiscordMemberNumber(link)) {
+      summary.skipped += 1;
+
+      if (!args.dryRun) {
+        const { error: updateError } = await client
+          .from("discord_member_links")
+          .update({
+            nickname_sync_status: "skipped",
+            nickname_synced_at: null,
+            last_error_code: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", link.id);
+
+        if (updateError) {
+          throw new Error(`Unable to update discord_member_links row ${link.id}: ${updateError.message}`);
+        }
+      }
+
       continue;
     }
 
-    const nextUserNumber = typeof profile.user_number === "number" ? profile.user_number : null;
-    const nextUserKind = typeof profile.user_kind === "string" ? profile.user_kind : "unknown";
-    const linkIsStale = link.user_number !== nextUserNumber || link.user_kind !== nextUserKind;
-    if (linkIsStale) {
-      summary.staleLinkRows += 1;
-    }
-
-    let nicknameSyncStatus = shouldDisplayDiscordMemberNumber(profile) ? "not_attempted" : "skipped";
-    let nicknameSyncedAt = null;
-    let lastErrorCode = null;
-
-    if (shouldDisplayDiscordMemberNumber(profile)) {
-      summary.nicknameSyncEligible += 1;
-      const nickname = formatDiscordMemberNickname({
-        userNumber: profile.user_number,
-        currentDisplayName: link.discord_username,
-      });
-
-      if (args.dryRun) {
-        summary.nicknameSyncSkipped += 1;
-        notes.push(`Dry run: would sync ${maskDiscordUserId(link.discord_user_id)} to ${nickname}`);
-      } else if (canSyncDiscordNicknames) {
-        const nicknameResult = await updateDiscordGuildMemberNickname({
-          guildId,
-          userId: link.discord_user_id,
-          nickname,
-          botToken,
-        });
-
-        if (nicknameResult.ok) {
-          nicknameSyncStatus = "synced";
-          nicknameSyncedAt = new Date().toISOString();
-          summary.nicknameSyncUpdated += 1;
-        } else {
-          nicknameSyncStatus = "failed";
-          lastErrorCode = nicknameResult.code;
-          summary.nicknameSyncFailed += 1;
-          notes.push(`Nickname sync failed for ${maskDiscordUserId(link.discord_user_id)} -> ${nicknameResult.code}`);
-        }
-      } else {
-        summary.nicknameSyncSkipped += 1;
-        notes.push(`Nickname sync skipped for ${maskDiscordUserId(link.discord_user_id)} because Discord env is incomplete`);
-      }
-    } else {
-      summary.nicknameSyncSkipped += 1;
-    }
+    summary.eligible += 1;
+    const nickname = formatDiscordMemberNickname({
+      userNumber: link.user_number,
+      currentDisplayName: link.discord_username,
+    });
 
     if (args.dryRun) {
+      notes.push(`Dry run: would sync ${maskDiscordUserId(link.discord_user_id)} to ${nickname}`);
       continue;
     }
 
-    const updatePayload = {
-      user_number: nextUserNumber,
-      user_kind: nextUserKind,
-      nickname_sync_status: nicknameSyncStatus,
-      nickname_synced_at: nicknameSyncedAt,
-      last_error_code: lastErrorCode,
-      updated_at: new Date().toISOString(),
-    };
+    if (!canSyncDiscordNicknames) {
+      summary.failed += 1;
+      notes.push(`Nickname sync failed for ${maskDiscordUserId(link.discord_user_id)} because Discord env is incomplete`);
+
+      const { error: updateError } = await client
+        .from("discord_member_links")
+        .update({
+          nickname_sync_status: "failed",
+          nickname_synced_at: null,
+          last_error_code: "DISCORD_ENV_INCOMPLETE",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", link.id);
+
+      if (updateError) {
+        throw new Error(`Unable to update discord_member_links row ${link.id}: ${updateError.message}`);
+      }
+
+      continue;
+    }
+
+    const nicknameResult = await updateDiscordGuildMemberNickname({
+      guildId,
+      userId: link.discord_user_id,
+      nickname,
+      botToken,
+    });
+
+    if (nicknameResult.ok) {
+      summary.synced += 1;
+      const { error: updateError } = await client
+        .from("discord_member_links")
+        .update({
+          nickname_sync_status: "synced",
+          nickname_synced_at: new Date().toISOString(),
+          last_error_code: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", link.id);
+
+      if (updateError) {
+        throw new Error(`Unable to update discord_member_links row ${link.id}: ${updateError.message}`);
+      }
+
+      continue;
+    }
+
+    summary.failed += 1;
+    notes.push(`Nickname sync failed for ${maskDiscordUserId(link.discord_user_id)} -> ${nicknameResult.code}`);
+
     const { error: updateError } = await client
       .from("discord_member_links")
-      .update(updatePayload)
+      .update({
+        nickname_sync_status: "failed",
+        nickname_synced_at: null,
+        last_error_code: nicknameResult.code,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", link.id);
 
     if (updateError) {
       throw new Error(`Unable to update discord_member_links row ${link.id}: ${updateError.message}`);
     }
-
-    summary.linkRowsUpdated += 1;
   }
 
   console.log("Discord member-number sync");
@@ -265,13 +282,10 @@ async function main() {
   console.log(`Mode: ${args.dryRun ? "dry-run" : "apply"}`);
   console.log(`Discord nickname sync enabled: ${canSyncDiscordNicknames}`);
   console.log(`Links scanned: ${summary.scanned}`);
-  console.log(`Stale link rows: ${summary.staleLinkRows}`);
-  console.log(`Link rows updated: ${summary.linkRowsUpdated}`);
-  console.log(`Missing linked profiles: ${summary.missingProfiles}`);
-  console.log(`Nickname sync eligible: ${summary.nicknameSyncEligible}`);
-  console.log(`Nickname sync updated: ${summary.nicknameSyncUpdated}`);
-  console.log(`Nickname sync failed: ${summary.nicknameSyncFailed}`);
-  console.log(`Nickname sync skipped: ${summary.nicknameSyncSkipped}`);
+  console.log(`Eligible rows: ${summary.eligible}`);
+  console.log(`Nickname sync updated: ${summary.synced}`);
+  console.log(`Nickname sync failed: ${summary.failed}`);
+  console.log(`Nickname sync skipped: ${summary.skipped}`);
 
   if (notes.length > 0) {
     console.log("Notes:");

@@ -1,5 +1,6 @@
 const DISCORD_NICKNAME_MAX_LENGTH = 32;
-const EXISTING_MEMBER_NUMBER_PREFIX_PATTERN = /^#\d+\s+·\s+/;
+const EXISTING_MEMBER_NUMBER_PREFIX_PATTERN = /^#\d+\s+·\s+/u;
+const EXISTING_MEMBER_NUMBER_SUFFIX_PATTERN = /\s+·\s+\d+$/u;
 const DEFAULT_MEMBER_DISPLAY_NAME = "Member";
 
 export function shouldDisplayDiscordMemberNumber(args: {
@@ -14,20 +15,21 @@ export function shouldDisplayDiscordMemberNumber(args: {
 function sanitizeDiscordDisplayName(value: string | null | undefined): string {
   const normalized = (value ?? "").replace(/\s+/g, " ").trim();
   const withoutExistingPrefix = normalized.replace(EXISTING_MEMBER_NUMBER_PREFIX_PATTERN, "").trim();
-  return withoutExistingPrefix || DEFAULT_MEMBER_DISPLAY_NAME;
+  const withoutExistingMemberNumber = withoutExistingPrefix.replace(EXISTING_MEMBER_NUMBER_SUFFIX_PATTERN, "").trim();
+  return withoutExistingMemberNumber || DEFAULT_MEMBER_DISPLAY_NAME;
 }
 
 export function formatDiscordMemberNickname(args: {
   userNumber: number;
   currentDisplayName: string | null | undefined;
 }): string {
-  const prefix = `#${args.userNumber} · `;
+  const suffix = ` · ${args.userNumber}`;
   const safeDisplayName = sanitizeDiscordDisplayName(args.currentDisplayName);
-  const availableNameLength = DISCORD_NICKNAME_MAX_LENGTH - prefix.length;
+  const availableNameLength = DISCORD_NICKNAME_MAX_LENGTH - suffix.length;
 
   if (availableNameLength <= 0) {
-    return prefix.slice(0, DISCORD_NICKNAME_MAX_LENGTH).trimEnd();
+    return suffix.slice(-DISCORD_NICKNAME_MAX_LENGTH).trimStart();
   }
 
-  return `${prefix}${safeDisplayName.slice(0, availableNameLength)}`;
+  return `${safeDisplayName.slice(0, availableNameLength)}${suffix}`;
 }

@@ -38,6 +38,7 @@ Not allowed:
 - `/feedback` requires `type` with choices `Bug`, `Feat`, or `Fix`.
 - `/feedback-status` is the staff status command.
 - `/feedback-withdraw` lets the original reporter or staff withdraw and redact details without raw deletion.
+- `/feedback-withdraw` accepts a full Report ID, a 6+ character short ID, a forum thread ID, or a forum thread URL.
 - `/setup-verify` remains unchanged.
 
 ## User flow
@@ -56,10 +57,11 @@ Not allowed:
 1. Create the forum tags in the Feedback forum channel.
 2. Register commands with `npm run discord:commands:register`.
 3. Set `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`.
-4. Review queue rows in Supabase or export them with `npm run discord:feedback:export`.
-5. Use `/feedback-status` to keep Supabase and the forum thread in sync.
-6. Use `/feedback-withdraw` only when the reporter or staff intentionally withdraws details.
-7. Promote reviewed reports into Playbook, ATLAS, or GitHub only after triage.
+4. Keep verification copy aligned with `Settings -> Account -> Discord Access` and rerun `/setup-verify` after copy changes.
+5. Review queue rows in Supabase or export them with `npm run discord:feedback:export`.
+6. Use `/feedback-status` to keep Supabase and the forum thread in sync.
+7. Use `/feedback-withdraw` only when the reporter or staff intentionally withdraws details.
+8. Promote reviewed reports into Playbook, ATLAS, or GitHub only after triage.
 
 ## Modal fields
 - `Summary`
@@ -100,6 +102,7 @@ Security:
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `DISCORD_MEMBER_SYNC_SECRET`
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 
 Current production value:
@@ -138,6 +141,15 @@ Severity tags:
 - `Blocker`
 
 The bot resolves tag ids by tag name at runtime. It does not hardcode tag ids. Missing tags are logged safely and the post still goes through.
+
+## Member number display and sync
+- Discord nicknames use the display format `username · N`.
+- Existing old-style `#N · username` prefixes and stale `username · oldN` suffixes are stripped before applying the current number.
+- Delete-driven member-number compaction refreshes linked `discord_member_links` snapshots and marks those rows as `needs_sync`.
+- Discord API side effects run through the protected sync path, not from SQL triggers.
+- Manual sync options:
+  - `POST /api/discord/member-numbers/sync` with `x-discord-member-sync-secret`
+  - `npm run sync:discord-member-numbers -- --dry-run`
 
 ## Title standard
 - `Bug: Area - Summary`
@@ -209,6 +221,7 @@ Usage:
 
 Behavior:
 - allowed for the original reporter or staff with the same moderation permissions as `/feedback-status`
+- accepts the full UUID, a 6+ char short id, the Discord forum thread id, or the forum thread URL
 - updates Supabase status to `withdrawn`
 - redacts `details`, `steps_to_reproduce`, and `screenshot_url`
 - keeps a small audit record and duplicate history
@@ -276,10 +289,11 @@ Current production-safe paths:
 Then:
 1. Make sure the Feedback forum has the required tags.
 2. Register commands with `npm run discord:commands:register`.
-3. Test `/feedback`.
-4. Test a duplicate `/feedback`.
-5. Test `/feedback-status`.
-6. Test `/feedback-withdraw`.
+3. Rerun `/setup-verify` if verify-message copy changed.
+4. Test `/feedback`.
+5. Test a duplicate `/feedback`.
+6. Test `/feedback-status`.
+7. Test `/feedback-withdraw` with the forum thread URL.
 
 ## Guardrails
 Rule: feedback reports are input signals, not repo truth.

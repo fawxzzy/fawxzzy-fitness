@@ -86,6 +86,9 @@ function createMockAdminClient(options = {}) {
       if (filters.id && row.id !== filters.id) {
         return false;
       }
+      if (filters.threadId && row.discord_forum_thread_id !== filters.threadId) {
+        return false;
+      }
       if (filters.fingerprint && row.duplicate_fingerprint !== filters.fingerprint) {
         return false;
       }
@@ -135,6 +138,7 @@ function createMockAdminClient(options = {}) {
 
           const filters = {
             id: null,
+            threadId: null,
             fingerprint: null,
             prefix: null,
             statuses: null,
@@ -147,6 +151,9 @@ function createMockAdminClient(options = {}) {
               }
               if (column === "id") {
                 filters.id = value;
+              }
+              if (column === "discord_forum_thread_id") {
+                filters.threadId = value;
               }
 
               return {
@@ -605,11 +612,26 @@ test("createDiscordBugReport folds duplicates into an existing row instead of in
   assert.equal(observed.updatedCalls[0]?.values?.duplicate_count, 3);
 });
 
-test("findDiscordBugReportByIdOrPrefix resolves a unique short id and rejects ambiguous prefixes", async () => {
-  const reportOne = buildStoredRow({ id: "abcd1234-ffff-ffff-ffff-ffffffffffff" });
-  const reportTwo = buildStoredRow({ id: "abcd9876-ffff-ffff-ffff-ffffffffffff", summary: "Another report" });
+test("findDiscordBugReportByIdOrPrefix resolves UUIDs, 6+ short ids, thread ids, and thread URLs", async () => {
+  const reportOne = buildStoredRow({
+    id: "abcd1234-ffff-4fff-8fff-ffffffffffff",
+    discord_forum_thread_id: "1504673475489562745",
+  });
+  const reportTwo = buildStoredRow({
+    id: "abcd12ef-ffff-4fff-8fff-ffffffffffff",
+    summary: "Another report",
+    discord_forum_thread_id: "1504673475489562999",
+  });
   const unique = createMockAdminClient({ reports: [reportOne] });
   const ambiguous = createMockAdminClient({ reports: [reportOne, reportTwo] });
+
+  assert.deepEqual(
+    await findDiscordBugReportByIdOrPrefix({
+      reportIdOrPrefix: "abcd1234-ffff-4fff-8fff-ffffffffffff",
+      adminClient: unique.adminClient,
+    }),
+    { ok: true, report: reportOne },
+  );
 
   assert.deepEqual(
     await findDiscordBugReportByIdOrPrefix({
@@ -621,10 +643,26 @@ test("findDiscordBugReportByIdOrPrefix resolves a unique short id and rejects am
 
   assert.deepEqual(
     await findDiscordBugReportByIdOrPrefix({
-      reportIdOrPrefix: "abcd",
+      reportIdOrPrefix: "abcd12",
       adminClient: ambiguous.adminClient,
     }),
     { ok: false, code: "DISCORD_BUG_REPORT_AMBIGUOUS_ID" },
+  );
+
+  assert.deepEqual(
+    await findDiscordBugReportByIdOrPrefix({
+      reportIdOrPrefix: "1504673475489562745",
+      adminClient: unique.adminClient,
+    }),
+    { ok: true, report: reportOne },
+  );
+
+  assert.deepEqual(
+    await findDiscordBugReportByIdOrPrefix({
+      reportIdOrPrefix: "https://discord.com/channels/1504668396338413670/1504673475489562745/1504673475489562746",
+      adminClient: unique.adminClient,
+    }),
+    { ok: true, report: reportOne },
   );
 });
 
@@ -669,6 +707,7 @@ test("withdrawDiscordFeedbackReport redacts details and marks withdrawn", async 
   assert.equal(result.report.steps_to_reproduce, null);
   assert.equal(result.report.screenshot_url, null);
   assert.equal(result.report.details_pruned, true);
+  assert.equal(result.report.status_note, "Withdrawn by reporter");
 });
 
 test("recordDiscordBugReportStaffMessage stores the notification message id", async () => {

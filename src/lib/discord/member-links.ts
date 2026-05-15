@@ -3,7 +3,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export type DiscordMemberLinkUserKind = "human" | "automation" | "unknown";
-export type DiscordMemberLinkNicknameSyncStatus = "not_attempted" | "synced" | "failed" | "skipped";
+export type DiscordMemberLinkNicknameSyncStatus = "not_attempted" | "needs_sync" | "synced" | "failed" | "skipped";
 
 type UpsertDiscordMemberLinkRow = {
   id: string;

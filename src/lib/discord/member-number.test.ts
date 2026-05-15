@@ -5,17 +5,17 @@ import {
   shouldDisplayDiscordMemberNumber,
 } from "./member-number.ts";
 
-test("formatDiscordMemberNickname prefixes a human member number", () => {
+test("formatDiscordMemberNickname formats a human member number as username first", () => {
   assert.equal(
     formatDiscordMemberNickname({ userNumber: 12, currentDisplayName: "Zac" }),
-    "#12 · Zac",
+    "Zac · 12",
   );
 });
 
 test("formatDiscordMemberNickname supports reserved member number zero when profile truth provides it", () => {
   assert.equal(
     formatDiscordMemberNickname({ userNumber: 0, currentDisplayName: "Zac" }),
-    "#0 · Zac",
+    "Zac · 0",
   );
 });
 
@@ -24,26 +24,33 @@ test("shouldDisplayDiscordMemberNumber rejects automation and unknown users", ()
   assert.equal(shouldDisplayDiscordMemberNumber({ userKind: "unknown", userNumber: 12 }), false);
 });
 
-test("formatDiscordMemberNickname replaces an existing member-number prefix", () => {
+test("formatDiscordMemberNickname removes an existing member-number prefix", () => {
   assert.equal(
     formatDiscordMemberNickname({ userNumber: 12, currentDisplayName: "#9 · Zac" }),
-    "#12 · Zac",
+    "Zac · 12",
   );
 });
 
-test("formatDiscordMemberNickname trims long names safely to Discord nickname limits", () => {
+test("formatDiscordMemberNickname removes an existing member-number suffix", () => {
+  assert.equal(
+    formatDiscordMemberNickname({ userNumber: 12, currentDisplayName: "Zac · 9" }),
+    "Zac · 12",
+  );
+});
+
+test("formatDiscordMemberNickname trims long names safely and keeps the suffix visible", () => {
   const nickname = formatDiscordMemberNickname({
     userNumber: 12,
     currentDisplayName: "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
   });
 
   assert.equal(nickname.length, 32);
-  assert.equal(nickname.startsWith("#12 · "), true);
+  assert.equal(nickname.endsWith(" · 12"), true);
 });
 
 test("formatDiscordMemberNickname falls back to Member when the current display name is missing", () => {
   assert.equal(
     formatDiscordMemberNickname({ userNumber: 12, currentDisplayName: "   " }),
-    "#12 · Member",
+    "Member · 12",
   );
 });

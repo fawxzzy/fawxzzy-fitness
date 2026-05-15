@@ -26,7 +26,7 @@ test("updateDiscordGuildMemberNickname PATCHes the guild member nickname", async
       body: typeof init?.body === "string" ? init.body : null,
     };
 
-    return new Response(JSON.stringify({ nick: "#12 · Zac" }), {
+    return new Response(JSON.stringify({ nick: "Zac · 12" }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -36,7 +36,7 @@ test("updateDiscordGuildMemberNickname PATCHes the guild member nickname", async
     const result = await updateDiscordGuildMemberNickname({
       guildId: "1504668396338413670",
       userId: "123456789012345678",
-      nickname: "#12 · Zac",
+      nickname: "Zac · 12",
     });
 
     assert.deepEqual(result, { ok: true });
@@ -44,7 +44,7 @@ test("updateDiscordGuildMemberNickname PATCHes the guild member nickname", async
       url: "https://discord.com/api/v10/guilds/1504668396338413670/members/123456789012345678",
       method: "PATCH",
       authorization: "Bot test-bot-token",
-      body: JSON.stringify({ nick: "#12 · Zac" }),
+      body: JSON.stringify({ nick: "Zac · 12" }),
     });
   } finally {
     globalThis.fetch = originalFetch;
@@ -64,7 +64,7 @@ test("updateDiscordGuildMemberNickname returns a safe forbidden failure", async 
     const result = await updateDiscordGuildMemberNickname({
       guildId: "1504668396338413670",
       userId: "123456789012345678",
-      nickname: "#12 · Zac",
+      nickname: "Zac · 12",
     });
 
     assert.deepEqual(result, {

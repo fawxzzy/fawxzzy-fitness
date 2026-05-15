@@ -75,6 +75,23 @@ test("resolveDiscordVerifyMessageBody converts escaped newlines into rendered li
   );
 });
 
+test("resolveDiscordVerifyMessageBody falls back to the updated Discord Access instructions", () => {
+  assert.equal(
+    resolveDiscordVerifyMessageBody(null),
+    [
+      "To unlock the server:",
+      "",
+      "1. Sign into Fawxzzy Fitness.",
+      "2. Go to Settings -> Account -> Discord Access.",
+      "3. Generate your Discord verification token.",
+      "4. Click Verify below and paste the token.",
+      "",
+      "Fitness login:",
+      "https://fawxzzy-fitness-local.vercel.app/login",
+    ].join("\n"),
+  );
+});
+
 test("buildDiscordVerifyMessagePayload includes the verify button", () => {
   const payload = buildDiscordVerifyMessagePayload();
 

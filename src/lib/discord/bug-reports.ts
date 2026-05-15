@@ -12,6 +12,7 @@ export const DISCORD_BUG_REPORT_STEPS_MAX_LENGTH = 1200;
 export const DISCORD_BUG_REPORT_SCREENSHOT_URL_MAX_LENGTH = 500;
 export const DISCORD_BUG_REPORT_FORUM_TITLE_MAX_LENGTH = 100;
 export const DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH = 1000;
+export const DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH = 6;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_WINDOW_MINUTES = 10;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_MAX_REPORTS = 3;
 export const DISCORD_BUG_REPORT_DUPLICATE_WINDOW_DAYS = 30;
@@ -186,7 +187,61 @@ function isUuidLike(value: string): boolean {
 }
 
 function isShortReportIdPrefix(value: string): boolean {
-  return /^[0-9a-f]{4,12}$/i.test(value);
+  return new RegExp(`^[0-9a-f]{${DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH},32}$`, "i").test(value);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function compareDiscordSnowflakesDescending(left: string, right: string): number {
+  if (left.length !== right.length) {
+    return right.length - left.length;
+  }
+
+  const leftValue = BigInt(left);
+  const rightValue = BigInt(right);
+  if (leftValue === rightValue) {
+    return 0;
+  }
+
+  return leftValue > rightValue ? -1 : 1;
+}
+
+function extractDiscordForumThreadLookupCandidates(value: string): string[] {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) {
+    return [];
+  }
+
+  if (isDiscordSnowflake(normalized)) {
+    return [normalized];
+  }
+
+  let urlSnowflakes: string[] = [];
+
+  try {
+    const parsedUrl = new URL(normalized);
+    urlSnowflakes = Array.from(parsedUrl.pathname.matchAll(/\d{5,32}/g), (match) => match[0] ?? "");
+  } catch {
+    urlSnowflakes = [];
+  }
+
+  if (urlSnowflakes.length === 0) {
+    return [];
+  }
+
+  const prioritized: string[] = [];
+  if (urlSnowflakes.length >= 2) {
+    prioritized.push(urlSnowflakes[urlSnowflakes.length - 2] ?? "");
+  }
+
+  const largestSnowflake = [...urlSnowflakes].sort(compareDiscordSnowflakesDescending)[0] ?? "";
+  if (largestSnowflake) {
+    prioritized.push(largestSnowflake);
+  }
+
+  return uniqueStrings([...prioritized, ...urlSnowflakes]);
 }
 
 function coerceUserKind(value: unknown): DiscordBugReportReporterUserKind | null {
@@ -675,6 +730,20 @@ async function findDiscordBugReportByFullId(admin: DiscordBugReportsAdminClient,
   return coerceBugReportRow(data);
 }
 
+async function findDiscordBugReportByForumThreadId(admin: DiscordBugReportsAdminClient, threadId: string): Promise<DiscordBugReportRow | null> {
+  const { data, error } = await admin
+    .from("discord_feedback_reports")
+    .select(DISCORD_BUG_REPORT_SELECT_COLUMNS)
+    .eq("discord_forum_thread_id", threadId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load discord bug report by forum thread id: ${error.message}`);
+  }
+
+  return coerceBugReportRow(data);
+}
+
 async function findDiscordBugReportByShortId(admin: DiscordBugReportsAdminClient, shortId: string): Promise<DiscordBugReportRow | null> {
   const { data, error } = await admin
     .from("discord_feedback_reports")
@@ -795,14 +864,22 @@ export async function findDiscordBugReportByIdOrPrefix(args: {
       return report ? { ok: true, report } : { ok: false, code: "DISCORD_BUG_REPORT_NOT_FOUND" };
     }
 
-    if (!isShortReportIdPrefix(normalized)) {
-      return { ok: false, code: "DISCORD_BUG_REPORT_NOT_FOUND" };
+    const forumThreadCandidates = extractDiscordForumThreadLookupCandidates(normalized);
+    for (const threadId of forumThreadCandidates) {
+      const report = await findDiscordBugReportByForumThreadId(admin, threadId);
+      if (report) {
+        return { ok: true, report };
+      }
     }
 
-    const report = await findDiscordBugReportByShortId(admin, normalized);
-    return report
-      ? { ok: true, report }
-      : { ok: false, code: "DISCORD_BUG_REPORT_NOT_FOUND" };
+    if (isShortReportIdPrefix(normalized)) {
+      const report = await findDiscordBugReportByShortId(admin, normalized);
+      return report
+        ? { ok: true, report }
+        : { ok: false, code: "DISCORD_BUG_REPORT_NOT_FOUND" };
+    }
+
+    return { ok: false, code: "DISCORD_BUG_REPORT_NOT_FOUND" };
   } catch (error) {
     if (error instanceof Error && error.message === "Discord bug report short id matched multiple rows.") {
       return { ok: false, code: "DISCORD_BUG_REPORT_AMBIGUOUS_ID" };
@@ -952,6 +1029,7 @@ export async function recordDiscordBugReportForumState(args: {
 export async function withdrawDiscordFeedbackReport(args: {
   reportId: string;
   withdrawnByDiscordUserId: string;
+  statusNote?: string | null;
   adminClient?: DiscordBugReportsAdminClient;
   now?: Date;
 }): Promise<
@@ -964,6 +1042,8 @@ export async function withdrawDiscordFeedbackReport(args: {
 
   const admin = args.adminClient ?? (supabaseAdmin() as unknown as DiscordBugReportsAdminClient);
   const nowIso = (args.now ?? new Date()).toISOString();
+  const statusNote = normalizeTextInput(args.statusNote ?? "Withdrawn by reporter", DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH)
+    ?? "Withdrawn by reporter";
 
   try {
     const { data, error } = await admin
@@ -976,7 +1056,7 @@ export async function withdrawDiscordFeedbackReport(args: {
         details_pruned: true,
         status_updated_at: nowIso,
         status_updated_by_discord_user_id: args.withdrawnByDiscordUserId,
-        status_note: "Withdrawn by reporter",
+        status_note: statusNote,
         updated_at: nowIso,
       })
       .eq("id", args.reportId)

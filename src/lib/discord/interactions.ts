@@ -31,10 +31,15 @@ export const FITNESS_BUG_STATUS_STATUS_OPTION_NAME = "status";
 export const FITNESS_BUG_STATUS_NOTE_OPTION_NAME = "note";
 export const DEFAULT_VERIFY_MESSAGE_TITLE = "Verify your Fawxzzy Fitness account";
 export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
-  "1. Sign into the Fitness app",
-  "2. Generate a Discord verification token",
-  "3. Click the button below",
-  "4. Paste the token",
+  "To unlock the server:",
+  "",
+  "1. Sign into Fawxzzy Fitness.",
+  "2. Go to Settings -> Account -> Discord Access.",
+  "3. Generate your Discord verification token.",
+  "4. Click Verify below and paste the token.",
+  "",
+  "Fitness login:",
+  "https://fawxzzy-fitness-local.vercel.app/login",
 ] as const;
 export const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
 export const DISCORD_PERMISSION_MANAGE_GUILD = BigInt(1) << BigInt(5);
@@ -171,7 +176,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
         {
           type: 3,
           name: FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
-          description: "Full report id or short report id prefix.",
+          description: "Report ID, short ID, thread ID, or forum URL.",
           required: true,
         },
         {
@@ -196,7 +201,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
         {
           type: 3,
           name: FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
-          description: "Full report id or short report id prefix.",
+          description: "Report ID, short ID, thread ID, or forum URL.",
           required: true,
         },
       ],

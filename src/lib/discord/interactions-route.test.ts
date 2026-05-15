@@ -724,7 +724,11 @@ test("Discord interactions route allows reporters to withdraw and redact their f
       data: {
         name: "feedback-withdraw",
         options: [
-          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          {
+            type: 3,
+            name: "report_id",
+            value: "https://discord.com/channels/1504668396338413670/1504673475489562745/1504673475489562746",
+          },
         ],
       },
     }), keyPair));
@@ -859,7 +863,7 @@ test("Discord interactions route verifies a numbered human member and syncs the 
       }
 
       if (init?.method === "PATCH") {
-        return new Response(JSON.stringify({ nick: "#12 · Zac" }), {
+        return new Response(JSON.stringify({ nick: "Zac · 12" }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
@@ -901,7 +905,7 @@ test("Discord interactions route verifies a numbered human member and syncs the 
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Verified as Member #12. You now have access to the server.",
+        content: "Verified as Member 12. You now have access to the server.",
         flags: 64,
       },
     });
@@ -914,7 +918,7 @@ test("Discord interactions route verifies a numbered human member and syncs the 
       {
         path: "/api/v10/guilds/1504668396338413670/members/123456789012345678",
         method: "PATCH",
-        body: { nick: "#12 · Zac" },
+        body: { nick: "Zac · 12" },
       },
     ]);
     assert.equal(observedRpcBodies[1]?.body.input_nickname_sync_status, "synced");

@@ -74,3 +74,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: Feedback modal -> bounded report row -> forum thread -> reporter withdraw or status update -> reviewed promotion.
 - Failure Mode: Raw user deletion breaks duplicate tracking and makes triage history unreliable.
 - Status: Proposed
+
+## 2026-05-15 - Member-number display sync should queue Discord side effects
+- Type: Pattern
+- Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.
+- Rule: Database triggers should not call Discord directly.
+- Pattern: profile compaction -> stale Discord link marker -> protected sync endpoint or script -> nickname update.
+- Failure Mode: Changing member numbers in DB without queuing nickname sync leaves Discord display stale.
+- Status: Proposed
