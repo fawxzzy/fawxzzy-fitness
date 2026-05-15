@@ -67,7 +67,6 @@
 - Behavior:
   - responds to Discord `PING` with `{ "type": 1 }`
   - opens the `/feedback` modal and stores bounded feedback in `public.discord_feedback_reports`
-  - keeps `/bug` as a backward-compatible alias for bug-type feedback
   - handles the `/feedback-status` staff command and syncs forum tag and title state back into `public.discord_feedback_reports`
   - handles `/feedback-withdraw` so reporters can redact details without raw-delete behavior
   - handles the guild `setup-verify` slash command

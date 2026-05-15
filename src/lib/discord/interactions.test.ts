@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  buildDiscordBugReportModalResponse,
   buildDiscordFeedbackReportModalResponse,
   buildDiscordGuildCommandsDefinition,
   buildDiscordPongResponse,
@@ -38,17 +37,8 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
   assert.equal(fix.data.title, "Suggest a fix");
 });
 
-test("buildDiscordBugReportModalResponse keeps the bug alias modal custom id", () => {
-  const response = buildDiscordBugReportModalResponse();
-
-  assert.equal(response.type, 9);
-  assert.equal(response.data.custom_id, "fitness_bug_report_modal");
-  assert.equal(response.data.components[0]?.components[0]?.custom_id, "bug_summary");
-});
-
-test("resolveDiscordFeedbackReportTypeFromModalCustomId supports feedback modals and bug alias", () => {
+test("resolveDiscordFeedbackReportTypeFromModalCustomId supports feedback modals only", () => {
   assert.equal(resolveDiscordFeedbackReportTypeFromModalCustomId("fitness_feedback_report_modal:feat"), "feat");
-  assert.equal(resolveDiscordFeedbackReportTypeFromModalCustomId("fitness_bug_report_modal"), "bug");
   assert.equal(resolveDiscordFeedbackReportTypeFromModalCustomId("nope"), null);
 });
 
@@ -103,14 +93,15 @@ test("discordMemberHasBugStatusPermission accepts moderator-level thread permiss
   assert.equal(discordMemberHasBugStatusPermission("0"), false);
 });
 
-test("buildDiscordGuildCommandsDefinition includes feedback, feedback-status, feedback-withdraw, and bug aliases", () => {
+test("buildDiscordGuildCommandsDefinition includes only setup-verify and feedback commands", () => {
   const commands = buildDiscordGuildCommandsDefinition();
   const feedback = commands.find((command) => command.name === "feedback");
   const feedbackStatus = commands.find((command) => command.name === "feedback-status");
   const feedbackWithdraw = commands.find((command) => command.name === "feedback-withdraw");
-  const bugAlias = commands.find((command) => command.name === "bug");
-  const bugStatusAlias = commands.find((command) => command.name === "bug-status");
+  const setupVerify = commands.find((command) => command.name === "setup-verify");
 
+  assert.equal(commands.length, 4);
+  assert.ok(setupVerify);
   assert.ok(feedback);
   assert.equal(feedback?.options?.[0]?.name, "type");
   assert.equal(feedback?.options?.[0]?.choices?.some((choice) => choice.value === "feat"), true);
@@ -118,6 +109,4 @@ test("buildDiscordGuildCommandsDefinition includes feedback, feedback-status, fe
   assert.equal(feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "withdrawn"), true);
   assert.ok(feedbackWithdraw);
   assert.equal(feedbackWithdraw?.options?.[0]?.name, "report_id");
-  assert.ok(bugAlias);
-  assert.ok(bugStatusAlias);
 });

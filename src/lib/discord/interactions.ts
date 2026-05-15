@@ -17,12 +17,9 @@ export const FITNESS_VERIFY_MODAL_CUSTOM_ID = "fitness_verify_modal";
 export const FITNESS_VERIFY_TOKEN_INPUT_CUSTOM_ID = "fitness_token";
 export const FITNESS_VERIFY_COMMAND_NAME = "setup-verify";
 export const FITNESS_FEEDBACK_COMMAND_NAME = "feedback";
-export const FITNESS_BUG_REPORT_COMMAND_NAME = "bug";
 export const FITNESS_FEEDBACK_STATUS_COMMAND_NAME = "feedback-status";
-export const FITNESS_BUG_STATUS_COMMAND_NAME = "bug-status";
 export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
 export const FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_report_modal";
-export const FITNESS_BUG_REPORT_MODAL_CUSTOM_ID = "fitness_bug_report_modal";
 export const FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID = "bug_summary";
 export const FITNESS_BUG_AREA_INPUT_CUSTOM_ID = "bug_area";
 export const FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID = "bug_severity";
@@ -168,36 +165,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
       ],
     },
     {
-      name: FITNESS_BUG_REPORT_COMMAND_NAME,
-      description: "Report a Fitness app bug.",
-    },
-    {
       name: FITNESS_FEEDBACK_STATUS_COMMAND_NAME,
-      description: "Update a Fitness feedback report status.",
-      options: [
-        {
-          type: 3,
-          name: FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
-          description: "Full report id or short report id prefix.",
-          required: true,
-        },
-        {
-          type: 3,
-          name: FITNESS_BUG_STATUS_STATUS_OPTION_NAME,
-          description: "New feedback report status.",
-          required: true,
-          choices: [...DISCORD_BUG_STATUS_CHOICES],
-        },
-        {
-          type: 3,
-          name: FITNESS_BUG_STATUS_NOTE_OPTION_NAME,
-          description: "Optional status note to add in the forum thread.",
-          required: false,
-        },
-      ],
-    },
-    {
-      name: FITNESS_BUG_STATUS_COMMAND_NAME,
       description: "Update a Fitness feedback report status.",
       options: [
         {
@@ -281,10 +249,6 @@ export function buildDiscordFeedbackModalCustomId(reportType: "bug" | "feat" | "
 }
 
 export function resolveDiscordFeedbackReportTypeFromModalCustomId(customId: string | null | undefined): "bug" | "feat" | "fix" | null {
-  if (customId === FITNESS_BUG_REPORT_MODAL_CUSTOM_ID) {
-    return "bug";
-  }
-
   if (!customId?.startsWith(`${FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX}:`)) {
     return null;
   }
@@ -378,16 +342,6 @@ export function buildDiscordFeedbackReportModalResponse(reportType: "bug" | "fea
           ],
         },
       ],
-    },
-  };
-}
-
-export function buildDiscordBugReportModalResponse() {
-  return {
-    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
-    data: {
-      ...buildDiscordFeedbackReportModalResponse("bug").data,
-      custom_id: FITNESS_BUG_REPORT_MODAL_CUSTOM_ID,
     },
   };
 }

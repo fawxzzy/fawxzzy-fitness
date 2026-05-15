@@ -36,9 +36,7 @@ Not allowed:
 ## Command surface
 - `/feedback` is the main command.
 - `/feedback` requires `type` with choices `Bug`, `Feat`, or `Fix`.
-- `/bug` remains a backward-compatible alias for `/feedback type:bug`.
 - `/feedback-status` is the staff status command.
-- `/bug-status` remains a backward-compatible alias when needed.
 - `/feedback-withdraw` lets the original reporter or staff withdraw and redact details without raw deletion.
 - `/setup-verify` remains unchanged.
 

@@ -130,23 +130,6 @@ test("Discord interactions route opens the feedback modal for /feedback type:fea
   assert.equal(payload.data.title, "Suggest a feature");
 });
 
-test("Discord interactions route keeps /bug as a bug modal alias", async () => {
-  const keyPair = nacl.sign.keyPair();
-  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-
-  const response = await POST(createSignedRequest(JSON.stringify({
-    type: 2,
-    data: {
-      name: "bug",
-    },
-  }), keyPair));
-
-  assert.equal(response.status, 200);
-  const payload = await response.json();
-  assert.equal(payload.type, 9);
-  assert.equal(payload.data.custom_id, "fitness_bug_report_modal");
-});
-
 test("Discord interactions route accepts feedback even when the forum env is not configured", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

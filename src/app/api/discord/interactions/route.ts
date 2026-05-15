@@ -31,7 +31,6 @@ import {
   withdrawDiscordFeedbackReport,
 } from "@/lib/discord/bug-reports";
 import {
-  buildDiscordBugReportModalResponse,
   buildDiscordFeedbackReportModalResponse,
   buildDiscordEphemeralMessageResponse,
   buildDiscordPongResponse,
@@ -45,12 +44,9 @@ import {
   FITNESS_FEEDBACK_STATUS_COMMAND_NAME,
   FITNESS_FEEDBACK_TYPE_OPTION_NAME,
   FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME,
-  FITNESS_BUG_REPORT_COMMAND_NAME,
-  FITNESS_BUG_STATUS_COMMAND_NAME,
   FITNESS_BUG_STATUS_NOTE_OPTION_NAME,
   FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
   FITNESS_BUG_STATUS_STATUS_OPTION_NAME,
-  FITNESS_BUG_REPORT_MODAL_CUSTOM_ID,
   resolveDiscordFeedbackReportTypeFromModalCustomId,
   DISCORD_INTERACTION_TYPE,
   FITNESS_VERIFY_BUTTON_CUSTOM_ID,
@@ -832,17 +828,7 @@ export async function POST(request: Request) {
 
     if (
       interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_BUG_REPORT_COMMAND_NAME
-    ) {
-      return jsonResponse(buildDiscordBugReportModalResponse());
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && (
-        interaction.data?.name === FITNESS_FEEDBACK_STATUS_COMMAND_NAME
-        || interaction.data?.name === FITNESS_BUG_STATUS_COMMAND_NAME
-      )
+      && interaction.data?.name === FITNESS_FEEDBACK_STATUS_COMMAND_NAME
     ) {
       return jsonResponse(await handleBugStatusInteraction(interaction));
     }
@@ -870,11 +856,8 @@ export async function POST(request: Request) {
 
     if (
       interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && (
-        interaction.data?.custom_id === FITNESS_BUG_REPORT_MODAL_CUSTOM_ID
-        || (typeof interaction.data?.custom_id === "string"
-          && interaction.data.custom_id.startsWith(`${FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX}:`))
-      )
+      && typeof interaction.data?.custom_id === "string"
+      && interaction.data.custom_id.startsWith(`${FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX}:`)
     ) {
       return jsonResponse(await handleBugReportModalSubmit(interaction));
     }
