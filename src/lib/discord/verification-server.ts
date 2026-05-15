@@ -29,8 +29,11 @@ type DiscordVerificationAdminClient = {
 export type DiscordVerificationConsumeSuccess = {
   ok: true;
   memberId: string;
+  fitnessUserId: string;
   userNumber: number | null;
   userKind: "human" | "automation" | "unknown" | null;
+  discordUserId: string;
+  discordUsername: string | null;
 };
 
 export type DiscordVerificationConsumeFailureCode =
@@ -92,8 +95,11 @@ export async function consumeDiscordVerificationTokenForDiscordUser(args: {
     return {
       ok: true,
       memberId: result.user_id,
+      fitnessUserId: result.user_id,
       userNumber: result.user_number,
       userKind: result.user_kind,
+      discordUserId,
+      discordUsername,
     };
   } catch {
     return { ok: false, code: "DISCORD_VERIFICATION_CONSUME_FAILED" };

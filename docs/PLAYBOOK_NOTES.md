@@ -26,3 +26,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Accepting unsigned interaction requests lets arbitrary callers attempt Discord role grants.
 - Evidence: src/app/api/discord/interactions/route.ts, src/lib/discord/interaction-signature.ts, src/lib/discord/rest.ts
 - Status: Proposed
+
+## 2026-05-15 - Discord member numbers should display compact public member slots, not permanent identity
+- Type: Guardrail
+- Summary: Discord can display Fitness member numbers after verification, but those numbers are current public slots that compact after human deletions while keeping Zac reserved as `#0`.
+- Rule: Zac owns `#0`; public member numbers compact from `#1`.
+- Rule: Automation accounts must not consume public member numbers.
+- Pattern: profile compaction -> link refresh -> Discord nickname sync.
+- Failure Mode: changing DB member numbers without refreshing Discord link snapshots and guild nicknames leaves the server showing stale member numbers.
+- Evidence: public.profiles.user_number, public.discord_member_links, Discord verification flow
+- Status: Proposed

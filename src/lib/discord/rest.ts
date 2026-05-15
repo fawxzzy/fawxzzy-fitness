@@ -170,3 +170,33 @@ export async function createDiscordChannelMessage(args: {
     message: result.errorMessage,
   };
 }
+
+export async function updateDiscordGuildMemberNickname(args: {
+  guildId: string;
+  userId: string;
+  nickname: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<unknown>(
+    `/guilds/${args.guildId}/members/${args.userId}`,
+    {
+      method: "PATCH",
+      body: { nick: args.nickname },
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code:
+      result.status === 403
+        ? "DISCORD_NICKNAME_UPDATE_FORBIDDEN"
+        : result.status === 404
+          ? "DISCORD_NICKNAME_UPDATE_NOT_FOUND"
+          : "DISCORD_NICKNAME_UPDATE_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
