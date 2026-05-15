@@ -28,7 +28,13 @@ import {
   fetchDiscordChannelMessages,
   patchDiscordChannelMessage,
   removeDiscordGuildMemberRole,
+  updateDiscordGuildMemberNickname,
 } from "@/lib/discord/rest";
+import { upsertDiscordMemberLink } from "@/lib/discord/member-links";
+import {
+  formatDiscordMemberNickname,
+  shouldDisplayDiscordMemberNumber,
+} from "@/lib/discord/member-number";
 import { consumeDiscordVerificationTokenForDiscordUser } from "@/lib/discord/verification-server";
 
 export const runtime = "nodejs";
@@ -44,6 +50,7 @@ type DiscordInteraction = {
   guild_id?: unknown;
   member?: {
     permissions?: unknown;
+    nick?: unknown;
     user?: {
       id?: unknown;
       username?: unknown;
@@ -75,15 +82,21 @@ function jsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
 function resolveDiscordInteractionUser(interaction: DiscordInteraction): {
   id: string | null;
   username: string | null;
+  globalName: string | null;
+  currentDisplayName: string | null;
 } {
   const memberUser = interaction.member?.user;
   const directUser = interaction.user;
   const idCandidate = memberUser?.id ?? directUser?.id;
-  const usernameCandidate = memberUser?.username ?? directUser?.username ?? memberUser?.global_name ?? directUser?.global_name;
+  const usernameCandidate = memberUser?.username ?? directUser?.username;
+  const globalNameCandidate = memberUser?.global_name ?? directUser?.global_name;
+  const displayNameCandidate = interaction.member?.nick ?? globalNameCandidate ?? usernameCandidate;
 
   return {
     id: typeof idCandidate === "string" ? idCandidate : null,
     username: typeof usernameCandidate === "string" ? usernameCandidate : null,
+    globalName: typeof globalNameCandidate === "string" ? globalNameCandidate : null,
+    currentDisplayName: typeof displayNameCandidate === "string" ? displayNameCandidate : null,
   };
 }
 
@@ -161,6 +174,8 @@ async function handleSetupVerifyInteraction(interaction: DiscordInteraction) {
 }
 
 async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
+  const requestId = randomUUID();
+
   if (!interactionMatchesGuild(interaction)) {
     return buildDiscordEphemeralMessageResponse("This verification flow is only available in the configured server.");
   }
@@ -175,7 +190,7 @@ async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
   const verificationResult = await consumeDiscordVerificationTokenForDiscordUser({
     token,
     discordUserId: discordUser.id,
-    discordUsername: discordUser.username,
+    discordUsername: discordUser.username ?? discordUser.globalName,
   });
 
   if (!verificationResult.ok && (
@@ -189,15 +204,16 @@ async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
     return buildDiscordEphemeralMessageResponse("Fitness could not verify that token right now. Try again in a moment.");
   }
 
+  const verifiedRoleGrantedAt = new Date().toISOString();
   const addRoleResult = await addDiscordGuildMemberRole({
     guildId: DISCORD_GUILD_ID(),
-    userId: discordUser.id,
+    userId: verificationResult.discordUserId,
     roleId: DISCORD_VERIFIED_ROLE_ID(),
   });
 
   if (!addRoleResult.ok) {
     console.error("[discord-interactions] role assignment failed", {
-      requestId: randomUUID(),
+      requestId,
       code: addRoleResult.code,
       status: addRoleResult.status,
       message: addRoleResult.message,
@@ -212,22 +228,84 @@ async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
   if (unverifiedRoleId) {
     const removeRoleResult = await removeDiscordGuildMemberRole({
       guildId: DISCORD_GUILD_ID(),
-      userId: discordUser.id,
+      userId: verificationResult.discordUserId,
       roleId: unverifiedRoleId,
     });
 
     if (!removeRoleResult.ok) {
       console.error("[discord-interactions] unverified role removal failed", {
-        requestId: randomUUID(),
+        requestId,
         code: removeRoleResult.code,
         status: removeRoleResult.status,
         message: removeRoleResult.message,
       });
-
-      return buildDiscordEphemeralMessageResponse(
-        "Fitness verified your token, but Discord could not assign the role. Ask an admin to check the bot role position and Manage Roles permission.",
-      );
     }
+  }
+
+  const shouldDisplayMemberNumber = shouldDisplayDiscordMemberNumber({
+    userKind: verificationResult.userKind,
+    userNumber: verificationResult.userNumber,
+  });
+
+  let nicknameSyncStatus: "synced" | "failed" | "skipped" = shouldDisplayMemberNumber ? "failed" : "skipped";
+  let nicknameSyncedAt: string | null = null;
+  let lastErrorCode: string | null = null;
+
+  if (shouldDisplayMemberNumber) {
+    const nickname = formatDiscordMemberNickname({
+      userNumber: verificationResult.userNumber as number,
+      currentDisplayName: discordUser.currentDisplayName,
+    });
+
+    const nicknameResult = await updateDiscordGuildMemberNickname({
+      guildId: DISCORD_GUILD_ID(),
+      userId: verificationResult.discordUserId,
+      nickname,
+    });
+
+    if (nicknameResult.ok) {
+      nicknameSyncStatus = "synced";
+      nicknameSyncedAt = new Date().toISOString();
+    } else {
+      nicknameSyncStatus = "failed";
+      lastErrorCode = nicknameResult.code;
+
+      console.error("[discord-interactions] nickname sync failed", {
+        requestId,
+        code: nicknameResult.code,
+        status: nicknameResult.status,
+        message: nicknameResult.message,
+      });
+    }
+  }
+
+  const memberLinkResult = await upsertDiscordMemberLink({
+    fitnessUserId: verificationResult.fitnessUserId,
+    discordUserId: verificationResult.discordUserId,
+    discordUsername: verificationResult.discordUsername ?? discordUser.globalName,
+    userNumber: verificationResult.userNumber,
+    userKind: verificationResult.userKind ?? "unknown",
+    verifiedRoleGrantedAt,
+    nicknameSyncStatus,
+    nicknameSyncedAt,
+    lastErrorCode,
+  });
+
+  if (!memberLinkResult.ok) {
+    console.error("[discord-interactions] member link upsert failed", {
+      requestId,
+      code: memberLinkResult.code,
+      fitnessUserId: verificationResult.fitnessUserId,
+      discordUserId: verificationResult.discordUserId,
+    });
+  }
+
+  if (shouldDisplayMemberNumber && nicknameSyncStatus === "synced") {
+    return buildDiscordEphemeralMessageResponse(`Verified as Member #${verificationResult.userNumber}. You now have access to the server.`);
+  }
+
+  if (shouldDisplayMemberNumber) {
+    return buildDiscordEphemeralMessageResponse(`Verified as Member #${verificationResult.userNumber}. Your access is active, but Discord could not update your nickname.`);
   }
 
   return buildDiscordEphemeralMessageResponse("Verified. You now have access to the server.");

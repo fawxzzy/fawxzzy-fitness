@@ -8,6 +8,7 @@
 5. The user pastes the token into Discord.
 6. Discord sends the signed interaction to `POST /api/discord/interactions`.
 7. Fitness consumes the token and grants the Discord role through the Discord REST API.
+8. Fitness records the durable Discord member link and attempts to sync the Discord nickname to the current compact Fitness member number when the profile is a numbered human account.
 
 ## Endpoint contracts
 
@@ -69,10 +70,37 @@
   - opens the verification modal for `fitness_verify_open`
   - consumes the Fitness token when `fitness_verify_modal` submits
   - grants the verified Discord role through the Discord REST API
+  - upserts `public.discord_member_links` for the verified member
+  - attempts to sync the Discord guild nickname to `#<user_number> · <display name>` when `profiles.user_kind = 'human'` and `profiles.user_number` is not null
 - Notes:
   - signature verification happens before JSON parsing
   - the Fitness app becomes the Discord interactions endpoint
   - the old Gateway bot process is no longer required after Discord points to this endpoint
+  - nickname sync failure does not revoke verification; role grant failure still blocks access
+
+## Member number sync
+- Source of truth: `public.profiles.user_number`
+- Display guardrail: only display member numbers when `public.profiles.user_kind = 'human'` and `public.profiles.user_number` is not null
+- Nickname format: `#12 · DisplayName`
+- Existing `#<number> ·` prefixes are replaced when the member reverifies or when the operator resync runs
+- Fallback nickname label: `#12 · Member`
+- Discord nickname sync is best-effort during verification
+- Bot/app requirements: the Discord app role must have `Manage Nicknames` and must sit high enough in the server role hierarchy
+
+## Compact number semantics
+- Member numbers are compact public member slots, not permanent identity numbers
+- Zac is reserved as `#0` by explicit operator action and is excluded from compaction
+- Human users compact from `#1` upward
+- Deleted numbered human users cause higher positive numbers to shift down
+- Positive gaps are not expected after compaction
+- Automation accounts do not consume public member numbers
+- Discord nicknames can go stale after compaction and should be resynced with the operator sync script
+
+## Discord member links
+- Durable table: `public.discord_member_links`
+- Purpose: store the Fitness user id, Discord user id, the current member number snapshot, verified-role timestamp, and nickname sync status for each verified member
+- Access: server/admin only through the service role helper path
+- Compaction note: `discord_member_links.user_number` is a snapshot and can drift after delete-driven compaction until the operator refresh/sync path runs
 
 ## Required environment variables
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -130,6 +158,8 @@
 
 ## Deployment checklist
 - Apply the Supabase migration for `discord_verification_tokens`.
+- Apply the Supabase migration for `discord_member_links`.
+- Apply the Supabase migration for compact public member-number compaction.
 - Add `SUPABASE_SERVICE_ROLE_KEY`, `DISCORD_VERIFICATION_BOT_SECRET`, `DISCORD_VERIFICATION_TOKEN_PEPPER`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`, `DISCORD_APPLICATION_ID`, `DISCORD_GUILD_ID`, `DISCORD_VERIFY_CHANNEL_ID`, and `DISCORD_VERIFIED_ROLE_ID` in Vercel.
 - Optionally set `DISCORD_UNVERIFIED_ROLE_ID`, `DISCORD_VERIFY_MESSAGE_TITLE`, and `DISCORD_VERIFY_MESSAGE_BODY`.
 - Optionally set `DISCORD_VERIFICATION_TOKEN_TTL_MINUTES`.
@@ -140,3 +170,13 @@
 - Run `node --import ./scripts/register-test-aliases.mjs --test src/lib/discord/*.test.ts`.
 - Test token generation while logged in to the Fitness app.
 - Test Discord modal verification end to end.
+- Run `node scripts/audit-member-numbers.mjs`.
+- Run `npm run sync:discord-member-numbers -- --dry-run` after any delete-driven compaction and rerun without `--dry-run` when you want to refresh link snapshots and Discord nicknames.
+
+## Debug matrix
+- verified but nickname not updated -> the Discord app is missing `Manage Nicknames` or sits below the target member's top role
+- wrong number displayed -> inspect `public.profiles.user_number` and `public.profiles.user_kind`
+- positive member-number gaps detected -> run `npm run audit:member-numbers`; compact numbering expects no positive gaps and the DB trigger should close them after human deletes
+- Codex or QA user counted as human -> run `npm run audit:member-numbers`, fix the auth metadata, then mark the profile as automation
+- Discord numbers stale after a delete -> run `npm run sync:discord-member-numbers -- --dry-run`, then rerun without `--dry-run` to refresh link snapshots and guild nicknames
+- verification succeeds but no member number is shown -> verify that the profile is `user_kind = 'human'` and has a non-null `user_number`
