@@ -190,6 +190,31 @@ function isShortReportIdPrefix(value: string): boolean {
   return new RegExp(`^[0-9a-f]{${DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH},32}$`, "i").test(value);
 }
 
+function formatUuidHex(hex: string): string {
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
+  ].join("-");
+}
+
+function buildUuidBoundsFromPrefix(prefix: string): { lower: string; upper: string } | null {
+  const normalized = prefix.trim().toLowerCase();
+  if (!/^[0-9a-f]{6,32}$/.test(normalized)) {
+    return null;
+  }
+
+  const lowerHex = normalized.padEnd(32, "0").slice(0, 32);
+  const upperHex = normalized.padEnd(32, "f").slice(0, 32);
+
+  return {
+    lower: formatUuidHex(lowerHex),
+    upper: formatUuidHex(upperHex),
+  };
+}
+
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))];
 }
@@ -745,10 +770,16 @@ async function findDiscordBugReportByForumThreadId(admin: DiscordBugReportsAdmin
 }
 
 async function findDiscordBugReportByShortId(admin: DiscordBugReportsAdminClient, shortId: string): Promise<DiscordBugReportRow | null> {
+  const bounds = buildUuidBoundsFromPrefix(shortId);
+  if (!bounds) {
+    return null;
+  }
+
   const { data, error } = await admin
     .from("discord_feedback_reports")
     .select(DISCORD_BUG_REPORT_SELECT_COLUMNS)
-    .ilike("id", `${shortId}%`)
+    .gte("id", bounds.lower)
+    .lte("id", bounds.upper)
     .limit(2);
 
   if (error) {

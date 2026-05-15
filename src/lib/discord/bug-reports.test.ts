@@ -95,6 +95,12 @@ function createMockAdminClient(options = {}) {
       if (filters.prefix && !String(row.id).toLowerCase().startsWith(String(filters.prefix).toLowerCase())) {
         return false;
       }
+      if (filters.lowerId && String(row.id).toLowerCase() < String(filters.lowerId).toLowerCase()) {
+        return false;
+      }
+      if (filters.upperId && String(row.id).toLowerCase() > String(filters.upperId).toLowerCase()) {
+        return false;
+      }
       if (filters.statuses && !filters.statuses.includes(row.status)) {
         return false;
       }
@@ -141,6 +147,8 @@ function createMockAdminClient(options = {}) {
             threadId: null,
             fingerprint: null,
             prefix: null,
+            lowerId: null,
+            upperId: null,
             statuses: null,
           };
 
@@ -187,13 +195,35 @@ function createMockAdminClient(options = {}) {
                 },
               };
             },
-            ilike(column, value) {
+            gte(column, value) {
               if (column === "id") {
-                filters.prefix = String(value).replace(/%$/, "");
+                filters.lowerId = value;
               }
 
               return {
-                async limit(limit) {
+                lte(upperColumn, upperValue) {
+                  if (upperColumn === "id") {
+                    filters.upperId = upperValue;
+                  }
+
+                  return {
+                    limit(limit) {
+                      return {
+                        data: findMatchingReports(filters).slice(0, limit),
+                        error: null,
+                      };
+                    },
+                  };
+                },
+              };
+            },
+            lte(column, value) {
+              if (column === "id") {
+                filters.upperId = value;
+              }
+
+              return {
+                limit(limit) {
                   return {
                     data: findMatchingReports(filters).slice(0, limit),
                     error: null,
