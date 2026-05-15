@@ -235,11 +235,25 @@ async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
 
 export async function POST(request: Request) {
   const requestId = randomUUID();
-  const rawBody = await request.text();
-  const signature = request.headers.get("x-signature-ed25519");
-  const timestamp = request.headers.get("x-signature-timestamp");
+  let rawBody = "";
+  let signature: string | null = null;
+  let timestamp: string | null = null;
 
-  if (!signature || !timestamp || !verifyDiscordInteractionSignature({ rawBody, signature, timestamp })) {
+  try {
+    rawBody = await request.text();
+    signature = request.headers.get("x-signature-ed25519");
+    timestamp = request.headers.get("x-signature-timestamp");
+
+    if (!signature || !timestamp || !verifyDiscordInteractionSignature({ rawBody, signature, timestamp })) {
+      return jsonResponse({ error: "Invalid request signature." }, { status: 401 });
+    }
+  } catch (error) {
+    console.error("[discord-interactions] signature verification failed", {
+      requestId,
+      hasSignature: Boolean(signature),
+      hasTimestamp: Boolean(timestamp),
+      error: error instanceof Error ? error.message : String(error),
+    });
     return jsonResponse({ error: "Invalid request signature." }, { status: 401 });
   }
 

@@ -39,6 +39,23 @@ test("Discord interactions route returns 401 before parsing malformed unsigned J
   assert.equal(response.status, 401);
 });
 
+test("Discord interactions route returns 401 for malformed signature payloads instead of throwing", async () => {
+  process.env.DISCORD_PUBLIC_KEY = "00".repeat(32);
+
+  const response = await POST(new Request("http://localhost/api/discord/interactions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Signature-Ed25519": "00",
+      "X-Signature-Timestamp": "1715702400",
+    },
+    body: JSON.stringify({ type: 1 }),
+  }));
+
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Invalid request signature." });
+});
+
 test("Discord interactions route responds to a signed ping", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
