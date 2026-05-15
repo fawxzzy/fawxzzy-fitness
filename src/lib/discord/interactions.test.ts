@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildDiscordBugReportModalResponse,
   buildDiscordPongResponse,
   buildDiscordVerifyModalResponse,
   buildDiscordVerifyMessagePayload,
@@ -19,6 +20,16 @@ test("buildDiscordVerifyModalResponse returns the expected modal payload", () =>
   assert.equal(response.type, 9);
   assert.equal(response.data.custom_id, "fitness_verify_modal");
   assert.equal(response.data.components[0]?.components[0]?.custom_id, "fitness_token");
+});
+
+test("buildDiscordBugReportModalResponse returns the expected modal payload", () => {
+  const response = buildDiscordBugReportModalResponse();
+
+  assert.equal(response.type, 9);
+  assert.equal(response.data.custom_id, "fitness_bug_report_modal");
+  assert.equal(response.data.components[0]?.components[0]?.custom_id, "bug_summary");
+  assert.equal(response.data.components[3]?.components[0]?.custom_id, "bug_details");
+  assert.equal(response.data.components[4]?.components[0]?.custom_id, "bug_steps");
 });
 
 test("extractDiscordModalTextInputValue reads the submitted token from Discord component rows", () => {

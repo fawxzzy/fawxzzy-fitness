@@ -84,6 +84,457 @@ test("Discord interactions route returns the verification modal for the existing
   assert.equal(payload.data.custom_id, "fitness_verify_modal");
 });
 
+test("Discord interactions route opens the bug report modal for /bug", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+
+  const response = await POST(createSignedRequest(JSON.stringify({
+    type: 2,
+    data: {
+      name: "bug",
+    },
+  }), keyPair));
+
+  assert.equal(response.status, 200);
+
+  const payload = await response.json();
+  assert.equal(payload.type, 9);
+  assert.equal(payload.data.custom_id, "fitness_bug_report_modal");
+});
+
+test("Discord interactions route accepts bug reports even when the forum env is not configured", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+
+  const originalFetch = globalThis.fetch;
+  let discordCallCount = 0;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response("null", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "content-range": "0-0/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "GET") {
+      return new Response("null", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "POST") {
+      return new Response(JSON.stringify({
+        id: "report-1",
+        source: "discord",
+        status: "new",
+        severity: "medium",
+        area: "Settings",
+        summary: "Token copy button failed",
+        details: "I tapped Copy and nothing happened.",
+        steps_to_reproduce: "Open Settings -> Account -> Generate token -> tap Copy",
+        screenshot_url: null,
+        reporter_discord_user_id: "123456789012345678",
+        reporter_discord_username: "zac",
+        reporter_fitness_user_id: null,
+        reporter_member_number: null,
+        reporter_user_kind: null,
+        discord_interaction_id: "interaction-1",
+        duplicate_fingerprint: "abc123",
+        duplicate_count: 1,
+        first_seen_at: "2026-05-15T13:00:00.000Z",
+        last_seen_at: "2026-05-15T13:00:00.000Z",
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        staff_channel_message_id: null,
+        closed_at: null,
+        pruned_at: null,
+        details_pruned: false,
+        triage_notes: null,
+        created_at: "2026-05-15T13:00:00.000Z",
+        updated_at: "2026-05-15T13:00:00.000Z",
+      }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com") {
+      discordCallCount += 1;
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_bug_report_modal",
+        components: [
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_severity", value: "medium" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_steps", value: "Open Settings -> Account -> Generate token -> tap Copy" }] },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Bug report received. Thanks for helping improve Fitness.",
+        flags: 64,
+      },
+    });
+    assert.equal(discordCallCount, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route stores a unique bug report and creates a forum thread", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies: Array<{ path: string; method: string; body: Record<string, unknown> | null }> = [];
+  const observedSupabaseWrites: Array<{ path: string; method: string; body: Record<string, unknown> | null }> = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) as Record<string, unknown> : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "content-range": "0-0/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response(JSON.stringify({
+        fitness_user_id: "00000000-0000-0000-0000-000000000123",
+        user_number: 4,
+        user_kind: "human",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "POST") {
+      observedSupabaseWrites.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({
+        id: "report-1",
+        source: "discord",
+        status: "new",
+        severity: "medium",
+        area: "Settings",
+        summary: "Token copy button failed",
+        details: "I tapped Copy and nothing happened.",
+        steps_to_reproduce: "Open Settings -> Account -> Generate token -> tap Copy",
+        screenshot_url: null,
+        reporter_discord_user_id: "123456789012345678",
+        reporter_discord_username: "zac",
+        reporter_fitness_user_id: "00000000-0000-0000-0000-000000000123",
+        reporter_member_number: 4,
+        reporter_user_kind: "human",
+        discord_interaction_id: "interaction-1",
+        duplicate_fingerprint: "abc123",
+        duplicate_count: 1,
+        first_seen_at: "2026-05-15T13:00:00.000Z",
+        last_seen_at: "2026-05-15T13:00:00.000Z",
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        staff_channel_message_id: null,
+        closed_at: null,
+        pruned_at: null,
+        details_pruned: false,
+        triage_notes: null,
+        created_at: "2026-05-15T13:00:00.000Z",
+        updated_at: "2026-05-15T13:00:00.000Z",
+      }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "GET") {
+      return new Response("null", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "PATCH") {
+      observedSupabaseWrites.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com") {
+      observedDiscordBodies.push({
+        path: url.pathname,
+        method: String(init?.method ?? "GET"),
+        body,
+      });
+
+      return new Response(JSON.stringify({
+        id: "1504673475489562745",
+        last_message_id: "1504673475489562746",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_bug_report_modal",
+        components: [
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_severity", value: "medium" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_steps", value: "Open Settings -> Account -> Generate token -> tap Copy" }] },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Bug report received from Member #4. Thanks for helping improve Fitness.",
+        flags: 64,
+      },
+    });
+    assert.equal(observedSupabaseWrites[0]?.method, "POST");
+    assert.equal(observedSupabaseWrites[0]?.body?.summary, "Token copy button failed");
+    assert.equal(observedDiscordBodies[0]?.path, "/api/v10/channels/1504673475489562744/threads");
+    assert.equal(observedDiscordBodies[0]?.body?.name, "[Bug][Medium] Settings — Token copy button failed");
+    assert.equal(observedSupabaseWrites[1]?.body?.discord_forum_thread_id, "1504673475489562745");
+    assert.equal(observedSupabaseWrites[1]?.body?.discord_forum_message_id, "1504673475489562746");
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route folds duplicate bug reports and posts only a compact forum reply", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies: Array<{ path: string; method: string; body: Record<string, unknown> | null }> = [];
+  const observedSupabaseWrites: Array<{ path: string; method: string; body: Record<string, unknown> | null }> = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) as Record<string, unknown> : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "content-range": "0-0/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response(JSON.stringify({
+        fitness_user_id: "00000000-0000-0000-0000-000000000123",
+        user_number: 4,
+        user_kind: "human",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify({
+        id: "report-1",
+        source: "discord",
+        status: "new",
+        severity: "medium",
+        area: "Settings",
+        summary: "Token copy button failed",
+        details: "I tapped Copy and nothing happened.",
+        steps_to_reproduce: "Open Settings -> Account -> Generate token -> tap Copy",
+        screenshot_url: null,
+        reporter_discord_user_id: "123456789012345678",
+        reporter_discord_username: null,
+        reporter_fitness_user_id: null,
+        reporter_member_number: null,
+        reporter_user_kind: null,
+        discord_interaction_id: "interaction-1",
+        duplicate_fingerprint: "abc123",
+        duplicate_count: 2,
+        first_seen_at: "2026-05-10T13:00:00.000Z",
+        last_seen_at: "2026-05-14T13:00:00.000Z",
+        discord_forum_channel_id: "1504673475489562744",
+        discord_forum_thread_id: "1504673475489562745",
+        discord_forum_message_id: "1504673475489562746",
+        staff_channel_message_id: null,
+        closed_at: null,
+        pruned_at: null,
+        details_pruned: false,
+        triage_notes: null,
+        created_at: "2026-05-10T13:00:00.000Z",
+        updated_at: "2026-05-14T13:00:00.000Z",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_bug_reports") && init?.method === "PATCH") {
+      observedSupabaseWrites.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({
+        id: "report-1",
+        source: "discord",
+        status: "new",
+        severity: "medium",
+        area: "Settings",
+        summary: "Token copy button failed",
+        details: "I tapped Copy and nothing happened.",
+        steps_to_reproduce: "Open Settings -> Account -> Generate token -> tap Copy",
+        screenshot_url: null,
+        reporter_discord_user_id: "123456789012345678",
+        reporter_discord_username: "zac",
+        reporter_fitness_user_id: "00000000-0000-0000-0000-000000000123",
+        reporter_member_number: 4,
+        reporter_user_kind: "human",
+        discord_interaction_id: "interaction-1",
+        duplicate_fingerprint: "abc123",
+        duplicate_count: 3,
+        first_seen_at: "2026-05-10T13:00:00.000Z",
+        last_seen_at: "2026-05-15T13:00:00.000Z",
+        discord_forum_channel_id: "1504673475489562744",
+        discord_forum_thread_id: "1504673475489562745",
+        discord_forum_message_id: "1504673475489562746",
+        staff_channel_message_id: null,
+        closed_at: null,
+        pruned_at: null,
+        details_pruned: false,
+        triage_notes: null,
+        created_at: "2026-05-10T13:00:00.000Z",
+        updated_at: "2026-05-15T13:00:00.000Z",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com") {
+      observedDiscordBodies.push({
+        path: url.pathname,
+        method: String(init?.method ?? "GET"),
+        body,
+      });
+
+      return new Response(JSON.stringify({ id: "discord-message-2" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-2",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "999999999999999999",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_bug_report_modal",
+        components: [
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_severity", value: "medium" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "Same bug again." }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_steps", value: "Repeat the same steps https://example.com/other.png" }] },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Bug report received. It looks similar to an existing report, so we added your signal to that issue.",
+        flags: 64,
+      },
+    });
+    assert.equal(observedSupabaseWrites.length, 1);
+    assert.equal(observedSupabaseWrites[0]?.body?.duplicate_count, 3);
+    assert.equal(observedDiscordBodies[0]?.path, "/api/v10/channels/1504673475489562745/messages");
+    assert.equal(observedDiscordBodies[0]?.body?.content, "Another report matched this bug.\nReporter: Member #4\nDuplicate signals: 3");
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
 test("Discord interactions route verifies a numbered human member and syncs the nickname", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

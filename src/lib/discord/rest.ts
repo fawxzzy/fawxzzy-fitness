@@ -153,14 +153,17 @@ export async function patchDiscordChannelMessage(args: {
 export async function createDiscordChannelMessage(args: {
   channelId: string;
   body: unknown;
-}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
-  const result = await discordRequest<unknown>(
+}): Promise<{ ok: true; messageId: string | null } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<{ id?: string }>(
     `/channels/${args.channelId}/messages`,
     { method: "POST", body: args.body },
   );
 
   if (result.ok) {
-    return { ok: true };
+    return {
+      ok: true,
+      messageId: result.data && typeof result.data.id === "string" ? result.data.id : null,
+    };
   }
 
   return {
@@ -171,6 +174,56 @@ export async function createDiscordChannelMessage(args: {
   };
 }
 
+export async function createDiscordForumThreadWithMessage(args: {
+  channelId: string;
+  threadName: string;
+  messageContent: string;
+  appliedTags?: string[];
+}): Promise<
+  | { ok: true; threadId: string | null; messageId: string | null }
+  | { ok: false; code: string; status: number; message: string | null }
+> {
+  const result = await discordRequest<{ id?: string; last_message_id?: string }>(
+    `/channels/${args.channelId}/threads`,
+    {
+      method: "POST",
+      body: {
+        name: args.threadName,
+        message: {
+          content: args.messageContent,
+        },
+        applied_tags: Array.isArray(args.appliedTags) && args.appliedTags.length > 0 ? args.appliedTags : undefined,
+      },
+    },
+  );
+
+  if (result.ok) {
+    return {
+      ok: true,
+      threadId: result.data && typeof result.data.id === "string" ? result.data.id : null,
+      messageId: result.data && typeof result.data.last_message_id === "string" ? result.data.last_message_id : null,
+    };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_CREATE_FORUM_THREAD_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function createDiscordThreadMessage(args: {
+  threadId: string;
+  content: string;
+}): Promise<{ ok: true; messageId: string | null } | { ok: false; code: string; status: number; message: string | null }> {
+  return createDiscordChannelMessage({
+    channelId: args.threadId,
+    body: {
+      content: args.content,
+    },
+  });
+}
 export async function updateDiscordGuildMemberNickname(args: {
   guildId: string;
   userId: string;

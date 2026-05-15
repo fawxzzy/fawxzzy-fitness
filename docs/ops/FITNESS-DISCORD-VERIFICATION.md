@@ -66,6 +66,7 @@
 - Auth: Discord `X-Signature-Ed25519` and `X-Signature-Timestamp` headers must verify against `DISCORD_PUBLIC_KEY`.
 - Behavior:
   - responds to Discord `PING` with `{ "type": 1 }`
+  - opens the `/bug` modal and stores bug reports in `public.discord_bug_reports`
   - handles the guild `setup-verify` slash command
   - opens the verification modal for `fitness_verify_open`
   - consumes the Fitness token when `fitness_verify_modal` submits
@@ -116,6 +117,7 @@
 - `DISCORD_UNVERIFIED_ROLE_ID` (optional)
 - `DISCORD_VERIFY_MESSAGE_TITLE` (optional)
 - `DISCORD_VERIFY_MESSAGE_BODY` (optional)
+- `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` (optional, production value `1504673475489562744`)
 
 ## Security notes
 - Raw verification tokens are never stored in the database.
@@ -150,6 +152,8 @@
 - After deployment:
   - set the Interactions Endpoint URL in Discord
   - run `npm run discord:commands:register`
+  - run `/bug` and confirm the modal submits into `public.discord_bug_reports`
+  - confirm unique bugs create Feedback forum posts when `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set
   - run `/setup-verify` in Discord
   - generate a token from `Settings -> Account -> Discord Access`
   - paste the token into the Discord modal
@@ -162,6 +166,7 @@
 - Apply the Supabase migration for compact public member-number compaction.
 - Add `SUPABASE_SERVICE_ROLE_KEY`, `DISCORD_VERIFICATION_BOT_SECRET`, `DISCORD_VERIFICATION_TOKEN_PEPPER`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`, `DISCORD_APPLICATION_ID`, `DISCORD_GUILD_ID`, `DISCORD_VERIFY_CHANNEL_ID`, and `DISCORD_VERIFIED_ROLE_ID` in Vercel.
 - Optionally set `DISCORD_UNVERIFIED_ROLE_ID`, `DISCORD_VERIFY_MESSAGE_TITLE`, and `DISCORD_VERIFY_MESSAGE_BODY`.
+- Optionally set `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` to publish unique bugs into the Feedback forum board.
 - Optionally set `DISCORD_VERIFICATION_TOKEN_TTL_MINUTES`.
 - Set `https://<fitness-domain>/api/discord/interactions` as the Discord Interactions Endpoint URL.
 - Run `npm run discord:commands:register`.
@@ -169,6 +174,7 @@
 - Run `npm run lint:ci`.
 - Run `node --import ./scripts/register-test-aliases.mjs --test src/lib/discord/*.test.ts`.
 - Test token generation while logged in to the Fitness app.
+- Test `/bug` and confirm the queue row is written.
 - Test Discord modal verification end to end.
 - Run `node scripts/audit-member-numbers.mjs`.
 - Run `npm run sync:discord-member-numbers -- --dry-run` after any delete-driven compaction and rerun without `--dry-run` when you want to refresh link snapshots and Discord nicknames.
