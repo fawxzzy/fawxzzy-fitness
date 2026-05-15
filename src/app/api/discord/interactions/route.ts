@@ -713,6 +713,10 @@ async function handleFeedbackWithdrawInteraction(interaction: DiscordInteraction
   const updatedReport = withdrawResult.report;
   const forumChannelId = updatedReport.discord_forum_channel_id ?? DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
   let forumSyncFailed = false;
+  const reporterLabel = buildDiscordBugReporterLabel({
+    reporterDiscordUsername: updatedReport.reporter_discord_username,
+    reporterMemberNumber: updatedReport.reporter_member_number,
+  });
 
   if (updatedReport.discord_forum_thread_id && forumChannelId) {
     let matchedTagIds: string[] | null = null;
@@ -738,6 +742,27 @@ async function handleFeedbackWithdrawInteraction(interaction: DiscordInteraction
       });
 
       if (!tagUpdateResult.ok) {
+        forumSyncFailed = true;
+      }
+    }
+
+    if (updatedReport.discord_forum_message_id) {
+      const patchStarterMessageResult = await patchDiscordChannelMessage({
+        channelId: updatedReport.discord_forum_thread_id,
+        messageId: updatedReport.discord_forum_message_id,
+        body: {
+          content: buildDiscordBugForumThreadBody({
+            report: updatedReport,
+            reporterLabel,
+          }),
+          allowed_mentions: buildDiscordAllowedMentions({
+            reporterDiscordUserId: updatedReport.reporter_discord_user_id,
+            includeReporter: false,
+          }),
+        },
+      });
+
+      if (!patchStarterMessageResult.ok) {
         forumSyncFailed = true;
       }
     }
