@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordThreadMessage,
+  DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
   resolveDiscordForumTagIdsByName,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
@@ -183,6 +185,50 @@ test("createDiscordThreadMessage POSTs a message inside an existing thread with 
           parse: [],
           replied_user: false,
         },
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("createDiscordChannelMessage forwards flags for embed suppression", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "1505098072089296966" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await createDiscordChannelMessage({
+      channelId: "1504671871512346695",
+      body: {
+        content: "## Discord Feedback Update",
+        flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
+      },
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      messageId: "1505098072089296966",
+    });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504671871512346695/messages",
+      method: "POST",
+      body: JSON.stringify({
+        content: "## Discord Feedback Update",
+        flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
       }),
     });
   } finally {

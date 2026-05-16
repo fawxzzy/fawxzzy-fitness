@@ -79,20 +79,24 @@ Published updates should follow:
 ```txt
 ## Fitness App Update
 
-<Curated title>
+A new update is live.
 
-A new production update is live.
-
-### What changed
+**What changed**
 - <curated bullet>
 - <curated bullet>
 
-### Why it matters
+**Why it matters**
 <curated user-facing sentence>
 
 Open Fitness:
-https://fawxzzy-fitness-local.vercel.app/login
+<https://fawxzzy-fitness-local.vercel.app/login>
 ```
+
+Formatting rules:
+- one heading only
+- if the curated title is `Fitness App Update`, do not repeat it in the body
+- normalize each non-empty `What changed` line into a single bullet
+- suppress Discord link previews for the app URL so the post stays compact
 
 Good copy:
 - `Better feedback tools are live`
@@ -113,7 +117,7 @@ Example Vercel CLI command:
 
 ```powershell
 vercel webhooks create https://fawxzzy-fitness-local.vercel.app/api/vercel/deployment-webhook `
-  --event deployment.ready `
+  --event deployment.succeeded `
   --project prj_rtlFVOMFAWCRoJ3SQjHloi89881K
 ```
 
