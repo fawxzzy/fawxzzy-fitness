@@ -1,0 +1,256 @@
+# Fitness Discord Feedback
+
+## Purpose
+Feedback Bot captures bounded Discord feedback in `public.discord_feedback_reports` and mirrors unique reports into the Feedback forum for review.
+
+Product rules:
+- Feedback types are `Bug` and `Feature`.
+- `Fix` is not a valid new submission type.
+- Historical `fix` rows may remain readable and exportable.
+- The Feedback forum is a display surface; Supabase is the source of truth.
+- Normal users should use persistent buttons and modals, not admin-style slash command choices.
+- Feedback submit should defer the interaction before heavy Discord or DB work.
+- Feedback intake success depends on the bounded report row first and the forum thread second.
+- Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
+- Optional Discord decoration must fail soft.
+
+## Command surface
+- `/setup-feedback`
+  - admin-only
+  - posts or refreshes the persistent `Fawxzzy Feedback` panel
+- `/setup-verify`
+  - admin-only
+  - posts or refreshes the verification panel
+- `/feedback`
+  - slash fallback for the same general submit modal
+  - does not require a type option up front
+- `/feedback-status`
+  - staff-only
+  - status sync only
+- `/feedback-withdraw`
+  - reporter or staff
+  - redact and archive, not raw delete
+
+Feedback-facing commands should remain:
+- `setup-verify`
+- `setup-feedback`
+- `feedback`
+- `feedback-status`
+- `feedback-withdraw`
+
+Separate production-update staff commands may also exist:
+- `update-latest`
+- `update-publish`
+- `update-skip`
+
+## User flow
+1. An admin runs `/setup-feedback`.
+2. Fitness creates or updates a persistent panel with `Submit Feedback`, `Update Feedback`, and `Withdraw Feedback`.
+3. A user clicks `Submit Feedback`.
+4. Fitness opens one general modal.
+5. The modal collects `Feedback type` inside the flow.
+6. Fitness defers the interaction ephemerally before heavy DB or forum work.
+7. Fitness stores a bounded report row and, when configured, creates or updates the matching forum thread.
+8. Fitness edits the original ephemeral response with the final success or failure result.
+
+Pattern:
+- general feedback button
+- modal with type choice
+- deferred response
+- bounded row
+- forum thread and tags
+
+## Submit modal
+The submit flow should ask for type inside the modal, not in the slash command picker.
+
+Current user-facing types:
+- `Bug`
+- `Feature`
+
+If Discord modal select or radio components are not used, the text field should accept only:
+- `Bug`
+- `Feature`
+
+Invalid values should respond with:
+
+```txt
+Choose Bug or Feature for the feedback type.
+```
+
+The submit modal also supports optional image evidence:
+- up to 3 files
+- `image/png`
+- `image/jpeg`
+- `image/webp`
+- `image/gif`
+- max 8 MB each
+
+Attachment guardrails:
+- Discord remains the file host
+- Supabase stores bounded metadata only
+- no raw file bytes are stored
+- no raw Discord interaction payload is stored
+
+Stored attachment metadata should stay bounded to:
+- Discord attachment id
+- filename
+- content type
+- size
+- Discord URL fields when present
+
+## Panel placement
+- Preferred env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
+- Fallback env: `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
+
+`/setup-feedback` is idempotent:
+- if an existing bot-authored feedback panel is found, edit it
+- if it is missing or deleted, create a new one
+
+If panel creation fails with Discord `50013 Missing Permissions`, the admin response should mention:
+- `View Channel`
+- `Read Message History`
+- `Send Messages`
+- `Embed Links` optional
+- `Use External Emojis` optional
+
+## Environment
+- `DISCORD_PUBLIC_KEY`
+- `DISCORD_BOT_TOKEN`
+- `DISCORD_GUILD_ID`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `DISCORD_MEMBER_SYNC_SECRET`
+- `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` optional
+- `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
+- `DISCORD_FEEDBACK_BUG_EMOJI_ID` optional
+- `DISCORD_FEEDBACK_FEATURE_EMOJI_ID` optional
+
+Known production values:
+- `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`
+- `DISCORD_FEEDBACK_BUG_EMOJI_ID=1505007702924066916`
+- `DISCORD_FEEDBACK_FEATURE_EMOJI_ID=1505007651308703877`
+
+## Feedback forum board
+When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum thread with:
+- title format: `Bug: <Area> - <Summary>` or `Feature: <Area> - <Summary>`
+- type tag: `Bug` or `Feature`
+- status tag: `New`
+- severity tag: `Low`, `Medium`, `High`, or `Blocker`
+
+Do not use custom emoji in the forum thread title. Keep titles text-only and searchable.
+- Forum tags and text prefixes are the reliable visual system.
+- Custom emoji env vars are optional display config only and must never be required for feedback intake.
+- Fitness should validate custom Bug and Feature emoji against the configured guild before using them in buttons, select options, or forum headers.
+- If validation fails, the flow must fall back to text-only surfaces without blocking intake.
+
+Attachment handling:
+- accepted images may be referenced in the forum body so staff can review them in Discord
+- the forum starter post should include a visible `Attachments` section with file links when uploads are present
+- attachment links from the modal resolution path should be treated as Discord-hosted evidence, not durable app storage
+- v1 uses Discord attachment URLs as visible evidence links and does not re-upload files into the forum thread as a persistence layer
+- withdraw should clear or minimize stored attachment metadata and mark the report as attachment-pruned
+
+Allowed mentions:
+- restrict mentions to the reporter only when explicitly intended
+- user text must never be allowed to ping `@everyone`, `@here`, or roles
+
+## Forum tags
+Create or keep these tags:
+
+Type tags:
+- `Bug`
+- `Feature`
+
+Status tags:
+- `New`
+- `Needs Info`
+- `Confirmed`
+- `In Progress`
+- `Fixed`
+- `Closed`
+- `Duplicate`
+- `Spam`
+- `Withdrawn`
+
+Severity tags:
+- `Low`
+- `Medium`
+- `High`
+- `Blocker`
+
+If the forum still has old tags:
+- rename `Feat` to `Feature`
+- stop using `Fix` for new reports
+
+## Reporter update path
+`Update Feedback` is not a status command.
+
+It should:
+- allow the original reporter or staff
+- resolve by full UUID, short id, thread id, or thread URL
+- post a compact update reply in the thread
+- update bounded metadata such as `status_note` and `last_seen_at`
+- not change report status
+
+## Status flow
+`/feedback-status` should:
+- resolve by full UUID, short id, thread id, or thread URL
+- work for both `Bug` and `Feature`
+- update Supabase status
+- sync forum tags and title
+- post a compact status reply
+- mention the reporter only for `Needs Info`, `Fixed`, or `Closed`
+
+## Withdraw flow
+`/feedback-withdraw` and the withdraw modal should:
+- allow the original reporter or staff
+- resolve by full UUID, short id, thread id, or thread URL
+- redact `details`, `steps_to_reproduce`, and `screenshot_url`
+- clear or minimize stored attachment metadata
+- mark the report as attachment-pruned
+- set status to `withdrawn`
+- update forum tags to `Withdrawn`
+- archive and lock the thread
+- keep a small audit record
+- not raw-delete the review history
+
+## Verification copy dependency
+Keep verification instructions aligned with:
+
+```txt
+Go to Settings -> Account -> Discord Connector.
+```
+
+After verify-copy changes, rerun:
+- `/setup-verify`
+
+## Operator checklist
+1. Make sure the Feedback forum has the required tags.
+2. Register commands with `npm run discord:commands:register`.
+3. Set the forum and optional panel env vars.
+4. Run `/setup-feedback`.
+5. Pin the panel if needed.
+6. Test `Submit Feedback` with both `Bug` and `Feature`.
+7. Test duplicate folding.
+8. Test `Update Feedback`.
+9. Test `/feedback-status`.
+10. Test `Withdraw Feedback`.
+11. Test image upload with a small PNG or JPG.
+12. Confirm the user receives one final success message after the deferred response completes.
+
+## Guardrails
+Rule: feedback reports are bounded input signals, not repo truth.
+
+Rule: admin setup commands are not normal-user UX.
+
+Rule: feedback attachments are Discord-hosted evidence, not app database blobs.
+
+Rule: feedback submit should defer first and edit the original ephemeral response after processing.
+
+Rule: optional Discord decoration must not break core feedback intake.
+
+Failure modes:
+- making users choose too many slash-command variants
+- storing unbounded payloads
+- allowing raw delete instead of withdraw and redact
+- letting forum tags drift away from the bounded queue
+- showing a failure after a valid report row or forum post already exists
