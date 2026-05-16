@@ -546,6 +546,31 @@ export async function updateDiscordForumThreadArchiveState(args: {
   };
 }
 
+export async function deleteDiscordChannel(args: {
+  channelId: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<unknown>(
+    `/channels/${args.channelId}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code:
+      result.status === 404
+        ? "DISCORD_DELETE_CHANNEL_NOT_FOUND"
+        : "DISCORD_DELETE_CHANNEL_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function updateDiscordGuildMemberNickname(args: {
   guildId: string;
   userId: string;

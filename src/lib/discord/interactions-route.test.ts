@@ -1849,28 +1849,9 @@ test("Discord interactions route allows reporters to withdraw and redact feature
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
-      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
-      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
-      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
-      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
-      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
-      return new Response(JSON.stringify({ id: "discord-message-4" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "DELETE") {
+      observedDiscordBodies.push({ path: url.pathname, method: "DELETE", body });
+      return new Response(null, { status: 204 });
     }
 
     throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
@@ -1903,7 +1884,7 @@ test("Discord interactions route allows reporters to withdraw and redact feature
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback withdrawn. We removed the detailed text and kept a small audit record.",
+        content: "Feedback withdrawn. The forum post was removed and we kept a small audit record.",
         flags: 64,
       },
     });
@@ -1911,23 +1892,8 @@ test("Discord interactions route allows reporters to withdraw and redact feature
     assert.equal(observedSupabaseWrites[0]?.details, null);
     assert.equal(observedSupabaseWrites[0]?.steps_to_reproduce, null);
     assert.equal(observedSupabaseWrites[0]?.screenshot_url, null);
-    assert.equal(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids?.[0], "tag-feature");
-    assert.equal(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids?.[1], "tag-withdrawn");
-    assert.match(observedDiscordBodies[1]?.body?.content ?? "", /Status: Withdrawn/);
-    assert.match(observedDiscordBodies[1]?.body?.content ?? "", /\*\*What happened\*\*\s+Not provided/);
-    assert.deepEqual(observedDiscordBodies[1]?.body?.allowed_mentions, {
-      parse: [],
-      users: [],
-      roles: [],
-      replied_user: false,
-    });
-    assert.equal(observedDiscordBodies[2]?.body?.content, "This feedback was withdrawn by the reporter.");
     assert.equal(
-      observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.archived === true),
-      true,
-    );
-    assert.equal(
-      observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.locked === true),
+      observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.method === "DELETE"),
       true,
     );
   } finally {
@@ -2005,28 +1971,9 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
-      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
-      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
-      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
-      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
-      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
-      return new Response(JSON.stringify({ id: "discord-message-4" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "DELETE") {
+      observedDiscordBodies.push({ path: url.pathname, method: "DELETE", body });
+      return new Response(null, { status: 204 });
     }
 
     throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
@@ -2056,12 +2003,12 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback withdrawn. We removed the detailed text and kept a small audit record.",
+        content: "Feedback withdrawn. The forum post was removed and we kept a small audit record.",
         flags: 64,
       },
     });
     assert.equal(observedSupabaseWrites[0]?.status_note, "Withdrawing because I solved it.");
-    assert.equal(observedDiscordBodies[2]?.body?.content, "This feedback was withdrawn by the reporter.");
+    assert.equal(observedDiscordBodies[0]?.method, "DELETE");
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
