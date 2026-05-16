@@ -75,14 +75,14 @@ test("resolveDiscordVerifyMessageBody converts escaped newlines into rendered li
   );
 });
 
-test("resolveDiscordVerifyMessageBody falls back to the updated Discord Access instructions", () => {
+test("resolveDiscordVerifyMessageBody falls back to the updated Discord Connector instructions", () => {
   assert.equal(
     resolveDiscordVerifyMessageBody(null),
     [
       "To unlock the server:",
       "",
       "1. Sign into Fawxzzy Fitness.",
-      "2. Go to Settings -> Account -> Discord Access.",
+      "2. Go to Settings -> Account -> Discord Connector.",
       "3. Generate your Discord verification token.",
       "4. Click Verify below and paste the token.",
       "",

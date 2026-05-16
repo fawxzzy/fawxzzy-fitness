@@ -15,7 +15,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Verification tokens are display-once session UI state, not account data.
 - Pattern: Generate token from authenticated session, show readonly copy box, then Discord consumes it once.
 - Failure Mode: Persisting verification tokens turns a short-lived proof into reusable account state.
-- Evidence: Settings Discord Access UI and /api/discord/verification-token
+- Evidence: Settings Discord Connector UI and /api/discord/verification-token
 - Status: Proposed
 
 ## 2026-05-15 - Discord interactions should be signed HTTP when hosted by Fitness

@@ -2,7 +2,7 @@
 
 ## User flow
 1. The user signs into the Fitness app.
-2. The user opens `Settings -> Account -> Discord Access -> Generate token`.
+2. The user opens `Settings -> Account -> Discord Connector -> Generate token`.
 3. The app calls `POST /api/discord/verification-token`.
 4. The app shows the raw token once.
 5. The user pastes the token into Discord.
@@ -114,7 +114,7 @@ Default verify message body:
 To unlock the server:
 
 1. Sign into Fawxzzy Fitness.
-2. Go to Settings -> Account -> Discord Access.
+2. Go to Settings -> Account -> Discord Connector.
 3. Generate your Discord verification token.
 4. Click Verify below and paste the token.
 
@@ -156,7 +156,7 @@ If you set `DISCORD_VERIFY_MESSAGE_BODY`, keep the line breaks and rerun `/setup
   - run `/feedback-status` and confirm the forum tags and Supabase status stay in sync
   - run `/feedback-withdraw` and confirm detail redaction works without deleting the audit row
   - run `/setup-verify` in Discord
-  - generate a token from `Settings -> Account -> Discord Access`
+  - generate a token from `Settings -> Account -> Discord Connector`
   - paste the token into the Discord modal
   - rerun `/setup-verify` after any verify-message copy change
 

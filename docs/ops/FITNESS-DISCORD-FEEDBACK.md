@@ -58,7 +58,7 @@ Not allowed:
 1. Create the forum tags in the Feedback forum channel.
 2. Register commands with `npm run discord:commands:register`.
 3. Set `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`.
-4. Keep verification copy aligned with `Settings -> Account -> Discord Access` and rerun `/setup-verify` after copy changes.
+4. Keep verification copy aligned with `Settings -> Account -> Discord Connector` and rerun `/setup-verify` after copy changes.
 5. Review queue rows in Supabase or export them with `npm run discord:feedback:export`.
 6. Use `/feedback-status` to keep Supabase and the forum thread in sync.
 7. Use `/feedback-withdraw` only when the reporter or staff intentionally withdraws details.

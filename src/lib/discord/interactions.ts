@@ -34,7 +34,7 @@ export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
   "To unlock the server:",
   "",
   "1. Sign into Fawxzzy Fitness.",
-  "2. Go to Settings -> Account -> Discord Access.",
+  "2. Go to Settings -> Account -> Discord Connector.",
   "3. Generate your Discord verification token.",
   "4. Click Verify below and paste the token.",
   "",

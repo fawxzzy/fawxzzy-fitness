@@ -8,6 +8,8 @@ type CollapsibleCardProps = {
   title: string;
   summary?: ReactNode;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (nextValue: boolean) => void;
   children: ReactNode;
   className?: string;
   headerClassName?: string;
@@ -18,13 +20,23 @@ export function CollapsibleCard({
   title,
   summary,
   defaultOpen = false,
+  open,
+  onOpenChange,
   children,
   className,
   headerClassName,
   bodyClassName,
 }: CollapsibleCardProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
   const panelId = useId();
+  const isOpen = open ?? uncontrolledOpen;
+
+  function updateOpenState(nextValue: boolean) {
+    if (open === undefined) {
+      setUncontrolledOpen(nextValue);
+    }
+    onOpenChange?.(nextValue);
+  }
 
   return (
     <Glass variant="base" interactive className={["overflow-hidden", className ?? ""].join(" ")}>
@@ -32,7 +44,7 @@ export function CollapsibleCard({
         type="button"
         aria-expanded={isOpen}
         aria-controls={panelId}
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => updateOpenState(!isOpen)}
         className={[
           "flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none",
           headerClassName ?? "",

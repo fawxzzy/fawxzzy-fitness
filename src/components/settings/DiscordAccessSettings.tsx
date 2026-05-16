@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToast } from "@/components/ui/ToastProvider";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -39,6 +40,7 @@ export function DiscordAccessSettings() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState("Copy");
+  const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, startGenerateTransition] = useTransition();
   const toast = useToast();
 
@@ -52,6 +54,23 @@ export function DiscordAccessSettings() {
   }, [copyLabel]);
 
   const expiryLabel = useMemo(() => formatExpiry(expiresAt), [expiresAt]);
+  const connectorSummary = useMemo(() => {
+    if (token && expiryLabel) {
+      return `Verification token ready until ${expiryLabel}.`;
+    }
+
+    if (token) {
+      return "Verification token ready.";
+    }
+
+    return "Generate a one-time token to verify your Fitness account in Discord.";
+  }, [expiryLabel, token]);
+
+  useEffect(() => {
+    if (token || errorMessage) {
+      setIsOpen(true);
+    }
+  }, [errorMessage, token]);
 
   const generateToken = () => {
     startGenerateTransition(async () => {
@@ -108,93 +127,107 @@ export function DiscordAccessSettings() {
   };
 
   return (
-    <section className="space-y-3 border-t border-[rgb(var(--border-strong)/0.12)] pt-3">
-      {token ? (
-        <div className="space-y-3">
-          <LabeledEditorField label="Verification token">
-            <div className="relative">
+    <div className="border-t border-[rgb(var(--border-strong)/0.12)] pt-3">
+      <CollapsibleCard
+        title="Discord Connector"
+        summary={connectorSummary}
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        bodyClassName="space-y-3"
+      >
+        <div className={appTokens.settingsBlockStack}>
+          <p className={appTokens.settingsBodyText}>
+            Generate a short-lived one-time token to verify your Fitness account in the Discord server.
+          </p>
+        </div>
+
+        {token ? (
+          <div className="space-y-3">
+            <LabeledEditorField label="Verification token">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={token}
+                  readOnly
+                  aria-label="Discord verification token"
+                  className={cn(
+                    labeledEditorFieldControlClassName,
+                    "h-12 pr-24 pl-4 py-3 font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => void copyToken()}
+                  className={getAppButtonClassName({
+                    variant: copyLabel === "Copied" ? "secondary" : "tertiary",
+                    size: "sm",
+                    className: "absolute right-2 top-1/2 min-h-[2.1rem] -translate-y-1/2 px-3 text-xs",
+                  })}
+                >
+                  {copyLabel}
+                </button>
+              </div>
+            </LabeledEditorField>
+
+            <div className={appTokens.settingsStatusStack}>
+              {expiryLabel ? (
+                <p className={appTokens.settingsStatusMuted}>
+                  Expires at {expiryLabel}. Tokens can only be used once.
+                </p>
+              ) : (
+                <p className={appTokens.settingsStatusMuted}>Tokens can only be used once.</p>
+              )}
+              <div className={appTokens.settingsActionRow}>
+                <button
+                  type="button"
+                  onClick={generateToken}
+                  disabled={isGenerating}
+                  className={getAppButtonClassName({
+                    variant: "secondary",
+                    size: "sm",
+                    className: "px-4",
+                  })}
+                >
+                  {isGenerating ? "Generating..." : "Generate new token"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <LabeledEditorField label="Verification token">
               <input
                 type="text"
-                value={token}
+                value=""
                 readOnly
+                placeholder="No token generated yet"
                 aria-label="Discord verification token"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 pr-24 pl-4 py-3 font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
               />
-              <button
-                type="button"
-                onClick={() => void copyToken()}
-                className={getAppButtonClassName({
-                  variant: copyLabel === "Copied" ? "secondary" : "tertiary",
-                  size: "sm",
-                  className: "absolute right-2 top-1/2 min-h-[2.1rem] -translate-y-1/2 px-3 text-xs",
-                })}
-              >
-                {copyLabel}
-              </button>
-            </div>
-          </LabeledEditorField>
+            </LabeledEditorField>
 
-          <div className={appTokens.settingsStatusStack}>
-            {expiryLabel ? (
-              <p className={appTokens.settingsStatusMuted}>
-                Expires at {expiryLabel}. Tokens can only be used once.
-              </p>
-            ) : (
-              <p className={appTokens.settingsStatusMuted}>Tokens can only be used once.</p>
-            )}
             <div className={appTokens.settingsActionRow}>
               <button
                 type="button"
                 onClick={generateToken}
                 disabled={isGenerating}
                 className={getAppButtonClassName({
-                  variant: "secondary",
+                  variant: "primary",
                   size: "sm",
                   className: "px-4",
                 })}
               >
-                {isGenerating ? "Generating..." : "Generate new token"}
+                {isGenerating ? "Generating..." : "Generate token"}
               </button>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <LabeledEditorField label="Verification token">
-            <input
-              type="text"
-              value=""
-              readOnly
-              placeholder="No token generated yet"
-              aria-label="Discord verification token"
-              className={cn(
-                labeledEditorFieldControlClassName,
-                "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-              )}
-            />
-          </LabeledEditorField>
+        )}
 
-          <div className={appTokens.settingsActionRow}>
-            <button
-              type="button"
-              onClick={generateToken}
-              disabled={isGenerating}
-              className={getAppButtonClassName({
-                variant: "primary",
-                size: "sm",
-                className: "px-4",
-              })}
-            >
-              {isGenerating ? "Generating..." : "Generate token"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {errorMessage ? <p className={appTokens.settingsStatusError}>{errorMessage}</p> : null}
-    </section>
+        {errorMessage ? <p className={appTokens.settingsStatusError}>{errorMessage}</p> : null}
+      </CollapsibleCard>
+    </div>
   );
 }
