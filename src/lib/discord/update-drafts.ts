@@ -541,6 +541,8 @@ export function formatDiscordUpdatePublishMessage(args: {
   const whyItMatters = neutralizeDiscordMentions(args.whyItMatters.trim());
 
   return [
+    "@everyone",
+    "",
     `## ${title}`,
     "",
     "A new update is live.",
@@ -765,9 +767,7 @@ export async function publishDiscordUpdateDraft(args: {
       content: messageContent,
       flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
       allowed_mentions: {
-        parse: [],
-        users: [],
-        roles: [],
+        parse: ["everyone"],
         replied_user: false,
       },
     },

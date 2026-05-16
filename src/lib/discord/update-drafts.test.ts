@@ -518,6 +518,7 @@ test("formatDiscordUpdatePublishMessage keeps the public post user-facing", () =
     whyItMatters: "You can submit and track feedback from Discord without command hunting.",
   });
 
+  assert.match(message, /^@everyone\n\n## Faster feedback flow/m);
   assert.match(message, /^## Faster feedback flow/m);
   assert.match(message, /\*\*What changed\*\*/);
   assert.match(message, /\*\*Why it matters\*\*/);
@@ -534,6 +535,7 @@ test("formatDiscordUpdatePublishMessage does not duplicate the default title", (
   });
 
   assert.equal((message.match(/Fitness App Update/g) ?? []).length, 1);
+  assert.match(message, /^@everyone/m);
   assert.match(message, /^## Fitness App Update/m);
   assert.match(message, /\n- Improved the Discord feedback flow\.\n- Added a cleaner Feedback forum board\./);
 });
@@ -545,6 +547,7 @@ test("formatDiscordUpdatePublishMessage defaults a blank title and avoids double
     whyItMatters: "Updates should be easier to read and focused on what changed for users.",
   });
 
+  assert.match(message, /^@everyone/m);
   assert.match(message, /^## Fitness App Update/m);
   assert.match(message, /\n- Improved the feedback post format\.\n- Cleaned up update announcements\.\n- Reduced link preview clutter\./);
   assert.doesNotMatch(message, /\n- - /);
