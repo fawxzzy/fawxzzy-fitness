@@ -272,7 +272,7 @@ test("Discord interactions route updates an existing feedback panel when setup-f
         flags: 64,
       },
     });
-    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Fawxzzy Feedback");
+    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Feedback Actions");
     assert.deepEqual(
       observedDiscordBodies[0]?.components?.[0]?.components?.map((component) => component.custom_id),
       [
@@ -384,7 +384,7 @@ test("Discord interactions route recreates the feedback panel when the old panel
         flags: 64,
       },
     });
-    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Fawxzzy Feedback");
+    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Feedback Actions");
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;

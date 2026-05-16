@@ -63,8 +63,8 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
 test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel buttons", () => {
   const payload = buildDiscordFeedbackPanelMessagePayload();
 
-  assert.equal(payload.embeds[0]?.title, "Fawxzzy Feedback");
-  assert.match(payload.embeds[0]?.description ?? "", /report a bug or suggest a feature/i);
+  assert.equal(payload.embeds[0]?.title, "Feedback Actions");
+  assert.match(payload.embeds[0]?.description ?? "", /submit, update, or withdraw feedback/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => component.custom_id),
     [
@@ -72,6 +72,10 @@ test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel butt
       "fitness_feedback_update_open",
       "fitness_feedback_withdraw_open",
     ],
+  );
+  assert.deepEqual(
+    payload.components[0]?.components?.map((component) => component.label),
+    ["Submit", "Add Update", "Withdraw"],
   );
 });
 
@@ -184,7 +188,7 @@ test("feedback panel button modals expose submit, update, and withdraw forms", (
   assert.equal(withdraw.data.components[1]?.components[0]?.custom_id, "feedback_withdraw_note");
 });
 
-test("feedback submit modal includes validated select and button emoji payloads when provided", () => {
+test("feedback submit modal keeps panel buttons text-only while select options use validated emoji payloads", () => {
   const emojis = {
     Bug: { id: "1505007702924066916", name: "Bug" },
     Feature: { id: "1505007651308703877", name: "Feature" },
@@ -194,10 +198,7 @@ test("feedback submit modal includes validated select and button emoji payloads 
   const submitModal = buildDiscordFeedbackPanelSubmitModalResponse({ emojis });
   const options = (submitModal.data.components[0]?.component as { options?: Array<{ emoji?: { id: string; name: string } }> } | undefined)?.options;
 
-  assert.deepEqual(panelPayload.components[0]?.components[0]?.emoji, {
-    id: "1505007702924066916",
-    name: "Bug",
-  });
+  assert.equal(panelPayload.components[0]?.components[0]?.emoji, undefined);
   assert.deepEqual(options?.[0]?.emoji, {
     id: "1505007702924066916",
     name: "Bug",
@@ -273,6 +274,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.ok(setupFeedback);
   assert.equal(setupFeedback?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(feedback);
+  assert.equal(feedback?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.equal(feedback?.options, undefined);
   assert.ok(feedbackStatus);
   assert.equal(
@@ -281,6 +283,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   );
   assert.equal(feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "withdrawn"), true);
   assert.ok(feedbackWithdraw);
+  assert.equal(feedbackWithdraw?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.equal(feedbackWithdraw?.options?.[0]?.name, "report_id");
   assert.ok(updateLatest);
   assert.equal(

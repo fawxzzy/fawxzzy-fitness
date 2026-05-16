@@ -53,18 +53,15 @@ export const FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID = "update_title";
 export const FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID = "update_what_changed";
 export const FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID = "update_why_it_matters";
 export const DEFAULT_VERIFY_MESSAGE_TITLE = "Verify your Fawxzzy Fitness account";
-export const DEFAULT_FEEDBACK_PANEL_TITLE = "Fawxzzy Feedback";
+export const DEFAULT_FEEDBACK_PANEL_TITLE = "Feedback Actions";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
-  "Use this panel to help improve Fawxzzy Fitness.",
+  "Use this panel to submit, update, or withdraw feedback.",
   "",
-  "- Submit Feedback: report a bug or suggest a feature.",
-  "- Update Feedback: add more details to feedback you submitted.",
-  "- Withdraw Feedback: remove your submitted details without deleting the review record.",
+  "- Submit: report a bug or suggest a feature.",
+  "- Add Update: add more details to feedback you submitted.",
+  "- Withdraw: redact your submitted details while keeping the review record.",
   "",
-  "Feedback posts appear in the Feedback forum so the team can review, tag, and follow up.",
-  "",
-  "Open the app:",
-  "https://fawxzzy-fitness-local.vercel.app/login",
+  "Feedback posts appear in this forum so the team can review and follow up.",
 ] as const;
 export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
   "To unlock the server:",
@@ -330,8 +327,6 @@ function buildDiscordFeedbackSubmitModalData(args?: {
 export function buildDiscordFeedbackPanelMessagePayload(args?: {
   emojis?: DiscordFeedbackEmojiMap | null;
 }): DiscordMessagePayload {
-  const bugEmoji = args?.emojis?.Bug;
-
   return {
     embeds: [
       {
@@ -347,20 +342,19 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
             type: 2,
             style: 1,
             custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
-            label: "Submit Feedback",
-            emoji: bugEmoji,
+            label: "Submit",
           },
           {
             type: 2,
             style: 2,
             custom_id: FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
-            label: "Update Feedback",
+            label: "Add Update",
           },
           {
             type: 2,
             style: 4,
             custom_id: FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID,
-            label: "Withdraw Feedback",
+            label: "Withdraw",
           },
         ],
       },
@@ -390,6 +384,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
     {
       name: FITNESS_FEEDBACK_COMMAND_NAME,
       description: "Send Fitness feedback.",
+      default_member_permissions: setupDefaultPermissions,
     },
     {
       name: FITNESS_FEEDBACK_STATUS_COMMAND_NAME,
@@ -420,6 +415,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
     {
       name: FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME,
       description: "Withdraw feedback you submitted.",
+      default_member_permissions: setupDefaultPermissions,
       options: [
         {
           type: 3,
