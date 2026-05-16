@@ -41,6 +41,7 @@
     "analyze:exercise-catalog": "node scripts/analyze-exercise-catalog.mjs",
     "audit:exercise-filter-gaps": "node scripts/audit-exercise-filter-gaps.mjs",
     "audit:member-numbers": "node scripts/audit-member-numbers.mjs",
+    "doctor:discord-community": "node scripts/doctor-discord-community.mjs",
     "sync:discord-member-numbers": "node scripts/sync-discord-member-numbers.mjs",
     "release:preflight": "npm run verify && npm run typecheck && npm run build",
     "release:fitness:prepare": "node scripts/release/fitness-release-note.mjs prepare",

@@ -88,12 +88,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Raw user deletion breaks duplicate tracking and makes triage history unreliable.
 - Status: Proposed
 
-## 2026-05-15 - Feedback duplicates should fold on normalized signal and archive resolved display threads
+## 2026-05-15 - Feedback duplicates should fold on normalized signal and clean up resolved display threads
 - Type: Pattern
-- Summary: Feedback duplicate handling should compare normalized report signals rather than exact raw strings, while duplicate and withdrawn forum threads archive as display-state cleanup after the queue row is updated.
+- Summary: Feedback duplicate handling should compare normalized report signals rather than exact raw strings, while duplicate and withdrawn forum threads clean up as display-state cleanup after the queue row is updated.
 - Rule: Duplicate detection should compare normalized area, summary, and short-detail tokens, not exact message text alone.
-- Rule: Supabase remains the bounded index; duplicate or withdrawn forum threads may archive once their synced display state is updated.
-- Pattern: normalize feedback signal -> fold into active queue row -> sync tags and starter post -> archive duplicate or withdrawn display thread.
+- Rule: Supabase remains the bounded index; duplicate or withdrawn forum threads may be deleted once their synced display state is updated.
+- Pattern: normalize feedback signal -> fold into active queue row -> sync tags and starter post -> delete duplicate or withdrawn display thread.
 - Failure Mode: Exact-string-only duplicate checks miss obvious repeats, and leaving resolved duplicate threads open turns the forum into a noisy board.
 - Status: Proposed
 
@@ -144,7 +144,23 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Deployment metadata is input, not release copy.
 - Rule: Only production deployments for the Fitness project should create update drafts.
 - Rule: Discord update posts should be safe for users of any age and background.
-- Rule: Published update posts should stay single-heading and suppress link previews.
-- Pattern: production deployment.ready -> bounded draft -> admin curated publish -> Discord update post.
+- Rule: Published update posts should stay single-heading, start with `@everyone`, and suppress link previews.
+- Pattern: production deployment event -> bounded draft -> admin curated publish -> Discord update post.
 - Failure Mode: Raw changelog or deployment posts confuse users and leak irrelevant implementation details.
+- Status: Proposed
+
+## 2026-05-16 - Supabase migration parity must be restored before routine DB changes
+- Type: Guardrail
+- Summary: Discord rollout required surgical migration applies because local and remote migration history drifted.
+- Rule: Do not repair production migration history opportunistically during feature deploys.
+- Pattern: inventory remote history -> recover local migration files -> validate -> resume normal db workflow.
+- Failure Mode: Continuing feature work on a drifted migration chain forces every DB change into manual or surgical paths.
+- Status: Proposed
+
+## 2026-05-16 - Supabase migration ledger repair should require schema evidence
+- Type: Guardrail
+- Summary: Discord rollout migration drift was resolved by proving production schema effects before marking missing migration versions as applied.
+- Rule: Migration ledger repair requires schema evidence first.
+- Pattern: verify effects -> repair exact versions -> validate -> document.
+- Failure Mode: Blind migration repair can make the ledger claim schema history that production does not actually have.
 - Status: Proposed

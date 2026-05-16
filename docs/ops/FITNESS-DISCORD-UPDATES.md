@@ -7,12 +7,14 @@ Product rules:
 - only Fitness production deployments should create update drafts
 - deployment metadata is input, not release copy
 - public Discord updates must stay user-facing and curated
+- public Discord updates should start with `@everyone`
 - do not dump raw commit logs, migration names, PR diffs, stack traces, or infra-only noise
 - do not mix routine sharing, workout sharing, import flows, or copy-to-app work into this lane
 
 ## Trigger rule
-Accepted trigger:
+Accepted triggers:
 - Vercel `deployment.ready` for the Fitness project in `production`
+- Vercel `deployment.succeeded` for the Fitness project in `production`
 
 Ignored:
 - preview deployments
@@ -20,7 +22,7 @@ Ignored:
 - non-Fitness project deployments when `VERCEL_PROJECT_ID` is configured
 
 Flow:
-1. Vercel sends `deployment.ready` to `POST /api/vercel/deployment-webhook`.
+1. Vercel sends a production deployment event to `POST /api/vercel/deployment-webhook`.
 2. Fitness verifies `x-vercel-signature` before parsing JSON.
 3. Fitness normalizes the payload into bounded metadata and upserts `public.discord_update_drafts`.
 4. An admin runs `/update-latest`.
@@ -77,6 +79,8 @@ Existing commands still remain:
 Published updates should follow:
 
 ```txt
+@everyone
+
 ## Fitness App Update
 
 A new update is live.
@@ -94,6 +98,7 @@ Open Fitness:
 
 Formatting rules:
 - one heading only
+- start the public post with `@everyone`
 - if the curated title is `Fitness App Update`, do not repeat it in the body
 - normalize each non-empty `What changed` line into a single bullet
 - suppress Discord link previews for the app URL so the post stays compact
@@ -135,6 +140,21 @@ After Vercel returns the webhook secret:
 4. Run `/update-publish`.
 5. Review the Discord post in the updates channel.
 
+## Community doctor
+Run:
+
+```txt
+npm run doctor:discord-community
+```
+
+The doctor is read-only and checks the updates channel, live guild commands, feedback forum tags, member-number health, recent feedback attachment and withdraw state, and recent update-draft health.
+
+Explicitly parked:
+- no routine sharing
+- no workout sharing
+- no copy-to-app imports
+- no Discord workout editor
+
 ## Rollback and disable
 To pause public update posting:
 1. unset `DISCORD_UPDATE_BOT_ENABLED`
@@ -147,3 +167,5 @@ Rule: deployment metadata is input, not user-facing release copy.
 Rule: Discord update posts must stay safe for users of any age and background.
 
 Rule: Discord is the community surface; ATLAS remains internal operator truth.
+
+Rule: public release posts should use `@everyone` and suppress embeds while staying curated and user-facing.
