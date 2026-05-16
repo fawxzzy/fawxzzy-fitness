@@ -1,128 +1,127 @@
 # Fitness Discord Feedback
 
 ## Purpose
-Feedback Bot lets Discord users send bounded feedback into the Fitness-hosted Discord interactions endpoint. The visible board is the Feedback forum; the bounded index is Supabase.
+Feedback Bot captures bounded Discord feedback in `public.discord_feedback_reports` and mirrors unique reports into the Feedback forum for review.
 
-Product decisions:
-- Feedback forum is the visible board.
-- Supabase remains the bounded searchable index.
-- Forum tags are display state, not source of truth.
-- Playbook, ATLAS, and GitHub promotion remain reviewed and manual.
-
-## Storage policy
-Feedback reports are bounded structured signals, not blob storage.
-
-Allowed:
-- short summary
-- short area
-- normalized severity
-- bounded details
-- bounded steps or request context
-- optional external screenshot or reference URL
-- linked Fitness reporter snapshot when available
-- duplicate fingerprint and queue metadata
-- forum thread metadata and status sync metadata
-
-Not allowed:
-- screenshot binaries
-- uploaded files
-- raw Discord interaction payloads
-- message dumps
-- browser logs
-- full Discord profiles
-- automatic ATLAS commits
-- automatic GitHub issues
+Product rules:
+- Feedback types are `Bug` and `Feature`.
+- `Fix` is not a valid new submission type.
+- Historical `fix` rows may remain readable and exportable.
+- The Feedback forum is a display surface; Supabase is the source of truth.
+- Normal users should use persistent buttons and modals, not admin-style slash command choices.
 
 ## Command surface
-- `/feedback` is the main command.
-- `/feedback` requires `type` with choices `Bug`, `Feat`, or `Fix`.
-- `/feedback-status` is the staff status command.
-- `/feedback-withdraw` lets the original reporter or staff withdraw and redact details without raw deletion.
-- `/feedback-withdraw` accepts a full Report ID, a 6+ character short ID, a forum thread ID, or a forum thread URL.
-- `/setup-verify` remains unchanged.
+- `/setup-feedback`
+  - admin-only
+  - posts or refreshes the persistent `Fawxzzy Feedback` panel
+- `/setup-verify`
+  - admin-only
+  - posts or refreshes the verification panel
+- `/feedback`
+  - slash fallback for the same general submit modal
+  - does not require a type option up front
+- `/feedback-status`
+  - staff-only
+  - status sync only
+- `/feedback-withdraw`
+  - reporter or staff
+  - redact and archive, not raw delete
+
+Registered commands should remain:
+- `setup-verify`
+- `setup-feedback`
+- `feedback`
+- `feedback-status`
+- `feedback-withdraw`
 
 ## User flow
-1. A user runs `/feedback` and chooses `Bug`, `Feat`, or `Fix`.
-2. Fitness receives the signed interaction at `POST /api/discord/interactions`.
-3. Fitness returns a typed feedback modal.
-4. The user submits the bounded fields.
-5. Fitness normalizes the report, rate-limits basic spam, resolves any linked member snapshot, and writes `public.discord_feedback_reports`.
-6. Fitness creates a Feedback forum thread for a new unique report when the forum env is configured.
-7. Fitness folds likely duplicates into the existing active queue row and existing forum thread instead of storing a second full report.
-8. Staff can update queue status with `/feedback-status`.
-9. The original reporter or staff can use `/feedback-withdraw` to redact details while preserving small audit metadata.
-10. Threads marked `duplicate` or `withdrawn` are archived and locked after the forum post and tag state are synced.
-11. Operators export and triage the queue later.
+1. An admin runs `/setup-feedback`.
+2. Fitness creates or updates a persistent panel with `Submit Feedback`, `Update Feedback`, and `Withdraw Feedback`.
+3. A user clicks `Submit Feedback`.
+4. Fitness opens one general modal.
+5. The modal collects `Feedback type` inside the flow.
+6. Fitness stores a bounded report row and, when configured, creates or updates the matching forum thread.
 
-## Staff flow
-1. Create the forum tags in the Feedback forum channel.
-2. Register commands with `npm run discord:commands:register`.
-3. Set `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`.
-4. Keep verification copy aligned with `Settings -> Account -> Discord Connector` and rerun `/setup-verify` after copy changes.
-5. Review queue rows in Supabase or export them with `npm run discord:feedback:export`.
-6. Use `/feedback-status` to keep Supabase and the forum thread in sync.
-7. Use `/feedback-withdraw` only when the reporter or staff intentionally withdraws details.
-8. Promote reviewed reports into Playbook, ATLAS, or GitHub only after triage.
+Pattern:
+- general feedback button
+- modal with type choice
+- bounded row
+- forum thread and tags
 
-## Modal fields
-- `Summary`
-- `Area`
-- `Severity`
-- `What happened?` or `What do you want?`
-- `Steps / link`
+## Submit modal
+The submit flow should ask for type inside the modal, not in the slash command picker.
 
-## Supabase table
-Active table: `public.discord_feedback_reports`
+Current user-facing types:
+- `Bug`
+- `Feature`
 
-Stored fields include:
-- queue state: `report_type`, `status`, `source`, `severity`, `duplicate_fingerprint`, `duplicate_count`
-- report content: `area`, `summary`, `details`, `steps_to_reproduce`, `screenshot_url`
-- reporter snapshot: `reporter_discord_user_id`, `reporter_discord_username`, `reporter_fitness_user_id`, `reporter_member_number`, `reporter_user_kind`
-- forum sync: `discord_forum_channel_id`, `discord_forum_thread_id`, `discord_forum_message_id`, `discord_forum_applied_tag_ids`, `discord_forum_title`, `reporter_mentioned_at`
-- operator breadcrumbs: `discord_interaction_id`, `status_updated_at`, `status_updated_by_discord_user_id`, `status_note`, `triage_notes`
-- timestamps: `first_seen_at`, `last_seen_at`, `created_at`, `updated_at`, `closed_at`, `pruned_at`
+If Discord modal select or radio components are not used, the text field should accept only:
+- `Bug`
+- `Feature`
 
-Bounded fields:
-- `summary`: 1-120 chars
-- `area`: up to 80 chars
-- `details`: up to 1200 chars
-- `steps_to_reproduce`: up to 1200 chars
-- `screenshot_url`: up to 500 chars, external URL only
-- `discord_forum_title`: up to 100 chars
-- `status_note`: up to 1000 chars
+Invalid values should respond with:
 
-No file or image binaries are stored. Screenshots remain links only.
+```txt
+Choose Bug or Feature for the feedback type.
+```
 
-Security:
-- RLS is enabled.
-- This feature adds no broad client policies.
-- Reports are intended for server and admin access only.
+## Panel placement
+- Preferred env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
+- Fallback env: `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 
-## Environment variables
+`/setup-feedback` is idempotent:
+- if an existing bot-authored feedback panel is found, edit it
+- if it is missing or deleted, create a new one
+
+If panel creation fails with Discord `50013 Missing Permissions`, the admin response should mention:
+- `View Channel`
+- `Read Message History`
+- `Send Messages`
+- `Embed Links` optional
+- `Use External Emojis` optional
+
+## Environment
 - `DISCORD_PUBLIC_KEY`
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_GUILD_ID`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DISCORD_MEMBER_SYNC_SECRET`
+- `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` optional
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
+- `DISCORD_FEEDBACK_BUG_EMOJI_ID` optional
+- `DISCORD_FEEDBACK_FEATURE_EMOJI_ID` optional
 
-Current production value:
+Known production values:
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`
+- `DISCORD_FEEDBACK_BUG_EMOJI_ID=1505007702924068916`
+- `DISCORD_FEEDBACK_FEATURE_EMOJI_ID=1505007651308703877`
 
 ## Feedback forum board
-If `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, Fitness creates a forum thread with:
-- title format: `Bug: <Area> - <Summary>`, `Feat: <Area> - <Summary>`, or `Fix: <Area> - <Summary>`
-- type tag: `Bug`, `Feat`, or `Fix`
+When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum thread with:
+- title format: `Bug: <Area> — <Summary>` or `Feature: <Area> — <Summary>`
+- type tag: `Bug` or `Feature`
 - status tag: `New`
-- severity tag when present: `Low`, `Medium`, `High`, or `Blocker`
-- a compact first post body with status, type, severity, area, reporter mention, short report id, summary, details, steps, and screenshot URL link only
+- severity tag: `Low`, `Medium`, `High`, or `Blocker`
 
-Manual forum tags to create:
+Do not use custom emoji in the forum thread title. Keep titles text-only and searchable.
+
+First post body should use the matching header:
+- `<:Bug:1505007702924068916> **Bug Report**`
+- `<:Feature:1505007651308703877> **Feature Request**`
+
+Emoji fallback:
+- if the emoji env vars are missing, post without custom emoji
+
+Allowed mentions:
+- restrict mentions to the reporter only when explicitly intended
+- user text must never be allowed to ping `@everyone`, `@here`, or roles
+
+## Forum tags
+Create or keep these tags:
 
 Type tags:
 - `Bug`
-- `Feat`
-- `Fix`
+- `Feature`
 
 Status tags:
 - `New`
@@ -141,190 +140,69 @@ Severity tags:
 - `High`
 - `Blocker`
 
-The bot resolves tag ids by tag name at runtime. It does not hardcode tag ids. Missing tags are logged safely and the post still goes through.
+If the forum still has old tags:
+- rename `Feat` to `Feature`
+- stop using `Fix` for new reports
 
-## Member number display and sync
-- Discord nicknames use the display format `username · N`.
-- Existing old-style `#N · username` prefixes and stale `username · oldN` suffixes are stripped before applying the current number.
-- Delete-driven member-number compaction refreshes linked `discord_member_links` snapshots and marks those rows as `needs_sync`.
-- Discord API side effects run through the protected sync path, not from SQL triggers.
-- Manual sync options:
-  - `POST /api/discord/member-numbers/sync` with `x-discord-member-sync-secret`
-  - `npm run sync:discord-member-numbers -- --dry-run`
+## Reporter update path
+`Update Feedback` is not a status command.
 
-## Title standard
-- `Bug: Area - Summary`
-- `Feat: Area - Summary`
-- `Fix: Area - Summary`
+It should:
+- allow the original reporter or staff
+- resolve by full UUID, short id, thread id, or thread URL
+- post a compact update reply in the thread
+- update bounded metadata such as `status_note` and `last_seen_at`
+- not change report status
 
-Rules:
-- no raw Discord ids in titles
-- no reporter names in titles
-- area fallback is `General`
-- titles stay bounded and readable
+## Status flow
+`/feedback-status` should:
+- resolve by full UUID, short id, thread id, or thread URL
+- work for both `Bug` and `Feature`
+- update Supabase status
+- sync forum tags and title
+- post a compact status reply
+- mention the reporter only for `Needs Info`, `Fixed`, or `Closed`
 
-## Reporter mention policy
-- The first forum post mentions the reporter once with `<@discordUserId>`.
-- The mention is guarded with `allowed_mentions` limited to that reporter id.
-- User-generated text never controls mentions.
-- Duplicate replies do not ping the reporter.
-- `/feedback-status` only pings the reporter for `needs_info`, `fixed`, and `closed`.
-- `/feedback-withdraw` keeps the thread reply compact and does not give normal users raw-delete behavior.
+## Withdraw flow
+`/feedback-withdraw` and the withdraw modal should:
+- allow the original reporter or staff
+- resolve by full UUID, short id, thread id, or thread URL
+- redact `details`, `steps_to_reproduce`, and `screenshot_url`
+- set status to `withdrawn`
+- update forum tags to `Withdrawn`
+- archive and lock the thread
+- keep a small audit record
+- not raw-delete the review history
 
-## Duplicate folding
-Fitness builds a deterministic duplicate fingerprint from normalized `report_type + area + summary`, then compares recent active candidates using normalized area, summary, and details tokens before storing a second full row.
-
-- Active duplicate window: 30 days
-- Duplicate statuses checked: `new`, `needs_info`, `confirmed`, `in_progress`, `fixed`
-- Duplicate matching is deterministic and auditable, not embedding-based:
-  - contractions and common failure phrasing normalize into the same token set
-  - area, summary, and short details overlap are compared
-  - near-identical wording such as `didn't copy` and `did not copy` folds into one queue record
-- If a match exists, Fitness increments `duplicate_count` and updates `last_seen_at`
-- Duplicate submissions do not store another full details row or create another forum thread
-- The existing forum thread receives a compact duplicate reply
-- The user still receives a confirmation response
-
-## Rate limit
-Fitness counts reports from the same `reporter_discord_user_id` in the last 10 minutes.
-
-- Allowed: up to 2 recent reports, then the third insert still succeeds
-- Blocked: 3 or more reports already recorded in the last 10 minutes
-- User response: `You have submitted several reports recently. Please wait a few minutes before sending another.`
-
-## `/feedback-status`
-Usage:
+## Verification copy dependency
+Keep verification instructions aligned with:
 
 ```txt
-/feedback-status report_id status note
+Go to Settings → Account → Discord Connector.
 ```
 
-Allowed statuses:
-- `new`
-- `needs_info`
-- `confirmed`
-- `in_progress`
-- `fixed`
-- `closed`
-- `duplicate`
-- `spam`
-- `withdrawn`
+After verify-copy changes, rerun:
+- `/setup-verify`
 
-Behavior:
-- staff-only permission gate: Administrator, Manage Guild, Manage Threads, or Manage Messages
-- updates Supabase `status`, `status_updated_at`, `status_updated_by_discord_user_id`, and `status_note`
-- updates the forum thread title and applied tags when the thread exists
-- adds a compact status reply in the thread
-- pings the reporter only for `needs_info`, `fixed`, and `closed`
-
-## `/feedback-withdraw`
-Usage:
-
-```txt
-/feedback-withdraw report_id
-```
-
-Behavior:
-- allowed for the original reporter or staff with the same moderation permissions as `/feedback-status`
-- accepts the full UUID, a 6+ char short id, the Discord forum thread id, or the forum thread URL
-- updates Supabase status to `withdrawn`
-- redacts `details`, `steps_to_reproduce`, and `screenshot_url`
-- keeps a small audit record and duplicate history
-- updates forum tags to `Withdrawn` while keeping type and severity when available
-- edits the original forum post into a withdrawn or redacted state
-- adds a compact thread reply instead of hard-deleting the forum post
-- archives the thread after sync so the forum board behaves like a closed post without destroying history
-
-Rule:
-- user-facing delete means withdraw and redact by default, not destructive history loss
-
-## Export flow
-Primary command:
-
-```bash
-npm run discord:feedback:export
-```
-
-Legacy alias:
-
-```bash
-npm run discord:bugs:export
-```
-
-Supported options:
-- `--status new`
-- `--limit 25`
-- `--json`
-- `--markdown`
-- `--out <path>`
-- `--debug`
-
-Default output:
-- `runtime/discord-feedback/latest.md`
-
-The export is read-only, defaults to a gitignored runtime path, masks Discord user ids unless `--debug` is passed, and produces a reviewable operator artifact for Playbook or ATLAS triage.
-
-## Retention and prune policy
-Primary command:
-
-```bash
-npm run discord:feedback:prune
-```
-
-Legacy alias:
-
-```bash
-npm run discord:bugs:prune
-```
-
-Behavior:
-- dry-run by default
-- requires `--apply` to delete rows
-- default targets only `spam`, `duplicate`, and `closed`
-- default age thresholds:
-  - `spam`: older than 7 days
-  - `duplicate`: older than 30 days
-  - `closed`: older than 90 days
-- `new`, `needs_info`, `confirmed`, `in_progress`, and `fixed` are never pruned by default
-
-## Rollout order
-Current production-safe paths:
-- preferred from a clean production state with none of the feedback migrations applied: apply `059`
-- compatible historical path: apply `057`, then `058`, then `059`
-- do not stop after `057` alone once production code expects `public.discord_feedback_reports`
-
-Then:
+## Operator checklist
 1. Make sure the Feedback forum has the required tags.
 2. Register commands with `npm run discord:commands:register`.
-3. Rerun `/setup-verify` if verify-message copy changed.
-4. Test `/feedback`.
-5. Test a duplicate `/feedback`.
-6. Test `/feedback-status`.
-7. Test `/feedback-withdraw` with the forum thread URL.
+3. Set the forum and optional panel env vars.
+4. Run `/setup-feedback`.
+5. Pin the panel if needed.
+6. Test `Submit Feedback` with both `Bug` and `Feature`.
+7. Test duplicate folding.
+8. Test `Update Feedback`.
+9. Test `/feedback-status`.
+10. Test `Withdraw Feedback`.
 
 ## Guardrails
-Rule: feedback reports are input signals, not repo truth.
+Rule: feedback reports are bounded input signals, not repo truth.
 
-Rule: forum tags are display state; Supabase remains the bounded index.
+Rule: admin setup commands are not normal-user UX.
 
-Pattern:
-- Discord `/feedback` modal
-- bounded Supabase queue row
-- Feedback forum thread
-- duplicate folding
-- `/feedback-status` sync
-- `/feedback-withdraw` redact flow
-- export and prune
-- reviewed triage
-- reviewed Playbook note, issue, or Codex task later
-
-Failure mode:
-- Unbounded text, files, raw payloads, or direct repo writes turn intake into storage abuse.
-- Raw user deletion breaks duplicate tracking and makes triage history unreliable.
-- Manual-only forum tags drift from the review queue and make exports unreliable.
-- Exact-string-only duplicate matching misses obvious repeats and leaves the Feedback forum noisy.
-
-## Next step
-Future extensions can reuse the same queue shape without changing the core flow:
-- `/feedback type:feat` already maps to `report_type = feat`
-- `/feedback type:fix` already maps to `report_type = fix`
+Failure modes:
+- making users choose too many slash-command variants
+- storing unbounded payloads
+- allowing raw delete instead of withdraw and redact
+- letting forum tags drift away from the bounded queue

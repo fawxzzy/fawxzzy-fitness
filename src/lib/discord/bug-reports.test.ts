@@ -322,10 +322,11 @@ test("extractDiscordBugReportModalFields maps Discord modal rows into named feed
   });
 });
 
-test("normalizeDiscordFeedbackReportType accepts bug feat and fix", () => {
+test("normalizeDiscordFeedbackReportType accepts bug and feature while rejecting fix for new submissions", () => {
   assert.equal(normalizeDiscordFeedbackReportType("bug"), "bug");
-  assert.equal(normalizeDiscordFeedbackReportType("FEAT"), "feat");
-  assert.equal(normalizeDiscordFeedbackReportType("fix"), "fix");
+  assert.equal(normalizeDiscordFeedbackReportType("Feature"), "feature");
+  assert.equal(normalizeDiscordFeedbackReportType("FEAT"), "feature");
+  assert.equal(normalizeDiscordFeedbackReportType("fix"), null);
   assert.equal(normalizeDiscordFeedbackReportType("other"), null);
 });
 
@@ -336,7 +337,7 @@ test("normalizeDiscordBugSeverity maps synonyms and defaults safely", () => {
   assert.equal(normalizeDiscordBugSeverity("not sure"), "medium");
 });
 
-test("buildDiscordBugForumThreadTitle formats bug feat and fix forum titles", () => {
+test("buildDiscordBugForumThreadTitle formats bug and feature forum titles while keeping historical fix readable", () => {
   assert.equal(
     buildDiscordBugForumThreadTitle({
       reportType: "bug",
@@ -347,11 +348,11 @@ test("buildDiscordBugForumThreadTitle formats bug feat and fix forum titles", ()
   );
   assert.equal(
     buildDiscordBugForumThreadTitle({
-      reportType: "feat",
+      reportType: "feature",
       area: "routines",
       summary: "Let me share a routine",
     }),
-    "Feat: Routines — Let me share a routine",
+    "Feature: Routines — Let me share a routine",
   );
   assert.equal(
     buildDiscordBugForumThreadTitle({
@@ -367,15 +368,15 @@ test("buildDiscordBugForumThreadBody formats the first forum post body with feed
   assert.equal(
     buildDiscordBugForumThreadBody({
       report: buildStoredRow({
-        report_type: "feat",
+        report_type: "feature",
         id: "abc12345-ffff-ffff-ffff-ffffffffffff",
         screenshot_url: "https://example.com/shot.png",
       }),
       reporterLabel: "Member #4",
     }),
     [
-      "**Feedback Report**",
-      "Type: Feat",
+      "**Feature Request**",
+      "Type: Feature",
       "Status: New",
       "Severity: Medium",
       "Area: Settings",
@@ -398,9 +399,22 @@ test("buildDiscordBugForumThreadBody formats the first forum post body with feed
   );
 });
 
+test("buildDiscordBugForumThreadBody keeps historical fix rows readable", () => {
+  assert.match(
+    buildDiscordBugForumThreadBody({
+      report: buildStoredRow({
+        report_type: "fix",
+      }),
+      reporterLabel: "Member #4",
+    }),
+    /^\*\*Feedback Report\*\*\nType: Fix/m,
+  );
+});
+
 test("buildDiscordBugForumDuplicateReply and withdraw reply stay compact", () => {
   assert.equal(
     buildDiscordBugForumDuplicateReply({
+      reportType: "bug",
       reporterLabel: "Member #7",
       duplicateCount: 3,
     }),
@@ -439,15 +453,16 @@ test("buildDiscordBugForumTagNames applies type status and severity tags includi
   }), ["Bug", "New", "Medium"]);
 
   assert.deepEqual(buildDiscordBugForumTagNames({
-    reportType: "feat",
+    reportType: "feature",
     status: "withdrawn",
     severity: "high",
-  }), ["Feat", "Withdrawn", "High"]);
+  }), ["Feature", "Withdrawn", "High"]);
 });
 
 test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly requested", () => {
   assert.equal(
     buildDiscordBugStatusThreadReply({
+      reportType: "bug",
       status: "needs_info",
       note: "Can you share the exact screen? @everyone",
       reporterDiscordUserId: "123456789012345678",
@@ -458,6 +473,7 @@ test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly r
 
   assert.equal(
     buildDiscordBugStatusThreadReply({
+      reportType: "feature",
       status: "withdrawn",
       note: null,
       reporterDiscordUserId: "123456789012345678",
@@ -467,6 +483,37 @@ test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly r
   );
 });
 
+test("configured feedback emoji markup appears in forum body and replies when env vars are set", () => {
+  process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID = "1505007702924068916";
+  process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID = "1505007651308703877";
+
+  const featureBody = buildDiscordBugForumThreadBody({
+    report: buildStoredRow({
+      report_type: "feature",
+    }),
+    reporterLabel: "Member #4",
+  });
+  const duplicateReply = buildDiscordBugForumDuplicateReply({
+    reportType: "bug",
+    reporterLabel: "Member #7",
+    duplicateCount: 2,
+  });
+  const statusReply = buildDiscordBugStatusThreadReply({
+    reportType: "feature",
+    status: "fixed",
+    note: null,
+    reporterDiscordUserId: null,
+    includeReporterMention: false,
+  });
+
+  assert.match(featureBody, /^<:Feature:1505007651308703877> \*\*Feature Request\*\*/);
+  assert.match(duplicateReply, /^<:Bug:1505007702924068916> Another report matched this feedback\./);
+  assert.match(statusReply, /^<:Feature:1505007651308703877> Status updated: Fixed$/);
+
+  delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
+  delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;
+});
+
 test("normalizeDiscordBugReportInput trims long summary and long details to bounded lengths", () => {
   const normalized = normalizeDiscordBugReportInput({
     summary: `  ${"S".repeat(DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH + 40)}  `,
@@ -474,13 +521,13 @@ test("normalizeDiscordBugReportInput trims long summary and long details to boun
     severity: "high",
     details: `  ${"D".repeat(DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH + 100)}  `,
     stepsAndScreenshot: null,
-  }, "feat");
+  }, "feature");
 
   assert.ok(normalized);
   assert.equal(normalized?.summary.length, DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH);
   assert.equal(normalized?.details.length, DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH);
   assert.equal(normalized?.area, "Settings");
-  assert.equal(normalized?.reportType, "feat");
+  assert.equal(normalized?.reportType, "feature");
 });
 
 test("normalizeDiscordBugReportInput rejects empty summary or details after trimming", () => {
@@ -571,7 +618,7 @@ test("createDiscordBugReport uses a deterministic duplicate fingerprint that inc
     interactionId: "interaction-1",
     reporterDiscordUserId: "123456789012345678",
     reporterDiscordUsername: "zac",
-    reportType: "feat",
+    reportType: "feature",
     modalFields: {
       summary: "Token button didn't copy",
       area: "Settings",
@@ -589,11 +636,11 @@ test("createDiscordBugReport uses a deterministic duplicate fingerprint that inc
   }
 
   assert.equal(result.duplicate, false);
-  assert.equal(result.report.report_type, "feat");
+  assert.equal(result.report.report_type, "feature");
   assert.equal(
     observed.insertedValues[0]?.duplicate_fingerprint,
     createDiscordBugReportDuplicateFingerprint({
-      reportType: "feat",
+      reportType: "feature",
       area: "Settings",
       summary: "Token button didn't copy",
     }),
