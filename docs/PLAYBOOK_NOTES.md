@@ -9,6 +9,19 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/app/api/discord/verification-token/route.ts, src/app/api/discord/verify/route.ts, supabase/migrations/20260514120000_054_discord_verification_tokens.sql
 - Status: Proposed
 
+## 2026-05-11 - Narrow DAL slices should extract one authenticated mutation at a time
+- Type: Pattern
+- Summary: Fitness should prove Atlas-aligned server boundaries by moving one authenticated persistence path at a time into `src/lib/dal/*`, while server actions retain validation, user lookup, and revalidation ownership.
+- Suggested Playbook File: docs/PATTERNS/owner-repo-dal-slices.md
+- Rationale: Small DAL slices keep regressions attributable and prove the owner-repo boundary before any shared auth/data package discussion.
+- Rule: Server action owns request validation and revalidation; DAL owns authenticated persistence mutation.
+- Pattern: Delete routine is a good second DAL slice because it has a narrow read-delete-replace-update shape.
+- Failure Mode: Extracting create, update, and delete together makes routine behavior regressions difficult to isolate.
+- Evidence: src/app/routines/actions.ts, src/lib/dal/routine-delete.ts, src/lib/dal/routine-delete.test.ts
+- Status: Proposed
+
+## 2026-05-11 - Contract workflows should fail inside observable jobs, not before job creation
+
 ## 2026-05-15 - Discord verification proof should be user-copyable but not persisted
 - Type: Guardrail
 - Summary: Fitness may show a one-time Discord token after generation, but the token must stay ephemeral and must not be stored in profile state, URLs, localStorage, or logs.
