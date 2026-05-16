@@ -30,6 +30,8 @@ export type DiscordChannel = {
   id: string;
   name?: string;
   type?: number;
+  archived?: boolean;
+  locked?: boolean;
   applied_tags?: string[];
   available_tags?: DiscordForumTag[];
 };
@@ -370,6 +372,34 @@ export async function updateDiscordForumThreadTitle(args: {
   return {
     ok: false,
     code: "DISCORD_UPDATE_FORUM_THREAD_TITLE_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function updateDiscordForumThreadArchiveState(args: {
+  threadId: string;
+  archived: boolean;
+  locked?: boolean;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel>(
+    `/channels/${args.threadId}`,
+    {
+      method: "PATCH",
+      body: {
+        archived: args.archived,
+        ...(typeof args.locked === "boolean" ? { locked: args.locked } : {}),
+      },
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_UPDATE_FORUM_THREAD_ARCHIVE_STATE_FAILED",
     status: result.status,
     message: result.errorMessage,
   };

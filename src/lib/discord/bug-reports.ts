@@ -113,6 +113,80 @@ type NormalizedDiscordBugReportInput = {
   stepsToReproduce: string | null;
   screenshotUrl: string | null;
   duplicateFingerprint: string;
+  duplicateAreaKey: string;
+  duplicateSummaryKey: string;
+  duplicateDetailKey: string;
+  duplicateSummaryTokens: string[];
+  duplicateDetailTokens: string[];
+  duplicateCombinedTokens: string[];
+};
+
+const DISCORD_BUG_REPORT_DUPLICATE_CANDIDATE_LIMIT = 25;
+const DUPLICATE_TOKEN_STOPWORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "been",
+  "before",
+  "but",
+  "by",
+  "can",
+  "could",
+  "did",
+  "do",
+  "does",
+  "for",
+  "from",
+  "had",
+  "has",
+  "have",
+  "here",
+  "how",
+  "i",
+  "if",
+  "in",
+  "into",
+  "is",
+  "it",
+  "its",
+  "me",
+  "my",
+  "not",
+  "of",
+  "on",
+  "or",
+  "so",
+  "that",
+  "the",
+  "their",
+  "then",
+  "there",
+  "this",
+  "to",
+  "was",
+  "were",
+  "when",
+  "with",
+]);
+
+const DUPLICATE_TOKEN_SYNONYMS: Record<string, string> = {
+  broken: "fail",
+  broke: "fail",
+  cannot: "fail",
+  cant: "fail",
+  couldnt: "fail",
+  didnt: "fail",
+  doesnt: "fail",
+  failing: "fail",
+  failed: "fail",
+  fails: "fail",
+  failure: "fail",
+  wont: "fail",
+  unable: "fail",
 };
 
 const DISCORD_BUG_REPORT_SELECT_COLUMNS = [
@@ -168,6 +242,205 @@ function normalizeTextInput(value: string | null | undefined, maxLength: number)
   }
 
   return normalized.slice(0, maxLength);
+}
+
+function stemDuplicateToken(token: string): string {
+  if (token.length > 5 && token.endsWith("ies")) {
+    return `${token.slice(0, -3)}y`;
+  }
+
+  if (token.length > 5 && token.endsWith("ing")) {
+    return token.slice(0, -3);
+  }
+
+  if (token.length > 4 && token.endsWith("ed")) {
+    return token.slice(0, -2);
+  }
+
+  if (token.length > 4 && token.endsWith("es")) {
+    return token.slice(0, -2);
+  }
+
+  if (token.length > 3 && token.endsWith("s")) {
+    return token.slice(0, -1);
+  }
+
+  return token;
+}
+
+function normalizeDuplicateToken(value: string): string | null {
+  const compact = value
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+  if (!compact) {
+    return null;
+  }
+
+  let normalized = DUPLICATE_TOKEN_SYNONYMS[compact] ?? compact;
+  normalized = stemDuplicateToken(normalized);
+  normalized = DUPLICATE_TOKEN_SYNONYMS[normalized] ?? normalized;
+
+  if (!normalized || normalized.length < 2 || DUPLICATE_TOKEN_STOPWORDS.has(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function tokenizeDuplicateText(value: string | null | undefined, maxTokens = 12): string[] {
+  if (!value) {
+    return [];
+  }
+
+  const normalized = normalizeTextInput(value, Math.max(DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH, DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH));
+  if (!normalized) {
+    return [];
+  }
+
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawToken of normalized.split(/[^a-zA-Z0-9']+/)) {
+    const token = normalizeDuplicateToken(rawToken);
+    if (!token || seen.has(token)) {
+      continue;
+    }
+
+    seen.add(token);
+    tokens.push(token);
+    if (tokens.length >= maxTokens) {
+      break;
+    }
+  }
+
+  return tokens;
+}
+
+function buildDuplicateTextKey(tokens: string[]): string {
+  return tokens.join(" ");
+}
+
+function countSharedDuplicateTokens(left: string[], right: string[]): number {
+  if (left.length === 0 || right.length === 0) {
+    return 0;
+  }
+
+  const rightSet = new Set(right);
+  return left.reduce((count, token) => count + (rightSet.has(token) ? 1 : 0), 0);
+}
+
+function computeDuplicateTokenCoverage(left: string[], right: string[]): number {
+  const shared = countSharedDuplicateTokens(left, right);
+  const denominator = Math.min(left.length, right.length);
+  return denominator > 0 ? shared / denominator : 0;
+}
+
+function areDuplicateAreasComparable(leftAreaKey: string, rightAreaKey: string): boolean {
+  return !leftAreaKey || !rightAreaKey || leftAreaKey === rightAreaKey;
+}
+
+function buildDuplicateSignal(args: {
+  reportType: DiscordBugReportReportType;
+  area: string | null;
+  summary: string;
+  details: string | null;
+}): {
+  reportType: DiscordBugReportReportType;
+  areaKey: string;
+  summaryKey: string;
+  detailKey: string;
+  summaryTokens: string[];
+  detailTokens: string[];
+  combinedTokens: string[];
+  fingerprint: string;
+} {
+  const areaTokens = tokenizeDuplicateText(args.area, 6);
+  const summaryTokens = tokenizeDuplicateText(args.summary, 12);
+  const detailTokens = tokenizeDuplicateText(args.details, 12);
+  const areaKey = buildDuplicateTextKey(areaTokens);
+  const summaryKey = buildDuplicateTextKey(summaryTokens);
+  const detailKey = buildDuplicateTextKey(detailTokens);
+  const combinedTokens = uniqueStrings([...summaryTokens, ...detailTokens]).slice(0, 16);
+
+  return {
+    reportType: args.reportType,
+    areaKey,
+    summaryKey,
+    detailKey,
+    summaryTokens,
+    detailTokens,
+    combinedTokens,
+    fingerprint: createHash("sha256")
+      .update(`${args.reportType}::${areaKey}::${summaryKey}`)
+      .digest("hex"),
+  };
+}
+
+function scoreDuplicateCandidate(args: {
+  candidate: DiscordBugReportRow;
+  normalizedInput: NormalizedDiscordBugReportInput;
+}): number {
+  if (args.candidate.report_type !== args.normalizedInput.reportType) {
+    return 0;
+  }
+
+  const candidateSignal = buildDuplicateSignal({
+    reportType: args.candidate.report_type,
+    area: args.candidate.area,
+    summary: args.candidate.summary,
+    details: args.candidate.details,
+  });
+
+  if (
+    args.candidate.duplicate_fingerprint === args.normalizedInput.duplicateFingerprint
+    || candidateSignal.fingerprint === args.normalizedInput.duplicateFingerprint
+  ) {
+    return 100;
+  }
+
+  const areaComparable = areDuplicateAreasComparable(
+    args.normalizedInput.duplicateAreaKey,
+    candidateSignal.areaKey,
+  );
+  const summaryCoverage = computeDuplicateTokenCoverage(
+    args.normalizedInput.duplicateSummaryTokens,
+    candidateSignal.summaryTokens,
+  );
+  const detailCoverage = computeDuplicateTokenCoverage(
+    args.normalizedInput.duplicateDetailTokens,
+    candidateSignal.detailTokens,
+  );
+  const combinedCoverage = computeDuplicateTokenCoverage(
+    args.normalizedInput.duplicateCombinedTokens,
+    candidateSignal.combinedTokens,
+  );
+  const sharedSummaryTokens = countSharedDuplicateTokens(
+    args.normalizedInput.duplicateSummaryTokens,
+    candidateSignal.summaryTokens,
+  );
+
+  if (
+    args.normalizedInput.duplicateSummaryKey
+    && args.normalizedInput.duplicateSummaryKey === candidateSignal.summaryKey
+    && areaComparable
+  ) {
+    return 95;
+  }
+
+  if (areaComparable && sharedSummaryTokens >= 2 && summaryCoverage >= 0.75) {
+    return 85;
+  }
+
+  if (areaComparable && sharedSummaryTokens >= 2 && summaryCoverage >= 0.5 && detailCoverage >= 0.5) {
+    return 75;
+  }
+
+  if (areaComparable && sharedSummaryTokens >= 3 && combinedCoverage >= 0.7) {
+    return 70;
+  }
+
+  return 0;
 }
 
 function neutralizeDiscordMentions(value: string): string {
@@ -602,12 +875,12 @@ export function createDiscordBugReportDuplicateFingerprint(args: {
   area: string | null;
   summary: string;
 }): string {
-  const normalizedArea = normalizeTextInput(args.area, DISCORD_BUG_REPORT_AREA_MAX_LENGTH)?.toLowerCase() ?? "";
-  const normalizedSummary = normalizeTextInput(args.summary, DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH)?.toLowerCase() ?? "";
-
-  return createHash("sha256")
-    .update(`${args.reportType}::${normalizedArea}::${normalizedSummary}`)
-    .digest("hex");
+  return buildDuplicateSignal({
+    reportType: args.reportType,
+    area: args.area,
+    summary: args.summary,
+    details: null,
+  }).fingerprint;
 }
 
 export function normalizeDiscordBugReportInput(
@@ -622,6 +895,12 @@ export function normalizeDiscordBugReportInput(
 
   const area = normalizeTextInput(modalFields.area, DISCORD_BUG_REPORT_AREA_MAX_LENGTH);
   const splitFields = splitDiscordBugStepsAndScreenshot(modalFields.stepsAndScreenshot);
+  const duplicateSignal = buildDuplicateSignal({
+    reportType,
+    area,
+    summary,
+    details,
+  });
 
   return {
     reportType,
@@ -631,11 +910,13 @@ export function normalizeDiscordBugReportInput(
     details,
     stepsToReproduce: splitFields.steps,
     screenshotUrl: splitFields.screenshotUrl,
-    duplicateFingerprint: createDiscordBugReportDuplicateFingerprint({
-      reportType,
-      area,
-      summary,
-    }),
+    duplicateFingerprint: duplicateSignal.fingerprint,
+    duplicateAreaKey: duplicateSignal.areaKey,
+    duplicateSummaryKey: duplicateSignal.summaryKey,
+    duplicateDetailKey: duplicateSignal.detailKey,
+    duplicateSummaryTokens: duplicateSignal.summaryTokens,
+    duplicateDetailTokens: duplicateSignal.detailTokens,
+    duplicateCombinedTokens: duplicateSignal.combinedTokens,
   };
 }
 
@@ -674,24 +955,41 @@ async function resolveDiscordBugReporterLink(admin: DiscordBugReportsAdminClient
 
 async function findDuplicateDiscordBugReport(args: {
   admin: DiscordBugReportsAdminClient;
-  duplicateFingerprint: string;
+  normalizedInput: NormalizedDiscordBugReportInput;
   now: Date;
 }): Promise<DiscordBugReportRow | null> {
   const { data, error } = await args.admin
     .from("discord_feedback_reports")
     .select(DISCORD_BUG_REPORT_SELECT_COLUMNS)
-    .eq("duplicate_fingerprint", args.duplicateFingerprint)
+    .eq("report_type", args.normalizedInput.reportType)
     .in("status", [...DISCORD_BUG_REPORT_DUPLICATE_ACTIVE_STATUSES])
     .gte("last_seen_at", buildDuplicateLookupCutoff(args.now))
     .order("last_seen_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(DISCORD_BUG_REPORT_DUPLICATE_CANDIDATE_LIMIT);
 
-  if (error) {
-    throw new Error(`Failed to look up duplicate discord bug report: ${error.message}`);
+  if (error || !Array.isArray(data)) {
+    throw new Error(`Failed to look up duplicate discord bug report: ${error?.message ?? "missing rows"}`);
   }
 
-  return coerceBugReportRow(data);
+  const candidates = data
+    .map((row) => coerceBugReportRow(row))
+    .filter((row): row is DiscordBugReportRow => Boolean(row));
+
+  let bestMatch: DiscordBugReportRow | null = null;
+  let bestScore = 0;
+
+  for (const candidate of candidates) {
+    const score = scoreDuplicateCandidate({
+      candidate,
+      normalizedInput: args.normalizedInput,
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = candidate;
+    }
+  }
+
+  return bestScore >= 70 ? bestMatch : null;
 }
 
 async function insertDiscordBugReport(admin: DiscordBugReportsAdminClient, values: Record<string, unknown>): Promise<DiscordBugReportRow> {
@@ -829,7 +1127,7 @@ export async function createDiscordBugReport(args: {
     const reporterLink = await resolveDiscordBugReporterLink(admin, args.reporterDiscordUserId);
     const existingDuplicate = await findDuplicateDiscordBugReport({
       admin,
-      duplicateFingerprint: normalizedInput.duplicateFingerprint,
+      normalizedInput,
       now,
     });
 

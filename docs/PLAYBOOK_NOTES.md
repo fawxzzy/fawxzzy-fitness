@@ -75,6 +75,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Raw user deletion breaks duplicate tracking and makes triage history unreliable.
 - Status: Proposed
 
+## 2026-05-15 - Feedback duplicates should fold on normalized signal and archive resolved display threads
+- Type: Pattern
+- Summary: Feedback duplicate handling should compare normalized report signals rather than exact raw strings, while duplicate and withdrawn forum threads archive as display-state cleanup after the queue row is updated.
+- Rule: Duplicate detection should compare normalized area, summary, and short-detail tokens, not exact message text alone.
+- Rule: Supabase remains the bounded index; duplicate or withdrawn forum threads may archive once their synced display state is updated.
+- Pattern: normalize feedback signal -> fold into active queue row -> sync tags and starter post -> archive duplicate or withdrawn display thread.
+- Failure Mode: Exact-string-only duplicate checks miss obvious repeats, and leaving resolved duplicate threads open turns the forum into a noisy board.
+- Status: Proposed
+
 ## 2026-05-15 - Member-number display sync should queue Discord side effects
 - Type: Pattern
 - Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.

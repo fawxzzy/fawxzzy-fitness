@@ -92,6 +92,9 @@ function createMockAdminClient(options = {}) {
       if (filters.fingerprint && row.duplicate_fingerprint !== filters.fingerprint) {
         return false;
       }
+      if (filters.reportType && row.report_type !== filters.reportType) {
+        return false;
+      }
       if (filters.prefix && !String(row.id).toLowerCase().startsWith(String(filters.prefix).toLowerCase())) {
         return false;
       }
@@ -146,6 +149,7 @@ function createMockAdminClient(options = {}) {
             id: null,
             threadId: null,
             fingerprint: null,
+            reportType: null,
             prefix: null,
             lowerId: null,
             upperId: null,
@@ -159,6 +163,9 @@ function createMockAdminClient(options = {}) {
               }
               if (column === "id") {
                 filters.id = value;
+              }
+              if (column === "report_type") {
+                filters.reportType = value;
               }
               if (column === "discord_forum_thread_id") {
                 filters.threadId = value;
@@ -176,10 +183,12 @@ function createMockAdminClient(options = {}) {
                         order() {
                           return {
                             limit() {
+                              const matches = findMatchingReports(filters);
                               return {
+                                data: matches,
+                                error: null,
                                 async maybeSingle() {
-                                  const match = findMatchingReports(filters)[0] ?? null;
-                                  return { data: match, error: null };
+                                  return { data: matches[0] ?? null, error: null };
                                 },
                               };
                             },
@@ -640,6 +649,51 @@ test("createDiscordBugReport folds duplicates into an existing row instead of in
   assert.equal(result.report.id, "existing-report");
   assert.equal(observed.insertedValues.length, 0);
   assert.equal(observed.updatedCalls[0]?.values?.duplicate_count, 3);
+});
+
+test("createDiscordBugReport folds near-duplicate wording into the existing report", async () => {
+  const existingDuplicate = buildStoredRow({
+    id: "existing-heuristic-report",
+    summary: "Copy button does not work",
+    details: "I tapped Copy after generating a token and nothing happened.",
+    area: "Account",
+    duplicate_fingerprint: "legacy-fingerprint",
+  });
+  const { adminClient, observed } = createMockAdminClient({
+    recentCount: 0,
+    memberLink: {
+      fitness_user_id: "00000000-0000-0000-0000-000000000123",
+      user_number: 4,
+      user_kind: "human",
+    },
+    reports: [existingDuplicate],
+  });
+
+  const result = await createDiscordBugReport({
+    interactionId: "interaction-3",
+    reporterDiscordUserId: "999999999999999999",
+    reporterDiscordUsername: "zac-two",
+    reportType: "bug",
+    modalFields: {
+      summary: "Copy button didn't work",
+      area: "Account",
+      severity: "medium",
+      details: "After I generated a token, tapping Copy failed and nothing happened.",
+      stepsAndScreenshot: "Settings -> Account -> Generate token -> Copy",
+    },
+    adminClient,
+    now: new Date("2026-05-15T15:00:00.000Z"),
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+
+  assert.equal(result.duplicate, true);
+  assert.equal(result.report.id, "existing-heuristic-report");
+  assert.equal(observed.insertedValues.length, 0);
+  assert.equal(observed.updatedCalls[0]?.values?.duplicate_count, 2);
 });
 
 test("findDiscordBugReportByIdOrPrefix resolves UUIDs, 6+ short ids, thread ids, and thread URLs", async () => {

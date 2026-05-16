@@ -4,6 +4,7 @@ import {
   createDiscordForumThreadWithMessage,
   createDiscordThreadMessage,
   resolveDiscordForumTagIdsByName,
+  updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
   updateDiscordForumThreadTitle,
   updateDiscordGuildMemberNickname,
@@ -288,6 +289,45 @@ test("updateDiscordForumThreadTitle PATCHes the thread title", async () => {
       method: "PATCH",
       body: JSON.stringify({
         name: "Bug: Settings — Copy button does not work",
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("updateDiscordForumThreadArchiveState PATCHes the archived state", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "1504673475489562745", archived: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await updateDiscordForumThreadArchiveState({
+      threadId: "1504673475489562745",
+      archived: true,
+      locked: false,
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745",
+      method: "PATCH",
+      body: JSON.stringify({
+        archived: true,
+        locked: false,
       }),
     });
   } finally {

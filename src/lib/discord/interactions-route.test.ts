@@ -160,7 +160,7 @@ test("Discord interactions route accepts feedback even when the forum env is not
     }
 
     if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
-      return new Response("null", {
+      return new Response("[]", {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -279,7 +279,7 @@ test("Discord interactions route stores unique feature feedback and creates a ta
     }
 
     if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
-      return new Response("null", {
+      return new Response("[]", {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -403,12 +403,12 @@ test("Discord interactions route folds duplicate feedback and posts only a compa
     }
 
     if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
-      return new Response(JSON.stringify(buildFeedbackReportRow({
+      return new Response(JSON.stringify([buildFeedbackReportRow({
         reporter_discord_username: null,
         reporter_member_number: 4,
         duplicate_count: 2,
         last_seen_at: "2026-05-14T13:00:00.000Z",
-      })), {
+      })]), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -763,6 +763,129 @@ test("Discord interactions route allows reporters to withdraw and redact their f
       replied_user: false,
     });
     assert.equal(observedDiscordBodies[2]?.body?.content, "This feedback was withdrawn by the reporter.");
+    assert.equal(
+      observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.archived === true),
+      true,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route archives duplicate feedback threads after staff marks them duplicate", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies = [];
+  const observedSupabaseWrites = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "confirmed",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      observedSupabaseWrites.push(body);
+      if (observedSupabaseWrites.length === 1) {
+        return new Response(JSON.stringify(buildFeedbackReportRow({
+          status: "duplicate",
+          status_updated_at: "2026-05-15T14:00:00.000Z",
+          status_updated_by_discord_user_id: "222222222222222222",
+          status_note: "Matches existing login report.",
+        })), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "tag-bug", name: "Bug" },
+          { id: "tag-duplicate", name: "Duplicate" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
+      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
+      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-duplicate" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(3)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "feedback-status",
+        options: [
+          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          { type: 3, name: "status", value: "duplicate" },
+          { type: 3, name: "note", value: "Matches existing login report." },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback updated.",
+        flags: 64,
+      },
+    });
+    assert.equal(observedSupabaseWrites[0]?.status, "duplicate");
+    assert.equal(
+      observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.archived === true),
+      true,
+    );
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;

@@ -64,6 +64,7 @@ import {
   patchDiscordChannelMessage,
   resolveDiscordForumTagIdsByName,
   removeDiscordGuildMemberRole,
+  updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
   updateDiscordForumThreadTitle,
   updateDiscordGuildMemberNickname,
@@ -142,6 +143,10 @@ function resolveDiscordInteractionUser(interaction: DiscordInteraction): {
 
 function interactionMatchesGuild(interaction: DiscordInteraction): boolean {
   return typeof interaction.guild_id === "string" && interaction.guild_id === DISCORD_GUILD_ID();
+}
+
+function shouldArchiveFeedbackThread(status: string): boolean {
+  return status === "duplicate" || status === "withdrawn";
 }
 
 async function upsertDiscordVerifyMessage() {
@@ -560,6 +565,7 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
 
   let forumSyncFailed = false;
   if (updatedReport.discord_forum_thread_id && forumChannelId) {
+    const archiveAfterSync = shouldArchiveFeedbackThread(updatedReport.status);
     let matchedTagIds: string[] | null = null;
     const tagResolutionResult = await resolveDiscordForumTagIdsByName({
       channelId: forumChannelId,
@@ -661,6 +667,25 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
         status: threadReplyResult.status,
         message: threadReplyResult.message,
       });
+    }
+
+    if (archiveAfterSync) {
+      const archiveResult = await updateDiscordForumThreadArchiveState({
+        threadId: updatedReport.discord_forum_thread_id,
+        archived: true,
+        locked: false,
+      });
+
+      if (!archiveResult.ok) {
+        forumSyncFailed = true;
+        console.error("[discord-interactions] bug forum archive update failed", {
+          requestId: randomUUID(),
+          reportId: updatedReport.id,
+          code: archiveResult.code,
+          status: archiveResult.status,
+          message: archiveResult.message,
+        });
+      }
     }
   }
 
@@ -791,6 +816,16 @@ async function handleFeedbackWithdrawInteraction(interaction: DiscordInteraction
     });
 
     if (!threadReplyResult.ok) {
+      forumSyncFailed = true;
+    }
+
+    const archiveResult = await updateDiscordForumThreadArchiveState({
+      threadId: updatedReport.discord_forum_thread_id,
+      archived: true,
+      locked: false,
+    });
+
+    if (!archiveResult.ok) {
       forumSyncFailed = true;
     }
   }

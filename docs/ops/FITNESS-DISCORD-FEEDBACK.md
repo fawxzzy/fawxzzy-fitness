@@ -51,7 +51,8 @@ Not allowed:
 7. Fitness folds likely duplicates into the existing active queue row and existing forum thread instead of storing a second full report.
 8. Staff can update queue status with `/feedback-status`.
 9. The original reporter or staff can use `/feedback-withdraw` to redact details while preserving small audit metadata.
-10. Operators export and triage the queue later.
+10. Threads marked `duplicate` or `withdrawn` are archived after the forum post and tag state are synced.
+11. Operators export and triage the queue later.
 
 ## Staff flow
 1. Create the forum tags in the Feedback forum channel.
@@ -171,10 +172,14 @@ Rules:
 - `/feedback-withdraw` keeps the thread reply compact and does not give normal users raw-delete behavior.
 
 ## Duplicate folding
-Fitness builds a duplicate fingerprint from normalized `report_type + area + summary`.
+Fitness builds a deterministic duplicate fingerprint from normalized `report_type + area + summary`, then compares recent active candidates using normalized area, summary, and details tokens before storing a second full row.
 
 - Active duplicate window: 30 days
 - Duplicate statuses checked: `new`, `needs_info`, `confirmed`, `in_progress`, `fixed`
+- Duplicate matching is deterministic and auditable, not embedding-based:
+  - contractions and common failure phrasing normalize into the same token set
+  - area, summary, and short details overlap are compared
+  - near-identical wording such as `didn't copy` and `did not copy` folds into one queue record
 - If a match exists, Fitness increments `duplicate_count` and updates `last_seen_at`
 - Duplicate submissions do not store another full details row or create another forum thread
 - The existing forum thread receives a compact duplicate reply
@@ -226,7 +231,9 @@ Behavior:
 - redacts `details`, `steps_to_reproduce`, and `screenshot_url`
 - keeps a small audit record and duplicate history
 - updates forum tags to `Withdrawn` while keeping type and severity when available
+- edits the original forum post into a withdrawn or redacted state
 - adds a compact thread reply instead of hard-deleting the forum post
+- archives the thread after sync so the forum board behaves like a closed post without destroying history
 
 Rule:
 - user-facing delete means withdraw and redact by default, not destructive history loss
@@ -315,6 +322,7 @@ Failure mode:
 - Unbounded text, files, raw payloads, or direct repo writes turn intake into storage abuse.
 - Raw user deletion breaks duplicate tracking and makes triage history unreliable.
 - Manual-only forum tags drift from the review queue and make exports unreliable.
+- Exact-string-only duplicate matching misses obvious repeats and leaves the Feedback forum noisy.
 
 ## Next step
 Future extensions can reuse the same queue shape without changing the core flow:
