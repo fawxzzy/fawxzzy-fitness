@@ -9,7 +9,9 @@ Product rules:
 - Historical `fix` rows may remain readable and exportable.
 - The Feedback forum is a display surface; Supabase is the source of truth.
 - Normal users should use persistent buttons and modals, not admin-style slash command choices.
+- Feedback submit should defer the interaction before heavy Discord or DB work.
 - Feedback intake success depends on the bounded report row first and the forum thread second.
+- Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
 - Optional Discord decoration must fail soft.
 
 ## Command surface
@@ -47,11 +49,14 @@ Separate production-update staff commands may also exist:
 3. A user clicks `Submit Feedback`.
 4. Fitness opens one general modal.
 5. The modal collects `Feedback type` inside the flow.
-6. Fitness stores a bounded report row and, when configured, creates or updates the matching forum thread.
+6. Fitness defers the interaction ephemerally before heavy DB or forum work.
+7. Fitness stores a bounded report row and, when configured, creates or updates the matching forum thread.
+8. Fitness edits the original ephemeral response with the final success or failure result.
 
 Pattern:
 - general feedback button
 - modal with type choice
+- deferred response
 - bounded row
 - forum thread and tags
 
@@ -71,6 +76,27 @@ Invalid values should respond with:
 ```txt
 Choose Bug or Feature for the feedback type.
 ```
+
+The submit modal also supports optional image evidence:
+- up to 3 files
+- `image/png`
+- `image/jpeg`
+- `image/webp`
+- `image/gif`
+- max 8 MB each
+
+Attachment guardrails:
+- Discord remains the file host
+- Supabase stores bounded metadata only
+- no raw file bytes are stored
+- no raw Discord interaction payload is stored
+
+Stored attachment metadata should stay bounded to:
+- Discord attachment id
+- filename
+- content type
+- size
+- Discord URL fields when present
 
 ## Panel placement
 - Preferred env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
@@ -100,12 +126,12 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 
 Known production values:
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`
-- `DISCORD_FEEDBACK_BUG_EMOJI_ID=1505007702924068916`
+- `DISCORD_FEEDBACK_BUG_EMOJI_ID=1505007702924066916`
 - `DISCORD_FEEDBACK_FEATURE_EMOJI_ID=1505007651308703877`
 
 ## Feedback forum board
 When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum thread with:
-- title format: `Bug: <Area> — <Summary>` or `Feature: <Area> — <Summary>`
+- title format: `Bug: <Area> - <Summary>` or `Feature: <Area> - <Summary>`
 - type tag: `Bug` or `Feature`
 - status tag: `New`
 - severity tag: `Low`, `Medium`, `High`, or `Blocker`
@@ -113,7 +139,15 @@ When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum
 Do not use custom emoji in the forum thread title. Keep titles text-only and searchable.
 - Forum tags and text prefixes are the reliable visual system.
 - Custom emoji env vars are optional display config only and must never be required for feedback intake.
-- Until guild-safe validation is added, panel buttons and forum post bodies should stay text-only even when emoji env vars are set.
+- Fitness should validate custom Bug and Feature emoji against the configured guild before using them in buttons, select options, or forum headers.
+- If validation fails, the flow must fall back to text-only surfaces without blocking intake.
+
+Attachment handling:
+- accepted images may be referenced in the forum body so staff can review them in Discord
+- the forum starter post should include a visible `Attachments` section with file links when uploads are present
+- attachment links from the modal resolution path should be treated as Discord-hosted evidence, not durable app storage
+- v1 uses Discord attachment URLs as visible evidence links and does not re-upload files into the forum thread as a persistence layer
+- withdraw should clear or minimize stored attachment metadata and mark the report as attachment-pruned
 
 Allowed mentions:
 - restrict mentions to the reporter only when explicitly intended
@@ -171,6 +205,8 @@ It should:
 - allow the original reporter or staff
 - resolve by full UUID, short id, thread id, or thread URL
 - redact `details`, `steps_to_reproduce`, and `screenshot_url`
+- clear or minimize stored attachment metadata
+- mark the report as attachment-pruned
 - set status to `withdrawn`
 - update forum tags to `Withdrawn`
 - archive and lock the thread
@@ -181,7 +217,7 @@ It should:
 Keep verification instructions aligned with:
 
 ```txt
-Go to Settings → Account → Discord Connector.
+Go to Settings -> Account -> Discord Connector.
 ```
 
 After verify-copy changes, rerun:
@@ -198,11 +234,17 @@ After verify-copy changes, rerun:
 8. Test `Update Feedback`.
 9. Test `/feedback-status`.
 10. Test `Withdraw Feedback`.
+11. Test image upload with a small PNG or JPG.
+12. Confirm the user receives one final success message after the deferred response completes.
 
 ## Guardrails
 Rule: feedback reports are bounded input signals, not repo truth.
 
 Rule: admin setup commands are not normal-user UX.
+
+Rule: feedback attachments are Discord-hosted evidence, not app database blobs.
+
+Rule: feedback submit should defer first and edit the original ephemeral response after processing.
 
 Rule: optional Discord decoration must not break core feedback intake.
 

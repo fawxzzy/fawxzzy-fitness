@@ -8,6 +8,7 @@ export const DISCORD_INTERACTION_TYPE = {
 export const DISCORD_INTERACTION_RESPONSE_TYPE = {
   PONG: 1,
   CHANNEL_MESSAGE_WITH_SOURCE: 4,
+  DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE: 5,
   MODAL: 9,
 } as const;
 
@@ -37,6 +38,7 @@ export const FITNESS_BUG_AREA_INPUT_CUSTOM_ID = "bug_area";
 export const FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID = "bug_severity";
 export const FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID = "bug_details";
 export const FITNESS_BUG_STEPS_INPUT_CUSTOM_ID = "bug_steps";
+export const FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID = "feedback_attachment";
 export const FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID = "feedback_update_report_id";
 export const FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID = "feedback_update_details";
 export const FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID = "feedback_withdraw_report_id";
@@ -133,6 +135,20 @@ type DiscordApplicationCommandDefinition = {
   }>;
 };
 
+type DiscordEmojiObject = {
+  id: string;
+  name: string;
+};
+
+type DiscordFeedbackEmojiMap = Partial<Record<"Bug" | "Feature", DiscordEmojiObject>>;
+
+type DiscordModalLabelComponent = {
+  type: 18;
+  label: string;
+  description?: string;
+  component: Record<string, unknown>;
+};
+
 function coerceMultilineValue(value: string): string {
   return value.replace(/\\n/g, "\n");
 }
@@ -188,7 +204,134 @@ export function buildDiscordVerifyMessagePayload(args?: {
   };
 }
 
-export function buildDiscordFeedbackPanelMessagePayload(): DiscordMessagePayload {
+function buildDiscordModalLabelTextInput(args: {
+  label: string;
+  description?: string;
+  customId: string;
+  style: 1 | 2;
+  placeholder?: string;
+  required?: boolean;
+  maxLength?: number;
+}): DiscordModalLabelComponent {
+  return {
+    type: 18,
+    label: args.label,
+    ...(args.description ? { description: args.description } : {}),
+    component: {
+      type: 4,
+      custom_id: args.customId,
+      style: args.style,
+      ...(args.placeholder ? { placeholder: args.placeholder } : {}),
+      required: args.required ?? true,
+      ...(typeof args.maxLength === "number" ? { max_length: args.maxLength } : {}),
+    },
+  };
+}
+
+function buildDiscordFeedbackTypeSelectComponent(args?: {
+  defaultReportType?: "bug" | "feature" | null;
+  emojis?: DiscordFeedbackEmojiMap | null;
+}): DiscordModalLabelComponent {
+  const defaultReportType = args?.defaultReportType ?? null;
+  const bugEmoji = args?.emojis?.Bug;
+  const featureEmoji = args?.emojis?.Feature;
+
+  return {
+    type: 18,
+    label: "Feedback type",
+    description: "Choose Bug or Feature.",
+    component: {
+      type: 3,
+      custom_id: FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
+      required: true,
+      placeholder: defaultReportType === "feature" ? "Feature" : "Bug",
+      options: [
+        {
+          label: "Bug",
+          value: "bug",
+          description: "Report something broken or not working right.",
+          ...(bugEmoji ? { emoji: bugEmoji } : {}),
+          default: defaultReportType === "bug",
+        },
+        {
+          label: "Feature",
+          value: "feature",
+          description: "Suggest an improvement or new capability.",
+          ...(featureEmoji ? { emoji: featureEmoji } : {}),
+          default: defaultReportType === "feature",
+        },
+      ],
+    },
+  };
+}
+
+function buildDiscordFeedbackAttachmentComponent(): DiscordModalLabelComponent {
+  return {
+    type: 18,
+    label: "Screenshot or image",
+    description: "Optional. Upload up to 3 PNG, JPG, WEBP, or GIF images.",
+    component: {
+      type: 19,
+      custom_id: FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID,
+      required: false,
+      min_values: 0,
+      max_values: 3,
+    },
+  };
+}
+
+function buildDiscordFeedbackSubmitModalData(args?: {
+  customId?: string;
+  title?: string;
+  defaultReportType?: "bug" | "feature" | null;
+  emojis?: DiscordFeedbackEmojiMap | null;
+}) {
+  const defaultReportType = args?.defaultReportType ?? null;
+
+  return {
+    custom_id: args?.customId ?? FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
+    title: args?.title ?? "Submit Feedback",
+    components: [
+      buildDiscordFeedbackTypeSelectComponent({
+        defaultReportType,
+        emojis: args?.emojis,
+      }),
+      buildDiscordModalLabelTextInput({
+        label: "Summary",
+        customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
+        style: 1,
+        placeholder: defaultReportType === "feature"
+          ? "Example: Add a weekly goal view"
+          : "Example: Copy button does not work",
+        required: true,
+        maxLength: 120,
+      }),
+      buildDiscordModalLabelTextInput({
+        label: "Area",
+        customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
+        style: 1,
+        placeholder: "Settings, Discord Connector, session...",
+        required: false,
+        maxLength: 80,
+      }),
+      buildDiscordModalLabelTextInput({
+        label: defaultReportType === "feature" ? "What do you want?" : "What happened?",
+        description: "Include the steps, context, or expected behavior in one place.",
+        customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
+        style: 2,
+        required: true,
+        maxLength: 1200,
+      }),
+      buildDiscordFeedbackAttachmentComponent(),
+    ],
+  };
+}
+
+export function buildDiscordFeedbackPanelMessagePayload(args?: {
+  emojis?: DiscordFeedbackEmojiMap | null;
+}): DiscordMessagePayload {
+  const bugEmoji = args?.emojis?.Bug;
+
   return {
     embeds: [
       {
@@ -205,6 +348,7 @@ export function buildDiscordFeedbackPanelMessagePayload(): DiscordMessagePayload
             style: 1,
             custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
             label: "Submit Feedback",
+            emoji: bugEmoji,
           },
           {
             type: 2,
@@ -339,6 +483,15 @@ export function buildDiscordEphemeralMessageResponse(content: string) {
   };
 }
 
+export function buildDiscordDeferredEphemeralMessageResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
+    },
+  };
+}
+
 export function buildDiscordVerifyModalResponse() {
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
@@ -365,84 +518,14 @@ export function buildDiscordVerifyModalResponse() {
   };
 }
 
-export function buildDiscordFeedbackPanelSubmitModalResponse() {
+export function buildDiscordFeedbackPanelSubmitModalResponse(args?: {
+  emojis?: DiscordFeedbackEmojiMap | null;
+}) {
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
-    data: {
-      custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
-      title: "Submit Feedback",
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
-              style: 1,
-              label: "Feedback type",
-              placeholder: "Bug or Feature",
-              required: true,
-              max_length: 20,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
-              style: 1,
-              label: "Summary",
-              placeholder: "Example: Copy button does not work",
-              required: true,
-              max_length: 120,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
-              style: 1,
-              label: "Area",
-              placeholder: "Settings, Discord verification, workout session...",
-              required: false,
-              max_length: 80,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
-              style: 2,
-              label: "What happened / What do you want?",
-              required: true,
-              max_length: 1000,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_STEPS_INPUT_CUSTOM_ID,
-              style: 2,
-              label: "Steps / link",
-              placeholder: "Steps to reproduce or supporting link",
-              required: false,
-              max_length: 1000,
-            },
-          ],
-        },
-      ],
-    },
+    data: buildDiscordFeedbackSubmitModalData({
+      emojis: args?.emojis,
+    }),
   };
 }
 
@@ -617,85 +700,13 @@ export function buildDiscordFeedbackReportModalResponse(reportType: "bug" | "fea
     ? "Report a bug"
     : "Suggest a feature";
 
-  const detailsLabel = reportType === "bug" ? "What happened?" : "What happened / What do you want?";
-
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
-    data: {
-      custom_id: buildDiscordFeedbackModalCustomId(reportType),
+    data: buildDiscordFeedbackSubmitModalData({
+      customId: buildDiscordFeedbackModalCustomId(reportType),
       title,
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
-              style: 1,
-              label: "Summary",
-              placeholder: "Example: Copy button does not work",
-              required: true,
-              max_length: 120,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
-              style: 1,
-              label: "Area",
-              placeholder: "Settings, Discord verification, workout session...",
-              required: false,
-              max_length: 80,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID,
-              style: 1,
-              label: "Severity",
-              placeholder: "low, medium, high, blocker",
-              required: false,
-              max_length: 20,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
-              style: 2,
-              label: detailsLabel,
-              required: true,
-              max_length: 1000,
-            },
-          ],
-        },
-        {
-          type: 1,
-          components: [
-            {
-              type: 4,
-              custom_id: FITNESS_BUG_STEPS_INPUT_CUSTOM_ID,
-              style: 2,
-              label: "Steps / link",
-              placeholder: "Steps to reproduce or supporting link",
-              required: false,
-              max_length: 1000,
-            },
-          ],
-        },
-      ],
-    },
+      defaultReportType: reportType,
+    }),
   };
 }
 
@@ -707,29 +718,99 @@ export function extractDiscordModalTextInputValue(
     return null;
   }
 
-  for (const actionRow of components) {
-    if (!actionRow || typeof actionRow !== "object") {
+  for (const modalComponent of components) {
+    if (!modalComponent || typeof modalComponent !== "object") {
       continue;
     }
 
-    const rowComponents = "components" in actionRow ? (actionRow as { components?: unknown }).components : undefined;
-    if (!Array.isArray(rowComponents)) {
+    const rowComponents = "components" in modalComponent ? (modalComponent as { components?: unknown }).components : undefined;
+    if (Array.isArray(rowComponents)) {
+      for (const component of rowComponents) {
+        if (!component || typeof component !== "object") {
+          continue;
+        }
+
+        const candidate = component as { custom_id?: unknown; value?: unknown };
+        if (candidate.custom_id === inputCustomId && typeof candidate.value === "string") {
+          return candidate.value;
+        }
+      }
+
       continue;
     }
 
-    for (const component of rowComponents) {
-      if (!component || typeof component !== "object") {
-        continue;
-      }
+    const labelChild = "component" in modalComponent ? (modalComponent as { component?: unknown }).component : undefined;
+    if (!labelChild || typeof labelChild !== "object") {
+      continue;
+    }
 
-      const candidate = component as { custom_id?: unknown; value?: unknown };
-      if (candidate.custom_id === inputCustomId && typeof candidate.value === "string") {
-        return candidate.value;
-      }
+    const candidate = labelChild as { custom_id?: unknown; value?: unknown };
+    if (candidate.custom_id === inputCustomId && typeof candidate.value === "string") {
+      return candidate.value;
     }
   }
 
   return null;
+}
+
+export function extractDiscordModalStringSelectValue(
+  components: unknown,
+  inputCustomId: string,
+): string | null {
+  if (!Array.isArray(components)) {
+    return null;
+  }
+
+  for (const modalComponent of components) {
+    if (!modalComponent || typeof modalComponent !== "object") {
+      continue;
+    }
+
+    const labelChild = "component" in modalComponent ? (modalComponent as { component?: unknown }).component : undefined;
+    if (!labelChild || typeof labelChild !== "object") {
+      continue;
+    }
+
+    const candidate = labelChild as { custom_id?: unknown; values?: unknown };
+    if (
+      candidate.custom_id === inputCustomId
+      && Array.isArray(candidate.values)
+      && typeof candidate.values[0] === "string"
+    ) {
+      return candidate.values[0];
+    }
+  }
+
+  return null;
+}
+
+export function extractDiscordModalFileUploadIds(
+  components: unknown,
+  inputCustomId: string,
+): string[] {
+  if (!Array.isArray(components)) {
+    return [];
+  }
+
+  for (const modalComponent of components) {
+    if (!modalComponent || typeof modalComponent !== "object") {
+      continue;
+    }
+
+    const labelChild = "component" in modalComponent ? (modalComponent as { component?: unknown }).component : undefined;
+    if (!labelChild || typeof labelChild !== "object") {
+      continue;
+    }
+
+    const candidate = labelChild as { custom_id?: unknown; values?: unknown };
+    if (candidate.custom_id !== inputCustomId || !Array.isArray(candidate.values)) {
+      continue;
+    }
+
+    return candidate.values.filter((value): value is string => typeof value === "string");
+  }
+
+  return [];
 }
 
 export function extractDiscordCommandStringOption(options: unknown, optionName: string): string | null {

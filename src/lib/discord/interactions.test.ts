@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildDiscordDeferredEphemeralMessageResponse,
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
   buildDiscordFeedbackReportModalResponse,
@@ -15,6 +16,8 @@ import {
   discordMessageHasFeedbackPanel,
   discordMemberHasSetupPermission,
   extractDiscordCommandStringOption,
+  extractDiscordModalFileUploadIds,
+  extractDiscordModalStringSelectValue,
   extractDiscordModalTextInputValue,
   extractDiscordUpdateDraftIdFromPublishModalCustomId,
   resolveDiscordFeedbackReportTypeFromModalCustomId,
@@ -23,6 +26,15 @@ import {
 
 test("buildDiscordPongResponse returns Discord PONG type", () => {
   assert.deepEqual(buildDiscordPongResponse(), { type: 1 });
+});
+
+test("buildDiscordDeferredEphemeralMessageResponse returns a deferred ephemeral interaction response", () => {
+  assert.deepEqual(buildDiscordDeferredEphemeralMessageResponse(), {
+    type: 5,
+    data: {
+      flags: 64,
+    },
+  });
 });
 
 test("buildDiscordVerifyModalResponse returns the expected modal payload", () => {
@@ -36,11 +48,16 @@ test("buildDiscordVerifyModalResponse returns the expected modal payload", () =>
 test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by feedback type", () => {
   const bug = buildDiscordFeedbackReportModalResponse("bug");
   const feature = buildDiscordFeedbackReportModalResponse("feature");
+  const bugOptions = (bug.data.components[0]?.component as { options?: Array<{ default?: boolean }> } | undefined)?.options;
+  const featureOptions = (feature.data.components[0]?.component as { options?: Array<{ default?: boolean }> } | undefined)?.options;
 
   assert.equal(bug.data.custom_id, "fitness_feedback_report_modal:bug");
   assert.equal(bug.data.title, "Report a bug");
+  assert.equal(bug.data.components[0]?.component?.custom_id, "feedback_type");
+  assert.equal(bugOptions?.[0]?.default, true);
   assert.equal(feature.data.custom_id, "fitness_feedback_report_modal:feature");
   assert.equal(feature.data.title, "Suggest a feature");
+  assert.equal(featureOptions?.[1]?.default, true);
 });
 
 test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel buttons", () => {
@@ -85,6 +102,32 @@ test("extractDiscordModalTextInputValue reads the submitted token from Discord c
   ]);
 
   assert.equal(token, "FWX-ABCD-EFGH");
+});
+
+test("extractDiscordModalStringSelectValue and file upload ids read label-wrapped modal components", () => {
+  const components = [
+    {
+      type: 18,
+      label: "Feedback type",
+      component: {
+        type: 3,
+        custom_id: "feedback_type",
+        values: ["feature"],
+      },
+    },
+    {
+      type: 18,
+      label: "Screenshot or image",
+      component: {
+        type: 19,
+        custom_id: "feedback_attachment",
+        values: ["att-1", "att-2"],
+      },
+    },
+  ];
+
+  assert.equal(extractDiscordModalStringSelectValue(components, "feedback_type"), "feature");
+  assert.deepEqual(extractDiscordModalFileUploadIds(components, "feedback_attachment"), ["att-1", "att-2"]);
 });
 
 test("extractDiscordCommandStringOption reads string slash-command options", () => {
@@ -132,12 +175,37 @@ test("feedback panel button modals expose submit, update, and withdraw forms", (
   const withdraw = buildDiscordFeedbackWithdrawModalResponse();
 
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
-  assert.equal(submit.data.components[0]?.components[0]?.custom_id, "feedback_type");
-  assert.equal(submit.data.components[0]?.components[0]?.label, "Feedback type");
+  assert.equal(submit.data.components[0]?.component?.custom_id, "feedback_type");
+  assert.equal(submit.data.components[4]?.component?.custom_id, "feedback_attachment");
+  assert.equal(submit.data.components[4]?.component?.max_values, 3);
   assert.equal(update.data.custom_id, "fitness_feedback_update_modal");
   assert.equal(update.data.components[0]?.components[0]?.custom_id, "feedback_update_report_id");
   assert.equal(withdraw.data.custom_id, "fitness_feedback_withdraw_modal");
   assert.equal(withdraw.data.components[1]?.components[0]?.custom_id, "feedback_withdraw_note");
+});
+
+test("feedback submit modal includes validated select and button emoji payloads when provided", () => {
+  const emojis = {
+    Bug: { id: "1505007702924066916", name: "Bug" },
+    Feature: { id: "1505007651308703877", name: "Feature" },
+  };
+
+  const panelPayload = buildDiscordFeedbackPanelMessagePayload({ emojis });
+  const submitModal = buildDiscordFeedbackPanelSubmitModalResponse({ emojis });
+  const options = (submitModal.data.components[0]?.component as { options?: Array<{ emoji?: { id: string; name: string } }> } | undefined)?.options;
+
+  assert.deepEqual(panelPayload.components[0]?.components[0]?.emoji, {
+    id: "1505007702924066916",
+    name: "Bug",
+  });
+  assert.deepEqual(options?.[0]?.emoji, {
+    id: "1505007702924066916",
+    name: "Bug",
+  });
+  assert.deepEqual(options?.[1]?.emoji, {
+    id: "1505007651308703877",
+    name: "Feature",
+  });
 });
 
 test("update publish modal shape includes the draft id in the modal custom id", () => {

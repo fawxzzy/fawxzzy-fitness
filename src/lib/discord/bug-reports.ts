@@ -13,6 +13,8 @@ export const DISCORD_BUG_REPORT_STEPS_MAX_LENGTH = 1200;
 export const DISCORD_BUG_REPORT_SCREENSHOT_URL_MAX_LENGTH = 500;
 export const DISCORD_BUG_REPORT_FORUM_TITLE_MAX_LENGTH = 100;
 export const DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH = 1000;
+export const DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT = 3;
+export const DISCORD_FEEDBACK_ATTACHMENT_MAX_SIZE_BYTES = 8 * 1024 * 1024;
 export const DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH = 6;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_WINDOW_MINUTES = 10;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_MAX_REPORTS = 3;
@@ -43,9 +45,16 @@ export type DiscordBugReportReporterUserKind = "human" | "automation" | "unknown
 export type DiscordBugReportModalFields = {
   summary: string | null;
   area: string | null;
-  severity: string | null;
   details: string | null;
-  stepsAndScreenshot: string | null;
+};
+
+export type DiscordFeedbackAttachmentMetadata = {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  url: string | null;
+  proxyUrl: string | null;
 };
 
 export type DiscordBugReportStatusUpdate = {
@@ -73,6 +82,9 @@ export type DiscordBugReportRow = {
   details: string | null;
   steps_to_reproduce: string | null;
   screenshot_url: string | null;
+  attachment_count: number;
+  attachment_metadata: DiscordFeedbackAttachmentMetadata[] | null;
+  attachment_pruned: boolean;
   reporter_discord_user_id: string;
   reporter_discord_username: string | null;
   reporter_fitness_user_id: string | null;
@@ -201,6 +213,9 @@ const DISCORD_BUG_REPORT_SELECT_COLUMNS = [
   "details",
   "steps_to_reproduce",
   "screenshot_url",
+  "attachment_count",
+  "attachment_metadata",
+  "attachment_pruned",
   "reporter_discord_user_id",
   "reporter_discord_username",
   "reporter_fitness_user_id",
@@ -493,6 +508,31 @@ function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))];
 }
 
+function coerceAttachmentMetadataEntry(value: unknown): DiscordFeedbackAttachmentMetadata | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  if (
+    typeof candidate.id !== "string"
+    || typeof candidate.filename !== "string"
+    || typeof candidate.contentType !== "string"
+    || typeof candidate.size !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    id: candidate.id,
+    filename: candidate.filename,
+    contentType: candidate.contentType,
+    size: candidate.size,
+    url: typeof candidate.url === "string" ? candidate.url : null,
+    proxyUrl: typeof candidate.proxyUrl === "string" ? candidate.proxyUrl : null,
+  };
+}
+
 function compareDiscordSnowflakesDescending(left: string, right: string): number {
   if (left.length !== right.length) {
     return right.length - left.length;
@@ -592,6 +632,11 @@ function coerceBugReportRow(data: Record<string, unknown> | null | undefined): D
     details: typeof data.details === "string" ? data.details : null,
     steps_to_reproduce: typeof data.steps_to_reproduce === "string" ? data.steps_to_reproduce : null,
     screenshot_url: typeof data.screenshot_url === "string" ? data.screenshot_url : null,
+    attachment_count: typeof data.attachment_count === "number" ? data.attachment_count : 0,
+    attachment_metadata: Array.isArray(data.attachment_metadata)
+      ? data.attachment_metadata.map((entry) => coerceAttachmentMetadataEntry(entry)).filter((entry): entry is DiscordFeedbackAttachmentMetadata => Boolean(entry))
+      : null,
+    attachment_pruned: Boolean(data.attachment_pruned),
     reporter_discord_user_id: data.reporter_discord_user_id,
     reporter_discord_username: typeof data.reporter_discord_username === "string" ? data.reporter_discord_username : null,
     reporter_fitness_user_id: typeof data.reporter_fitness_user_id === "string" ? data.reporter_fitness_user_id : null,
@@ -749,6 +794,15 @@ function renderForumBodyValue(value: string | null, fallback: string): string {
   return neutralizeDiscordMentions(value);
 }
 
+function renderAttachmentLine(attachment: DiscordFeedbackAttachmentMetadata): string {
+  const displayUrl = attachment.url ?? attachment.proxyUrl;
+  if (!displayUrl) {
+    return `- ${attachment.filename} (${attachment.contentType}, ${attachment.size} bytes)`;
+  }
+
+  return `- ${attachment.filename} (${attachment.contentType}, ${attachment.size} bytes): ${displayUrl}`;
+}
+
 export function buildDiscordBugForumThreadBody(args: {
   report: DiscordBugReportRow;
   reporterLabel: string;
@@ -767,6 +821,9 @@ export function buildDiscordBugForumThreadBody(args: {
     : args.report.report_type === "feature"
       ? "Feature Request"
       : "Feedback Report";
+  const attachmentLines = args.report.attachment_pruned || !Array.isArray(args.report.attachment_metadata) || args.report.attachment_metadata.length === 0
+    ? ["Not provided"]
+    : args.report.attachment_metadata.slice(0, DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT).map(renderAttachmentLine);
 
   return [
     `${typeEmoji ? `${typeEmoji} ` : ""}**${feedbackHeader}**`,
@@ -784,11 +841,11 @@ export function buildDiscordBugForumThreadBody(args: {
     "**What happened**",
     renderForumBodyValue(args.report.details, "Not provided"),
     "",
-    "**Steps**",
-    renderForumBodyValue(args.report.steps_to_reproduce, "Not provided"),
-    "",
     "**Link / screenshot**",
     renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+    "",
+    "**Attachments**",
+    ...attachmentLines,
   ].join("\n");
 }
 
@@ -869,9 +926,7 @@ export function extractDiscordBugReportModalFields(
   return {
     summary: readField(components, "bug_summary"),
     area: readField(components, "bug_area"),
-    severity: readField(components, "bug_severity"),
     details: readField(components, "bug_details"),
-    stepsAndScreenshot: readField(components, "bug_steps"),
   };
 }
 
@@ -954,7 +1009,6 @@ export function normalizeDiscordBugReportInput(
   }
 
   const area = normalizeTextInput(modalFields.area, DISCORD_BUG_REPORT_AREA_MAX_LENGTH);
-  const splitFields = splitDiscordBugStepsAndScreenshot(modalFields.stepsAndScreenshot);
   const duplicateSignal = buildDuplicateSignal({
     reportType,
     area,
@@ -965,11 +1019,11 @@ export function normalizeDiscordBugReportInput(
   return {
     reportType,
     area,
-    severity: normalizeDiscordBugSeverity(modalFields.severity),
+    severity: "medium",
     summary,
     details,
-    stepsToReproduce: splitFields.steps,
-    screenshotUrl: splitFields.screenshotUrl,
+    stepsToReproduce: null,
+    screenshotUrl: null,
     duplicateFingerprint: duplicateSignal.fingerprint,
     duplicateAreaKey: duplicateSignal.areaKey,
     duplicateSummaryKey: duplicateSignal.summaryKey,
@@ -1158,6 +1212,7 @@ export async function createDiscordBugReport(args: {
   reporterDiscordUsername: string | null;
   reportType?: DiscordBugReportReportType;
   modalFields: DiscordBugReportModalFields;
+  attachments?: DiscordFeedbackAttachmentMetadata[];
   adminClient?: DiscordBugReportsAdminClient;
   now?: Date;
 }): Promise<
@@ -1214,6 +1269,9 @@ export async function createDiscordBugReport(args: {
       details: normalizedInput.details,
       steps_to_reproduce: normalizedInput.stepsToReproduce,
       screenshot_url: normalizedInput.screenshotUrl,
+      attachment_count: Math.max(0, Math.min(args.attachments?.length ?? 0, DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT)),
+      attachment_metadata: Array.isArray(args.attachments) && args.attachments.length > 0 ? args.attachments : null,
+      attachment_pruned: false,
       reporter_discord_user_id: args.reporterDiscordUserId,
       reporter_discord_username: normalizeTextInput(args.reporterDiscordUsername, 80),
       reporter_fitness_user_id: reporterLink.fitnessUserId,
@@ -1484,10 +1542,12 @@ export async function withdrawDiscordFeedbackReport(args: {
       .from("discord_feedback_reports")
       .update({
         status: "withdrawn",
-        details: null,
-        steps_to_reproduce: null,
-        screenshot_url: null,
-        details_pruned: true,
+      details: null,
+      steps_to_reproduce: null,
+      screenshot_url: null,
+      attachment_metadata: null,
+      attachment_pruned: true,
+      details_pruned: true,
         status_updated_at: nowIso,
         status_updated_by_discord_user_id: args.withdrawnByDiscordUserId,
         status_note: statusNote,

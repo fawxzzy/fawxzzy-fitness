@@ -44,6 +44,18 @@ function buildStoredRow(overrides = {}) {
     details: "I tapped Copy and nothing happened.",
     steps_to_reproduce: "Open Settings -> Account -> Generate token -> tap Copy",
     screenshot_url: "https://example.com/shot.png",
+    attachment_count: 1,
+    attachment_metadata: [
+      {
+        id: "att-1",
+        filename: "bug.png",
+        contentType: "image/png",
+        size: 241394,
+        url: "https://cdn.discordapp.com/ephemeral-attachments/bug.png",
+        proxyUrl: "https://media.discordapp.net/ephemeral-attachments/bug.png",
+      },
+    ],
+    attachment_pruned: false,
     reporter_discord_user_id: "123456789012345678",
     reporter_discord_username: "zac",
     reporter_fitness_user_id: "00000000-0000-0000-0000-000000000123",
@@ -308,17 +320,13 @@ test("extractDiscordBugReportModalFields maps Discord modal rows into named feed
   const fields = extractDiscordBugReportModalFields([
     { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Copy button failed" }] },
     { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
-    { type: 1, components: [{ type: 4, custom_id: "bug_severity", value: "High" }] },
     { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
-    { type: 1, components: [{ type: 4, custom_id: "bug_steps", value: "Open Settings https://example.com/shot.png" }] },
   ], extractDiscordModalTextInputValue);
 
   assert.deepEqual(fields, {
     summary: "Copy button failed",
     area: "Settings",
-    severity: "High",
     details: "I tapped Copy and nothing happened.",
-    stepsAndScreenshot: "Open Settings https://example.com/shot.png",
   });
 });
 
@@ -390,11 +398,11 @@ test("buildDiscordBugForumThreadBody formats the first forum post body with feed
       "**What happened**",
       "I tapped Copy and nothing happened.",
       "",
-      "**Steps**",
-      "Open Settings -> Account -> Generate token -> tap Copy",
-      "",
       "**Link / screenshot**",
       "https://example.com/shot.png",
+      "",
+      "**Attachments**",
+      "- bug.png (image/png, 241394 bytes): https://cdn.discordapp.com/ephemeral-attachments/bug.png",
     ].join("\n"),
   );
 });
@@ -518,9 +526,7 @@ test("normalizeDiscordBugReportInput trims long summary and long details to boun
   const normalized = normalizeDiscordBugReportInput({
     summary: `  ${"S".repeat(DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH + 40)}  `,
     area: " Settings ",
-    severity: "high",
     details: `  ${"D".repeat(DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH + 100)}  `,
-    stepsAndScreenshot: null,
   }, "feature");
 
   assert.ok(normalized);
@@ -534,17 +540,13 @@ test("normalizeDiscordBugReportInput rejects empty summary or details after trim
   assert.equal(normalizeDiscordBugReportInput({
     summary: "   ",
     area: "Settings",
-    severity: "medium",
     details: "Something failed",
-    stepsAndScreenshot: null,
   }), null);
 
   assert.equal(normalizeDiscordBugReportInput({
     summary: "Something failed",
     area: "Settings",
-    severity: "medium",
     details: "   ",
-    stepsAndScreenshot: null,
   }), null);
 });
 
@@ -571,9 +573,7 @@ test("createDiscordBugReport rejects invalid reporter ids", async () => {
     modalFields: {
       summary: "Copy failed",
       area: "Settings",
-      severity: "medium",
       details: "Something failed",
-      stepsAndScreenshot: null,
     },
     adminClient,
   });
@@ -593,9 +593,7 @@ test("createDiscordBugReport rate limits repeated submissions inside the time wi
     modalFields: {
       summary: "Copy failed",
       area: "Settings",
-      severity: "medium",
       details: "Something failed",
-      stepsAndScreenshot: null,
     },
     adminClient,
   });
@@ -622,10 +620,18 @@ test("createDiscordBugReport uses a deterministic duplicate fingerprint that inc
     modalFields: {
       summary: "Token button didn't copy",
       area: "Settings",
-      severity: "medium",
       details: "I tapped Copy and nothing happened.",
-      stepsAndScreenshot: "Open Settings -> Account -> Generate token -> tap Copy https://example.com/shot.png",
     },
+    attachments: [
+      {
+        id: "att-feature",
+        filename: "feature.png",
+        contentType: "image/png",
+        size: 12000,
+        url: "https://cdn.discordapp.com/ephemeral-attachments/feature.png",
+        proxyUrl: "https://media.discordapp.net/ephemeral-attachments/feature.png",
+      },
+    ],
     adminClient,
     now: new Date("2026-05-15T13:00:00.000Z"),
   });
@@ -637,6 +643,17 @@ test("createDiscordBugReport uses a deterministic duplicate fingerprint that inc
 
   assert.equal(result.duplicate, false);
   assert.equal(result.report.report_type, "feature");
+  assert.equal(observed.insertedValues[0]?.attachment_count, 1);
+  assert.deepEqual(observed.insertedValues[0]?.attachment_metadata, [
+    {
+      id: "att-feature",
+      filename: "feature.png",
+      contentType: "image/png",
+      size: 12000,
+      url: "https://cdn.discordapp.com/ephemeral-attachments/feature.png",
+      proxyUrl: "https://media.discordapp.net/ephemeral-attachments/feature.png",
+    },
+  ]);
   assert.equal(
     observed.insertedValues[0]?.duplicate_fingerprint,
     createDiscordBugReportDuplicateFingerprint({
@@ -679,9 +696,7 @@ test("createDiscordBugReport folds duplicates into an existing row instead of in
     modalFields: {
       summary: "Token button didn't copy",
       area: "Settings",
-      severity: "high",
       details: "Different details that should not be stored again.",
-      stepsAndScreenshot: "Different steps https://example.com/second.png",
     },
     adminClient,
     now: new Date("2026-05-15T14:00:00.000Z"),
@@ -724,9 +739,7 @@ test("createDiscordBugReport folds near-duplicate wording into the existing repo
     modalFields: {
       summary: "Copy button didn't work",
       area: "Account",
-      severity: "medium",
       details: "After I generated a token, tapping Copy failed and nothing happened.",
-      stepsAndScreenshot: "Settings -> Account -> Generate token -> Copy",
     },
     adminClient,
     now: new Date("2026-05-15T15:00:00.000Z"),
@@ -837,6 +850,8 @@ test("withdrawDiscordFeedbackReport redacts details and marks withdrawn", async 
   assert.equal(result.report.details, null);
   assert.equal(result.report.steps_to_reproduce, null);
   assert.equal(result.report.screenshot_url, null);
+  assert.equal(result.report.attachment_pruned, true);
+  assert.equal(result.report.attachment_metadata, null);
   assert.equal(result.report.details_pruned, true);
   assert.equal(result.report.status_note, "Withdrawn by reporter");
 });

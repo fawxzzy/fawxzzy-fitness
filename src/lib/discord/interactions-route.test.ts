@@ -36,6 +36,9 @@ function buildFeedbackReportRow(overrides = {}) {
     details: "I tapped Copy and nothing happened.",
     steps_to_reproduce: "Open Settings -> Account -> Generate token -> tap Copy",
     screenshot_url: null,
+    attachment_count: 0,
+    attachment_metadata: null,
+    attachment_pruned: false,
     reporter_discord_user_id: "123456789012345678",
     reporter_discord_username: "zac",
     reporter_fitness_user_id: "00000000-0000-0000-0000-000000000123",
@@ -455,6 +458,153 @@ test("Discord interactions route opens the general feedback modal for /feedback"
   assert.equal(payload.type, 9);
   assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
   assert.equal(payload.data.title, "Submit Feedback");
+  assert.equal(payload.data.components[0]?.component?.custom_id, "feedback_type");
+  assert.equal(payload.data.components[4]?.component?.custom_id, "feedback_attachment");
+});
+
+test("Discord interactions route defers feedback submit and edits the original ephemeral response after success", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const observedRequests = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+    observedRequests.push({ path: url.pathname, method, body });
+
+    if (url.pathname === "/api/v10/interactions/interaction-1/interaction-token/callback") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "HEAD") {
+      return new Response(null, { status: 200, headers: { "content-range": "0-0/0" } });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response(JSON.stringify({
+        fitness_user_id: "00000000-0000-0000-0000-000000000123",
+        user_number: 4,
+        user_kind: "human",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "GET") {
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "POST") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        discord_forum_applied_tag_ids: null,
+        discord_forum_title: null,
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "tag-bug", name: "Bug" },
+          { id: "tag-new", name: "New" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/threads") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562745",
+        last_message_id: "1504673475489562746",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original") {
+      return new Response(JSON.stringify({ id: "original-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      application_id: "1504700208251146371",
+      token: "interaction-token",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_submit_modal",
+        components: [
+          {
+            type: 18,
+            label: "Feedback type",
+            component: { type: 3, custom_id: "feedback_type", values: ["bug"] },
+          },
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 18, label: "Screenshot or image", component: { type: 19, custom_id: "feedback_attachment", values: [] } },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    const deferCall = observedRequests.find((entry) => entry.path === "/api/v10/interactions/interaction-1/interaction-token/callback");
+    const editCall = observedRequests.find((entry) => entry.path === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original");
+    assert.deepEqual(deferCall?.body, {
+      type: 5,
+      data: {
+        flags: 64,
+      },
+    });
+    assert.deepEqual(editCall?.body, {
+      content: "Feedback received. Thanks for helping improve Fitness.",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
 });
 
 test("Discord interactions route accepts feedback even when the forum env is not configured", async () => {
@@ -552,6 +702,180 @@ test("Discord interactions route accepts feedback even when the forum env is not
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("Discord interactions route stores bounded image attachment metadata without file bytes", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const originalFetch = globalThis.fetch;
+  let insertedBody = null;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response("null", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "content-range": "0-0/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "POST") {
+      insertedBody = body;
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        attachment_count: 1,
+        attachment_metadata: body?.attachment_metadata ?? null,
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        discord_forum_applied_tag_ids: null,
+        discord_forum_title: null,
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-attachments",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_submit_modal",
+        components: [
+          {
+            type: 18,
+            label: "Feedback type",
+            component: { type: 3, custom_id: "feedback_type", values: ["bug"] },
+          },
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Screenshot test" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "Image evidence attached." }] },
+          {
+            type: 18,
+            label: "Screenshot or image",
+            component: { type: 19, custom_id: "feedback_attachment", values: ["att-1"] },
+          },
+        ],
+        resolved: {
+          attachments: {
+            "att-1": {
+              id: "att-1",
+              filename: "bug.png",
+              content_type: "image/png",
+              size: 241394,
+              url: "https://cdn.discordapp.com/ephemeral-attachments/bug.png",
+              proxy_url: "https://media.discordapp.net/ephemeral-attachments/bug.png",
+            },
+          },
+        },
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.equal(insertedBody?.attachment_count, 1);
+    assert.deepEqual(insertedBody?.attachment_metadata, [
+      {
+        id: "att-1",
+        filename: "bug.png",
+        contentType: "image/png",
+        size: 241394,
+        url: "https://cdn.discordapp.com/ephemeral-attachments/bug.png",
+        proxyUrl: "https://media.discordapp.net/ephemeral-attachments/bug.png",
+      },
+    ]);
+    assert.equal(JSON.stringify(insertedBody).includes("placeholder"), false);
+    assert.equal(JSON.stringify(insertedBody).includes("base64"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route rejects non-image feedback attachments safely", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const response = await POST(createSignedRequest(JSON.stringify({
+    id: "interaction-invalid-attachment",
+    type: 5,
+    guild_id: "1504668396338413670",
+    member: {
+      user: {
+        id: "123456789012345678",
+        username: "zac",
+      },
+    },
+    data: {
+      custom_id: "fitness_feedback_submit_modal",
+      components: [
+        {
+          type: 18,
+          label: "Feedback type",
+          component: { type: 3, custom_id: "feedback_type", values: ["bug"] },
+        },
+        { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Attachment reject test" }] },
+        { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+        { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "A text file was attached." }] },
+        {
+          type: 18,
+          label: "Screenshot or image",
+          component: { type: 19, custom_id: "feedback_attachment", values: ["att-2"] },
+        },
+      ],
+      resolved: {
+        attachments: {
+          "att-2": {
+            id: "att-2",
+            filename: "notes.txt",
+            content_type: "text/plain",
+            size: 42,
+            url: "https://cdn.discordapp.com/ephemeral-attachments/notes.txt",
+            proxy_url: "https://media.discordapp.net/ephemeral-attachments/notes.txt",
+          },
+        },
+      },
+    },
+  }), keyPair));
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    type: 4,
+    data: {
+      content: "Upload up to 3 PNG, JPG, WEBP, or GIF images under 8 MB each.",
+      flags: 64,
+    },
+  });
 });
 
 test("Discord interactions route stores unique feature feedback and creates a tagged forum thread", async () => {
@@ -678,7 +1002,7 @@ test("Discord interactions route stores unique feature feedback and creates a ta
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback received from Member #4. Thanks for helping improve Fitness.",
+        content: "Feedback received. Thanks for helping improve Fitness.",
         flags: 64,
       },
     });
@@ -827,7 +1151,7 @@ test("Discord interactions route keeps feedback submission successful when forum
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback received from Member #4. Thanks for helping improve Fitness.",
+        content: "Feedback received. Thanks for helping improve Fitness.",
         flags: 64,
       },
     });
