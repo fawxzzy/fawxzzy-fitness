@@ -95,6 +95,7 @@ import {
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordThreadMessage,
+  deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
   editDiscordOriginalInteractionResponse,
   fetchDiscordChannel,
@@ -1357,105 +1358,21 @@ async function handleFeedbackWithdrawRequest(args: {
   }
 
   const updatedReport = withdrawResult.report;
-  await validateDiscordFeedbackEmojis();
-  const reporterLabel = buildDiscordBugReporterLabel({
-    reporterDiscordUsername: updatedReport.reporter_discord_username,
-    reporterMemberNumber: updatedReport.reporter_member_number,
-  });
   let forumSyncFailed = false;
-  const forumChannelId = updatedReport.discord_forum_channel_id ?? DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
-
-  if (updatedReport.discord_forum_thread_id && forumChannelId) {
-    let matchedTagIds: string[] | null = null;
-    const tagResolutionResult = await resolveDiscordForumTagIdsByName({
-      channelId: forumChannelId,
-      tagNames: buildDiscordBugForumTagNames({
-        reportType: updatedReport.report_type,
-        status: updatedReport.status,
-        severity: updatedReport.severity,
-      }),
+  if (updatedReport.discord_forum_thread_id) {
+    const deleteThreadResult = await deleteDiscordChannel({
+      channelId: updatedReport.discord_forum_thread_id,
     });
 
-    if (tagResolutionResult.ok) {
-      matchedTagIds = tagResolutionResult.matchedTagIds;
-    } else {
-      forumSyncFailed = true;
-    }
-
-    if (matchedTagIds) {
-      const tagUpdateResult = await updateDiscordForumThreadTags({
-        threadId: updatedReport.discord_forum_thread_id,
-        appliedTagIds: matchedTagIds,
-      });
-
-      if (!tagUpdateResult.ok) {
-        forumSyncFailed = true;
-      }
-    }
-
-    if (updatedReport.discord_forum_message_id) {
-      const patchStarterMessageResult = await patchDiscordChannelMessage({
-        channelId: updatedReport.discord_forum_thread_id,
-        messageId: updatedReport.discord_forum_message_id,
-        body: {
-          content: buildDiscordBugForumThreadBody({
-            report: updatedReport,
-            reporterLabel,
-          }),
-          allowed_mentions: buildDiscordAllowedMentions({
-            reporterDiscordUserId: updatedReport.reporter_discord_user_id,
-            includeReporter: false,
-          }),
-        },
-      });
-
-      if (!patchStarterMessageResult.ok) {
-        forumSyncFailed = true;
-      }
-    }
-
-    const recordStateResult = await recordDiscordBugReportForumState({
-      reportId: updatedReport.id,
-      forumTitle: updatedReport.discord_forum_title ?? buildDiscordBugForumThreadTitle({
-        reportType: updatedReport.report_type,
-        area: updatedReport.area,
-        summary: updatedReport.summary,
-      }),
-      forumAppliedTagIds: matchedTagIds,
-    });
-
-    if (!recordStateResult.ok) {
-      forumSyncFailed = true;
-    }
-
-    const threadReplyResult = await createDiscordThreadMessage({
-      threadId: updatedReport.discord_forum_thread_id,
-      content: buildDiscordFeedbackWithdrawThreadReply(updatedReport.report_type),
-      allowedMentions: buildDiscordAllowedMentions({
-        reporterDiscordUserId: updatedReport.reporter_discord_user_id,
-        includeReporter: false,
-      }),
-    });
-
-    if (!threadReplyResult.ok) {
-      forumSyncFailed = true;
-    }
-
-    const archiveResult = await updateDiscordForumThreadArchiveState({
-      threadId: updatedReport.discord_forum_thread_id,
-      archived: true,
-      locked: true,
-    });
-
-    if (!archiveResult.ok) {
+    if (!deleteThreadResult.ok) {
       forumSyncFailed = true;
     }
   }
 
   return buildDiscordEphemeralMessageResponse(
     forumSyncFailed
-      ? `Feedback withdrawn, but the forum thread could not be fully synced. (${formatDiscordBugReportShortId(updatedReport.id)})`
-      : "Feedback withdrawn. We removed the detailed text and kept a small audit record.",
+      ? `Feedback withdrawn, but the forum thread could not be deleted. (${formatDiscordBugReportShortId(updatedReport.id)})`
+      : "Feedback withdrawn. The forum post was removed and we kept a small audit record.",
   );
 }
 

@@ -4,6 +4,7 @@ import {
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordThreadMessage,
+  deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
   editDiscordOriginalInteractionResponse,
@@ -477,6 +478,37 @@ test("updateDiscordForumThreadArchiveState PATCHes the archived state", async ()
         archived: true,
         locked: false,
       }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("deleteDiscordChannel DELETEs the forum thread channel", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    const result = await deleteDiscordChannel({
+      channelId: "1504673475489562745",
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745",
+      method: "DELETE",
+      body: null,
     });
   } finally {
     globalThis.fetch = originalFetch;
