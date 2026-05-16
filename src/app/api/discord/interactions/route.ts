@@ -150,23 +150,34 @@ function shouldArchiveFeedbackThread(status: string): boolean {
 }
 
 async function upsertDiscordVerifyMessage() {
+  const payload = buildDiscordVerifyMessagePayload({
+    title: DISCORD_VERIFY_MESSAGE_TITLE(),
+    body: DISCORD_VERIFY_MESSAGE_BODY(),
+  });
+
+  const createVerifyMessage = async () => {
+    const createResult = await createDiscordChannelMessage({
+      channelId: DISCORD_VERIFY_CHANNEL_ID(),
+      body: payload,
+    });
+
+    return createResult.ok
+      ? { ok: true as const, action: "created" as const }
+      : { ok: false as const, code: createResult.code, message: createResult.message };
+  };
+
   const messagesResult = await fetchDiscordChannelMessages({
     channelId: DISCORD_VERIFY_CHANNEL_ID(),
     limit: 50,
   });
 
   if (!messagesResult.ok) {
-    return { ok: false, code: messagesResult.code, message: messagesResult.message };
+    return createVerifyMessage();
   }
 
   const existingMessage = messagesResult.messages.find((message) => (
     message.author?.id === DISCORD_APPLICATION_ID() && discordMessageHasVerifyButton(message)
   )) ?? messagesResult.messages.find(discordMessageHasVerifyButton);
-
-  const payload = buildDiscordVerifyMessagePayload({
-    title: DISCORD_VERIFY_MESSAGE_TITLE(),
-    body: DISCORD_VERIFY_MESSAGE_BODY(),
-  });
 
   if (existingMessage) {
     const patchResult = await patchDiscordChannelMessage({
@@ -175,19 +186,18 @@ async function upsertDiscordVerifyMessage() {
       body: payload,
     });
 
-    return patchResult.ok
-      ? { ok: true, action: "updated" as const }
-      : { ok: false, code: patchResult.code, message: patchResult.message };
+    if (patchResult.ok) {
+      return { ok: true, action: "updated" as const };
+    }
+
+    if (patchResult.status === 404) {
+      return createVerifyMessage();
+    }
+
+    return { ok: false, code: patchResult.code, message: patchResult.message };
   }
 
-  const createResult = await createDiscordChannelMessage({
-    channelId: DISCORD_VERIFY_CHANNEL_ID(),
-    body: payload,
-  });
-
-  return createResult.ok
-    ? { ok: true, action: "created" as const }
-    : { ok: false, code: createResult.code, message: createResult.message };
+  return createVerifyMessage();
 }
 
 async function handleSetupVerifyInteraction(interaction: DiscordInteraction) {
@@ -673,7 +683,7 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
       const archiveResult = await updateDiscordForumThreadArchiveState({
         threadId: updatedReport.discord_forum_thread_id,
         archived: true,
-        locked: false,
+        locked: true,
       });
 
       if (!archiveResult.ok) {
@@ -822,7 +832,7 @@ async function handleFeedbackWithdrawInteraction(interaction: DiscordInteraction
     const archiveResult = await updateDiscordForumThreadArchiveState({
       threadId: updatedReport.discord_forum_thread_id,
       archived: true,
-      locked: false,
+      locked: true,
     });
 
     if (!archiveResult.ok) {

@@ -51,7 +51,7 @@ Not allowed:
 7. Fitness folds likely duplicates into the existing active queue row and existing forum thread instead of storing a second full report.
 8. Staff can update queue status with `/feedback-status`.
 9. The original reporter or staff can use `/feedback-withdraw` to redact details while preserving small audit metadata.
-10. Threads marked `duplicate` or `withdrawn` are archived after the forum post and tag state are synced.
+10. Threads marked `duplicate` or `withdrawn` are archived and locked after the forum post and tag state are synced.
 11. Operators export and triage the queue later.
 
 ## Staff flow

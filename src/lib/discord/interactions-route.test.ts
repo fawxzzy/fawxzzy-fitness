@@ -109,6 +109,80 @@ test("Discord interactions route returns the verification modal for the existing
   assert.equal(payload.data.custom_id, "fitness_verify_modal");
 });
 
+test("Discord interactions route recreates the verify message when setup-verify finds no existing post", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504700208251146372";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504700208251146372/messages"
+      && String(init?.method ?? "GET") === "GET"
+      && url.searchParams.get("limit") === "50"
+    ) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504700208251146372/messages"
+      && String(init?.method ?? "GET") === "POST"
+    ) {
+      observedDiscordBodies.push(body);
+      return new Response(JSON.stringify({ id: "1504700208251146373" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "setup-verify",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Verification message created in the configured verify channel.",
+        flags: 64,
+      },
+    });
+    assert.equal(observedDiscordBodies.length, 1);
+    assert.equal(observedDiscordBodies[0]?.components?.[0]?.components?.[0]?.custom_id, "fitness_verify_open");
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_VERIFY_CHANNEL_ID;
+  }
+});
+
 test("Discord interactions route opens the feedback modal for /feedback type:feat", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
@@ -767,6 +841,10 @@ test("Discord interactions route allows reporters to withdraw and redact their f
       observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.archived === true),
       true,
     );
+    assert.equal(
+      observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.locked === true),
+      true,
+    );
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
@@ -884,6 +962,10 @@ test("Discord interactions route archives duplicate feedback threads after staff
     assert.equal(observedSupabaseWrites[0]?.status, "duplicate");
     assert.equal(
       observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.archived === true),
+      true,
+    );
+    assert.equal(
+      observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.locked === true),
       true,
     );
   } finally {
