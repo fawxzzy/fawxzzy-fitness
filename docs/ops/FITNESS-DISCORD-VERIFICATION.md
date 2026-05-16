@@ -30,13 +30,16 @@ If `DISCORD_VERIFY_MESSAGE_BODY` is overridden, keep the line breaks intact and 
 - answer `PING`
 - open the verification modal
 - open the feedback submit, update, and withdraw modals
+- open the publish-update modal
 - handle `/setup-verify`
 - handle `/setup-feedback`
 - handle `/feedback`, `/feedback-status`, and `/feedback-withdraw`
+- handle `/update-latest`, `/update-publish`, and `/update-skip`
 
 ## Command and setup notes
 - `/setup-verify` is admin-only
 - `/setup-feedback` is admin-only
+- update commands are admin or staff only
 - normal feedback users should primarily use the persistent feedback panel
 
 After deployment:

@@ -4,6 +4,7 @@ import {
   DISCORD_BUG_REPORT_FORUM_CHANNEL_ID,
   DISCORD_FEEDBACK_PANEL_CHANNEL_ID,
   DISCORD_GUILD_ID,
+  DISCORD_UPDATES_CHANNEL_ID,
   DISCORD_UNVERIFIED_ROLE_ID,
   DISCORD_VERIFY_CHANNEL_ID,
   DISCORD_VERIFY_MESSAGE_BODY,
@@ -39,6 +40,7 @@ import {
   buildDiscordFeedbackPanelSubmitModalResponse,
   buildDiscordFeedbackUpdateModalResponse,
   buildDiscordFeedbackWithdrawModalResponse,
+  buildDiscordUpdatePublishModalResponse,
   buildDiscordEphemeralMessageResponse,
   buildDiscordPongResponse,
   buildDiscordVerifyMessagePayload,
@@ -66,6 +68,16 @@ import {
   FITNESS_BUG_STATUS_NOTE_OPTION_NAME,
   FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
   FITNESS_BUG_STATUS_STATUS_OPTION_NAME,
+  FITNESS_UPDATE_DRAFT_ID_OPTION_NAME,
+  FITNESS_UPDATE_LATEST_COMMAND_NAME,
+  FITNESS_UPDATE_PUBLISH_COMMAND_NAME,
+  FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX,
+  FITNESS_UPDATE_SKIP_COMMAND_NAME,
+  FITNESS_UPDATE_SKIP_REASON_OPTION_NAME,
+  FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID,
+  FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID,
+  FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID,
+  extractDiscordUpdateDraftIdFromPublishModalCustomId,
   resolveDiscordFeedbackReportTypeFromModalCustomId,
   DISCORD_INTERACTION_TYPE,
   FITNESS_VERIFY_BUTTON_CUSTOM_ID,
@@ -90,6 +102,14 @@ import {
   updateDiscordForumThreadTitle,
   updateDiscordGuildMemberNickname,
 } from "@/lib/discord/rest";
+import {
+  buildDiscordUpdateLatestSummary,
+  findDiscordUpdateDraftByIdOrPrefix,
+  formatDiscordUpdateDraftShortId,
+  listLatestDiscordUpdateDrafts,
+  publishDiscordUpdateDraft,
+  skipDiscordUpdateDraft,
+} from "@/lib/discord/update-drafts";
 import { upsertDiscordMemberLink } from "@/lib/discord/member-links";
 import {
   formatDiscordMemberNickname,
@@ -213,6 +233,14 @@ function logDiscordFeedbackSoftFailure(args: {
     message: args.message ?? null,
     error: args.error instanceof Error ? args.error.message : args.error ? String(args.error) : null,
   });
+}
+
+function buildDiscordUpdateDraftLookupFailureResponse(code: string) {
+  if (code === "DISCORD_UPDATE_DRAFT_AMBIGUOUS_ID") {
+    return buildDiscordEphemeralMessageResponse("That update draft id matched multiple drafts. Use the full draft id.");
+  }
+
+  return buildDiscordEphemeralMessageResponse("Could not find that update draft. Use /update-latest to grab a current draft id.");
 }
 
 async function syncDiscordFeedbackForumThread(args: {
@@ -1237,6 +1265,145 @@ async function handleFeedbackWithdrawModalSubmit(interaction: DiscordInteraction
   });
 }
 
+async function handleUpdateLatestInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This update flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasBugStatusPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to review update drafts.");
+  }
+
+  const latestDraftsResult = await listLatestDiscordUpdateDrafts({ limit: 5 });
+  if (!latestDraftsResult.ok) {
+    return buildDiscordEphemeralMessageResponse("Could not load update drafts right now.");
+  }
+
+  return buildDiscordEphemeralMessageResponse(buildDiscordUpdateLatestSummary(latestDraftsResult.drafts));
+}
+
+async function handleUpdatePublishInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This update flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasBugStatusPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to publish updates.");
+  }
+
+  const draftIdOrPrefix = extractDiscordCommandStringOption(interaction.data?.options, FITNESS_UPDATE_DRAFT_ID_OPTION_NAME);
+  if (!draftIdOrPrefix) {
+    return buildDiscordEphemeralMessageResponse("Choose a draft id from /update-latest first.");
+  }
+
+  const lookupResult = await findDiscordUpdateDraftByIdOrPrefix({ draftIdOrPrefix });
+  if (!lookupResult.ok) {
+    return buildDiscordUpdateDraftLookupFailureResponse(lookupResult.code);
+  }
+
+  if (lookupResult.draft.status === "published") {
+    return buildDiscordEphemeralMessageResponse(
+      `That update draft was already published. (${formatDiscordUpdateDraftShortId(lookupResult.draft.id)})`,
+    );
+  }
+
+  return buildDiscordUpdatePublishModalResponse(lookupResult.draft.id);
+}
+
+async function handleUpdatePublishModalSubmit(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This update flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasBugStatusPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to publish updates.");
+  }
+
+  const publisher = resolveDiscordInteractionUser(interaction);
+  const draftId = extractDiscordUpdateDraftIdFromPublishModalCustomId(
+    typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
+  );
+
+  if (!publisher.id || !draftId) {
+    return buildDiscordEphemeralMessageResponse("Could not publish that update draft.");
+  }
+
+  const publishResult = await publishDiscordUpdateDraft({
+    draftIdOrPrefix: draftId,
+    title: extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID) ?? "",
+    whatChanged: extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID) ?? "",
+    whyItMatters: extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID) ?? "",
+    publishedByDiscordUserId: publisher.id,
+    discordChannelId: DISCORD_UPDATES_CHANNEL_ID(),
+  });
+
+  if (!publishResult.ok) {
+    if (
+      publishResult.code === "DISCORD_UPDATE_DRAFT_NOT_FOUND"
+      || publishResult.code === "DISCORD_UPDATE_DRAFT_AMBIGUOUS_ID"
+      || publishResult.code === "DISCORD_UPDATE_DRAFT_LOOKUP_FAILED"
+    ) {
+      return buildDiscordUpdateDraftLookupFailureResponse(publishResult.code);
+    }
+
+    if (publishResult.code === "DISCORD_UPDATE_CHANNEL_NOT_CONFIGURED") {
+      return buildDiscordEphemeralMessageResponse("Discord updates channel is not configured.");
+    }
+
+    if (publishResult.code === "DISCORD_UPDATE_DRAFT_ALREADY_PUBLISHED") {
+      return buildDiscordEphemeralMessageResponse("That update draft was already published.");
+    }
+
+    if (publishResult.code === "DISCORD_UPDATE_DRAFT_INVALID_INPUT") {
+      return buildDiscordEphemeralMessageResponse("Title, What changed, and Why it matters are all required.");
+    }
+
+    return buildDiscordEphemeralMessageResponse("Could not publish that update right now.");
+  }
+
+  return buildDiscordEphemeralMessageResponse("Update posted.");
+}
+
+async function handleUpdateSkipInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This update flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasBugStatusPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to skip updates.");
+  }
+
+  const skipper = resolveDiscordInteractionUser(interaction);
+  const draftIdOrPrefix = extractDiscordCommandStringOption(interaction.data?.options, FITNESS_UPDATE_DRAFT_ID_OPTION_NAME);
+  if (!skipper.id || !draftIdOrPrefix) {
+    return buildDiscordEphemeralMessageResponse("Could not skip that update draft.");
+  }
+
+  const skipResult = await skipDiscordUpdateDraft({
+    draftIdOrPrefix,
+    skippedByDiscordUserId: skipper.id,
+    reason: extractDiscordCommandStringOption(interaction.data?.options, FITNESS_UPDATE_SKIP_REASON_OPTION_NAME),
+  });
+
+  if (!skipResult.ok) {
+    if (
+      skipResult.code === "DISCORD_UPDATE_DRAFT_NOT_FOUND"
+      || skipResult.code === "DISCORD_UPDATE_DRAFT_AMBIGUOUS_ID"
+      || skipResult.code === "DISCORD_UPDATE_DRAFT_LOOKUP_FAILED"
+    ) {
+      return buildDiscordUpdateDraftLookupFailureResponse(skipResult.code);
+    }
+
+    return buildDiscordEphemeralMessageResponse("Could not skip that update draft right now.");
+  }
+
+  return buildDiscordEphemeralMessageResponse("Update draft skipped.");
+}
+
 export async function POST(request: Request) {
   const requestId = randomUUID();
   let rawBody = "";
@@ -1310,6 +1477,27 @@ export async function POST(request: Request) {
     }
 
     if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_UPDATE_LATEST_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleUpdateLatestInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_UPDATE_PUBLISH_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleUpdatePublishInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_UPDATE_SKIP_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleUpdateSkipInteraction(interaction));
+    }
+
+    if (
       interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
       && interaction.data?.custom_id === FITNESS_VERIFY_BUTTON_CUSTOM_ID
     ) {
@@ -1372,6 +1560,14 @@ export async function POST(request: Request) {
       && interaction.data?.custom_id === FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID
     ) {
       return jsonResponse(await handleFeedbackWithdrawModalSubmit(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
+      && typeof interaction.data?.custom_id === "string"
+      && interaction.data.custom_id.startsWith(`${FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX}:`)
+    ) {
+      return jsonResponse(await handleUpdatePublishModalSubmit(interaction));
     }
 
     if (
