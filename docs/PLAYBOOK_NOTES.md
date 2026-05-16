@@ -100,6 +100,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Pre-selecting too many slash-command variants makes feedback feel like an admin workflow instead of a user workflow.
 - Status: Proposed
 
+## 2026-05-16 - Feedback intake should not depend on optional Discord decoration
+- Type: Guardrail
+- Summary: Feedback submission success should depend on storing the bounded report and creating the forum post, not on optional emoji or tag decoration.
+- Rule: Optional Discord decoration must fail soft.
+- Pattern: Core report write -> forum thread -> optional decoration -> success response.
+- Failure Mode: A valid report appears in the forum while the user sees a failure because a non-critical decoration step failed.
+- Status: Proposed
+
 ## 2026-05-15 - Member-number display sync should queue Discord side effects
 - Type: Pattern
 - Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { buildDiscordCustomEmojiMarkup } from "@/lib/discord/interactions";
+import { buildDiscordFeedbackEmojiPrefix } from "@/lib/discord/feedback-emojis";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { DiscordAllowedMentions } from "@/lib/discord/rest";
 
@@ -758,9 +758,9 @@ export function buildDiscordBugForumThreadBody(args: {
     reporterLabel: args.reporterLabel,
   });
   const typeEmoji = args.report.report_type === "bug"
-    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    ? buildDiscordFeedbackEmojiPrefix("Bug")
     : args.report.report_type === "feature"
-      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      ? buildDiscordFeedbackEmojiPrefix("Feature")
       : "";
   const feedbackHeader = args.report.report_type === "bug"
     ? "Bug Report"
@@ -798,9 +798,9 @@ export function buildDiscordBugForumDuplicateReply(args: {
   duplicateCount: number;
 }): string {
   const typeEmoji = args.reportType === "bug"
-    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    ? buildDiscordFeedbackEmojiPrefix("Bug")
     : args.reportType === "feature"
-      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      ? buildDiscordFeedbackEmojiPrefix("Feature")
       : "";
 
   return [
@@ -812,9 +812,9 @@ export function buildDiscordBugForumDuplicateReply(args: {
 
 export function buildDiscordFeedbackWithdrawThreadReply(reportType?: DiscordBugReportReportType | null): string {
   const typeEmoji = reportType === "bug"
-    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    ? buildDiscordFeedbackEmojiPrefix("Bug")
     : reportType === "feature"
-      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      ? buildDiscordFeedbackEmojiPrefix("Feature")
       : "";
 
   return `${typeEmoji ? `${typeEmoji} ` : ""}This feedback was withdrawn by the reporter.`;
@@ -826,9 +826,9 @@ export function buildDiscordFeedbackUpdateThreadReply(args: {
   updaterLabel: string;
 }): string {
   const typeEmoji = args.reportType === "bug"
-    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    ? buildDiscordFeedbackEmojiPrefix("Bug")
     : args.reportType === "feature"
-      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      ? buildDiscordFeedbackEmojiPrefix("Feature")
       : "";
 
   return [
@@ -849,9 +849,9 @@ export function buildDiscordBugStatusThreadReply(args: {
     ? `<@${args.reporterDiscordUserId}> `
     : "";
   const typeEmoji = args.reportType === "bug"
-    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    ? buildDiscordFeedbackEmojiPrefix("Bug")
     : args.reportType === "feature"
-      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      ? buildDiscordFeedbackEmojiPrefix("Feature")
       : "";
   const lines = [`${prefix}${typeEmoji ? `${typeEmoji} ` : ""}Status updated: ${formatDiscordBugReportStatusLabel(args.status)}`];
 

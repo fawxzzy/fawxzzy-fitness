@@ -697,6 +697,269 @@ test("Discord interactions route stores unique feature feedback and creates a ta
   }
 });
 
+test("Discord interactions route keeps feedback submission successful when forum decoration falls back", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+  process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID = "1505007702924068916";
+  process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID = "1505007651308703877";
+
+  const originalFetch = globalThis.fetch;
+  const observedThreadBodies = [];
+  let metadataPatchCount = 0;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "content-range": "0-0/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response(JSON.stringify({
+        fitness_user_id: "00000000-0000-0000-0000-000000000123",
+        user_number: 4,
+        user_kind: "human",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "POST") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "bug",
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        discord_forum_applied_tag_ids: null,
+        discord_forum_title: null,
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      metadataPatchCount += 1;
+      return new Response(JSON.stringify({ message: "db patch failed" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "tag-bug", name: "Bug" },
+          { id: "tag-new", name: "New" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744/threads") {
+      observedThreadBodies.push(body);
+
+      if (body.applied_tags?.length) {
+        return new Response(JSON.stringify({ message: "Invalid Form Body", code: "COMPONENT_INVALID_EMOJI" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        id: "1504673475489562745",
+        last_message_id: "1504673475489562746",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_submit_modal",
+        components: [
+          { type: 1, components: [{ type: 4, custom_id: "feedback_type", value: "Bug" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_severity", value: "medium" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_steps", value: "Open Settings -> Account -> Generate token -> tap Copy" }] },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback received from Member #4. Thanks for helping improve Fitness.",
+        flags: 64,
+      },
+    });
+    assert.equal(observedThreadBodies.length, 2);
+    assert.deepEqual(observedThreadBodies[0]?.applied_tags, ["tag-bug", "tag-new", "tag-medium"]);
+    assert.equal(observedThreadBodies[1]?.applied_tags, undefined);
+    assert.doesNotMatch(observedThreadBodies[1]?.message?.content ?? "", /<:/);
+    assert.equal(metadataPatchCount, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+    delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
+    delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;
+  }
+});
+
+test("Discord interactions route returns a soft success when the forum thread cannot be created", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  let threadAttemptCount = 0;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "content-range": "0-0/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response("null", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "POST") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        reporter_fitness_user_id: null,
+        reporter_member_number: null,
+        reporter_user_kind: null,
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        discord_forum_applied_tag_ids: null,
+        discord_forum_title: null,
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "tag-bug", name: "Bug" },
+          { id: "tag-new", name: "New" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744/threads") {
+      threadAttemptCount += 1;
+      return new Response(JSON.stringify({ message: "Discord forum unavailable" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_submit_modal",
+        components: [
+          { type: 1, components: [{ type: 4, custom_id: "feedback_type", value: "Bug" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_severity", value: "medium" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_steps", value: "Open Settings -> Account -> Generate token -> tap Copy" }] },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback received, but Discord could not create the forum post yet. The team can still review it.",
+        flags: 64,
+      },
+    });
+    assert.equal(threadAttemptCount, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
 test("Discord interactions route folds duplicate feedback and posts only a compact forum reply without pinging the reporter", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

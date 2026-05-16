@@ -483,7 +483,7 @@ test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly r
   );
 });
 
-test("configured feedback emoji markup appears in forum body and replies when env vars are set", () => {
+test("forum body and replies stay text-only even when custom emoji env vars are set", () => {
   process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID = "1505007702924068916";
   process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID = "1505007651308703877";
 
@@ -506,9 +506,9 @@ test("configured feedback emoji markup appears in forum body and replies when en
     includeReporterMention: false,
   });
 
-  assert.match(featureBody, /^<:Feature:1505007651308703877> \*\*Feature Request\*\*/);
-  assert.match(duplicateReply, /^<:Bug:1505007702924068916> Another report matched this feedback\./);
-  assert.match(statusReply, /^<:Feature:1505007651308703877> Status updated: Fixed$/);
+  assert.doesNotMatch(featureBody, /^<:/);
+  assert.doesNotMatch(duplicateReply, /^<:/);
+  assert.doesNotMatch(statusReply, /^<:/);
 
   delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
   delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;
