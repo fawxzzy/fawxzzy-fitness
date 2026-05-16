@@ -115,3 +115,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: profile compaction -> stale Discord link marker -> protected sync endpoint or script -> nickname update.
 - Failure Mode: Changing member numbers in DB without queuing nickname sync leaves Discord display stale.
 - Status: Proposed
+
+## 2026-05-16 - Discord production update posts should be curated user communication
+- Type: Guardrail
+- Summary: Vercel production deployments can trigger update drafts, but public Discord posts must be curated for users rather than copied from raw deployment metadata.
+- Rule: Deployment metadata is input, not release copy.
+- Rule: Only production deployments for the Fitness project should create update drafts.
+- Rule: Discord update posts should be safe for users of any age and background.
+- Pattern: production deployment.ready -> bounded draft -> admin curated publish -> Discord update post.
+- Failure Mode: Raw changelog or deployment posts confuse users and leak irrelevant implementation details.
+- Status: Proposed

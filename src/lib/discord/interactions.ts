@@ -20,6 +20,9 @@ export const FITNESS_FEEDBACK_SETUP_COMMAND_NAME = "setup-feedback";
 export const FITNESS_FEEDBACK_COMMAND_NAME = "feedback";
 export const FITNESS_FEEDBACK_STATUS_COMMAND_NAME = "feedback-status";
 export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
+export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
+export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
+export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";
 export const FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_report_modal";
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID = "fitness_feedback_submit_open";
 export const FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID = "fitness_feedback_update_open";
@@ -27,6 +30,7 @@ export const FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID = "fitness_feedbac
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID = "fitness_feedback_submit_modal";
 export const FITNESS_FEEDBACK_UPDATE_MODAL_CUSTOM_ID = "fitness_feedback_update_modal";
 export const FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID = "fitness_feedback_withdraw_modal";
+export const FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX = "fitness_update_publish_modal";
 export const FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID = "feedback_type";
 export const FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID = "bug_summary";
 export const FITNESS_BUG_AREA_INPUT_CUSTOM_ID = "bug_area";
@@ -41,6 +45,11 @@ export const FITNESS_FEEDBACK_TYPE_OPTION_NAME = "type";
 export const FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME = "report_id";
 export const FITNESS_BUG_STATUS_STATUS_OPTION_NAME = "status";
 export const FITNESS_BUG_STATUS_NOTE_OPTION_NAME = "note";
+export const FITNESS_UPDATE_DRAFT_ID_OPTION_NAME = "draft_id";
+export const FITNESS_UPDATE_SKIP_REASON_OPTION_NAME = "reason";
+export const FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID = "update_title";
+export const FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID = "update_what_changed";
+export const FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID = "update_why_it_matters";
 export const DEFAULT_VERIFY_MESSAGE_TITLE = "Verify your Fawxzzy Fitness account";
 export const DEFAULT_FEEDBACK_PANEL_TITLE = "Fawxzzy Feedback";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
@@ -276,6 +285,43 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
         },
       ],
     },
+    {
+      name: FITNESS_UPDATE_LATEST_COMMAND_NAME,
+      description: "Show the latest production update drafts.",
+      default_member_permissions: feedbackStatusDefaultPermissions,
+    },
+    {
+      name: FITNESS_UPDATE_PUBLISH_COMMAND_NAME,
+      description: "Publish a curated Fitness app update.",
+      default_member_permissions: feedbackStatusDefaultPermissions,
+      options: [
+        {
+          type: 3,
+          name: FITNESS_UPDATE_DRAFT_ID_OPTION_NAME,
+          description: "Draft ID or short draft ID.",
+          required: true,
+        },
+      ],
+    },
+    {
+      name: FITNESS_UPDATE_SKIP_COMMAND_NAME,
+      description: "Skip a production update draft.",
+      default_member_permissions: feedbackStatusDefaultPermissions,
+      options: [
+        {
+          type: 3,
+          name: FITNESS_UPDATE_DRAFT_ID_OPTION_NAME,
+          description: "Draft ID or short draft ID.",
+          required: true,
+        },
+        {
+          type: 3,
+          name: FITNESS_UPDATE_SKIP_REASON_OPTION_NAME,
+          description: "Optional reason for skipping this draft.",
+          required: false,
+        },
+      ],
+    },
   ];
 }
 
@@ -470,6 +516,73 @@ export function buildDiscordFeedbackWithdrawModalResponse() {
               label: "Optional note",
               required: false,
               max_length: 500,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+export function buildDiscordUpdatePublishModalCustomId(draftId: string) {
+  return `${FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX}:${draftId}`;
+}
+
+export function extractDiscordUpdateDraftIdFromPublishModalCustomId(customId: string | null | undefined): string | null {
+  if (!customId?.startsWith(`${FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX}:`)) {
+    return null;
+  }
+
+  const draftId = customId.slice(FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX.length + 1).trim();
+  return draftId || null;
+}
+
+export function buildDiscordUpdatePublishModalResponse(draftId: string) {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: buildDiscordUpdatePublishModalCustomId(draftId),
+      title: "Publish Fitness Update",
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Title",
+              placeholder: "Example: Better feedback tools are live",
+              required: true,
+              max_length: 120,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "What changed",
+              placeholder: "One bullet or short line per user-facing change",
+              required: true,
+              max_length: 1500,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "Why it matters",
+              placeholder: "Explain the user-facing value in one or two short sentences",
+              required: true,
+              max_length: 800,
             },
           ],
         },

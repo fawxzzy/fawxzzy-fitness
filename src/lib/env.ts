@@ -19,6 +19,12 @@ const DISCORD_FEEDBACK_PANEL_CHANNEL_ID_ENV = "DISCORD_FEEDBACK_PANEL_CHANNEL_ID
 const DISCORD_BUG_REPORT_FORUM_CHANNEL_ID_ENV = "DISCORD_BUG_REPORT_FORUM_CHANNEL_ID";
 const DISCORD_FEEDBACK_BUG_EMOJI_ID_ENV = "DISCORD_FEEDBACK_BUG_EMOJI_ID";
 const DISCORD_FEEDBACK_FEATURE_EMOJI_ID_ENV = "DISCORD_FEEDBACK_FEATURE_EMOJI_ID";
+const DISCORD_UPDATES_CHANNEL_ID_ENV = "DISCORD_UPDATES_CHANNEL_ID";
+const DISCORD_UPDATE_BOT_ENABLED_ENV = "DISCORD_UPDATE_BOT_ENABLED";
+const DISCORD_UPDATE_AUTO_PUBLISH_ENABLED_ENV = "DISCORD_UPDATE_AUTO_PUBLISH_ENABLED";
+const VERCEL_DEPLOYMENT_WEBHOOK_SECRET_ENV = "VERCEL_DEPLOYMENT_WEBHOOK_SECRET";
+const VERCEL_WEBHOOK_SECRET_ENV = "VERCEL_WEBHOOK_SECRET";
+const VERCEL_PROJECT_ID_ENV = "VERCEL_PROJECT_ID";
 const LEGACY_SUPABASE_URL_ENV = "LEGACY_SUPABASE_URL";
 const LEGACY_SUPABASE_ANON_KEY_ENV = "LEGACY_SUPABASE_ANON_KEY";
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{5,32}$/;
@@ -61,6 +67,23 @@ export function LEGACY_SUPABASE_ANON_KEY(): string {
 export function optionalEnv(name: string): string | null {
   const value = process.env[name]?.trim();
   return value && value.length > 0 ? value : null;
+}
+
+function optionalBooleanEnv(name: string, fallback = false): boolean {
+  const value = optionalEnv(name);
+  if (!value) {
+    return fallback;
+  }
+
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  throw new Error(`Invalid environment variable: ${name}. Expected 'true' or 'false'.`);
 }
 
 function mustGetSnowflakeEnv(name: string): string {
@@ -225,4 +248,46 @@ export function DISCORD_FEEDBACK_FEATURE_EMOJI_ID(): string | null {
   }
 
   return value;
+}
+
+export function DISCORD_UPDATES_CHANNEL_ID(): string | null {
+  const value = optionalEnv(DISCORD_UPDATES_CHANNEL_ID_ENV);
+  if (!value) {
+    return null;
+  }
+
+  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
+    throw new Error(`Invalid environment variable: ${DISCORD_UPDATES_CHANNEL_ID_ENV}. Expected a Discord snowflake numeric string.`);
+  }
+
+  return value;
+}
+
+export function DISCORD_UPDATE_BOT_ENABLED(): boolean {
+  return optionalBooleanEnv(DISCORD_UPDATE_BOT_ENABLED_ENV, false);
+}
+
+export function DISCORD_UPDATE_AUTO_PUBLISH_ENABLED(): boolean {
+  return optionalBooleanEnv(DISCORD_UPDATE_AUTO_PUBLISH_ENABLED_ENV, false);
+}
+
+export function VERCEL_DEPLOYMENT_WEBHOOK_SECRET(): string {
+  const preferred = optionalEnv(VERCEL_DEPLOYMENT_WEBHOOK_SECRET_ENV);
+  if (preferred) {
+    return preferred;
+  }
+
+  const legacy = optionalEnv(VERCEL_WEBHOOK_SECRET_ENV);
+  if (legacy) {
+    return legacy;
+  }
+
+  throw new Error(
+    `Missing required environment variable: ${VERCEL_DEPLOYMENT_WEBHOOK_SECRET_ENV}. ` +
+    `Set ${VERCEL_DEPLOYMENT_WEBHOOK_SECRET_ENV} or ${VERCEL_WEBHOOK_SECRET_ENV}.`
+  );
+}
+
+export function VERCEL_PROJECT_ID(): string | null {
+  return optionalEnv(VERCEL_PROJECT_ID_ENV);
 }

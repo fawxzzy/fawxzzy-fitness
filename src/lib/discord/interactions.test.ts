@@ -6,6 +6,7 @@ import {
   buildDiscordFeedbackReportModalResponse,
   buildDiscordFeedbackUpdateModalResponse,
   buildDiscordFeedbackWithdrawModalResponse,
+  buildDiscordUpdatePublishModalResponse,
   buildDiscordGuildCommandsDefinition,
   buildDiscordPongResponse,
   buildDiscordVerifyModalResponse,
@@ -15,6 +16,7 @@ import {
   discordMemberHasSetupPermission,
   extractDiscordCommandStringOption,
   extractDiscordModalTextInputValue,
+  extractDiscordUpdateDraftIdFromPublishModalCustomId,
   resolveDiscordFeedbackReportTypeFromModalCustomId,
   resolveDiscordVerifyMessageBody,
 } from "./interactions.ts";
@@ -138,6 +140,29 @@ test("feedback panel button modals expose submit, update, and withdraw forms", (
   assert.equal(withdraw.data.components[1]?.components[0]?.custom_id, "feedback_withdraw_note");
 });
 
+test("update publish modal shape includes the draft id in the modal custom id", () => {
+  const response = buildDiscordUpdatePublishModalResponse("11111111-1111-4111-8111-111111111111");
+
+  assert.equal(response.type, 9);
+  assert.equal(
+    response.data.custom_id,
+    "fitness_update_publish_modal:11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(response.data.components[0]?.components[0]?.custom_id, "update_title");
+  assert.equal(response.data.components[1]?.components[0]?.custom_id, "update_what_changed");
+  assert.equal(response.data.components[2]?.components[0]?.custom_id, "update_why_it_matters");
+});
+
+test("extractDiscordUpdateDraftIdFromPublishModalCustomId parses publish modal ids only", () => {
+  assert.equal(
+    extractDiscordUpdateDraftIdFromPublishModalCustomId(
+      "fitness_update_publish_modal:11111111-1111-4111-8111-111111111111",
+    ),
+    "11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(extractDiscordUpdateDraftIdFromPublishModalCustomId("fitness_feedback_submit_modal"), null);
+});
+
 test("feedback panel payload stays text-only even when custom emoji env vars are set", () => {
   process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID = "1505007702924068916";
   process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID = "1505007651308703877";
@@ -170,8 +195,11 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const feedbackWithdraw = commands.find((command) => command.name === "feedback-withdraw");
   const setupVerify = commands.find((command) => command.name === "setup-verify");
   const setupFeedback = commands.find((command) => command.name === "setup-feedback");
+  const updateLatest = commands.find((command) => command.name === "update-latest");
+  const updatePublish = commands.find((command) => command.name === "update-publish");
+  const updateSkip = commands.find((command) => command.name === "update-skip");
 
-  assert.equal(commands.length, 5);
+  assert.equal(commands.length, 8);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(setupFeedback);
@@ -186,4 +214,15 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.equal(feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "withdrawn"), true);
   assert.ok(feedbackWithdraw);
   assert.equal(feedbackWithdraw?.options?.[0]?.name, "report_id");
+  assert.ok(updateLatest);
+  assert.equal(
+    updateLatest?.default_member_permissions,
+    String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(13)) | (BigInt(1) << BigInt(34))),
+  );
+  assert.ok(updatePublish);
+  assert.equal(updatePublish?.options?.[0]?.name, "draft_id");
+  assert.ok(updateSkip);
+  assert.equal(updateSkip?.options?.[1]?.name, "reason");
+  assert.equal(commands.some((command) => command.name === "bug"), false);
+  assert.equal(commands.some((command) => command.name === "routine-share"), false);
 });

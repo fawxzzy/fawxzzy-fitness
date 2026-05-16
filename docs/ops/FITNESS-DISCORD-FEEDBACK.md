@@ -29,12 +29,17 @@ Product rules:
   - reporter or staff
   - redact and archive, not raw delete
 
-Registered commands should remain:
+Feedback-facing commands should remain:
 - `setup-verify`
 - `setup-feedback`
 - `feedback`
 - `feedback-status`
 - `feedback-withdraw`
+
+Separate production-update staff commands may also exist:
+- `update-latest`
+- `update-publish`
+- `update-skip`
 
 ## User flow
 1. An admin runs `/setup-feedback`.
