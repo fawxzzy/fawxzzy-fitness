@@ -248,10 +248,14 @@ test("Discord interactions route publishes curated updates into DISCORD_UPDATES_
       },
     });
     assert.equal(updateCount, 1);
+    assert.match(observedDiscordBodies[0]?.content ?? "", /^@everyone/m);
     assert.match(observedDiscordBodies[0]?.content ?? "", /## Better feedback tools are live/);
     assert.equal(observedDiscordBodies[0]?.flags, 4);
     assert.match(observedDiscordBodies[0]?.content ?? "", /Open Fitness:\n<https:\/\/fawxzzy-fitness-local\.vercel\.app\/login>/);
-    assert.equal(observedDiscordBodies[0]?.allowed_mentions?.parse?.length, 0);
+    assert.deepEqual(observedDiscordBodies[0]?.allowed_mentions, {
+      parse: ["everyone"],
+      replied_user: false,
+    });
   } finally {
     globalThis.fetch = originalFetch;
   }
