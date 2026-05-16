@@ -49,6 +49,12 @@ type DiscordRequestInit = {
   body?: unknown;
 };
 
+export type DiscordGuildEmoji = {
+  id?: string | null;
+  name?: string | null;
+  available?: boolean;
+};
+
 async function parseDiscordJson(response: Response): Promise<unknown> {
   const responseText = await response.text();
   if (!responseText) {
@@ -72,6 +78,36 @@ async function discordRequest<T>(path: string, init: DiscordRequestInit): Promis
     method: init.method,
     headers: {
       Authorization: `Bot ${DISCORD_BOT_TOKEN()}`,
+      "Content-Type": "application/json",
+      "User-Agent": DISCORD_API_USER_AGENT,
+    },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+
+  const data = await parseDiscordJson(response) as T | null;
+  const errorMessage = !response.ok && data && typeof data === "object" && "message" in data
+    ? String((data as { message?: unknown }).message ?? response.statusText)
+    : !response.ok
+      ? response.statusText
+      : null;
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    data,
+    errorMessage,
+  };
+}
+
+async function discordInteractionWebhookRequest<T>(path: string, init: DiscordRequestInit): Promise<{
+  ok: boolean;
+  status: number;
+  data: T | null;
+  errorMessage: string | null;
+}> {
+  const response = await fetch(`${DISCORD_API_BASE_URL}${path}`, {
+    method: init.method,
+    headers: {
       "Content-Type": "application/json",
       "User-Agent": DISCORD_API_USER_AGENT,
     },
@@ -207,6 +243,82 @@ export async function fetchDiscordGuildActiveThreads(args: {
   return {
     ok: false,
     code: "DISCORD_FETCH_ACTIVE_THREADS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordGuildEmojis(args: {
+  guildId: string;
+}): Promise<{ ok: true; emojis: DiscordGuildEmoji[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordGuildEmoji[]>(
+    `/guilds/${args.guildId}/emojis`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data)) {
+    return { ok: true, emojis: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_GUILD_EMOJIS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function deferDiscordInteractionEphemeral(args: {
+  interactionId: string;
+  interactionToken: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordInteractionWebhookRequest<null>(
+    `/interactions/${args.interactionId}/${args.interactionToken}/callback`,
+    {
+      method: "POST",
+      body: {
+        type: 5,
+        data: {
+          flags: 64,
+        },
+      },
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_INTERACTION_DEFER_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function editDiscordOriginalInteractionResponse(args: {
+  applicationId: string;
+  interactionToken: string;
+  content: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordInteractionWebhookRequest<unknown>(
+    `/webhooks/${args.applicationId}/${args.interactionToken}/messages/@original`,
+    {
+      method: "PATCH",
+      body: {
+        content: args.content,
+      },
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_EDIT_ORIGINAL_INTERACTION_RESPONSE_FAILED",
     status: result.status,
     message: result.errorMessage,
   };

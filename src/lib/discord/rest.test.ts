@@ -4,7 +4,10 @@ import {
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordThreadMessage,
+  deferDiscordInteractionEphemeral,
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
+  editDiscordOriginalInteractionResponse,
+  fetchDiscordGuildEmojis,
   resolveDiscordForumTagIdsByName,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
@@ -229,6 +232,105 @@ test("createDiscordChannelMessage forwards flags for embed suppression", async (
       body: JSON.stringify({
         content: "## Discord Feedback Update",
         flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchDiscordGuildEmojis returns guild emoji records", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () => new Response(JSON.stringify([
+    { id: "1505007702924066916", name: "Bug", available: true },
+    { id: "1505007651308703877", name: "Feature", available: true },
+  ]), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const result = await fetchDiscordGuildEmojis({ guildId: "1504668396338413670" });
+    assert.deepEqual(result, {
+      ok: true,
+      emojis: [
+        { id: "1505007702924066916", name: "Bug", available: true },
+        { id: "1505007651308703877", name: "Feature", available: true },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("deferDiscordInteractionEphemeral posts a deferred ephemeral callback", async () => {
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    const result = await deferDiscordInteractionEphemeral({
+      interactionId: "interaction-1",
+      interactionToken: "interaction-token",
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/interactions/interaction-1/interaction-token/callback",
+      method: "POST",
+      body: JSON.stringify({
+        type: 5,
+        data: {
+          flags: 64,
+        },
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("editDiscordOriginalInteractionResponse PATCHes the original interaction message", async () => {
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "message-1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await editDiscordOriginalInteractionResponse({
+      applicationId: "1504700208251146371",
+      interactionToken: "interaction-token",
+      content: "Feedback received. Thanks for helping improve Fitness.",
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original",
+      method: "PATCH",
+      body: JSON.stringify({
+        content: "Feedback received. Thanks for helping improve Fitness.",
       }),
     });
   } finally {

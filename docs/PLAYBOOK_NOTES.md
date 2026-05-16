@@ -108,6 +108,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A valid report appears in the forum while the user sees a failure because a non-critical decoration step failed.
 - Status: Proposed
 
+## 2026-05-16 - Feedback attachments and decoration must stay bounded and fail-soft
+- Type: Guardrail
+- Summary: Feedback intake may support screenshots and visual polish, but file bytes should stay in Discord, Supabase should store bounded metadata only, and optional decoration must not break the core report path.
+- Rule: Feedback attachments are Discord-hosted evidence, not app database blobs.
+- Rule: Custom emoji decoration must be validated and fail-soft.
+- Pattern: defer interaction -> bounded row -> forum thread with optional attachments -> edit response with final status.
+- Failure Mode: A successful forum post appears while the reporter sees a failed response because the interaction was not deferred or decoration failed.
+- Status: Proposed
+
 ## 2026-05-15 - Member-number display sync should queue Discord side effects
 - Type: Pattern
 - Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.
