@@ -41,6 +41,7 @@ If `DISCORD_VERIFY_MESSAGE_BODY` is overridden, keep the line breaks intact and 
 - `/setup-feedback` is admin-only
 - update commands are admin or staff only
 - normal feedback users should primarily use the persistent feedback panel
+- `/feedback` and `/feedback-withdraw` remain active as hidden fallback commands, but normal users should use the panel buttons
 
 After deployment:
 1. Set the Discord Interactions Endpoint URL.
@@ -50,6 +51,21 @@ After deployment:
 5. Test `Submit Feedback`, `Update Feedback`, and `Withdraw Feedback`.
 6. Generate a token from `Settings → Account → Discord Connector`.
 7. Paste the token into the Discord modal.
+
+## Community doctor
+Run:
+
+```txt
+npm run doctor:discord-community
+```
+
+The doctor is read-only and verifies the command surface, verify message, feedback panel, feedback forum tags, member-number health, and recent update-post expectations from one place.
+
+Explicitly parked:
+- no routine sharing
+- no workout sharing
+- no copy-to-app imports
+- no Discord workout editor
 
 ## Required environment
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -85,3 +101,5 @@ Rule: verification proves possession of an authenticated app session, not knowle
 Rule: signed Discord interactions must be verified before execution.
 
 Rule: verification copy should consistently say `Discord Connector`.
+
+Rule: owner or high-role nickname update failures can remain expected Discord limitations while the link row stays queued or marked with a safe error code.

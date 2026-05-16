@@ -17,19 +17,21 @@ Product rules:
 ## Command surface
 - `/setup-feedback`
   - admin-only
-  - posts or refreshes the persistent `Fawxzzy Feedback` panel
+  - posts or refreshes the persistent `Feedback Actions` panel
 - `/setup-verify`
   - admin-only
   - posts or refreshes the verification panel
 - `/feedback`
   - slash fallback for the same general submit modal
+  - hidden from normal users; the panel buttons are the primary user UX
   - does not require a type option up front
 - `/feedback-status`
   - staff-only
   - status sync only
 - `/feedback-withdraw`
-  - reporter or staff
-  - redact and archive, not raw delete
+  - hidden from normal users
+  - reporter or staff fallback
+  - redact, prune, and remove the Discord-visible thread while keeping a bounded audit row
 
 Feedback-facing commands should remain:
 - `setup-verify`
@@ -45,8 +47,8 @@ Separate production-update staff commands may also exist:
 
 ## User flow
 1. An admin runs `/setup-feedback`.
-2. Fitness creates or updates a persistent panel with `Submit Feedback`, `Update Feedback`, and `Withdraw Feedback`.
-3. A user clicks `Submit Feedback`.
+2. Fitness creates or updates a persistent panel with `Submit`, `Add Update`, and `Withdraw`.
+3. A user clicks `Submit`.
 4. Fitness opens one general modal.
 5. The modal collects `Feedback type` inside the flow.
 6. Fitness defers the interaction ephemerally before heavy DB or forum work.
@@ -131,7 +133,7 @@ Known production values:
 
 ## Feedback forum board
 When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum thread with:
-- title format: `Bug: <Area> - <Summary>` or `Feature: <Area> - <Summary>`
+- title format: `Bug: <Area> — <Summary>` or `Feature: <Area> — <Summary>`
 - type tag: `Bug` or `Feature`
 - status tag: `New`
 - severity tag: `Low`, `Medium`, `High`, or `Blocker`
@@ -209,7 +211,7 @@ It should:
 - mark the report as attachment-pruned
 - set status to `withdrawn`
 - update forum tags to `Withdrawn`
-- archive and lock the thread
+- delete the Discord thread after the bounded row is updated
 - keep a small audit record
 - not raw-delete the review history
 
@@ -217,7 +219,7 @@ It should:
 Keep verification instructions aligned with:
 
 ```txt
-Go to Settings -> Account -> Discord Connector.
+Go to Settings → Account → Discord Connector.
 ```
 
 After verify-copy changes, rerun:
@@ -236,6 +238,29 @@ After verify-copy changes, rerun:
 10. Test `Withdraw Feedback`.
 11. Test image upload with a small PNG or JPG.
 12. Confirm the user receives one final success message after the deferred response completes.
+
+## Community doctor
+Run:
+
+```txt
+npm run doctor:discord-community
+```
+
+The doctor is read-only and checks:
+- env presence without printing values
+- live Discord command registration
+- feedback forum tags
+- verify message and feedback panel presence
+- member-number health
+- recent feedback attachment and withdraw-pruning health
+
+Warnings mean optional or recoverable drift. Failures mean missing env, schema, or command-surface problems that should be fixed before shipping more Discord changes.
+
+## Explicitly parked
+- no routine sharing
+- no workout sharing
+- no copy-to-app imports
+- no Discord workout editor
 
 ## Guardrails
 Rule: feedback reports are bounded input signals, not repo truth.
