@@ -67,6 +67,7 @@ test("shouldRefreshAuthSession skips public auth and install routes", () => {
   assert.equal(shouldRefreshAuthSession("/api/discord/interactions"), false);
   assert.equal(shouldRefreshAuthSession("/api/discord/member-numbers/sync"), false);
   assert.equal(shouldRefreshAuthSession("/api/discord/verify"), false);
+  assert.equal(shouldRefreshAuthSession("/api/vercel/deployment-webhook"), false);
 });
 
 test("classifyAuthSessionFailure treats expired and invalid tokens as session-expired logins", () => {
