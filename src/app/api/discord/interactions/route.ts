@@ -196,6 +196,25 @@ function buildDiscordFeedbackLookupFailureResponse(code: string) {
   return buildDiscordEphemeralMessageResponse("Could not find that feedback report. Copy the Report ID from the forum post and try again.");
 }
 
+function logDiscordFeedbackSoftFailure(args: {
+  stage: string;
+  reportId: string;
+  code?: string | null;
+  status?: number | null;
+  message?: string | null;
+  error?: unknown;
+}) {
+  console.warn("[discord-interactions] feedback optional step failed", {
+    requestId: randomUUID(),
+    reportId: args.reportId,
+    stage: args.stage,
+    code: args.code ?? null,
+    status: args.status ?? null,
+    message: args.message ?? null,
+    error: args.error instanceof Error ? args.error.message : args.error ? String(args.error) : null,
+  });
+}
+
 async function syncDiscordFeedbackForumThread(args: {
   report: DiscordBugReportRow;
   includeReporterMention: boolean;
@@ -756,28 +775,37 @@ async function handleFeedbackCreateModalSubmit(
     reporterMemberNumber: creationResult.reporterLink.memberNumber,
   });
   const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
+  let forumThreadCreationFailed = false;
 
   if (forumChannelId && creationResult.duplicate && creationResult.report.discord_forum_thread_id) {
-    const duplicateReplyResult = await createDiscordThreadMessage({
-      threadId: creationResult.report.discord_forum_thread_id,
-      content: buildDiscordBugForumDuplicateReply({
-        reportType: creationResult.report.report_type,
-        reporterLabel,
-        duplicateCount: creationResult.report.duplicate_count,
-      }),
-      allowedMentions: buildDiscordAllowedMentions({
-        reporterDiscordUserId: creationResult.report.reporter_discord_user_id,
-        includeReporter: false,
-      }),
-    });
+    try {
+      const duplicateReplyResult = await createDiscordThreadMessage({
+        threadId: creationResult.report.discord_forum_thread_id,
+        content: buildDiscordBugForumDuplicateReply({
+          reportType: creationResult.report.report_type,
+          reporterLabel,
+          duplicateCount: creationResult.report.duplicate_count,
+        }),
+        allowedMentions: buildDiscordAllowedMentions({
+          reporterDiscordUserId: creationResult.report.reporter_discord_user_id,
+          includeReporter: false,
+        }),
+      });
 
-    if (!duplicateReplyResult.ok) {
-      console.error("[discord-interactions] feedback forum duplicate reply failed", {
-        requestId: randomUUID(),
+      if (!duplicateReplyResult.ok) {
+        logDiscordFeedbackSoftFailure({
+          stage: "duplicate-reply",
+          reportId: creationResult.report.id,
+          code: duplicateReplyResult.code,
+          status: duplicateReplyResult.status,
+          message: duplicateReplyResult.message,
+        });
+      }
+    } catch (error) {
+      logDiscordFeedbackSoftFailure({
+        stage: "duplicate-reply",
         reportId: creationResult.report.id,
-        code: duplicateReplyResult.code,
-        status: duplicateReplyResult.status,
-        message: duplicateReplyResult.message,
+        error,
       });
     }
   }
@@ -789,79 +817,120 @@ async function handleFeedbackCreateModalSubmit(
       summary: creationResult.report.summary,
     });
     let matchedTagIds: string[] | null = null;
-    const tagResolutionResult = await resolveDiscordForumTagIdsByName({
-      channelId: forumChannelId,
-      tagNames: buildDiscordBugForumTagNames({
-        reportType: creationResult.report.report_type,
-        status: creationResult.report.status,
-        severity: creationResult.report.severity,
-      }),
-    });
+    try {
+      const tagResolutionResult = await resolveDiscordForumTagIdsByName({
+        channelId: forumChannelId,
+        tagNames: buildDiscordBugForumTagNames({
+          reportType: creationResult.report.report_type,
+          status: creationResult.report.status,
+          severity: creationResult.report.severity,
+        }),
+      });
 
-    if (tagResolutionResult.ok) {
-      matchedTagIds = tagResolutionResult.matchedTagIds;
-      if (tagResolutionResult.missingTagNames.length > 0) {
-        console.warn("[discord-interactions] feedback forum tags missing", {
-          requestId: randomUUID(),
+      if (tagResolutionResult.ok) {
+        matchedTagIds = tagResolutionResult.matchedTagIds;
+        if (tagResolutionResult.missingTagNames.length > 0) {
+          console.warn("[discord-interactions] feedback forum tags missing", {
+            requestId: randomUUID(),
+            reportId: creationResult.report.id,
+            missingTagNames: tagResolutionResult.missingTagNames,
+          });
+        }
+      } else {
+        logDiscordFeedbackSoftFailure({
+          stage: "tag-resolution",
           reportId: creationResult.report.id,
-          missingTagNames: tagResolutionResult.missingTagNames,
+          code: tagResolutionResult.code,
+          status: tagResolutionResult.status,
+          message: tagResolutionResult.message,
         });
       }
-    } else {
-      console.warn("[discord-interactions] feedback forum tag resolution failed", {
-        requestId: randomUUID(),
-        reportId: creationResult.report.id,
-        code: tagResolutionResult.code,
-        status: tagResolutionResult.status,
-        message: tagResolutionResult.message,
-      });
-    }
 
-    const forumThreadResult = await createDiscordForumThreadWithMessage({
-      channelId: forumChannelId,
-      threadName: forumTitle,
-      messageContent: buildDiscordBugForumThreadBody({
-        report: creationResult.report,
-        reporterLabel,
-      }),
-      appliedTagIds: matchedTagIds ?? undefined,
-      allowedMentions: buildDiscordAllowedMentions({
-        reporterDiscordUserId: creationResult.report.reporter_discord_user_id,
-        includeReporter: true,
-      }),
-    });
-
-    if (!forumThreadResult.ok) {
-      console.error("[discord-interactions] feedback forum thread creation failed", {
-        requestId: randomUUID(),
-        reportId: creationResult.report.id,
-        code: forumThreadResult.code,
-        status: forumThreadResult.status,
-        message: forumThreadResult.message,
-      });
-    } else if (forumThreadResult.threadId) {
-      const forumUpdateResult = await recordDiscordBugReportForumThread({
-        reportId: creationResult.report.id,
-        forumChannelId,
-        forumThreadId: forumThreadResult.threadId,
-        forumMessageId: forumThreadResult.messageId,
-        forumTitle,
-        forumAppliedTagIds: matchedTagIds,
-        reporterMentionedAt: new Date().toISOString(),
-      });
-
-      if (!forumUpdateResult.ok) {
-        console.error("[discord-interactions] feedback forum thread metadata update failed", {
-          requestId: randomUUID(),
-          reportId: creationResult.report.id,
+      const createForumThread = async (appliedTagIds?: string[]) =>
+        createDiscordForumThreadWithMessage({
+          channelId: forumChannelId,
+          threadName: forumTitle,
+          messageContent: buildDiscordBugForumThreadBody({
+            report: creationResult.report,
+            reporterLabel,
+          }),
+          appliedTagIds,
+          allowedMentions: buildDiscordAllowedMentions({
+            reporterDiscordUserId: creationResult.report.reporter_discord_user_id,
+            includeReporter: true,
+          }),
         });
+
+      let appliedTagIdsUsed = matchedTagIds;
+      let forumThreadResult = await createForumThread(appliedTagIdsUsed ?? undefined);
+
+      if (!forumThreadResult.ok && matchedTagIds && matchedTagIds.length > 0) {
+        logDiscordFeedbackSoftFailure({
+          stage: "thread-create-with-tags",
+          reportId: creationResult.report.id,
+          code: forumThreadResult.code,
+          status: forumThreadResult.status,
+          message: forumThreadResult.message,
+        });
+        appliedTagIdsUsed = null;
+        forumThreadResult = await createForumThread();
       }
+
+      if (!forumThreadResult.ok) {
+        forumThreadCreationFailed = true;
+        logDiscordFeedbackSoftFailure({
+          stage: "thread-create",
+          reportId: creationResult.report.id,
+          code: forumThreadResult.code,
+          status: forumThreadResult.status,
+          message: forumThreadResult.message,
+        });
+      } else if (!forumThreadResult.threadId) {
+        forumThreadCreationFailed = true;
+        logDiscordFeedbackSoftFailure({
+          stage: "thread-create",
+          reportId: creationResult.report.id,
+          code: "DISCORD_CREATE_FORUM_THREAD_FAILED",
+          message: "Discord did not return a forum thread id.",
+        });
+      } else {
+        const forumUpdateResult = await recordDiscordBugReportForumThread({
+          reportId: creationResult.report.id,
+          forumChannelId,
+          forumThreadId: forumThreadResult.threadId,
+          forumMessageId: forumThreadResult.messageId,
+          forumTitle,
+          forumAppliedTagIds: appliedTagIdsUsed,
+          reporterMentionedAt: new Date().toISOString(),
+        });
+
+        if (!forumUpdateResult.ok) {
+          logDiscordFeedbackSoftFailure({
+            stage: "thread-metadata-update",
+            reportId: creationResult.report.id,
+            code: forumUpdateResult.code,
+          });
+        }
+      }
+    } catch (error) {
+      forumThreadCreationFailed = true;
+      logDiscordFeedbackSoftFailure({
+        stage: "thread-create",
+        reportId: creationResult.report.id,
+        error,
+      });
     }
   }
 
   if (creationResult.duplicate) {
     return buildDiscordEphemeralMessageResponse(
       "Feedback received. It looks similar to an existing report, so we added your signal to that issue.",
+    );
+  }
+
+  if (forumThreadCreationFailed) {
+    return buildDiscordEphemeralMessageResponse(
+      "Feedback received, but Discord could not create the forum post yet. The team can still review it.",
     );
   }
 

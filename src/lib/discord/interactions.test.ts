@@ -138,18 +138,14 @@ test("feedback panel button modals expose submit, update, and withdraw forms", (
   assert.equal(withdraw.data.components[1]?.components[0]?.custom_id, "feedback_withdraw_note");
 });
 
-test("feedback panel payload includes configured custom emoji surfaces when available", () => {
+test("feedback panel payload stays text-only even when custom emoji env vars are set", () => {
   process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID = "1505007702924068916";
   process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID = "1505007651308703877";
 
   const payload = buildDiscordFeedbackPanelMessagePayload();
 
-  assert.match(payload.embeds[0]?.description ?? "", /<:Bug:1505007702924068916>/);
-  assert.match(payload.embeds[0]?.description ?? "", /<:Feature:1505007651308703877>/);
-  assert.deepEqual(payload.components[0]?.components[0]?.emoji, {
-    id: "1505007702924068916",
-    name: "Bug",
-  });
+  assert.doesNotMatch(payload.embeds[0]?.description ?? "", /<:/);
+  assert.equal(payload.components[0]?.components[0]?.emoji, undefined);
 
   delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
   delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;

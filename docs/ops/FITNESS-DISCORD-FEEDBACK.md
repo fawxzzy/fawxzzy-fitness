@@ -9,6 +9,8 @@ Product rules:
 - Historical `fix` rows may remain readable and exportable.
 - The Feedback forum is a display surface; Supabase is the source of truth.
 - Normal users should use persistent buttons and modals, not admin-style slash command choices.
+- Feedback intake success depends on the bounded report row first and the forum thread second.
+- Optional Discord decoration must fail soft.
 
 ## Command surface
 - `/setup-feedback`
@@ -104,13 +106,9 @@ When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum
 - severity tag: `Low`, `Medium`, `High`, or `Blocker`
 
 Do not use custom emoji in the forum thread title. Keep titles text-only and searchable.
-
-First post body should use the matching header:
-- `<:Bug:1505007702924068916> **Bug Report**`
-- `<:Feature:1505007651308703877> **Feature Request**`
-
-Emoji fallback:
-- if the emoji env vars are missing, post without custom emoji
+- Forum tags and text prefixes are the reliable visual system.
+- Custom emoji env vars are optional display config only and must never be required for feedback intake.
+- Until guild-safe validation is added, panel buttons and forum post bodies should stay text-only even when emoji env vars are set.
 
 Allowed mentions:
 - restrict mentions to the reporter only when explicitly intended
@@ -201,8 +199,11 @@ Rule: feedback reports are bounded input signals, not repo truth.
 
 Rule: admin setup commands are not normal-user UX.
 
+Rule: optional Discord decoration must not break core feedback intake.
+
 Failure modes:
 - making users choose too many slash-command variants
 - storing unbounded payloads
 - allowing raw delete instead of withdraw and redact
 - letting forum tags drift away from the bounded queue
+- showing a failure after a valid report row or forum post already exists

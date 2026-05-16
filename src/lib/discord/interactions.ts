@@ -1,8 +1,3 @@
-import {
-  DISCORD_FEEDBACK_BUG_EMOJI_ID,
-  DISCORD_FEEDBACK_FEATURE_EMOJI_ID,
-} from "@/lib/env";
-
 export const DISCORD_INTERACTION_TYPE = {
   PING: 1,
   APPLICATION_COMMAND: 2,
@@ -184,41 +179,12 @@ export function buildDiscordVerifyMessagePayload(args?: {
   };
 }
 
-type DiscordFeedbackEmojiName = "Bug" | "Feature";
-
-export function resolveDiscordFeedbackEmojiId(name: DiscordFeedbackEmojiName): string | null {
-  return name === "Bug" ? DISCORD_FEEDBACK_BUG_EMOJI_ID() : DISCORD_FEEDBACK_FEATURE_EMOJI_ID();
-}
-
-export function buildDiscordCustomEmojiMarkup(args: {
-  name: DiscordFeedbackEmojiName;
-  id?: string | null;
-}): string {
-  const emojiId = args.id ?? resolveDiscordFeedbackEmojiId(args.name);
-  return emojiId ? `<:${args.name}:${emojiId}>` : "";
-}
-
-export function buildDiscordCustomEmojiObject(args: {
-  name: DiscordFeedbackEmojiName;
-  id?: string | null;
-}): { id: string; name: string } | undefined {
-  const emojiId = args.id ?? resolveDiscordFeedbackEmojiId(args.name);
-  return emojiId ? { id: emojiId, name: args.name } : undefined;
-}
-
 export function buildDiscordFeedbackPanelMessagePayload(): DiscordMessagePayload {
-  const bugEmojiMarkup = buildDiscordCustomEmojiMarkup({ name: "Bug" });
-  const featureEmojiMarkup = buildDiscordCustomEmojiMarkup({ name: "Feature" });
-
   return {
     embeds: [
       {
         title: DEFAULT_FEEDBACK_PANEL_TITLE,
-        description: [
-          ...DEFAULT_FEEDBACK_PANEL_BODY_LINES.slice(0, 2),
-          `- Submit Feedback: ${bugEmojiMarkup ? `${bugEmojiMarkup} ` : ""}report a bug or ${featureEmojiMarkup ? `${featureEmojiMarkup} ` : ""}suggest a feature.`,
-          ...DEFAULT_FEEDBACK_PANEL_BODY_LINES.slice(3),
-        ].join("\n"),
+        description: DEFAULT_FEEDBACK_PANEL_BODY_LINES.join("\n"),
       },
     ],
     components: [
@@ -230,7 +196,6 @@ export function buildDiscordFeedbackPanelMessagePayload(): DiscordMessagePayload
             style: 1,
             custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
             label: "Submit Feedback",
-            emoji: buildDiscordCustomEmojiObject({ name: "Bug" }),
           },
           {
             type: 2,
