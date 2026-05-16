@@ -122,6 +122,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Deployment metadata is input, not release copy.
 - Rule: Only production deployments for the Fitness project should create update drafts.
 - Rule: Discord update posts should be safe for users of any age and background.
+- Rule: Published update posts should stay single-heading and suppress link previews.
 - Pattern: production deployment.ready -> bounded draft -> admin curated publish -> Discord update post.
 - Failure Mode: Raw changelog or deployment posts confuse users and leak irrelevant implementation details.
 - Status: Proposed

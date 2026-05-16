@@ -20,6 +20,8 @@ export type DiscordChannelMessage = {
   components?: unknown[];
 };
 
+export const DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS = 1 << 2;
+
 export type DiscordForumTag = {
   id: string;
   name: string;
@@ -274,7 +276,7 @@ export async function patchDiscordChannelMessage(args: {
 
 export async function createDiscordChannelMessage(args: {
   channelId: string;
-  body: unknown;
+  body: Record<string, unknown>;
 }): Promise<{ ok: true; messageId: string | null } | { ok: false; code: string; status: number; message: string | null }> {
   const result = await discordRequest<{ id?: string }>(
     `/channels/${args.channelId}/messages`,

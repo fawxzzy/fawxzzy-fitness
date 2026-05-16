@@ -1,6 +1,9 @@
 import "server-only";
 
-import { createDiscordChannelMessage } from "@/lib/discord/rest";
+import {
+  createDiscordChannelMessage,
+  DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
+} from "@/lib/discord/rest";
 import { DISCORD_UPDATES_CHANNEL_ID, VERCEL_PROJECT_ID } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -20,6 +23,7 @@ const UPDATE_DRAFT_DEPLOYMENT_ID_MAX_LENGTH = 120;
 const UPDATE_DRAFT_PROJECT_ID_MAX_LENGTH = 120;
 const UPDATE_DRAFT_SOURCE = "vercel";
 const READY_EVENT_TYPES = new Set(["deployment.ready", "deployment.succeeded"]);
+const DEFAULT_PUBLIC_UPDATE_TITLE = "Fitness App Update";
 
 export type DiscordUpdateDraftStatus = "draft" | "published" | "skipped" | "ignored" | "failed";
 
@@ -214,6 +218,14 @@ function normalizeChangesLines(value: string): string[] {
     .map((line) => neutralizeDiscordMentions(line).replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
     .filter(Boolean)
     .slice(0, 6);
+}
+
+function normalizeUpdateHeadingTitle(value: string | null | undefined): string {
+  const normalized = normalizeTextInput(
+    typeof value === "string" ? neutralizeDiscordMentions(value) : null,
+    UPDATE_DRAFT_TITLE_MAX_LENGTH,
+  );
+  return normalized ?? DEFAULT_PUBLIC_UPDATE_TITLE;
 }
 
 function coerceStatus(value: unknown): DiscordUpdateDraftStatus | null {
@@ -524,25 +536,23 @@ export function formatDiscordUpdatePublishMessage(args: {
   whatChanged: string;
   whyItMatters: string;
 }): string {
-  const title = neutralizeDiscordMentions(args.title.trim());
+  const title = normalizeUpdateHeadingTitle(args.title);
   const whatChangedLines = normalizeChangesLines(args.whatChanged);
   const whyItMatters = neutralizeDiscordMentions(args.whyItMatters.trim());
 
   return [
-    "## Fitness App Update",
+    `## ${title}`,
     "",
-    `**${title}**`,
+    "A new update is live.",
     "",
-    "A new production update is live.",
-    "",
-    "### What changed",
+    "**What changed**",
     ...whatChangedLines.map((line) => `- ${line}`),
     "",
-    "### Why it matters",
+    "**Why it matters**",
     whyItMatters,
     "",
     "Open Fitness:",
-    FITNESS_LOGIN_URL,
+    `<${FITNESS_LOGIN_URL}>`,
   ].join("\n");
 }
 
@@ -555,14 +565,14 @@ function validatePublishFields(args: {
   storedChanges: string;
   whyItMatters: string;
 } | null {
-  const title = normalizeTextInput(neutralizeDiscordMentions(args.title), UPDATE_DRAFT_TITLE_MAX_LENGTH);
+  const title = normalizeUpdateHeadingTitle(args.title);
   const changeLines = normalizeChangesLines(normalizeTextInput(args.whatChanged, UPDATE_DRAFT_CHANGES_MAX_LENGTH) ?? "");
   const whyItMatters = normalizeTextInput(
     neutralizeDiscordMentions(args.whyItMatters),
     UPDATE_DRAFT_WHY_IT_MATTERS_MAX_LENGTH,
   );
 
-  if (!title || changeLines.length === 0 || !whyItMatters) {
+  if (changeLines.length === 0 || !whyItMatters) {
     return null;
   }
 
@@ -753,6 +763,7 @@ export async function publishDiscordUpdateDraft(args: {
     channelId,
     body: {
       content: messageContent,
+      flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
       allowed_mentions: {
         parse: [],
         users: [],

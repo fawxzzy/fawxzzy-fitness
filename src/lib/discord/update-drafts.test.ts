@@ -455,8 +455,9 @@ test("publish posts to DISCORD_UPDATES_CHANNEL_ID with curated copy only", async
   }
 
   assert.equal(observedMessages[0]?.channelId, "1504671871512346695");
-  assert.match(observedMessages[0]?.body?.content ?? "", /## Fitness App Update/);
-  assert.match(observedMessages[0]?.body?.content ?? "", /Better feedback tools are live/);
+  assert.match(observedMessages[0]?.body?.content ?? "", /## Better feedback tools are live/);
+  assert.doesNotMatch(observedMessages[0]?.body?.content ?? "", /\*\*Better feedback tools are live\*\*/);
+  assert.equal(observedMessages[0]?.body?.flags, 4);
   assert.doesNotMatch(observedMessages[0]?.body?.content ?? "", /abcdef1234567890/);
   assert.doesNotMatch(observedMessages[0]?.body?.content ?? "", /internal raw message/);
   assert.equal(state.rows[0]?.status, "published");
@@ -517,9 +518,34 @@ test("formatDiscordUpdatePublishMessage keeps the public post user-facing", () =
     whyItMatters: "You can submit and track feedback from Discord without command hunting.",
   });
 
-  assert.match(message, /## Fitness App Update/);
-  assert.match(message, /### What changed/);
-  assert.match(message, /### Why it matters/);
+  assert.match(message, /^## Faster feedback flow/m);
+  assert.match(message, /\*\*What changed\*\*/);
+  assert.match(message, /\*\*Why it matters\*\*/);
+  assert.match(message, /Open Fitness:\n<https:\/\/fawxzzy-fitness-local\.vercel\.app\/login>/);
   assert.doesNotMatch(message, /githubCommitSha/);
   assert.doesNotMatch(message, /migration/);
+});
+
+test("formatDiscordUpdatePublishMessage does not duplicate the default title", () => {
+  const message = formatDiscordUpdatePublishMessage({
+    title: "Fitness App Update",
+    whatChanged: "Improved the Discord feedback flow.\nAdded a cleaner Feedback forum board.",
+    whyItMatters: "Updates should be easier to read and focused on what changed for users.",
+  });
+
+  assert.equal((message.match(/Fitness App Update/g) ?? []).length, 1);
+  assert.match(message, /^## Fitness App Update/m);
+  assert.match(message, /\n- Improved the Discord feedback flow\.\n- Added a cleaner Feedback forum board\./);
+});
+
+test("formatDiscordUpdatePublishMessage defaults a blank title and avoids double bullets", () => {
+  const message = formatDiscordUpdatePublishMessage({
+    title: "   ",
+    whatChanged: "- Improved the feedback post format.\n* Cleaned up update announcements.\n3. Reduced link preview clutter.",
+    whyItMatters: "Updates should be easier to read and focused on what changed for users.",
+  });
+
+  assert.match(message, /^## Fitness App Update/m);
+  assert.match(message, /\n- Improved the feedback post format\.\n- Cleaned up update announcements\.\n- Reduced link preview clutter\./);
+  assert.doesNotMatch(message, /\n- - /);
 });
