@@ -84,6 +84,22 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Exact-string-only duplicate checks miss obvious repeats, and leaving resolved duplicate threads open turns the forum into a noisy board.
 - Status: Proposed
 
+## 2026-05-15 - Discord feedback should use setup commands for admins and buttons for users
+- Type: Pattern
+- Summary: Setup and moderation commands should stay admin-facing, while normal feedback interactions should be available through persistent buttons and modals.
+- Rule: Admin/setup commands are not normal-user UX.
+- Pattern: Admin slash command -> persistent panel -> user button -> modal -> bounded feedback row.
+- Failure Mode: Making users memorize slash commands hides the feedback workflow and lowers participation.
+- Status: Proposed
+
+## 2026-05-15 - Feedback type selection belongs inside the feedback flow
+- Type: Pattern
+- Summary: Feedback users should open one general feedback flow and choose Bug or Feature inside the modal instead of selecting command variants up front.
+- Rule: Feedback UX should minimize command-picker decisions.
+- Pattern: General feedback button -> modal with type choice -> bounded feedback row -> forum thread/tags.
+- Failure Mode: Pre-selecting too many slash-command variants makes feedback feel like an admin workflow instead of a user workflow.
+- Status: Proposed
+
 ## 2026-05-15 - Member-number display sync should queue Discord side effects
 - Type: Pattern
 - Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.

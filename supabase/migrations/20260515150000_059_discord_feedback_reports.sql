@@ -173,7 +173,7 @@ end $$;
 alter table public.discord_feedback_reports
   add constraint discord_feedback_reports_source_check check (source = 'discord'),
   add constraint discord_feedback_reports_report_type_check check (
-    report_type in ('bug', 'feat', 'fix')
+    report_type in ('bug', 'feature', 'fix')
   ),
   add constraint discord_feedback_reports_status_check check (
     status in ('new', 'needs_info', 'confirmed', 'in_progress', 'fixed', 'closed', 'duplicate', 'spam', 'withdrawn')

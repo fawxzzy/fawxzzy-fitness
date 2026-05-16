@@ -1,3 +1,8 @@
+import {
+  DISCORD_FEEDBACK_BUG_EMOJI_ID,
+  DISCORD_FEEDBACK_FEATURE_EMOJI_ID,
+} from "@/lib/env";
+
 export const DISCORD_INTERACTION_TYPE = {
   PING: 1,
   APPLICATION_COMMAND: 2,
@@ -16,25 +21,50 @@ export const FITNESS_VERIFY_BUTTON_CUSTOM_ID = "fitness_verify_open";
 export const FITNESS_VERIFY_MODAL_CUSTOM_ID = "fitness_verify_modal";
 export const FITNESS_VERIFY_TOKEN_INPUT_CUSTOM_ID = "fitness_token";
 export const FITNESS_VERIFY_COMMAND_NAME = "setup-verify";
+export const FITNESS_FEEDBACK_SETUP_COMMAND_NAME = "setup-feedback";
 export const FITNESS_FEEDBACK_COMMAND_NAME = "feedback";
 export const FITNESS_FEEDBACK_STATUS_COMMAND_NAME = "feedback-status";
 export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
 export const FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_report_modal";
+export const FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID = "fitness_feedback_submit_open";
+export const FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID = "fitness_feedback_update_open";
+export const FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID = "fitness_feedback_withdraw_open";
+export const FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID = "fitness_feedback_submit_modal";
+export const FITNESS_FEEDBACK_UPDATE_MODAL_CUSTOM_ID = "fitness_feedback_update_modal";
+export const FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID = "fitness_feedback_withdraw_modal";
+export const FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID = "feedback_type";
 export const FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID = "bug_summary";
 export const FITNESS_BUG_AREA_INPUT_CUSTOM_ID = "bug_area";
 export const FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID = "bug_severity";
 export const FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID = "bug_details";
 export const FITNESS_BUG_STEPS_INPUT_CUSTOM_ID = "bug_steps";
+export const FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID = "feedback_update_report_id";
+export const FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID = "feedback_update_details";
+export const FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID = "feedback_withdraw_report_id";
+export const FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID = "feedback_withdraw_note";
 export const FITNESS_FEEDBACK_TYPE_OPTION_NAME = "type";
 export const FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME = "report_id";
 export const FITNESS_BUG_STATUS_STATUS_OPTION_NAME = "status";
 export const FITNESS_BUG_STATUS_NOTE_OPTION_NAME = "note";
 export const DEFAULT_VERIFY_MESSAGE_TITLE = "Verify your Fawxzzy Fitness account";
+export const DEFAULT_FEEDBACK_PANEL_TITLE = "Fawxzzy Feedback";
+export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
+  "Use this panel to help improve Fawxzzy Fitness.",
+  "",
+  "- Submit Feedback: report a bug or suggest a feature.",
+  "- Update Feedback: add more details to feedback you submitted.",
+  "- Withdraw Feedback: remove your submitted details without deleting the review record.",
+  "",
+  "Feedback posts appear in the Feedback forum so the team can review, tag, and follow up.",
+  "",
+  "Open the app:",
+  "https://fawxzzy-fitness-local.vercel.app/login",
+] as const;
 export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
   "To unlock the server:",
   "",
   "1. Sign into Fawxzzy Fitness.",
-  "2. Go to Settings -> Account -> Discord Connector.",
+  "2. Go to Settings → Account → Discord Connector.",
   "3. Generate your Discord verification token.",
   "4. Click Verify below and paste the token.",
   "",
@@ -60,8 +90,7 @@ export const DISCORD_BUG_STATUS_CHOICES = [
 
 export const DISCORD_FEEDBACK_TYPE_CHOICES = [
   { name: "Bug", value: "bug" },
-  { name: "Feat", value: "feat" },
-  { name: "Fix", value: "fix" },
+  { name: "Feature", value: "feature" },
 ] as const;
 
 type DiscordMessagePayload = {
@@ -73,9 +102,13 @@ type DiscordMessagePayload = {
     type: 1;
     components: Array<{
       type: 2;
-      style: 1;
+      style: 1 | 2 | 4;
       custom_id: string;
       label: string;
+      emoji?: {
+        id: string;
+        name: string;
+      };
     }>;
   }>;
 };
@@ -83,6 +116,7 @@ type DiscordMessagePayload = {
 type DiscordApplicationCommandDefinition = {
   name: string;
   description: string;
+  default_member_permissions?: string;
   options?: Array<{
     type: number;
     name: string;
@@ -150,28 +184,99 @@ export function buildDiscordVerifyMessagePayload(args?: {
   };
 }
 
+type DiscordFeedbackEmojiName = "Bug" | "Feature";
+
+export function resolveDiscordFeedbackEmojiId(name: DiscordFeedbackEmojiName): string | null {
+  return name === "Bug" ? DISCORD_FEEDBACK_BUG_EMOJI_ID() : DISCORD_FEEDBACK_FEATURE_EMOJI_ID();
+}
+
+export function buildDiscordCustomEmojiMarkup(args: {
+  name: DiscordFeedbackEmojiName;
+  id?: string | null;
+}): string {
+  const emojiId = args.id ?? resolveDiscordFeedbackEmojiId(args.name);
+  return emojiId ? `<:${args.name}:${emojiId}>` : "";
+}
+
+export function buildDiscordCustomEmojiObject(args: {
+  name: DiscordFeedbackEmojiName;
+  id?: string | null;
+}): { id: string; name: string } | undefined {
+  const emojiId = args.id ?? resolveDiscordFeedbackEmojiId(args.name);
+  return emojiId ? { id: emojiId, name: args.name } : undefined;
+}
+
+export function buildDiscordFeedbackPanelMessagePayload(): DiscordMessagePayload {
+  const bugEmojiMarkup = buildDiscordCustomEmojiMarkup({ name: "Bug" });
+  const featureEmojiMarkup = buildDiscordCustomEmojiMarkup({ name: "Feature" });
+
+  return {
+    embeds: [
+      {
+        title: DEFAULT_FEEDBACK_PANEL_TITLE,
+        description: [
+          ...DEFAULT_FEEDBACK_PANEL_BODY_LINES.slice(0, 2),
+          `- Submit Feedback: ${bugEmojiMarkup ? `${bugEmojiMarkup} ` : ""}report a bug or ${featureEmojiMarkup ? `${featureEmojiMarkup} ` : ""}suggest a feature.`,
+          ...DEFAULT_FEEDBACK_PANEL_BODY_LINES.slice(3),
+        ].join("\n"),
+      },
+    ],
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 1,
+            custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
+            label: "Submit Feedback",
+            emoji: buildDiscordCustomEmojiObject({ name: "Bug" }),
+          },
+          {
+            type: 2,
+            style: 2,
+            custom_id: FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
+            label: "Update Feedback",
+          },
+          {
+            type: 2,
+            style: 4,
+            custom_id: FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID,
+            label: "Withdraw Feedback",
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommandDefinition[] {
+  const setupDefaultPermissions = String(DISCORD_PERMISSION_MANAGE_GUILD);
+  const feedbackStatusDefaultPermissions = String(
+    DISCORD_PERMISSION_MANAGE_GUILD
+    | DISCORD_PERMISSION_MANAGE_THREADS
+    | DISCORD_PERMISSION_MANAGE_MESSAGES,
+  );
+
   return [
     {
       name: FITNESS_VERIFY_COMMAND_NAME,
       description: "Post or refresh the Fitness verification message.",
+      default_member_permissions: setupDefaultPermissions,
+    },
+    {
+      name: FITNESS_FEEDBACK_SETUP_COMMAND_NAME,
+      description: "Post or refresh the Fitness feedback panel.",
+      default_member_permissions: setupDefaultPermissions,
     },
     {
       name: FITNESS_FEEDBACK_COMMAND_NAME,
       description: "Send Fitness feedback.",
-      options: [
-        {
-          type: 3,
-          name: FITNESS_FEEDBACK_TYPE_OPTION_NAME,
-          description: "Feedback type.",
-          required: true,
-          choices: [...DISCORD_FEEDBACK_TYPE_CHOICES],
-        },
-      ],
     },
     {
       name: FITNESS_FEEDBACK_STATUS_COMMAND_NAME,
       description: "Update a Fitness feedback report status.",
+      default_member_permissions: feedbackStatusDefaultPermissions,
       options: [
         {
           type: 3,
@@ -249,25 +354,190 @@ export function buildDiscordVerifyModalResponse() {
   };
 }
 
-export function buildDiscordFeedbackModalCustomId(reportType: "bug" | "feat" | "fix") {
+export function buildDiscordFeedbackPanelSubmitModalResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
+      title: "Submit Feedback",
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Feedback type",
+              placeholder: "Bug or Feature",
+              required: true,
+              max_length: 20,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Summary",
+              placeholder: "Example: Copy button does not work",
+              required: true,
+              max_length: 120,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Area",
+              placeholder: "Settings, Discord verification, workout session...",
+              required: false,
+              max_length: 80,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "What happened / What do you want?",
+              required: true,
+              max_length: 1000,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_BUG_STEPS_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "Steps / link",
+              placeholder: "Steps to reproduce or supporting link",
+              required: false,
+              max_length: 1000,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+export function buildDiscordFeedbackUpdateModalResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_FEEDBACK_UPDATE_MODAL_CUSTOM_ID,
+      title: "Update Feedback",
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Report ID or forum link",
+              placeholder: "Short ID, UUID, thread ID, or forum URL",
+              required: true,
+              max_length: 200,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "Update details",
+              required: true,
+              max_length: 1000,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+export function buildDiscordFeedbackWithdrawModalResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID,
+      title: "Withdraw Feedback",
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
+              style: 1,
+              label: "Report ID or forum link",
+              placeholder: "Short ID, UUID, thread ID, or forum URL",
+              required: true,
+              max_length: 200,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 4,
+              custom_id: FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+              style: 2,
+              label: "Optional note",
+              required: false,
+              max_length: 500,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+export function buildDiscordFeedbackModalCustomId(reportType: "bug" | "feature" | "fix") {
   return `${FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX}:${reportType}`;
 }
 
-export function resolveDiscordFeedbackReportTypeFromModalCustomId(customId: string | null | undefined): "bug" | "feat" | "fix" | null {
+export function resolveDiscordFeedbackReportTypeFromModalCustomId(customId: string | null | undefined): "bug" | "feature" | null {
   if (!customId?.startsWith(`${FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX}:`)) {
     return null;
   }
 
   const reportType = customId.slice(FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX.length + 1);
-  return reportType === "bug" || reportType === "feat" || reportType === "fix" ? reportType : null;
+  if (reportType === "bug" || reportType === "feature") {
+    return reportType;
+  }
+
+  if (reportType === "feat") {
+    return "feature";
+  }
+
+  return null;
 }
 
-export function buildDiscordFeedbackReportModalResponse(reportType: "bug" | "feat" | "fix") {
+export function buildDiscordFeedbackReportModalResponse(reportType: "bug" | "feature") {
   const title = reportType === "bug"
     ? "Report a bug"
-    : reportType === "feat"
-      ? "Suggest a feature"
-      : "Suggest a fix";
+    : "Suggest a feature";
 
   const detailsLabel = reportType === "bug" ? "What happened?" : "What happened / What do you want?";
 
@@ -430,6 +700,18 @@ export function discordMemberHasBugStatusPermission(permissions: string | null |
 }
 
 export function discordMessageHasVerifyButton(message: unknown): boolean {
+  return discordMessageHasComponentCustomId(message, FITNESS_VERIFY_BUTTON_CUSTOM_ID);
+}
+
+export function discordMessageHasFeedbackPanel(message: unknown): boolean {
+  return [
+    FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
+    FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
+    FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID,
+  ].every((customId) => discordMessageHasComponentCustomId(message, customId));
+}
+
+function discordMessageHasComponentCustomId(message: unknown, customId: string): boolean {
   if (!message || typeof message !== "object") {
     return false;
   }
@@ -453,7 +735,7 @@ export function discordMessageHasVerifyButton(message: unknown): boolean {
       component
       && typeof component === "object"
       && "custom_id" in component
-      && (component as { custom_id?: unknown }).custom_id === FITNESS_VERIFY_BUTTON_CUSTOM_ID
+      && (component as { custom_id?: unknown }).custom_id === customId
     ));
   });
 }

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { buildDiscordCustomEmojiMarkup } from "@/lib/discord/interactions";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { DiscordAllowedMentions } from "@/lib/discord/rest";
 
@@ -19,7 +20,7 @@ export const DISCORD_BUG_REPORT_DUPLICATE_WINDOW_DAYS = 30;
 export const DISCORD_BUG_REPORT_DUPLICATE_ACTIVE_STATUSES = ["new", "needs_info", "confirmed", "in_progress"] as const;
 export const DISCORD_BUG_REPORT_TYPE_TAG_LABELS = {
   bug: "Bug",
-  feat: "Feat",
+  feature: "Feature",
   fix: "Fix",
 } as const;
 export const DISCORD_BUG_REPORT_STATUS_TAG_LABELS = {
@@ -553,6 +554,10 @@ function coerceBugReportStatus(value: unknown): DiscordBugReportStatus | null {
 }
 
 function coerceBugReportReportType(value: unknown): DiscordBugReportReportType | null {
+  if (value === "feat") {
+    return "feature";
+  }
+
   return typeof value === "string" && value in DISCORD_BUG_REPORT_TYPE_TAG_LABELS
     ? value as DiscordBugReportReportType
     : null;
@@ -653,7 +658,15 @@ export function formatDiscordBugReportTypeLabel(reportType: DiscordBugReportRepo
 
 export function normalizeDiscordFeedbackReportType(value: string | null | undefined): DiscordBugReportReportType | null {
   const normalized = normalizeTextInput(value, 20)?.toLowerCase();
-  return normalized === "bug" || normalized === "feat" || normalized === "fix" ? normalized : null;
+  if (normalized === "bug") {
+    return "bug";
+  }
+
+  if (normalized === "feature" || normalized === "feat") {
+    return "feature";
+  }
+
+  return null;
 }
 
 export function normalizeDiscordBugReportStatus(value: string | null | undefined): DiscordBugReportStatus | null {
@@ -744,9 +757,19 @@ export function buildDiscordBugForumThreadBody(args: {
     reporterDiscordUserId: args.report.reporter_discord_user_id,
     reporterLabel: args.reporterLabel,
   });
+  const typeEmoji = args.report.report_type === "bug"
+    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    : args.report.report_type === "feature"
+      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      : "";
+  const feedbackHeader = args.report.report_type === "bug"
+    ? "Bug Report"
+    : args.report.report_type === "feature"
+      ? "Feature Request"
+      : "Feedback Report";
 
   return [
-    "**Feedback Report**",
+    `${typeEmoji ? `${typeEmoji} ` : ""}**${feedbackHeader}**`,
     `Type: ${formatDiscordBugReportTypeLabel(args.report.report_type)}`,
     `Status: ${formatDiscordBugReportStatusLabel(args.report.status)}`,
     `Severity: ${formatForumSeverityLabel(args.report.severity)}`,
@@ -770,21 +793,53 @@ export function buildDiscordBugForumThreadBody(args: {
 }
 
 export function buildDiscordBugForumDuplicateReply(args: {
+  reportType: DiscordBugReportReportType;
   reporterLabel: string;
   duplicateCount: number;
 }): string {
+  const typeEmoji = args.reportType === "bug"
+    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    : args.reportType === "feature"
+      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      : "";
+
   return [
-    "Another report matched this feedback.",
+    `${typeEmoji ? `${typeEmoji} ` : ""}Another report matched this feedback.`,
     `Reporter: ${args.reporterLabel}`,
     `Duplicate signals: ${Math.max(1, Number(args.duplicateCount ?? 1))}`,
   ].join("\n");
 }
 
-export function buildDiscordFeedbackWithdrawThreadReply(): string {
-  return "This feedback was withdrawn by the reporter.";
+export function buildDiscordFeedbackWithdrawThreadReply(reportType?: DiscordBugReportReportType | null): string {
+  const typeEmoji = reportType === "bug"
+    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    : reportType === "feature"
+      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      : "";
+
+  return `${typeEmoji ? `${typeEmoji} ` : ""}This feedback was withdrawn by the reporter.`;
+}
+
+export function buildDiscordFeedbackUpdateThreadReply(args: {
+  reportType?: DiscordBugReportReportType | null;
+  updateDetails: string;
+  updaterLabel: string;
+}): string {
+  const typeEmoji = args.reportType === "bug"
+    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    : args.reportType === "feature"
+      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      : "";
+
+  return [
+    `${typeEmoji ? `${typeEmoji} ` : ""}Feedback update from ${args.updaterLabel}:`,
+    "",
+    neutralizeDiscordMentions(args.updateDetails),
+  ].join("\n");
 }
 
 export function buildDiscordBugStatusThreadReply(args: {
+  reportType?: DiscordBugReportReportType | null;
   status: DiscordBugReportStatus;
   note: string | null;
   reporterDiscordUserId: string | null;
@@ -793,7 +848,12 @@ export function buildDiscordBugStatusThreadReply(args: {
   const prefix = args.includeReporterMention && args.reporterDiscordUserId
     ? `<@${args.reporterDiscordUserId}> `
     : "";
-  const lines = [`${prefix}Status updated: ${formatDiscordBugReportStatusLabel(args.status)}`];
+  const typeEmoji = args.reportType === "bug"
+    ? buildDiscordCustomEmojiMarkup({ name: "Bug" })
+    : args.reportType === "feature"
+      ? buildDiscordCustomEmojiMarkup({ name: "Feature" })
+      : "";
+  const lines = [`${prefix}${typeEmoji ? `${typeEmoji} ` : ""}Status updated: ${formatDiscordBugReportStatusLabel(args.status)}`];
 
   if (args.note) {
     lines.push("", neutralizeDiscordMentions(args.note));
@@ -1262,6 +1322,51 @@ export async function updateDiscordBugReportStatus(args: {
     return { ok: true, report: row };
   } catch {
     return { ok: false, code: "DISCORD_BUG_REPORT_STATUS_UPDATE_FAILED" };
+  }
+}
+
+export async function recordDiscordFeedbackReportUpdate(args: {
+  reportId: string;
+  updateDetails: string;
+  updatedByDiscordUserId: string;
+  adminClient?: DiscordBugReportsAdminClient;
+  now?: Date;
+}): Promise<
+  | { ok: true; report: DiscordBugReportRow }
+  | { ok: false; code: "DISCORD_BUG_REPORT_UPDATE_FAILED" | "DISCORD_BUG_REPORT_INVALID_INPUT" }
+> {
+  if (!isDiscordSnowflake(args.updatedByDiscordUserId)) {
+    return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
+  }
+
+  const normalizedUpdateDetails = normalizeTextInput(args.updateDetails, DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH);
+  if (!normalizedUpdateDetails) {
+    return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
+  }
+
+  const nowIso = (args.now ?? new Date()).toISOString();
+  const admin = args.adminClient ?? (supabaseAdmin() as unknown as DiscordBugReportsAdminClient);
+
+  try {
+    const { data, error } = await admin
+      .from("discord_feedback_reports")
+      .update({
+        status_note: normalizedUpdateDetails,
+        last_seen_at: nowIso,
+        updated_at: nowIso,
+      })
+      .eq("id", args.reportId)
+      .select(DISCORD_BUG_REPORT_SELECT_COLUMNS)
+      .single();
+
+    const row = coerceBugReportRow(data);
+    if (error || !row) {
+      return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
+    }
+
+    return { ok: true, report: row };
+  } catch {
+    return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
   }
 }
 

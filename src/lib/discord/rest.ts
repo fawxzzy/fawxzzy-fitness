@@ -30,10 +30,16 @@ export type DiscordChannel = {
   id: string;
   name?: string;
   type?: number;
+  parent_id?: string;
+  owner_id?: string;
   archived?: boolean;
   locked?: boolean;
   applied_tags?: string[];
   available_tags?: DiscordForumTag[];
+};
+
+export type DiscordActiveThreadsResponse = {
+  threads?: DiscordChannel[];
 };
 
 type DiscordRequestInit = {
@@ -184,6 +190,26 @@ export async function fetchDiscordChannel(args: {
   };
 }
 
+export async function fetchDiscordGuildActiveThreads(args: {
+  guildId: string;
+}): Promise<{ ok: true; threads: DiscordChannel[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordActiveThreadsResponse>(
+    `/guilds/${args.guildId}/threads/active`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data?.threads)) {
+    return { ok: true, threads: result.data.threads };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_ACTIVE_THREADS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function resolveDiscordForumTagIdsByName(args: {
   channelId: string;
   tagNames: string[];
@@ -273,7 +299,8 @@ export async function createDiscordChannelMessage(args: {
 export async function createDiscordForumThreadWithMessage(args: {
   channelId: string;
   threadName: string;
-  messageContent: string;
+  messageContent?: string;
+  messageBody?: Record<string, unknown>;
   appliedTagIds?: string[];
   allowedMentions?: DiscordAllowedMentions | null;
 }): Promise<
@@ -286,8 +313,8 @@ export async function createDiscordForumThreadWithMessage(args: {
       method: "POST",
       body: {
         name: args.threadName,
-        message: {
-          content: args.messageContent,
+        message: args.messageBody ?? {
+          content: args.messageContent ?? "",
           allowed_mentions: normalizeAllowedMentions(args.allowedMentions),
         },
         applied_tags: Array.isArray(args.appliedTagIds) && args.appliedTagIds.length > 0 ? args.appliedTagIds.slice(0, 3) : undefined,
