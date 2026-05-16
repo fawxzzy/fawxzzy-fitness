@@ -18,6 +18,7 @@ const PUBLIC_AUTHLESS_PATHS = new Set([
   "/api/discord/interactions",
   "/api/discord/member-numbers/sync",
   "/api/discord/verify",
+  "/api/vercel/deployment-webhook",
 ]);
 
 type SessionCookieOptions = {
