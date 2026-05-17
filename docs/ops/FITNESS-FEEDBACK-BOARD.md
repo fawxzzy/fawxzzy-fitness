@@ -145,6 +145,31 @@ Handoff rule:
 - Verta Core / Playbook consumes feedback board exports as reviewed planning input.
 - The export does not automatically create issues, commits, or ATLAS truth. It is reviewed input.
 
+## Feedback card audit comments
+Fawx Security posts a compact thread comment whenever it modifies a card after creation. This makes the Feedback forum usable as a lightweight board with visible change history.
+
+Actions that comment:
+- status update
+- withdraw
+- reporter update
+- duplicate signal
+- board/card sync
+- resolved state
+
+Pattern:
+- mutate bounded feedback row
+- update forum card or tags
+- post compact audit comment
+
+Rule:
+- bot-driven board changes should be visible in the card thread
+
+Guardrails:
+- no raw payloads
+- no secrets
+- no large user text dumps
+- no broad mentions
+
 ## Out of scope
 - no routine-sharing work
 - no workout-sharing work

@@ -485,9 +485,12 @@ test("buildDiscordBugForumDuplicateReply and withdraw reply stay compact", () =>
       reporterLabel: "Member #7",
       duplicateCount: 3,
     }),
-    "Another report matched this feedback.\nReporter: Member #7\nDuplicate signals: 3",
+    "Duplicate signal added.\nDuplicate signals: 3",
   );
-  assert.equal(buildDiscordFeedbackWithdrawThreadReply(), "This feedback was withdrawn by the reporter.");
+  assert.equal(
+    buildDiscordFeedbackWithdrawThreadReply(),
+    "Feedback withdrawn by reporter.\nDetails and attachments were removed from the public card.",
+  );
 });
 
 test("buildDiscordAllowedMentions only includes the reporter user id when requested", () => {
@@ -530,34 +533,37 @@ test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly r
   assert.equal(
     buildDiscordBugStatusThreadReply({
       reportType: "bug",
+      statusBefore: "confirmed",
       status: "needs_info",
       note: "Can you share the exact screen? @everyone",
       reporterDiscordUserId: "123456789012345678",
       includeReporterMention: true,
     }),
-    "<@123456789012345678> Status updated: Needs Info\n\nCan you share the exact screen? @\u200beveryone",
+    "<@123456789012345678> Card updated by Fawx Security.\nStatus: Confirmed -> Needs Info\nNote: Can you share the exact screen? @\u200beveryone",
   );
 
   assert.equal(
     buildDiscordBugStatusThreadReply({
       reportType: "feature",
+      statusBefore: "in_progress",
       status: "fixed",
       note: null,
       reporterDiscordUserId: "123456789012345678",
       includeReporterMention: false,
     }),
-    "Status updated: Completed",
+    "Marked resolved by Fawx Security.\nStatus: In Progress -> Completed",
   );
 
   assert.equal(
     buildDiscordBugStatusThreadReply({
       reportType: "feature",
+      statusBefore: null,
       status: "withdrawn",
       note: null,
       reporterDiscordUserId: "123456789012345678",
       includeReporterMention: false,
     }),
-    "Status updated: Withdrawn",
+    "Card updated by Fawx Security.\nStatus: Withdrawn",
   );
 });
 

@@ -14,14 +14,10 @@ import {
 import { verifyDiscordInteractionSignature } from "@/lib/discord/interaction-signature";
 import {
   buildDiscordAllowedMentions,
-  buildDiscordFeedbackUpdateThreadReply,
-  buildDiscordFeedbackWithdrawThreadReply,
-  buildDiscordBugForumDuplicateReply,
   buildDiscordBugForumTagNames,
   buildDiscordBugForumThreadBody,
   buildDiscordBugForumThreadTitle,
   buildDiscordBugReporterLabel,
-  buildDiscordBugStatusThreadReply,
   createDiscordBugReport,
   type DiscordFeedbackAttachmentMetadata,
   extractDiscordBugReportModalFields,
@@ -29,6 +25,7 @@ import {
   formatDiscordBugReportShortId,
   normalizeDiscordFeedbackReportType,
   normalizeDiscordBugReportStatus,
+  postFeedbackCardAuditComment,
   recordDiscordBugReportForumThread,
   recordDiscordBugReportForumState,
   recordDiscordFeedbackReportUpdate,
@@ -95,7 +92,6 @@ import {
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordMessageReaction,
-  createDiscordThreadMessage,
   deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
   editDiscordOriginalInteractionResponse,
@@ -366,9 +362,7 @@ function buildDiscordUpdateDraftLookupFailureResponse(code: string) {
 
 async function syncDiscordFeedbackForumThread(args: {
   report: DiscordBugReportRow;
-  includeReporterMention: boolean;
-  replyContent: string;
-}): Promise<{ forumSyncFailed: boolean; threadReplyMessageId: string | null }> {
+}): Promise<{ forumSyncFailed: boolean }> {
   await validateDiscordFeedbackEmojis();
   const forumChannelId = args.report.discord_forum_channel_id ?? DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
   const forumTitle = buildDiscordBugForumThreadTitle({
@@ -381,11 +375,9 @@ async function syncDiscordFeedbackForumThread(args: {
   if (!args.report.discord_forum_thread_id || !forumChannelId) {
     return {
       forumSyncFailed: false,
-      threadReplyMessageId: null,
     };
   }
 
-  const archiveAfterSync = shouldArchiveFeedbackThread(args.report.status);
   let matchedTagIds: string[] | null = null;
   const tagResolutionResult = await resolveDiscordForumTagIdsByName({
     channelId: forumChannelId,
@@ -464,49 +456,52 @@ async function syncDiscordFeedbackForumThread(args: {
     });
   }
 
-  const threadReplyResult = await createDiscordThreadMessage({
-    threadId: args.report.discord_forum_thread_id,
-    content: args.replyContent,
-    allowedMentions: buildDiscordAllowedMentions({
-      reporterDiscordUserId: args.report.reporter_discord_user_id,
-      includeReporter: args.includeReporterMention,
-    }),
-  });
-
-  if (!threadReplyResult.ok) {
-    forumSyncFailed = true;
-    console.error("[discord-interactions] feedback forum reply failed", {
-      requestId: randomUUID(),
-      reportId: args.report.id,
-      code: threadReplyResult.code,
-      status: threadReplyResult.status,
-      message: threadReplyResult.message,
-    });
-  }
-
-  if (archiveAfterSync) {
-    const archiveResult = await updateDiscordForumThreadArchiveState({
-      threadId: args.report.discord_forum_thread_id,
-      archived: true,
-      locked: true,
-    });
-
-    if (!archiveResult.ok) {
-      forumSyncFailed = true;
-      console.error("[discord-interactions] feedback forum archive update failed", {
-        requestId: randomUUID(),
-        reportId: args.report.id,
-        code: archiveResult.code,
-        status: archiveResult.status,
-        message: archiveResult.message,
-      });
-    }
-  }
-
   return {
     forumSyncFailed,
-    threadReplyMessageId: threadReplyResult.ok ? threadReplyResult.messageId : null,
   };
+}
+
+async function postFeedbackAuditComment(args: {
+  report: DiscordBugReportRow;
+  action: "status_update" | "withdraw" | "reporter_update" | "staff_update" | "duplicate_signal" | "sync_format";
+  actorLabel?: string | null;
+  includeReporterMention?: boolean;
+  statusBefore?: DiscordBugReportRow["status"] | null;
+  statusAfter?: DiscordBugReportRow["status"] | null;
+  note?: string | null;
+  duplicateCount?: number | null;
+}): Promise<{ ok: boolean; messageId: string | null }> {
+  if (!args.report.discord_forum_thread_id) {
+    return { ok: true, messageId: null };
+  }
+
+  const result = await postFeedbackCardAuditComment({
+    threadId: args.report.discord_forum_thread_id,
+    action: args.action,
+    actorLabel: args.actorLabel,
+    reportType: args.report.report_type,
+    reporterDiscordUserId: args.report.reporter_discord_user_id,
+    includeReporterMention: args.includeReporterMention ?? false,
+    statusBefore: args.statusBefore ?? null,
+    statusAfter: args.statusAfter ?? null,
+    note: args.note ?? null,
+    reportId: args.report.id,
+    duplicateCount: args.duplicateCount ?? null,
+  });
+
+  if (!result.ok) {
+    logDiscordFeedbackSoftFailure({
+      stage: `audit-comment:${args.action}`,
+      reportId: args.report.id,
+      code: result.code,
+      status: result.status,
+      message: result.message,
+    });
+
+    return { ok: false, messageId: null };
+  }
+
+  return { ok: true, messageId: result.messageId };
 }
 
 async function upsertDiscordFeedbackPanel() {
@@ -949,26 +944,16 @@ async function processFeedbackCreateModalSubmit(
 
   if (forumChannelId && creationResult.duplicate && creationResult.report.discord_forum_thread_id) {
     try {
-      const duplicateReplyResult = await createDiscordThreadMessage({
-        threadId: creationResult.report.discord_forum_thread_id,
-        content: buildDiscordBugForumDuplicateReply({
-          reportType: creationResult.report.report_type,
-          reporterLabel,
-          duplicateCount: creationResult.report.duplicate_count,
-        }),
-        allowedMentions: buildDiscordAllowedMentions({
-          reporterDiscordUserId: creationResult.report.reporter_discord_user_id,
-          includeReporter: false,
-        }),
+      const duplicateReplyResult = await postFeedbackAuditComment({
+        report: creationResult.report,
+        action: "duplicate_signal",
+        duplicateCount: creationResult.report.duplicate_count,
       });
 
       if (!duplicateReplyResult.ok) {
         logDiscordFeedbackSoftFailure({
           stage: "duplicate-reply",
           reportId: creationResult.report.id,
-          code: duplicateReplyResult.code,
-          status: duplicateReplyResult.status,
-          message: duplicateReplyResult.message,
         });
       }
     } catch (error) {
@@ -1240,18 +1225,9 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
 
   const updatedReport = statusUpdateResult.report;
   const includeReporterMention = status === "needs_info" || status === "fixed" || status === "closed";
-  const syncResult = await syncDiscordFeedbackForumThread({
+  let forumSyncFailed = (await syncDiscordFeedbackForumThread({
     report: updatedReport,
-    includeReporterMention,
-    replyContent: buildDiscordBugStatusThreadReply({
-      reportType: updatedReport.report_type,
-      status: updatedReport.status,
-      note: updatedReport.status_note,
-      reporterDiscordUserId: updatedReport.reporter_discord_user_id,
-      includeReporterMention,
-    }),
-  });
-  let forumSyncFailed = syncResult.forumSyncFailed;
+  })).forumSyncFailed;
 
   if (updatedReport.discord_forum_thread_id && updatedReport.discord_forum_message_id) {
     const reporterLabel = buildDiscordBugReporterLabel({
@@ -1285,8 +1261,45 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
     }
   }
 
+  let auditCommentMessageId: string | null = null;
+  if (updatedReport.discord_forum_thread_id) {
+    const auditCommentResult = await postFeedbackAuditComment({
+      report: updatedReport,
+      action: "status_update",
+      actorLabel: "Fawx Security",
+      includeReporterMention,
+      statusBefore: lookupResult.report.status,
+      statusAfter: updatedReport.status,
+      note: updatedReport.status_note,
+    });
+    if (!auditCommentResult.ok) {
+      forumSyncFailed = true;
+    } else {
+      auditCommentMessageId = auditCommentResult.messageId;
+    }
+  }
+
+  if (updatedReport.discord_forum_thread_id && shouldArchiveFeedbackThread(updatedReport.status)) {
+    const archiveResult = await updateDiscordForumThreadArchiveState({
+      threadId: updatedReport.discord_forum_thread_id,
+      archived: true,
+      locked: true,
+    });
+
+    if (!archiveResult.ok) {
+      forumSyncFailed = true;
+      console.error("[discord-interactions] feedback forum archive update failed", {
+        requestId: randomUUID(),
+        reportId: updatedReport.id,
+        code: archiveResult.code,
+        status: archiveResult.status,
+        message: archiveResult.message,
+      });
+    }
+  }
+
   if (updatedReport.discord_forum_thread_id && isResolvedFeedbackStatus(updatedReport.status)) {
-    const reactionMessageId = updatedReport.discord_forum_message_id ?? syncResult.threadReplyMessageId;
+    const reactionMessageId = updatedReport.discord_forum_message_id ?? auditCommentMessageId;
     if (reactionMessageId) {
       const reactionResult = await createDiscordMessageReaction({
         channelId: updatedReport.discord_forum_thread_id,
@@ -1364,22 +1377,25 @@ async function handleFeedbackUpdateModalSubmit(interaction: DiscordInteraction) 
   }
 
   const updatedReport = updateResult.report;
-  const updaterLabel = buildDiscordBugReporterLabel({
-    reporterDiscordUsername: requester.username ?? requester.globalName,
-    reporterMemberNumber: isReporter ? updatedReport.reporter_member_number : null,
-  });
   const syncResult = await syncDiscordFeedbackForumThread({
     report: updatedReport,
-    includeReporterMention: false,
-    replyContent: buildDiscordFeedbackUpdateThreadReply({
-      reportType: updatedReport.report_type,
-      updateDetails,
-      updaterLabel,
-    }),
   });
+  let forumSyncFailed = syncResult.forumSyncFailed;
+
+  if (updatedReport.discord_forum_thread_id) {
+    const auditCommentResult = await postFeedbackAuditComment({
+      report: updatedReport,
+      action: isReporter ? "reporter_update" : "staff_update",
+      actorLabel: isReporter ? "reporter" : "staff",
+      note: updateDetails,
+    });
+    if (!auditCommentResult.ok) {
+      forumSyncFailed = true;
+    }
+  }
 
   return buildDiscordEphemeralMessageResponse(
-    syncResult.forumSyncFailed
+    forumSyncFailed
       ? `Feedback updated, but the forum thread could not be fully synced. (${formatDiscordBugReportShortId(updatedReport.id)})`
       : "Feedback updated.",
   );
@@ -1425,18 +1441,71 @@ async function handleFeedbackWithdrawRequest(args: {
   const updatedReport = withdrawResult.report;
   let forumSyncFailed = false;
   if (updatedReport.discord_forum_thread_id) {
+    forumSyncFailed = (await syncDiscordFeedbackForumThread({
+      report: updatedReport,
+    })).forumSyncFailed;
+
+    if (updatedReport.discord_forum_message_id) {
+      const reporterLabel = buildDiscordBugReporterLabel({
+        reporterDiscordUsername: updatedReport.reporter_discord_username,
+        reporterMemberNumber: updatedReport.reporter_member_number,
+      });
+      const patchStarterMessageResult = await patchDiscordChannelMessage({
+        channelId: updatedReport.discord_forum_thread_id,
+        messageId: updatedReport.discord_forum_message_id,
+        body: {
+          content: buildDiscordBugForumThreadBody({
+            report: updatedReport,
+            reporterLabel,
+          }),
+          allowed_mentions: buildDiscordAllowedMentions({
+            reporterDiscordUserId: updatedReport.reporter_discord_user_id,
+            includeReporter: false,
+          }),
+        },
+      });
+
+      if (!patchStarterMessageResult.ok) {
+        forumSyncFailed = true;
+        console.error("[discord-interactions] feedback forum starter message patch failed during withdraw", {
+          requestId: randomUUID(),
+          reportId: updatedReport.id,
+          code: patchStarterMessageResult.code,
+          status: patchStarterMessageResult.status,
+          message: patchStarterMessageResult.message,
+        });
+      }
+    }
+
+    const threadReplyResult = await postFeedbackAuditComment({
+      report: updatedReport,
+      action: "withdraw",
+      actorLabel: isReporter ? "reporter" : "staff",
+    });
+
+    if (!threadReplyResult.ok) {
+      forumSyncFailed = true;
+    }
+
     const deleteThreadResult = await deleteDiscordChannel({
       channelId: updatedReport.discord_forum_thread_id,
     });
 
     if (!deleteThreadResult.ok) {
       forumSyncFailed = true;
+      console.error("[discord-interactions] feedback forum delete failed", {
+        requestId: randomUUID(),
+        reportId: updatedReport.id,
+        code: deleteThreadResult.code,
+        status: deleteThreadResult.status,
+        message: deleteThreadResult.message,
+      });
     }
   }
 
   return buildDiscordEphemeralMessageResponse(
     forumSyncFailed
-      ? `Feedback withdrawn, but the forum thread could not be deleted. (${formatDiscordBugReportShortId(updatedReport.id)})`
+      ? `Feedback withdrawn, but the forum thread could not be fully synced or deleted. (${formatDiscordBugReportShortId(updatedReport.id)})`
       : "Feedback withdrawn. The forum post was removed and we kept a small audit record.",
   );
 }

@@ -222,6 +222,28 @@ Resolved reaction behavior:
 - fallback target: the bot status reply in the thread
 - reaction failures should log a safe warning and must not fail the status update
 
+## Feedback card audit comments
+Fawx Security posts a compact thread comment whenever it modifies a feedback card after creation. This keeps the Feedback forum readable as a lightweight board with visible change history.
+
+Actions that comment:
+- status update
+- withdraw
+- reporter update
+- duplicate signal
+- board/card sync
+- resolved state
+
+Audit comment rules:
+- compact only
+- no raw payloads
+- no secrets
+- no broad mentions
+- reporter mentions only when the action explicitly requires it
+
+Withdraw note:
+- withdraw posts the audit comment before the thread is archived and locked
+- archive/lock behavior may reduce later visibility, but the bounded row and status note remain
+
 ## Withdraw flow
 `/feedback-withdraw` and the withdraw modal should:
 - allow the original reporter or staff
@@ -269,6 +291,7 @@ npm run feedback:sync-forum-posts
 Sync script rules:
 - dry-run by default
 - use `--apply` to edit Discord
+- use `--no-audit-comment` to skip thread audit comments during apply mode
 - supports `--limit 50`
 - supports `--status new,confirmed,in_progress,fixed,closed`
 - supports `--report-id <id>`

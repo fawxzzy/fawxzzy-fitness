@@ -89,16 +89,18 @@ const helpers = {
   buildReporterLabel: ({ reporterMemberNumber }) => `Member #${reporterMemberNumber}`,
   buildTitle: ({ area, summary }) => `Feature: ${area} — ${summary}`,
   buildBody: ({ report, reporterLabel }) => `body:${report.report_type}:${reporterLabel}`,
+  buildAuditComment: ({ action, actorLabel, note }) => `audit:${action}:${actorLabel}:${note}`,
 };
 
 test("sync forum parseArgs keeps dry-run default and parses filters", () => {
-  const args = parseArgs(["--apply", "--limit", "999", "--status", "new,confirmed,closed", "--report-id", "abc", "--debug"]);
+  const args = parseArgs(["--apply", "--limit", "999", "--status", "new,confirmed,closed", "--report-id", "abc", "--debug", "--no-audit-comment"]);
 
   assert.equal(args.apply, true);
   assert.equal(args.limit, 100);
   assert.deepEqual(args.statuses, ["new", "confirmed", "closed"]);
   assert.equal(args.reportId, "abc");
   assert.equal(args.debug, true);
+  assert.equal(args.noAuditComment, true);
 });
 
 test("sync forum parseArgs defaults to the active feedback statuses", () => {
@@ -112,6 +114,7 @@ test("sync forum parseArgs defaults to the active feedback statuses", () => {
 test("sync forum dry-run does not mutate Discord", async () => {
   let titleCalls = 0;
   let patchCalls = 0;
+  let auditCalls = 0;
 
   const result = await runSyncFeedbackForumPosts({
     client: createMockClient([buildRow()]),
@@ -132,17 +135,22 @@ test("sync forum dry-run does not mutate Discord", async () => {
         patchCalls += 1;
         return { ok: true };
       },
+      async postThreadMessage() {
+        auditCalls += 1;
+        return { ok: true };
+      },
     },
   });
 
   assert.equal(titleCalls, 0);
   assert.equal(patchCalls, 0);
+  assert.equal(auditCalls, 0);
   assert.equal(result.dryRunCount, 1);
   assert.equal(result.updatedCount, 0);
   assert.equal(result.failedCount, 0);
 });
 
-test("sync forum apply mode updates thread titles and starter messages", async () => {
+test("sync forum apply mode updates thread titles starter messages and audit comments", async () => {
   const observed = [];
 
   const result = await runSyncFeedbackForumPosts({
@@ -162,6 +170,10 @@ test("sync forum apply mode updates thread titles and starter messages", async (
       },
       async patchStarterMessage(args) {
         observed.push({ type: "message", args });
+        return { ok: true };
+      },
+      async postThreadMessage(args) {
+        observed.push({ type: "audit", args });
         return { ok: true };
       },
     },
@@ -184,12 +196,52 @@ test("sync forum apply mode updates thread titles and starter messages", async (
         content: "body:feature:Member #4",
       },
     },
+    {
+      type: "audit",
+      args: {
+        threadId: "1504673475489562745",
+        content: "audit:sync_format:Fawx Security:Applied latest board/card format.",
+      },
+    },
   ]);
+});
+
+test("sync forum apply mode can disable audit comments", async () => {
+  let auditCalls = 0;
+
+  const result = await runSyncFeedbackForumPosts({
+    client: createMockClient([buildRow()]),
+    args: {
+      apply: true,
+      limit: 10,
+      statuses: ["new"],
+      reportId: null,
+      debug: false,
+      noAuditComment: true,
+    },
+    helpers,
+    discordApi: {
+      async updateThreadTitle() {
+        return { ok: true };
+      },
+      async patchStarterMessage() {
+        return { ok: true };
+      },
+      async postThreadMessage() {
+        auditCalls += 1;
+        return { ok: true };
+      },
+    },
+  });
+
+  assert.equal(auditCalls, 0);
+  assert.equal(result.updatedCount, 1);
 });
 
 test("sync forum skips rows without starter message ids safely", async () => {
   let titleCalls = 0;
   let patchCalls = 0;
+  let auditCalls = 0;
 
   const result = await runSyncFeedbackForumPosts({
     client: createMockClient([buildRow({ discord_forum_message_id: null })]),
@@ -210,11 +262,16 @@ test("sync forum skips rows without starter message ids safely", async () => {
         patchCalls += 1;
         return { ok: true };
       },
+      async postThreadMessage() {
+        auditCalls += 1;
+        return { ok: true };
+      },
     },
   });
 
   assert.equal(titleCalls, 0);
   assert.equal(patchCalls, 0);
+  assert.equal(auditCalls, 0);
   assert.equal(result.skippedMissingMessageId, 1);
   assert.equal(result.failedCount, 0);
 });

@@ -59,6 +59,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     statuses: [...DEFAULT_STATUSES],
     reportId: null,
     debug: false,
+    noAuditComment: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -98,6 +99,11 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
     if (token === "--debug") {
       args.debug = true;
+      continue;
+    }
+
+    if (token === "--no-audit-comment") {
+      args.noAuditComment = true;
     }
   }
 
@@ -144,6 +150,7 @@ async function loadFeedbackForumHelpers() {
         buildBody: module.buildDiscordBugForumThreadBody,
         buildReporterLabel: module.buildDiscordBugReporterLabel,
         buildTitle: module.buildDiscordBugForumThreadTitle,
+        buildAuditComment: module.buildFeedbackCardAuditComment,
         formatShortId: module.formatDiscordBugReportShortId,
       }));
   }
@@ -207,6 +214,29 @@ function createDiscordApi(fetchImpl = globalThis.fetch) {
           "User-Agent": "fawxzzy-fitness-feedback-sync/1.0",
         },
         body: JSON.stringify({ name: title }),
+      });
+      const data = await parseDiscordJson(response);
+
+      return response.ok
+        ? { ok: true }
+        : {
+          ok: false,
+          status: response.status,
+          message: data && typeof data === "object" && "message" in data ? String(data.message ?? response.statusText) : response.statusText,
+        };
+    },
+    async postThreadMessage({ threadId, content }) {
+      const response = await fetchImpl(`https://discord.com/api/v10/channels/${threadId}/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${getRequiredEnv(DISCORD_BOT_TOKEN_ENV)}`,
+          "Content-Type": "application/json",
+          "User-Agent": "fawxzzy-fitness-feedback-sync/1.0",
+        },
+        body: JSON.stringify({
+          content,
+          allowed_mentions: buildAllowedMentions(),
+        }),
       });
       const data = await parseDiscordJson(response);
 
@@ -324,6 +354,25 @@ export async function runSyncFeedbackForumPosts({
       continue;
     }
 
+    if (!args.noAuditComment) {
+      const auditCommentResult = await discordApi.postThreadMessage({
+        threadId: row.discord_forum_thread_id,
+        content: resolvedHelpers.buildAuditComment({
+          action: "sync_format",
+          actorLabel: "Fawx Security",
+          reportType: row.report_type,
+          note: "Applied latest board/card format.",
+          reportId: row.id,
+        }),
+      });
+
+      if (!auditCommentResult.ok) {
+        failedCount += 1;
+        notes.push(`FAIL ${shortId}: audit comment returned ${auditCommentResult.status ?? "unknown"}${auditCommentResult.message ? ` (${auditCommentResult.message})` : ""}`);
+        continue;
+      }
+    }
+
     updatedCount += 1;
     notes.push(`SYNCED ${descriptor}`);
   }
@@ -333,6 +382,9 @@ export async function runSyncFeedbackForumPosts({
   console.log(`Limit: ${args.limit}`);
   if (args.reportId) {
     console.log(`Report ID filter: ${args.reportId}`);
+  }
+  if (args.apply) {
+    console.log(`Audit comments: ${args.noAuditComment ? "disabled" : "enabled"}`);
   }
   console.log(`Rows with forum threads: ${rows.length}`);
   console.log(`Dry-run candidates: ${dryRunCount}`);

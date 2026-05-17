@@ -154,6 +154,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating every forum card as automatic engineering truth creates noisy sprint churn.
 - Status: Proposed
 
+## 2026-05-16 - Feedback card mutations should leave thread-visible audit comments
+- Type: Pattern
+- Summary: When the bot changes a feedback card, it should post a compact thread comment so the forum itself shows a readable modification history.
+- Rule: Bot-driven board changes should be visible in the card thread.
+- Pattern: mutate bounded feedback row -> update forum card/tags -> post compact audit comment.
+- Failure Mode: Silent card edits make the feedback forum feel inconsistent and hard to trust as a board.
+- Status: Proposed
+
 ## 2026-05-15 - Member-number display sync should queue Discord side effects
 - Type: Pattern
 - Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.
