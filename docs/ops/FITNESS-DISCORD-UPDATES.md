@@ -10,6 +10,7 @@ Product rules:
 - public Discord updates should start with `@everyone`
 - do not dump raw commit logs, migration names, PR diffs, stack traces, or infra-only noise
 - do not mix routine sharing, workout sharing, import flows, or copy-to-app work into this lane
+- do not use the updates channel as a feedback card mutation log
 
 ## Trigger rule
 Accepted triggers:
@@ -28,6 +29,25 @@ Flow:
 4. An admin runs `/update-latest`.
 5. An admin runs `/update-publish`.
 6. Fitness posts curated copy into the Discord updates channel.
+
+## Canonical workflow boundary
+Canonical workflow:
+1. Feedback forum is the visible community board.
+2. Feedback card mutations stay inside the forum thread as audit comments.
+3. `feedback:board:export` produces reviewed planning artifacts.
+4. Verta Core / Playbook reviews those exports before Codex work starts.
+5. Update Bot publishes only curated user-facing release notes after work ships.
+
+Rules:
+- Feedback card updates do not automatically post to the updates channel.
+- Update Bot posts are curated user-facing announcements, not card mutation logs.
+- Update drafts are bounded review state, not a duplicate task board.
+- No direct Discord-to-ATLAS or Discord-to-GitHub writes from this lane.
+
+Failure modes:
+- posting every feedback status change to `#updates` creates noise
+- treating update drafts as a second task board creates drift
+- skipping reviewed export/prompt handoff causes lost or noisy work
 
 ## Environment
 Required for the webhook:
