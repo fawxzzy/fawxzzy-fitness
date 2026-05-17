@@ -13,6 +13,7 @@ import {
   createDiscordBugReport,
   createDiscordBugReportDuplicateFingerprint,
   DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH,
+  DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH,
   DISCORD_BUG_REPORT_SCREENSHOT_URL_MAX_LENGTH,
   DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH,
   DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH,
@@ -476,6 +477,33 @@ test("buildDiscordBugForumThreadBody keeps historical fix rows readable", () => 
     }),
     /^\*\*Feedback Report\*\*\nType: Fix/m,
   );
+});
+
+test("buildDiscordBugForumThreadBody stays within Discord's message limit for long bug cards", () => {
+  const body = buildDiscordBugForumThreadBody({
+    report: buildStoredRow({
+      summary: "New Routine Opens Recovery Screen",
+      details: "D".repeat(1100),
+      steps_to_reproduce: "S".repeat(1100),
+      screenshot_url: `https://example.com/${"x".repeat(460)}`,
+      attachment_metadata: [
+        {
+          id: "att-1",
+          filename: "very-long-debug-screenshot-name.png",
+          contentType: "image/png",
+          size: 305171,
+          url: `https://cdn.discordapp.com/ephemeral-attachments/${"a".repeat(220)}`,
+          proxyUrl: null,
+        },
+      ],
+    }),
+    reporterLabel: "Member #4",
+  });
+
+  assert.ok(body.length <= DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH);
+  assert.match(body, /\*\*What happened\*\*/);
+  assert.match(body, /\*\*Steps\*\*/);
+  assert.match(body, /New Routine Opens Recovery Screen/);
 });
 
 test("buildDiscordBugForumDuplicateReply and withdraw reply stay compact", () => {

@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildDiscordDeferredEphemeralMessageResponse,
+  buildDiscordFeedbackManageCardResponse,
+  buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
+  buildDiscordFeedbackUpdatePickerResponse,
   buildDiscordFeedbackReportModalResponse,
   buildDiscordFeedbackUpdateModalResponse,
-  buildDiscordFeedbackWithdrawModalResponse,
+  buildDiscordFeedbackWithdrawSelectedModalResponse,
   buildDiscordUpdatePublishModalResponse,
   buildDiscordGuildCommandsDefinition,
   buildDiscordPongResponse,
@@ -19,6 +22,11 @@ import {
   extractDiscordCommandIntegerOption,
   extractDiscordCommandStringOption,
   extractDiscordCommandUserOption,
+  extractDiscordFeedbackManageEditReportId,
+  extractDiscordFeedbackManageWithdrawReportId,
+  extractDiscordFeedbackUpdatePickerReportId,
+  extractDiscordFeedbackUpdateReportIdFromModalCustomId,
+  extractDiscordFeedbackWithdrawSelectedReportId,
   extractDiscordModalFileUploadIds,
   extractDiscordModalStringSelectValue,
   extractDiscordModalTextInputValue,
@@ -58,31 +66,30 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
   assert.equal(bug.data.title, "Report a bug");
   assert.equal(bug.data.components[0]?.component?.custom_id, "feedback_type");
   assert.equal(bug.data.components[1]?.label, "Title");
-  assert.equal(bug.data.components[3]?.label, "Description / what happened");
+  assert.equal(bug.data.components[3]?.label, "Description");
   assert.equal(bugOptions?.[0]?.default, true);
   assert.equal(feature.data.custom_id, "fitness_feedback_report_modal:feature");
   assert.equal(feature.data.title, "Suggest a feature");
   assert.equal(feature.data.components[1]?.label, "Title");
-  assert.equal(feature.data.components[3]?.label, "Description / what happened");
+  assert.equal(feature.data.components[3]?.label, "Description");
   assert.equal(featureOptions?.[1]?.default, true);
 });
 
 test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel buttons", () => {
   const payload = buildDiscordFeedbackPanelMessagePayload();
 
-  assert.equal(payload.embeds[0]?.title, "Feedback Actions");
-  assert.match(payload.embeds[0]?.description ?? "", /submit, update, or withdraw feedback/i);
+  assert.equal(payload.embeds[0]?.title, "Submit Feedback Here");
+  assert.match(payload.embeds[0]?.description ?? "", /send a new bug or feature request/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => component.custom_id),
     [
       "fitness_feedback_submit_open",
       "fitness_feedback_update_open",
-      "fitness_feedback_withdraw_open",
     ],
   );
   assert.deepEqual(
-    payload.components[0]?.components?.map((component) => component.label),
-    ["Submit", "Add Update", "Withdraw"],
+    payload.components[0]?.components?.map((component) => ("label" in component ? component.label : null)),
+    ["Submit Feedback", "Edit My Feedback"],
   );
 });
 
@@ -190,10 +197,40 @@ test("buildDiscordVerifyMessagePayload includes the verify button", () => {
   assert.equal(payload.components[0]?.components[0]?.custom_id, "fitness_verify_open");
 });
 
-test("feedback panel button modals expose submit, update, and withdraw forms", () => {
+test("feedback panel button modals expose submit and manage flows", () => {
   const submit = buildDiscordFeedbackPanelSubmitModalResponse();
-  const update = buildDiscordFeedbackUpdateModalResponse();
-  const withdraw = buildDiscordFeedbackWithdrawModalResponse();
+  const updatePicker = buildDiscordFeedbackUpdatePickerResponse({
+    recentReports: [
+      {
+        label: "11111111 | Token copy button failed",
+        value: "11111111-1111-4111-8111-111111111111",
+        description: "Bug | New | Settings",
+      },
+      {
+        label: "22222222 | Login screen jumps",
+        value: "22222222-2222-4222-8222-222222222222",
+        description: "Bug | New | Login",
+      },
+    ],
+  });
+  const manageCard = buildDiscordFeedbackManageCardResponse({
+    reportId: "11111111-1111-4111-8111-111111111111",
+    summary: "Token copy button failed",
+    area: "Settings",
+    statusLabel: "New",
+    typeLabel: "Bug",
+  });
+  const lookupModal = buildDiscordFeedbackManageLookupModalResponse();
+  const update = buildDiscordFeedbackUpdateModalResponse({
+    reportId: "11111111-1111-4111-8111-111111111111",
+    summary: "Token copy button failed",
+    area: "Settings",
+    details: "I tapped Copy and nothing happened.",
+  });
+  const withdraw = buildDiscordFeedbackWithdrawSelectedModalResponse({
+    reportId: "11111111-1111-4111-8111-111111111111",
+    summary: "Token copy button failed",
+  });
 
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
   assert.equal(submit.data.components[0]?.component?.custom_id, "feedback_type");
@@ -202,10 +239,21 @@ test("feedback panel button modals expose submit, update, and withdraw forms", (
   assert.equal(submit.data.components[4]?.label, "Attachment");
   assert.equal(submit.data.components[4]?.component?.custom_id, "feedback_attachment");
   assert.equal(submit.data.components[4]?.component?.max_values, 3);
-  assert.equal(update.data.custom_id, "fitness_feedback_update_modal");
-  assert.equal(update.data.components[0]?.components[0]?.custom_id, "feedback_update_report_id");
-  assert.equal(withdraw.data.custom_id, "fitness_feedback_withdraw_modal");
-  assert.equal(withdraw.data.components[1]?.components[0]?.custom_id, "feedback_withdraw_note");
+  assert.equal(updatePicker.data.flags, 64);
+  assert.equal(updatePicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_manage_recent:11111111-1111-4111-8111-111111111111");
+  assert.equal(updatePicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_update_pick_report");
+  assert.equal(updatePicker.data.components[2]?.components[0]?.custom_id, "fitness_feedback_manage_lookup_open");
+  assert.equal(manageCard.data.components[0]?.components[0]?.custom_id, "fitness_feedback_manage_action_edit:11111111-1111-4111-8111-111111111111");
+  assert.equal(manageCard.data.components[0]?.components[1]?.custom_id, "fitness_feedback_manage_action_withdraw:11111111-1111-4111-8111-111111111111");
+  assert.equal(lookupModal.data.custom_id, "fitness_feedback_manage_lookup_modal");
+  assert.equal(lookupModal.data.components[0]?.component?.custom_id, "feedback_manage_lookup");
+  assert.equal(update.data.custom_id, "fitness_feedback_update_edit_modal:11111111-1111-4111-8111-111111111111");
+  assert.equal(update.data.components[0]?.component?.custom_id, "bug_summary");
+  assert.equal(update.data.components[0]?.component?.value, "Token copy button failed");
+  assert.equal(update.data.components[1]?.component?.custom_id, "bug_area");
+  assert.equal(update.data.components[2]?.component?.custom_id, "bug_details");
+  assert.equal(withdraw.data.custom_id, "fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111");
+  assert.equal(withdraw.data.components[0]?.component?.custom_id, "feedback_withdraw_note");
 });
 
 test("feedback submit modal keeps panel buttons text-only while select options use validated emoji payloads", () => {
@@ -217,8 +265,9 @@ test("feedback submit modal keeps panel buttons text-only while select options u
   const panelPayload = buildDiscordFeedbackPanelMessagePayload({ emojis });
   const submitModal = buildDiscordFeedbackPanelSubmitModalResponse({ emojis });
   const options = (submitModal.data.components[0]?.component as { options?: Array<{ emoji?: { id: string; name: string } }> } | undefined)?.options;
+  const firstPanelButton = panelPayload.components[0]?.components[0] as { emoji?: { id: string; name: string } } | undefined;
 
-  assert.equal(panelPayload.components[0]?.components[0]?.emoji, undefined);
+  assert.equal(firstPanelButton?.emoji, undefined);
   assert.deepEqual(options?.[0]?.emoji, {
     id: "1505007702924066916",
     name: "Bug",
@@ -252,14 +301,52 @@ test("extractDiscordUpdateDraftIdFromPublishModalCustomId parses publish modal i
   assert.equal(extractDiscordUpdateDraftIdFromPublishModalCustomId("fitness_feedback_submit_modal"), null);
 });
 
+test("extractDiscordFeedbackUpdateReportIdFromModalCustomId parses update edit modal ids only", () => {
+  assert.equal(
+    extractDiscordFeedbackUpdateReportIdFromModalCustomId(
+      "fitness_feedback_update_edit_modal:11111111-1111-4111-8111-111111111111",
+    ),
+    "11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(extractDiscordFeedbackUpdateReportIdFromModalCustomId("fitness_feedback_update_modal"), null);
+});
+
+test("feedback manage custom id helpers parse selection, edit, and withdraw ids only", () => {
+  assert.equal(
+    extractDiscordFeedbackUpdatePickerReportId(
+      "fitness_feedback_manage_recent:11111111-1111-4111-8111-111111111111",
+    ),
+    "11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(
+    extractDiscordFeedbackManageEditReportId(
+      "fitness_feedback_manage_action_edit:11111111-1111-4111-8111-111111111111",
+    ),
+    "11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(
+    extractDiscordFeedbackManageWithdrawReportId(
+      "fitness_feedback_manage_action_withdraw:11111111-1111-4111-8111-111111111111",
+    ),
+    "11111111-1111-4111-8111-111111111111",
+  );
+  assert.equal(
+    extractDiscordFeedbackWithdrawSelectedReportId(
+      "fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111",
+    ),
+    "11111111-1111-4111-8111-111111111111",
+  );
+});
+
 test("feedback panel payload stays text-only even when custom emoji env vars are set", () => {
   process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID = "1505007702924068916";
   process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID = "1505007651308703877";
 
   const payload = buildDiscordFeedbackPanelMessagePayload();
+  const firstButton = payload.components[0]?.components[0] as { emoji?: { id: string; name: string } } | undefined;
 
   assert.doesNotMatch(payload.embeds[0]?.description ?? "", /<:/);
-  assert.equal(payload.components[0]?.components[0]?.emoji, undefined);
+  assert.equal(firstButton?.emoji, undefined);
 
   delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
   delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;

@@ -181,6 +181,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Silent card edits make the feedback forum feel inconsistent and hard to trust as a board.
 - Status: Proposed
 
+## 2026-05-16 - Feedback launcher should be separate from the forum board
+- Type: Pattern
+- Summary: Discord feedback intake should begin in a small dedicated launcher channel, while the forum remains the visible board for created cards and audit history.
+- Rule: Keep the public launcher surface limited to `Submit Feedback` and `Edit My Feedback`.
+- Rule: Withdraw should live inside the scoped edit/manage flow, not as a top-level public launcher button.
+- Pattern: launcher channel -> scoped card picker -> edit or withdraw -> forum card sync + audit comment.
+- Failure Mode: Putting a large control post inside the forum mixes intake UX with board-reading UX and makes card management noisier than necessary.
+- Status: Proposed
+
 ## 2026-05-15 - Member-number display sync should queue Discord side effects
 - Type: Pattern
 - Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.

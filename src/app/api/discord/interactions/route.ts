@@ -19,16 +19,19 @@ import {
   buildDiscordBugForumThreadTitle,
   buildDiscordBugReporterLabel,
   createDiscordBugReport,
+  DISCORD_BUG_REPORT_STATUS_TAG_LABELS,
+  DISCORD_BUG_REPORT_TYPE_TAG_LABELS,
   type DiscordFeedbackAttachmentMetadata,
   extractDiscordBugReportModalFields,
   findDiscordBugReportByIdOrPrefix,
   formatDiscordBugReportShortId,
+  listRecentDiscordFeedbackReports,
   normalizeDiscordFeedbackReportType,
   normalizeDiscordBugReportStatus,
   postFeedbackCardAuditComment,
   recordDiscordBugReportForumThread,
   recordDiscordBugReportForumState,
-  recordDiscordFeedbackReportUpdate,
+  updateDiscordFeedbackReportContent,
   updateDiscordBugReportStatus,
   withdrawDiscordFeedbackReport,
 } from "@/lib/discord/bug-reports";
@@ -36,8 +39,11 @@ import type { DiscordBugReportRow } from "@/lib/discord/bug-reports";
 import {
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
+  buildDiscordFeedbackManageCardResponse,
+  buildDiscordFeedbackManageLookupModalResponse,
+  buildDiscordFeedbackUpdatePickerResponse,
   buildDiscordFeedbackUpdateModalResponse,
-  buildDiscordFeedbackWithdrawModalResponse,
+  buildDiscordFeedbackWithdrawSelectedModalResponse,
   buildDiscordUpdatePublishModalResponse,
   buildDiscordEphemeralMessageResponse,
   buildDiscordPongResponse,
@@ -53,16 +59,21 @@ import {
   FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
   FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID,
   FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
+  FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
+  FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
+  FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
   FITNESS_FEEDBACK_SETUP_COMMAND_NAME,
-  FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID,
-  FITNESS_FEEDBACK_UPDATE_MODAL_CUSTOM_ID,
-  FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID,
+  FITNESS_FEEDBACK_UPDATE_PICKER_SELECT_CUSTOM_ID,
   FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX,
   FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
-  FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID,
   FITNESS_FEEDBACK_STATUS_COMMAND_NAME,
+  FITNESS_FEEDBACK_UPDATE_PICKER_BUTTON_CUSTOM_ID_PREFIX,
+  FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_BUTTON_CUSTOM_ID,
+  FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_INPUT_CUSTOM_ID,
+  FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_MODAL_CUSTOM_ID,
   FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID,
   FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+  FITNESS_FEEDBACK_WITHDRAW_REPORT_SELECT_CUSTOM_ID,
   FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
   FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME,
   FITNESS_BUG_STATUS_NOTE_OPTION_NAME,
@@ -91,9 +102,15 @@ import {
   FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID,
   FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID,
   FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID,
+  extractDiscordFeedbackManageEditReportId,
+  extractDiscordFeedbackManageWithdrawReportId,
+  extractDiscordFeedbackUpdatePickerReportId,
+  extractDiscordFeedbackUpdateReportIdFromModalCustomId,
+  extractDiscordFeedbackWithdrawSelectedReportId,
   extractDiscordUpdateDraftIdFromPublishModalCustomId,
   resolveDiscordFeedbackReportTypeFromModalCustomId,
   DISCORD_INTERACTION_TYPE,
+  FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID,
   FITNESS_VERIFY_BUTTON_CUSTOM_ID,
   FITNESS_VERIFY_COMMAND_NAME,
   FITNESS_VERIFY_MODAL_CUSTOM_ID,
@@ -118,6 +135,7 @@ import {
 } from "@/lib/discord/moderation";
 import {
   addDiscordGuildMemberRole,
+  createDiscordGuildChannel,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordMessageReaction,
@@ -125,11 +143,13 @@ import {
   deferDiscordInteractionEphemeral,
   editDiscordOriginalInteractionResponse,
   fetchDiscordChannel,
+  fetchDiscordGuildChannels,
   fetchDiscordChannelMessages,
   fetchDiscordGuildActiveThreads,
   patchDiscordChannelMessage,
   resolveDiscordForumTagIdsByName,
   removeDiscordGuildMemberRole,
+  updateDiscordChannel,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
   updateDiscordForumThreadTitle,
@@ -169,6 +189,8 @@ const DISCORD_FEEDBACK_ALLOWED_ATTACHMENT_CONTENT_TYPES = new Set([
 ]);
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_COUNT = 3;
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
+const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
+const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC = "Start here to submit or manage Fawxzzy Fitness feedback cards.";
 
 type DiscordInteraction = {
   id?: unknown;
@@ -251,8 +273,8 @@ function isResolvedFeedbackStatus(status: string): boolean {
   return status === "fixed" || status === "closed";
 }
 
-function resolveFeedbackPanelChannelId(): string | null {
-  return DISCORD_FEEDBACK_PANEL_CHANNEL_ID() ?? DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
+function canAccessAnyFeedbackReport(permissions: string | null) {
+  return discordMemberHasBugStatusPermission(permissions);
 }
 
 function isDiscordForumLikeChannel(type: unknown): boolean {
@@ -265,7 +287,7 @@ function isDiscordMissingPermissionsFailure(result: { status?: number; message?:
 
 function buildDiscordPanelPermissionFailureResponse() {
   return buildDiscordEphemeralMessageResponse(
-    "Discord could not create the feedback panel. The bot needs View Channel, Read Message History, and Send Messages. Embed Links and Use External Emojis are optional.",
+    "Discord could not create the feedback launcher. The bot needs View Channel, Read Message History, and Send Messages. Manage Channels may also be required when auto-creating submit-feedback. Embed Links and Use External Emojis are optional.",
   );
 }
 
@@ -284,6 +306,248 @@ function buildNoContentResponse(status = 202) {
       "Cache-Control": NO_STORE_HEADERS["Cache-Control"],
     },
   });
+}
+
+function truncateDiscordSelectText(value: string, maxLength: number) {
+  const normalized = value.trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+async function ensureFeedbackPanelChannel() {
+  const configuredChannelId = DISCORD_FEEDBACK_PANEL_CHANNEL_ID();
+  if (configuredChannelId) {
+    return {
+      ok: true as const,
+      channelId: configuredChannelId,
+      channelLabel: "configured channel",
+    };
+  }
+
+  const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
+  if (!forumChannelId) {
+    return {
+      ok: false as const,
+      code: "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED",
+      message: "Missing feedback panel channel and feedback forum channel.",
+    };
+  }
+
+  const forumResult = await fetchDiscordChannel({ channelId: forumChannelId });
+  if (!forumResult.ok) {
+    return forumResult;
+  }
+
+  const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
+  if (!guildChannelsResult.ok) {
+    return guildChannelsResult;
+  }
+
+  const existingChannel = guildChannelsResult.channels.find((channel) => (
+    channel.type === 0
+    && channel.name === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
+    && channel.parent_id === forumResult.channel.parent_id
+  ));
+
+  const targetPosition = typeof forumResult.channel.position === "number"
+    ? Math.max(0, forumResult.channel.position)
+    : undefined;
+
+  if (existingChannel?.id) {
+    const shouldRetunePlacement =
+      existingChannel.topic !== DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC
+      || existingChannel.parent_id !== forumResult.channel.parent_id
+      || (
+        typeof targetPosition === "number"
+        && typeof existingChannel.position === "number"
+        && existingChannel.position !== targetPosition
+      );
+
+    if (shouldRetunePlacement) {
+      const updateResult = await updateDiscordChannel({
+        channelId: existingChannel.id,
+        topic: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC,
+        parentId: forumResult.channel.parent_id ?? null,
+        position: targetPosition,
+      });
+
+      if (!updateResult.ok) {
+        return updateResult;
+      }
+    }
+
+    return {
+      ok: true as const,
+      channelId: existingChannel.id,
+      channelLabel: `#${DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME}`,
+    };
+  }
+
+  const createResult = await createDiscordGuildChannel({
+    guildId: DISCORD_GUILD_ID(),
+    name: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME,
+    type: 0,
+    topic: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC,
+    parentId: forumResult.channel.parent_id ?? null,
+    position: targetPosition,
+  });
+
+  if (!createResult.ok) {
+    return createResult;
+  }
+
+  return {
+    ok: true as const,
+    channelId: createResult.channel.id,
+    channelLabel: `#${DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME}`,
+  };
+}
+
+async function loadRecentFeedbackReportOptions(args: {
+  reporterDiscordUserId: string | null;
+  includeAllReports?: boolean;
+  excludedStatuses?: Array<keyof typeof DISCORD_BUG_REPORT_STATUS_TAG_LABELS>;
+}) {
+  if (!args.includeAllReports && !args.reporterDiscordUserId) {
+    return null;
+  }
+
+  const recentReportsResult = await listRecentDiscordFeedbackReports({
+    reporterDiscordUserId: args.includeAllReports ? null : args.reporterDiscordUserId,
+    excludedStatuses: args.excludedStatuses,
+    limit: 25,
+  });
+
+  if (!recentReportsResult.ok || recentReportsResult.reports.length === 0) {
+    return null;
+  }
+
+  return recentReportsResult.reports.map((report) => {
+    const typeLabel = DISCORD_BUG_REPORT_TYPE_TAG_LABELS[report.report_type];
+    const statusLabel = DISCORD_BUG_REPORT_STATUS_TAG_LABELS[report.status];
+    const areaLabel = report.area?.trim() ? report.area.trim() : "No area";
+
+    return {
+      label: truncateDiscordSelectText(`${formatDiscordBugReportShortId(report.id)} | ${report.summary}`, 100),
+      value: report.id,
+      description: truncateDiscordSelectText(`${typeLabel} | ${statusLabel} | ${areaLabel}`, 100),
+    };
+  });
+}
+
+function resolveSelectedFeedbackReportId(args: {
+  components: unknown;
+  selectCustomId: string;
+  textInputCustomId: string;
+}) {
+  return extractDiscordModalStringSelectValue(args.components, args.selectCustomId)
+    ?? extractDiscordModalTextInputValue(args.components, args.textInputCustomId);
+}
+
+async function syncDiscordFeedbackStarterMessage(args: {
+  report: DiscordBugReportRow;
+}) {
+  if (!args.report.discord_forum_thread_id || !args.report.discord_forum_message_id) {
+    return { ok: true as const };
+  }
+
+  const reporterLabel = buildDiscordBugReporterLabel({
+    reporterDiscordUsername: args.report.reporter_discord_username,
+    reporterMemberNumber: args.report.reporter_member_number,
+  });
+  const patchStarterMessageResult = await patchDiscordChannelMessage({
+    channelId: args.report.discord_forum_thread_id,
+    messageId: args.report.discord_forum_message_id,
+    body: {
+      content: buildDiscordBugForumThreadBody({
+        report: args.report,
+        reporterLabel,
+      }),
+      allowed_mentions: buildDiscordAllowedMentions({
+        reporterDiscordUserId: args.report.reporter_discord_user_id,
+        includeReporter: false,
+      }),
+    },
+  });
+
+  if (patchStarterMessageResult.ok) {
+    return { ok: true as const };
+  }
+
+  console.error("[discord-interactions] feedback forum starter message patch failed", {
+    requestId: randomUUID(),
+    reportId: args.report.id,
+    code: patchStarterMessageResult.code,
+    status: patchStarterMessageResult.status,
+    message: patchStarterMessageResult.message,
+  });
+
+  return { ok: false as const };
+}
+
+async function buildDeferredDiscordEphemeralInteractionResponse(args: {
+  interaction: DiscordInteraction;
+  actionLabel: string;
+  fallback: () => Promise<Record<string, unknown>>;
+  process: () => Promise<string>;
+  genericFailureContent: string;
+}) {
+  const interactionId = typeof args.interaction.id === "string" ? args.interaction.id : null;
+  const applicationId = typeof args.interaction.application_id === "string" ? args.interaction.application_id : null;
+  const interactionToken = typeof args.interaction.token === "string" ? args.interaction.token : null;
+
+  if (!interactionId || !applicationId || !interactionToken) {
+    return jsonResponse(await args.fallback());
+  }
+
+  const deferResult = await deferDiscordInteractionEphemeral({
+    interactionId,
+    interactionToken,
+  });
+
+  if (!deferResult.ok) {
+    console.warn(`[discord-interactions] ${args.actionLabel} defer failed`, {
+      requestId: randomUUID(),
+      interactionId,
+      code: deferResult.code,
+      status: deferResult.status,
+      message: deferResult.message,
+    });
+    return jsonResponse(await args.fallback());
+  }
+
+  let content = args.genericFailureContent;
+
+  try {
+    content = await args.process();
+  } catch (error) {
+    console.error(`[discord-interactions] deferred ${args.actionLabel} failed`, {
+      requestId: randomUUID(),
+      interactionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  const editResult = await editDiscordOriginalInteractionResponse({
+    applicationId,
+    interactionToken,
+    content,
+  });
+
+  if (!editResult.ok) {
+    console.error(`[discord-interactions] edit original ${args.actionLabel} interaction failed`, {
+      requestId: randomUUID(),
+      interactionId,
+      code: editResult.code,
+      status: editResult.status,
+      message: editResult.message,
+    });
+  }
+
+  return buildNoContentResponse();
 }
 
 function coerceDiscordFeedbackAttachmentMetadata(value: unknown): DiscordFeedbackAttachmentMetadata | null {
@@ -534,10 +798,12 @@ async function postFeedbackAuditComment(args: {
 }
 
 async function upsertDiscordFeedbackPanel() {
-  const channelId = resolveFeedbackPanelChannelId();
-  if (!channelId) {
-    return { ok: false as const, code: "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED", message: "Missing feedback panel channel." };
+  const panelChannelResult = await ensureFeedbackPanelChannel();
+  if (!panelChannelResult.ok) {
+    return panelChannelResult;
   }
+
+  const channelId = panelChannelResult.channelId;
 
   const feedbackEmojis = await validateDiscordFeedbackEmojis();
   const payload = buildDiscordFeedbackPanelMessagePayload({
@@ -560,7 +826,7 @@ async function upsertDiscordFeedbackPanel() {
       });
 
       return createResult.ok
-        ? { ok: true as const, action: "created" as const }
+        ? { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel }
         : { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
     };
 
@@ -596,7 +862,7 @@ async function upsertDiscordFeedbackPanel() {
     });
 
     if (patchResult.ok) {
-      return { ok: true as const, action: "updated" as const };
+      return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel };
     }
 
     if (patchResult.status === 404) {
@@ -613,7 +879,7 @@ async function upsertDiscordFeedbackPanel() {
     });
 
     return createResult.ok
-      ? { ok: true as const, action: "created" as const }
+      ? { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel }
       : { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
   };
 
@@ -645,7 +911,7 @@ async function upsertDiscordFeedbackPanel() {
   });
 
   if (patchResult.ok) {
-    return { ok: true as const, action: "updated" as const };
+    return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel };
   }
 
   if (patchResult.status === 404) {
@@ -766,8 +1032,8 @@ async function handleSetupFeedbackInteraction(interaction: DiscordInteraction) {
 
   return buildDiscordEphemeralMessageResponse(
     upsertResult.action === "updated"
-      ? "Feedback panel updated in the configured channel."
-      : "Feedback panel created in the configured channel.",
+      ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
+      : `Feedback launcher created in ${upsertResult.channelLabel}.`,
   );
 }
 
@@ -1355,34 +1621,138 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
   );
 }
 
-async function handleFeedbackUpdateModalSubmit(interaction: DiscordInteraction) {
+function summarizeFeedbackContentChanges(args: {
+  before: DiscordBugReportRow;
+  after: DiscordBugReportRow;
+}) {
+  const changedFields: string[] = [];
+  if ((args.before.summary ?? "") !== (args.after.summary ?? "")) {
+    changedFields.push("Title");
+  }
+  if ((args.before.area ?? "") !== (args.after.area ?? "")) {
+    changedFields.push("Area");
+  }
+  if ((args.before.details ?? "") !== (args.after.details ?? "")) {
+    changedFields.push("Description");
+  }
+
+  return changedFields.length > 0 ? `Edited fields: ${changedFields.join(", ")}.` : "Card content refreshed.";
+}
+
+async function buildFeedbackUpdatePickerOpenResponse(interaction: DiscordInteraction) {
+  const requester = resolveDiscordInteractionUser(interaction);
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  const recentReports = await loadRecentFeedbackReportOptions({
+    reporterDiscordUserId: requester.id,
+    includeAllReports: canAccessAnyFeedbackReport(permissions),
+    excludedStatuses: ["duplicate", "spam", "withdrawn"],
+  });
+
+  if (!recentReports || recentReports.length === 0) {
+    return buildDiscordEphemeralMessageResponse("No editable feedback cards are available right now.");
+  }
+
+  return buildDiscordFeedbackUpdatePickerResponse({
+    recentReports,
+  });
+}
+
+async function buildFeedbackManageCardSelectionResponse(args: {
+  interaction: DiscordInteraction;
+  reportIdOrPrefix: string | null;
+}) {
+  if (!interactionMatchesGuild(args.interaction)) {
+    return buildDiscordEphemeralMessageResponse("This feedback flow is only available in the configured server.");
+  }
+
+  const requester = resolveDiscordInteractionUser(args.interaction);
+  const permissions = typeof args.interaction.member?.permissions === "string" ? args.interaction.member.permissions : null;
+  const isStaff = canAccessAnyFeedbackReport(permissions);
+
+  if (!requester.id || !args.reportIdOrPrefix) {
+    return buildDiscordEphemeralMessageResponse("Choose a feedback card to manage.");
+  }
+
+  const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: args.reportIdOrPrefix });
+  if (!lookupResult.ok) {
+    return buildDiscordFeedbackLookupFailureResponse(lookupResult.code);
+  }
+
+  const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
+  if (!isReporter && !isStaff) {
+    return buildDiscordEphemeralMessageResponse("You can only manage feedback you submitted.");
+  }
+
+  if (
+    lookupResult.report.status === "duplicate"
+    || lookupResult.report.status === "spam"
+    || lookupResult.report.status === "withdrawn"
+  ) {
+    return buildDiscordEphemeralMessageResponse("That feedback can no longer accept user updates.");
+  }
+
+  return buildDiscordFeedbackManageCardResponse({
+    reportId: lookupResult.report.id,
+    summary: lookupResult.report.summary,
+    area: lookupResult.report.area,
+    statusLabel: DISCORD_BUG_REPORT_STATUS_TAG_LABELS[lookupResult.report.status],
+    typeLabel: DISCORD_BUG_REPORT_TYPE_TAG_LABELS[lookupResult.report.report_type],
+  });
+}
+
+async function handleFeedbackUpdatePickerSelection(interaction: DiscordInteraction) {
+  const componentValues = (interaction.data as { values?: unknown } | null | undefined)?.values;
+  const reportId = Array.isArray(componentValues) && typeof componentValues[0] === "string"
+    ? componentValues[0]
+    : null;
+
+  return buildFeedbackManageCardSelectionResponse({
+    interaction,
+    reportIdOrPrefix: reportId,
+  });
+}
+
+async function handleFeedbackUpdatePickerButton(interaction: DiscordInteraction) {
+  return buildFeedbackManageCardSelectionResponse({
+    interaction,
+    reportIdOrPrefix: extractDiscordFeedbackUpdatePickerReportId(
+      typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
+    ),
+  });
+}
+
+async function handleFeedbackManageLookupModalSubmit(interaction: DiscordInteraction) {
+  return buildFeedbackManageCardSelectionResponse({
+    interaction,
+    reportIdOrPrefix: extractDiscordModalTextInputValue(
+      interaction.data?.components,
+      FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_INPUT_CUSTOM_ID,
+    ),
+  });
+}
+
+async function handleFeedbackManageEditButton(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
     return buildDiscordEphemeralMessageResponse("This feedback flow is only available in the configured server.");
   }
 
   const requester = resolveDiscordInteractionUser(interaction);
-  const reportIdOrPrefix = extractDiscordModalTextInputValue(
-    interaction.data?.components,
-    FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID,
-  );
-  const updateDetails = extractDiscordModalTextInputValue(
-    interaction.data?.components,
-    FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID,
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  const isStaff = canAccessAnyFeedbackReport(permissions);
+  const reportId = extractDiscordFeedbackManageEditReportId(
+    typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
   );
 
-  if (!requester.id || !reportIdOrPrefix || !updateDetails) {
-    return buildDiscordEphemeralMessageResponse("Could not update that feedback.");
+  if (!requester.id || !reportId) {
+    return buildDiscordEphemeralMessageResponse("Choose a feedback card to edit.");
   }
 
-  const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix });
+  const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: reportId });
   if (!lookupResult.ok) {
     return buildDiscordFeedbackLookupFailureResponse(lookupResult.code);
   }
 
-  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
-  const isStaff = discordMemberHasBugStatusPermission(permissions);
   const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
-
   if (!isReporter && !isStaff) {
     return buildDiscordEphemeralMessageResponse("You can only update feedback you submitted.");
   }
@@ -1395,14 +1765,113 @@ async function handleFeedbackUpdateModalSubmit(interaction: DiscordInteraction) 
     return buildDiscordEphemeralMessageResponse("That feedback can no longer accept user updates.");
   }
 
-  const updateResult = await recordDiscordFeedbackReportUpdate({
+  return buildDiscordFeedbackUpdateModalResponse({
     reportId: lookupResult.report.id,
-    updateDetails,
+    summary: lookupResult.report.summary,
+    area: lookupResult.report.area,
+    details: lookupResult.report.details ?? "",
+  });
+}
+
+async function handleFeedbackManageWithdrawButton(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This feedback flow is only available in the configured server.");
+  }
+
+  const requester = resolveDiscordInteractionUser(interaction);
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  const isStaff = canAccessAnyFeedbackReport(permissions);
+  const reportId = extractDiscordFeedbackManageWithdrawReportId(
+    typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
+  );
+
+  if (!requester.id || !reportId) {
+    return buildDiscordEphemeralMessageResponse("Choose a feedback card to withdraw.");
+  }
+
+  const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: reportId });
+  if (!lookupResult.ok) {
+    return buildDiscordFeedbackLookupFailureResponse(lookupResult.code);
+  }
+
+  const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
+  if (!isReporter && !isStaff) {
+    return buildDiscordEphemeralMessageResponse("You can only withdraw feedback you submitted.");
+  }
+
+  if (
+    lookupResult.report.status === "duplicate"
+    || lookupResult.report.status === "spam"
+    || lookupResult.report.status === "withdrawn"
+  ) {
+    return buildDiscordEphemeralMessageResponse("That feedback can no longer be withdrawn.");
+  }
+
+  return buildDiscordFeedbackWithdrawSelectedModalResponse({
+    reportId: lookupResult.report.id,
+    summary: lookupResult.report.summary,
+  });
+}
+
+async function processFeedbackUpdateModalSubmit(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return "This feedback flow is only available in the configured server.";
+  }
+
+  const requester = resolveDiscordInteractionUser(interaction);
+  const reportId = extractDiscordFeedbackUpdateReportIdFromModalCustomId(
+    typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
+  );
+  const summary = extractDiscordModalTextInputValue(
+    interaction.data?.components,
+    FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
+  );
+  const area = extractDiscordModalTextInputValue(
+    interaction.data?.components,
+    FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
+  );
+  const details = extractDiscordModalTextInputValue(
+    interaction.data?.components,
+    FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
+  );
+
+  if (!requester.id || !reportId || !summary || !details) {
+    return "Could not update that feedback.";
+  }
+
+  const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: reportId });
+  if (!lookupResult.ok) {
+    return lookupResult.code === "DISCORD_BUG_REPORT_AMBIGUOUS_ID"
+      ? "That report id matched multiple feedback reports. Copy the full Report ID from the forum post."
+      : "Could not find that feedback report. Copy the Report ID from the forum post and try again.";
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  const isStaff = discordMemberHasBugStatusPermission(permissions);
+  const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
+
+  if (!isReporter && !isStaff) {
+    return "You can only update feedback you submitted.";
+  }
+
+  if (
+    lookupResult.report.status === "duplicate"
+    || lookupResult.report.status === "spam"
+    || lookupResult.report.status === "withdrawn"
+  ) {
+    return "That feedback can no longer accept user updates.";
+  }
+
+  const updateResult = await updateDiscordFeedbackReportContent({
+    reportId: lookupResult.report.id,
+    summary,
+    area,
+    details,
     updatedByDiscordUserId: requester.id,
   });
 
   if (!updateResult.ok) {
-    return buildDiscordEphemeralMessageResponse("Could not update that feedback right now.");
+    return "Could not update that feedback right now.";
   }
 
   const updatedReport = updateResult.report;
@@ -1412,22 +1881,42 @@ async function handleFeedbackUpdateModalSubmit(interaction: DiscordInteraction) 
   let forumSyncFailed = syncResult.forumSyncFailed;
 
   if (updatedReport.discord_forum_thread_id) {
+    const starterSyncResult = await syncDiscordFeedbackStarterMessage({
+      report: updatedReport,
+    });
+    if (!starterSyncResult.ok) {
+      forumSyncFailed = true;
+    }
+
     const auditCommentResult = await postFeedbackAuditComment({
       report: updatedReport,
       action: isReporter ? "reporter_update" : "staff_update",
       actorLabel: isReporter ? "reporter" : "staff",
-      note: updateDetails,
+      note: summarizeFeedbackContentChanges({
+        before: lookupResult.report,
+        after: updatedReport,
+      }),
     });
     if (!auditCommentResult.ok) {
       forumSyncFailed = true;
     }
   }
 
-  return buildDiscordEphemeralMessageResponse(
+  return (
     forumSyncFailed
       ? `Feedback updated, but the forum thread could not be fully synced. (${formatDiscordBugReportShortId(updatedReport.id)})`
-      : "Feedback updated.",
+      : "Feedback updated."
   );
+}
+
+async function handleFeedbackUpdateModalSubmit(interaction: DiscordInteraction) {
+  return buildDeferredDiscordEphemeralInteractionResponse({
+    interaction,
+    actionLabel: "feedback update",
+    genericFailureContent: "Could not update that feedback right now.",
+    fallback: async () => buildDiscordEphemeralMessageResponse(await processFeedbackUpdateModalSubmit(interaction)),
+    process: () => processFeedbackUpdateModalSubmit(interaction),
+  });
 }
 
 async function handleFeedbackWithdrawRequest(args: {
@@ -1436,17 +1925,19 @@ async function handleFeedbackWithdrawRequest(args: {
   statusNote?: string | null;
 }) {
   if (!interactionMatchesGuild(args.interaction)) {
-    return buildDiscordEphemeralMessageResponse("This feedback flow is only available in the configured server.");
+    return "This feedback flow is only available in the configured server.";
   }
 
   const requester = resolveDiscordInteractionUser(args.interaction);
   if (!requester.id || !args.reportIdOrPrefix) {
-    return buildDiscordEphemeralMessageResponse("Could not withdraw that feedback.");
+    return "Could not withdraw that feedback.";
   }
 
   const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: args.reportIdOrPrefix });
   if (!lookupResult.ok) {
-    return buildDiscordFeedbackLookupFailureResponse(lookupResult.code);
+    return lookupResult.code === "DISCORD_BUG_REPORT_AMBIGUOUS_ID"
+      ? "That report id matched multiple feedback reports. Copy the full Report ID from the forum post."
+      : "Could not find that feedback report. Copy the Report ID from the forum post and try again.";
   }
 
   const permissions = typeof args.interaction.member?.permissions === "string" ? args.interaction.member.permissions : null;
@@ -1454,7 +1945,7 @@ async function handleFeedbackWithdrawRequest(args: {
   const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
 
   if (!isReporter && !isStaff) {
-    return buildDiscordEphemeralMessageResponse("You can only withdraw feedback you submitted.");
+    return "You can only withdraw feedback you submitted.";
   }
 
   const withdrawResult = await withdrawDiscordFeedbackReport({
@@ -1464,7 +1955,7 @@ async function handleFeedbackWithdrawRequest(args: {
   });
 
   if (!withdrawResult.ok) {
-    return buildDiscordEphemeralMessageResponse("Could not withdraw that feedback right now.");
+    return "Could not withdraw that feedback right now.";
   }
 
   const updatedReport = withdrawResult.report;
@@ -1532,31 +2023,77 @@ async function handleFeedbackWithdrawRequest(args: {
     }
   }
 
-  return buildDiscordEphemeralMessageResponse(
+  return (
     forumSyncFailed
       ? `Feedback withdrawn, but the forum thread could not be fully synced or deleted. (${formatDiscordBugReportShortId(updatedReport.id)})`
-      : "Feedback withdrawn. The forum post was removed and we kept a small audit record.",
+      : "Feedback withdrawn. The forum post was removed and we kept a small audit record."
   );
 }
 
 async function handleFeedbackWithdrawInteraction(interaction: DiscordInteraction) {
-  return handleFeedbackWithdrawRequest({
+  return buildDiscordEphemeralMessageResponse(await handleFeedbackWithdrawRequest({
     interaction,
     reportIdOrPrefix: extractDiscordCommandStringOption(interaction.data?.options, FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME),
-  });
+  }));
 }
 
 async function handleFeedbackWithdrawModalSubmit(interaction: DiscordInteraction) {
-  return handleFeedbackWithdrawRequest({
+  return buildDeferredDiscordEphemeralInteractionResponse({
     interaction,
-    reportIdOrPrefix: extractDiscordModalTextInputValue(
-      interaction.data?.components,
-      FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
-    ),
-    statusNote: extractDiscordModalTextInputValue(
-      interaction.data?.components,
-      FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
-    ),
+    actionLabel: "feedback withdraw",
+    genericFailureContent: "Could not withdraw that feedback right now.",
+    fallback: async () => buildDiscordEphemeralMessageResponse(await handleFeedbackWithdrawRequest({
+      interaction,
+      reportIdOrPrefix: resolveSelectedFeedbackReportId({
+        components: interaction.data?.components,
+        selectCustomId: FITNESS_FEEDBACK_WITHDRAW_REPORT_SELECT_CUSTOM_ID,
+        textInputCustomId: FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
+      }),
+      statusNote: extractDiscordModalTextInputValue(
+        interaction.data?.components,
+        FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+      ),
+    })),
+    process: () => handleFeedbackWithdrawRequest({
+      interaction,
+      reportIdOrPrefix: resolveSelectedFeedbackReportId({
+        components: interaction.data?.components,
+        selectCustomId: FITNESS_FEEDBACK_WITHDRAW_REPORT_SELECT_CUSTOM_ID,
+        textInputCustomId: FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
+      }),
+      statusNote: extractDiscordModalTextInputValue(
+        interaction.data?.components,
+        FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+      ),
+    }),
+  });
+}
+
+async function handleFeedbackWithdrawSelectedModalSubmit(interaction: DiscordInteraction) {
+  return buildDeferredDiscordEphemeralInteractionResponse({
+    interaction,
+    actionLabel: "feedback withdraw",
+    genericFailureContent: "Could not withdraw that feedback right now.",
+    fallback: async () => buildDiscordEphemeralMessageResponse(await handleFeedbackWithdrawRequest({
+      interaction,
+      reportIdOrPrefix: extractDiscordFeedbackWithdrawSelectedReportId(
+        typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
+      ),
+      statusNote: extractDiscordModalTextInputValue(
+        interaction.data?.components,
+        FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+      ),
+    })),
+    process: () => handleFeedbackWithdrawRequest({
+      interaction,
+      reportIdOrPrefix: extractDiscordFeedbackWithdrawSelectedReportId(
+        typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
+      ),
+      statusNote: extractDiscordModalTextInputValue(
+        interaction.data?.components,
+        FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+      ),
+    }),
   });
 }
 
@@ -2138,14 +2675,52 @@ export async function POST(request: Request) {
       interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
       && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID
     ) {
-      return jsonResponse(buildDiscordFeedbackUpdateModalResponse());
+      return jsonResponse(await buildFeedbackUpdatePickerOpenResponse(interaction));
     }
 
     if (
       interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID
+      && typeof interaction.data?.custom_id === "string"
+      && interaction.data.custom_id.startsWith(`${FITNESS_FEEDBACK_UPDATE_PICKER_BUTTON_CUSTOM_ID_PREFIX}:`)
     ) {
-      return jsonResponse(buildDiscordFeedbackWithdrawModalResponse());
+      return jsonResponse(await handleFeedbackUpdatePickerButton(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && interaction.data?.custom_id === FITNESS_FEEDBACK_UPDATE_PICKER_SELECT_CUSTOM_ID
+    ) {
+      return jsonResponse(await handleFeedbackUpdatePickerSelection(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && interaction.data?.custom_id === FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_BUTTON_CUSTOM_ID
+    ) {
+      return jsonResponse(buildDiscordFeedbackManageLookupModalResponse());
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && typeof interaction.data?.custom_id === "string"
+      && extractDiscordFeedbackManageEditReportId(interaction.data.custom_id)
+    ) {
+      return jsonResponse(await handleFeedbackManageEditButton(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && typeof interaction.data?.custom_id === "string"
+      && extractDiscordFeedbackManageWithdrawReportId(interaction.data.custom_id)
+    ) {
+      return jsonResponse(await handleFeedbackManageWithdrawButton(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && interaction.data?.custom_id === FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID
+    ) {
+      return jsonResponse(buildDiscordEphemeralMessageResponse("Feedback action cancelled."));
     }
 
     if (
@@ -2174,16 +2749,32 @@ export async function POST(request: Request) {
 
     if (
       interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_UPDATE_MODAL_CUSTOM_ID
+      && interaction.data?.custom_id === FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_MODAL_CUSTOM_ID
     ) {
-      return jsonResponse(await handleFeedbackUpdateModalSubmit(interaction));
+      return jsonResponse(await handleFeedbackManageLookupModalSubmit(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
+      && typeof interaction.data?.custom_id === "string"
+      && extractDiscordFeedbackUpdateReportIdFromModalCustomId(interaction.data.custom_id)
+    ) {
+      return handleFeedbackUpdateModalSubmit(interaction);
     }
 
     if (
       interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
       && interaction.data?.custom_id === FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID
     ) {
-      return jsonResponse(await handleFeedbackWithdrawModalSubmit(interaction));
+      return handleFeedbackWithdrawModalSubmit(interaction);
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
+      && typeof interaction.data?.custom_id === "string"
+      && extractDiscordFeedbackWithdrawSelectedReportId(interaction.data.custom_id)
+    ) {
+      return handleFeedbackWithdrawSelectedModalSubmit(interaction);
     }
 
     if (

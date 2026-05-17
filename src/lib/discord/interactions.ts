@@ -34,10 +34,18 @@ export const FITNESS_MOD_LOG_COMMAND_NAME = "mod-log";
 export const FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_report_modal";
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID = "fitness_feedback_submit_open";
 export const FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID = "fitness_feedback_update_open";
-export const FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID = "fitness_feedback_withdraw_open";
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID = "fitness_feedback_submit_modal";
-export const FITNESS_FEEDBACK_UPDATE_MODAL_CUSTOM_ID = "fitness_feedback_update_modal";
 export const FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID = "fitness_feedback_withdraw_modal";
+export const FITNESS_FEEDBACK_UPDATE_PICKER_SELECT_CUSTOM_ID = "fitness_feedback_update_pick_report";
+export const FITNESS_FEEDBACK_UPDATE_EDIT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_update_edit_modal";
+export const FITNESS_FEEDBACK_UPDATE_PICKER_BUTTON_CUSTOM_ID_PREFIX = "fitness_feedback_manage_recent";
+export const FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_BUTTON_CUSTOM_ID = "fitness_feedback_manage_lookup_open";
+export const FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_MODAL_CUSTOM_ID = "fitness_feedback_manage_lookup_modal";
+export const FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_INPUT_CUSTOM_ID = "feedback_manage_lookup";
+export const FITNESS_FEEDBACK_MANAGE_EDIT_BUTTON_CUSTOM_ID_PREFIX = "fitness_feedback_manage_action_edit";
+export const FITNESS_FEEDBACK_MANAGE_WITHDRAW_BUTTON_CUSTOM_ID_PREFIX = "fitness_feedback_manage_action_withdraw";
+export const FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID = "fitness_feedback_manage_action_cancel";
+export const FITNESS_FEEDBACK_WITHDRAW_SELECTED_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_withdraw_selected_modal";
 export const FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX = "fitness_update_publish_modal";
 export const FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID = "feedback_type";
 export const FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID = "bug_summary";
@@ -46,8 +54,10 @@ export const FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID = "bug_severity";
 export const FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID = "bug_details";
 export const FITNESS_BUG_STEPS_INPUT_CUSTOM_ID = "bug_steps";
 export const FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID = "feedback_attachment";
+export const FITNESS_FEEDBACK_UPDATE_REPORT_SELECT_CUSTOM_ID = "feedback_update_report_select";
 export const FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID = "feedback_update_report_id";
 export const FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID = "feedback_update_details";
+export const FITNESS_FEEDBACK_WITHDRAW_REPORT_SELECT_CUSTOM_ID = "feedback_withdraw_report_select";
 export const FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID = "feedback_withdraw_report_id";
 export const FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID = "feedback_withdraw_note";
 export const FITNESS_FEEDBACK_TYPE_OPTION_NAME = "type";
@@ -67,15 +77,14 @@ export const FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID = "update_title";
 export const FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID = "update_what_changed";
 export const FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID = "update_why_it_matters";
 export const DEFAULT_VERIFY_MESSAGE_TITLE = "Verify your Fawxzzy Fitness account";
-export const DEFAULT_FEEDBACK_PANEL_TITLE = "Feedback Actions";
+export const DEFAULT_FEEDBACK_PANEL_TITLE = "Submit Feedback Here";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
-  "Use this panel to submit, update, or withdraw feedback.",
+  "Use this channel to send a new bug or feature request.",
   "",
-  "- Submit: report a bug or suggest a feature.",
-  "- Add Update: add more details to feedback you submitted.",
-  "- Withdraw: redact your submitted details while keeping the review record.",
+  "- Submit: create a new feedback card.",
+  "- Edit: manage one of your existing cards, including withdraw.",
   "",
-  "Feedback posts appear in this forum so the team can review and follow up.",
+  "Your feedback card will appear in the Feedback forum after submit.",
 ] as const;
 export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
   "To unlock the server:",
@@ -120,6 +129,26 @@ export const DISCORD_MODERATION_WARNING_SEVERITY_CHOICES = [
   { name: "Warning", value: "warning" },
   { name: "Critical", value: "critical" },
 ] as const;
+type DiscordButtonComponent = {
+  type: 2;
+  style: 1 | 2 | 4;
+  custom_id: string;
+  label: string;
+  disabled?: boolean;
+  emoji?: {
+    id: string;
+    name: string;
+  };
+};
+
+type DiscordStringSelectComponent = {
+  type: 3;
+  custom_id: string;
+  placeholder?: string;
+  options: DiscordFeedbackReportSelectOption[];
+  min_values?: number;
+  max_values?: number;
+};
 
 type DiscordMessagePayload = {
   embeds: Array<{
@@ -128,16 +157,7 @@ type DiscordMessagePayload = {
   }>;
   components: Array<{
     type: 1;
-    components: Array<{
-      type: 2;
-      style: 1 | 2 | 4;
-      custom_id: string;
-      label: string;
-      emoji?: {
-        id: string;
-        name: string;
-      };
-    }>;
+    components: Array<DiscordButtonComponent | DiscordStringSelectComponent>;
   }>;
 };
 
@@ -165,6 +185,13 @@ type DiscordEmojiObject = {
 };
 
 type DiscordFeedbackEmojiMap = Partial<Record<"Bug" | "Feature", DiscordEmojiObject>>;
+
+type DiscordFeedbackReportSelectOption = {
+  label: string;
+  value: string;
+  description?: string;
+  default?: boolean;
+};
 
 type DiscordModalLabelComponent = {
   type: 18;
@@ -234,6 +261,7 @@ function buildDiscordModalLabelTextInput(args: {
   customId: string;
   style: 1 | 2;
   placeholder?: string;
+  value?: string;
   required?: boolean;
   maxLength?: number;
 }): DiscordModalLabelComponent {
@@ -246,6 +274,7 @@ function buildDiscordModalLabelTextInput(args: {
       custom_id: args.customId,
       style: args.style,
       ...(args.placeholder ? { placeholder: args.placeholder } : {}),
+      ...(typeof args.value === "string" ? { value: args.value } : {}),
       required: args.required ?? true,
       ...(typeof args.maxLength === "number" ? { max_length: args.maxLength } : {}),
     },
@@ -289,6 +318,32 @@ function buildDiscordFeedbackTypeSelectComponent(args?: {
   };
 }
 
+function buildDiscordFeedbackReportSelectComponent(args: {
+  label: string;
+  description: string;
+  customId: string;
+  placeholder: string;
+  options: DiscordFeedbackReportSelectOption[];
+}): DiscordModalLabelComponent {
+  return {
+    type: 18,
+    label: args.label,
+    description: args.description,
+    component: {
+      type: 3,
+      custom_id: args.customId,
+      required: false,
+      placeholder: args.placeholder,
+      options: args.options.map((option) => ({
+        label: option.label,
+        value: option.value,
+        ...(option.description ? { description: option.description } : {}),
+        ...(option.default ? { default: true } : {}),
+      })),
+    },
+  };
+}
+
 function buildDiscordFeedbackAttachmentComponent(): DiscordModalLabelComponent {
   return {
     type: 18,
@@ -325,24 +380,24 @@ function buildDiscordFeedbackSubmitModalData(args?: {
         customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
         style: 1,
         placeholder: defaultReportType === "feature"
-          ? "Example: Add a weekly goal view"
-          : "Example: Copy button does not work",
+          ? "Example: Add a weekly goal dashboard"
+          : "Example: Recovery screen closes after save",
         required: true,
         maxLength: 120,
       }),
       buildDiscordModalLabelTextInput({
-        label: "Area",
+        label: "Area / screen",
         customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
         style: 1,
-        placeholder: "Settings, Discord Connector, session...",
+        placeholder: "Settings, Recovery, Discord Feedback...",
         required: false,
         maxLength: 80,
       }),
       buildDiscordModalLabelTextInput({
         label: defaultReportType === "feature" || defaultReportType === "bug"
-          ? "Description / what happened"
+          ? "Description"
           : "Details",
-        description: "Describe the bug or feature. Include steps, context, or a link if that helps.",
+        description: "Describe the issue or idea clearly. Include steps, context, or expected behavior if that helps.",
         customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
         style: 2,
         required: true,
@@ -371,19 +426,13 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
             type: 2,
             style: 1,
             custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
-            label: "Submit",
+            label: "Submit Feedback",
           },
           {
             type: 2,
             style: 2,
             custom_id: FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
-            label: "Add Update",
-          },
-          {
-            type: 2,
-            style: 4,
-            custom_id: FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID,
-            label: "Withdraw",
+            label: "Edit My Feedback",
           },
         ],
       },
@@ -411,7 +460,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
     },
     {
       name: FITNESS_FEEDBACK_SETUP_COMMAND_NAME,
-      description: "Post or refresh the Fitness feedback panel.",
+      description: "Post or refresh the Fitness feedback launcher.",
       default_member_permissions: setupDefaultPermissions,
     },
     {
@@ -700,24 +749,36 @@ export function buildDiscordFeedbackPanelSubmitModalResponse(args?: {
   };
 }
 
-export function buildDiscordFeedbackUpdateModalResponse() {
+export function buildDiscordFeedbackUpdatePickerResponse(args: {
+  recentReports: DiscordFeedbackReportSelectOption[];
+}) {
+  const recentButtons = args.recentReports.slice(0, 3).map((report) => ({
+    type: 2 as const,
+    style: 2 as const,
+    custom_id: `${FITNESS_FEEDBACK_UPDATE_PICKER_BUTTON_CUSTOM_ID_PREFIX}:${report.value}`,
+    label: truncateComponentLabel(report.label),
+  }));
+
   return {
-    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.CHANNEL_MESSAGE_WITH_SOURCE,
     data: {
-      custom_id: FITNESS_FEEDBACK_UPDATE_MODAL_CUSTOM_ID,
-      title: "Update Feedback",
+      content: "Choose a feedback card to manage.",
+      flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
       components: [
+        ...(recentButtons.length > 0 ? [{
+          type: 1,
+          components: recentButtons,
+        }] : []),
         {
           type: 1,
           components: [
             {
-              type: 4,
-              custom_id: FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID,
-              style: 1,
-              label: "Report ID or forum link",
-              placeholder: "Short ID, UUID, thread ID, or forum URL",
-              required: true,
-              max_length: 200,
+              type: 3,
+              custom_id: FITNESS_FEEDBACK_UPDATE_PICKER_SELECT_CUSTOM_ID,
+              placeholder: "More of your recent cards",
+              min_values: 1,
+              max_values: 1,
+              options: args.recentReports.slice(0, 25),
             },
           ],
         },
@@ -725,12 +786,10 @@ export function buildDiscordFeedbackUpdateModalResponse() {
           type: 1,
           components: [
             {
-              type: 4,
-              custom_id: FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID,
+              type: 2,
               style: 2,
-              label: "Update details",
-              required: true,
-              max_length: 1000,
+              custom_id: FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_BUTTON_CUSTOM_ID,
+              label: "Enter ID / Link",
             },
           ],
         },
@@ -739,43 +798,225 @@ export function buildDiscordFeedbackUpdateModalResponse() {
   };
 }
 
-export function buildDiscordFeedbackWithdrawModalResponse() {
+function truncateComponentLabel(value: string, maxLength = 80) {
+  const normalized = value.trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+function extractReportIdFromPrefixedCustomId(prefix: string, customId: string | null | undefined) {
+  if (!customId?.startsWith(`${prefix}:`)) {
+    return null;
+  }
+
+  const reportId = customId.slice(prefix.length + 1).trim();
+  return reportId || null;
+}
+
+export function extractDiscordFeedbackUpdatePickerReportId(customId: string | null | undefined) {
+  return extractReportIdFromPrefixedCustomId(FITNESS_FEEDBACK_UPDATE_PICKER_BUTTON_CUSTOM_ID_PREFIX, customId);
+}
+
+export function buildDiscordFeedbackUpdateModalCustomId(reportId: string) {
+  return `${FITNESS_FEEDBACK_UPDATE_EDIT_MODAL_CUSTOM_ID_PREFIX}:${reportId}`;
+}
+
+export function extractDiscordFeedbackUpdateReportIdFromModalCustomId(customId: string | null | undefined) {
+  if (!customId?.startsWith(`${FITNESS_FEEDBACK_UPDATE_EDIT_MODAL_CUSTOM_ID_PREFIX}:`)) {
+    return null;
+  }
+
+  const reportId = customId.slice(FITNESS_FEEDBACK_UPDATE_EDIT_MODAL_CUSTOM_ID_PREFIX.length + 1).trim();
+  return reportId || null;
+}
+
+export function buildDiscordFeedbackUpdateModalResponse(args: {
+  reportId: string;
+  summary: string;
+  area?: string | null;
+  details: string;
+}) {
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
     data: {
-      custom_id: FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID,
-      title: "Withdraw Feedback",
+      custom_id: buildDiscordFeedbackUpdateModalCustomId(args.reportId),
+      title: "Edit Feedback Card",
+      components: [
+        buildDiscordModalLabelTextInput({
+          label: "Title",
+          customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
+          style: 1,
+          value: args.summary,
+          required: true,
+          maxLength: 120,
+        }),
+        buildDiscordModalLabelTextInput({
+          label: "Area",
+          customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
+          style: 1,
+          value: args.area ?? "",
+          required: false,
+          maxLength: 80,
+        }),
+        buildDiscordModalLabelTextInput({
+          label: "Description / what happened",
+          description: "Edit the main card text. Saving updates the live forum post.",
+          customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
+          style: 2,
+          value: args.details,
+          required: true,
+          maxLength: 1200,
+        }),
+      ],
+    },
+  };
+}
+
+export function buildDiscordFeedbackManageLookupModalResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_MODAL_CUSTOM_ID,
+      title: "Find Feedback Card",
+      components: [
+        buildDiscordModalLabelTextInput({
+          label: "Report ID or forum link",
+          description: "Paste a short id, full id, thread id, or forum URL.",
+          customId: FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_INPUT_CUSTOM_ID,
+          style: 1,
+          placeholder: "b88b31ba or https://discord.com/channels/...",
+          required: true,
+          maxLength: 200,
+        }),
+      ],
+    },
+  };
+}
+
+export function buildDiscordFeedbackManageCardResponse(args: {
+  reportId: string;
+  summary: string;
+  statusLabel: string;
+  typeLabel: string;
+  area?: string | null;
+}) {
+  const areaLabel = args.area?.trim() ? `\nArea: ${args.area.trim()}` : "";
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      content:
+        `Manage \`${args.reportId.slice(0, 8)}\`.\n`
+        + `${args.typeLabel} • ${args.statusLabel}${areaLabel}\n`
+        + `${args.summary}`,
+      flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
       components: [
         {
           type: 1,
           components: [
             {
-              type: 4,
-              custom_id: FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
+              type: 2,
               style: 1,
-              label: "Report ID or forum link",
-              placeholder: "Short ID, UUID, thread ID, or forum URL",
-              required: true,
-              max_length: 200,
+              custom_id: `${FITNESS_FEEDBACK_MANAGE_EDIT_BUTTON_CUSTOM_ID_PREFIX}:${args.reportId}`,
+              label: "Edit Card",
             },
-          ],
-        },
-        {
-          type: 1,
-          components: [
             {
-              type: 4,
-              custom_id: FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+              type: 2,
+              style: 4,
+              custom_id: `${FITNESS_FEEDBACK_MANAGE_WITHDRAW_BUTTON_CUSTOM_ID_PREFIX}:${args.reportId}`,
+              label: "Withdraw",
+            },
+            {
+              type: 2,
               style: 2,
-              label: "Optional note",
-              required: false,
-              max_length: 500,
+              custom_id: FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID,
+              label: "Cancel",
             },
           ],
         },
       ],
     },
   };
+}
+
+export function extractDiscordFeedbackManageEditReportId(customId: string | null | undefined) {
+  return extractReportIdFromPrefixedCustomId(FITNESS_FEEDBACK_MANAGE_EDIT_BUTTON_CUSTOM_ID_PREFIX, customId);
+}
+
+export function extractDiscordFeedbackManageWithdrawReportId(customId: string | null | undefined) {
+  return extractReportIdFromPrefixedCustomId(FITNESS_FEEDBACK_MANAGE_WITHDRAW_BUTTON_CUSTOM_ID_PREFIX, customId);
+}
+
+export function buildDiscordFeedbackWithdrawModalResponse(args?: {
+  recentReports?: DiscordFeedbackReportSelectOption[] | null;
+}) {
+  const recentReports = Array.isArray(args?.recentReports) && args.recentReports.length > 0
+    ? args.recentReports.slice(0, 25)
+    : null;
+
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID,
+      title: "Withdraw Feedback",
+      components: [
+        ...(recentReports
+          ? [buildDiscordFeedbackReportSelectComponent({
+            label: "Recent cards",
+            description: "Pick one of your recent cards or paste a report id below.",
+            customId: FITNESS_FEEDBACK_WITHDRAW_REPORT_SELECT_CUSTOM_ID,
+            placeholder: "Select a recent card",
+            options: recentReports,
+          })]
+          : []),
+        buildDiscordModalLabelTextInput({
+          label: "Report ID or forum link",
+          description: recentReports ? "Optional if you choose a recent card above." : undefined,
+          customId: FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
+          style: 1,
+          placeholder: "Short ID, UUID, thread ID, or forum URL",
+          required: !recentReports,
+          maxLength: 200,
+        }),
+        buildDiscordModalLabelTextInput({
+          label: "Optional note",
+          customId: FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+          style: 2,
+          required: false,
+          maxLength: 500,
+        }),
+      ],
+    },
+  };
+}
+
+export function buildDiscordFeedbackWithdrawSelectedModalResponse(args: {
+  reportId: string;
+  summary: string;
+}) {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: `${FITNESS_FEEDBACK_WITHDRAW_SELECTED_MODAL_CUSTOM_ID_PREFIX}:${args.reportId}`,
+      title: "Withdraw Feedback",
+      components: [
+        buildDiscordModalLabelTextInput({
+          label: "Optional note",
+          description: `We will withdraw "${truncateComponentLabel(args.summary, 60)}" and keep a small audit record.`,
+          customId: FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
+          style: 2,
+          required: false,
+          maxLength: 500,
+        }),
+      ],
+    },
+  };
+}
+
+export function extractDiscordFeedbackWithdrawSelectedReportId(customId: string | null | undefined) {
+  return extractReportIdFromPrefixedCustomId(FITNESS_FEEDBACK_WITHDRAW_SELECTED_MODAL_CUSTOM_ID_PREFIX, customId);
 }
 
 export function buildDiscordUpdatePublishModalCustomId(draftId: string) {
@@ -1068,7 +1309,6 @@ export function discordMessageHasFeedbackPanel(message: unknown): boolean {
   return [
     FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
     FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
-    FITNESS_FEEDBACK_PANEL_WITHDRAW_BUTTON_CUSTOM_ID,
   ].every((customId) => discordMessageHasComponentCustomId(message, customId));
 }
 
