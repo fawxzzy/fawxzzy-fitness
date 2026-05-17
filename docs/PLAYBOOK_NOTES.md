@@ -1,6 +1,15 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
+- Type: Guardrail
+- Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.
+- Rule: Feedback cards are signals, not automatic implementation authority.
+- Pattern: Feedback board export -> reviewed task packet -> Codex draft prompt -> human approval -> implementation -> feedback status update.
+- Failure Mode: Running Codex directly from raw forum cards creates noisy sprint churn and duplicate task truth.
+- Evidence: scripts/generate-feedback-task-packets.mjs, scripts/generate-feedback-task-packets.test.mjs, docs/ops/FITNESS-FEEDBACK-REVIEWED-TASKS.md
+- Status: Proposed
+
 ## 2026-05-17 - Discord noise control should use permissions and mentions, not fake mute claims
 - Type: Guardrail
 - Summary: Fawx Security can inventory server ids and enforce low-noise posting rules, but personal channel mute state remains a user-side Discord preference.
