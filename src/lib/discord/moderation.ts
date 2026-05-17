@@ -7,6 +7,7 @@ import {
   DISCORD_PURGATORY_CHANNEL_ID,
   DISCORD_PURGATORY_REMOVED_ROLE_IDS,
   DISCORD_PURGATORY_ROLE_ID,
+  DISCORD_VERIFY_CHANNEL_ID_OPTIONAL,
   DISCORD_VERIFIED_ROLE_ID_OPTIONAL,
 } from "@/lib/env";
 import {
@@ -24,6 +25,7 @@ import {
   addDiscordGuildMemberRole,
   createDiscordChannel,
   createDiscordChannelMessage,
+  createDiscordDirectMessageChannel,
   createDiscordRole,
   fetchDiscordChannel,
   fetchDiscordGuild,
@@ -33,6 +35,7 @@ import {
   removeDiscordGuildMemberRole,
   type DiscordAllowedMentions,
   type DiscordChannel,
+  type DiscordDirectMessageChannel,
   type DiscordGuildMember,
   type DiscordGuildRole,
   updateDiscordChannelPermissionOverwrite,
@@ -48,6 +51,7 @@ const DISCORD_MODERATION_NOTE_MAX_LENGTH = 1000;
 const DISCORD_MODERATION_NOTICE_TEMPLATE_TITLE = "Fawx Security Notice";
 const DISCORD_MODERATION_WARNING_TEMPLATE_TITLE = "Fawx Security Warning";
 const DISCORD_MODERATION_PURGATORY_TEMPLATE_TITLE = "Fawx Security: Purgatory";
+const DISCORD_MODERATION_RELEASE_TEMPLATE_TITLE = "Fawx Security: Released";
 
 export type DiscordModerationAction = "notice" | "warning" | "purgatory" | "release";
 export type DiscordModerationSeverity = "notice" | "warning" | "purgatory" | "critical";
@@ -104,6 +108,7 @@ type DiscordModerationDependencies = {
   addMemberRole?: typeof addDiscordGuildMemberRole;
   removeMemberRole?: typeof removeDiscordGuildMemberRole;
   createMessage?: typeof createDiscordChannelMessage;
+  createDmChannel?: typeof createDiscordDirectMessageChannel;
 };
 
 type EnsurePurgatoryResult =
@@ -486,6 +491,45 @@ function buildModerationTargetMessage(args: {
     "",
     "An admin will talk with you here. This is reversible.",
   ].join("\n");
+}
+
+function buildModerationReleaseMessage(note: string | null) {
+  return [
+    `## ${DISCORD_MODERATION_RELEASE_TEMPLATE_TITLE}`,
+    "",
+    "You have been released from Purgatory.",
+    "",
+    "Note:",
+    note ?? "No note provided.",
+    "",
+    "Please keep things clean moving forward.",
+  ].join("\n");
+}
+
+async function sendModerationDirectMessage(args: {
+  targetDiscordUserId: string;
+  content: string;
+  dependencies?: DiscordModerationDependencies;
+}): Promise<DiscordDirectMessageChannel | null> {
+  const createDmChannel = args.dependencies?.createDmChannel ?? createDiscordDirectMessageChannel;
+  const createMessage = args.dependencies?.createMessage ?? createDiscordChannelMessage;
+
+  const dmChannelResult = await createDmChannel({
+    recipientUserId: args.targetDiscordUserId,
+  });
+  if (!dmChannelResult.ok) {
+    return null;
+  }
+
+  const dmMessageResult = await createMessage({
+    channelId: dmChannelResult.channel.id,
+    body: {
+      content: args.content,
+      allowed_mentions: buildAllowedMentions(),
+    },
+  });
+
+  return dmMessageResult.ok ? dmChannelResult.channel : null;
 }
 
 export function formatDiscordModerationCaseShortId(caseId: string): string {
@@ -1098,6 +1142,33 @@ export async function ensureDiscordPurgatoryInfrastructure(args: {
     }
   }
 
+  const verifyChannelId = DISCORD_VERIFY_CHANNEL_ID_OPTIONAL();
+  if (verifyChannelId) {
+    const verifyChannelResult = await fetchChannel({
+      channelId: verifyChannelId,
+    });
+    if (!verifyChannelResult.ok) {
+      warnings.push("Configured verify channel was not found.");
+    } else {
+      const verifyOverwriteResult = await updateOverwrite({
+        channelId: verifyChannelResult.channel.id,
+        overwriteId: purgatoryRole.id,
+        overwrite: {
+          allow: "0",
+          deny: String(DISCORD_PERMISSION_VIEW_CHANNEL),
+          type: DISCORD_OVERWRITE_TYPE_ROLE,
+        },
+      });
+      if (!verifyOverwriteResult.ok) {
+        return {
+          ok: false,
+          code: verifyOverwriteResult.code,
+          message: verifyOverwriteResult.message ?? "Could not hide the verify channel from Purgatory users.",
+        };
+      }
+    }
+  }
+
   return {
     ok: true,
     roleId: purgatoryRole.id,
@@ -1177,6 +1248,18 @@ export async function createDiscordModerationWarning(args: {
   }
 
   const warnings: string[] = [];
+  const dmChannel = await sendModerationDirectMessage({
+    targetDiscordUserId: args.targetDiscordUserId,
+    content: buildModerationTargetMessage({
+      severity: args.severity === "notice" ? "notice" : "warning",
+      reason,
+    }),
+    dependencies: args.dependencies,
+  });
+  if (!dmChannel) {
+    warnings.push("Could not send the moderation direct message.");
+  }
+
   if (DISCORD_MOD_LOG_CHANNEL_ID()) {
     const logMessageResult = await createMessage({
       channelId: DISCORD_MOD_LOG_CHANNEL_ID() as string,
@@ -1410,6 +1493,18 @@ export async function moveDiscordUserToPurgatory(args: {
     },
   });
 
+  const dmChannel = await sendModerationDirectMessage({
+    targetDiscordUserId: args.targetDiscordUserId,
+    content: buildModerationTargetMessage({
+      severity: "purgatory",
+      reason,
+    }),
+    dependencies: args.dependencies,
+  });
+  if (!dmChannel) {
+    warnings.push("Could not send the Purgatory direct message.");
+  }
+
   if (infraResult.logChannelId) {
     const logMessageResult = await createMessage({
       channelId: infraResult.logChannelId,
@@ -1620,6 +1715,15 @@ async function finalizeDiscordPurgatoryCase(args: {
     if (!logMessageResult.ok) {
       warnings.push("Could not post the release log message.");
     }
+  }
+
+  const dmChannel = await sendModerationDirectMessage({
+    targetDiscordUserId: updatedCaseResult.caseRow.target_discord_user_id,
+    content: buildModerationReleaseMessage(releaseNote),
+    dependencies: args.dependencies,
+  });
+  if (!dmChannel) {
+    warnings.push("Could not send the release direct message.");
   }
 
   return {

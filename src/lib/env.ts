@@ -174,6 +174,10 @@ export function DISCORD_VERIFY_CHANNEL_ID(): string {
   return mustGetSnowflakeEnv(DISCORD_VERIFY_CHANNEL_ID_ENV);
 }
 
+export function DISCORD_VERIFY_CHANNEL_ID_OPTIONAL(): string | null {
+  return optionalSnowflakeEnv(DISCORD_VERIFY_CHANNEL_ID_ENV);
+}
+
 export function DISCORD_VERIFIED_ROLE_ID(): string {
   return mustGetSnowflakeEnv(DISCORD_VERIFIED_ROLE_ID_ENV);
 }

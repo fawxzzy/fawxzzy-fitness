@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createDiscordChannelMessage,
   createDiscordChannel,
+  createDiscordDirectMessageChannel,
   createDiscordRole,
   createDiscordForumThreadWithMessage,
   createDiscordMessageReaction,
@@ -496,6 +497,43 @@ test("updateDiscordChannelPermissionOverwrite PUTs the overwrite payload", async
       url: "https://discord.com/api/v10/channels/channel-1/permissions/role-1",
       method: "PUT",
       body: JSON.stringify({ allow: "123", deny: "456", type: 0 }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("createDiscordDirectMessageChannel POSTs the DM channel payload", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "dm-channel-1", type: 1 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await createDiscordDirectMessageChannel({
+      recipientUserId: "123456789012345678",
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      channel: { id: "dm-channel-1", type: 1 },
+    });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/users/@me/channels",
+      method: "POST",
+      body: JSON.stringify({ recipient_id: "123456789012345678" }),
     });
   } finally {
     globalThis.fetch = originalFetch;

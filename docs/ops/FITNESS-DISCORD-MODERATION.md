@@ -52,6 +52,7 @@ Purgatory uses reversible access isolation:
 - remove configured access roles temporarily
 - hide the Purgatory category from `@everyone`
 - allow the `Purgatory` role and the bot inside the Purgatory category/channel
+- explicitly hide the `verify` channel from the `Purgatory` role so jailed users do not fall back into the public verification lane
 - keep normal server roles restorable through the stored case row
 
 Configured removals:
@@ -60,6 +61,10 @@ Configured removals:
 
 Optional log destination:
 - `DISCORD_MOD_LOG_CHANNEL_ID`
+
+DM behavior:
+- Fawx Security attempts to DM the target on notice, warning, Purgatory move, and release
+- DM delivery is fail-soft and should never block the moderation action
 
 ## Case model
 Each moderation action writes a row to `public.discord_moderation_cases`.
