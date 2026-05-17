@@ -19,6 +19,31 @@ Pattern:
 Failure mode:
 - treating every forum card like automatic repo truth creates noisy sprint churn
 
+## Canonical workflow
+Canonical workflow:
+1. Feedback forum is the visible community board.
+2. Supabase `discord_feedback_reports` is the bounded index.
+3. Fawx Security owns card state changes in Discord.
+4. Every post-creation mutation gets a thread-visible audit comment.
+5. `feedback:board:export` creates reviewed Markdown/JSON artifacts.
+6. Verta Core / Playbook consumes exports as planning input.
+7. Codex work starts only from reviewed prompts or tasks.
+8. Update Bot posts to the updates channel only for curated user-facing release notes.
+9. ATLAS receives durable reviewed summaries, not every raw card.
+
+Rules:
+- Feedback card updates do not automatically post to the updates channel.
+- Update Bot posts are curated user-facing announcements, not card mutation logs.
+- Verta Core / Playbook exports are review input, not automatic truth.
+- No direct Discord-to-ATLAS or Discord-to-GitHub writes.
+- No routine or workout sharing work in this lane.
+
+Failure modes:
+- posting every feedback card update to `#updates` creates noise
+- writing every card to ATLAS creates duplicate task truth
+- running Codex directly from unreviewed forum cards creates noisy sprint churn
+- keeping separate task copies outside the board/export path causes lost tasks
+
 ## Status model
 Statuses remain stable in storage:
 - `new`

@@ -154,6 +154,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating every forum card as automatic engineering truth creates noisy sprint churn.
 - Status: Proposed
 
+## 2026-05-16 - Feedback workflow should promote reviewed exports, not duplicate raw task copies
+- Type: Guardrail
+- Summary: The Feedback forum is the visible community board, but the durable workflow should move through bounded rows, reviewed board exports, reviewed Codex prompts, and curated update posts rather than automatic copies into ATLAS, GitHub, or `#updates`.
+- Rule: Feedback card updates should stay in the forum thread as audit comments, not automatic release posts.
+- Rule: Update Bot posts are curated user-facing announcements, not card mutation logs.
+- Rule: ATLAS should receive reviewed summaries, not every raw feedback card.
+- Rule: No direct Discord-to-ATLAS or Discord-to-GitHub writes in this lane.
+- Pattern: feedback card -> audit comments -> board export -> Verta Core or Playbook review -> reviewed Codex task -> curated update post when user-facing.
+- Failure Mode: Duplicating raw cards into ATLAS, GitHub, or the updates channel creates noisy and conflicting task truth.
+- Status: Proposed
+
 ## 2026-05-16 - Feedback card mutations should leave thread-visible audit comments
 - Type: Pattern
 - Summary: When the bot changes a feedback card, it should post a compact thread comment so the forum itself shows a readable modification history.

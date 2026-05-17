@@ -14,6 +14,7 @@ Product rules:
 - Feedback intake success depends on the bounded report row first and the forum thread second.
 - Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
 - Optional Discord decoration must fail soft.
+- Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
 
 ## Command surface
 - `/setup-feedback`
@@ -45,6 +46,31 @@ Separate production-update staff commands may also exist:
 - `update-latest`
 - `update-publish`
 - `update-skip`
+
+## Canonical workflow
+Workflow:
+1. User submits a feedback card.
+2. Fawx Security creates or updates the forum card.
+3. Every post-creation mutation gets a thread-visible audit comment.
+4. `feedback:board:export` writes reviewed Markdown/JSON artifacts.
+5. Verta Core / Playbook reviews the export.
+6. Codex work begins only from reviewed prompts or tasks.
+7. Work ships.
+8. `/feedback-status` marks the card `Fixed` or `Completed`.
+9. Update Bot may publish a curated release post only when the change is user-facing.
+
+Rules:
+- Feedback card updates do not automatically post to the updates channel.
+- Forum card mutations should stay in the thread as compact audit comments.
+- Exports are review input, not automatic truth.
+- No direct Discord-to-ATLAS or Discord-to-GitHub writes.
+- No routine or workout sharing work in this lane.
+
+Failure modes:
+- posting every card mutation to `#updates` creates noise
+- writing every raw card into ATLAS creates duplicate task truth
+- starting Codex work from unreviewed forum cards creates noisy sprint churn
+- creating parallel task copies outside the board/export path causes lost tasks
 
 ## User flow
 1. An admin runs `/setup-feedback`.
