@@ -10,6 +10,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: scripts/generate-feedback-task-packets.mjs, scripts/generate-feedback-task-packets.test.mjs, docs/ops/FITNESS-FEEDBACK-REVIEWED-TASKS.md
 - Status: Proposed
 
+## 2026-05-17 - Discord release posts and feedback audit comments must stay separate
+- Type: Guardrail
+- Summary: Public `#updates` announcements and local feedback-thread audit comments serve different audiences and should never be collapsed into one message type.
+- Rule: Release posts announce shipped user-facing changes in `#updates`.
+- Rule: Feedback audit comments stay inside the card thread and document card history.
+- Rule: Do not post every feedback mutation to `#updates`.
+- Pattern: card mutation -> compact thread audit comment; production release or approved shipped-card promotion -> curated updates-channel post.
+- Failure Mode: Posting every card update to `#updates` creates noise, while silent card edits make the board hard to trust.
+- Status: Proposed
+
 ## 2026-05-17 - Discord noise control should use permissions and mentions, not fake mute claims
 - Type: Guardrail
 - Summary: Fawx Security can inventory server ids and enforce low-noise posting rules, but personal channel mute state remains a user-side Discord preference.
