@@ -40,6 +40,29 @@ export type DiscordChannel = {
   available_tags?: DiscordForumTag[];
 };
 
+export type DiscordGuild = {
+  id: string;
+  owner_id?: string;
+};
+
+export type DiscordGuildRole = {
+  id: string;
+  name?: string;
+  permissions?: string;
+  position?: number;
+  managed?: boolean;
+};
+
+export type DiscordGuildMember = {
+  user?: {
+    id?: string;
+    username?: string;
+    global_name?: string | null;
+  };
+  nick?: string | null;
+  roles?: string[];
+};
+
 export type DiscordActiveThreadsResponse = {
   threads?: DiscordChannel[];
 };
@@ -56,6 +79,12 @@ export type DiscordGuildEmoji = {
 };
 
 export type DiscordApplicationEmoji = DiscordGuildEmoji;
+
+type DiscordChannelPermissionOverwrite = {
+  allow: string;
+  deny: string;
+  type: 0 | 1;
+};
 
 async function parseDiscordJson(response: Response): Promise<unknown> {
   const responseText = await response.text();
@@ -183,6 +212,172 @@ export async function removeDiscordGuildMemberRole(args: {
   return {
     ok: false,
     code: result.status === 403 ? "DISCORD_ROLE_REMOVAL_FORBIDDEN" : "DISCORD_ROLE_REMOVAL_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordGuild(args: {
+  guildId: string;
+}): Promise<{ ok: true; guild: DiscordGuild } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordGuild>(
+    `/guilds/${args.guildId}`,
+    { method: "GET" },
+  );
+
+  if (result.ok && result.data && typeof result.data.id === "string") {
+    return { ok: true, guild: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_GUILD_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordGuildRoles(args: {
+  guildId: string;
+}): Promise<{ ok: true; roles: DiscordGuildRole[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordGuildRole[]>(
+    `/guilds/${args.guildId}/roles`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data)) {
+    return { ok: true, roles: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_GUILD_ROLES_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordGuildChannels(args: {
+  guildId: string;
+}): Promise<{ ok: true; channels: DiscordChannel[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel[]>(
+    `/guilds/${args.guildId}/channels`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data)) {
+    return { ok: true, channels: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_GUILD_CHANNELS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordGuildMember(args: {
+  guildId: string;
+  userId: string;
+}): Promise<{ ok: true; member: DiscordGuildMember } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordGuildMember>(
+    `/guilds/${args.guildId}/members/${args.userId}`,
+    { method: "GET" },
+  );
+
+  if (result.ok && result.data) {
+    return { ok: true, member: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_GUILD_MEMBER_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function createDiscordRole(args: {
+  guildId: string;
+  name: string;
+}): Promise<{ ok: true; role: DiscordGuildRole } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordGuildRole>(
+    `/guilds/${args.guildId}/roles`,
+    {
+      method: "POST",
+      body: {
+        name: args.name,
+      },
+    },
+  );
+
+  if (result.ok && result.data && typeof result.data.id === "string") {
+    return { ok: true, role: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_CREATE_ROLE_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function createDiscordChannel(args: {
+  guildId: string;
+  name: string;
+  type: number;
+  parentId?: string | null;
+}): Promise<{ ok: true; channel: DiscordChannel } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel>(
+    `/guilds/${args.guildId}/channels`,
+    {
+      method: "POST",
+      body: {
+        name: args.name,
+        type: args.type,
+        ...(args.parentId ? { parent_id: args.parentId } : {}),
+      },
+    },
+  );
+
+  if (result.ok && result.data && typeof result.data.id === "string") {
+    return { ok: true, channel: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_CREATE_CHANNEL_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function updateDiscordChannelPermissionOverwrite(args: {
+  channelId: string;
+  overwriteId: string;
+  overwrite: DiscordChannelPermissionOverwrite;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<null>(
+    `/channels/${args.channelId}/permissions/${args.overwriteId}`,
+    {
+      method: "PUT",
+      body: {
+        allow: args.overwrite.allow,
+        deny: args.overwrite.deny,
+        type: args.overwrite.type,
+      },
+    },
+  );
+
+  if (result.ok && result.status === 204) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_UPDATE_CHANNEL_PERMISSION_OVERWRITE_FAILED",
     status: result.status,
     message: result.errorMessage,
   };

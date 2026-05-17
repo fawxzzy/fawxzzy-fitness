@@ -24,6 +24,10 @@ export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
 export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
 export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";
+export const FITNESS_PURGATORY_SETUP_COMMAND_NAME = "purgatory-setup";
+export const FITNESS_PURGATORY_COMMAND_NAME = "purgatory";
+export const FITNESS_RELEASE_COMMAND_NAME = "release";
+export const FITNESS_MOD_LOG_COMMAND_NAME = "mod-log";
 export const FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_report_modal";
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID = "fitness_feedback_submit_open";
 export const FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID = "fitness_feedback_update_open";
@@ -49,6 +53,12 @@ export const FITNESS_BUG_STATUS_STATUS_OPTION_NAME = "status";
 export const FITNESS_BUG_STATUS_NOTE_OPTION_NAME = "note";
 export const FITNESS_UPDATE_DRAFT_ID_OPTION_NAME = "draft_id";
 export const FITNESS_UPDATE_SKIP_REASON_OPTION_NAME = "reason";
+export const FITNESS_PURGATORY_USER_OPTION_NAME = "user";
+export const FITNESS_PURGATORY_REASON_OPTION_NAME = "reason";
+export const FITNESS_PURGATORY_DURATION_OPTION_NAME = "duration";
+export const FITNESS_RELEASE_CASE_ID_OPTION_NAME = "case_id";
+export const FITNESS_RELEASE_NOTE_OPTION_NAME = "note";
+export const FITNESS_MOD_LOG_LIMIT_OPTION_NAME = "limit";
 export const FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID = "update_title";
 export const FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID = "update_what_changed";
 export const FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID = "update_why_it_matters";
@@ -75,8 +85,13 @@ export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
   "https://fawxzzy-fitness-local.vercel.app/login",
 ] as const;
 export const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
+export const DISCORD_PERMISSION_MANAGE_CHANNELS = BigInt(1) << BigInt(4);
 export const DISCORD_PERMISSION_MANAGE_GUILD = BigInt(1) << BigInt(5);
+export const DISCORD_PERMISSION_VIEW_CHANNEL = BigInt(1) << BigInt(10);
+export const DISCORD_PERMISSION_SEND_MESSAGES = BigInt(1) << BigInt(11);
 export const DISCORD_PERMISSION_MANAGE_MESSAGES = BigInt(1) << BigInt(13);
+export const DISCORD_PERMISSION_READ_MESSAGE_HISTORY = BigInt(1) << BigInt(16);
+export const DISCORD_PERMISSION_MANAGE_ROLES = BigInt(1) << BigInt(28);
 export const DISCORD_PERMISSION_MANAGE_THREADS = BigInt(1) << BigInt(34);
 
 export const DISCORD_BUG_STATUS_CHOICES = [
@@ -121,10 +136,12 @@ type DiscordApplicationCommandDefinition = {
   description: string;
   default_member_permissions?: string;
   options?: Array<{
-    type: number;
+    type: 3 | 4 | 6;
     name: string;
     description: string;
     required?: boolean;
+    min_value?: number;
+    max_value?: number;
     choices?: Array<{
       name: string;
       value: string;
@@ -366,6 +383,10 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
 
 export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommandDefinition[] {
   const setupDefaultPermissions = String(DISCORD_PERMISSION_MANAGE_GUILD);
+  const moderationDefaultPermissions = String(
+    DISCORD_PERMISSION_MANAGE_GUILD
+    | DISCORD_PERMISSION_MANAGE_ROLES,
+  );
   const feedbackStatusDefaultPermissions = String(
     DISCORD_PERMISSION_MANAGE_GUILD
     | DISCORD_PERMISSION_MANAGE_THREADS
@@ -461,6 +482,82 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
           name: FITNESS_UPDATE_SKIP_REASON_OPTION_NAME,
           description: "Optional reason for skipping this draft.",
           required: false,
+        },
+      ],
+    },
+    {
+      name: FITNESS_PURGATORY_SETUP_COMMAND_NAME,
+      description: "Create or verify the reversible Purgatory moderation setup.",
+      default_member_permissions: moderationDefaultPermissions,
+    },
+    {
+      name: FITNESS_PURGATORY_COMMAND_NAME,
+      description: "Move a user into reversible Purgatory isolation.",
+      default_member_permissions: moderationDefaultPermissions,
+      options: [
+        {
+          type: 6,
+          name: FITNESS_PURGATORY_USER_OPTION_NAME,
+          description: "User to isolate in Purgatory.",
+          required: true,
+        },
+        {
+          type: 3,
+          name: FITNESS_PURGATORY_REASON_OPTION_NAME,
+          description: "Why this user is being moved to Purgatory.",
+          required: true,
+        },
+        {
+          type: 3,
+          name: FITNESS_PURGATORY_DURATION_OPTION_NAME,
+          description: "Optional duration like 10m, 1h, or 1d.",
+          required: false,
+        },
+      ],
+    },
+    {
+      name: FITNESS_RELEASE_COMMAND_NAME,
+      description: "Release a user from Purgatory and restore safe roles.",
+      default_member_permissions: moderationDefaultPermissions,
+      options: [
+        {
+          type: 6,
+          name: FITNESS_PURGATORY_USER_OPTION_NAME,
+          description: "User with an active Purgatory case.",
+          required: false,
+        },
+        {
+          type: 3,
+          name: FITNESS_RELEASE_CASE_ID_OPTION_NAME,
+          description: "Case UUID or short case id.",
+          required: false,
+        },
+        {
+          type: 3,
+          name: FITNESS_RELEASE_NOTE_OPTION_NAME,
+          description: "Optional release note.",
+          required: false,
+        },
+      ],
+    },
+    {
+      name: FITNESS_MOD_LOG_COMMAND_NAME,
+      description: "Show recent Purgatory moderation cases.",
+      default_member_permissions: moderationDefaultPermissions,
+      options: [
+        {
+          type: 6,
+          name: FITNESS_PURGATORY_USER_OPTION_NAME,
+          description: "Optional user filter.",
+          required: false,
+        },
+        {
+          type: 4,
+          name: FITNESS_MOD_LOG_LIMIT_OPTION_NAME,
+          description: "Optional number of recent cases to show.",
+          required: false,
+          min_value: 1,
+          max_value: 10,
         },
       ],
     },
@@ -812,6 +909,14 @@ export function extractDiscordModalFileUploadIds(
 }
 
 export function extractDiscordCommandStringOption(options: unknown, optionName: string): string | null {
+  const option = extractDiscordCommandOption(options, optionName);
+  return option && typeof option.value === "string" ? option.value : null;
+}
+
+function extractDiscordCommandOption(
+  options: unknown,
+  optionName: string,
+): { name?: unknown; value?: unknown } | null {
   if (!Array.isArray(options)) {
     return null;
   }
@@ -822,12 +927,22 @@ export function extractDiscordCommandStringOption(options: unknown, optionName: 
     }
 
     const candidate = option as { name?: unknown; value?: unknown };
-    if (candidate.name === optionName && typeof candidate.value === "string") {
-      return candidate.value;
+    if (candidate.name === optionName) {
+      return candidate;
     }
   }
 
   return null;
+}
+
+export function extractDiscordCommandUserOption(options: unknown, optionName: string): string | null {
+  const option = extractDiscordCommandOption(options, optionName);
+  return option && typeof option.value === "string" ? option.value : null;
+}
+
+export function extractDiscordCommandIntegerOption(options: unknown, optionName: string): number | null {
+  const option = extractDiscordCommandOption(options, optionName);
+  return option && typeof option.value === "number" && Number.isInteger(option.value) ? option.value : null;
 }
 
 export function discordMemberHasSetupPermission(permissions: string | null | undefined): boolean {
@@ -839,6 +954,19 @@ export function discordMemberHasSetupPermission(permissions: string | null | und
   return (
     (bitfield & DISCORD_PERMISSION_ADMINISTRATOR) === DISCORD_PERMISSION_ADMINISTRATOR
     || (bitfield & DISCORD_PERMISSION_MANAGE_GUILD) === DISCORD_PERMISSION_MANAGE_GUILD
+  );
+}
+
+export function discordMemberHasModerationPermission(permissions: string | null | undefined): boolean {
+  const bitfield = parseDiscordPermissionBitfield(permissions);
+  if (bitfield === null) {
+    return false;
+  }
+
+  return (
+    (bitfield & DISCORD_PERMISSION_ADMINISTRATOR) === DISCORD_PERMISSION_ADMINISTRATOR
+    || (bitfield & DISCORD_PERMISSION_MANAGE_GUILD) === DISCORD_PERMISSION_MANAGE_GUILD
+    || (bitfield & DISCORD_PERMISSION_MANAGE_ROLES) === DISCORD_PERMISSION_MANAGE_ROLES
   );
 }
 

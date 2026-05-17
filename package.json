@@ -34,6 +34,7 @@
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
     "feedback:board:export": "node scripts/export-feedback-board.mjs",
     "feedback:sync-forum-posts": "node scripts/sync-feedback-forum-posts.mjs",
+    "moderation:purgatory:release-expired": "node scripts/release-expired-purgatory-cases.mjs",
     "prebuild": "npm run build:guard -- --stop-dev && npm run build:prepare",
     "dev:assets": "node scripts/generate-icons.mjs",
     "gen:stretch-library-split": "node scripts/generate-stretch-library-split.mjs",

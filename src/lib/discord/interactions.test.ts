@@ -13,9 +13,12 @@ import {
   buildDiscordVerifyModalResponse,
   buildDiscordVerifyMessagePayload,
   discordMemberHasBugStatusPermission,
+  discordMemberHasModerationPermission,
   discordMessageHasFeedbackPanel,
   discordMemberHasSetupPermission,
+  extractDiscordCommandIntegerOption,
   extractDiscordCommandStringOption,
+  extractDiscordCommandUserOption,
   extractDiscordModalFileUploadIds,
   extractDiscordModalStringSelectValue,
   extractDiscordModalTextInputValue,
@@ -147,6 +150,16 @@ test("extractDiscordCommandStringOption reads string slash-command options", () 
   assert.equal(value, "confirmed");
 });
 
+test("extractDiscordCommandUserOption and integer option read typed slash-command options", () => {
+  const options = [
+    { type: 6, name: "user", value: "123456789012345678" },
+    { type: 4, name: "limit", value: 7 },
+  ];
+
+  assert.equal(extractDiscordCommandUserOption(options, "user"), "123456789012345678");
+  assert.equal(extractDiscordCommandIntegerOption(options, "limit"), 7);
+});
+
 test("resolveDiscordVerifyMessageBody converts escaped newlines into rendered lines", () => {
   assert.equal(
     resolveDiscordVerifyMessageBody("Line 1\\nLine 2"),
@@ -264,6 +277,13 @@ test("discordMemberHasBugStatusPermission accepts moderator-level thread permiss
   assert.equal(discordMemberHasBugStatusPermission("0"), false);
 });
 
+test("discordMemberHasModerationPermission accepts administrator, manage guild, and manage roles", () => {
+  assert.equal(discordMemberHasModerationPermission(String(BigInt(1) << BigInt(3))), true);
+  assert.equal(discordMemberHasModerationPermission(String(BigInt(1) << BigInt(5))), true);
+  assert.equal(discordMemberHasModerationPermission(String(BigInt(1) << BigInt(28))), true);
+  assert.equal(discordMemberHasModerationPermission("0"), false);
+});
+
 test("buildDiscordGuildCommandsDefinition includes setup commands, feedback commands, and staff permissions", () => {
   const commands = buildDiscordGuildCommandsDefinition();
   const feedback = commands.find((command) => command.name === "feedback");
@@ -274,8 +294,12 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const updateLatest = commands.find((command) => command.name === "update-latest");
   const updatePublish = commands.find((command) => command.name === "update-publish");
   const updateSkip = commands.find((command) => command.name === "update-skip");
+  const purgatorySetup = commands.find((command) => command.name === "purgatory-setup");
+  const purgatory = commands.find((command) => command.name === "purgatory");
+  const release = commands.find((command) => command.name === "release");
+  const modLog = commands.find((command) => command.name === "mod-log");
 
-  assert.equal(commands.length, 8);
+  assert.equal(commands.length, 12);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(setupFeedback);
@@ -301,6 +325,20 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.equal(updatePublish?.options?.[0]?.name, "draft_id");
   assert.ok(updateSkip);
   assert.equal(updateSkip?.options?.[1]?.name, "reason");
+  assert.ok(purgatorySetup);
+  assert.equal(
+    purgatorySetup?.default_member_permissions,
+    String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
+  );
+  assert.ok(purgatory);
+  assert.equal(purgatory?.options?.[0]?.name, "user");
+  assert.equal(purgatory?.options?.[1]?.name, "reason");
+  assert.equal(purgatory?.options?.[2]?.name, "duration");
+  assert.ok(release);
+  assert.equal(release?.options?.[1]?.name, "case_id");
+  assert.equal(release?.options?.[2]?.name, "note");
+  assert.ok(modLog);
+  assert.equal(modLog?.options?.[1]?.name, "limit");
   assert.equal(commands.some((command) => command.name === "bug"), false);
   assert.equal(commands.some((command) => command.name === "routine-share"), false);
 });

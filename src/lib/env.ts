@@ -11,6 +11,11 @@ const DISCORD_GUILD_ID_ENV = "DISCORD_GUILD_ID";
 const DISCORD_VERIFY_CHANNEL_ID_ENV = "DISCORD_VERIFY_CHANNEL_ID";
 const DISCORD_VERIFIED_ROLE_ID_ENV = "DISCORD_VERIFIED_ROLE_ID";
 const DISCORD_UNVERIFIED_ROLE_ID_ENV = "DISCORD_UNVERIFIED_ROLE_ID";
+const DISCORD_PURGATORY_ROLE_ID_ENV = "DISCORD_PURGATORY_ROLE_ID";
+const DISCORD_PURGATORY_CATEGORY_ID_ENV = "DISCORD_PURGATORY_CATEGORY_ID";
+const DISCORD_PURGATORY_CHANNEL_ID_ENV = "DISCORD_PURGATORY_CHANNEL_ID";
+const DISCORD_MOD_LOG_CHANNEL_ID_ENV = "DISCORD_MOD_LOG_CHANNEL_ID";
+const DISCORD_PURGATORY_REMOVED_ROLE_IDS_ENV = "DISCORD_PURGATORY_REMOVED_ROLE_IDS";
 const DISCORD_VERIFY_MESSAGE_TITLE_ENV = "DISCORD_VERIFY_MESSAGE_TITLE";
 const DISCORD_VERIFY_MESSAGE_BODY_ENV = "DISCORD_VERIFY_MESSAGE_BODY";
 const DISCORD_MEMBER_SYNC_SECRET_ENV = "DISCORD_MEMBER_SYNC_SECRET";
@@ -96,6 +101,19 @@ function mustGetSnowflakeEnv(name: string): string {
   return value;
 }
 
+function optionalSnowflakeEnv(name: string): string | null {
+  const value = optionalEnv(name);
+  if (!value) {
+    return null;
+  }
+
+  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
+    throw new Error(`Invalid environment variable: ${name}. Expected a Discord snowflake numeric string.`);
+  }
+
+  return value;
+}
+
 function mustGetHexEnv(name: string, expectedLength?: number): string {
   const value = mustGetEnv(name);
 
@@ -160,17 +178,12 @@ export function DISCORD_VERIFIED_ROLE_ID(): string {
   return mustGetSnowflakeEnv(DISCORD_VERIFIED_ROLE_ID_ENV);
 }
 
+export function DISCORD_VERIFIED_ROLE_ID_OPTIONAL(): string | null {
+  return optionalSnowflakeEnv(DISCORD_VERIFIED_ROLE_ID_ENV);
+}
+
 export function DISCORD_UNVERIFIED_ROLE_ID(): string | null {
-  const value = optionalEnv(DISCORD_UNVERIFIED_ROLE_ID_ENV);
-  if (!value) {
-    return null;
-  }
-
-  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
-    throw new Error(`Invalid environment variable: ${DISCORD_UNVERIFIED_ROLE_ID_ENV}. Expected a Discord snowflake numeric string.`);
-  }
-
-  return value;
+  return optionalSnowflakeEnv(DISCORD_UNVERIFIED_ROLE_ID_ENV);
 }
 
 export function DISCORD_VERIFY_MESSAGE_TITLE(): string | null {
@@ -186,81 +199,66 @@ export function DISCORD_MEMBER_SYNC_SECRET(): string {
 }
 
 export function DISCORD_BUG_REPORT_CHANNEL_ID(): string | null {
-  const value = optionalEnv(DISCORD_BUG_REPORT_CHANNEL_ID_ENV);
-  if (!value) {
-    return null;
-  }
-
-  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
-    throw new Error(`Invalid environment variable: ${DISCORD_BUG_REPORT_CHANNEL_ID_ENV}. Expected a Discord snowflake numeric string.`);
-  }
-
-  return value;
+  return optionalSnowflakeEnv(DISCORD_BUG_REPORT_CHANNEL_ID_ENV);
 }
 
 export function DISCORD_FEEDBACK_PANEL_CHANNEL_ID(): string | null {
-  const value = optionalEnv(DISCORD_FEEDBACK_PANEL_CHANNEL_ID_ENV);
-  if (!value) {
-    return null;
-  }
-
-  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
-    throw new Error(`Invalid environment variable: ${DISCORD_FEEDBACK_PANEL_CHANNEL_ID_ENV}. Expected a Discord snowflake numeric string.`);
-  }
-
-  return value;
+  return optionalSnowflakeEnv(DISCORD_FEEDBACK_PANEL_CHANNEL_ID_ENV);
 }
 
 export function DISCORD_BUG_REPORT_FORUM_CHANNEL_ID(): string | null {
-  const value = optionalEnv(DISCORD_BUG_REPORT_FORUM_CHANNEL_ID_ENV);
-  if (!value) {
-    return null;
-  }
-
-  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
-    throw new Error(`Invalid environment variable: ${DISCORD_BUG_REPORT_FORUM_CHANNEL_ID_ENV}. Expected a Discord snowflake numeric string.`);
-  }
-
-  return value;
+  return optionalSnowflakeEnv(DISCORD_BUG_REPORT_FORUM_CHANNEL_ID_ENV);
 }
 
 export function DISCORD_FEEDBACK_BUG_EMOJI_ID(): string | null {
-  const value = optionalEnv(DISCORD_FEEDBACK_BUG_EMOJI_ID_ENV);
-  if (!value) {
-    return null;
-  }
-
-  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
-    throw new Error(`Invalid environment variable: ${DISCORD_FEEDBACK_BUG_EMOJI_ID_ENV}. Expected a Discord snowflake numeric string.`);
-  }
-
-  return value;
+  return optionalSnowflakeEnv(DISCORD_FEEDBACK_BUG_EMOJI_ID_ENV);
 }
 
 export function DISCORD_FEEDBACK_FEATURE_EMOJI_ID(): string | null {
-  const value = optionalEnv(DISCORD_FEEDBACK_FEATURE_EMOJI_ID_ENV);
-  if (!value) {
-    return null;
-  }
-
-  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
-    throw new Error(`Invalid environment variable: ${DISCORD_FEEDBACK_FEATURE_EMOJI_ID_ENV}. Expected a Discord snowflake numeric string.`);
-  }
-
-  return value;
+  return optionalSnowflakeEnv(DISCORD_FEEDBACK_FEATURE_EMOJI_ID_ENV);
 }
 
 export function DISCORD_UPDATES_CHANNEL_ID(): string | null {
-  const value = optionalEnv(DISCORD_UPDATES_CHANNEL_ID_ENV);
+  return optionalSnowflakeEnv(DISCORD_UPDATES_CHANNEL_ID_ENV);
+}
+
+export function DISCORD_PURGATORY_ROLE_ID(): string | null {
+  return optionalSnowflakeEnv(DISCORD_PURGATORY_ROLE_ID_ENV);
+}
+
+export function DISCORD_PURGATORY_CATEGORY_ID(): string | null {
+  return optionalSnowflakeEnv(DISCORD_PURGATORY_CATEGORY_ID_ENV);
+}
+
+export function DISCORD_PURGATORY_CHANNEL_ID(): string | null {
+  return optionalSnowflakeEnv(DISCORD_PURGATORY_CHANNEL_ID_ENV);
+}
+
+export function DISCORD_MOD_LOG_CHANNEL_ID(): string | null {
+  return optionalSnowflakeEnv(DISCORD_MOD_LOG_CHANNEL_ID_ENV);
+}
+
+export function DISCORD_PURGATORY_REMOVED_ROLE_IDS(): string[] {
+  const value = optionalEnv(DISCORD_PURGATORY_REMOVED_ROLE_IDS_ENV);
   if (!value) {
-    return null;
+    return [];
   }
 
-  if (!DISCORD_SNOWFLAKE_PATTERN.test(value)) {
-    throw new Error(`Invalid environment variable: ${DISCORD_UPDATES_CHANNEL_ID_ENV}. Expected a Discord snowflake numeric string.`);
-  }
+  return [...new Set(
+    value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        if (!DISCORD_SNOWFLAKE_PATTERN.test(entry)) {
+          throw new Error(
+            `Invalid environment variable: ${DISCORD_PURGATORY_REMOVED_ROLE_IDS_ENV}. Expected a comma-separated list of Discord snowflake numeric strings.`,
+          );
+        }
 
-  return value;
+        return entry;
+      }),
+  )];
 }
 
 export function DISCORD_UPDATE_BOT_ENABLED(): boolean {

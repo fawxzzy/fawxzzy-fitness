@@ -51,7 +51,7 @@ async function main() {
   }
 
   const count = Array.isArray(payload) ? payload.length : 0;
-  console.log(`Registered ${count} Discord guild command${count === 1 ? "" : "s"} for verification, feedback, and curated update workflows.`);
+  console.log(`Registered ${count} Discord guild command${count === 1 ? "" : "s"} for verification, feedback, moderation, and curated update workflows.`);
 }
 
 main().catch((error) => {

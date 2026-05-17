@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createDiscordChannelMessage,
+  createDiscordChannel,
+  createDiscordRole,
   createDiscordForumThreadWithMessage,
   createDiscordMessageReaction,
   createDiscordThreadMessage,
@@ -10,8 +12,11 @@ import {
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
   editDiscordOriginalInteractionResponse,
   fetchDiscordApplicationEmojis,
+  fetchDiscordGuildMember,
+  fetchDiscordGuildRoles,
   fetchDiscordGuildEmojis,
   resolveDiscordForumTagIdsByName,
+  updateDiscordChannelPermissionOverwrite,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
   updateDiscordForumThreadTitle,
@@ -329,6 +334,173 @@ test("fetchDiscordApplicationEmojis returns application emoji records from the i
   }
 });
 
+test("fetchDiscordGuildRoles returns guild role records", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () => new Response(JSON.stringify([
+    { id: "role-1", name: "Purgatory", permissions: "0", position: 3 },
+  ]), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const result = await fetchDiscordGuildRoles({ guildId: "1504668396338413670" });
+    assert.deepEqual(result, {
+      ok: true,
+      roles: [
+        { id: "role-1", name: "Purgatory", permissions: "0", position: 3 },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchDiscordGuildMember returns guild member records", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    user: { id: "123456789012345678", username: "target-user" },
+    roles: ["verified-role"],
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const result = await fetchDiscordGuildMember({
+      guildId: "1504668396338413670",
+      userId: "123456789012345678",
+    });
+    assert.deepEqual(result, {
+      ok: true,
+      member: {
+        user: { id: "123456789012345678", username: "target-user" },
+        roles: ["verified-role"],
+      },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("createDiscordRole POSTs the guild role payload", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "role-1", name: "Purgatory" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await createDiscordRole({
+      guildId: "1504668396338413670",
+      name: "Purgatory",
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      role: { id: "role-1", name: "Purgatory" },
+    });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/guilds/1504668396338413670/roles",
+      method: "POST",
+      body: JSON.stringify({ name: "Purgatory" }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("createDiscordChannel POSTs the guild channel payload", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "channel-1", name: "purgatory", type: 0 }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await createDiscordChannel({
+      guildId: "1504668396338413670",
+      name: "purgatory",
+      type: 0,
+      parentId: "category-1",
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      channel: { id: "channel-1", name: "purgatory", type: 0 },
+    });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/guilds/1504668396338413670/channels",
+      method: "POST",
+      body: JSON.stringify({ name: "purgatory", type: 0, parent_id: "category-1" }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("updateDiscordChannelPermissionOverwrite PUTs the overwrite payload", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    const result = await updateDiscordChannelPermissionOverwrite({
+      channelId: "channel-1",
+      overwriteId: "role-1",
+      overwrite: {
+        allow: "123",
+        deny: "456",
+        type: 0,
+      },
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/channel-1/permissions/role-1",
+      method: "PUT",
+      body: JSON.stringify({ allow: "123", deny: "456", type: 0 }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 test("deferDiscordInteractionEphemeral posts a deferred ephemeral callback", async () => {
   const originalFetch = globalThis.fetch;
   let observedRequest = null;

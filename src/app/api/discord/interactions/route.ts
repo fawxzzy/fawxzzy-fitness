@@ -44,6 +44,7 @@ import {
   buildDiscordVerifyMessagePayload,
   buildDiscordVerifyModalResponse,
   discordMemberHasBugStatusPermission,
+  discordMemberHasModerationPermission,
   discordMessageHasFeedbackPanel,
   discordMemberHasSetupPermission,
   discordMessageHasVerifyButton,
@@ -69,7 +70,17 @@ import {
   FITNESS_BUG_STATUS_STATUS_OPTION_NAME,
   FITNESS_UPDATE_DRAFT_ID_OPTION_NAME,
   FITNESS_UPDATE_LATEST_COMMAND_NAME,
+  FITNESS_MOD_LOG_COMMAND_NAME,
+  FITNESS_MOD_LOG_LIMIT_OPTION_NAME,
   FITNESS_UPDATE_PUBLISH_COMMAND_NAME,
+  FITNESS_PURGATORY_COMMAND_NAME,
+  FITNESS_PURGATORY_DURATION_OPTION_NAME,
+  FITNESS_PURGATORY_REASON_OPTION_NAME,
+  FITNESS_PURGATORY_SETUP_COMMAND_NAME,
+  FITNESS_PURGATORY_USER_OPTION_NAME,
+  FITNESS_RELEASE_CASE_ID_OPTION_NAME,
+  FITNESS_RELEASE_COMMAND_NAME,
+  FITNESS_RELEASE_NOTE_OPTION_NAME,
   FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX,
   FITNESS_UPDATE_SKIP_COMMAND_NAME,
   FITNESS_UPDATE_SKIP_REASON_OPTION_NAME,
@@ -82,11 +93,21 @@ import {
   FITNESS_VERIFY_BUTTON_CUSTOM_ID,
   FITNESS_VERIFY_COMMAND_NAME,
   FITNESS_VERIFY_MODAL_CUSTOM_ID,
+  extractDiscordCommandIntegerOption,
   extractDiscordCommandStringOption,
+  extractDiscordCommandUserOption,
   extractDiscordModalFileUploadIds,
   extractDiscordModalStringSelectValue,
   extractDiscordModalTextInputValue,
 } from "@/lib/discord/interactions";
+import {
+  ensureDiscordPurgatoryInfrastructure,
+  formatDiscordModerationCaseShortId,
+  getDiscordModerationLogSummary,
+  moveDiscordUserToPurgatory,
+  parseDiscordModerationDuration,
+  releaseDiscordPurgatoryCase,
+} from "@/lib/discord/moderation";
 import {
   addDiscordGuildMemberRole,
   createDiscordChannelMessage,
@@ -1531,6 +1552,156 @@ async function handleFeedbackWithdrawModalSubmit(interaction: DiscordInteraction
   });
 }
 
+async function handlePurgatorySetupInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to setup Purgatory.");
+  }
+
+  const setupResult = await ensureDiscordPurgatoryInfrastructure({
+    guildId: DISCORD_GUILD_ID(),
+  });
+
+  if (!setupResult.ok) {
+    return buildDiscordEphemeralMessageResponse("Could not create or verify the Purgatory setup right now.");
+  }
+
+  return buildDiscordEphemeralMessageResponse(
+    setupResult.warnings.length > 0
+      ? `Purgatory setup verified with warnings. Role <@&${setupResult.roleId}> and channel <#${setupResult.channelId}> are ready. ${setupResult.warnings.join(" ")}`
+      : `Purgatory setup verified. Role <@&${setupResult.roleId}> and channel <#${setupResult.channelId}> are ready.`,
+  );
+}
+
+async function handlePurgatoryInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to use Purgatory.");
+  }
+
+  const moderator = resolveDiscordInteractionUser(interaction);
+  const targetDiscordUserId = extractDiscordCommandUserOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_USER_OPTION_NAME,
+  );
+  const reason = extractDiscordCommandStringOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_REASON_OPTION_NAME,
+  );
+  const durationResult = parseDiscordModerationDuration(
+    extractDiscordCommandStringOption(interaction.data?.options, FITNESS_PURGATORY_DURATION_OPTION_NAME),
+  );
+
+  if (!durationResult.ok) {
+    return buildDiscordEphemeralMessageResponse(durationResult.message);
+  }
+
+  if (!moderator.id || !targetDiscordUserId || !reason) {
+    return buildDiscordEphemeralMessageResponse("Could not move that user to Purgatory.");
+  }
+
+  const purgatoryResult = await moveDiscordUserToPurgatory({
+    guildId: DISCORD_GUILD_ID(),
+    targetDiscordUserId,
+    moderatorDiscordUserId: moderator.id,
+    moderatorDiscordUsername: moderator.username,
+    moderatorPermissions: permissions,
+    reason,
+    durationSeconds: durationResult.durationSeconds,
+  });
+
+  if (!purgatoryResult.ok) {
+    return buildDiscordEphemeralMessageResponse(purgatoryResult.message);
+  }
+
+  return buildDiscordEphemeralMessageResponse(
+    purgatoryResult.warnings.length > 0
+      ? `User moved to Purgatory. Case \`${formatDiscordModerationCaseShortId(purgatoryResult.caseRow.id)}\` created. ${purgatoryResult.warnings.join(" ")}`
+      : `User moved to Purgatory. Case \`${formatDiscordModerationCaseShortId(purgatoryResult.caseRow.id)}\` created.`,
+  );
+}
+
+async function handleReleaseInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to release Purgatory cases.");
+  }
+
+  const moderator = resolveDiscordInteractionUser(interaction);
+  const targetDiscordUserId = extractDiscordCommandUserOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_USER_OPTION_NAME,
+  );
+  const caseIdOrPrefix = extractDiscordCommandStringOption(
+    interaction.data?.options,
+    FITNESS_RELEASE_CASE_ID_OPTION_NAME,
+  );
+  const releaseNote = extractDiscordCommandStringOption(
+    interaction.data?.options,
+    FITNESS_RELEASE_NOTE_OPTION_NAME,
+  );
+
+  if (!moderator.id || (!targetDiscordUserId && !caseIdOrPrefix)) {
+    return buildDiscordEphemeralMessageResponse("Choose a user or case id to release.");
+  }
+
+  const releaseResult = await releaseDiscordPurgatoryCase({
+    guildId: DISCORD_GUILD_ID(),
+    releasedByDiscordUserId: moderator.id,
+    releasedByDiscordUsername: moderator.username,
+    targetDiscordUserId,
+    caseIdOrPrefix,
+    releaseNote,
+  });
+
+  if (!releaseResult.ok) {
+    return buildDiscordEphemeralMessageResponse(releaseResult.message);
+  }
+
+  return buildDiscordEphemeralMessageResponse(
+    releaseResult.warnings.length > 0
+      ? `User released from Purgatory. Case \`${formatDiscordModerationCaseShortId(releaseResult.caseRow.id)}\` closed. ${releaseResult.warnings.join(" ")}`
+      : `User released from Purgatory. Case \`${formatDiscordModerationCaseShortId(releaseResult.caseRow.id)}\` closed.`,
+  );
+}
+
+async function handleModLogInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to view the mod log.");
+  }
+
+  const targetDiscordUserId = extractDiscordCommandUserOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_USER_OPTION_NAME,
+  );
+  const limit = extractDiscordCommandIntegerOption(
+    interaction.data?.options,
+    FITNESS_MOD_LOG_LIMIT_OPTION_NAME,
+  );
+
+  return buildDiscordEphemeralMessageResponse(await getDiscordModerationLogSummary({
+    targetDiscordUserId,
+    limit,
+  }));
+}
+
 async function handleUpdateLatestInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
     return buildDiscordEphemeralMessageResponse("This update flow is only available in the configured server.");
@@ -1742,6 +1913,34 @@ export async function POST(request: Request) {
       && interaction.data?.name === FITNESS_FEEDBACK_SETUP_COMMAND_NAME
     ) {
       return jsonResponse(await handleSetupFeedbackInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_PURGATORY_SETUP_COMMAND_NAME
+    ) {
+      return jsonResponse(await handlePurgatorySetupInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_PURGATORY_COMMAND_NAME
+    ) {
+      return jsonResponse(await handlePurgatoryInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_RELEASE_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleReleaseInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_MOD_LOG_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleModLogInteraction(interaction));
     }
 
     if (

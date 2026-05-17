@@ -215,3 +215,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: verify effects -> repair exact versions -> validate -> document.
 - Failure Mode: Blind migration repair can make the ledger claim schema history that production does not actually have.
 - Status: Proposed
+
+## 2026-05-16 - Moderation should be reversible before punitive
+- Type: Guardrail
+- Summary: Fawx Security moderation should isolate users into Purgatory by reversible roles and logged cases rather than defaulting to bans.
+- Rule: No full bans by default.
+- Rule: Every moderation action needs a case record and release path.
+- Pattern: staff command -> role isolation -> Purgatory channel -> logged case -> release/restore.
+- Failure Mode: Silent bans or destructive moderation actions create drama and make recovery harder.
+- Status: Proposed
