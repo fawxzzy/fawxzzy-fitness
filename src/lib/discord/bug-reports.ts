@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { buildDiscordFeedbackEmojiPrefix } from "@/lib/discord/feedback-emojis";
+import { createDiscordThreadMessage } from "@/lib/discord/rest";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { DiscordAllowedMentions } from "@/lib/discord/rest";
 
@@ -13,6 +14,7 @@ export const DISCORD_BUG_REPORT_STEPS_MAX_LENGTH = 1200;
 export const DISCORD_BUG_REPORT_SCREENSHOT_URL_MAX_LENGTH = 500;
 export const DISCORD_BUG_REPORT_FORUM_TITLE_MAX_LENGTH = 100;
 export const DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH = 1000;
+export const DISCORD_FEEDBACK_AUDIT_NOTE_MAX_LENGTH = 240;
 export const DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT = 3;
 export const DISCORD_FEEDBACK_ATTACHMENT_MAX_SIZE_BYTES = 8 * 1024 * 1024;
 export const DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH = 6;
@@ -64,6 +66,14 @@ export type DiscordBugReportStatusUpdate = {
   updatedByDiscordUserId: string;
   updatedAt?: Date;
 };
+
+export type DiscordFeedbackCardAuditAction =
+  | "status_update"
+  | "withdraw"
+  | "reporter_update"
+  | "staff_update"
+  | "duplicate_signal"
+  | "sync_format";
 
 export type DiscordBugReporterLink = {
   fitnessUserId: string | null;
@@ -467,6 +477,15 @@ function neutralizeDiscordMentions(value: string): string {
     .replace(/<@/g, "<@\u200b");
 }
 
+function summarizeDiscordAuditText(value: string | null | undefined): string | null {
+  const normalized = normalizeTextInput(value, DISCORD_FEEDBACK_AUDIT_NOTE_MAX_LENGTH);
+  if (!normalized) {
+    return null;
+  }
+
+  return neutralizeDiscordMentions(normalized.replace(/\s+/g, " "));
+}
+
 function isDiscordSnowflake(value: string): boolean {
   return /^[0-9]{1,32}$/.test(value);
 }
@@ -697,6 +716,17 @@ export function formatDiscordBugReportStatusLabel(status: DiscordBugReportStatus
   return DISCORD_BUG_REPORT_STATUS_TAG_LABELS[status];
 }
 
+export function formatDiscordFeedbackDisplayStatusLabel(args: {
+  reportType: DiscordBugReportReportType;
+  status: DiscordBugReportStatus;
+}): string {
+  if (args.reportType === "feature" && args.status === "fixed") {
+    return "Completed";
+  }
+
+  return formatDiscordBugReportStatusLabel(args.status);
+}
+
 export function formatDiscordBugReportTypeLabel(reportType: DiscordBugReportReportType): string {
   return DISCORD_BUG_REPORT_TYPE_TAG_LABELS[reportType];
 }
@@ -803,6 +833,23 @@ function renderAttachmentLine(attachment: DiscordFeedbackAttachmentMetadata): st
   return `- ${attachment.filename} (${attachment.contentType}, ${attachment.size} bytes): ${displayUrl}`;
 }
 
+function buildDiscordBugForumThreadBodyHeader(args: {
+  reportType: DiscordBugReportReportType;
+}): string {
+  const typeEmoji = args.reportType === "bug"
+    ? buildDiscordFeedbackEmojiPrefix("Bug")
+    : args.reportType === "feature"
+      ? buildDiscordFeedbackEmojiPrefix("Feature")
+      : "";
+  const feedbackHeader = args.reportType === "bug"
+    ? "Bug Report"
+    : args.reportType === "feature"
+      ? "Feature Request"
+      : "Feedback Report";
+
+  return `${typeEmoji ? `${typeEmoji} ` : ""}**${feedbackHeader}**`;
+}
+
 export function buildDiscordBugForumThreadBody(args: {
   report: DiscordBugReportRow;
   reporterLabel: string;
@@ -811,35 +858,73 @@ export function buildDiscordBugForumThreadBody(args: {
     reporterDiscordUserId: args.report.reporter_discord_user_id,
     reporterLabel: args.reporterLabel,
   });
-  const typeEmoji = args.report.report_type === "bug"
-    ? buildDiscordFeedbackEmojiPrefix("Bug")
-    : args.report.report_type === "feature"
-      ? buildDiscordFeedbackEmojiPrefix("Feature")
-      : "";
-  const feedbackHeader = args.report.report_type === "bug"
-    ? "Bug Report"
-    : args.report.report_type === "feature"
-      ? "Feature Request"
-      : "Feedback Report";
   const attachmentLines = args.report.attachment_pruned || !Array.isArray(args.report.attachment_metadata) || args.report.attachment_metadata.length === 0
     ? ["Not provided"]
     : args.report.attachment_metadata.slice(0, DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT).map(renderAttachmentLine);
-
-  return [
-    `${typeEmoji ? `${typeEmoji} ` : ""}**${feedbackHeader}**`,
+  const sharedLines = [
+    buildDiscordBugForumThreadBodyHeader({
+      reportType: args.report.report_type,
+    }),
     `Type: ${formatDiscordBugReportTypeLabel(args.report.report_type)}`,
-    `Status: ${formatDiscordBugReportStatusLabel(args.report.status)}`,
-    `Severity: ${formatForumSeverityLabel(args.report.severity)}`,
+    `Status: ${formatDiscordFeedbackDisplayStatusLabel({
+      reportType: args.report.report_type,
+      status: args.report.status,
+    })}`,
+  ];
+
+  if (args.report.report_type !== "feature") {
+    sharedLines.push(`Severity: ${formatForumSeverityLabel(args.report.severity)}`);
+  }
+
+  sharedLines.push(
     `Area: ${formatForumAreaLabel(args.report.area)}`,
     `Reporter: ${reporterLine}`,
     `Report ID: \`${formatDiscordBugReportShortId(args.report.id)}\``,
     `Duplicate signals: ${Math.max(1, Number(args.report.duplicate_count ?? 1))}`,
     "",
-    "**Summary**",
+    "**Title**",
     renderForumBodyValue(args.report.summary, "Not provided"),
     "",
-    "**What happened**",
+  );
+
+  if (args.report.report_type === "feature") {
+    return [
+      ...sharedLines,
+      "**Description**",
+      renderForumBodyValue(args.report.details, "Not provided"),
+      "",
+      "**Link / screenshot**",
+      renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+      "",
+      "**Attachments**",
+      ...attachmentLines,
+    ].join("\n");
+  }
+
+  if (args.report.report_type === "bug") {
+    return [
+      ...sharedLines,
+      "**What happened**",
+      renderForumBodyValue(args.report.details, "Not provided"),
+      "",
+      "**Steps**",
+      renderForumBodyValue(args.report.steps_to_reproduce, "Not provided"),
+      "",
+      "**Link / screenshot**",
+      renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+      "",
+      "**Attachments**",
+      ...attachmentLines,
+    ].join("\n");
+  }
+
+  return [
+    ...sharedLines,
+    "**Details**",
     renderForumBodyValue(args.report.details, "Not provided"),
+    "",
+    "**Steps**",
+    renderForumBodyValue(args.report.steps_to_reproduce, "Not provided"),
     "",
     "**Link / screenshot**",
     renderForumBodyValue(args.report.screenshot_url, "Not provided"),
@@ -854,69 +939,159 @@ export function buildDiscordBugForumDuplicateReply(args: {
   reporterLabel: string;
   duplicateCount: number;
 }): string {
-  const typeEmoji = args.reportType === "bug"
-    ? buildDiscordFeedbackEmojiPrefix("Bug")
-    : args.reportType === "feature"
-      ? buildDiscordFeedbackEmojiPrefix("Feature")
-      : "";
-
-  return [
-    `${typeEmoji ? `${typeEmoji} ` : ""}Another report matched this feedback.`,
-    `Reporter: ${args.reporterLabel}`,
-    `Duplicate signals: ${Math.max(1, Number(args.duplicateCount ?? 1))}`,
-  ].join("\n");
+  return buildFeedbackCardAuditComment({
+    action: "duplicate_signal",
+    duplicateCount: args.duplicateCount,
+    reportType: args.reportType,
+  });
 }
 
-export function buildDiscordFeedbackWithdrawThreadReply(reportType?: DiscordBugReportReportType | null): string {
-  const typeEmoji = reportType === "bug"
-    ? buildDiscordFeedbackEmojiPrefix("Bug")
-    : reportType === "feature"
-      ? buildDiscordFeedbackEmojiPrefix("Feature")
-      : "";
-
-  return `${typeEmoji ? `${typeEmoji} ` : ""}This feedback was withdrawn by the reporter.`;
+export function buildDiscordFeedbackWithdrawThreadReply(args?: {
+  actorLabel?: string | null;
+  reportType?: DiscordBugReportReportType | null;
+}): string {
+  return buildFeedbackCardAuditComment({
+    action: "withdraw",
+    actorLabel: args?.actorLabel ?? "reporter",
+    reportType: args?.reportType ?? null,
+  });
 }
 
 export function buildDiscordFeedbackUpdateThreadReply(args: {
   reportType?: DiscordBugReportReportType | null;
   updateDetails: string;
   updaterLabel: string;
+  action?: "reporter_update" | "staff_update";
 }): string {
-  const typeEmoji = args.reportType === "bug"
-    ? buildDiscordFeedbackEmojiPrefix("Bug")
-    : args.reportType === "feature"
-      ? buildDiscordFeedbackEmojiPrefix("Feature")
-      : "";
-
-  return [
-    `${typeEmoji ? `${typeEmoji} ` : ""}Feedback update from ${args.updaterLabel}:`,
-    "",
-    neutralizeDiscordMentions(args.updateDetails),
-  ].join("\n");
+  return buildFeedbackCardAuditComment({
+    action: args.action ?? "reporter_update",
+    actorLabel: args.updaterLabel,
+    note: args.updateDetails,
+    reportType: args.reportType ?? null,
+  });
 }
 
 export function buildDiscordBugStatusThreadReply(args: {
   reportType?: DiscordBugReportReportType | null;
+  statusBefore?: DiscordBugReportStatus | null;
   status: DiscordBugReportStatus;
   note: string | null;
   reporterDiscordUserId: string | null;
   includeReporterMention: boolean;
+  actorLabel?: string | null;
 }): string {
   const prefix = args.includeReporterMention && args.reporterDiscordUserId
     ? `<@${args.reporterDiscordUserId}> `
     : "";
-  const typeEmoji = args.reportType === "bug"
-    ? buildDiscordFeedbackEmojiPrefix("Bug")
-    : args.reportType === "feature"
-      ? buildDiscordFeedbackEmojiPrefix("Feature")
-      : "";
-  const lines = [`${prefix}${typeEmoji ? `${typeEmoji} ` : ""}Status updated: ${formatDiscordBugReportStatusLabel(args.status)}`];
 
-  if (args.note) {
-    lines.push("", neutralizeDiscordMentions(args.note));
+  return `${prefix}${buildFeedbackCardAuditComment({
+    action: "status_update",
+    actorLabel: args.actorLabel ?? "Fawx Security",
+    reportType: args.reportType ?? "bug",
+    statusBefore: args.statusBefore ?? null,
+    statusAfter: args.status,
+    note: args.note,
+  })}`;
+}
+
+export function buildFeedbackCardAuditComment(args: {
+  action: DiscordFeedbackCardAuditAction;
+  actorLabel?: string | null;
+  reportType?: DiscordBugReportReportType | null;
+  statusBefore?: DiscordBugReportStatus | null;
+  statusAfter?: DiscordBugReportStatus | null;
+  note?: string | null;
+  reportId?: string | null;
+  duplicateCount?: number | null;
+}): string {
+  const reportType = args.reportType ?? "bug";
+  const lines: string[] = [];
+  const noteSummary = summarizeDiscordAuditText(args.note);
+
+  switch (args.action) {
+    case "status_update": {
+      const actorLabel = args.actorLabel?.trim() || "Fawx Security";
+      const isResolved = args.statusAfter === "fixed" || args.statusAfter === "closed";
+      lines.push(isResolved ? `Marked resolved by ${actorLabel}.` : `Card updated by ${actorLabel}.`);
+
+      const beforeLabel = args.statusBefore
+        ? formatDiscordFeedbackDisplayStatusLabel({
+          reportType,
+          status: args.statusBefore,
+        })
+        : null;
+      const afterLabel = args.statusAfter
+        ? formatDiscordFeedbackDisplayStatusLabel({
+          reportType,
+          status: args.statusAfter,
+        })
+        : null;
+
+      if (beforeLabel && afterLabel && beforeLabel !== afterLabel) {
+        lines.push(`Status: ${beforeLabel} -> ${afterLabel}`);
+      } else if (afterLabel) {
+        lines.push(`Status: ${afterLabel}`);
+      }
+
+      if (noteSummary) {
+        lines.push(`Note: ${noteSummary}`);
+      }
+      break;
+    }
+    case "withdraw": {
+      const actorLabel = args.actorLabel?.trim() || "reporter";
+      lines.push(`Feedback withdrawn by ${actorLabel}.`);
+      lines.push("Details and attachments were removed from the public card.");
+      break;
+    }
+    case "reporter_update":
+    case "staff_update": {
+      lines.push(args.action === "staff_update" ? "Staff added an update." : "Reporter added an update.");
+      if (noteSummary) {
+        lines.push(noteSummary);
+      }
+      break;
+    }
+    case "duplicate_signal":
+      lines.push("Duplicate signal added.");
+      lines.push(`Duplicate signals: ${Math.max(1, Number(args.duplicateCount ?? 1))}`);
+      break;
+    case "sync_format": {
+      const actorLabel = args.actorLabel?.trim() || "Fawx Security";
+      lines.push(`Card formatting synced by ${actorLabel}.`);
+      lines.push(`Reason: ${noteSummary ?? "Applied latest board/card format."}`);
+      break;
+    }
+    default:
+      lines.push("Card updated by Fawx Security.");
+      break;
   }
 
   return lines.join("\n");
+}
+
+export async function postFeedbackCardAuditComment(args: {
+  threadId: string;
+  action: DiscordFeedbackCardAuditAction;
+  actorLabel?: string | null;
+  reportType?: DiscordBugReportReportType | null;
+  reporterDiscordUserId?: string | null;
+  includeReporterMention?: boolean;
+  statusBefore?: DiscordBugReportStatus | null;
+  statusAfter?: DiscordBugReportStatus | null;
+  note?: string | null;
+  reportId?: string | null;
+  duplicateCount?: number | null;
+  allowedMentions?: DiscordAllowedMentions | null;
+}): Promise<{ ok: true; messageId: string | null } | { ok: false; code: string; status: number; message: string | null }> {
+  return createDiscordThreadMessage({
+    threadId: args.threadId,
+    content: buildFeedbackCardAuditComment(args),
+    allowedMentions: args.allowedMentions ?? buildDiscordAllowedMentions({
+      reporterDiscordUserId: args.reporterDiscordUserId ?? null,
+      includeReporter: Boolean(args.includeReporterMention),
+    }),
+  });
 }
 
 export function extractDiscordBugReportModalFields(

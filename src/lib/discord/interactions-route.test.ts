@@ -1387,7 +1387,7 @@ test("Discord interactions route folds duplicate feedback and posts only a compa
       },
     });
     assert.equal(observedSupabaseWrites[0]?.duplicate_count, 3);
-    assert.equal(observedDiscordBodies[0]?.content, "Another report matched this feedback.\nReporter: Member #7\nDuplicate signals: 3");
+    assert.equal(observedDiscordBodies[0]?.content, "Duplicate signal added.\nDuplicate signals: 3");
     assert.deepEqual(observedDiscordBodies[0]?.allowed_mentions, {
       parse: [],
       replied_user: false,
@@ -1607,6 +1607,14 @@ test("Discord interactions route syncs feature feedback-status into Supabase and
       });
     }
 
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
       observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
       return new Response(JSON.stringify({ id: "discord-message-3" }), {
@@ -1650,6 +1658,13 @@ test("Discord interactions route syncs feature feedback-status into Supabase and
     assert.equal(observedSupabaseWrites[0]?.status, "needs_info");
     assert.equal(observedSupabaseWrites[1]?.discord_forum_title, "Feature: Routines — Let me share a routine");
     assert.deepEqual(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids, ["tag-feature", "tag-needs-info", "tag-medium"]);
+    const starterPatch = observedDiscordBodies.find((entry) => entry.path.endsWith("/messages/1504673475489562746"));
+    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
+    assert.match(starterPatch?.body?.content ?? "", /\*\*Feature Request\*\*/);
+    assert.match(starterPatch?.body?.content ?? "", /\*\*Description\*\*/);
+    assert.doesNotMatch(starterPatch?.body?.content ?? "", /Severity:/);
+    assert.match(auditReply?.body?.content ?? "", /Status: New -> Needs Info/);
+    assert.match(auditReply?.body?.content ?? "", /Note: Can you share the exact screen\?/);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
@@ -1772,7 +1787,7 @@ test("Discord interactions route lets the reporter add a feedback update from th
     });
     assert.equal(observedSupabaseWrites[0]?.status_note, "I can reproduce it after reinstalling.");
     const updateReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
-    assert.match(updateReply?.body?.content ?? "", /Feedback update from Member #4/);
+    assert.match(updateReply?.body?.content ?? "", /Reporter added an update\./);
     assert.match(updateReply?.body?.content ?? "", /I can reproduce it after reinstalling\./);
   } finally {
     globalThis.fetch = originalFetch;
@@ -1849,6 +1864,30 @@ test("Discord interactions route allows reporters to withdraw and redact feature
       });
     }
 
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "PATCH") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-withdraw" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "DELETE") {
       observedDiscordBodies.push({ path: url.pathname, method: "DELETE", body });
       return new Response(null, { status: 204 });
@@ -1892,6 +1931,23 @@ test("Discord interactions route allows reporters to withdraw and redact feature
     assert.equal(observedSupabaseWrites[0]?.details, null);
     assert.equal(observedSupabaseWrites[0]?.steps_to_reproduce, null);
     assert.equal(observedSupabaseWrites[0]?.screenshot_url, null);
+    assert.equal(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids?.[0], "tag-feature");
+    assert.equal(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids?.[1], "tag-withdrawn");
+    const starterPatch = observedDiscordBodies.find((entry) => entry.path.endsWith("/messages/1504673475489562746") && entry.method === "PATCH");
+    assert.match(starterPatch?.body?.content ?? "", /Status: Withdrawn/);
+    assert.match(starterPatch?.body?.content ?? "", /\*\*Description\*\*\s+Not provided/);
+    assert.doesNotMatch(starterPatch?.body?.content ?? "", /Severity:/);
+    assert.deepEqual(starterPatch?.body?.allowed_mentions, {
+      parse: [],
+      users: [],
+      roles: [],
+      replied_user: false,
+    });
+    const withdrawAuditComment = observedDiscordBodies.find((entry) => entry.path.endsWith("/messages") && entry.method === "POST");
+    assert.equal(
+      withdrawAuditComment?.body?.content,
+      "Feedback withdrawn by reporter.\nDetails and attachments were removed from the public card.",
+    );
     assert.equal(
       observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.method === "DELETE"),
       true,
@@ -1971,6 +2027,30 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
       });
     }
 
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "PATCH") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-withdraw-modal" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "DELETE") {
       observedDiscordBodies.push({ path: url.pathname, method: "DELETE", body });
       return new Response(null, { status: 204 });
@@ -2008,7 +2088,12 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
       },
     });
     assert.equal(observedSupabaseWrites[0]?.status_note, "Withdrawing because I solved it.");
-    assert.equal(observedDiscordBodies[0]?.method, "DELETE");
+    const withdrawAuditComment = observedDiscordBodies.find((entry) => entry.path.endsWith("/messages") && entry.method === "POST");
+    assert.equal(
+      withdrawAuditComment?.body?.content,
+      "Feedback withdrawn by reporter.\nDetails and attachments were removed from the public card.",
+    );
+    assert.equal(observedDiscordBodies.some((entry) => entry.method === "DELETE"), true);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
@@ -2083,6 +2168,14 @@ test("Discord interactions route archives duplicate feedback threads after staff
       });
     }
 
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
       observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
       return new Response(JSON.stringify({ id: "discord-message-duplicate" }), {
@@ -2132,6 +2225,255 @@ test("Discord interactions route archives duplicate feedback threads after staff
       observedDiscordBodies.some((entry) => entry.path === "/api/v10/channels/1504673475489562745" && entry.body?.locked === true),
       true,
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route adds a resolved checkmark to the starter message for fixed feedback", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        status: "confirmed",
+        area: "Routines",
+        summary: "Let me share a routine",
+        discord_forum_applied_tag_ids: ["tag-feature", "tag-confirmed", "tag-medium"],
+        discord_forum_title: "Feature: Routines â€” Let me share a routine",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        status: "fixed",
+        area: "Routines",
+        summary: "Let me share a routine",
+        status_updated_at: "2026-05-15T14:00:00.000Z",
+        status_updated_by_discord_user_id: "222222222222222222",
+        status_note: "Shipped in the latest deploy.",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "tag-feature", name: "Feature" },
+          { id: "tag-fixed", name: "Fixed" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
+      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
+      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-fixed" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PUT", body: null });
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(3)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "feedback-status",
+        options: [
+          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          { type: 3, name: "status", value: "fixed" },
+          { type: 3, name: "note", value: "Shipped in the latest deploy." },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback updated.",
+        flags: 64,
+      },
+    });
+    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
+    assert.match(auditReply?.body?.content ?? "", /Marked resolved by Fawx Security\./);
+    assert.match(auditReply?.body?.content ?? "", /Status: Confirmed -> Completed/);
+    assert.equal(
+      observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/%E2%9C%85/@me") && entry.method === "PUT"),
+      true,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route keeps fixed status updates successful when the resolved reaction fails", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        discord_forum_message_id: null,
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "fixed",
+        discord_forum_message_id: null,
+        status_updated_at: "2026-05-15T14:00:00.000Z",
+        status_updated_by_discord_user_id: "222222222222222222",
+        status_note: body?.status_note ?? null,
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "tag-bug", name: "Bug" },
+          { id: "tag-fixed", name: "Fixed" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
+      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
+      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-fixed-fallback" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/discord-message-fixed-fallback/reactions/%E2%9C%85/@me") {
+      return new Response(JSON.stringify({ message: "Missing Permissions" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(3)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "feedback-status",
+        options: [
+          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          { type: 3, name: "status", value: "fixed" },
+          { type: 3, name: "note", value: "Reply fallback reaction path." },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback updated.",
+        flags: 64,
+      },
+    });
+    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
+    assert.match(auditReply?.body?.content ?? "", /Marked resolved by Fawx Security\./);
+    assert.match(auditReply?.body?.content ?? "", /Status: New -> Fixed/);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;

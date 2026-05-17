@@ -372,11 +372,49 @@ test("buildDiscordBugForumThreadTitle formats bug and feature forum titles while
   );
 });
 
-test("buildDiscordBugForumThreadBody formats the first forum post body with feedback type and reporter mention", () => {
+test("buildDiscordBugForumThreadBody formats bug forum cards with bug-specific labels", () => {
+  assert.equal(
+    buildDiscordBugForumThreadBody({
+      report: buildStoredRow({
+        report_type: "bug",
+        screenshot_url: "https://example.com/shot.png",
+      }),
+      reporterLabel: "Member #4",
+    }),
+    [
+      "**Bug Report**",
+      "Type: Bug",
+      "Status: New",
+      "Severity: Medium",
+      "Area: Settings",
+      "Reporter: <@123456789012345678> / Member #4",
+      "Report ID: `abc12345`",
+      "Duplicate signals: 1",
+      "",
+      "**Title**",
+      "Token copy button failed",
+      "",
+      "**What happened**",
+      "I tapped Copy and nothing happened.",
+      "",
+      "**Steps**",
+      "Open Settings -> Account -> Generate token -> tap Copy",
+      "",
+      "**Link / screenshot**",
+      "https://example.com/shot.png",
+      "",
+      "**Attachments**",
+      "- bug.png (image/png, 241394 bytes): https://cdn.discordapp.com/ephemeral-attachments/bug.png",
+    ].join("\n"),
+  );
+});
+
+test("buildDiscordBugForumThreadBody formats feature forum cards without bug-only labels", () => {
   assert.equal(
     buildDiscordBugForumThreadBody({
       report: buildStoredRow({
         report_type: "feature",
+        status: "fixed",
         id: "abc12345-ffff-ffff-ffff-ffffffffffff",
         screenshot_url: "https://example.com/shot.png",
       }),
@@ -385,17 +423,16 @@ test("buildDiscordBugForumThreadBody formats the first forum post body with feed
     [
       "**Feature Request**",
       "Type: Feature",
-      "Status: New",
-      "Severity: Medium",
+      "Status: Completed",
       "Area: Settings",
       "Reporter: <@123456789012345678> / Member #4",
       "Report ID: `abc12345`",
       "Duplicate signals: 1",
       "",
-      "**Summary**",
+      "**Title**",
       "Token copy button failed",
       "",
-      "**What happened**",
+      "**Description**",
       "I tapped Copy and nothing happened.",
       "",
       "**Link / screenshot**",
@@ -404,6 +441,28 @@ test("buildDiscordBugForumThreadBody formats the first forum post body with feed
       "**Attachments**",
       "- bug.png (image/png, 241394 bytes): https://cdn.discordapp.com/ephemeral-attachments/bug.png",
     ].join("\n"),
+  );
+  assert.doesNotMatch(
+    buildDiscordBugForumThreadBody({
+      report: buildStoredRow({
+        report_type: "feature",
+      }),
+      reporterLabel: "Member #4",
+    }),
+    /Severity:|What happened|^\*\*Steps\*\*$/m,
+  );
+});
+
+test("buildDiscordBugForumThreadBody keeps bug fixed copy as Fixed", () => {
+  assert.match(
+    buildDiscordBugForumThreadBody({
+      report: buildStoredRow({
+        report_type: "bug",
+        status: "fixed",
+      }),
+      reporterLabel: "Member #4",
+    }),
+    /^.*Status: Fixed/m,
   );
 });
 
@@ -426,9 +485,12 @@ test("buildDiscordBugForumDuplicateReply and withdraw reply stay compact", () =>
       reporterLabel: "Member #7",
       duplicateCount: 3,
     }),
-    "Another report matched this feedback.\nReporter: Member #7\nDuplicate signals: 3",
+    "Duplicate signal added.\nDuplicate signals: 3",
   );
-  assert.equal(buildDiscordFeedbackWithdrawThreadReply(), "This feedback was withdrawn by the reporter.");
+  assert.equal(
+    buildDiscordFeedbackWithdrawThreadReply(),
+    "Feedback withdrawn by reporter.\nDetails and attachments were removed from the public card.",
+  );
 });
 
 test("buildDiscordAllowedMentions only includes the reporter user id when requested", () => {
@@ -471,23 +533,37 @@ test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly r
   assert.equal(
     buildDiscordBugStatusThreadReply({
       reportType: "bug",
+      statusBefore: "confirmed",
       status: "needs_info",
       note: "Can you share the exact screen? @everyone",
       reporterDiscordUserId: "123456789012345678",
       includeReporterMention: true,
     }),
-    "<@123456789012345678> Status updated: Needs Info\n\nCan you share the exact screen? @\u200beveryone",
+    "<@123456789012345678> Card updated by Fawx Security.\nStatus: Confirmed -> Needs Info\nNote: Can you share the exact screen? @\u200beveryone",
   );
 
   assert.equal(
     buildDiscordBugStatusThreadReply({
       reportType: "feature",
+      statusBefore: "in_progress",
+      status: "fixed",
+      note: null,
+      reporterDiscordUserId: "123456789012345678",
+      includeReporterMention: false,
+    }),
+    "Marked resolved by Fawx Security.\nStatus: In Progress -> Completed",
+  );
+
+  assert.equal(
+    buildDiscordBugStatusThreadReply({
+      reportType: "feature",
+      statusBefore: null,
       status: "withdrawn",
       note: null,
       reporterDiscordUserId: "123456789012345678",
       includeReporterMention: false,
     }),
-    "Status updated: Withdrawn",
+    "Card updated by Fawx Security.\nStatus: Withdrawn",
   );
 });
 

@@ -5,6 +5,7 @@ Feedback Bot captures bounded Discord feedback in `public.discord_feedback_repor
 
 Product rules:
 - Feedback types are `Bug` and `Feature`.
+- Bug and Feature forum cards should use type-aware display labels even when they share the same bounded storage row.
 - `Fix` is not a valid new submission type.
 - Historical `fix` rows may remain readable and exportable.
 - The Feedback forum is a display surface; Supabase is the source of truth.
@@ -138,6 +139,14 @@ When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum
 - status tag: `New`
 - severity tag: `Low`, `Medium`, `High`, or `Blocker`
 
+Starter post formatting:
+- Bug cards show `Title`, `What happened`, `Steps`, `Link / screenshot`, and `Attachments`
+- Feature cards show `Title`, `Description`, `Link / screenshot`, and `Attachments`
+- Feature cards do not show `Severity`
+- Feature cards do not show `What happened`
+- Feature cards do not show `Steps`
+- Feature cards display `Completed` when the stored status is `fixed`
+
 Do not use custom emoji in the forum thread title. Keep titles text-only and searchable.
 - Forum tags and text prefixes are the reliable visual system.
 - Custom emoji env vars are optional display config only and must never be required for feedback intake.
@@ -199,8 +208,41 @@ It should:
 - work for both `Bug` and `Feature`
 - update Supabase status
 - sync forum tags and title
+- patch the forum starter post so the visible status and type-aware formatting stay current
 - post a compact status reply
 - mention the reporter only for `Needs Info`, `Fixed`, or `Closed`
+- add a `✅` reaction when status becomes `Fixed` or `Closed`
+
+Display rule:
+- bug cards show stored `fixed` as `Fixed`
+- feature cards show stored `fixed` as `Completed`
+
+Resolved reaction behavior:
+- preferred target: the forum starter message when `discord_forum_message_id` exists
+- fallback target: the bot status reply in the thread
+- reaction failures should log a safe warning and must not fail the status update
+
+## Feedback card audit comments
+Fawx Security posts a compact thread comment whenever it modifies a feedback card after creation. This keeps the Feedback forum readable as a lightweight board with visible change history.
+
+Actions that comment:
+- status update
+- withdraw
+- reporter update
+- duplicate signal
+- board/card sync
+- resolved state
+
+Audit comment rules:
+- compact only
+- no raw payloads
+- no secrets
+- no broad mentions
+- reporter mentions only when the action explicitly requires it
+
+Withdraw note:
+- withdraw posts the audit comment before the thread is archived and locked
+- archive/lock behavior may reduce later visibility, but the bounded row and status note remain
 
 ## Withdraw flow
 `/feedback-withdraw` and the withdraw modal should:
@@ -238,6 +280,23 @@ After verify-copy changes, rerun:
 10. Test `Withdraw Feedback`.
 11. Test image upload with a small PNG or JPG.
 12. Confirm the user receives one final success message after the deferred response completes.
+
+## Forum starter sync
+Run:
+
+```txt
+npm run feedback:sync-forum-posts
+```
+
+Sync script rules:
+- dry-run by default
+- use `--apply` to edit Discord
+- use `--no-audit-comment` to skip thread audit comments during apply mode
+- supports `--limit 50`
+- supports `--status new,confirmed,in_progress,fixed,closed`
+- supports `--report-id <id>`
+- skips rows that do not have `discord_forum_message_id`
+- never deletes anything
 
 ## Community doctor
 Run:

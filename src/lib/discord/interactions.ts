@@ -265,7 +265,7 @@ function buildDiscordFeedbackTypeSelectComponent(args?: {
 function buildDiscordFeedbackAttachmentComponent(): DiscordModalLabelComponent {
   return {
     type: 18,
-    label: "Screenshot or image",
+    label: "Attachment",
     description: "Optional. Upload up to 3 PNG, JPG, WEBP, or GIF images.",
     component: {
       type: 19,
@@ -294,7 +294,7 @@ function buildDiscordFeedbackSubmitModalData(args?: {
         emojis: args?.emojis,
       }),
       buildDiscordModalLabelTextInput({
-        label: "Summary",
+        label: "Title",
         customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
         style: 1,
         placeholder: defaultReportType === "feature"
@@ -312,8 +312,10 @@ function buildDiscordFeedbackSubmitModalData(args?: {
         maxLength: 80,
       }),
       buildDiscordModalLabelTextInput({
-        label: defaultReportType === "feature" ? "What do you want?" : "What happened?",
-        description: "Include the steps, context, or expected behavior in one place.",
+        label: defaultReportType === "feature" || defaultReportType === "bug"
+          ? "Description / what happened"
+          : "Details",
+        description: "Describe the bug or feature. Include steps, context, or a link if that helps.",
         customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
         style: 2,
         required: true,
