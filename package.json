@@ -36,6 +36,7 @@
     "discord:bugs:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
     "feedback:board:export": "node scripts/export-feedback-board.mjs",
+    "feedback:tasks:generate": "node scripts/generate-feedback-task-packets.mjs",
     "feedback:sync-forum-posts": "node scripts/sync-feedback-forum-posts.mjs",
     "moderation:purgatory:release-expired": "node scripts/release-expired-purgatory-cases.mjs",
     "prebuild": "npm run build:guard -- --stop-dev && npm run build:prepare",
