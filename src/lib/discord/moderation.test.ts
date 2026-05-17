@@ -175,6 +175,7 @@ function createModerationDependencies() {
     }],
   ]);
   const channels = [
+    { id: "1504694737494478888", name: "verify", type: 0 },
     { id: "1504700208251146374", name: "Purgatory", type: 4 },
     { id: "1504700208251146375", name: "purgatory", type: 0, parent_id: "1504700208251146374" },
     { id: "1504700208251146376", name: "mod-log", type: 0 },
@@ -189,6 +190,8 @@ function createModerationDependencies() {
   const addRoleCalls = [];
   const removeRoleCalls = [];
   const messages = [];
+  const dmChannelCalls = [];
+  const overwriteCalls = [];
 
   const dependencies = {
     adminClient,
@@ -212,7 +215,10 @@ function createModerationDependencies() {
       ok: true,
       channel: { id: `${name}-${type}`, name, type, parent_id: parentId ?? null },
     }),
-    updatePermissionOverwrite: async () => ({ ok: true }),
+    updatePermissionOverwrite: async ({ channelId, overwriteId, overwrite }) => {
+      overwriteCalls.push({ channelId, overwriteId, overwrite });
+      return { ok: true };
+    },
     addMemberRole: async ({ userId, roleId }) => {
       addRoleCalls.push({ userId, roleId });
       const member = members.get(userId);
@@ -233,6 +239,10 @@ function createModerationDependencies() {
       messages.push({ channelId, body });
       return { ok: true, messageId: `${channelId}-message-${messages.length}` };
     },
+    createDmChannel: async ({ recipientUserId }) => {
+      dmChannelCalls.push({ recipientUserId });
+      return { ok: true, channel: { id: `dm-${recipientUserId}`, type: 1 } };
+    },
   };
 
   return {
@@ -242,6 +252,8 @@ function createModerationDependencies() {
     addRoleCalls,
     removeRoleCalls,
     messages,
+    dmChannelCalls,
+    overwriteCalls,
   };
 }
 
@@ -309,6 +321,11 @@ test("createDiscordModerationWarning records notice warning and critical cases w
       { action: "warning", severity: "critical" },
     ],
   );
+  assert.deepEqual(context.dmChannelCalls.map((call) => call.recipientUserId), [
+    "123456789012345678",
+    "123456789012345678",
+    "123456789012345678",
+  ]);
 });
 
 test("getDiscordWarningsSummary lists bounded warning history", async () => {
@@ -319,6 +336,7 @@ test("getDiscordWarningsSummary lists bounded warning history", async () => {
   process.env.DISCORD_PURGATORY_CHANNEL_ID = "1504700208251146375";
   process.env.DISCORD_PURGATORY_REMOVED_ROLE_IDS = "1504700208251146377";
   process.env.DISCORD_VERIFIED_ROLE_ID = "1504700208251146378";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504694737494478888";
 
   const context = createModerationDependencies();
   await createDiscordModerationWarning({
@@ -399,6 +417,7 @@ test("moveDiscordUserToPurgatory records a case and changes reversible roles", a
   process.env.DISCORD_MOD_LOG_CHANNEL_ID = "1504700208251146376";
   process.env.DISCORD_PURGATORY_REMOVED_ROLE_IDS = "1504700208251146377";
   process.env.DISCORD_VERIFIED_ROLE_ID = "1504700208251146378";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504694737494478888";
 
   const context = createModerationDependencies();
   const result = await moveDiscordUserToPurgatory({
@@ -421,7 +440,12 @@ test("moveDiscordUserToPurgatory records a case and changes reversible roles", a
   });
   assert.deepEqual(context.removeRoleCalls.map((call) => call.roleId).sort(), ["1504700208251146377", "1504700208251146378"]);
   assert.equal(context.members.get("123456789012345678")?.roles.includes("1504700208251146373"), true);
-  assert.equal(context.messages.length >= 1, true);
+  assert.deepEqual(context.dmChannelCalls.map((call) => call.recipientUserId), ["123456789012345678"]);
+  assert.equal(
+    context.overwriteCalls.some((call) => call.channelId === "1504694737494478888" && call.overwriteId === "1504700208251146373"),
+    true,
+  );
+  assert.equal(context.messages.some((message) => message.channelId === "1504700208251146375"), true);
 });
 
 test("moveDiscordUserToPurgatory rejects the owner and the bot", async () => {
@@ -432,6 +456,7 @@ test("moveDiscordUserToPurgatory rejects the owner and the bot", async () => {
   process.env.DISCORD_MOD_LOG_CHANNEL_ID = "1504700208251146376";
   process.env.DISCORD_PURGATORY_REMOVED_ROLE_IDS = "1504700208251146377";
   process.env.DISCORD_VERIFIED_ROLE_ID = "1504700208251146378";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504694737494478888";
 
   const ownerContext = createModerationDependencies();
   ownerContext.dependencies.fetchGuild = async () => ({
@@ -475,6 +500,7 @@ test("releaseDiscordPurgatoryCase restores roles and closes the case", async () 
   process.env.DISCORD_MOD_LOG_CHANNEL_ID = "1504700208251146376";
   process.env.DISCORD_PURGATORY_REMOVED_ROLE_IDS = "1504700208251146377";
   process.env.DISCORD_VERIFIED_ROLE_ID = "1504700208251146378";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504694737494478888";
 
   const context = createModerationDependencies();
   await moveDiscordUserToPurgatory({
@@ -502,6 +528,7 @@ test("releaseDiscordPurgatoryCase restores roles and closes the case", async () 
   assert.equal(context.adminClient.moderationCases[0].status, "released");
   assert.deepEqual(context.adminClient.moderationCases[0].restored_role_ids.sort(), ["1504700208251146377", "1504700208251146378"]);
   assert.equal(context.members.get("123456789012345678")?.roles.includes("1504700208251146373"), false);
+  assert.deepEqual(context.dmChannelCalls.map((call) => call.recipientUserId), ["123456789012345678", "123456789012345678"]);
 });
 
 test("releaseDiscordPurgatoryCase skips missing roles safely", async () => {
@@ -512,6 +539,7 @@ test("releaseDiscordPurgatoryCase skips missing roles safely", async () => {
   process.env.DISCORD_MOD_LOG_CHANNEL_ID = "1504700208251146376";
   process.env.DISCORD_PURGATORY_REMOVED_ROLE_IDS = "1504700208251146377";
   process.env.DISCORD_VERIFIED_ROLE_ID = "1504700208251146378";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504694737494478888";
 
   const context = createModerationDependencies();
   await moveDiscordUserToPurgatory({

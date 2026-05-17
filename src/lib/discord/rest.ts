@@ -63,6 +63,11 @@ export type DiscordGuildMember = {
   roles?: string[];
 };
 
+export type DiscordDirectMessageChannel = {
+  id: string;
+  type?: number;
+};
+
 export type DiscordActiveThreadsResponse = {
   threads?: DiscordChannel[];
 };
@@ -349,6 +354,31 @@ export async function createDiscordChannel(args: {
   return {
     ok: false,
     code: "DISCORD_CREATE_CHANNEL_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function createDiscordDirectMessageChannel(args: {
+  recipientUserId: string;
+}): Promise<{ ok: true; channel: DiscordDirectMessageChannel } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordDirectMessageChannel>(
+    "/users/@me/channels",
+    {
+      method: "POST",
+      body: {
+        recipient_id: args.recipientUserId,
+      },
+    },
+  );
+
+  if (result.ok && result.data && typeof result.data.id === "string") {
+    return { ok: true, channel: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_CREATE_DM_CHANNEL_FAILED",
     status: result.status,
     message: result.errorMessage,
   };
