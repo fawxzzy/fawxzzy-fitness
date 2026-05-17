@@ -408,21 +408,110 @@ test("Discord interactions route opens the submit feedback panel modal", async (
   assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
 });
 
-test("Discord interactions route opens the update feedback panel modal", async () => {
+test("Discord interactions route opens the update feedback picker for recent editable cards", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
 
-  const response = await POST(createSignedRequest(JSON.stringify({
-    type: 3,
-    data: {
-      custom_id: "fitness_feedback_update_open",
-    },
-  }), keyPair));
+  const originalFetch = globalThis.fetch;
 
-  assert.equal(response.status, 200);
-  const payload = await response.json();
-  assert.equal(payload.type, 9);
-  assert.equal(payload.data.custom_id, "fitness_feedback_update_modal");
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && String(init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify([
+        buildFeedbackReportRow({
+          report_type: "feature",
+          summary: "Emoji bootstrap canary",
+          area: "Discord Feedback",
+        }),
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_update_open",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 4);
+    assert.equal(payload.data.flags, 64);
+    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "fitness_feedback_update_pick_report");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route opens a prefilled update modal after selecting a feedback card", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && String(init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        area: "Discord Feedback",
+        summary: "Emoji bootstrap canary",
+        details: "Synthetic bot-side canary.",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: "0",
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_update_pick_report",
+        values: ["11111111-1111-4111-8111-111111111111"],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 9);
+    assert.equal(payload.data.custom_id, "fitness_feedback_update_edit_modal:11111111-1111-4111-8111-111111111111");
+    assert.equal(payload.data.components[0]?.component?.value, "Emoji bootstrap canary");
+    assert.equal(payload.data.components[1]?.component?.value, "Discord Feedback");
+    assert.equal(payload.data.components[2]?.component?.value, "Synthetic bot-side canary.");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("Discord interactions route opens the withdraw feedback panel modal", async () => {
@@ -440,6 +529,59 @@ test("Discord interactions route opens the withdraw feedback panel modal", async
   const payload = await response.json();
   assert.equal(payload.type, 9);
   assert.equal(payload.data.custom_id, "fitness_feedback_withdraw_modal");
+});
+
+test("Discord interactions route adds recent feedback choices to the withdraw modal when the reporter has active cards", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && String(init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify([
+        buildFeedbackReportRow({
+          report_type: "feature",
+          summary: "Emoji bootstrap canary",
+          area: "Discord Feedback",
+        }),
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_withdraw_open",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 9);
+    assert.equal(payload.data.custom_id, "fitness_feedback_withdraw_modal");
+    assert.equal(payload.data.components[0]?.component?.custom_id, "feedback_withdraw_report_select");
+    assert.equal(payload.data.components[0]?.component?.options?.[0]?.value, "11111111-1111-4111-8111-111111111111");
+    assert.equal(payload.data.components[1]?.component?.required, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("Discord interactions route opens the general feedback modal for /feedback", async () => {
@@ -1472,10 +1614,11 @@ test("Discord interactions route rejects feedback update modal submissions from 
         },
       },
       data: {
-        custom_id: "fitness_feedback_update_modal",
+        custom_id: "fitness_feedback_update_edit_modal:11111111-1111-4111-8111-111111111111",
         components: [
-          { type: 1, components: [{ type: 4, custom_id: "feedback_update_report_id", value: "11111111-1111-4111-8111-111111111111" }] },
-          { type: 1, components: [{ type: 4, custom_id: "feedback_update_details", value: "Here are more details." }] },
+          { type: 18, label: "Title", component: { type: 4, custom_id: "bug_summary", value: "Let me share a routine" } },
+          { type: 18, label: "Area", component: { type: 4, custom_id: "bug_area", value: "Routines" } },
+          { type: 18, label: "Description / what happened", component: { type: 4, custom_id: "bug_details", value: "Here are more details." } },
         ],
       },
     }), keyPair));
@@ -1671,7 +1814,7 @@ test("Discord interactions route syncs feature feedback-status into Supabase and
   }
 });
 
-test("Discord interactions route lets the reporter add a feedback update from the panel modal", async () => {
+test("Discord interactions route lets the reporter edit the live feedback card from the panel flow", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
@@ -1686,9 +1829,15 @@ test("Discord interactions route lets the reporter add a feedback update from th
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
 
-    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+    if (url.pathname === "/api/v10/interactions/interaction-update/interaction-token/callback") {
+      observedDiscordBodies.push({ path: url.pathname, method, body });
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "GET") {
       return new Response(JSON.stringify(buildFeedbackReportRow({
         report_type: "feature",
         area: "Routines",
@@ -1701,14 +1850,14 @@ test("Discord interactions route lets the reporter add a feedback update from th
       });
     }
 
-    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "PATCH") {
       observedSupabaseWrites.push(body);
       if (observedSupabaseWrites.length === 1) {
         return new Response(JSON.stringify(buildFeedbackReportRow({
           report_type: "feature",
-          area: "Routines",
-          summary: "Let me share a routine",
-          status_note: "I can reproduce it after reinstalling.",
+          area: "Community",
+          summary: "Let me share routines with friends",
+          details: "Make the share flow visible from the routine screen.",
           last_seen_at: "2026-05-15T14:10:00.000Z",
           updated_at: "2026-05-15T14:10:00.000Z",
         })), {
@@ -1724,7 +1873,7 @@ test("Discord interactions route lets the reporter add a feedback update from th
     }
 
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
-      observedDiscordBodies.push({ path: url.pathname, method: "GET", body: null });
+      observedDiscordBodies.push({ path: url.pathname, method, body: null });
       return new Response(JSON.stringify({
         id: "1504673475489562744",
         available_tags: [
@@ -1739,26 +1888,45 @@ test("Discord interactions route lets the reporter add a feedback update from th
     }
 
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
-      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
+      observedDiscordBodies.push({ path: url.pathname, method, body });
       return new Response(JSON.stringify({ id: "1504673475489562745" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
+      observedDiscordBodies.push({ path: url.pathname, method, body });
+      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
-      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      observedDiscordBodies.push({ path: url.pathname, method, body });
       return new Response(JSON.stringify({ id: "discord-message-update" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original") {
+      observedDiscordBodies.push({ path: url.pathname, method, body });
+      return new Response(JSON.stringify({ id: "original-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
   };
 
   try {
     const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-update",
+      application_id: "1504700208251146371",
+      token: "interaction-token",
       type: 5,
       guild_id: "1504668396338413670",
       member: {
@@ -1769,26 +1937,36 @@ test("Discord interactions route lets the reporter add a feedback update from th
         },
       },
       data: {
-        custom_id: "fitness_feedback_update_modal",
+        custom_id: "fitness_feedback_update_edit_modal:11111111-1111-4111-8111-111111111111",
         components: [
-          { type: 1, components: [{ type: 4, custom_id: "feedback_update_report_id", value: "11111111-1111-4111-8111-111111111111" }] },
-          { type: 1, components: [{ type: 4, custom_id: "feedback_update_details", value: "I can reproduce it after reinstalling." }] },
+          { type: 18, label: "Title", component: { type: 4, custom_id: "bug_summary", value: "Let me share routines with friends" } },
+          { type: 18, label: "Area", component: { type: 4, custom_id: "bug_area", value: "Community" } },
+          { type: 18, label: "Description / what happened", component: { type: 4, custom_id: "bug_details", value: "Make the share flow visible from the routine screen." } },
         ],
       },
     }), keyPair));
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      type: 4,
+    assert.equal(response.status, 202);
+    const deferCall = observedDiscordBodies.find((entry) => entry.path === "/api/v10/interactions/interaction-update/interaction-token/callback");
+    const editCall = observedDiscordBodies.find((entry) => entry.path === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original");
+    assert.deepEqual(deferCall?.body, {
+      type: 5,
       data: {
-        content: "Feedback updated.",
         flags: 64,
       },
     });
-    assert.equal(observedSupabaseWrites[0]?.status_note, "I can reproduce it after reinstalling.");
+    assert.deepEqual(editCall?.body, {
+      content: "Feedback updated.",
+    });
+    assert.equal(observedSupabaseWrites[0]?.summary, "Let me share routines with friends");
+    assert.equal(observedSupabaseWrites[0]?.area, "Community");
+    assert.equal(observedSupabaseWrites[0]?.details, "Make the share flow visible from the routine screen.");
+    const starterPatch = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages/1504673475489562746");
+    assert.match(starterPatch?.body?.content ?? "", /Let me share routines with friends/);
+    assert.match(starterPatch?.body?.content ?? "", /Community/);
     const updateReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
     assert.match(updateReply?.body?.content ?? "", /Reporter added an update\./);
-    assert.match(updateReply?.body?.content ?? "", /I can reproduce it after reinstalling\./);
+    assert.match(updateReply?.body?.content ?? "", /Edited fields: Title, Area, Description\./);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
@@ -1973,9 +2151,15 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
 
-    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+    if (url.pathname === "/api/v10/interactions/interaction-withdraw/interaction-token/callback") {
+      observedDiscordBodies.push({ path: url.pathname, method, body });
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "GET") {
       return new Response(JSON.stringify(buildFeedbackReportRow({
         report_type: "feature",
         area: "Routines",
@@ -1988,7 +2172,7 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
       });
     }
 
-    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "PATCH") {
       observedSupabaseWrites.push(body);
       if (observedSupabaseWrites.length === 1) {
         return new Response(JSON.stringify(buildFeedbackReportRow({
@@ -2027,8 +2211,8 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "PATCH") {
-      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && method === "PATCH") {
+      observedDiscordBodies.push({ path: url.pathname, method, body });
       return new Response(JSON.stringify({ id: "1504673475489562745" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -2036,7 +2220,7 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
     }
 
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
-      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      observedDiscordBodies.push({ path: url.pathname, method, body });
       return new Response(JSON.stringify({ id: "1504673475489562746" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -2044,23 +2228,34 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
     }
 
     if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
-      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      observedDiscordBodies.push({ path: url.pathname, method, body });
       return new Response(JSON.stringify({ id: "discord-message-withdraw-modal" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && String(init?.method ?? "GET") === "DELETE") {
-      observedDiscordBodies.push({ path: url.pathname, method: "DELETE", body });
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745" && method === "DELETE") {
+      observedDiscordBodies.push({ path: url.pathname, method, body });
       return new Response(null, { status: 204 });
     }
 
-    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original") {
+      observedDiscordBodies.push({ path: url.pathname, method, body });
+      return new Response(JSON.stringify({ id: "original-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
   };
 
   try {
     const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-withdraw",
+      application_id: "1504700208251146371",
+      token: "interaction-token",
       type: 5,
       guild_id: "1504668396338413670",
       member: {
@@ -2079,13 +2274,17 @@ test("Discord interactions route reuses withdraw logic for the feedback withdraw
       },
     }), keyPair));
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      type: 4,
+    assert.equal(response.status, 202);
+    const deferCall = observedDiscordBodies.find((entry) => entry.path === "/api/v10/interactions/interaction-withdraw/interaction-token/callback");
+    const editCall = observedDiscordBodies.find((entry) => entry.path === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original");
+    assert.deepEqual(deferCall?.body, {
+      type: 5,
       data: {
-        content: "Feedback withdrawn. The forum post was removed and we kept a small audit record.",
         flags: 64,
       },
+    });
+    assert.deepEqual(editCall?.body, {
+      content: "Feedback withdrawn. The forum post was removed and we kept a small audit record.",
     });
     assert.equal(observedSupabaseWrites[0]?.status_note, "Withdrawing because I solved it.");
     const withdrawAuditComment = observedDiscordBodies.find((entry) => entry.path.endsWith("/messages") && entry.method === "POST");

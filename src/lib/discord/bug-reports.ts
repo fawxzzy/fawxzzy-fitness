@@ -123,6 +123,11 @@ export type DiscordBugReportRow = {
   updated_at: string;
 };
 
+export type DiscordFeedbackReportSelectCandidate = Pick<
+  DiscordBugReportRow,
+  "id" | "report_type" | "status" | "area" | "summary" | "updated_at"
+>;
+
 type DiscordBugReportsAdminClient = {
   from: (table: "discord_feedback_reports" | "discord_member_links") => any;
 };
@@ -1508,6 +1513,112 @@ export async function findDiscordBugReportByIdOrPrefix(args: {
     }
 
     return { ok: false, code: "DISCORD_BUG_REPORT_LOOKUP_FAILED" };
+  }
+}
+
+export async function listRecentDiscordFeedbackReports(args: {
+  reporterDiscordUserId?: string | null;
+  limit?: number;
+  excludedStatuses?: DiscordBugReportStatus[];
+  adminClient?: DiscordBugReportsAdminClient;
+}): Promise<
+  | { ok: true; reports: DiscordFeedbackReportSelectCandidate[] }
+  | { ok: false; code: "DISCORD_BUG_REPORT_INVALID_INPUT" | "DISCORD_BUG_REPORT_LOOKUP_FAILED" }
+> {
+  if (args.reporterDiscordUserId && !isDiscordSnowflake(args.reporterDiscordUserId)) {
+    return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
+  }
+
+  const limit = Math.min(Math.max(args.limit ?? 10, 1), 25);
+  const excludedStatuses = new Set(args.excludedStatuses ?? []);
+  const admin = args.adminClient ?? (supabaseAdmin() as unknown as DiscordBugReportsAdminClient);
+
+  try {
+    const query = admin
+      .from("discord_feedback_reports")
+      .select(DISCORD_BUG_REPORT_SELECT_COLUMNS)
+      .order("updated_at", { ascending: false })
+      .limit(Math.max(limit * 3, 15));
+
+    const scopedQuery = args.reporterDiscordUserId
+      ? query.eq("reporter_discord_user_id", args.reporterDiscordUserId)
+      : query;
+
+    const { data, error } = await scopedQuery;
+
+    if (error || !Array.isArray(data)) {
+      return { ok: false, code: "DISCORD_BUG_REPORT_LOOKUP_FAILED" };
+    }
+
+    const reports = data
+      .map((row) => coerceBugReportRow(row))
+      .filter((row): row is DiscordBugReportRow => Boolean(row))
+      .filter((row) => !excludedStatuses.has(row.status))
+      .slice(0, limit)
+      .map((row) => ({
+        id: row.id,
+        report_type: row.report_type,
+        status: row.status,
+        area: row.area,
+        summary: row.summary,
+        updated_at: row.updated_at,
+      }));
+
+    return { ok: true, reports };
+  } catch {
+    return { ok: false, code: "DISCORD_BUG_REPORT_LOOKUP_FAILED" };
+  }
+}
+
+export async function updateDiscordFeedbackReportContent(args: {
+  reportId: string;
+  summary: string;
+  area: string | null;
+  details: string;
+  updatedByDiscordUserId: string;
+  adminClient?: DiscordBugReportsAdminClient;
+  now?: Date;
+}): Promise<
+  | { ok: true; report: DiscordBugReportRow }
+  | { ok: false; code: "DISCORD_BUG_REPORT_UPDATE_FAILED" | "DISCORD_BUG_REPORT_INVALID_INPUT" }
+> {
+  if (!isDiscordSnowflake(args.updatedByDiscordUserId)) {
+    return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
+  }
+
+  const normalizedSummary = normalizeTextInput(args.summary, DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH);
+  const normalizedArea = normalizeTextInput(args.area, DISCORD_BUG_REPORT_AREA_MAX_LENGTH);
+  const normalizedDetails = normalizeTextInput(args.details, DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH);
+
+  if (!normalizedSummary || !normalizedDetails) {
+    return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
+  }
+
+  const nowIso = (args.now ?? new Date()).toISOString();
+  const admin = args.adminClient ?? (supabaseAdmin() as unknown as DiscordBugReportsAdminClient);
+
+  try {
+    const { data, error } = await admin
+      .from("discord_feedback_reports")
+      .update({
+        summary: normalizedSummary,
+        area: normalizedArea,
+        details: normalizedDetails,
+        last_seen_at: nowIso,
+        updated_at: nowIso,
+      })
+      .eq("id", args.reportId)
+      .select(DISCORD_BUG_REPORT_SELECT_COLUMNS)
+      .single();
+
+    const row = coerceBugReportRow(data);
+    if (error || !row) {
+      return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
+    }
+
+    return { ok: true, report: row };
+  } catch {
+    return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
   }
 }
 
