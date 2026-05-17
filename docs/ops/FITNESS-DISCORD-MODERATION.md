@@ -8,7 +8,31 @@ Core rule:
 
 Moderation should isolate a user into Purgatory, keep a bounded case record in Supabase, log the action, and preserve a release path.
 
+Severity levels:
+- `notice`
+  - soft correction
+  - logged only
+  - no role change
+- `warning`
+  - formal logged warning
+  - no role change
+- `purgatory`
+  - reversible role isolation
+  - release path required
+- `critical`
+  - staff escalation label
+  - still no full ban by default
+
 ## Command surface
+- `/warn`
+  - staff/admin only
+  - logs a `notice`, `warning`, or `critical` moderation case without changing roles
+- `/warnings`
+  - staff/admin only
+  - shows recent notice, warning, and Purgatory history for a user
+- `/warning-clear`
+  - staff/admin only
+  - resolves a notice or warning case without deleting history
 - `/purgatory-setup`
   - staff/admin only
   - creates or verifies the `Purgatory` role, `Purgatory` category, and `purgatory` channel
@@ -41,6 +65,8 @@ Optional log destination:
 Each moderation action writes a row to `public.discord_moderation_cases`.
 
 Stored data includes:
+- action and severity
+- status
 - target Discord user
 - moderator Discord user
 - reason
@@ -49,6 +75,7 @@ Stored data includes:
 - restored roles
 - channel/log references
 - release metadata
+- warning resolution metadata
 
 ## Release flow
 Manual release:
@@ -63,15 +90,76 @@ Expired release:
 - dry-run by default
 - rerun with `--apply` to mutate
 
+Warning resolution:
+1. Staff runs `/warning-clear` with a case id.
+2. Fawx Security marks the case `resolved`.
+3. The original case stays in history.
+4. A log message is posted when a mod-log channel is configured.
+
+## Message templates
+Notice:
+
+```md
+## Fawx Security Notice
+
+Hey — this is a quick reminder to keep the server clean and respectful.
+
+Reason:
+<reason>
+
+No action was taken. Just adjust and you’re good.
+```
+
+Warning:
+
+```md
+## Fawx Security Warning
+
+This is a logged warning.
+
+Reason:
+<reason>
+
+Please correct the behavior so we do not have to move this into Purgatory.
+```
+
+Purgatory:
+
+```md
+## Fawx Security: Purgatory
+
+You have been moved to Purgatory for review.
+
+Reason:
+<reason>
+
+An admin will talk with you here. This is reversible.
+```
+
+Release:
+
+```md
+## Fawx Security: Released
+
+You have been released from Purgatory.
+
+Note:
+<note>
+
+Please keep things clean moving forward.
+```
+
 ## Safety limits
 - No bans by default.
 - No kicks.
 - No message deletion in v1.
+- No silent moderation.
 - Do not jail the server owner.
 - Do not jail the bot.
 - Do not jail users the bot cannot manage because of role hierarchy.
 - Restore only roles that were explicitly removed and still exist.
 - Never restore missing roles.
+- Warning clear resolves history; it does not delete it.
 
 ## Owner and high-role limits
 Discord role hierarchy still applies:

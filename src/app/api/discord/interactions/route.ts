@@ -81,6 +81,10 @@ import {
   FITNESS_RELEASE_CASE_ID_OPTION_NAME,
   FITNESS_RELEASE_COMMAND_NAME,
   FITNESS_RELEASE_NOTE_OPTION_NAME,
+  FITNESS_WARNING_CLEAR_COMMAND_NAME,
+  FITNESS_WARNING_SEVERITY_OPTION_NAME,
+  FITNESS_WARNINGS_COMMAND_NAME,
+  FITNESS_WARN_COMMAND_NAME,
   FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX,
   FITNESS_UPDATE_SKIP_COMMAND_NAME,
   FITNESS_UPDATE_SKIP_REASON_OPTION_NAME,
@@ -101,12 +105,16 @@ import {
   extractDiscordModalTextInputValue,
 } from "@/lib/discord/interactions";
 import {
+  createDiscordModerationWarning,
   ensureDiscordPurgatoryInfrastructure,
   formatDiscordModerationCaseShortId,
   getDiscordModerationLogSummary,
+  getDiscordWarningsSummary,
   moveDiscordUserToPurgatory,
   parseDiscordModerationDuration,
+  parseDiscordModerationWarningSeverity,
   releaseDiscordPurgatoryCase,
+  resolveDiscordModerationWarningCase,
 } from "@/lib/discord/moderation";
 import {
   addDiscordGuildMemberRole,
@@ -1552,6 +1560,131 @@ async function handleFeedbackWithdrawModalSubmit(interaction: DiscordInteraction
   });
 }
 
+async function handleWarnInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to log warnings.");
+  }
+
+  const moderator = resolveDiscordInteractionUser(interaction);
+  const targetDiscordUserId = extractDiscordCommandUserOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_USER_OPTION_NAME,
+  );
+  const reason = extractDiscordCommandStringOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_REASON_OPTION_NAME,
+  );
+  const severityResult = parseDiscordModerationWarningSeverity(
+    extractDiscordCommandStringOption(interaction.data?.options, FITNESS_WARNING_SEVERITY_OPTION_NAME),
+  );
+
+  if (!severityResult.ok) {
+    return buildDiscordEphemeralMessageResponse(severityResult.message);
+  }
+
+  if (!moderator.id || !targetDiscordUserId || !reason) {
+    return buildDiscordEphemeralMessageResponse("Could not log that warning.");
+  }
+
+  const warningResult = await createDiscordModerationWarning({
+    guildId: DISCORD_GUILD_ID(),
+    targetDiscordUserId,
+    moderatorDiscordUserId: moderator.id,
+    moderatorDiscordUsername: moderator.username,
+    moderatorPermissions: permissions,
+    severity: severityResult.severity,
+    reason,
+  });
+  if (!warningResult.ok) {
+    return buildDiscordEphemeralMessageResponse(warningResult.message);
+  }
+
+  const label = severityResult.severity === "critical"
+    ? "Critical warning"
+    : severityResult.severity === "warning"
+      ? "Warning"
+      : "Notice";
+  return buildDiscordEphemeralMessageResponse(
+    warningResult.warnings.length > 0
+      ? `${label} logged. Case \`${formatDiscordModerationCaseShortId(warningResult.caseRow.id)}\` created. ${warningResult.warnings.join(" ")}`
+      : `${label} logged. Case \`${formatDiscordModerationCaseShortId(warningResult.caseRow.id)}\` created.`,
+  );
+}
+
+async function handleWarningsInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to review warning history.");
+  }
+
+  const targetDiscordUserId = extractDiscordCommandUserOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_USER_OPTION_NAME,
+  );
+  if (!targetDiscordUserId) {
+    return buildDiscordEphemeralMessageResponse("Choose a user to review.");
+  }
+
+  const limit = extractDiscordCommandIntegerOption(
+    interaction.data?.options,
+    FITNESS_MOD_LOG_LIMIT_OPTION_NAME,
+  );
+
+  return buildDiscordEphemeralMessageResponse(await getDiscordWarningsSummary({
+    targetDiscordUserId,
+    limit,
+  }));
+}
+
+async function handleWarningClearInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to resolve warnings.");
+  }
+
+  const moderator = resolveDiscordInteractionUser(interaction);
+  const caseIdOrPrefix = extractDiscordCommandStringOption(
+    interaction.data?.options,
+    FITNESS_RELEASE_CASE_ID_OPTION_NAME,
+  );
+  const reason = extractDiscordCommandStringOption(
+    interaction.data?.options,
+    FITNESS_PURGATORY_REASON_OPTION_NAME,
+  );
+  if (!moderator.id || !caseIdOrPrefix) {
+    return buildDiscordEphemeralMessageResponse("Choose a warning case id to resolve.");
+  }
+
+  const clearResult = await resolveDiscordModerationWarningCase({
+    caseIdOrPrefix,
+    resolvedByDiscordUserId: moderator.id,
+    resolvedByDiscordUsername: moderator.username,
+    reason,
+  });
+  if (!clearResult.ok) {
+    return buildDiscordEphemeralMessageResponse(clearResult.message);
+  }
+
+  return buildDiscordEphemeralMessageResponse(
+    clearResult.warnings.length > 0
+      ? `Warning case \`${formatDiscordModerationCaseShortId(clearResult.caseRow.id)}\` resolved. ${clearResult.warnings.join(" ")}`
+      : `Warning case \`${formatDiscordModerationCaseShortId(clearResult.caseRow.id)}\` resolved.`,
+  );
+}
+
 async function handlePurgatorySetupInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
     return buildDiscordEphemeralMessageResponse("This moderation flow is only available in the configured server.");
@@ -1920,6 +2053,27 @@ export async function POST(request: Request) {
       && interaction.data?.name === FITNESS_PURGATORY_SETUP_COMMAND_NAME
     ) {
       return jsonResponse(await handlePurgatorySetupInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_WARN_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleWarnInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_WARNINGS_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleWarningsInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_WARNING_CLEAR_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleWarningClearInteraction(interaction));
     }
 
     if (

@@ -42,15 +42,21 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 export const DISCORD_PURGATORY_ROLE_NAME = "Purgatory";
 export const DISCORD_PURGATORY_CATEGORY_NAME = "Purgatory";
 export const DISCORD_PURGATORY_CHANNEL_NAME = "purgatory";
-export const DISCORD_PURGATORY_CHANNEL_NOTICE = "You have been moved to Purgatory. An admin will review this with you here.";
 export const DISCORD_MODERATION_CASE_SHORT_ID_LENGTH = 8;
+const DISCORD_MODERATION_REASON_MAX_LENGTH = 1000;
+const DISCORD_MODERATION_NOTE_MAX_LENGTH = 1000;
+const DISCORD_MODERATION_NOTICE_TEMPLATE_TITLE = "Fawx Security Notice";
+const DISCORD_MODERATION_WARNING_TEMPLATE_TITLE = "Fawx Security Warning";
+const DISCORD_MODERATION_PURGATORY_TEMPLATE_TITLE = "Fawx Security: Purgatory";
 
-type DiscordModerationAction = "purgatory";
-export type DiscordModerationCaseStatus = "active" | "released" | "expired" | "failed";
+export type DiscordModerationAction = "notice" | "warning" | "purgatory" | "release";
+export type DiscordModerationSeverity = "notice" | "warning" | "purgatory" | "critical";
+export type DiscordModerationCaseStatus = "active" | "released" | "expired" | "resolved" | "failed";
 
 export type DiscordModerationCaseRow = {
   id: string;
   action: DiscordModerationAction;
+  severity: DiscordModerationSeverity;
   status: DiscordModerationCaseStatus;
   target_discord_user_id: string;
   target_discord_username: string | null;
@@ -70,6 +76,8 @@ export type DiscordModerationCaseRow = {
   release_note: string | null;
   released_by_discord_user_id: string | null;
   released_at: string | null;
+  resolved_by_discord_user_id: string | null;
+  resolved_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -125,6 +133,18 @@ type MoveToPurgatoryResult =
     message: string;
   };
 
+type CreateModerationWarningResult =
+  | {
+    ok: true;
+    caseRow: DiscordModerationCaseRow;
+    warnings: string[];
+  }
+  | {
+    ok: false;
+    code: string;
+    message: string;
+  };
+
 type ReleasePurgatoryResult =
   | {
     ok: true;
@@ -140,6 +160,7 @@ type ReleasePurgatoryResult =
 const DISCORD_MODERATION_SELECT_COLUMNS = [
   "id",
   "action",
+  "severity",
   "status",
   "target_discord_user_id",
   "target_discord_username",
@@ -159,6 +180,8 @@ const DISCORD_MODERATION_SELECT_COLUMNS = [
   "release_note",
   "released_by_discord_user_id",
   "released_at",
+  "resolved_by_discord_user_id",
+  "resolved_at",
   "created_at",
   "updated_at",
 ].join(", ");
@@ -200,10 +223,22 @@ function normalizeDiscordModerationCaseRow(value: unknown): DiscordModerationCas
 
   const row = value as Record<string, unknown>;
   const id = coerceString(row.id);
-  const action = row.action === "purgatory" ? "purgatory" : null;
+  const action = row.action === "notice"
+    || row.action === "warning"
+    || row.action === "purgatory"
+    || row.action === "release"
+    ? row.action
+    : null;
+  const severity = row.severity === "notice"
+    || row.severity === "warning"
+    || row.severity === "purgatory"
+    || row.severity === "critical"
+    ? row.severity
+    : null;
   const status = row.status === "active"
     || row.status === "released"
     || row.status === "expired"
+    || row.status === "resolved"
     || row.status === "failed"
     ? row.status
     : null;
@@ -213,13 +248,14 @@ function normalizeDiscordModerationCaseRow(value: unknown): DiscordModerationCas
   const createdAt = coerceString(row.created_at);
   const updatedAt = coerceString(row.updated_at);
 
-  if (!id || !action || !status || !targetDiscordUserId || !moderatorDiscordUserId || !reason || !createdAt || !updatedAt) {
+  if (!id || !action || !severity || !status || !targetDiscordUserId || !moderatorDiscordUserId || !reason || !createdAt || !updatedAt) {
     return null;
   }
 
   return {
     id,
     action,
+    severity,
     status,
     target_discord_user_id: targetDiscordUserId,
     target_discord_username: coerceString(row.target_discord_username),
@@ -239,6 +275,8 @@ function normalizeDiscordModerationCaseRow(value: unknown): DiscordModerationCas
     release_note: coerceString(row.release_note),
     released_by_discord_user_id: coerceString(row.released_by_discord_user_id),
     released_at: coerceString(row.released_at),
+    resolved_by_discord_user_id: coerceString(row.resolved_by_discord_user_id),
+    resolved_at: coerceString(row.resolved_at),
     created_at: createdAt,
     updated_at: updatedAt,
   };
@@ -321,6 +359,14 @@ function normalizeText(value: string | null | undefined, maxLength: number): str
   return normalized.slice(0, maxLength);
 }
 
+function normalizeModerationReason(value: string | null | undefined): string | null {
+  return normalizeText(value, DISCORD_MODERATION_REASON_MAX_LENGTH);
+}
+
+function normalizeModerationNote(value: string | null | undefined): string | null {
+  return normalizeText(value, DISCORD_MODERATION_NOTE_MAX_LENGTH);
+}
+
 function formatMention(userId: string, fallback: string | null): string {
   return userId ? `<@${userId}>` : (fallback ?? "unknown");
 }
@@ -345,8 +391,35 @@ function formatDuration(durationSeconds: number | null): string {
   return `${durationSeconds}s`;
 }
 
+function formatModerationActionLabel(action: DiscordModerationAction, severity: DiscordModerationSeverity): string {
+  if (action === "notice") {
+    return "Fawx Security Notice";
+  }
+
+  if (action === "warning" && severity === "critical") {
+    return "Fawx Security Critical Warning";
+  }
+
+  if (action === "warning") {
+    return "Fawx Security Warning";
+  }
+
+  if (action === "release") {
+    return "Fawx Security Release";
+  }
+
+  return "User moved to Purgatory";
+}
+
+function formatSeverityLabel(severity: DiscordModerationSeverity): string {
+  return severity === "critical"
+    ? "Critical"
+    : severity.charAt(0).toUpperCase() + severity.slice(1);
+}
+
 function buildModerationLogMessage(args: {
   actionLabel: string;
+  severity: DiscordModerationSeverity;
   targetUserId: string;
   targetUsername: string | null;
   moderatorUserId: string | null;
@@ -358,6 +431,7 @@ function buildModerationLogMessage(args: {
 }) {
   const lines = [
     `## ${args.actionLabel}`,
+    `- Severity: ${formatSeverityLabel(args.severity)}`,
     `- User: ${formatMention(args.targetUserId, args.targetUsername)}`,
     `- Moderator: ${args.moderatorUserId ? formatMention(args.moderatorUserId, args.moderatorUsername) : (args.moderatorUsername ?? "automation")}`,
     `- Reason: ${args.reason}`,
@@ -370,6 +444,48 @@ function buildModerationLogMessage(args: {
   }
 
   return lines.join("\n");
+}
+
+function buildModerationTargetMessage(args: {
+  severity: "notice" | "warning" | "purgatory";
+  reason: string;
+}) {
+  if (args.severity === "notice") {
+    return [
+      `## ${DISCORD_MODERATION_NOTICE_TEMPLATE_TITLE}`,
+      "",
+      "Hey — this is a quick reminder to keep the server clean and respectful.",
+      "",
+      "Reason:",
+      args.reason,
+      "",
+      "No action was taken. Just adjust and you’re good.",
+    ].join("\n");
+  }
+
+  if (args.severity === "warning") {
+    return [
+      `## ${DISCORD_MODERATION_WARNING_TEMPLATE_TITLE}`,
+      "",
+      "This is a logged warning.",
+      "",
+      "Reason:",
+      args.reason,
+      "",
+      "Please correct the behavior so we do not have to move this into Purgatory.",
+    ].join("\n");
+  }
+
+  return [
+    `## ${DISCORD_MODERATION_PURGATORY_TEMPLATE_TITLE}`,
+    "",
+    "You have been moved to Purgatory for review.",
+    "",
+    "Reason:",
+    args.reason,
+    "",
+    "An admin will talk with you here. This is reversible.",
+  ].join("\n");
 }
 
 export function formatDiscordModerationCaseShortId(caseId: string): string {
@@ -412,6 +528,28 @@ export function parseDiscordModerationDuration(value: string | null | undefined)
       ? amount * 3600
       : amount * 60;
   return { ok: true, durationSeconds };
+}
+
+export function parseDiscordModerationWarningSeverity(value: string | null | undefined): {
+  ok: true;
+  severity: "notice" | "warning" | "critical";
+} | {
+  ok: false;
+  message: string;
+} {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "notice" || normalized === "warning" || normalized === "critical") {
+    return { ok: true, severity: normalized };
+  }
+
+  return {
+    ok: false,
+    message: "Severity must be Notice, Warning, or Critical.",
+  };
+}
+
+function resolveWarningActionForSeverity(severity: "notice" | "warning" | "critical"): "notice" | "warning" {
+  return severity === "notice" ? "notice" : "warning";
 }
 
 export function resolveDiscordPurgatoryRemovedRoleIds(): string[] {
@@ -492,6 +630,7 @@ async function updateDiscordModerationCase(args: {
 
 export async function findActiveDiscordModerationCaseByUser(args: {
   targetDiscordUserId: string;
+  actions?: DiscordModerationAction[] | null;
   dependencies?: DiscordModerationDependencies;
 }): Promise<DiscordModerationCaseRow | null> {
   const admin = getAdminClient(args.dependencies);
@@ -501,23 +640,30 @@ export async function findActiveDiscordModerationCaseByUser(args: {
     .eq("target_discord_user_id", args.targetDiscordUserId)
     .eq("status", "active")
     .order("created_at", { ascending: false })
-    .limit(1);
+    .limit(20);
 
   if (error || !Array.isArray(data) || data.length === 0) {
     return null;
   }
 
-  return normalizeDiscordModerationCaseRow(data[0]);
+  const allowedActions = args.actions?.length ? new Set(args.actions) : null;
+  return data
+    .map(normalizeDiscordModerationCaseRow)
+    .filter((row): row is DiscordModerationCaseRow => Boolean(row))
+    .find((row) => !allowedActions || allowedActions.has(row.action))
+    ?? null;
 }
 
 async function findActiveDiscordModerationCase(args: {
   targetDiscordUserId?: string | null;
   caseIdOrPrefix?: string | null;
+  actions?: DiscordModerationAction[] | null;
   dependencies?: DiscordModerationDependencies;
 }): Promise<DiscordModerationCaseRow | null> {
   if (args.targetDiscordUserId) {
     return findActiveDiscordModerationCaseByUser({
       targetDiscordUserId: args.targetDiscordUserId,
+      actions: args.actions,
       dependencies: args.dependencies,
     });
   }
@@ -542,6 +688,7 @@ async function findActiveDiscordModerationCase(args: {
   const matches = data
     .map(normalizeDiscordModerationCaseRow)
     .filter((row): row is DiscordModerationCaseRow => Boolean(row))
+    .filter((row) => !args.actions?.length || args.actions.includes(row.action))
     .filter((row) => row.id === caseIdOrPrefix || row.id.startsWith(caseIdOrPrefix.toLowerCase()));
 
   return matches[0] ?? null;
@@ -549,6 +696,7 @@ async function findActiveDiscordModerationCase(args: {
 
 export async function listDiscordModerationCases(args?: {
   targetDiscordUserId?: string | null;
+  actions?: DiscordModerationAction[] | null;
   limit?: number | null;
   dependencies?: DiscordModerationDependencies;
 }): Promise<DiscordModerationCaseRow[]> {
@@ -569,7 +717,8 @@ export async function listDiscordModerationCases(args?: {
 
   return data
     .map(normalizeDiscordModerationCaseRow)
-    .filter((row): row is DiscordModerationCaseRow => Boolean(row));
+    .filter((row): row is DiscordModerationCaseRow => Boolean(row))
+    .filter((row) => !args?.actions?.length || args.actions.includes(row.action));
 }
 
 export async function listExpiredActiveDiscordModerationCases(args?: {
@@ -593,6 +742,7 @@ export async function listExpiredActiveDiscordModerationCases(args?: {
   return data
     .map(normalizeDiscordModerationCaseRow)
     .filter((row): row is DiscordModerationCaseRow => Boolean(row))
+    .filter((row) => row.action === "purgatory")
     .filter((row) => row.expires_at && Number.isFinite(Date.parse(row.expires_at)) && Date.parse(row.expires_at) <= nowMs);
 }
 
@@ -605,7 +755,7 @@ function buildModerationCasesSummary(cases: DiscordModerationCaseRow[]): string 
     "# Mod Log",
     ...cases.map((caseRow) => {
       const statusSuffix = caseRow.status === "active" ? "active" : caseRow.status;
-      return `- \`${formatDiscordModerationCaseShortId(caseRow.id)}\` ${statusSuffix} | <@${caseRow.target_discord_user_id}> | ${caseRow.reason}`;
+      return `- \`${formatDiscordModerationCaseShortId(caseRow.id)}\` ${caseRow.action}/${caseRow.severity} ${statusSuffix} | <@${caseRow.target_discord_user_id}> | ${caseRow.reason}`;
     }),
   ].join("\n");
 }
@@ -622,6 +772,159 @@ export async function getDiscordModerationLogSummary(args?: {
   });
 
   return buildModerationCasesSummary(cases);
+}
+
+export async function getDiscordWarningsSummary(args: {
+  targetDiscordUserId: string;
+  limit?: number | null;
+  dependencies?: DiscordModerationDependencies;
+}): Promise<string> {
+  const cases = await listDiscordModerationCases({
+    targetDiscordUserId: args.targetDiscordUserId,
+    actions: ["notice", "warning", "purgatory"],
+    limit: args.limit ?? 5,
+    dependencies: args.dependencies,
+  });
+
+  if (cases.length === 0) {
+    return "No warnings or Purgatory cases found.";
+  }
+
+  return [
+    "# Warning History",
+    ...cases.map((caseRow) => {
+      const status = caseRow.status === "active" ? "active" : caseRow.status;
+      return `- \`${formatDiscordModerationCaseShortId(caseRow.id)}\` ${formatSeverityLabel(caseRow.severity)} ${caseRow.action} ${status} | ${caseRow.reason}`;
+    }),
+  ].join("\n");
+}
+
+type ResolvedModerationTargetContext =
+  | {
+    ok: true;
+    targetMember: DiscordGuildMember;
+    targetMemberLink: DiscordMemberLinkRow | null;
+    targetUsername: string | null;
+    roleMap: Map<string, DiscordGuildRole>;
+    targetRoleIds: string[];
+    botHighestRolePosition: number;
+  }
+  | {
+    ok: false;
+    code: string;
+    message: string;
+  };
+
+async function resolveDiscordModerationTargetContext(args: {
+  guildId: string;
+  targetDiscordUserId: string;
+  moderatorDiscordUserId?: string | null;
+  moderatorPermissions: string | null | undefined;
+  dependencies?: DiscordModerationDependencies;
+  forbidAdminTargets?: boolean;
+}): Promise<ResolvedModerationTargetContext> {
+  const fetchGuild = args.dependencies?.fetchGuild ?? fetchDiscordGuild;
+  const fetchRoles = args.dependencies?.fetchGuildRoles ?? fetchDiscordGuildRoles;
+  const fetchMember = args.dependencies?.fetchGuildMember ?? fetchDiscordGuildMember;
+
+  const guildResult = await fetchGuild({ guildId: args.guildId });
+  if (!guildResult.ok) {
+    return {
+      ok: false,
+      code: guildResult.code,
+      message: guildResult.message ?? "Could not load the guild.",
+    };
+  }
+
+  const rolesResult = await fetchRoles({ guildId: args.guildId });
+  if (!rolesResult.ok) {
+    return {
+      ok: false,
+      code: rolesResult.code,
+      message: rolesResult.message ?? "Could not load guild roles.",
+    };
+  }
+
+  const targetMemberResult = await fetchMember({
+    guildId: args.guildId,
+    userId: args.targetDiscordUserId,
+  });
+  if (!targetMemberResult.ok) {
+    return {
+      ok: false,
+      code: targetMemberResult.code,
+      message: targetMemberResult.message ?? "Could not load the target member.",
+    };
+  }
+
+  const botUserId = DISCORD_APPLICATION_ID();
+  if (guildResult.guild.owner_id && guildResult.guild.owner_id === args.targetDiscordUserId) {
+    return {
+      ok: false,
+      code: "DISCORD_MODERATION_OWNER_FORBIDDEN",
+      message: "Cannot target the server owner.",
+    };
+  }
+
+  if (args.targetDiscordUserId === botUserId) {
+    return {
+      ok: false,
+      code: "DISCORD_MODERATION_BOT_FORBIDDEN",
+      message: "Cannot target the bot.",
+    };
+  }
+
+  const botMemberResult = await fetchMember({
+    guildId: args.guildId,
+    userId: botUserId,
+  });
+  if (!botMemberResult.ok) {
+    return {
+      ok: false,
+      code: botMemberResult.code,
+      message: botMemberResult.message ?? "Could not load the bot member.",
+    };
+  }
+
+  const roleMap = getRoleMap(rolesResult.roles);
+  const botHighestRolePosition = getMemberHighestRolePosition(botMemberResult.member, roleMap);
+  const targetHighestRolePosition = getMemberHighestRolePosition(targetMemberResult.member, roleMap);
+  if (botHighestRolePosition <= targetHighestRolePosition) {
+    return {
+      ok: false,
+      code: "DISCORD_MODERATION_TARGET_NOT_MANAGEABLE",
+      message: "The bot cannot manage that user because of role hierarchy.",
+    };
+  }
+
+  if (
+    args.forbidAdminTargets
+    && memberHasAdminLikeRole(targetMemberResult.member, roleMap)
+  ) {
+    const requesterIsGuildOwner = guildResult.guild.owner_id === args.moderatorDiscordUserId;
+    const requesterIsAdminLike = discordMemberHasModerationPermission(args.moderatorPermissions ?? null)
+      && (parsePermissionBitfield(args.moderatorPermissions) & DISCORD_PERMISSION_ADMINISTRATOR) === DISCORD_PERMISSION_ADMINISTRATOR;
+    if (!requesterIsGuildOwner && !requesterIsAdminLike) {
+      return {
+        ok: false,
+        code: "DISCORD_MODERATION_ADMIN_FORBIDDEN",
+        message: "Only the server owner or an administrator can move admins to Purgatory.",
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    targetMember: targetMemberResult.member,
+    targetMemberLink: await findDiscordMemberLink({
+      discordUserId: args.targetDiscordUserId,
+      dependencies: args.dependencies,
+    }),
+    targetUsername: targetMemberResult.member.user?.username ?? null,
+    roleMap,
+    targetRoleIds: getMemberRoleIds(targetMemberResult.member),
+    botHighestRolePosition,
+  };
 }
 
 export async function ensureDiscordPurgatoryInfrastructure(args: {
@@ -805,6 +1108,124 @@ export async function ensureDiscordPurgatoryInfrastructure(args: {
   };
 }
 
+export async function createDiscordModerationWarning(args: {
+  guildId: string;
+  targetDiscordUserId: string;
+  moderatorDiscordUserId: string;
+  moderatorDiscordUsername?: string | null;
+  moderatorPermissions: string | null | undefined;
+  severity: "notice" | "warning" | "critical";
+  reason: string;
+  dependencies?: DiscordModerationDependencies;
+}): Promise<CreateModerationWarningResult> {
+  const createMessage = args.dependencies?.createMessage ?? createDiscordChannelMessage;
+  const reason = normalizeModerationReason(args.reason);
+  if (!reason) {
+    return {
+      ok: false,
+      code: "DISCORD_WARNING_INVALID_REASON",
+      message: "Reason is required.",
+    };
+  }
+
+  const targetContext = await resolveDiscordModerationTargetContext({
+    guildId: args.guildId,
+    targetDiscordUserId: args.targetDiscordUserId,
+    moderatorDiscordUserId: args.moderatorDiscordUserId,
+    moderatorPermissions: args.moderatorPermissions,
+    dependencies: args.dependencies,
+    forbidAdminTargets: false,
+  });
+  if (!targetContext.ok) {
+    return {
+      ok: false,
+      code: targetContext.code.replace("DISCORD_MODERATION_", "DISCORD_WARNING_"),
+      message: targetContext.message.replace("Cannot target", "Cannot warn"),
+    };
+  }
+
+  const action = resolveWarningActionForSeverity(args.severity);
+  const insertResult = await insertDiscordModerationCase({
+    dependencies: args.dependencies,
+    row: {
+      action,
+      severity: args.severity,
+      status: "active",
+      target_discord_user_id: args.targetDiscordUserId,
+      target_discord_username: targetContext.targetUsername,
+      target_fitness_user_id: targetContext.targetMemberLink?.fitness_user_id ?? null,
+      target_member_number: targetContext.targetMemberLink?.user_number ?? null,
+      moderator_discord_user_id: args.moderatorDiscordUserId,
+      moderator_discord_username: args.moderatorDiscordUsername ?? null,
+      reason,
+      duration_seconds: null,
+      expires_at: null,
+      removed_role_ids: [],
+      restored_role_ids: [],
+      purgatory_role_id: null,
+      purgatory_channel_id: null,
+      log_channel_id: DISCORD_MOD_LOG_CHANNEL_ID(),
+    },
+  });
+
+  if (!insertResult.ok) {
+    return {
+      ok: false,
+      code: "DISCORD_WARNING_CASE_CREATE_FAILED",
+      message: "Could not record that warning right now.",
+    };
+  }
+
+  const warnings: string[] = [];
+  if (DISCORD_MOD_LOG_CHANNEL_ID()) {
+    const logMessageResult = await createMessage({
+      channelId: DISCORD_MOD_LOG_CHANNEL_ID() as string,
+      body: {
+        content: buildModerationLogMessage({
+          actionLabel: formatModerationActionLabel(insertResult.caseRow.action, insertResult.caseRow.severity),
+          severity: insertResult.caseRow.severity,
+          targetUserId: args.targetDiscordUserId,
+          targetUsername: targetContext.targetUsername,
+          moderatorUserId: args.moderatorDiscordUserId,
+          moderatorUsername: args.moderatorDiscordUsername ?? null,
+          reason,
+          durationSeconds: null,
+          caseId: insertResult.caseRow.id,
+        }),
+        allowed_mentions: buildAllowedMentions({
+          userId: args.targetDiscordUserId,
+        }),
+      },
+    });
+
+    if (logMessageResult.ok) {
+      const updateLogResult = await updateDiscordModerationCase({
+        caseId: insertResult.caseRow.id,
+        patch: {
+          log_message_id: logMessageResult.messageId,
+          updated_at: new Date().toISOString(),
+        },
+        dependencies: args.dependencies,
+      });
+      if (updateLogResult.ok) {
+        return {
+          ok: true,
+          caseRow: updateLogResult.caseRow,
+          warnings,
+        };
+      }
+    } else {
+      warnings.push("Could not post the moderation log message.");
+    }
+  }
+
+  return {
+    ok: true,
+    caseRow: insertResult.caseRow,
+    warnings,
+  };
+}
+
 export async function moveDiscordUserToPurgatory(args: {
   guildId: string;
   targetDiscordUserId: string;
@@ -816,14 +1237,11 @@ export async function moveDiscordUserToPurgatory(args: {
   durationSeconds: number | null;
   dependencies?: DiscordModerationDependencies;
 }): Promise<MoveToPurgatoryResult> {
-  const fetchGuild = args.dependencies?.fetchGuild ?? fetchDiscordGuild;
-  const fetchRoles = args.dependencies?.fetchGuildRoles ?? fetchDiscordGuildRoles;
-  const fetchMember = args.dependencies?.fetchGuildMember ?? fetchDiscordGuildMember;
   const addRole = args.dependencies?.addMemberRole ?? addDiscordGuildMemberRole;
   const removeRole = args.dependencies?.removeMemberRole ?? removeDiscordGuildMemberRole;
   const createMessage = args.dependencies?.createMessage ?? createDiscordChannelMessage;
 
-  const reason = normalizeText(args.reason, 1000);
+  const reason = normalizeModerationReason(args.reason);
   if (!reason) {
     return {
       ok: false,
@@ -834,6 +1252,7 @@ export async function moveDiscordUserToPurgatory(args: {
 
   const existingActiveCase = await findActiveDiscordModerationCaseByUser({
     targetDiscordUserId: args.targetDiscordUserId,
+    actions: ["purgatory"],
     dependencies: args.dependencies,
   });
   if (existingActiveCase) {
@@ -852,95 +1271,27 @@ export async function moveDiscordUserToPurgatory(args: {
     return infraResult;
   }
 
-  const guildResult = await fetchGuild({ guildId: args.guildId });
-  if (!guildResult.ok) {
-    return {
-      ok: false,
-      code: guildResult.code,
-      message: guildResult.message ?? "Could not load the guild.",
-    };
-  }
-
-  const rolesResult = await fetchRoles({ guildId: args.guildId });
-  if (!rolesResult.ok) {
-    return {
-      ok: false,
-      code: rolesResult.code,
-      message: rolesResult.message ?? "Could not load guild roles.",
-    };
-  }
-
-  const targetMemberResult = await fetchMember({
+  const targetContext = await resolveDiscordModerationTargetContext({
     guildId: args.guildId,
-    userId: args.targetDiscordUserId,
+    targetDiscordUserId: args.targetDiscordUserId,
+    moderatorDiscordUserId: args.moderatorDiscordUserId,
+    moderatorPermissions: args.moderatorPermissions,
+    dependencies: args.dependencies,
+    forbidAdminTargets: true,
   });
-  if (!targetMemberResult.ok) {
+  if (!targetContext.ok) {
     return {
       ok: false,
-      code: targetMemberResult.code,
-      message: targetMemberResult.message ?? "Could not load that guild member.",
+      code: targetContext.code.replace("DISCORD_MODERATION_", "DISCORD_PURGATORY_"),
+      message: targetContext.message.replace("Cannot target", "Cannot move"),
     };
   }
 
-  const botUserId = DISCORD_APPLICATION_ID();
-  const botMemberResult = await fetchMember({
-    guildId: args.guildId,
-    userId: botUserId,
-  });
-  if (!botMemberResult.ok) {
-    return {
-      ok: false,
-      code: botMemberResult.code,
-      message: botMemberResult.message ?? "Could not load the bot guild member state.",
-    };
-  }
-
-  const ownerId = guildResult.guild.owner_id ?? null;
-  if (args.targetDiscordUserId === ownerId) {
-    return {
-      ok: false,
-      code: "DISCORD_PURGATORY_OWNER_FORBIDDEN",
-      message: "Cannot move the server owner to Purgatory.",
-    };
-  }
-
-  if (args.targetDiscordUserId === botUserId) {
-    return {
-      ok: false,
-      code: "DISCORD_PURGATORY_BOT_FORBIDDEN",
-      message: "Cannot move the bot to Purgatory.",
-    };
-  }
-
-  const roleMap = getRoleMap(rolesResult.roles);
-  const botHighestRolePosition = getMemberHighestRolePosition(botMemberResult.member, roleMap);
-  const targetHighestRolePosition = getMemberHighestRolePosition(targetMemberResult.member, roleMap);
-  if (botHighestRolePosition <= targetHighestRolePosition) {
-    return {
-      ok: false,
-      code: "DISCORD_PURGATORY_TARGET_NOT_MANAGEABLE",
-      message: "The bot cannot manage that user because of role hierarchy.",
-    };
-  }
-
-  const targetIsAdminLike = memberHasAdminLikeRole(targetMemberResult.member, roleMap);
-  const requesterIsGuildOwner = ownerId === args.moderatorDiscordUserId;
-  const requesterIsAdminLike = discordMemberHasModerationPermission(args.moderatorPermissions)
-    && (parsePermissionBitfield(args.moderatorPermissions) & DISCORD_PERMISSION_ADMINISTRATOR) === DISCORD_PERMISSION_ADMINISTRATOR;
-
-  if (targetIsAdminLike && !requesterIsGuildOwner && !requesterIsAdminLike) {
-    return {
-      ok: false,
-      code: "DISCORD_PURGATORY_ADMIN_FORBIDDEN",
-      message: "Only the server owner or an administrator can move admins to Purgatory.",
-    };
-  }
-
-  const currentRoleIds = new Set(getMemberRoleIds(targetMemberResult.member));
+  const currentRoleIds = new Set(targetContext.targetRoleIds);
   const removableRoleIds = resolveDiscordPurgatoryRemovedRoleIds().filter((roleId) => (
     roleId !== infraResult.roleId
     && currentRoleIds.has(roleId)
-    && canBotManageRole(roleMap.get(roleId), botHighestRolePosition)
+    && canBotManageRole(targetContext.roleMap.get(roleId), targetContext.botHighestRolePosition)
   ));
 
   const addPurgatoryRoleResult = await addRole({
@@ -953,11 +1304,12 @@ export async function moveDiscordUserToPurgatory(args: {
       dependencies: args.dependencies,
       row: {
         action: "purgatory",
+        severity: "purgatory",
         status: "failed",
         target_discord_user_id: args.targetDiscordUserId,
-        target_discord_username: args.targetDiscordUsername ?? targetMemberResult.member.user?.username ?? null,
-        target_fitness_user_id: null,
-        target_member_number: null,
+        target_discord_username: args.targetDiscordUsername ?? targetContext.targetUsername,
+        target_fitness_user_id: targetContext.targetMemberLink?.fitness_user_id ?? null,
+        target_member_number: targetContext.targetMemberLink?.user_number ?? null,
         moderator_discord_user_id: args.moderatorDiscordUserId,
         moderator_discord_username: args.moderatorDiscordUsername ?? null,
         reason,
@@ -1001,20 +1353,17 @@ export async function moveDiscordUserToPurgatory(args: {
     }
   }
 
-  const memberLink = await findDiscordMemberLink({
-    discordUserId: args.targetDiscordUserId,
-    dependencies: args.dependencies,
-  });
   const expiresAt = args.durationSeconds ? new Date(Date.now() + (args.durationSeconds * 1000)).toISOString() : null;
   const insertResult = await insertDiscordModerationCase({
     dependencies: args.dependencies,
     row: {
       action: "purgatory",
+      severity: "purgatory",
       status: "active",
       target_discord_user_id: args.targetDiscordUserId,
-      target_discord_username: args.targetDiscordUsername ?? targetMemberResult.member.user?.username ?? null,
-      target_fitness_user_id: memberLink?.fitness_user_id ?? null,
-      target_member_number: memberLink?.user_number ?? null,
+      target_discord_username: args.targetDiscordUsername ?? targetContext.targetUsername,
+      target_fitness_user_id: targetContext.targetMemberLink?.fitness_user_id ?? null,
+      target_member_number: targetContext.targetMemberLink?.user_number ?? null,
       moderator_discord_user_id: args.moderatorDiscordUserId,
       moderator_discord_username: args.moderatorDiscordUsername ?? null,
       reason,
@@ -1053,7 +1402,10 @@ export async function moveDiscordUserToPurgatory(args: {
   await createMessage({
     channelId: infraResult.channelId,
     body: {
-      content: `${formatMention(args.targetDiscordUserId, args.targetDiscordUsername ?? null)} ${DISCORD_PURGATORY_CHANNEL_NOTICE}`,
+      content: `${formatMention(args.targetDiscordUserId, args.targetDiscordUsername ?? targetContext.targetUsername)}\n${buildModerationTargetMessage({
+        severity: "purgatory",
+        reason,
+      })}`,
       allowed_mentions: buildAllowedMentions({ userId: args.targetDiscordUserId }),
     },
   });
@@ -1063,9 +1415,10 @@ export async function moveDiscordUserToPurgatory(args: {
       channelId: infraResult.logChannelId,
       body: {
         content: buildModerationLogMessage({
-          actionLabel: "User moved to Purgatory",
+          actionLabel: formatModerationActionLabel(insertResult.caseRow.action, insertResult.caseRow.severity),
+          severity: insertResult.caseRow.severity,
           targetUserId: args.targetDiscordUserId,
-          targetUsername: args.targetDiscordUsername ?? targetMemberResult.member.user?.username ?? null,
+          targetUsername: args.targetDiscordUsername ?? targetContext.targetUsername,
           moderatorUserId: args.moderatorDiscordUserId,
           moderatorUsername: args.moderatorDiscordUsername ?? null,
           reason,
@@ -1125,6 +1478,7 @@ async function finalizeDiscordPurgatoryCase(args: {
   const caseRow = await findActiveDiscordModerationCase({
     targetDiscordUserId: args.targetDiscordUserId ?? null,
     caseIdOrPrefix: args.caseIdOrPrefix ?? null,
+    actions: ["purgatory"],
     dependencies: args.dependencies,
   });
   if (!caseRow) {
@@ -1216,7 +1570,7 @@ async function finalizeDiscordPurgatoryCase(args: {
     }
   }
 
-  const releaseNote = normalizeText(args.releaseNote ?? null, 1000);
+  const releaseNote = normalizeModerationNote(args.releaseNote ?? null);
   const updatedCaseResult = await updateDiscordModerationCase({
     caseId: caseRow.id,
     patch: {
@@ -1247,6 +1601,7 @@ async function finalizeDiscordPurgatoryCase(args: {
       body: {
         content: buildModerationLogMessage({
           actionLabel,
+          severity: updatedCaseResult.caseRow.severity,
           targetUserId: updatedCaseResult.caseRow.target_discord_user_id,
           targetUsername: updatedCaseResult.caseRow.target_discord_username,
           moderatorUserId: args.releasedByDiscordUserId,
@@ -1270,6 +1625,82 @@ async function finalizeDiscordPurgatoryCase(args: {
   return {
     ok: true,
     caseRow: updatedCaseResult.caseRow,
+    warnings,
+  };
+}
+
+export async function resolveDiscordModerationWarningCase(args: {
+  caseIdOrPrefix: string;
+  resolvedByDiscordUserId: string;
+  resolvedByDiscordUsername?: string | null;
+  reason?: string | null;
+  dependencies?: DiscordModerationDependencies;
+}): Promise<CreateModerationWarningResult> {
+  const createMessage = args.dependencies?.createMessage ?? createDiscordChannelMessage;
+  const caseRow = await findActiveDiscordModerationCase({
+    caseIdOrPrefix: args.caseIdOrPrefix,
+    actions: ["notice", "warning"],
+    dependencies: args.dependencies,
+  });
+  if (!caseRow) {
+    return {
+      ok: false,
+      code: "DISCORD_WARNING_CASE_NOT_FOUND",
+      message: "Could not find an active warning case.",
+    };
+  }
+
+  const resolutionNote = normalizeModerationNote(args.reason ?? null);
+  const updateResult = await updateDiscordModerationCase({
+    caseId: caseRow.id,
+    patch: {
+      status: "resolved",
+      release_note: resolutionNote,
+      resolved_by_discord_user_id: args.resolvedByDiscordUserId,
+      resolved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    dependencies: args.dependencies,
+  });
+  if (!updateResult.ok) {
+    return {
+      ok: false,
+      code: "DISCORD_WARNING_CASE_RESOLVE_FAILED",
+      message: "Could not resolve that warning case.",
+    };
+  }
+
+  const warnings: string[] = [];
+  if (updateResult.caseRow.log_channel_id) {
+    const logMessageResult = await createMessage({
+      channelId: updateResult.caseRow.log_channel_id,
+      body: {
+        content: buildModerationLogMessage({
+          actionLabel: "Moderation warning resolved",
+          severity: updateResult.caseRow.severity,
+          targetUserId: updateResult.caseRow.target_discord_user_id,
+          targetUsername: updateResult.caseRow.target_discord_username,
+          moderatorUserId: args.resolvedByDiscordUserId,
+          moderatorUsername: args.resolvedByDiscordUsername ?? null,
+          reason: updateResult.caseRow.reason,
+          durationSeconds: null,
+          caseId: updateResult.caseRow.id,
+          releaseNote: resolutionNote,
+        }),
+        allowed_mentions: buildAllowedMentions({
+          userId: updateResult.caseRow.target_discord_user_id,
+        }),
+      },
+    });
+
+    if (!logMessageResult.ok) {
+      warnings.push("Could not post the moderation log message.");
+    }
+  }
+
+  return {
+    ok: true,
+    caseRow: updateResult.caseRow,
     warnings,
   };
 }

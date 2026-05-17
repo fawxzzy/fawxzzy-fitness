@@ -25,6 +25,9 @@ export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
 export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";
 export const FITNESS_PURGATORY_SETUP_COMMAND_NAME = "purgatory-setup";
+export const FITNESS_WARN_COMMAND_NAME = "warn";
+export const FITNESS_WARNINGS_COMMAND_NAME = "warnings";
+export const FITNESS_WARNING_CLEAR_COMMAND_NAME = "warning-clear";
 export const FITNESS_PURGATORY_COMMAND_NAME = "purgatory";
 export const FITNESS_RELEASE_COMMAND_NAME = "release";
 export const FITNESS_MOD_LOG_COMMAND_NAME = "mod-log";
@@ -56,6 +59,7 @@ export const FITNESS_UPDATE_SKIP_REASON_OPTION_NAME = "reason";
 export const FITNESS_PURGATORY_USER_OPTION_NAME = "user";
 export const FITNESS_PURGATORY_REASON_OPTION_NAME = "reason";
 export const FITNESS_PURGATORY_DURATION_OPTION_NAME = "duration";
+export const FITNESS_WARNING_SEVERITY_OPTION_NAME = "severity";
 export const FITNESS_RELEASE_CASE_ID_OPTION_NAME = "case_id";
 export const FITNESS_RELEASE_NOTE_OPTION_NAME = "note";
 export const FITNESS_MOD_LOG_LIMIT_OPTION_NAME = "limit";
@@ -109,6 +113,12 @@ export const DISCORD_BUG_STATUS_CHOICES = [
 export const DISCORD_FEEDBACK_TYPE_CHOICES = [
   { name: "Bug", value: "bug" },
   { name: "Feature", value: "feature" },
+] as const;
+
+export const DISCORD_MODERATION_WARNING_SEVERITY_CHOICES = [
+  { name: "Notice", value: "notice" },
+  { name: "Warning", value: "warning" },
+  { name: "Critical", value: "critical" },
 ] as const;
 
 type DiscordMessagePayload = {
@@ -489,6 +499,72 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
       name: FITNESS_PURGATORY_SETUP_COMMAND_NAME,
       description: "Create or verify the reversible Purgatory moderation setup.",
       default_member_permissions: moderationDefaultPermissions,
+    },
+    {
+      name: FITNESS_WARN_COMMAND_NAME,
+      description: "Log a moderation notice, warning, or critical escalation.",
+      default_member_permissions: moderationDefaultPermissions,
+      options: [
+        {
+          type: 6,
+          name: FITNESS_PURGATORY_USER_OPTION_NAME,
+          description: "User to warn.",
+          required: true,
+        },
+        {
+          type: 3,
+          name: FITNESS_WARNING_SEVERITY_OPTION_NAME,
+          description: "Warning severity to log.",
+          required: true,
+          choices: [...DISCORD_MODERATION_WARNING_SEVERITY_CHOICES],
+        },
+        {
+          type: 3,
+          name: FITNESS_PURGATORY_REASON_OPTION_NAME,
+          description: "Why this user is being warned.",
+          required: true,
+        },
+      ],
+    },
+    {
+      name: FITNESS_WARNINGS_COMMAND_NAME,
+      description: "Show recent warning and Purgatory history for a user.",
+      default_member_permissions: moderationDefaultPermissions,
+      options: [
+        {
+          type: 6,
+          name: FITNESS_PURGATORY_USER_OPTION_NAME,
+          description: "User to review.",
+          required: true,
+        },
+        {
+          type: 4,
+          name: FITNESS_MOD_LOG_LIMIT_OPTION_NAME,
+          description: "Optional number of recent cases to show.",
+          required: false,
+          min_value: 1,
+          max_value: 10,
+        },
+      ],
+    },
+    {
+      name: FITNESS_WARNING_CLEAR_COMMAND_NAME,
+      description: "Resolve a logged notice or warning without deleting it.",
+      default_member_permissions: moderationDefaultPermissions,
+      options: [
+        {
+          type: 3,
+          name: FITNESS_RELEASE_CASE_ID_OPTION_NAME,
+          description: "Case UUID or short case id.",
+          required: true,
+        },
+        {
+          type: 3,
+          name: FITNESS_PURGATORY_REASON_OPTION_NAME,
+          description: "Optional reason for resolving this warning.",
+          required: false,
+        },
+      ],
     },
     {
       name: FITNESS_PURGATORY_COMMAND_NAME,

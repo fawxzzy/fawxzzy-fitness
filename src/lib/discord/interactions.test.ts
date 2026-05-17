@@ -295,11 +295,14 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const updatePublish = commands.find((command) => command.name === "update-publish");
   const updateSkip = commands.find((command) => command.name === "update-skip");
   const purgatorySetup = commands.find((command) => command.name === "purgatory-setup");
+  const warn = commands.find((command) => command.name === "warn");
+  const warnings = commands.find((command) => command.name === "warnings");
+  const warningClear = commands.find((command) => command.name === "warning-clear");
   const purgatory = commands.find((command) => command.name === "purgatory");
   const release = commands.find((command) => command.name === "release");
   const modLog = commands.find((command) => command.name === "mod-log");
 
-  assert.equal(commands.length, 12);
+  assert.equal(commands.length, 15);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(setupFeedback);
@@ -330,6 +333,17 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
     purgatorySetup?.default_member_permissions,
     String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
   );
+  assert.ok(warn);
+  assert.equal(warn?.options?.[0]?.name, "user");
+  assert.equal(warn?.options?.[1]?.name, "severity");
+  assert.equal(warn?.options?.[2]?.name, "reason");
+  assert.equal(warn?.options?.[1]?.choices?.some((choice) => choice.value === "critical"), true);
+  assert.ok(warnings);
+  assert.equal(warnings?.options?.[0]?.name, "user");
+  assert.equal(warnings?.options?.[1]?.name, "limit");
+  assert.ok(warningClear);
+  assert.equal(warningClear?.options?.[0]?.name, "case_id");
+  assert.equal(warningClear?.options?.[1]?.name, "reason");
   assert.ok(purgatory);
   assert.equal(purgatory?.options?.[0]?.name, "user");
   assert.equal(purgatory?.options?.[1]?.name, "reason");
