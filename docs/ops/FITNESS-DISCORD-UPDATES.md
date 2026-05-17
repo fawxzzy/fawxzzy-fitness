@@ -7,10 +7,11 @@ Product rules:
 - only Fitness production deployments should create update drafts
 - deployment metadata is input, not release copy
 - public Discord updates must stay user-facing and curated
-- public Discord updates should start with `@everyone`
+- broad release-summary updates should start with `@everyone`
 - do not dump raw commit logs, migration names, PR diffs, stack traces, or infra-only noise
 - do not mix routine sharing, workout sharing, import flows, or copy-to-app work into this lane
 - do not use the updates channel as a feedback card mutation log
+- do not publish a broad release-summary post when the real update is one shipped feedback card with a known report id
 
 ## Trigger rule
 Accepted triggers:
@@ -43,6 +44,8 @@ Rules:
 - Update Bot posts are curated user-facing announcements, not card mutation logs.
 - Update drafts are bounded review state, not a duplicate task board.
 - No direct Discord-to-ATLAS or Discord-to-GitHub writes from this lane.
+- When a shipped feature or bug comes from a specific feedback card, the updates-channel post should use the card-promotion format instead of the broad release-summary format.
+- A single shipped item must produce one public updates-channel post, not both formats.
 
 Failure modes:
 - posting every feedback status change to `#updates` creates noise
@@ -96,7 +99,7 @@ Existing commands still remain:
 - `feedback-withdraw`
 
 ## Public post format
-Published updates should follow:
+Broad release-summary updates should follow:
 
 ```txt
 @everyone
@@ -189,3 +192,28 @@ Rule: Discord update posts must stay safe for users of any age and background.
 Rule: Discord is the community surface; ATLAS remains internal operator truth.
 
 Rule: public release posts should use `@everyone` and suppress embeds while staying curated and user-facing.
+
+## Feedback Card Promotion Format
+When a specific feedback card is shipped and promoted into `#updates`, use this format instead of the broad `@everyone` release-summary template:
+
+```txt
+Update: Feature: Security - Mod Bot Alerts + Verification Controls has been completed and cleaned up.
+
+The post now includes:
+the live Fawx Security moderation scope with notices, warnings, and reversible Purgatory
+release and restore behavior instead of default bans
+verification and moderator control coverage for the Discord launch lane
+acceptance criteria proven through live non-owner canary tests
+
+Report ID: `e634e393`
+```
+
+Card-promotion rules:
+- do not prepend `@everyone`
+- start with `Update: <forum title-ish summary>`
+- use `The post now includes:`
+- keep the body as short flat lines, not nested bullets or changelog spam
+- end with `Report ID: \`<short id>\``
+- use this format for shipped-card promotion in `#updates`
+- do not use this format for thread audit comments inside the feedback card
+- do not also publish a broad `@everyone` release-summary post for the same shipped card unless the user explicitly wants a second, separate aggregate release note
