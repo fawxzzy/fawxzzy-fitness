@@ -130,6 +130,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A successful forum post appears while the reporter sees a failed response because the interaction was not deferred or decoration failed.
 - Status: Proposed
 
+## 2026-05-16 - Discord emoji resources must be bootstrapped, not inferred from attachments
+- Type: Guardrail
+- Summary: Bot UI emoji should come from controlled application-owned or guild-owned emoji resources, not from ordinary uploaded image attachments.
+- Rule: Custom emoji are decoration, not core workflow.
+- Pattern: local asset -> Discord emoji resource -> env ID -> validated UI usage.
+- Failure Mode: Treating an uploaded image attachment like an emoji resource breaks Discord component payloads and creates false config drift.
+- Status: Proposed
+
 ## 2026-05-16 - Feedback cards should be type-aware display, not one generic bug form
 - Type: Pattern
 - Summary: Bug and Feature feedback can share bounded storage, but their public Discord cards should use type-aware labels so feature requests do not read like bug reports.
