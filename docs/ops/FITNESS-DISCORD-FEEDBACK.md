@@ -68,6 +68,8 @@ Rules:
 - Exports are review input, not automatic truth.
 - No direct Discord-to-ATLAS or Discord-to-GitHub writes.
 - No routine or workout sharing work in this lane.
+- If a shipped feature or bug should be announced publicly, publish a separate updates-channel post using the card-promotion format from `FITNESS-DISCORD-UPDATES.md`.
+- Do not publish both a card-promotion post and a broad release-summary post for the same shipped card.
 
 Failure modes:
 - posting every card mutation to `#updates` creates noise
@@ -302,6 +304,7 @@ Audit comment rules:
 - no secrets
 - no broad mentions
 - reporter mentions only when the action explicitly requires it
+- do not reuse the public `Update:` card-promotion format inside the thread; thread comments stay compact and operational
 
 Withdraw note:
 - withdraw posts the audit comment before the thread is archived and locked

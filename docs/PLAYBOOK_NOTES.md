@@ -11,6 +11,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: scripts/discord-server-inventory.mjs, scripts/discord-noise-audit.mjs, scripts/discord-noise-apply.mjs, src/lib/discord/server-inventory.ts
 - Status: Proposed
 
+## 2026-05-17 - Shipped feedback cards need a distinct updates-channel promotion format
+- Type: Pattern
+- Summary: When a specific Discord feedback card ships and should be announced publicly, the updates-channel post should use a short `Update:` card-promotion format instead of the broad `@everyone` release-summary template.
+- Rule: Thread audit comments stay in the feedback thread and remain compact.
+- Rule: Card-promotion posts belong in `#updates` and should end with `Report ID: <short id>`.
+- Rule: Do not reuse the public card-promotion format as a thread audit comment.
+- Rule: One shipped card gets one public update post, not both a card-promotion post and a broad release-summary post.
+- Pattern: shipped feedback card -> compact thread audit comment -> separate updates-channel `Update:` post -> report id footer.
+- Failure Mode: Using the broad release-summary template for a single shipped card creates duplicate or mismatched public updates.
+- Status: Proposed
+
 ## 2026-05-14 - Discord access should verify possession of an app session, not knowledge of an email
 - Type: Guardrail
 - Summary: Discord membership gates should use a short-lived token generated from an authenticated app session instead of accepting email-only proof.
