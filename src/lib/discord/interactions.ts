@@ -31,6 +31,7 @@ export const FITNESS_WARNING_CLEAR_COMMAND_NAME = "warning-clear";
 export const FITNESS_PURGATORY_COMMAND_NAME = "purgatory";
 export const FITNESS_RELEASE_COMMAND_NAME = "release";
 export const FITNESS_MOD_LOG_COMMAND_NAME = "mod-log";
+export const FITNESS_SERVER_INVENTORY_COMMAND_NAME = "server-inventory";
 export const FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_report_modal";
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID = "fitness_feedback_submit_open";
 export const FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID = "fitness_feedback_update_open";
@@ -685,6 +686,11 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
           max_value: 10,
         },
       ],
+    },
+    {
+      name: FITNESS_SERVER_INVENTORY_COMMAND_NAME,
+      description: "Show important server channel, role, emoji, and tag ids.",
+      default_member_permissions: moderationDefaultPermissions,
     },
   ];
 }
