@@ -54,9 +54,13 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
   assert.equal(bug.data.custom_id, "fitness_feedback_report_modal:bug");
   assert.equal(bug.data.title, "Report a bug");
   assert.equal(bug.data.components[0]?.component?.custom_id, "feedback_type");
+  assert.equal(bug.data.components[1]?.label, "Title");
+  assert.equal(bug.data.components[3]?.label, "Description / what happened");
   assert.equal(bugOptions?.[0]?.default, true);
   assert.equal(feature.data.custom_id, "fitness_feedback_report_modal:feature");
   assert.equal(feature.data.title, "Suggest a feature");
+  assert.equal(feature.data.components[1]?.label, "Title");
+  assert.equal(feature.data.components[3]?.label, "Description / what happened");
   assert.equal(featureOptions?.[1]?.default, true);
 });
 
@@ -121,7 +125,7 @@ test("extractDiscordModalStringSelectValue and file upload ids read label-wrappe
     },
     {
       type: 18,
-      label: "Screenshot or image",
+      label: "Attachment",
       component: {
         type: 19,
         custom_id: "feedback_attachment",
@@ -180,6 +184,9 @@ test("feedback panel button modals expose submit, update, and withdraw forms", (
 
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
   assert.equal(submit.data.components[0]?.component?.custom_id, "feedback_type");
+  assert.equal(submit.data.components[1]?.label, "Title");
+  assert.equal(submit.data.components[3]?.label, "Details");
+  assert.equal(submit.data.components[4]?.label, "Attachment");
   assert.equal(submit.data.components[4]?.component?.custom_id, "feedback_attachment");
   assert.equal(submit.data.components[4]?.component?.max_values, 3);
   assert.equal(update.data.custom_id, "fitness_feedback_update_modal");

@@ -94,6 +94,7 @@ import {
   addDiscordGuildMemberRole,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
+  createDiscordMessageReaction,
   createDiscordThreadMessage,
   deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
@@ -219,6 +220,10 @@ function interactionMatchesGuild(interaction: DiscordInteraction): boolean {
 
 function shouldArchiveFeedbackThread(status: string): boolean {
   return status === "duplicate" || status === "withdrawn";
+}
+
+function isResolvedFeedbackStatus(status: string): boolean {
+  return status === "fixed" || status === "closed";
 }
 
 function resolveFeedbackPanelChannelId(): string | null {
@@ -363,7 +368,7 @@ async function syncDiscordFeedbackForumThread(args: {
   report: DiscordBugReportRow;
   includeReporterMention: boolean;
   replyContent: string;
-}): Promise<boolean> {
+}): Promise<{ forumSyncFailed: boolean; threadReplyMessageId: string | null }> {
   await validateDiscordFeedbackEmojis();
   const forumChannelId = args.report.discord_forum_channel_id ?? DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
   const forumTitle = buildDiscordBugForumThreadTitle({
@@ -374,7 +379,10 @@ async function syncDiscordFeedbackForumThread(args: {
 
   let forumSyncFailed = false;
   if (!args.report.discord_forum_thread_id || !forumChannelId) {
-    return false;
+    return {
+      forumSyncFailed: false,
+      threadReplyMessageId: null,
+    };
   }
 
   const archiveAfterSync = shouldArchiveFeedbackThread(args.report.status);
@@ -495,7 +503,10 @@ async function syncDiscordFeedbackForumThread(args: {
     }
   }
 
-  return forumSyncFailed;
+  return {
+    forumSyncFailed,
+    threadReplyMessageId: threadReplyResult.ok ? threadReplyResult.messageId : null,
+  };
 }
 
 async function upsertDiscordFeedbackPanel() {
@@ -1229,7 +1240,7 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
 
   const updatedReport = statusUpdateResult.report;
   const includeReporterMention = status === "needs_info" || status === "fixed" || status === "closed";
-  const forumSyncFailed = await syncDiscordFeedbackForumThread({
+  const syncResult = await syncDiscordFeedbackForumThread({
     report: updatedReport,
     includeReporterMention,
     replyContent: buildDiscordBugStatusThreadReply({
@@ -1240,6 +1251,60 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
       includeReporterMention,
     }),
   });
+  let forumSyncFailed = syncResult.forumSyncFailed;
+
+  if (updatedReport.discord_forum_thread_id && updatedReport.discord_forum_message_id) {
+    const reporterLabel = buildDiscordBugReporterLabel({
+      reporterDiscordUsername: updatedReport.reporter_discord_username,
+      reporterMemberNumber: updatedReport.reporter_member_number,
+    });
+    const patchStarterMessageResult = await patchDiscordChannelMessage({
+      channelId: updatedReport.discord_forum_thread_id,
+      messageId: updatedReport.discord_forum_message_id,
+      body: {
+        content: buildDiscordBugForumThreadBody({
+          report: updatedReport,
+          reporterLabel,
+        }),
+        allowed_mentions: buildDiscordAllowedMentions({
+          reporterDiscordUserId: updatedReport.reporter_discord_user_id,
+          includeReporter: false,
+        }),
+      },
+    });
+
+    if (!patchStarterMessageResult.ok) {
+      forumSyncFailed = true;
+      console.error("[discord-interactions] feedback forum starter message patch failed", {
+        requestId: randomUUID(),
+        reportId: updatedReport.id,
+        code: patchStarterMessageResult.code,
+        status: patchStarterMessageResult.status,
+        message: patchStarterMessageResult.message,
+      });
+    }
+  }
+
+  if (updatedReport.discord_forum_thread_id && isResolvedFeedbackStatus(updatedReport.status)) {
+    const reactionMessageId = updatedReport.discord_forum_message_id ?? syncResult.threadReplyMessageId;
+    if (reactionMessageId) {
+      const reactionResult = await createDiscordMessageReaction({
+        channelId: updatedReport.discord_forum_thread_id,
+        messageId: reactionMessageId,
+        emoji: "✅",
+      });
+
+      if (!reactionResult.ok) {
+        logDiscordFeedbackSoftFailure({
+          stage: "resolved-reaction",
+          reportId: updatedReport.id,
+          code: reactionResult.code,
+          status: reactionResult.status,
+          message: reactionResult.message,
+        });
+      }
+    }
+  }
 
   return buildDiscordEphemeralMessageResponse(
     forumSyncFailed
@@ -1303,7 +1368,7 @@ async function handleFeedbackUpdateModalSubmit(interaction: DiscordInteraction) 
     reporterDiscordUsername: requester.username ?? requester.globalName,
     reporterMemberNumber: isReporter ? updatedReport.reporter_member_number : null,
   });
-  const forumSyncFailed = await syncDiscordFeedbackForumThread({
+  const syncResult = await syncDiscordFeedbackForumThread({
     report: updatedReport,
     includeReporterMention: false,
     replyContent: buildDiscordFeedbackUpdateThreadReply({
@@ -1314,7 +1379,7 @@ async function handleFeedbackUpdateModalSubmit(interaction: DiscordInteraction) 
   });
 
   return buildDiscordEphemeralMessageResponse(
-    forumSyncFailed
+    syncResult.forumSyncFailed
       ? `Feedback updated, but the forum thread could not be fully synced. (${formatDiscordBugReportShortId(updatedReport.id)})`
       : "Feedback updated.",
   );

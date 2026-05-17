@@ -186,6 +186,38 @@ export async function removeDiscordGuildMemberRole(args: {
   };
 }
 
+export async function createDiscordMessageReaction(args: {
+  channelId: string;
+  messageId: string;
+  emoji: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const emoji = String(args.emoji ?? "").trim();
+  if (!emoji) {
+    return {
+      ok: false,
+      code: "DISCORD_CREATE_REACTION_INVALID_EMOJI",
+      status: 400,
+      message: "Missing emoji.",
+    };
+  }
+
+  const result = await discordRequest<null>(
+    `/channels/${args.channelId}/messages/${args.messageId}/reactions/${encodeURIComponent(emoji)}/@me`,
+    { method: "PUT" },
+  );
+
+  if (result.ok && result.status === 204) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_CREATE_REACTION_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function fetchDiscordChannelMessages(args: {
   channelId: string;
   limit?: number;

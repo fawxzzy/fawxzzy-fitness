@@ -31,6 +31,8 @@
     "discord:feedback:prune": "node scripts/prune-discord-bug-reports.mjs",
     "discord:bugs:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
+    "feedback:board:export": "node scripts/export-feedback-board.mjs",
+    "feedback:sync-forum-posts": "node scripts/sync-feedback-forum-posts.mjs",
     "prebuild": "npm run build:guard -- --stop-dev && npm run build:prepare",
     "dev:assets": "node scripts/generate-icons.mjs",
     "gen:stretch-library-split": "node scripts/generate-stretch-library-split.mjs",

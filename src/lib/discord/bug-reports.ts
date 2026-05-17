@@ -697,6 +697,17 @@ export function formatDiscordBugReportStatusLabel(status: DiscordBugReportStatus
   return DISCORD_BUG_REPORT_STATUS_TAG_LABELS[status];
 }
 
+export function formatDiscordFeedbackDisplayStatusLabel(args: {
+  reportType: DiscordBugReportReportType;
+  status: DiscordBugReportStatus;
+}): string {
+  if (args.reportType === "feature" && args.status === "fixed") {
+    return "Completed";
+  }
+
+  return formatDiscordBugReportStatusLabel(args.status);
+}
+
 export function formatDiscordBugReportTypeLabel(reportType: DiscordBugReportReportType): string {
   return DISCORD_BUG_REPORT_TYPE_TAG_LABELS[reportType];
 }
@@ -803,6 +814,23 @@ function renderAttachmentLine(attachment: DiscordFeedbackAttachmentMetadata): st
   return `- ${attachment.filename} (${attachment.contentType}, ${attachment.size} bytes): ${displayUrl}`;
 }
 
+function buildDiscordBugForumThreadBodyHeader(args: {
+  reportType: DiscordBugReportReportType;
+}): string {
+  const typeEmoji = args.reportType === "bug"
+    ? buildDiscordFeedbackEmojiPrefix("Bug")
+    : args.reportType === "feature"
+      ? buildDiscordFeedbackEmojiPrefix("Feature")
+      : "";
+  const feedbackHeader = args.reportType === "bug"
+    ? "Bug Report"
+    : args.reportType === "feature"
+      ? "Feature Request"
+      : "Feedback Report";
+
+  return `${typeEmoji ? `${typeEmoji} ` : ""}**${feedbackHeader}**`;
+}
+
 export function buildDiscordBugForumThreadBody(args: {
   report: DiscordBugReportRow;
   reporterLabel: string;
@@ -811,35 +839,73 @@ export function buildDiscordBugForumThreadBody(args: {
     reporterDiscordUserId: args.report.reporter_discord_user_id,
     reporterLabel: args.reporterLabel,
   });
-  const typeEmoji = args.report.report_type === "bug"
-    ? buildDiscordFeedbackEmojiPrefix("Bug")
-    : args.report.report_type === "feature"
-      ? buildDiscordFeedbackEmojiPrefix("Feature")
-      : "";
-  const feedbackHeader = args.report.report_type === "bug"
-    ? "Bug Report"
-    : args.report.report_type === "feature"
-      ? "Feature Request"
-      : "Feedback Report";
   const attachmentLines = args.report.attachment_pruned || !Array.isArray(args.report.attachment_metadata) || args.report.attachment_metadata.length === 0
     ? ["Not provided"]
     : args.report.attachment_metadata.slice(0, DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT).map(renderAttachmentLine);
-
-  return [
-    `${typeEmoji ? `${typeEmoji} ` : ""}**${feedbackHeader}**`,
+  const sharedLines = [
+    buildDiscordBugForumThreadBodyHeader({
+      reportType: args.report.report_type,
+    }),
     `Type: ${formatDiscordBugReportTypeLabel(args.report.report_type)}`,
-    `Status: ${formatDiscordBugReportStatusLabel(args.report.status)}`,
-    `Severity: ${formatForumSeverityLabel(args.report.severity)}`,
+    `Status: ${formatDiscordFeedbackDisplayStatusLabel({
+      reportType: args.report.report_type,
+      status: args.report.status,
+    })}`,
+  ];
+
+  if (args.report.report_type !== "feature") {
+    sharedLines.push(`Severity: ${formatForumSeverityLabel(args.report.severity)}`);
+  }
+
+  sharedLines.push(
     `Area: ${formatForumAreaLabel(args.report.area)}`,
     `Reporter: ${reporterLine}`,
     `Report ID: \`${formatDiscordBugReportShortId(args.report.id)}\``,
     `Duplicate signals: ${Math.max(1, Number(args.report.duplicate_count ?? 1))}`,
     "",
-    "**Summary**",
+    "**Title**",
     renderForumBodyValue(args.report.summary, "Not provided"),
     "",
-    "**What happened**",
+  );
+
+  if (args.report.report_type === "feature") {
+    return [
+      ...sharedLines,
+      "**Description**",
+      renderForumBodyValue(args.report.details, "Not provided"),
+      "",
+      "**Link / screenshot**",
+      renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+      "",
+      "**Attachments**",
+      ...attachmentLines,
+    ].join("\n");
+  }
+
+  if (args.report.report_type === "bug") {
+    return [
+      ...sharedLines,
+      "**What happened**",
+      renderForumBodyValue(args.report.details, "Not provided"),
+      "",
+      "**Steps**",
+      renderForumBodyValue(args.report.steps_to_reproduce, "Not provided"),
+      "",
+      "**Link / screenshot**",
+      renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+      "",
+      "**Attachments**",
+      ...attachmentLines,
+    ].join("\n");
+  }
+
+  return [
+    ...sharedLines,
+    "**Details**",
     renderForumBodyValue(args.report.details, "Not provided"),
+    "",
+    "**Steps**",
+    renderForumBodyValue(args.report.steps_to_reproduce, "Not provided"),
     "",
     "**Link / screenshot**",
     renderForumBodyValue(args.report.screenshot_url, "Not provided"),
@@ -905,12 +971,18 @@ export function buildDiscordBugStatusThreadReply(args: {
   const prefix = args.includeReporterMention && args.reporterDiscordUserId
     ? `<@${args.reporterDiscordUserId}> `
     : "";
+  const resolvedReportType = args.reportType ?? "bug";
   const typeEmoji = args.reportType === "bug"
     ? buildDiscordFeedbackEmojiPrefix("Bug")
     : args.reportType === "feature"
       ? buildDiscordFeedbackEmojiPrefix("Feature")
       : "";
-  const lines = [`${prefix}${typeEmoji ? `${typeEmoji} ` : ""}Status updated: ${formatDiscordBugReportStatusLabel(args.status)}`];
+  const lines = [
+    `${prefix}${typeEmoji ? `${typeEmoji} ` : ""}Status updated: ${formatDiscordFeedbackDisplayStatusLabel({
+      reportType: resolvedReportType,
+      status: args.status,
+    })}`,
+  ];
 
   if (args.note) {
     lines.push("", neutralizeDiscordMentions(args.note));

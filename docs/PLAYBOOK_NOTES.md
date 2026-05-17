@@ -130,6 +130,30 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A successful forum post appears while the reporter sees a failed response because the interaction was not deferred or decoration failed.
 - Status: Proposed
 
+## 2026-05-16 - Feedback cards should be type-aware display, not one generic bug form
+- Type: Pattern
+- Summary: Bug and Feature feedback can share bounded storage, but their public Discord cards should use type-aware labels so feature requests do not read like bug reports.
+- Rule: Shared storage does not require identical user-facing copy.
+- Pattern: common feedback row -> type-aware forum card -> status reaction -> optional sync script.
+- Failure Mode: Showing severity and `What happened` on feature requests makes the feedback board feel awkward and bug-only.
+- Status: Proposed
+
+## 2026-05-16 - Feedback forum can be a visible board, but Playbook/ATLAS remain reviewed truth
+- Type: Pattern
+- Summary: Discord feedback cards can act like a lightweight Jira board, while Supabase keeps bounded records and Playbook/ATLAS only receive reviewed exports/tasks.
+- Rule: Discord board state is operational signal, not engineering truth by itself.
+- Pattern: Feedback forum card -> status tags -> board export -> reviewed Codex task / Playbook triage.
+- Failure Mode: Treating every forum post as automatic engineering truth creates noisy task churn.
+- Status: Proposed
+
+## 2026-05-16 - Feedback board exports are Verta Core planning input, not automatic truth
+- Type: Pattern
+- Summary: The Discord Feedback forum can behave like a lightweight Jira board, but Verta Core / Playbook should consume exported board artifacts as reviewed planning input before Codex work begins.
+- Rule: Discord board state is operational signal, not engineering truth.
+- Pattern: Feedback forum card -> bounded Supabase row -> board export -> Verta Core triage -> reviewed Codex task.
+- Failure Mode: Treating every forum card as automatic engineering truth creates noisy sprint churn.
+- Status: Proposed
+
 ## 2026-05-15 - Member-number display sync should queue Discord side effects
 - Type: Pattern
 - Summary: Database compaction should update app truth and queue Discord nickname resync, while Discord API calls happen through a server sync path that can retry failures.

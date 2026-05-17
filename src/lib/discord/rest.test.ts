@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
+  createDiscordMessageReaction,
   createDiscordThreadMessage,
   deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
@@ -52,6 +53,39 @@ test("updateDiscordGuildMemberNickname PATCHes the guild member nickname", async
       method: "PATCH",
       authorization: "Bot test-bot-token",
       body: JSON.stringify({ nick: "Zac · 12" }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an encoded emoji path", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    const result = await createDiscordMessageReaction({
+      channelId: "1504673475489562745",
+      messageId: "1504673475489562746",
+      emoji: "✅",
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me",
+      method: "PUT",
+      body: null,
     });
   } finally {
     globalThis.fetch = originalFetch;
