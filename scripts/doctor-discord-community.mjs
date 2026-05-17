@@ -635,7 +635,7 @@ async function checkFeedbackForumTags(botToken, forumChannelId) {
   );
 }
 
-async function checkEmojiValidation(botToken, guildId) {
+async function checkEmojiValidation(botToken, guildId, applicationId) {
   const bugEmojiId = getEnv("DISCORD_FEEDBACK_BUG_EMOJI_ID");
   const featureEmojiId = getEnv("DISCORD_FEEDBACK_FEATURE_EMOJI_ID");
 
@@ -643,40 +643,66 @@ async function checkEmojiValidation(botToken, guildId) {
     return buildCheck("feedback-emojis", "warn", "Optional feedback emoji env vars are not set");
   }
 
-  if (!botToken || !guildId) {
-    return buildCheck("feedback-emojis", "warn", "Optional feedback emoji validation unavailable because bot/guild env is missing");
+  if (!botToken || (!guildId && !applicationId)) {
+    return buildCheck("feedback-emojis", "warn", "Optional feedback emoji validation unavailable because bot/app-or-guild env is missing");
   }
 
-  const result = await discordRequest(`/guilds/${guildId}/emojis`, { botToken });
-  if (!result.ok || !Array.isArray(result.data)) {
-    return buildCheck("feedback-emojis", "warn", `Unable to fetch guild emojis (${result.status})`, {
-      error: result.message,
-    });
-  }
-
-  const emojiRows = result.data;
-  const bugEmoji = bugEmojiId ? emojiRows.find((emoji) => emoji?.id === bugEmojiId) : null;
-  const featureEmoji = featureEmojiId ? emojiRows.find((emoji) => emoji?.id === featureEmojiId) : null;
   const mismatches = [];
+  const sources = {};
+  const emojiLookup = new Map();
+
+  if (applicationId) {
+    const applicationResult = await discordRequest(`/applications/${applicationId}/emojis`, { botToken });
+    if (applicationResult.ok && Array.isArray(applicationResult.data?.items)) {
+      for (const emoji of applicationResult.data.items) {
+        if (emoji?.id) {
+          emojiLookup.set(emoji.id, { ...emoji, source: "application" });
+        }
+      }
+    }
+  }
+
+  if (guildId) {
+    const guildResult = await discordRequest(`/guilds/${guildId}/emojis`, { botToken });
+    if (guildResult.ok && Array.isArray(guildResult.data)) {
+      for (const emoji of guildResult.data) {
+        if (emoji?.id && !emojiLookup.has(emoji.id)) {
+          emojiLookup.set(emoji.id, { ...emoji, source: "guild" });
+        }
+      }
+    }
+  }
+
+  if (emojiLookup.size === 0) {
+    return buildCheck("feedback-emojis", "warn", "Unable to fetch application or guild emojis for optional validation");
+  }
+
+  const bugEmoji = bugEmojiId ? emojiLookup.get(bugEmojiId) : null;
+  const featureEmoji = featureEmojiId ? emojiLookup.get(featureEmojiId) : null;
 
   if (bugEmojiId && (!bugEmoji || normalizeDiscordLabel(bugEmoji.name) !== "bug" || bugEmoji.available === false)) {
     mismatches.push("Bug");
+  } else if (bugEmoji?.source) {
+    sources.bug = bugEmoji.source;
   }
   if (featureEmojiId && (!featureEmoji || normalizeDiscordLabel(featureEmoji.name) !== "feature" || featureEmoji.available === false)) {
     mismatches.push("Feature");
+  } else if (featureEmoji?.source) {
+    sources.feature = featureEmoji.source;
   }
 
   return buildCheck(
     "feedback-emojis",
     mismatches.length > 0 ? "warn" : "pass",
     mismatches.length > 0
-      ? "Optional feedback emoji config is set but not fully valid in the guild"
-      : "Optional feedback emoji config matches live guild emojis",
+      ? "Optional feedback emoji config is set but not fully valid in the application/guild sources"
+      : "Optional feedback emoji config matches live application/guild emojis",
     {
       configured: {
         bug: bugEmojiId,
         feature: featureEmojiId,
       },
+      sources,
       mismatches,
     },
   );
@@ -1137,7 +1163,7 @@ async function main() {
     await checkSupabaseSchema(adminClient),
     await checkDiscordCommands(botToken, applicationId, guildId),
     await checkFeedbackForumTags(botToken, forumChannelId),
-    await checkEmojiValidation(botToken, guildId),
+    await checkEmojiValidation(botToken, guildId, applicationId),
     await checkVerifyMessage(botToken, verifyChannelId, applicationId),
     await checkFeedbackPanel(botToken, feedbackPanelChannelId, applicationId),
     await checkUpdatesChannel(botToken, updatesChannelId, applicationId),

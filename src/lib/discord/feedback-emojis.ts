@@ -1,9 +1,13 @@
 import {
+  DISCORD_APPLICATION_ID,
   DISCORD_FEEDBACK_BUG_EMOJI_ID,
   DISCORD_FEEDBACK_FEATURE_EMOJI_ID,
   DISCORD_GUILD_ID,
 } from "@/lib/env";
-import { fetchDiscordGuildEmojis } from "@/lib/discord/rest";
+import {
+  fetchDiscordApplicationEmojis,
+  fetchDiscordGuildEmojis,
+} from "@/lib/discord/rest";
 
 export type DiscordFeedbackEmojiName = "Bug" | "Feature";
 
@@ -31,6 +35,13 @@ function resolveExpectedFeedbackEmojiId(name: DiscordFeedbackEmojiName): string 
 }
 
 function buildFeedbackEmojiCacheKey(): string {
+  let applicationId = "";
+  try {
+    applicationId = DISCORD_APPLICATION_ID();
+  } catch {
+    applicationId = "";
+  }
+
   let guildId = "";
   try {
     guildId = DISCORD_GUILD_ID();
@@ -39,6 +50,7 @@ function buildFeedbackEmojiCacheKey(): string {
   }
 
   return [
+    applicationId,
     guildId,
     resolveExpectedFeedbackEmojiId("Bug") ?? "",
     resolveExpectedFeedbackEmojiId("Feature") ?? "",
@@ -49,7 +61,7 @@ function buildEmojiMarkup(emoji: DiscordFeedbackEmojiObject | undefined): string
   return emoji ? `<:${emoji.name}:${emoji.id}>` : "";
 }
 
-function matchesExpectedGuildEmoji(args: {
+function matchesExpectedEmoji(args: {
   expectedId: string;
   expectedName: DiscordFeedbackEmojiName;
   candidate: { id?: string | null; name?: string | null; available?: boolean };
@@ -58,6 +70,14 @@ function matchesExpectedGuildEmoji(args: {
     && typeof args.candidate.name === "string"
     && args.candidate.name.trim().toLowerCase() === args.expectedName.toLowerCase()
     && args.candidate.available !== false;
+}
+
+function tryResolveConfiguredEmojiSource(source: "application" | "guild"): string | null {
+  try {
+    return source === "application" ? DISCORD_APPLICATION_ID() : DISCORD_GUILD_ID();
+  } catch {
+    return null;
+  }
 }
 
 function getCachedFeedbackEmojis(): Partial<Record<DiscordFeedbackEmojiName, DiscordFeedbackEmojiObject>> {
@@ -95,38 +115,58 @@ export async function validateDiscordFeedbackEmojis(): Promise<Partial<Record<Di
   }
 
   try {
-    const guildEmojisResult = await fetchDiscordGuildEmojis({ guildId: DISCORD_GUILD_ID() });
-    if (!guildEmojisResult.ok) {
-      feedbackEmojiCache = {
-        cacheKey,
-        expiresAt: Date.now() + FEEDBACK_EMOJI_CACHE_TTL_MS,
-        emojis: {},
-      };
-      return {};
+    const validated: Partial<Record<DiscordFeedbackEmojiName, DiscordFeedbackEmojiObject>> = {};
+    const unresolvedNames = new Set<DiscordFeedbackEmojiName>();
+    if (bugEmojiId) {
+      unresolvedNames.add("Bug");
+    }
+    if (featureEmojiId) {
+      unresolvedNames.add("Feature");
     }
 
-    const validated: Partial<Record<DiscordFeedbackEmojiName, DiscordFeedbackEmojiObject>> = {};
-    const guildEmojis = guildEmojisResult.emojis;
+    const applicationId = tryResolveConfiguredEmojiSource("application");
+    if (applicationId && unresolvedNames.size > 0) {
+      const applicationEmojisResult = await fetchDiscordApplicationEmojis({ applicationId });
+      if (applicationEmojisResult.ok) {
+        for (const name of [...unresolvedNames]) {
+          const expectedId = name === "Bug" ? bugEmojiId : featureEmojiId;
+          if (!expectedId) {
+            continue;
+          }
 
-    if (bugEmojiId) {
-      const bugEmoji = guildEmojis.find((candidate) => matchesExpectedGuildEmoji({
-        expectedId: bugEmojiId,
-        expectedName: "Bug",
-        candidate,
-      }));
-      if (bugEmoji?.id) {
-        validated.Bug = { id: bugEmoji.id, name: "Bug" };
+          const emoji = applicationEmojisResult.emojis.find((candidate) => matchesExpectedEmoji({
+            expectedId,
+            expectedName: name,
+            candidate,
+          }));
+          if (emoji?.id) {
+            validated[name] = { id: emoji.id, name };
+            unresolvedNames.delete(name);
+          }
+        }
       }
     }
 
-    if (featureEmojiId) {
-      const featureEmoji = guildEmojis.find((candidate) => matchesExpectedGuildEmoji({
-        expectedId: featureEmojiId,
-        expectedName: "Feature",
-        candidate,
-      }));
-      if (featureEmoji?.id) {
-        validated.Feature = { id: featureEmoji.id, name: "Feature" };
+    const guildId = tryResolveConfiguredEmojiSource("guild");
+    if (guildId && unresolvedNames.size > 0) {
+      const guildEmojisResult = await fetchDiscordGuildEmojis({ guildId });
+      if (guildEmojisResult.ok) {
+        for (const name of [...unresolvedNames]) {
+          const expectedId = name === "Bug" ? bugEmojiId : featureEmojiId;
+          if (!expectedId) {
+            continue;
+          }
+
+          const emoji = guildEmojisResult.emojis.find((candidate) => matchesExpectedEmoji({
+            expectedId,
+            expectedName: name,
+            candidate,
+          }));
+          if (emoji?.id) {
+            validated[name] = { id: emoji.id, name };
+            unresolvedNames.delete(name);
+          }
+        }
       }
     }
 

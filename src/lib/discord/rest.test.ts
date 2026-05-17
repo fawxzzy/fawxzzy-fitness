@@ -9,6 +9,7 @@ import {
   deferDiscordInteractionEphemeral,
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
   editDiscordOriginalInteractionResponse,
+  fetchDiscordApplicationEmojis,
   fetchDiscordGuildEmojis,
   resolveDiscordForumTagIdsByName,
   updateDiscordForumThreadArchiveState,
@@ -288,6 +289,34 @@ test("fetchDiscordGuildEmojis returns guild emoji records", async () => {
 
   try {
     const result = await fetchDiscordGuildEmojis({ guildId: "1504668396338413670" });
+    assert.deepEqual(result, {
+      ok: true,
+      emojis: [
+        { id: "1505007702924066916", name: "Bug", available: true },
+        { id: "1505007651308703877", name: "Feature", available: true },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchDiscordApplicationEmojis returns application emoji records from the items envelope", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    items: [
+      { id: "1505007702924066916", name: "Bug", available: true },
+      { id: "1505007651308703877", name: "Feature", available: true },
+    ],
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const result = await fetchDiscordApplicationEmojis({ applicationId: "1504700208251146371" });
     assert.deepEqual(result, {
       ok: true,
       emojis: [

@@ -55,6 +55,8 @@ export type DiscordGuildEmoji = {
   available?: boolean;
 };
 
+export type DiscordApplicationEmoji = DiscordGuildEmoji;
+
 async function parseDiscordJson(response: Response): Promise<unknown> {
   const responseText = await response.text();
   if (!responseText) {
@@ -295,6 +297,26 @@ export async function fetchDiscordGuildEmojis(args: {
   return {
     ok: false,
     code: "DISCORD_FETCH_GUILD_EMOJIS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordApplicationEmojis(args: {
+  applicationId: string;
+}): Promise<{ ok: true; emojis: DiscordApplicationEmoji[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<{ items?: DiscordApplicationEmoji[] }>(
+    `/applications/${args.applicationId}/emojis`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data?.items)) {
+    return { ok: true, emojis: result.data.items };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_APPLICATION_EMOJIS_FAILED",
     status: result.status,
     message: result.errorMessage,
   };

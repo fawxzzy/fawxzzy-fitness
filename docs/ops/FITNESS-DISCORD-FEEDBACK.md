@@ -152,11 +152,40 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 - `DISCORD_FEEDBACK_BUG_EMOJI_ID` optional
 - `DISCORD_FEEDBACK_FEATURE_EMOJI_ID` optional
+- `DISCORD_EMOJI_MODE` optional
+  - `application` default for bot-owned UI emoji
+  - `guild` when server-owned community emoji are intentionally preferred
 
 Known production values:
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`
 - `DISCORD_FEEDBACK_BUG_EMOJI_ID=1505007702924066916`
 - `DISCORD_FEEDBACK_FEATURE_EMOJI_ID=1505007651308703877`
+
+## Emoji bootstrap
+Run:
+
+```txt
+npm run discord:emoji:bootstrap
+```
+
+Bootstrap rules:
+- dry-run by default
+- use `--apply` to create missing Discord emoji resources
+- use `--replace` only when intentionally deleting and recreating existing named emojis
+- use `--mode application` for bot-owned UI emoji
+- use `--mode guild` only when server-owned emoji are intentionally needed
+- use `--write-env-template` to write suggested env vars into `tmp/discord-emoji-bootstrap.env`
+
+Asset source:
+- `assets/discord-emojis/Bug.png`
+- `assets/discord-emojis/Feature.png`
+- `assets/discord-emojis/FawxzzyLogo.png`
+- `assets/discord-emojis/FawxzzyLogoWhite.png`
+
+Resource rule:
+- a Discord attachment is not a custom emoji resource
+- bootstrap must upload a real application emoji or guild emoji before the ID can be used safely in Discord component payloads
+- if emoji bootstrap fails, feedback must remain fully usable with text-only labels and forum tags
 
 ## Feedback forum board
 When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum thread with:
@@ -176,7 +205,7 @@ Starter post formatting:
 Do not use custom emoji in the forum thread title. Keep titles text-only and searchable.
 - Forum tags and text prefixes are the reliable visual system.
 - Custom emoji env vars are optional display config only and must never be required for feedback intake.
-- Fitness should validate custom Bug and Feature emoji against the configured guild before using them in buttons, select options, or forum headers.
+- Fitness should validate custom Bug and Feature emoji against the configured application emoji set first, then the configured guild as a fallback.
 - If validation fails, the flow must fall back to text-only surfaces without blocking intake.
 
 Attachment handling:
@@ -299,13 +328,14 @@ After verify-copy changes, rerun:
 3. Set the forum and optional panel env vars.
 4. Run `/setup-feedback`.
 5. Pin the panel if needed.
-6. Test `Submit Feedback` with both `Bug` and `Feature`.
-7. Test duplicate folding.
-8. Test `Update Feedback`.
-9. Test `/feedback-status`.
-10. Test `Withdraw Feedback`.
-11. Test image upload with a small PNG or JPG.
-12. Confirm the user receives one final success message after the deferred response completes.
+6. Run `npm run discord:emoji:bootstrap -- --apply --write-env-template` if bot-owned emoji should be available.
+7. Test `Submit Feedback` with both `Bug` and `Feature`.
+8. Test duplicate folding.
+9. Test `Update Feedback`.
+10. Test `/feedback-status`.
+11. Test `Withdraw Feedback`.
+12. Test image upload with a small PNG or JPG.
+13. Confirm the user receives one final success message after the deferred response completes.
 
 ## Forum starter sync
 Run:
