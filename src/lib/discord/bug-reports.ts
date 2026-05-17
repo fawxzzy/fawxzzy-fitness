@@ -13,6 +13,7 @@ export const DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH = 1200;
 export const DISCORD_BUG_REPORT_STEPS_MAX_LENGTH = 1200;
 export const DISCORD_BUG_REPORT_SCREENSHOT_URL_MAX_LENGTH = 500;
 export const DISCORD_BUG_REPORT_FORUM_TITLE_MAX_LENGTH = 100;
+export const DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH = 2000;
 export const DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH = 1000;
 export const DISCORD_FEEDBACK_AUDIT_NOTE_MAX_LENGTH = 240;
 export const DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT = 3;
@@ -829,13 +830,47 @@ function renderForumBodyValue(value: string | null, fallback: string): string {
   return neutralizeDiscordMentions(value);
 }
 
+function truncateForumDisplayValue(value: string, maxLength: number): string {
+  const normalized = neutralizeDiscordMentions(value).trim();
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+function renderForumBodyDisplayValue(args: {
+  value: string | null;
+  fallback: string;
+  maxLength: number;
+}): string {
+  if (!args.value) {
+    return args.fallback;
+  }
+
+  const truncated = truncateForumDisplayValue(args.value, args.maxLength);
+  return truncated || args.fallback;
+}
+
 function renderAttachmentLine(attachment: DiscordFeedbackAttachmentMetadata): string {
   const displayUrl = attachment.url ?? attachment.proxyUrl;
   if (!displayUrl) {
     return `- ${attachment.filename} (${attachment.contentType}, ${attachment.size} bytes)`;
   }
 
-  return `- ${attachment.filename} (${attachment.contentType}, ${attachment.size} bytes): ${displayUrl}`;
+  return `- ${attachment.filename} (${attachment.contentType}, ${attachment.size} bytes): ${truncateForumDisplayValue(displayUrl, 180)}`;
+}
+
+function trimDiscordForumBodyLength(body: string): string {
+  if (body.length <= DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH) {
+    return body;
+  }
+
+  return `${body.slice(0, Math.max(0, DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH - 3)).trimEnd()}...`;
 }
 
 function buildDiscordBugForumThreadBodyHeader(args: {
@@ -893,50 +928,82 @@ export function buildDiscordBugForumThreadBody(args: {
   );
 
   if (args.report.report_type === "feature") {
-    return [
+    return trimDiscordForumBodyLength([
       ...sharedLines,
       "**Description**",
-      renderForumBodyValue(args.report.details, "Not provided"),
+      renderForumBodyDisplayValue({
+        value: args.report.details,
+        fallback: "Not provided",
+        maxLength: 900,
+      }),
       "",
       "**Link / screenshot**",
-      renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+      renderForumBodyDisplayValue({
+        value: args.report.screenshot_url,
+        fallback: "Not provided",
+        maxLength: 300,
+      }),
       "",
       "**Attachments**",
       ...attachmentLines,
-    ].join("\n");
+    ].join("\n"));
   }
 
   if (args.report.report_type === "bug") {
-    return [
+    return trimDiscordForumBodyLength([
       ...sharedLines,
       "**What happened**",
-      renderForumBodyValue(args.report.details, "Not provided"),
+      renderForumBodyDisplayValue({
+        value: args.report.details,
+        fallback: "Not provided",
+        maxLength: 750,
+      }),
       "",
       "**Steps**",
-      renderForumBodyValue(args.report.steps_to_reproduce, "Not provided"),
+      renderForumBodyDisplayValue({
+        value: args.report.steps_to_reproduce,
+        fallback: "Not provided",
+        maxLength: 550,
+      }),
       "",
       "**Link / screenshot**",
-      renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+      renderForumBodyDisplayValue({
+        value: args.report.screenshot_url,
+        fallback: "Not provided",
+        maxLength: 300,
+      }),
       "",
       "**Attachments**",
       ...attachmentLines,
-    ].join("\n");
+    ].join("\n"));
   }
 
-  return [
+  return trimDiscordForumBodyLength([
     ...sharedLines,
     "**Details**",
-    renderForumBodyValue(args.report.details, "Not provided"),
+    renderForumBodyDisplayValue({
+      value: args.report.details,
+      fallback: "Not provided",
+      maxLength: 750,
+    }),
     "",
     "**Steps**",
-    renderForumBodyValue(args.report.steps_to_reproduce, "Not provided"),
+    renderForumBodyDisplayValue({
+      value: args.report.steps_to_reproduce,
+      fallback: "Not provided",
+      maxLength: 550,
+    }),
     "",
     "**Link / screenshot**",
-    renderForumBodyValue(args.report.screenshot_url, "Not provided"),
+    renderForumBodyDisplayValue({
+      value: args.report.screenshot_url,
+      fallback: "Not provided",
+      maxLength: 300,
+    }),
     "",
     "**Attachments**",
     ...attachmentLines,
-  ].join("\n");
+  ].join("\n"));
 }
 
 export function buildDiscordBugForumDuplicateReply(args: {
