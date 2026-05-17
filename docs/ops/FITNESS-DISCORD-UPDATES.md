@@ -52,6 +52,30 @@ Failure modes:
 - treating update drafts as a second task board creates drift
 - skipping reviewed export/prompt handoff causes lost or noisy work
 
+## Two Update Standards
+Use two distinct message types and do not mix them.
+
+Release and update posts:
+- are posted by Update Bot into `#updates`
+- are used for production deploys or explicit admin publish moments
+- use curated user-facing copy
+- may use `@everyone` when they are broad release-summary announcements
+- must not be used for every feedback card mutation
+
+Feedback audit comments:
+- stay inside the feedback thread
+- document local card history such as status change, update, withdraw, duplicate fold, or sync
+- stay compact and operational
+- never use `@everyone`
+- never replace the public release post when a real shipped update should be announced
+
+Rule:
+- Release posts announce shipped user-facing changes.
+- Feedback audit comments document card history.
+
+Failure mode:
+- posting every feedback mutation to `#updates` creates noise, while silent card edits make the board hard to trust
+
 ## Environment
 Required for the webhook:
 - `VERCEL_DEPLOYMENT_WEBHOOK_SECRET`

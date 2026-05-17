@@ -77,6 +77,23 @@ Failure modes:
 - starting Codex work from unreviewed forum cards creates noisy sprint churn
 - creating parallel task copies outside the board/export path causes lost tasks
 
+## Release Posts vs Audit Comments
+Release posts:
+- belong in `#updates`
+- are curated user-facing announcements after shipped work
+- may use the broad release-summary template or the shipped-card `Update:` promotion format
+- must not be emitted for every feedback card mutation
+
+Feedback audit comments:
+- belong in the feedback thread
+- document status changes, withdraws, updates, duplicate folds, syncs, and other local card history
+- stay compact and operational
+- never use `@everyone`
+
+Rule:
+- Release posts tell the community what shipped.
+- Feedback audit comments tell a card's history.
+
 ## User flow
 1. An admin runs `/setup-feedback`.
 2. Fitness creates or updates a dedicated launcher message in `submit-feedback`.

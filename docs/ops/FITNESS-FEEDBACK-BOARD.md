@@ -44,6 +44,23 @@ Failure modes:
 - running Codex directly from unreviewed forum cards creates noisy sprint churn
 - keeping separate task copies outside the board/export path causes lost tasks
 
+## Release Posts vs Card History
+Release and update posts:
+- belong in `#updates`
+- announce shipped user-facing changes
+- stay curated and public-facing
+- must not be used as the board's mutation log
+
+Feedback audit comments:
+- belong in the feedback thread
+- preserve the card's visible history
+- document status changes, updates, withdraws, duplicate folds, and sync actions
+- stay compact and operational
+
+Rule:
+- Release posts announce shipped user-facing changes.
+- Feedback audit comments document card history.
+
 ## Status model
 Statuses remain stable in storage:
 - `new`
