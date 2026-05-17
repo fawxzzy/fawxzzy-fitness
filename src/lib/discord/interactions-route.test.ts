@@ -2931,6 +2931,36 @@ test("Discord interactions route rejects warn for users without staff permission
   });
 });
 
+test("Discord interactions route rejects server-inventory for users without staff permissions", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const response = await POST(createSignedRequest(JSON.stringify({
+    type: 2,
+    guild_id: "1504668396338413670",
+    member: {
+      permissions: "0",
+      user: {
+        id: "222222222222222222",
+        username: "member",
+      },
+    },
+    data: {
+      name: "server-inventory",
+    },
+  }), keyPair));
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    type: 4,
+    data: {
+      content: "You do not have permission to view server inventory.",
+      flags: 64,
+    },
+  });
+});
+
 test("Discord interactions route verifies a numbered human member and syncs the nickname", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

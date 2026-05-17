@@ -388,8 +388,9 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const purgatory = commands.find((command) => command.name === "purgatory");
   const release = commands.find((command) => command.name === "release");
   const modLog = commands.find((command) => command.name === "mod-log");
+  const serverInventory = commands.find((command) => command.name === "server-inventory");
 
-  assert.equal(commands.length, 15);
+  assert.equal(commands.length, 16);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(setupFeedback);
@@ -440,6 +441,11 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.equal(release?.options?.[2]?.name, "note");
   assert.ok(modLog);
   assert.equal(modLog?.options?.[1]?.name, "limit");
+  assert.ok(serverInventory);
+  assert.equal(
+    serverInventory?.default_member_permissions,
+    String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
+  );
   assert.equal(commands.some((command) => command.name === "bug"), false);
   assert.equal(commands.some((command) => command.name === "routine-share"), false);
 });

@@ -1,6 +1,16 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-05-17 - Discord noise control should use permissions and mentions, not fake mute claims
+- Type: Guardrail
+- Summary: Fawx Security can inventory server ids and enforce low-noise posting rules, but personal channel mute state remains a user-side Discord preference.
+- Rule: Only `Updates` and `Main` are loud channels.
+- Rule: Non-update workflows must avoid broad pings.
+- Pattern: server inventory -> noise audit -> conservative apply recommendations -> reviewed permission changes.
+- Failure Mode: claiming the bot can mute channels for users creates false expectations and hides the real permission model.
+- Evidence: scripts/discord-server-inventory.mjs, scripts/discord-noise-audit.mjs, scripts/discord-noise-apply.mjs, src/lib/discord/server-inventory.ts
+- Status: Proposed
+
 ## 2026-05-14 - Discord access should verify possession of an app session, not knowledge of an email
 - Type: Guardrail
 - Summary: Discord membership gates should use a short-lived token generated from an authenticated app session instead of accepting email-only proof.

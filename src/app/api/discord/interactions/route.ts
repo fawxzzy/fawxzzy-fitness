@@ -83,6 +83,7 @@ import {
   FITNESS_UPDATE_LATEST_COMMAND_NAME,
   FITNESS_MOD_LOG_COMMAND_NAME,
   FITNESS_MOD_LOG_LIMIT_OPTION_NAME,
+  FITNESS_SERVER_INVENTORY_COMMAND_NAME,
   FITNESS_UPDATE_PUBLISH_COMMAND_NAME,
   FITNESS_PURGATORY_COMMAND_NAME,
   FITNESS_PURGATORY_DURATION_OPTION_NAME,
@@ -158,6 +159,7 @@ import {
 import {
   validateDiscordFeedbackEmojis,
 } from "@/lib/discord/feedback-emojis";
+import { buildDiscordServerInventorySummary } from "@/lib/discord/server-inventory";
 import {
   buildDiscordUpdateLatestSummary,
   findDiscordUpdateDraftByIdOrPrefix,
@@ -2372,6 +2374,21 @@ async function handleModLogInteraction(interaction: DiscordInteraction) {
   }));
 }
 
+async function handleServerInventoryInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This inventory flow is only available in the configured server.");
+  }
+
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  if (!discordMemberHasModerationPermission(permissions)) {
+    return buildDiscordEphemeralMessageResponse("You do not have permission to view server inventory.");
+  }
+
+  return buildDiscordEphemeralMessageResponse(await buildDiscordServerInventorySummary({
+    guildId: DISCORD_GUILD_ID(),
+  }));
+}
+
 async function handleUpdateLatestInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
     return buildDiscordEphemeralMessageResponse("This update flow is only available in the configured server.");
@@ -2632,6 +2649,13 @@ export async function POST(request: Request) {
       && interaction.data?.name === FITNESS_MOD_LOG_COMMAND_NAME
     ) {
       return jsonResponse(await handleModLogInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_SERVER_INVENTORY_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleServerInventoryInteraction(interaction));
     }
 
     if (
