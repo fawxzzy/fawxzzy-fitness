@@ -509,26 +509,6 @@ export async function fetchDiscordGuildActiveThreads(args: {
   };
 }
 
-export async function fetchDiscordGuildChannels(args: {
-  guildId: string;
-}): Promise<{ ok: true; channels: DiscordChannel[] } | { ok: false; code: string; status: number; message: string | null }> {
-  const result = await discordRequest<DiscordChannel[]>(
-    `/guilds/${args.guildId}/channels`,
-    { method: "GET" },
-  );
-
-  if (result.ok && Array.isArray(result.data)) {
-    return { ok: true, channels: result.data };
-  }
-
-  return {
-    ok: false,
-    code: "DISCORD_FETCH_GUILD_CHANNELS_FAILED",
-    status: result.status,
-    message: result.errorMessage,
-  };
-}
-
 export async function fetchDiscordGuildEmojis(args: {
   guildId: string;
 }): Promise<{ ok: true; emojis: DiscordGuildEmoji[] } | { ok: false; code: string; status: number; message: string | null }> {

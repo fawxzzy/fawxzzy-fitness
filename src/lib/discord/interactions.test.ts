@@ -235,7 +235,7 @@ test("feedback panel button modals expose submit and manage flows", () => {
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
   assert.equal(submit.data.components[0]?.component?.custom_id, "feedback_type");
   assert.equal(submit.data.components[1]?.label, "Title");
-  assert.equal(submit.data.components[3]?.label, "Description / what happened");
+  assert.equal(submit.data.components[3]?.label, "Details");
   assert.equal(submit.data.components[4]?.label, "Attachment");
   assert.equal(submit.data.components[4]?.component?.custom_id, "feedback_attachment");
   assert.equal(submit.data.components[4]?.component?.max_values, 3);
