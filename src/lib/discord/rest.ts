@@ -33,6 +33,8 @@ export type DiscordChannel = {
   name?: string;
   type?: number;
   parent_id?: string;
+  position?: number;
+  topic?: string | null;
   owner_id?: string;
   archived?: boolean;
   locked?: boolean;
@@ -507,6 +509,26 @@ export async function fetchDiscordGuildActiveThreads(args: {
   };
 }
 
+export async function fetchDiscordGuildChannels(args: {
+  guildId: string;
+}): Promise<{ ok: true; channels: DiscordChannel[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel[]>(
+    `/guilds/${args.guildId}/channels`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data)) {
+    return { ok: true, channels: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_GUILD_CHANNELS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function fetchDiscordGuildEmojis(args: {
   guildId: string;
 }): Promise<{ ok: true; emojis: DiscordGuildEmoji[] } | { ok: false; code: string; status: number; message: string | null }> {
@@ -689,6 +711,40 @@ export async function createDiscordChannelMessage(args: {
   };
 }
 
+export async function createDiscordGuildChannel(args: {
+  guildId: string;
+  name: string;
+  type: number;
+  topic?: string | null;
+  parentId?: string | null;
+  position?: number | null;
+}): Promise<{ ok: true; channel: DiscordChannel } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannel>(
+    `/guilds/${args.guildId}/channels`,
+    {
+      method: "POST",
+      body: {
+        name: args.name,
+        type: args.type,
+        ...(typeof args.topic === "string" ? { topic: args.topic } : {}),
+        ...(typeof args.parentId === "string" ? { parent_id: args.parentId } : {}),
+        ...(typeof args.position === "number" ? { position: args.position } : {}),
+      },
+    },
+  );
+
+  if (result.ok && result.data && typeof result.data.id === "string") {
+    return { ok: true, channel: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_CREATE_GUILD_CHANNEL_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function createDiscordForumThreadWithMessage(args: {
   channelId: string;
   threadName: string;
@@ -792,6 +848,50 @@ export async function updateDiscordForumThreadTitle(args: {
   return {
     ok: false,
     code: "DISCORD_UPDATE_FORUM_THREAD_TITLE_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function updateDiscordChannel(args: {
+  channelId: string;
+  name?: string;
+  topic?: string | null;
+  parentId?: string | null;
+  position?: number | null;
+}): Promise<{ ok: true; channel: DiscordChannel | null } | { ok: false; code: string; status: number; message: string | null }> {
+  const body: Record<string, unknown> = {};
+  if (typeof args.name === "string") {
+    body.name = args.name;
+  }
+  if (args.topic !== undefined) {
+    body.topic = args.topic;
+  }
+  if (args.parentId !== undefined) {
+    body.parent_id = args.parentId;
+  }
+  if (args.position !== undefined) {
+    body.position = args.position;
+  }
+
+  const result = await discordRequest<DiscordChannel>(
+    `/channels/${args.channelId}`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
+
+  if (result.ok) {
+    return {
+      ok: true,
+      channel: result.data,
+    };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_UPDATE_CHANNEL_FAILED",
     status: result.status,
     message: result.errorMessage,
   };

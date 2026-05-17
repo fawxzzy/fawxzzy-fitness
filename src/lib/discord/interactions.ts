@@ -380,24 +380,24 @@ function buildDiscordFeedbackSubmitModalData(args?: {
         customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
         style: 1,
         placeholder: defaultReportType === "feature"
-          ? "Example: Add a weekly goal view"
-          : "Example: Copy button does not work",
+          ? "Example: Add a weekly goal dashboard"
+          : "Example: Recovery screen closes after save",
         required: true,
         maxLength: 120,
       }),
       buildDiscordModalLabelTextInput({
-        label: "Area",
+        label: "Area / screen",
         customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
         style: 1,
-        placeholder: "Settings, Discord Connector, session...",
+        placeholder: "Settings, Recovery, Discord Feedback...",
         required: false,
         maxLength: 80,
       }),
       buildDiscordModalLabelTextInput({
         label: defaultReportType === "feature" || defaultReportType === "bug"
-          ? "Description / what happened"
+          ? "Description"
           : "Details",
-        description: "Describe the bug or feature. Include steps, context, or a link if that helps.",
+        description: "Describe the issue or idea clearly. Include steps, context, or expected behavior if that helps.",
         customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
         style: 2,
         required: true,

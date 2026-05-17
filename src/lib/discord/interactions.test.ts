@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildDiscordDeferredEphemeralMessageResponse,
+  buildDiscordFeedbackManageCardResponse,
+  buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
   buildDiscordFeedbackUpdatePickerResponse,
   buildDiscordFeedbackReportModalResponse,
   buildDiscordFeedbackUpdateModalResponse,
-  buildDiscordFeedbackWithdrawModalResponse,
+  buildDiscordFeedbackWithdrawSelectedModalResponse,
   buildDiscordUpdatePublishModalResponse,
   buildDiscordGuildCommandsDefinition,
   buildDiscordPongResponse,
@@ -24,6 +26,7 @@ import {
   extractDiscordFeedbackManageWithdrawReportId,
   extractDiscordFeedbackUpdatePickerReportId,
   extractDiscordFeedbackUpdateReportIdFromModalCustomId,
+  extractDiscordFeedbackWithdrawSelectedReportId,
   extractDiscordModalFileUploadIds,
   extractDiscordModalStringSelectValue,
   extractDiscordModalTextInputValue,
@@ -63,12 +66,12 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
   assert.equal(bug.data.title, "Report a bug");
   assert.equal(bug.data.components[0]?.component?.custom_id, "feedback_type");
   assert.equal(bug.data.components[1]?.label, "Title");
-  assert.equal(bug.data.components[3]?.label, "Description / what happened");
+  assert.equal(bug.data.components[3]?.label, "Description");
   assert.equal(bugOptions?.[0]?.default, true);
   assert.equal(feature.data.custom_id, "fitness_feedback_report_modal:feature");
   assert.equal(feature.data.title, "Suggest a feature");
   assert.equal(feature.data.components[1]?.label, "Title");
-  assert.equal(feature.data.components[3]?.label, "Description / what happened");
+  assert.equal(feature.data.components[3]?.label, "Description");
   assert.equal(featureOptions?.[1]?.default, true);
 });
 
@@ -308,21 +311,29 @@ test("extractDiscordFeedbackUpdateReportIdFromModalCustomId parses update edit m
   assert.equal(extractDiscordFeedbackUpdateReportIdFromModalCustomId("fitness_feedback_update_modal"), null);
 });
 
-test("manage flow custom id helpers parse report ids", () => {
+test("feedback manage custom id helpers parse selection, edit, and withdraw ids only", () => {
   assert.equal(
-    extractDiscordFeedbackUpdatePickerReportId("fitness_feedback_manage_recent:11111111-1111-4111-8111-111111111111"),
+    extractDiscordFeedbackUpdatePickerReportId(
+      "fitness_feedback_manage_recent:11111111-1111-4111-8111-111111111111",
+    ),
     "11111111-1111-4111-8111-111111111111",
   );
   assert.equal(
-    extractDiscordFeedbackManageEditReportId("fitness_feedback_manage_action_edit:11111111-1111-4111-8111-111111111111"),
+    extractDiscordFeedbackManageEditReportId(
+      "fitness_feedback_manage_action_edit:11111111-1111-4111-8111-111111111111",
+    ),
     "11111111-1111-4111-8111-111111111111",
   );
   assert.equal(
-    extractDiscordFeedbackManageWithdrawReportId("fitness_feedback_manage_action_withdraw:11111111-1111-4111-8111-111111111111"),
+    extractDiscordFeedbackManageWithdrawReportId(
+      "fitness_feedback_manage_action_withdraw:11111111-1111-4111-8111-111111111111",
+    ),
     "11111111-1111-4111-8111-111111111111",
   );
   assert.equal(
-    extractDiscordFeedbackWithdrawSelectedReportId("fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111"),
+    extractDiscordFeedbackWithdrawSelectedReportId(
+      "fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111",
+    ),
     "11111111-1111-4111-8111-111111111111",
   );
 });

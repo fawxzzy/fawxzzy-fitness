@@ -10,6 +10,7 @@ Product rules:
 - Historical `fix` rows may remain readable and exportable.
 - The Feedback forum is a display surface; Supabase is the source of truth.
 - Normal users should use persistent buttons and modals, not admin-style slash command choices.
+- The primary user entry should be a dedicated text channel such as `submit-feedback`, not a control post inside the forum itself.
 - Feedback submit should defer the interaction before heavy Discord or DB work.
 - Feedback intake success depends on the bounded report row first and the forum thread second.
 - Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
@@ -19,7 +20,9 @@ Product rules:
 ## Command surface
 - `/setup-feedback`
   - admin-only
-  - posts or refreshes the persistent `Feedback Actions` panel
+  - posts or refreshes the persistent `Submit Feedback Here` launcher
+  - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
+  - otherwise finds or creates `submit-feedback` above the Feedback forum
 - `/setup-verify`
   - admin-only
   - posts or refreshes the verification panel
@@ -74,7 +77,7 @@ Failure modes:
 
 ## User flow
 1. An admin runs `/setup-feedback`.
-2. Fitness creates or updates a persistent panel with `Submit`, `Add Update`, and `Withdraw`.
+2. Fitness creates or updates a dedicated launcher message in `submit-feedback`.
 3. A user clicks `Submit`.
 4. Fitness opens one general modal.
 5. The modal collects `Feedback type` inside the flow.
@@ -83,7 +86,8 @@ Failure modes:
 8. Fitness edits the original ephemeral response with the final success or failure result.
 
 Pattern:
-- general feedback button
+- dedicated submit-feedback launcher
+- general submit button
 - modal with type choice
 - deferred response
 - bounded row
@@ -127,18 +131,21 @@ Stored attachment metadata should stay bounded to:
 - size
 - Discord URL fields when present
 
-## Panel placement
+## Launcher placement
 - Preferred env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
 - Fallback env: `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 
 `/setup-feedback` is idempotent:
-- if an existing bot-authored feedback panel is found, edit it
-- if it is missing or deleted, create a new one
+- if an existing bot-authored feedback launcher is found, edit it
+- if a configured launcher channel exists, reuse it
+- otherwise, create or reuse `submit-feedback` as a normal text channel above the Feedback forum
+- if the launcher message is missing or deleted, create a new one
 
 If panel creation fails with Discord `50013 Missing Permissions`, the admin response should mention:
 - `View Channel`
 - `Read Message History`
 - `Send Messages`
+- `Manage Channels` when auto-creating `submit-feedback`
 - `Embed Links` optional
 - `Use External Emojis` optional
 
@@ -253,7 +260,8 @@ If the forum still has old tags:
 It should:
 - allow the original reporter or staff
 - resolve by full UUID, short id, thread id, or thread URL
-- post a compact update reply in the thread
+- open from `Edit My Feedback`
+- let the user choose a card first, then choose `Edit Card` or `Withdraw`
 - update bounded metadata such as `status_note` and `last_seen_at`
 - not change report status
 
@@ -303,6 +311,7 @@ Withdraw note:
 `/feedback-withdraw` and the withdraw modal should:
 - allow the original reporter or staff
 - resolve by full UUID, short id, thread id, or thread URL
+- remain a fallback path; the main user flow reaches withdraw from `Edit My Feedback`
 - redact `details`, `steps_to_reproduce`, and `screenshot_url`
 - clear or minimize stored attachment metadata
 - mark the report as attachment-pruned
