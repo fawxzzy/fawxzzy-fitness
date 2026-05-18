@@ -26,6 +26,7 @@ function buildRow(overrides = {}) {
     details: "Tapping Copy did not copy the token.",
     duplicate_count: 1,
     attachment_count: 0,
+    discord_forum_channel_id: "1504673475489562744",
     discord_forum_thread_id: "1504673475489562745",
     reporter_discord_user_id: "123456789012345678",
     last_seen_at: "2026-05-16T12:00:00.000Z",
@@ -222,6 +223,70 @@ test("board export includes duplicates only with --include-duplicates", async ()
   });
 
   assert.deepEqual(result.records.map((record) => record.id), ["a", "d"]);
+});
+
+test("board export excludes testing forum cards by default", async () => {
+  process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID = "1505827424766660780";
+  const rows = [
+    buildRow({ id: "public-card", discord_forum_channel_id: "1504673475489562744" }),
+    buildRow({ id: "testing-card", discord_forum_channel_id: "1505827424766660780" }),
+  ];
+
+  try {
+    const result = await exportFeedbackBoard({
+      client: createMockClient(rows),
+      args: {
+        ...parseArgs([]),
+        writeMarkdown: false,
+        writeJson: false,
+      },
+    });
+
+    assert.deepEqual(result.records.map((record) => record.id), ["public-card"]);
+  } finally {
+    delete process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID;
+  }
+});
+
+test("board export excludes feedback testing area cards even without a testing forum env", async () => {
+  const rows = [
+    buildRow({ id: "public-card", area: "History / Analytics" }),
+    buildRow({ id: "testing-card", area: "Feedback Testing", discord_forum_channel_id: null }),
+  ];
+
+  const result = await exportFeedbackBoard({
+    client: createMockClient(rows),
+    args: {
+      ...parseArgs([]),
+      writeMarkdown: false,
+      writeJson: false,
+    },
+  });
+
+  assert.deepEqual(result.records.map((record) => record.id), ["public-card"]);
+});
+
+test("board export can include testing forum cards when explicitly requested", async () => {
+  process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID = "1505827424766660780";
+  const rows = [
+    buildRow({ id: "public-card", discord_forum_channel_id: "1504673475489562744" }),
+    buildRow({ id: "testing-card", discord_forum_channel_id: "1505827424766660780" }),
+  ];
+
+  try {
+    const result = await exportFeedbackBoard({
+      client: createMockClient(rows),
+      args: {
+        ...parseArgs(["--include-testing"]),
+        writeMarkdown: false,
+        writeJson: false,
+      },
+    });
+
+    assert.deepEqual(result.records.map((record) => record.id), ["public-card", "testing-card"]);
+  } finally {
+    delete process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID;
+  }
 });
 
 test("codex draft output includes the draft-only warning", () => {

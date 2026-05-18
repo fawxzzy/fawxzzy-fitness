@@ -79,6 +79,7 @@ Failure modes:
 - Create the private board with `npm run discord:testing-board:setup -- --apply --move-report-id b88b31ba`.
 - Keep real community cards on the public Feedback forum.
 - Keep canaries in `Testing / feedback-testing`.
+- `npm run feedback:board:export` excludes `feedback-testing` cards by default unless `--include-testing` is passed explicitly.
 
 ## Release Posts vs Card History
 Release and update posts:

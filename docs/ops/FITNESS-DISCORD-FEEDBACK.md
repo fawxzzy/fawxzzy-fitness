@@ -18,6 +18,7 @@ Product rules:
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
 - Public Feedback is for real community cards.
 - Private `Testing / feedback-testing` is for canaries and internal QA only.
+- `npm run feedback:board:export` should exclude `feedback-testing` cards by default so reviewed planning stays tied to the real public board.
 
 ## Command surface
 - `/setup-feedback`

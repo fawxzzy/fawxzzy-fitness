@@ -20,6 +20,8 @@ export const MAX_LIMIT = 200;
 export const DEFAULT_MARKDOWN_OUT = "runtime/feedback-board/latest.md";
 export const DEFAULT_JSON_OUT = "runtime/feedback-board/latest.json";
 export const DEFAULT_DRAFTS_OUT = "runtime/feedback-board/codex-drafts.md";
+const DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID_ENV = "DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID";
+const TESTING_AREA_NAME = "feedback testing";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
@@ -99,6 +101,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     writeJson: true,
     out: null,
     codexDrafts: false,
+    includeTesting: false,
   };
 
   let sawFormatFlag = false;
@@ -185,6 +188,11 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
     if (token === "--codex-drafts") {
       args.codexDrafts = true;
+      continue;
+    }
+
+    if (token === "--include-testing") {
+      args.includeTesting = true;
     }
   }
 
@@ -378,6 +386,7 @@ export function toBoardRecord(row, debug = false) {
     duplicate_count: Math.max(1, Number(row.duplicate_count ?? 1)),
     attachment_count: Math.max(0, Number(row.attachment_count ?? 0)),
     last_seen_at: row.last_seen_at ?? null,
+    forum_channel_id: debug && typeof row.discord_forum_channel_id === "string" ? row.discord_forum_channel_id : undefined,
     forum_thread_link: toForumThreadLink(threadId),
     forum_thread_id: debug ? threadId : undefined,
     reporter_discord_user_id: debug ? row.reporter_discord_user_id ?? null : undefined,
@@ -389,6 +398,7 @@ export function filterBoardRows(rows, args) {
   const allowedStatuses = new Set(resolveStatusFilter(args));
   const allowedTypes = new Set(args.types.filter(Boolean));
   const areaFilter = args.area ? args.area.toLowerCase() : null;
+  const testingForumId = getOptionalEnv(DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID_ENV);
 
   return rows.filter((row) => {
     const status = normalizeStatus(row.status);
@@ -403,6 +413,16 @@ export function filterBoardRows(rows, args) {
     }
 
     if (areaFilter && String(row.area ?? "").trim().toLowerCase() !== areaFilter) {
+      return false;
+    }
+
+    if (
+      !args.includeTesting
+      && (
+        (testingForumId && String(row.discord_forum_channel_id ?? "").trim() === testingForumId)
+        || String(row.area ?? "").trim().toLowerCase() === TESTING_AREA_NAME
+      )
+    ) {
       return false;
     }
 
@@ -616,6 +636,7 @@ async function loadRows(client, args) {
       "attachment_count",
       "attachment_metadata",
       "attachment_pruned",
+      "discord_forum_channel_id",
       "discord_forum_thread_id",
       "reporter_discord_user_id",
       "last_seen_at",
