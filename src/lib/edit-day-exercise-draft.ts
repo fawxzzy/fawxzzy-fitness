@@ -4,6 +4,7 @@ import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/li
 import { deriveGoalMeasurementSelections, isFailureGoalSelection, type GoalModality } from "@/lib/exercise-goal-validation";
 import { getDefaultProgressionPlaybookConfig, validateProgressionPlaybookSelection, type ProgressionPlaybookId, type ProgressionStallPolicy, type SetFlowId } from "@/lib/progression-playbooks";
 import { normalizeSetFlowId } from "@/lib/set-flow";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export type EditDayExerciseDefaults = {
   targetSets?: number | null;
@@ -14,7 +15,7 @@ export type EditDayExerciseDefaults = {
   targetWeightUnit?: "lbs" | "kg" | null;
   targetDurationSeconds?: number | null;
   targetDistance?: number | null;
-  targetDistanceUnit?: "mi" | "km" | "m" | null;
+  targetDistanceUnit?: FitnessDistanceUnit | null;
   targetCalories?: number | null;
   progressionPlaybookId?: ProgressionPlaybookId | null;
   progressionPlaybookConfig?: Record<string, unknown> | null;
@@ -105,7 +106,7 @@ function formatDraftSummary(values: {
   weightUnit: "lbs" | "kg";
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m";
+  distanceUnit: FitnessDistanceUnit;
   calories: number | null;
 }) {
   const parts = [
@@ -139,7 +140,7 @@ export function createEditDayExerciseDraft({
   modality,
 }: {
   defaults: EditDayExerciseDefaults;
-  distanceUnit: "mi" | "km" | "m";
+  distanceUnit: FitnessDistanceUnit;
   weightUnit: "lbs" | "kg";
   orderNumber: number;
   modality: GoalModality;

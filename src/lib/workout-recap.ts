@@ -1,3 +1,5 @@
+import { formatDistanceNumber, formatDistanceUnitLabel } from "@/lib/fitness-distance-units";
+import type { FitnessDistanceUnit } from "@/types/db";
 import type { SessionSummary } from "@/app/history/session-summary";
 
 export type WorkoutRecapSetInput = {
@@ -6,7 +8,7 @@ export type WorkoutRecapSetInput = {
   weightUnit?: "lbs" | "kg" | "lb" | null;
   durationSeconds?: number | null;
   distance?: number | null;
-  distanceUnit?: "mi" | "km" | "m" | null;
+  distanceUnit?: FitnessDistanceUnit | null;
   calories?: number | null;
 };
 
@@ -60,7 +62,7 @@ function formatDistance(value: number | null | undefined, unit: string | null | 
     return null;
   }
 
-  return `${formatNumber(value ?? 0)} ${unit === "km" ? "km" : unit === "m" ? "m" : "mi"}`;
+  return `${formatDistanceNumber(value ?? 0, unit)} ${formatDistanceUnitLabel(unit) ?? "mi"}`;
 }
 
 function formatSetEffort(set: WorkoutRecapSetInput) {

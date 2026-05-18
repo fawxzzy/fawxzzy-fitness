@@ -21,7 +21,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { writeInstallEarnedMoment } from "@/lib/install/earned-install-prompt";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
-import type { SetRow } from "@/types/db";
+import type { FitnessDistanceUnit, SetRow } from "@/types/db";
 
 type AddSetPayload = {
   sessionId: string;
@@ -30,7 +30,7 @@ type AddSetPayload = {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
   rpe: number | null;
@@ -50,7 +50,7 @@ type SyncQueuedSetLogsAction = (payload: {
       reps: number;
       durationSeconds: number | null;
       distance: number | null;
-      distanceUnit: "mi" | "km" | "m" | null;
+      distanceUnit: FitnessDistanceUnit | null;
       calories: number | null;
       isWarmup: boolean;
       rpe: number | null;

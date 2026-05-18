@@ -54,6 +54,7 @@ import {
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 type AddSetPayload = {
   sessionId: string;
@@ -62,7 +63,7 @@ type AddSetPayload = {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
   rpe: number | null;
@@ -227,7 +228,7 @@ function getSessionSummaryItems({
   weightUnit: string | null | undefined;
   durationSeconds: number | null | undefined;
   distance: number | null | undefined;
-  distanceUnit: "mi" | "km" | "m" | null | undefined;
+  distanceUnit: FitnessDistanceUnit | null | undefined;
   calories: number | null | undefined;
   failure?: boolean;
   rpe?: number | null;
@@ -364,12 +365,12 @@ export function SetLoggerCard({
     reps?: number;
     durationSeconds?: number;
     distance?: number;
-    distanceUnit?: "mi" | "km" | "m";
+    distanceUnit?: FitnessDistanceUnit;
     calories?: number;
     weightUnit?: "lbs" | "kg";
   };
   setFlowQuickLogTargets?: SessionQuickLogTarget[];
-  defaultDistanceUnit: "mi" | "km" | "m" | null;
+  defaultDistanceUnit: FitnessDistanceUnit | null;
   isCardio: boolean;
   targetHint: SessionTargetHint;
   useIntervalLanguage?: boolean;
@@ -410,7 +411,7 @@ export function SetLoggerCard({
   const [reps, setReps] = useState(prefill?.reps !== undefined ? String(prefill.reps) : "");
   const [durationInput, setDurationInput] = useState(prefill?.durationSeconds !== undefined ? formatDurationClock(prefill.durationSeconds) : "");
   const [distance, setDistance] = useState(prefill?.distance !== undefined ? String(prefill.distance) : "");
-  const [distanceUnit, setDistanceUnit] = useState<"mi" | "km" | "m">(prefill?.distanceUnit ?? (defaultDistanceUnit ?? "mi"));
+  const [distanceUnit, setDistanceUnit] = useState<FitnessDistanceUnit>(prefill?.distanceUnit ?? (defaultDistanceUnit ?? "mi"));
   const [calories, setCalories] = useState(prefill?.calories !== undefined ? String(prefill.calories) : "");
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
@@ -946,7 +947,7 @@ export function SetLoggerCard({
     setReps(nextReps !== undefined ? String(nextReps) : "");
     setDurationInput(target.durationSeconds !== undefined ? formatDurationClock(target.durationSeconds) : "");
     setDistance(target.distance !== undefined ? String(target.distance) : "");
-    if (target.distanceUnit === "mi" || target.distanceUnit === "km" || target.distanceUnit === "m") {
+    if (target.distanceUnit === "mi" || target.distanceUnit === "km" || target.distanceUnit === "m" || target.distanceUnit === "steps") {
       setDistanceUnit(target.distanceUnit);
     } else {
       setDistanceUnit(defaultDistanceUnit ?? "mi");
@@ -1374,7 +1375,7 @@ export function SetLoggerCard({
     setReps(values.reps !== null ? String(values.reps) : "");
     setDurationInput(values.durationSeconds !== null ? formatDurationClock(values.durationSeconds) : "");
     setDistance(values.distance !== null ? String(values.distance) : "");
-    if (values.distanceUnit === "mi" || values.distanceUnit === "km" || values.distanceUnit === "m") {
+    if (values.distanceUnit === "mi" || values.distanceUnit === "km" || values.distanceUnit === "m" || values.distanceUnit === "steps") {
       setDistanceUnit(values.distanceUnit);
     }
     setCalories(values.calories !== null ? String(values.calories) : "");

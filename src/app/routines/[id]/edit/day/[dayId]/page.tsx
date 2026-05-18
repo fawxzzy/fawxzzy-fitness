@@ -9,12 +9,13 @@ import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
+import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
+import type { FitnessDistanceUnit, RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -108,11 +109,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       tags: matchingExercise?.tags ?? null,
       categories: matchingExercise?.categories ?? null,
     });
-    const defaultDistanceUnit: "mi" | "km" | "m" = exercise.default_unit === "km" || exercise.default_unit === "m"
-      ? exercise.default_unit
-      : (matchingExercise?.default_unit === "km" || matchingExercise?.default_unit === "m"
-        ? matchingExercise.default_unit
-        : "mi");
+    const defaultDistanceUnit: FitnessDistanceUnit = normalizeFitnessDistanceUnit(
+      exercise.default_unit ?? matchingExercise?.default_unit ?? "mi",
+      "mi",
+    );
     const name = normalizeExerciseDisplayName({
       exerciseId: canonicalExerciseId,
       name: matchingExercise?.name ?? null,

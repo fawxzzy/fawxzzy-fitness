@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
+import { getDistanceMetricLabel, normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { StatFieldLabel } from "@/components/ui/measurements/StatFieldLabel";
@@ -16,7 +17,7 @@ const METRICS: Array<{
   { key: "reps", title: "REPS", suffix: () => "range" },
   { key: "weight", title: "WEIGHT", suffix: (values) => values.weightUnit },
   { key: "time", title: "TIME", suffix: () => "mm:ss" },
-  { key: "distance", title: "DISTANCE", suffix: (values) => (values.distanceUnit === "km" || values.distanceUnit === "m" ? values.distanceUnit : "mi") },
+  { key: "distance", title: "DISTANCE", suffix: (values) => getDistanceMetricLabel(values.distanceUnit) },
   { key: "calories", title: "CALORIES", suffix: () => "cal" },
 ];
 
@@ -413,7 +414,7 @@ export function MeasurementPanelV2({
   labelTreatment?: "inline" | "floating-border";
 }) {
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
-  const resolvedDistanceUnit = values.distanceUnit === "km" || values.distanceUnit === "m" ? values.distanceUnit : "mi";
+  const resolvedDistanceUnit = normalizeFitnessDistanceUnit(values.distanceUnit, "mi");
 
   const hasRpeInput = typeof onRpeChange === "function";
   const contract = resolveScreenContract("exerciseLog");
@@ -775,7 +776,7 @@ export function MeasurementPanelV2({
             children: (
               <>
                 <InlineFieldControl
-                  label={resolveMetricLabel("distance", resolvedDistanceUnit)}
+                  label={resolveMetricLabel("distance", getDistanceMetricLabel(resolvedDistanceUnit))}
                   showEmptyValue={!values.distance.trim()}
                   hasValue={Boolean(values.distance.trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}

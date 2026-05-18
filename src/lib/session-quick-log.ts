@@ -1,4 +1,6 @@
 import { formatDurationPreview } from "./duration";
+import { formatDistanceNumber, formatDistanceUnitLabel } from "./fitness-distance-units";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export type SessionQuickLogTarget = {
   repsMin?: number;
@@ -8,7 +10,7 @@ export type SessionQuickLogTarget = {
   weightUnit?: "lbs" | "kg";
   durationSeconds?: number;
   distance?: number;
-  distanceUnit?: "mi" | "km" | "m";
+  distanceUnit?: FitnessDistanceUnit;
   calories?: number;
   measurementType?: "reps" | "time" | "distance" | "time_distance" | "none";
   allowMeasurementlessLog?: boolean;
@@ -21,7 +23,7 @@ type QuickLogPayload = {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   weightUnit: "lbs" | "kg";
 };
@@ -75,7 +77,7 @@ export function toQuickLogTargetFromSuggestedValues(
     reps: number | null;
     durationSeconds: number | null;
     distance: number | null;
-    distanceUnit: "mi" | "km" | "m" | null;
+    distanceUnit: FitnessDistanceUnit | null;
     calories: number | null;
     weightUnit: "lbs" | "kg" | null;
   } | null | undefined,
@@ -133,7 +135,9 @@ export function formatQuickLogPreviewLabel({
   const repsSummary = hasValue(repsValue ?? undefined) ? `${repsValue} reps` : null;
   const weightSummary = hasValue(weightValue ?? undefined) ? `${weightValue} ${weightUnit}` : null;
   const durationSummary = hasValue(target?.durationSeconds) ? formatDurationPreview(Number(target?.durationSeconds)) : null;
-  const distanceSummary = hasValue(target?.distance) ? `${target?.distance} ${target?.distanceUnit ?? "mi"}` : null;
+  const distanceSummary = hasValue(target?.distance)
+    ? `${formatDistanceNumber(target?.distance as number, target?.distanceUnit)} ${formatDistanceUnitLabel(target?.distanceUnit) ?? "mi"}`
+    : null;
   const caloriesSummary = hasValue(target?.calories) ? `${target?.calories} cal` : null;
 
   const measurementType = target?.measurementType ?? "reps";

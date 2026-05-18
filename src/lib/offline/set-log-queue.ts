@@ -1,4 +1,5 @@
 import { buildSetQueueDedupeKey, isQueueItemPendingSync } from "@/lib/offline/set-log-reconciliation";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export const SET_LOG_QUEUE_SCHEMA_VERSION = 4;
 
@@ -15,7 +16,7 @@ export type OfflineSetPayload = {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   rpe: number | null;
   isWarmup: boolean;

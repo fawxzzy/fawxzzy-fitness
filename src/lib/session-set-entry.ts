@@ -1,7 +1,7 @@
 import { formatDurationPreview } from "./duration";
 import { formatWeight } from "./formatting";
 import { formatMeasurementSummaryText } from "./measurement-display";
-import type { SetRow } from "@/types/db";
+import type { FitnessDistanceUnit, SetRow } from "@/types/db";
 
 export type SessionSetEntrySource = Pick<
   SetRow,
@@ -13,7 +13,7 @@ export type SessionRepeatLastSetDraft = {
   reps: string;
   duration: string;
   distance: string;
-  distanceUnit: "mi" | "km" | "m";
+  distanceUnit: FitnessDistanceUnit;
   calories: string;
   weightUnit: "lbs" | "kg";
   isWarmup: boolean;

@@ -1,4 +1,5 @@
 import type { ProgressionTargetPlan } from "@/lib/progression-playbooks";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export type ProgressionReviewTargetUpdate = {
   target_sets: number | null;
@@ -9,7 +10,7 @@ export type ProgressionReviewTargetUpdate = {
   target_weight_unit: "lbs" | "kg" | null;
   target_duration_seconds: number | null;
   target_distance: number | null;
-  target_distance_unit: "mi" | "km" | "m" | null;
+  target_distance_unit: FitnessDistanceUnit | null;
   target_calories: number | null;
 };
 

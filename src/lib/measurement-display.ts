@@ -1,5 +1,6 @@
 import { formatDurationPreview } from "./duration";
 import { normalizeWeightDisplayUnit } from "./formatting";
+import { formatDistanceNumber, formatDistanceUnitLabel } from "./fitness-distance-units";
 import { sanitizeEnabledMeasurementValues, type EnabledMeasurements } from "./measurement-sanitization";
 
 export type MeasurementMetric = "reps" | "weight" | "time" | "distance" | "calories";
@@ -33,7 +34,7 @@ export type GoalSummaryValues = {
 };
 
 function formatNumber(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+  return formatDistanceNumber(value);
 }
 
 export function formatSetCountLabel(count: number | null | undefined, noun: "set" | "interval" = "set") {
@@ -95,7 +96,10 @@ function getMetricSummaryParts(values: {
   }
 
   if (Number.isFinite(values.distance ?? null) && (values.distance ?? 0) > 0) {
-    measurementParts.push({ metric: "distance", label: `${formatNumber(values.distance as number)} ${values.distanceUnit ?? "mi"}` });
+    measurementParts.push({
+      metric: "distance",
+      label: `${formatDistanceNumber(values.distance as number, values.distanceUnit)} ${formatDistanceUnitLabel(values.distanceUnit) ?? "mi"}`,
+    });
   }
 
   if (Number.isFinite(values.calories ?? null) && (values.calories ?? 0) > 0) {

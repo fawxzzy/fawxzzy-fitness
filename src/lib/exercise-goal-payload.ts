@@ -1,7 +1,9 @@
 import "server-only";
 
+import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { getMissingGoalMeasurementMessage, inferMeasurementTypeFromGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export type MeasurementSelection = "reps" | "weight" | "time" | "distance" | "calories";
 
@@ -21,11 +23,11 @@ type ParsedGoalPayload = {
   target_time_seconds_max: number | null;
   target_distance_min: number | null;
   target_distance_max: number | null;
-  target_distance_unit: "mi" | "km" | "m" | null;
+  target_distance_unit: FitnessDistanceUnit | null;
   target_calories_min: number | null;
   target_calories_max: number | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
-  default_unit: "mi" | "km" | "m" | null;
+  default_unit: FitnessDistanceUnit | null;
 };
 
 export type ParseExerciseGoalPayloadResult =
@@ -65,10 +67,8 @@ function parseOptionalNumeric(value: string) {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
-function parseDistanceUnit(value: FormDataEntryValue | null): "mi" | "km" | "m" {
-  const unit = String(value ?? "").trim();
-  if (unit === "km" || unit === "m") return unit;
-  return "mi";
+function parseDistanceUnit(value: FormDataEntryValue | null): FitnessDistanceUnit {
+  return normalizeFitnessDistanceUnit(String(value ?? "").trim(), "mi");
 }
 
 function parseMeasurementSelections(formData: FormData) {
@@ -191,10 +191,10 @@ export function mapRoutineDayGoalToSessionColumns(goal: {
   target_weight_unit: "lbs" | "kg" | null;
   target_duration_seconds: number | null;
   target_distance: number | null;
-  target_distance_unit: "mi" | "km" | "m" | null;
+  target_distance_unit: FitnessDistanceUnit | null;
   target_calories: number | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
-  default_unit: "mi" | "km" | "m" | null;
+  default_unit: FitnessDistanceUnit | null;
 }) {
   return {
     target_sets_min: goal.target_sets,
@@ -305,8 +305,8 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
     return { ok: false, error: getMissingGoalMeasurementMessage("distance") };
   }
 
-  if (targetDistance !== null && targetDistanceUnit && targetDistanceUnit !== "mi" && targetDistanceUnit !== "km" && targetDistanceUnit !== "m") {
-    return { ok: false, error: "Distance unit must be mi, km, or m" };
+  if (targetDistance !== null && targetDistanceUnit && !isFitnessDistanceUnit(targetDistanceUnit)) {
+    return { ok: false, error: "Distance unit must be mi, km, m, or steps" };
   }
 
   if (targetCalories !== null && (!Number.isFinite(targetCalories) || targetCalories < 0)) {
@@ -368,7 +368,7 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
       target_time_seconds_max: useTimeTarget ? targetDurationSeconds : null,
       target_distance_min: useDistanceTarget ? targetDistance : null,
       target_distance_max: useDistanceTarget ? targetDistance : null,
-      target_distance_unit: useDistanceTarget && targetDistance !== null ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi") : null,
+      target_distance_unit: useDistanceTarget && targetDistance !== null ? normalizeFitnessDistanceUnit(targetDistanceUnit, "mi") : null,
       target_calories_min: useCaloriesTarget ? targetCalories : null,
       target_calories_max: useCaloriesTarget ? targetCalories : null,
       measurement_type: measurementType,

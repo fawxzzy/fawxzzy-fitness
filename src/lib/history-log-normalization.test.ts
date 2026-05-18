@@ -80,6 +80,24 @@ test("normalizes alias-based payload drift and media aliases", () => {
   });
 });
 
+test("normalizes steps distance units without dropping the set payload", () => {
+  const result = normalizeHistoryLogExercises({
+    exercises: [{
+      id: "se-steps",
+      exercise_id: "ex-steps",
+      exercise_name: "Daily Walk",
+      measurement_type: "distance",
+      default_unit: "steps",
+      sets: [{ id: "set-steps", set_index: 0, distance: 5000, distance_unit: "steps" }],
+    }],
+  });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].default_unit, "steps");
+  assert.equal(result[0].sets[0].distance, 5000);
+  assert.equal(result[0].sets[0].distance_unit, "steps");
+});
+
 test("returns deterministic empty list when exercise collections are nullish", () => {
   assert.deepEqual(normalizeHistoryLogExercises({ exercises: undefined }), []);
   assert.deepEqual(normalizeHistoryLogExercises({ exercises: null }), []);

@@ -68,3 +68,27 @@ test("parseExerciseGoalPayload encodes failure goals through the reps sentinel",
   assert.equal(mapped.target_reps_min, 0);
   assert.equal(mapped.target_reps_max, 0);
 });
+
+test("parseExerciseGoalPayload accepts steps as a cardio distance unit", () => {
+  const formData = new FormData();
+  formData.set("targetSets", "1");
+  formData.set("targetDistance", "5000");
+  formData.set("targetDistanceUnit", "steps");
+  formData.set("measurementSelections", "distance");
+  formData.set("goalModality", "cardio_distance");
+
+  const result = parseExerciseGoalPayload(formData, { requireSets: true });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    throw new Error("Expected steps payload parsing to succeed.");
+  }
+
+  assert.equal(result.payload.measurement_type, "distance");
+  assert.equal(result.payload.target_distance_min, 5000);
+  assert.equal(result.payload.target_distance_unit, "steps");
+
+  const mapped = mapExerciseGoalPayloadToRoutineDayColumns(result.payload);
+  assert.equal(mapped.target_distance, 5000);
+  assert.equal(mapped.target_distance_unit, "steps");
+});

@@ -22,6 +22,7 @@ import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionQuickLogTarget } from "@/lib/session-quick-log";
 import type { DisplayTarget } from "@/lib/session-targets";
 import { generateSetFlowTargets, type PlannedSetTarget } from "@/lib/set-flow-targets";
+import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import {
   addSetAction,
   removeExerciseAction,
@@ -33,6 +34,7 @@ import {
 } from "./actions";
 import { getSessionPageData } from "./queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 function buildSessionExerciseTarget(exercise: {
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
@@ -47,7 +49,7 @@ function buildSessionExerciseTarget(exercise: {
   target_time_seconds_max?: number | null;
   target_distance_min?: number | null;
   target_distance_max?: number | null;
-  target_distance_unit?: "mi" | "km" | "m" | null;
+  target_distance_unit?: FitnessDistanceUnit | null;
   target_calories_min?: number | null;
   target_calories_max?: number | null;
 }): DisplayTarget | null {
@@ -125,7 +127,7 @@ function toSetFlowQuickLogTarget(args: {
   target: PlannedSetTarget;
   plan: ProgressionTargetPlan;
   fallbackWeightUnit: "lbs" | "kg";
-  fallbackDistanceUnit: "mi" | "km" | "m" | null;
+  fallbackDistanceUnit: FitnessDistanceUnit | null;
 }): SessionQuickLogTarget {
   const { target, plan, fallbackWeightUnit, fallbackDistanceUnit } = args;
   const targetWeight = optionalNumber(target.targetWeight);
@@ -145,11 +147,10 @@ function toSetFlowQuickLogTarget(args: {
   };
 }
 
-function resolveSessionExerciseDefaultDistanceUnit(defaultUnit: string | null | undefined): "mi" | "km" | "m" | null {
-  if (defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m") {
+function resolveSessionExerciseDefaultDistanceUnit(defaultUnit: string | null | undefined): FitnessDistanceUnit | null {
+  if (defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m" || defaultUnit === "steps") {
     return defaultUnit;
   }
-
   if (defaultUnit === "miles") {
     return "mi";
   }
@@ -301,7 +302,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   movementPattern: canonicalExercise?.movement_pattern ?? null,
                   defaultUnit: exercise.default_unit ?? canonicalExercise?.default_unit ?? null,
                   weightUnit: progressionPlan.weightUnit ?? unitLabel,
-                  distanceUnit: progressionPlan.distanceUnit === "km" ? "km" : "mi",
+                  distanceUnit: normalizeFitnessDistanceUnit(progressionPlan.distanceUnit, "mi"),
                   targetWeight: progressionPlan.weightMax ?? progressionPlan.weightMin ?? null,
                   exerciseOverrideValue: progressionSelection.config.loadIncrement,
                   stepOverrides: progressionSelection.config.stepOverrides ?? null,
