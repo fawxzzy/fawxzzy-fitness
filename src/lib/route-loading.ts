@@ -1,7 +1,7 @@
 export type RouteLoadingVariant = "boot" | "route";
 
-export const ROUTE_LOADING_DELAY_MS = 260;
-export const BOOT_LOADING_DELAY_MS = 140;
+export const ROUTE_LOADING_DELAY_MS = 420;
+export const BOOT_LOADING_DELAY_MS = 220;
 export const INITIAL_EXPERIENCE_LOADING_VARIANT: RouteLoadingVariant = "boot";
 
 export function getRouteLoadingDelayMs(variant: RouteLoadingVariant) {
