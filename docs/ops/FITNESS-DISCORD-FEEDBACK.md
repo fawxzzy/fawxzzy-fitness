@@ -16,6 +16,8 @@ Product rules:
 - Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
 - Optional Discord decoration must fail soft.
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
+- Public Feedback is for real community cards.
+- Private `Testing / feedback-testing` is for canaries and internal QA only.
 
 ## Command surface
 - `/setup-feedback`
@@ -76,6 +78,14 @@ Failure modes:
 - writing every raw card into ATLAS creates duplicate task truth
 - starting Codex work from unreviewed forum cards creates noisy sprint churn
 - creating parallel task copies outside the board/export path causes lost tasks
+- leaving canaries on the public board pollutes community signal
+
+## Private Testing Board
+- Use `npm run discord:testing-board:setup -- --dry-run` to preview the private board setup.
+- Use `npm run discord:testing-board:setup -- --apply --move-report-id b88b31ba` to create the private board and move the canonical Feature canary there.
+- `b88b31ba` is the canonical Feature canary.
+- The canonical Bug canary should live in `feedback-testing`.
+- No `@everyone` posts belong in `feedback-testing`.
 
 ## Release Posts vs Audit Comments
 Release posts:

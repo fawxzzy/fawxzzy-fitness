@@ -47,6 +47,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Requiring owner review for every card slows the feedback-to-Codex loop and turns a lightweight board into bureaucracy.
 - Status: Proposed
 
+## 2026-05-18 - Public feedback is for real cards, private testing is for canaries
+- Type: Guardrail
+- Summary: The public Feedback forum should stay user-clean while bot canaries and workflow QA live in a private testing forum.
+- Rule: Public Feedback is for real community cards; private Testing is for canaries.
+- Pattern: canary cards live in Testing -> public board stays clean -> reviewed exports stay meaningful.
+- Failure Mode: Testing on the public board pollutes planning signals and makes the community board noisy.
+- Status: Proposed
+
 ## 2026-05-17 - Shipped feedback cards need a distinct updates-channel promotion format
 - Type: Pattern
 - Summary: When a specific Discord feedback card ships and should be announced publicly, the updates-channel post should use a short `Update:` card-promotion format instead of the broad `@everyone` release-summary template.

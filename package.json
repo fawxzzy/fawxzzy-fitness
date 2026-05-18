@@ -31,6 +31,7 @@
     "discord:noise:audit": "node scripts/discord-noise-audit.mjs",
     "discord:noise:apply": "node scripts/discord-noise-apply.mjs",
     "discord:emoji:bootstrap": "node scripts/bootstrap-discord-emojis.mjs",
+    "discord:testing-board:setup": "node scripts/setup-discord-testing-board.mjs",
     "discord:feedback:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:feedback:prune": "node scripts/prune-discord-bug-reports.mjs",
     "discord:bugs:export": "node scripts/export-discord-bug-reports.mjs --markdown",
