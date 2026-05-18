@@ -27,6 +27,10 @@ export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
 export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
 export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";
+export const FITNESS_SPOTIFY_COMMAND_NAME = "spotify";
+export const FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME = "connect";
+export const FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME = "status";
+export const FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME = "disconnect";
 export const FITNESS_PURGATORY_SETUP_COMMAND_NAME = "purgatory-setup";
 export const FITNESS_WARN_COMMAND_NAME = "warn";
 export const FITNESS_WARNINGS_COMMAND_NAME = "warnings";
@@ -203,22 +207,33 @@ type DiscordMessagePayload = {
   }>;
 };
 
+type DiscordApplicationCommandChoice = {
+  name: string;
+  value: string;
+};
+
+type DiscordApplicationCommandScalarOptionDefinition = {
+  type: 3 | 4 | 6;
+  name: string;
+  description: string;
+  required?: boolean;
+  min_value?: number;
+  max_value?: number;
+  choices?: DiscordApplicationCommandChoice[];
+};
+
+type DiscordApplicationCommandSubcommandOptionDefinition = {
+  type: 1;
+  name: string;
+  description: string;
+  options?: DiscordApplicationCommandScalarOptionDefinition[];
+};
+
 type DiscordApplicationCommandDefinition = {
   name: string;
   description: string;
   default_member_permissions?: string;
-  options?: Array<{
-    type: 3 | 4 | 6;
-    name: string;
-    description: string;
-    required?: boolean;
-    min_value?: number;
-    max_value?: number;
-    choices?: Array<{
-      name: string;
-      value: string;
-    }>;
-  }>;
+  options?: Array<DiscordApplicationCommandScalarOptionDefinition | DiscordApplicationCommandSubcommandOptionDefinition>;
 };
 
 type DiscordEmojiObject = {
@@ -619,6 +634,27 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
           name: FITNESS_UPDATE_SKIP_REASON_OPTION_NAME,
           description: "Optional reason for skipping this draft.",
           required: false,
+        },
+      ],
+    },
+    {
+      name: FITNESS_SPOTIFY_COMMAND_NAME,
+      description: "Connect Spotify for Spotify Club eligibility.",
+      options: [
+        {
+          type: 1,
+          name: FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
+          description: "Connect Spotify to become Jam Ready for Spotify Club.",
+        },
+        {
+          type: 1,
+          name: FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME,
+          description: "Show your Spotify Club connection and Premium status.",
+        },
+        {
+          type: 1,
+          name: FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
+          description: "Disconnect your Spotify account from Spotify Club.",
         },
       ],
     },
@@ -1311,6 +1347,30 @@ export function extractDiscordModalFileUploadIds(
 export function extractDiscordCommandStringOption(options: unknown, optionName: string): string | null {
   const option = extractDiscordCommandOption(options, optionName);
   return option && typeof option.value === "string" ? option.value : null;
+}
+
+export function extractDiscordCommandSubcommand(
+  options: unknown,
+): { name: string; options: unknown } | null {
+  if (!Array.isArray(options)) {
+    return null;
+  }
+
+  for (const option of options) {
+    if (!option || typeof option !== "object") {
+      continue;
+    }
+
+    const candidate = option as { type?: unknown; name?: unknown; options?: unknown };
+    if (candidate.type === 1 && typeof candidate.name === "string") {
+      return {
+        name: candidate.name,
+        options: candidate.options,
+      };
+    }
+  }
+
+  return null;
 }
 
 function extractDiscordCommandOption(

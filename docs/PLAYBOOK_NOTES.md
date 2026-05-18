@@ -18,6 +18,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: documented channel or workflow -> bot reads relevant messages -> creates cleaned summary, moderation action, or workflow spec -> stores reviewed output.
 - Failure Mode: using message content broadly without a documented lane makes the bot feel invasive and creates trust risk.
 - Evidence: ATLAS docs/PLAYBOOK_NOTES.md, docs/ops/FITNESS-DISCORD-VERIFICATION.md
+
+## 2026-05-18 - Spotify Club should coordinate Spotify-native playback, not stream audio
+- Type: Guardrail
+- Summary: Spotify Club links users and coordinates Jam Lobby state through Discord, but playback stays inside Spotify on each user's own account/device.
+- Rule: Fawx Security must not stream, rebroadcast, record, or pipe Spotify audio through Discord.
+- Pattern: Spotify OAuth -> Premium check -> Jam Ready -> future lobby/queue/sync.
+- Failure Mode: Treating the bot as an audio source creates platform and licensing risk.
 - Status: Proposed
 
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets

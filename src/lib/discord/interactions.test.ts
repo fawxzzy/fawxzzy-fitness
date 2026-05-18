@@ -20,6 +20,7 @@ import {
   discordMessageHasFeedbackPanel,
   discordMemberHasSetupPermission,
   extractDiscordCommandIntegerOption,
+  extractDiscordCommandSubcommand,
   extractDiscordCommandStringOption,
   extractDiscordCommandUserOption,
   extractDiscordFeedbackManageEditReportId,
@@ -165,6 +166,23 @@ test("extractDiscordCommandUserOption and integer option read typed slash-comman
 
   assert.equal(extractDiscordCommandUserOption(options, "user"), "123456789012345678");
   assert.equal(extractDiscordCommandIntegerOption(options, "limit"), 7);
+});
+
+test("extractDiscordCommandSubcommand reads nested slash-command subcommands", () => {
+  const subcommand = extractDiscordCommandSubcommand([
+    {
+      type: 1,
+      name: "connect",
+      options: [
+        { type: 3, name: "note", value: "ignored" },
+      ],
+    },
+  ]);
+
+  assert.equal(subcommand?.name, "connect");
+  assert.deepEqual(subcommand?.options, [
+    { type: 3, name: "note", value: "ignored" },
+  ]);
 });
 
 test("resolveDiscordVerifyMessageBody converts escaped newlines into rendered lines", () => {
@@ -418,6 +436,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const updateLatest = commands.find((command) => command.name === "update-latest");
   const updatePublish = commands.find((command) => command.name === "update-publish");
   const updateSkip = commands.find((command) => command.name === "update-skip");
+  const spotify = commands.find((command) => command.name === "spotify");
   const purgatorySetup = commands.find((command) => command.name === "purgatory-setup");
   const warn = commands.find((command) => command.name === "warn");
   const warnings = commands.find((command) => command.name === "warnings");
@@ -426,8 +445,11 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const release = commands.find((command) => command.name === "release");
   const modLog = commands.find((command) => command.name === "mod-log");
   const serverInventory = commands.find((command) => command.name === "server-inventory");
+  const feedbackStatusStatusOption = feedbackStatus?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
+  const feedbackCompletionReviewDecisionOption = feedbackCompletionReview?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
+  const warnSeverityOption = warn?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
 
-  assert.equal(commands.length, 19);
+  assert.equal(commands.length, 20);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(verifyCleanup);
@@ -444,13 +466,13 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
     feedbackStatus?.default_member_permissions,
     String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(13)) | (BigInt(1) << BigInt(34))),
   );
-  assert.equal(feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "withdrawn"), true);
+  assert.equal(feedbackStatusStatusOption?.choices?.some((choice) => choice.value === "withdrawn"), true);
   assert.ok(feedbackCompletionReview);
   assert.equal(
     feedbackCompletionReview?.default_member_permissions,
     String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(13)) | (BigInt(1) << BigInt(34))),
   );
-  assert.equal(feedbackCompletionReview?.options?.[1]?.choices?.some((choice) => choice.value === "approved"), true);
+  assert.equal(feedbackCompletionReviewDecisionOption?.choices?.some((choice) => choice.value === "approved"), true);
   assert.ok(feedbackWithdraw);
   assert.equal(feedbackWithdraw?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.equal(feedbackWithdraw?.options?.[0]?.name, "report_id");
@@ -463,6 +485,10 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.equal(updatePublish?.options?.[0]?.name, "draft_id");
   assert.ok(updateSkip);
   assert.equal(updateSkip?.options?.[1]?.name, "reason");
+  assert.ok(spotify);
+  assert.equal(spotify?.default_member_permissions, undefined);
+  assert.deepEqual(spotify?.options?.map((option) => option.name), ["connect", "status", "disconnect"]);
+  assert.equal(spotify?.options?.every((option) => option.type === 1), true);
   assert.ok(purgatorySetup);
   assert.equal(
     purgatorySetup?.default_member_permissions,
@@ -472,7 +498,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.equal(warn?.options?.[0]?.name, "user");
   assert.equal(warn?.options?.[1]?.name, "severity");
   assert.equal(warn?.options?.[2]?.name, "reason");
-  assert.equal(warn?.options?.[1]?.choices?.some((choice) => choice.value === "critical"), true);
+  assert.equal(warnSeverityOption?.choices?.some((choice) => choice.value === "critical"), true);
   assert.ok(warnings);
   assert.equal(warnings?.options?.[0]?.name, "user");
   assert.equal(warnings?.options?.[1]?.name, "limit");
@@ -494,5 +520,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
     String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
   );
   assert.equal(commands.some((command) => command.name === "bug"), false);
+  assert.equal(commands.some((command) => command.name === "jam"), false);
+  assert.equal(commands.some((command) => command.name === "jam-start"), false);
   assert.equal(commands.some((command) => command.name === "routine-share"), false);
 });
