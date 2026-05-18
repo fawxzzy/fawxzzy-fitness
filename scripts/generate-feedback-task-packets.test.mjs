@@ -27,6 +27,21 @@ function buildRecord(overrides = {}) {
     description: "Repeated verification attempts should surface staff-visible context and controlled failure handling.",
     duplicate_count: 1,
     attachment_count: 0,
+    card_sections: {
+      header_label: "Bug Report",
+      title: "Verification controls fail on repeated attempts",
+      problem: "Repeated verification attempts fail without enough context.",
+      expected_behavior: "Repeated verification attempts should produce a clear, actionable result.",
+      actual_behavior: "The current flow fails without enough context.",
+      steps_to_reproduce: "1. Verify twice\\n2. Observe the failure",
+      user_story: null,
+      description: null,
+      acceptance_criteria: [
+        "The reported issue is reproduced or clearly explained.",
+        "The Security flow behaves as expected after the fix.",
+      ],
+      evidence_summary: "Evidence included: 1 screenshot.",
+    },
     forum_thread_link: "https://discord.com/channels/1504668396338413670/1505000000000000000",
     reporter_discord_user_id: "123456789012345678",
     attachments: [{ name: "screen.png", bytes: "raw-bytes-should-never-export" }],
@@ -139,6 +154,42 @@ test("task packet outputs mask discord ids and attachment bytes by default", asy
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("task packet export carries card sections and acceptance criteria forward", () => {
+  const records = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        report_type: "feature",
+        area: "Feedback",
+        title: "Make cards feel like Jira stories",
+        description: "Feedback cards should use clearer sections.",
+        card_sections: {
+          header_label: "Feature Request",
+          title: "Make cards feel like Jira stories",
+          problem: null,
+          expected_behavior: null,
+          actual_behavior: null,
+          steps_to_reproduce: null,
+          user_story: "As an admin, I want clearer feedback cards, so that review is faster.",
+          description: "Feedback cards should use clearer sections.",
+          acceptance_criteria: [
+            "Feature cards show Title, User Story, Description, Acceptance Criteria, and Evidence.",
+          ],
+          evidence_summary: "No screenshot or attachment evidence was provided.",
+        },
+      }),
+    ]).sourcePath,
+  );
+  const result = buildTaskPacketResult({
+    records,
+    inputCount: records.length,
+    args: parseArgs(["--type", "feature"]),
+    sourcePath: "fixture.json",
+  });
+
+  assert.equal(result.packets[0].cardSections[0].userStory, "As an admin, I want clearer feedback cards, so that review is faster.");
+  assert.deepEqual(result.packets[0].acceptanceCriteria[0], "Feature cards show Title, User Story, Description, Acceptance Criteria, and Evidence.");
 });
 
 test("task packet generation writes markdown json and optional codex prompts", async () => {

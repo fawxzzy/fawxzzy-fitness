@@ -135,6 +135,31 @@ test("board export masks Discord ids unless debug is enabled", () => {
   assert.equal(masked.forum_thread_link, "https://discord.com/channels/1504668396338413670/1504673475489562745");
 });
 
+test("board export includes structured card sections and acceptance criteria", () => {
+  const record = toBoardRecord(buildRow({
+    report_type: "bug",
+    details: "Verification says Discord could not assign the role.",
+    steps_to_reproduce: "1. Generate token\\n2. Verify account",
+    screenshot_url: "https://example.com/verify.png",
+    attachment_count: 1,
+    attachment_metadata: [
+      {
+        id: "att-1",
+        filename: "verify.png",
+        contentType: "image/png",
+        size: 24012,
+        url: "https://cdn.discordapp.com/verify.png",
+        proxyUrl: null,
+      },
+    ],
+  }));
+
+  assert.equal(record.card_sections.problem, "Verification says Discord could not assign the role.");
+  assert.equal(record.card_sections.steps_to_reproduce, "1. Generate token\\n2. Verify account");
+  assert.equal(record.card_sections.acceptance_criteria.length > 0, true);
+  assert.match(record.card_sections.evidence_summary, /Evidence included:/);
+});
+
 test("board markdown groups cards by status and separates bugs from features", () => {
   const markdown = renderBoardMarkdown([
     toBoardRecord(buildRow({

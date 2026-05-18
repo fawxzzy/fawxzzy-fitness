@@ -361,7 +361,7 @@ export async function runSyncFeedbackForumPosts({
           action: "sync_format",
           actorLabel: "Fawx Security",
           reportType: row.report_type,
-          note: "Applied latest board/card format.",
+          note: "Applied Feedback Card Structure v2.",
           reportId: row.id,
         }),
       });

@@ -124,6 +124,26 @@ export type DiscordBugReportRow = {
   updated_at: string;
 };
 
+export type DiscordFeedbackCardEvidence = {
+  kind: "screenshot" | "attachment" | "note";
+  label: string;
+  value: string;
+};
+
+export type DiscordFeedbackCardSections = {
+  reportType: DiscordBugReportReportType;
+  headerLabel: string;
+  title: string;
+  problem: string | null;
+  expectedBehavior: string | null;
+  actualBehavior: string | null;
+  stepsToReproduce: string | null;
+  userStory: string | null;
+  description: string | null;
+  acceptanceCriteria: string[];
+  evidence: DiscordFeedbackCardEvidence[];
+};
+
 export type DiscordFeedbackReportSelectCandidate = Pick<
   DiscordBugReportRow,
   "id" | "report_type" | "status" | "area" | "summary" | "updated_at"
@@ -718,6 +738,173 @@ function formatForumSeverityLabel(severity: DiscordBugReportSeverity): string {
   return formatTitleCase(severity);
 }
 
+function lowerCaseFirstCharacter(value: string): string {
+  if (!value) {
+    return value;
+  }
+
+  return value.charAt(0).toLowerCase() + value.slice(1);
+}
+
+function buildGenericBugExpectedBehavior(report: DiscordBugReportRow): string {
+  const areaLabel = formatForumAreaLabel(report.area);
+  return `The ${areaLabel} flow should complete without the reported issue and give the user a clear result.`;
+}
+
+function buildGenericFeatureUserStory(report: DiscordBugReportRow): string {
+  const summary = formatForumSummary(report.summary);
+  const areaLabel = formatForumAreaLabel(report.area);
+  return `As a user, I want ${lowerCaseFirstCharacter(summary)}, so that the ${areaLabel} flow better matches the requested outcome.`;
+}
+
+function normalizeForumBodySectionValue(value: string | null | undefined): string | null {
+  return normalizeTextInput(value, DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH);
+}
+
+export function buildBugAcceptanceCriteria(report: Pick<
+  DiscordBugReportRow,
+  "area" | "summary"
+>): string[] {
+  const areaLabel = formatForumAreaLabel(report.area);
+
+  return [
+    "The reported issue is reproduced or clearly explained.",
+    `The ${areaLabel} flow behaves as expected after the fix.`,
+    "The user sees a clear result instead of a misleading failure message.",
+    "The feedback card is updated when the issue is resolved.",
+  ];
+}
+
+export function buildFeatureAcceptanceCriteria(report: Pick<
+  DiscordBugReportRow,
+  "area" | "summary"
+>): string[] {
+  const areaLabel = formatForumAreaLabel(report.area);
+
+  return [
+    "The requested capability is available to the intended user.",
+    `The ${areaLabel} flow makes the requested outcome clear to users.`,
+    "Operator or user-facing behavior changes are documented when needed.",
+    "The feedback card is updated when the feature is completed.",
+  ];
+}
+
+export function buildDiscordFeedbackEvidence(report: Pick<
+  DiscordBugReportRow,
+  "screenshot_url" | "attachment_pruned" | "attachment_metadata"
+>): DiscordFeedbackCardEvidence[] {
+  const evidence: DiscordFeedbackCardEvidence[] = [];
+  const screenshotUrl = normalizeForumBodySectionValue(report.screenshot_url);
+  if (screenshotUrl) {
+    evidence.push({
+      kind: "screenshot",
+      label: "Screenshot",
+      value: truncateForumDisplayValue(screenshotUrl, 300),
+    });
+  }
+
+  const attachments = Array.isArray(report.attachment_metadata)
+    ? report.attachment_metadata.slice(0, DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT)
+    : [];
+  for (const attachment of attachments) {
+    evidence.push({
+      kind: "attachment",
+      label: "Attachment",
+      value: renderAttachmentLine(attachment),
+    });
+  }
+
+  if (evidence.length === 0) {
+    evidence.push({
+      kind: "note",
+      label: "Evidence",
+      value: "Not provided",
+    });
+  }
+
+  return evidence;
+}
+
+export function buildDiscordFeedbackCardSections(report: DiscordBugReportRow): DiscordFeedbackCardSections {
+  const title = renderForumBodyValue(report.summary, "Not provided");
+  const details = renderForumBodyDisplayValue({
+    value: report.details,
+    fallback: "Not provided",
+    maxLength: report.report_type === "feature" ? 540 : 420,
+  });
+  const steps = renderForumBodyDisplayValue({
+    value: report.steps_to_reproduce,
+    fallback: "Not provided",
+    maxLength: 240,
+  });
+  const evidence = buildDiscordFeedbackEvidence(report);
+
+  if (report.report_type === "feature") {
+    return {
+      reportType: report.report_type,
+      headerLabel: "Feature Request",
+      title,
+      problem: null,
+      expectedBehavior: null,
+      actualBehavior: null,
+      stepsToReproduce: null,
+      userStory: buildGenericFeatureUserStory(report),
+      description: details,
+      acceptanceCriteria: buildFeatureAcceptanceCriteria(report),
+      evidence,
+    };
+  }
+
+  if (report.report_type === "bug") {
+    return {
+      reportType: report.report_type,
+      headerLabel: "Bug Report",
+      title,
+      problem: details,
+      expectedBehavior: buildGenericBugExpectedBehavior(report),
+      actualBehavior: details,
+      stepsToReproduce: steps,
+      userStory: null,
+      description: null,
+      acceptanceCriteria: buildBugAcceptanceCriteria(report),
+      evidence,
+    };
+  }
+
+  return {
+    reportType: report.report_type,
+    headerLabel: "Feedback Report",
+    title,
+    problem: details,
+    expectedBehavior: null,
+    actualBehavior: details,
+    stepsToReproduce: steps,
+    userStory: null,
+    description: details,
+    acceptanceCriteria: buildBugAcceptanceCriteria(report),
+    evidence,
+  };
+}
+
+export function summarizeDiscordFeedbackEvidence(evidence: DiscordFeedbackCardEvidence[]): string {
+  const screenshotCount = evidence.filter((item) => item.kind === "screenshot").length;
+  const attachmentCount = evidence.filter((item) => item.kind === "attachment").length;
+
+  if (screenshotCount === 0 && attachmentCount === 0) {
+    return "No screenshot or attachment evidence was provided.";
+  }
+
+  const parts: string[] = [];
+  if (screenshotCount > 0) {
+    parts.push(`${screenshotCount} screenshot${screenshotCount === 1 ? "" : "s"}`);
+  }
+  if (attachmentCount > 0) {
+    parts.push(`${attachmentCount} attachment${attachmentCount === 1 ? "" : "s"}`);
+  }
+
+  return `Evidence included: ${parts.join(" and ")}.`;
+}
+
 export function formatDiscordBugReportStatusLabel(status: DiscordBugReportStatus): string {
   return DISCORD_BUG_REPORT_STATUS_TAG_LABELS[status];
 }
@@ -806,7 +993,7 @@ export function buildDiscordBugForumTagNames(args: {
     formatDiscordBugReportStatusLabel(args.status),
   ];
 
-  if (args.status !== "spam") {
+  if (args.reportType !== "feature" && args.status !== "spam") {
     names.push(formatForumSeverityLabel(args.severity));
   }
 
@@ -894,13 +1081,11 @@ export function buildDiscordBugForumThreadBody(args: {
   report: DiscordBugReportRow;
   reporterLabel: string;
 }): string {
+  const sections = buildDiscordFeedbackCardSections(args.report);
   const reporterLine = buildDiscordBugReporterMention({
     reporterDiscordUserId: args.report.reporter_discord_user_id,
     reporterLabel: args.reporterLabel,
   });
-  const attachmentLines = args.report.attachment_pruned || !Array.isArray(args.report.attachment_metadata) || args.report.attachment_metadata.length === 0
-    ? ["Not provided"]
-    : args.report.attachment_metadata.slice(0, DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT).map(renderAttachmentLine);
   const sharedLines = [
     buildDiscordBugForumThreadBodyHeader({
       reportType: args.report.report_type,
@@ -923,86 +1108,65 @@ export function buildDiscordBugForumThreadBody(args: {
     `Duplicate signals: ${Math.max(1, Number(args.report.duplicate_count ?? 1))}`,
     "",
     "**Title**",
-    renderForumBodyValue(args.report.summary, "Not provided"),
+    sections.title,
     "",
   );
+  const acceptanceCriteriaLines = sections.acceptanceCriteria.map((criterion) => `- ${criterion}`);
+  const evidenceLines = sections.evidence.map((item) => item.value);
 
   if (args.report.report_type === "feature") {
     return trimDiscordForumBodyLength([
       ...sharedLines,
+      "**User Story**",
+      renderForumBodyValue(sections.userStory, "Not provided"),
+      "",
       "**Description**",
-      renderForumBodyDisplayValue({
-        value: args.report.details,
-        fallback: "Not provided",
-        maxLength: 900,
-      }),
+      renderForumBodyValue(sections.description, "Not provided"),
       "",
-      "**Link / screenshot**",
-      renderForumBodyDisplayValue({
-        value: args.report.screenshot_url,
-        fallback: "Not provided",
-        maxLength: 300,
-      }),
+      "**Acceptance Criteria**",
+      ...acceptanceCriteriaLines,
       "",
-      "**Attachments**",
-      ...attachmentLines,
+      "**Evidence**",
+      ...evidenceLines,
     ].join("\n"));
   }
 
   if (args.report.report_type === "bug") {
     return trimDiscordForumBodyLength([
       ...sharedLines,
-      "**What happened**",
-      renderForumBodyDisplayValue({
-        value: args.report.details,
-        fallback: "Not provided",
-        maxLength: 750,
-      }),
+      "**Problem**",
+      renderForumBodyValue(sections.problem, "Not provided"),
       "",
-      "**Steps**",
-      renderForumBodyDisplayValue({
-        value: args.report.steps_to_reproduce,
-        fallback: "Not provided",
-        maxLength: 550,
-      }),
+      "**Expected behavior**",
+      renderForumBodyValue(sections.expectedBehavior, "Not provided"),
       "",
-      "**Link / screenshot**",
-      renderForumBodyDisplayValue({
-        value: args.report.screenshot_url,
-        fallback: "Not provided",
-        maxLength: 300,
-      }),
+      "**Actual behavior**",
+      renderForumBodyValue(sections.actualBehavior, "Not provided"),
       "",
-      "**Attachments**",
-      ...attachmentLines,
+      "**Steps to reproduce**",
+      renderForumBodyValue(sections.stepsToReproduce, "Not provided"),
+      "",
+      "**Acceptance Criteria**",
+      ...acceptanceCriteriaLines,
+      "",
+      "**Evidence**",
+      ...evidenceLines,
     ].join("\n"));
   }
 
   return trimDiscordForumBodyLength([
     ...sharedLines,
     "**Details**",
-    renderForumBodyDisplayValue({
-      value: args.report.details,
-      fallback: "Not provided",
-      maxLength: 750,
-    }),
+    renderForumBodyValue(sections.description ?? sections.problem, "Not provided"),
     "",
     "**Steps**",
-    renderForumBodyDisplayValue({
-      value: args.report.steps_to_reproduce,
-      fallback: "Not provided",
-      maxLength: 550,
-    }),
+    renderForumBodyValue(sections.stepsToReproduce, "Not provided"),
     "",
-    "**Link / screenshot**",
-    renderForumBodyDisplayValue({
-      value: args.report.screenshot_url,
-      fallback: "Not provided",
-      maxLength: 300,
-    }),
+    "**Acceptance Criteria**",
+    ...acceptanceCriteriaLines,
     "",
-    "**Attachments**",
-    ...attachmentLines,
+    "**Evidence**",
+    ...evidenceLines,
   ].join("\n"));
 }
 
@@ -1131,7 +1295,7 @@ export function buildFeedbackCardAuditComment(args: {
     case "sync_format": {
       const actorLabel = args.actorLabel?.trim() || "Fawx Security";
       lines.push(`Card formatting synced by ${actorLabel}.`);
-      lines.push(`Reason: ${noteSummary ?? "Applied latest board/card format."}`);
+      lines.push(`Reason: ${noteSummary ?? "Applied Feedback Card Structure v2."}`);
       break;
     }
     default:

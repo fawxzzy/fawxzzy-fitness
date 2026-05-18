@@ -10,6 +10,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: scripts/generate-feedback-task-packets.mjs, scripts/generate-feedback-task-packets.test.mjs, docs/ops/FITNESS-FEEDBACK-REVIEWED-TASKS.md
 - Status: Proposed
 
+## 2026-05-17 - Feedback cards should use story-card structure
+- Type: Pattern
+- Summary: Discord Feedback cards should be structured like lightweight story cards with user-facing Acceptance Criteria so they can drive reviewed planning without becoming raw engineering tickets.
+- Rule: Feedback cards should be professional and structured, but still user-facing.
+- Pattern: feedback row -> type-aware story card -> reviewed task packet -> Codex prompt.
+- Failure Mode: Raw unstructured feedback makes triage harder; overly technical cards make the community board feel unfriendly.
+- Evidence: src/lib/discord/bug-reports.ts, scripts/export-feedback-board.mjs, scripts/generate-feedback-task-packets.mjs
+- Status: Proposed
+
 ## 2026-05-17 - Discord release posts and feedback audit comments must stay separate
 - Type: Guardrail
 - Summary: Public `#updates` announcements and local feedback-thread audit comments serve different audiences and should never be collapsed into one message type.

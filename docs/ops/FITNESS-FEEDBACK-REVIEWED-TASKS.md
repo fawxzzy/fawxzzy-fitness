@@ -78,12 +78,20 @@ Each packet is an implementation candidate, not an automatic task. Packets inclu
 - verification checklist
 - docs update needed
 - reviewer decision
+- carried-through card sections such as Feature `User Story` or Bug `Expected behavior`
+- evidence summary from the user-facing card
 
 Review rules:
 - no direct Discord-to-GitHub writes
 - no direct Discord-to-ATLAS writes
 - no automatic Codex execution
 - no Discord or Supabase mutation from the packet generator
+- visible card Acceptance Criteria stay concise and user-facing
+- reviewed task packets may add deeper implementation and verification expectations on top
+
+Two-level criteria model:
+- Discord card Acceptance Criteria = readable board criteria for community and triage visibility
+- reviewed task packet Acceptance Criteria = implementation-ready criteria for the approved Codex pass
 
 Use `runtime/feedback-tasks/review-decisions.example.json` as the template for reviewed decisions.
 

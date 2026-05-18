@@ -19,6 +19,35 @@ Pattern:
 Failure mode:
 - treating every forum card like automatic repo truth creates noisy sprint churn
 
+## Story-card structure
+Feedback cards should read like lightweight story cards, not raw engineering tickets.
+
+Bug cards should surface:
+- Title
+- Problem
+- Expected behavior
+- Actual behavior
+- Steps to reproduce
+- Acceptance Criteria
+- Evidence
+
+Feature cards should surface:
+- Title
+- User Story
+- Description
+- Acceptance Criteria
+- Evidence
+
+Rule:
+- feedback cards should be professional and structured, but still user-facing
+
+Pattern:
+- feedback row -> type-aware story card -> reviewed task packet -> Codex prompt
+
+Failure mode:
+- unstructured cards slow triage
+- overly technical cards make the public board feel unfriendly
+
 ## Canonical workflow
 Canonical workflow:
 1. Feedback forum is the visible community board.
@@ -104,6 +133,17 @@ Operator scripts:
 - `npm run feedback:sync-forum-posts`
 - `npm run feedback:board:export`
 
+Card structure sync:
+- `npm run feedback:sync-forum-posts -- --dry-run`
+- `npm run feedback:sync-forum-posts -- --apply`
+- optional filters:
+  - `--report-id <uuid>`
+  - `--limit <count>`
+  - `--status new,confirmed`
+- apply mode updates the starter post and leaves the thread audit comment:
+  - `Card formatting synced by Fawx Security.`
+  - `Reason: Applied Feedback Card Structure v2.`
+
 There is no automatic `/feedback-triage` or `/feedback-export` slash command in this lane.
 - Board export is an operator workflow, not a public Discord action.
 
@@ -138,6 +178,7 @@ Export rules:
 - no file bytes
 - no automatic GitHub issue creation
 - no direct ATLAS writes
+- board exports include the visible card sections, generated Acceptance Criteria, and evidence summary
 
 ## Codex drafts
 Use:

@@ -395,16 +395,26 @@ test("buildDiscordBugForumThreadBody formats bug forum cards with bug-specific l
       "**Title**",
       "Token copy button failed",
       "",
-      "**What happened**",
+      "**Problem**",
       "I tapped Copy and nothing happened.",
       "",
-      "**Steps**",
+      "**Expected behavior**",
+      "The Settings flow should complete without the reported issue and give the user a clear result.",
+      "",
+      "**Actual behavior**",
+      "I tapped Copy and nothing happened.",
+      "",
+      "**Steps to reproduce**",
       "Open Settings -> Account -> Generate token -> tap Copy",
       "",
-      "**Link / screenshot**",
-      "https://example.com/shot.png",
+      "**Acceptance Criteria**",
+      "- The reported issue is reproduced or clearly explained.",
+      "- The Settings flow behaves as expected after the fix.",
+      "- The user sees a clear result instead of a misleading failure message.",
+      "- The feedback card is updated when the issue is resolved.",
       "",
-      "**Attachments**",
+      "**Evidence**",
+      "https://example.com/shot.png",
       "- bug.png (image/png, 241394 bytes): https://cdn.discordapp.com/ephemeral-attachments/bug.png",
     ].join("\n"),
   );
@@ -433,13 +443,20 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
       "**Title**",
       "Token copy button failed",
       "",
+      "**User Story**",
+      "As a user, I want token copy button failed, so that the Settings flow better matches the requested outcome.",
+      "",
       "**Description**",
       "I tapped Copy and nothing happened.",
       "",
-      "**Link / screenshot**",
-      "https://example.com/shot.png",
+      "**Acceptance Criteria**",
+      "- The requested capability is available to the intended user.",
+      "- The Settings flow makes the requested outcome clear to users.",
+      "- Operator or user-facing behavior changes are documented when needed.",
+      "- The feedback card is updated when the feature is completed.",
       "",
-      "**Attachments**",
+      "**Evidence**",
+      "https://example.com/shot.png",
       "- bug.png (image/png, 241394 bytes): https://cdn.discordapp.com/ephemeral-attachments/bug.png",
     ].join("\n"),
   );
@@ -450,7 +467,7 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
       }),
       reporterLabel: "Member #4",
     }),
-    /Severity:|What happened|^\*\*Steps\*\*$/m,
+    /Severity:|What happened|^\*\*Steps\*\*$|^\*\*Actual behavior\*\*$/m,
   );
 });
 
@@ -501,8 +518,9 @@ test("buildDiscordBugForumThreadBody stays within Discord's message limit for lo
   });
 
   assert.ok(body.length <= DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH);
-  assert.match(body, /\*\*What happened\*\*/);
-  assert.match(body, /\*\*Steps\*\*/);
+  assert.match(body, /\*\*Problem\*\*/);
+  assert.match(body, /\*\*Acceptance Criteria\*\*/);
+  assert.match(body, /\*\*Steps to reproduce\*\*/);
   assert.match(body, /New Routine Opens Recovery Screen/);
 });
 
@@ -543,7 +561,7 @@ test("buildDiscordAllowedMentions only includes the reporter user id when reques
   });
 });
 
-test("buildDiscordBugForumTagNames applies type status and severity tags including withdrawn", () => {
+test("buildDiscordBugForumTagNames applies severity only to bug cards", () => {
   assert.deepEqual(buildDiscordBugForumTagNames({
     reportType: "bug",
     status: "new",
@@ -554,7 +572,7 @@ test("buildDiscordBugForumTagNames applies type status and severity tags includi
     reportType: "feature",
     status: "withdrawn",
     severity: "high",
-  }), ["Feature", "Withdrawn", "High"]);
+  }), ["Feature", "Withdrawn"]);
 });
 
 test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly requested", () => {

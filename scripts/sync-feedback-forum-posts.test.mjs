@@ -200,7 +200,7 @@ test("sync forum apply mode updates thread titles starter messages and audit com
       type: "audit",
       args: {
         threadId: "1504673475489562745",
-        content: "audit:sync_format:Fawx Security:Applied latest board/card format.",
+        content: "audit:sync_format:Fawx Security:Applied Feedback Card Structure v2.",
       },
     },
   ]);

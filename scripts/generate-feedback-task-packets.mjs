@@ -316,6 +316,35 @@ function normalizeBoardRecord(input, index) {
   const attachmentCount = Math.max(0, Number(input.attachment_count ?? 0));
   const forumThreadLink = typeof input.forum_thread_link === "string" ? input.forum_thread_link.trim() : null;
   const tokens = tokenizeTopic(`${title} ${description ?? ""}`);
+  const cardSections = input?.card_sections && typeof input.card_sections === "object"
+    ? {
+      headerLabel: clipped(input.card_sections.header_label, 80),
+      title: clipped(input.card_sections.title, 160),
+      problem: clipped(input.card_sections.problem, 400),
+      expectedBehavior: clipped(input.card_sections.expected_behavior, 300),
+      actualBehavior: clipped(input.card_sections.actual_behavior, 400),
+      stepsToReproduce: clipped(input.card_sections.steps_to_reproduce, 400),
+      userStory: clipped(input.card_sections.user_story, 300),
+      description: clipped(input.card_sections.description, 400),
+      acceptanceCriteria: Array.isArray(input.card_sections.acceptance_criteria)
+        ? input.card_sections.acceptance_criteria
+          .map((item) => clipped(item, 180))
+          .filter(Boolean)
+        : [],
+      evidenceSummary: clipped(input.card_sections.evidence_summary, 240),
+    }
+    : {
+      headerLabel: reportType === "feature" ? "Feature Request" : "Bug Report",
+      title,
+      problem: reportType === "bug" ? description : null,
+      expectedBehavior: null,
+      actualBehavior: reportType === "bug" ? description : null,
+      stepsToReproduce: null,
+      userStory: null,
+      description: reportType === "feature" ? description : null,
+      acceptanceCriteria: [],
+      evidenceSummary: null,
+    };
 
   return {
     id: input.id,
@@ -329,6 +358,7 @@ function normalizeBoardRecord(input, index) {
     attachmentCount,
     forumThreadLink: forumThreadLink || null,
     lastSeenAt: typeof input.last_seen_at === "string" ? input.last_seen_at : null,
+    cardSections,
     debugReporterDiscordUserId: typeof input.reporter_discord_user_id === "string" ? input.reporter_discord_user_id : null,
     topicTokens: tokens,
   };
@@ -486,6 +516,17 @@ function buildEvidenceSummary(packet) {
     lines.push(...descriptions);
   }
 
+  const cardSectionSummaries = packet.records
+    .map((record) => record.cardSections?.evidenceSummary)
+    .filter(Boolean)
+    .slice(0, 2);
+  if (cardSectionSummaries.length > 0) {
+    lines.push("Card evidence:");
+    for (const summary of cardSectionSummaries) {
+      lines.push(`- ${summary}`);
+    }
+  }
+
   return lines;
 }
 
@@ -526,11 +567,20 @@ function buildImplementationHypothesis(packet) {
 }
 
 function buildAcceptanceCriteria(packet) {
-  const criteria = [
-    `The ${packet.reportType} scope described by this packet is addressed in the user-facing ${packet.area} flow.`,
+  const criteria = [];
+
+  for (const record of packet.records) {
+    for (const criterion of record.cardSections?.acceptanceCriteria ?? []) {
+      if (!criteria.includes(criterion)) {
+        criteria.push(criterion);
+      }
+    }
+  }
+
+  criteria.push(
     "Existing Discord feedback, update-bot, and review handoff contracts remain intact.",
     "No automatic GitHub issue creation, ATLAS write, Discord mutation, or Supabase mutation is added to the task-packet generator lane.",
-  ];
+  );
 
   if (packet.records.some((record) => record.forumThreadLink)) {
     criteria.push("Any shipped work can be mapped back to the source feedback card(s) for manual status updates.");
@@ -588,6 +638,20 @@ export function finalizePacket(packet, args, decisionMap = new Map()) {
     area: packet.area,
     title: commonTopicTitle(packet),
     problemStatement: summarizeProblemStatement(packet),
+    cardSections: sortedRecords.map((record) => ({
+      reportId: record.id,
+      shortId: record.shortId,
+      headerLabel: record.cardSections.headerLabel,
+      title: record.cardSections.title,
+      problem: record.cardSections.problem,
+      expectedBehavior: record.cardSections.expectedBehavior,
+      actualBehavior: record.cardSections.actualBehavior,
+      stepsToReproduce: record.cardSections.stepsToReproduce,
+      userStory: record.cardSections.userStory,
+      description: record.cardSections.description,
+      acceptanceCriteria: record.cardSections.acceptanceCriteria,
+      evidenceSummary: record.cardSections.evidenceSummary,
+    })),
     evidenceSummary: buildEvidenceSummary(packet),
     attachmentsCount: sortedRecords.reduce((sum, record) => sum + record.attachmentCount, 0),
     forumThreadLinks: sortedRecords.map((record) => record.forumThreadLink).filter(Boolean),
@@ -754,6 +818,31 @@ export function renderPacketMarkdown(result) {
         lines.push(item.startsWith("- ") ? item : `- ${item}`);
       }
       lines.push("");
+      if (packet.cardSections.length > 0) {
+        lines.push("Card sections:");
+        for (const section of packet.cardSections) {
+          lines.push(`- ${section.shortId} | ${section.headerLabel}`);
+          if (section.userStory) {
+            lines.push(`  User Story: ${section.userStory}`);
+          }
+          if (section.problem) {
+            lines.push(`  Problem: ${section.problem}`);
+          }
+          if (section.expectedBehavior) {
+            lines.push(`  Expected behavior: ${section.expectedBehavior}`);
+          }
+          if (section.actualBehavior) {
+            lines.push(`  Actual behavior: ${section.actualBehavior}`);
+          }
+          if (section.description) {
+            lines.push(`  Description: ${section.description}`);
+          }
+          if (section.stepsToReproduce) {
+            lines.push(`  Steps: ${section.stepsToReproduce}`);
+          }
+        }
+        lines.push("");
+      }
       lines.push("Files to inspect first:");
       for (const file of packet.filesToInspect) {
         lines.push(`- ${file}`);
@@ -839,6 +928,35 @@ export function renderCodexPrompts(result) {
       lines.push(item.startsWith("- ") ? item : `- ${item}`);
     }
     lines.push("");
+    if (packet.cardSections.length > 0) {
+      lines.push("Card sections");
+      lines.push("");
+      for (const section of packet.cardSections) {
+        lines.push(`- ${section.shortId} | ${section.headerLabel}`);
+        if (section.userStory) {
+          lines.push(`  User Story: ${section.userStory}`);
+        }
+        if (section.problem) {
+          lines.push(`  Problem: ${section.problem}`);
+        }
+        if (section.expectedBehavior) {
+          lines.push(`  Expected behavior: ${section.expectedBehavior}`);
+        }
+        if (section.actualBehavior) {
+          lines.push(`  Actual behavior: ${section.actualBehavior}`);
+        }
+        if (section.description) {
+          lines.push(`  Description: ${section.description}`);
+        }
+        if (section.stepsToReproduce) {
+          lines.push(`  Steps: ${section.stepsToReproduce}`);
+        }
+        if (section.evidenceSummary) {
+          lines.push(`  Evidence: ${section.evidenceSummary}`);
+        }
+      }
+      lines.push("");
+    }
     lines.push("Implementation plan");
     lines.push("");
     lines.push(packet.implementationHypothesis);

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import { register } from "node:module";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 
@@ -22,6 +23,8 @@ export const DEFAULT_DRAFTS_OUT = "runtime/feedback-board/codex-drafts.md";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
+register("./test-alias-loader.mjs", pathToFileURL(`${scriptDir}${path.sep}`));
+const feedbackHelpers = await import(pathToFileURL(path.join(repoRoot, "src", "lib", "discord", "bug-reports.ts")).href);
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
 const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
@@ -322,10 +325,42 @@ function buildDescriptionSnippet(row) {
   return detail.length <= 180 ? detail : `${detail.slice(0, 177)}...`;
 }
 
+function mapCardEvidence(evidence = []) {
+  return evidence.map((item) => ({
+    kind: item.kind,
+    label: item.label,
+    value: item.value,
+  }));
+}
+
+function buildBoardCardSections(row) {
+  const sections = feedbackHelpers.buildDiscordFeedbackCardSections(row);
+
+  return {
+    header_label: sections.headerLabel,
+    title: sections.title,
+    problem: sections.problem,
+    expected_behavior: sections.expectedBehavior,
+    actual_behavior: sections.actualBehavior,
+    steps_to_reproduce: sections.stepsToReproduce,
+    user_story: sections.userStory,
+    description: sections.description,
+    acceptance_criteria: [...sections.acceptanceCriteria],
+    evidence: mapCardEvidence(sections.evidence),
+    evidence_summary: feedbackHelpers.summarizeDiscordFeedbackEvidence(sections.evidence),
+  };
+}
+
 export function toBoardRecord(row, debug = false) {
   const reportType = normalizeType(row.report_type) ?? "bug";
   const status = normalizeStatus(row.status) ?? "new";
   const threadId = typeof row.discord_forum_thread_id === "string" ? row.discord_forum_thread_id : null;
+  const cardSections = buildBoardCardSections({
+    ...row,
+    report_type: reportType,
+    status,
+    severity: typeof row.severity === "string" ? row.severity : "medium",
+  });
 
   return {
     id: row.id,
@@ -337,6 +372,7 @@ export function toBoardRecord(row, debug = false) {
     area: titleCase(row.area) ?? "General",
     title: typeof row.summary === "string" ? row.summary.trim() : "Untitled",
     description: buildDescriptionSnippet(row),
+    card_sections: cardSections,
     duplicate_count: Math.max(1, Number(row.duplicate_count ?? 1)),
     attachment_count: Math.max(0, Number(row.attachment_count ?? 0)),
     last_seen_at: row.last_seen_at ?? null,
@@ -403,6 +439,35 @@ function renderBoardListItem(record, debug = false) {
 
   if (metadata.length > 0) {
     parts.push(`  ${metadata.join(" | ")}`);
+  }
+
+  const cardSections = record.card_sections ?? null;
+  if (cardSections?.user_story) {
+    parts.push(`  User story: ${cardSections.user_story}`);
+  }
+  if (cardSections?.problem) {
+    parts.push(`  Problem: ${cardSections.problem}`);
+  }
+  if (cardSections?.description) {
+    parts.push(`  Description: ${cardSections.description}`);
+  }
+  if (cardSections?.expected_behavior) {
+    parts.push(`  Expected: ${cardSections.expected_behavior}`);
+  }
+  if (cardSections?.actual_behavior) {
+    parts.push(`  Actual: ${cardSections.actual_behavior}`);
+  }
+  if (cardSections?.steps_to_reproduce) {
+    parts.push(`  Steps: ${cardSections.steps_to_reproduce}`);
+  }
+  if (Array.isArray(cardSections?.acceptance_criteria) && cardSections.acceptance_criteria.length > 0) {
+    parts.push("  Acceptance criteria:");
+    for (const criterion of cardSections.acceptance_criteria) {
+      parts.push(`    - ${criterion}`);
+    }
+  }
+  if (cardSections?.evidence_summary) {
+    parts.push(`  Evidence: ${cardSections.evidence_summary}`);
   }
 
   return parts.join("\n");
@@ -507,7 +572,9 @@ export function renderCodexDrafts(records) {
     lines.push("");
     lines.push("Acceptance criteria");
     lines.push("");
-    lines.push(`- The ${record.report_type.toLowerCase()} is resolved in the user-facing product flow described by the card.`);
+    for (const criterion of record.card_sections?.acceptance_criteria ?? []) {
+      lines.push(`- ${criterion}`);
+    }
     lines.push("- Any changed Discord feedback status copy remains consistent with the board display model.");
     lines.push("- No direct GitHub issue creation or ATLAS writes are added.");
     lines.push("");
@@ -537,11 +604,16 @@ async function loadRows(client, args) {
       "id",
       "report_type",
       "status",
+      "severity",
       "area",
       "summary",
       "details",
+      "steps_to_reproduce",
+      "screenshot_url",
       "duplicate_count",
       "attachment_count",
+      "attachment_metadata",
+      "attachment_pruned",
       "discord_forum_thread_id",
       "reporter_discord_user_id",
       "last_seen_at",

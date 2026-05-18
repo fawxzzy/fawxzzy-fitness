@@ -1278,7 +1278,7 @@ test("Discord interactions route stores unique feature feedback and creates a ta
     });
     assert.equal(observedSupabaseWrites[0]?.body?.report_type, "feature");
     assert.equal(observedDiscordBodies[1]?.body?.name, "Feature: Routines — Let me share a routine");
-    assert.deepEqual(observedDiscordBodies[1]?.body?.applied_tags, ["tag-feature", "tag-new", "tag-medium"]);
+    assert.deepEqual(observedDiscordBodies[1]?.body?.applied_tags, ["tag-feature", "tag-new"]);
     assert.match(observedDiscordBodies[1]?.body?.message?.content ?? "", /\*\*Feature Request\*\*/);
     assert.deepEqual(observedDiscordBodies[1]?.body?.message?.allowed_mentions, {
       parse: [],
@@ -1928,7 +1928,7 @@ test("Discord interactions route syncs feature feedback-status into Supabase and
     });
     assert.equal(observedSupabaseWrites[0]?.status, "needs_info");
     assert.equal(observedSupabaseWrites[1]?.discord_forum_title, "Feature: Routines — Let me share a routine");
-    assert.deepEqual(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids, ["tag-feature", "tag-needs-info", "tag-medium"]);
+    assert.deepEqual(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids, ["tag-feature", "tag-needs-info"]);
     const starterPatch = observedDiscordBodies.find((entry) => entry.path.endsWith("/messages/1504673475489562746"));
     const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
     assert.match(starterPatch?.body?.content ?? "", /\*\*Feature Request\*\*/);
