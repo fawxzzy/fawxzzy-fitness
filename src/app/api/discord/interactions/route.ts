@@ -141,6 +141,7 @@ import {
   createDiscordForumThreadWithMessage,
   createDiscordMessageReaction,
   deleteDiscordChannel,
+  deleteDiscordChannelMessage,
   deferDiscordInteractionEphemeral,
   DISCORD_RESOLVED_REACTION_EMOJI,
   editDiscordOriginalInteractionResponse,
@@ -159,6 +160,7 @@ import {
   updateDiscordForumThreadTitle,
   updateDiscordGuildMemberNickname,
 } from "@/lib/discord/rest";
+import type { DiscordChannel, DiscordChannelMessage } from "@/lib/discord/rest";
 import {
   validateDiscordFeedbackEmojis,
 } from "@/lib/discord/feedback-emojis";
@@ -495,6 +497,92 @@ function buildDiscordFeedbackLookupFailureResponse(code: string) {
 
 function buildDiscordOutdatedFeedbackPanelResponse() {
   return buildDiscordEphemeralMessageResponse("This feedback panel is outdated. Ask staff to run /setup-feedback.");
+}
+
+type DiscordSetupCleanupSummary = {
+  duplicateMessageDeletes: number;
+  duplicateThreadDeletes: number;
+};
+
+function emptyDiscordSetupCleanupSummary(): DiscordSetupCleanupSummary {
+  return {
+    duplicateMessageDeletes: 0,
+    duplicateThreadDeletes: 0,
+  };
+}
+
+function summarizeDiscordSetupCleanup(summary?: DiscordSetupCleanupSummary | null): string {
+  if (!summary) {
+    return "";
+  }
+
+  const removed = summary.duplicateMessageDeletes + summary.duplicateThreadDeletes;
+  return removed > 0 ? ` Removed ${removed} stale ${removed === 1 ? "panel item" : "panel items"}.` : "";
+}
+
+async function cleanupDuplicatePanelMessages(args: {
+  channelId: string;
+  keepMessageId: string;
+  matches: DiscordChannelMessage[];
+}): Promise<DiscordSetupCleanupSummary> {
+  const summary = emptyDiscordSetupCleanupSummary();
+
+  for (const message of args.matches) {
+    if (!message?.id || message.id === args.keepMessageId) {
+      continue;
+    }
+
+    const deleteResult = await deleteDiscordChannelMessage({
+      channelId: args.channelId,
+      messageId: message.id,
+    });
+
+    if (!deleteResult.ok) {
+      console.warn("[discord-interactions] stale panel message cleanup failed", {
+        channelId: args.channelId,
+        messageId: message.id,
+        code: deleteResult.code,
+        status: deleteResult.status,
+        message: deleteResult.message,
+      });
+      continue;
+    }
+
+    summary.duplicateMessageDeletes += 1;
+  }
+
+  return summary;
+}
+
+async function cleanupDuplicatePanelThreads(args: {
+  keepThreadId: string;
+  matches: DiscordChannel[];
+}): Promise<DiscordSetupCleanupSummary> {
+  const summary = emptyDiscordSetupCleanupSummary();
+
+  for (const thread of args.matches) {
+    if (!thread?.id || thread.id === args.keepThreadId) {
+      continue;
+    }
+
+    const deleteResult = await deleteDiscordChannel({
+      channelId: thread.id,
+    });
+
+    if (!deleteResult.ok) {
+      console.warn("[discord-interactions] stale panel thread cleanup failed", {
+        threadId: thread.id,
+        code: deleteResult.code,
+        status: deleteResult.status,
+        message: deleteResult.message,
+      });
+      continue;
+    }
+
+    summary.duplicateThreadDeletes += 1;
+  }
+
+  return summary;
 }
 
 function buildNoContentResponse(status = 202) {
@@ -1024,7 +1112,12 @@ async function upsertDiscordFeedbackPanel() {
       });
 
       return createResult.ok
-        ? { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel }
+        ? {
+          ok: true as const,
+          action: "created" as const,
+          channelLabel: panelChannelResult.channelLabel,
+          cleanup: emptyDiscordSetupCleanupSummary(),
+        }
         : { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
     };
 
@@ -1037,14 +1130,13 @@ async function upsertDiscordFeedbackPanel() {
       return createPanelThread();
     }
 
-    const existingThread = activeThreadsResult.threads.find((thread) => (
-      thread.parent_id === channelId
-      && thread.owner_id === DISCORD_APPLICATION_ID()
-      && thread.name === "Fawxzzy Feedback"
-    )) ?? activeThreadsResult.threads.find((thread) => (
+    const matchingThreads = activeThreadsResult.threads.filter((thread) => (
       thread.parent_id === channelId
       && thread.name === "Fawxzzy Feedback"
     ));
+
+    const existingThread = matchingThreads.find((thread) => thread.owner_id === DISCORD_APPLICATION_ID())
+      ?? matchingThreads[0];
 
     if (!existingThread?.id) {
       return createPanelThread();
@@ -1060,7 +1152,12 @@ async function upsertDiscordFeedbackPanel() {
     });
 
     if (patchResult.ok) {
-      return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel };
+      const cleanup = await cleanupDuplicatePanelThreads({
+        keepThreadId: existingThread.id,
+        matches: matchingThreads,
+      });
+
+      return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel, cleanup };
     }
 
     if (patchResult.status === 404) {
@@ -1077,7 +1174,12 @@ async function upsertDiscordFeedbackPanel() {
     });
 
     return createResult.ok
-      ? { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel }
+      ? {
+        ok: true as const,
+        action: "created" as const,
+        channelLabel: panelChannelResult.channelLabel,
+        cleanup: emptyDiscordSetupCleanupSummary(),
+      }
       : { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
   };
 
@@ -1094,9 +1196,11 @@ async function upsertDiscordFeedbackPanel() {
     return createPanelMessage();
   }
 
-  const existingMessage = messagesResult.messages.find((message) => (
+  const matchingMessages = messagesResult.messages.filter((message) => discordMessageHasFeedbackPanel(message));
+
+  const existingMessage = matchingMessages.find((message) => (
     message.author?.id === DISCORD_APPLICATION_ID() && discordMessageHasFeedbackPanel(message)
-  )) ?? messagesResult.messages.find(discordMessageHasFeedbackPanel);
+  )) ?? matchingMessages[0];
 
   if (!existingMessage) {
     return createPanelMessage();
@@ -1109,7 +1213,13 @@ async function upsertDiscordFeedbackPanel() {
   });
 
   if (patchResult.ok) {
-    return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel };
+    const cleanup = await cleanupDuplicatePanelMessages({
+      channelId,
+      keepMessageId: existingMessage.id,
+      matches: matchingMessages,
+    });
+
+    return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel, cleanup };
   }
 
   if (patchResult.status === 404) {
@@ -1132,7 +1242,7 @@ async function upsertDiscordVerifyMessage() {
     });
 
     return createResult.ok
-      ? { ok: true as const, action: "created" as const }
+      ? { ok: true as const, action: "created" as const, cleanup: emptyDiscordSetupCleanupSummary() }
       : { ok: false as const, code: createResult.code, message: createResult.message };
   };
 
@@ -1145,9 +1255,11 @@ async function upsertDiscordVerifyMessage() {
     return createVerifyMessage();
   }
 
-  const existingMessage = messagesResult.messages.find((message) => (
+  const matchingMessages = messagesResult.messages.filter((message) => discordMessageHasVerifyButton(message));
+
+  const existingMessage = matchingMessages.find((message) => (
     message.author?.id === DISCORD_APPLICATION_ID() && discordMessageHasVerifyButton(message)
-  )) ?? messagesResult.messages.find(discordMessageHasVerifyButton);
+  )) ?? matchingMessages[0];
 
   if (existingMessage) {
     const patchResult = await patchDiscordChannelMessage({
@@ -1157,7 +1269,13 @@ async function upsertDiscordVerifyMessage() {
     });
 
     if (patchResult.ok) {
-      return { ok: true, action: "updated" as const };
+      const cleanup = await cleanupDuplicatePanelMessages({
+        channelId: DISCORD_VERIFY_CHANNEL_ID(),
+        keepMessageId: existingMessage.id,
+        matches: matchingMessages,
+      });
+
+      return { ok: true, action: "updated" as const, cleanup };
     }
 
     if (patchResult.status === 404) {
@@ -1193,8 +1311,8 @@ async function handleSetupVerifyInteraction(interaction: DiscordInteraction) {
 
   return buildDiscordEphemeralMessageResponse(
     upsertResult.action === "updated"
-      ? "Verification message updated in the configured verify channel."
-      : "Verification message created in the configured verify channel.",
+      ? `Verification message updated in the configured verify channel.${summarizeDiscordSetupCleanup(upsertResult.cleanup)}`
+      : `Verification message created in the configured verify channel.${summarizeDiscordSetupCleanup(upsertResult.cleanup)}`,
   );
 }
 
@@ -1230,8 +1348,8 @@ async function handleSetupFeedbackInteraction(interaction: DiscordInteraction) {
 
   return buildDiscordEphemeralMessageResponse(
     upsertResult.action === "updated"
-      ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
-      : `Feedback launcher created in ${upsertResult.channelLabel}.`,
+      ? `Feedback launcher updated in ${upsertResult.channelLabel}.${summarizeDiscordSetupCleanup(upsertResult.cleanup)}`
+      : `Feedback launcher created in ${upsertResult.channelLabel}.${summarizeDiscordSetupCleanup(upsertResult.cleanup)}`,
   );
 }
 

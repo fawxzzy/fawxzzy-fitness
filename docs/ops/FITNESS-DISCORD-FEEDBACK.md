@@ -23,6 +23,7 @@ Product rules:
 - `/setup-feedback`
   - admin-only
   - posts or refreshes the persistent `Submit Feedback Here` launcher
+  - removes stale duplicate launcher posts or duplicate bot-owned launcher threads when rerun
   - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
   - otherwise finds or creates `submit-feedback` above the Feedback forum
 - `/setup-verify`

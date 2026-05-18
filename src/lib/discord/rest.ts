@@ -734,6 +734,29 @@ export async function createDiscordChannelMessage(args: {
   };
 }
 
+export async function deleteDiscordChannelMessage(args: {
+  channelId: string;
+  messageId: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<unknown>(
+    `/channels/${args.channelId}/messages/${args.messageId}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (result.ok || result.status === 204) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: result.status === 404 ? "DISCORD_DELETE_MESSAGE_NOT_FOUND" : "DISCORD_DELETE_MESSAGE_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function createDiscordGuildChannel(args: {
   guildId: string;
   name: string;

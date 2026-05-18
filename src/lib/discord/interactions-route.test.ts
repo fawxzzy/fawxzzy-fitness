@@ -286,6 +286,115 @@ test("Discord interactions route updates an existing feedback panel when setup-f
   }
 });
 
+test("Discord interactions route cleans duplicate feedback launcher messages on setup-feedback", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const deletedMessageIds = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504673475489562744/messages"
+      && method === "GET"
+      && url.searchParams.get("limit") === "50"
+    ) {
+      return new Response(JSON.stringify([
+        {
+          id: "1504673475489562747",
+          author: { id: "1504700208251146371" },
+          components: [
+            { type: 1, components: [
+              { type: 2, custom_id: "fitness_feedback_submit_open" },
+              { type: 2, custom_id: "fitness_feedback_update_open" },
+            ] },
+          ],
+        },
+        {
+          id: "1504673475489562755",
+          author: { id: "1504700208251146371" },
+          components: [
+            { type: 1, components: [
+              { type: 2, custom_id: "fitness_feedback_submit_open" },
+              { type: 2, custom_id: "fitness_feedback_update_open" },
+            ] },
+          ],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562747"
+      && method === "PATCH"
+    ) {
+      return new Response(JSON.stringify({ id: "1504673475489562747" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562755"
+      && method === "DELETE"
+    ) {
+      deletedMessageIds.push("1504673475489562755");
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "setup-feedback",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback launcher updated in configured channel. Removed 1 stale panel item.",
+        flags: 64,
+      },
+    });
+    assert.deepEqual(deletedMessageIds, ["1504673475489562755"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
+  }
+});
+
 test("Discord interactions route recreates the feedback panel when the old panel message is gone", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
@@ -517,6 +626,203 @@ test("Discord interactions route can create the submit-feedback launcher channel
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route cleans duplicate verify messages on setup-verify", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504668700000000000";
+
+  const originalFetch = globalThis.fetch;
+  const deletedMessageIds = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504668700000000000/messages"
+      && method === "GET"
+      && url.searchParams.get("limit") === "50"
+    ) {
+      return new Response(JSON.stringify([
+        {
+          id: "1504668700000000100",
+          author: { id: "1504700208251146371" },
+          components: [
+            { type: 1, components: [{ type: 2, custom_id: "fitness_verify_open" }] },
+          ],
+        },
+        {
+          id: "1504668700000000101",
+          author: { id: "1504700208251146371" },
+          components: [
+            { type: 1, components: [{ type: 2, custom_id: "fitness_verify_open" }] },
+          ],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504668700000000000/messages/1504668700000000100"
+      && method === "PATCH"
+    ) {
+      return new Response(JSON.stringify({ id: "1504668700000000100" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504668700000000000/messages/1504668700000000101"
+      && method === "DELETE"
+    ) {
+      deletedMessageIds.push("1504668700000000101");
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "setup-verify",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Verification message updated in the configured verify channel. Removed 1 stale panel item.",
+        flags: 64,
+      },
+    });
+    assert.deepEqual(deletedMessageIds, ["1504668700000000101"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_VERIFY_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route cleans duplicate feedback launcher threads when the panel lives in a forum", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const deletedThreadIds = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 15 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/guilds/1504668396338413670/threads/active"
+      && method === "GET"
+    ) {
+      return new Response(JSON.stringify({
+        threads: [
+          {
+            id: "1504673475489562745",
+            parent_id: "1504673475489562744",
+            owner_id: "1504700208251146371",
+            name: "Fawxzzy Feedback",
+          },
+          {
+            id: "1504673475489562748",
+            parent_id: "1504673475489562744",
+            owner_id: "1504700208251146371",
+            name: "Fawxzzy Feedback",
+          },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562745"
+      && method === "PATCH"
+    ) {
+      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504673475489562748"
+      && method === "DELETE"
+    ) {
+      deletedThreadIds.push("1504673475489562748");
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "setup-feedback",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback launcher updated in configured channel. Removed 1 stale panel item.",
+        flags: 64,
+      },
+    });
+    assert.deepEqual(deletedThreadIds, ["1504673475489562748"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
   }
 });
 

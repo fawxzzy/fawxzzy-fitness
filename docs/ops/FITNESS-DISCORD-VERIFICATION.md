@@ -42,6 +42,7 @@ If `DISCORD_VERIFY_MESSAGE_BODY` is overridden, keep the line breaks intact and 
 - update commands are admin or staff only
 - normal feedback users should primarily use the persistent feedback panel
 - `/feedback` and `/feedback-withdraw` remain active as hidden fallback commands, but normal users should use the panel buttons
+- rerunning `/setup-verify` should prune stale duplicate verify panels instead of leaving old bot posts behind
 
 After deployment:
 1. Set the Discord Interactions Endpoint URL.
