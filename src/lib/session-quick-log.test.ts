@@ -211,3 +211,19 @@ test("resolved quick log preview and payload use fallback target chain", () => {
     weightUnit: "lbs",
   });
 });
+
+test("formatQuickLogPreviewLabel renders steps cleanly for cardio targets", () => {
+  const label = formatQuickLogPreviewLabel({
+    target: {
+      distance: 5000,
+      distanceUnit: "steps",
+      measurementType: "distance",
+    },
+    loggedSetCount: 0,
+    targetSetsMin: 1,
+    targetSetsMax: 1,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(label, "5000 steps");
+});

@@ -1,5 +1,6 @@
 "use client";
 
+import type { FitnessDistanceUnit } from "@/types/db";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 
 export type MeasurementMetrics = {
@@ -18,7 +19,7 @@ export type MeasurementValues = {
   distance: string;
   calories: string;
   weightUnit: "lbs" | "kg";
-  distanceUnit: "mi" | "km" | "m";
+  distanceUnit: FitnessDistanceUnit;
 };
 
 export function ModifyMeasurements({

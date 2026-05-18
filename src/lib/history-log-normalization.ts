@@ -1,3 +1,5 @@
+import type { FitnessDistanceUnit } from "@/types/db";
+
 export type HistoryAuditSet = {
   id: string;
   set_index: number;
@@ -5,7 +7,7 @@ export type HistoryAuditSet = {
   reps: number | null;
   duration_seconds: number | null;
   distance: number | null;
-  distance_unit: "mi" | "km" | "m" | null;
+  distance_unit: FitnessDistanceUnit | null;
   calories: number | null;
   weight_unit: "lbs" | "kg" | null;
 };
@@ -28,7 +30,7 @@ export type IncomingHistoryAuditSet = Partial<HistoryAuditSet> & {
   setId?: string;
   index?: number;
   durationSeconds?: number | null;
-  distanceUnit?: "mi" | "km" | "m" | null;
+  distanceUnit?: FitnessDistanceUnit | null;
   weightUnit?: "lbs" | "kg" | null;
 };
 

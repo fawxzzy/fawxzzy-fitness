@@ -1,3 +1,6 @@
+export type FitnessDistanceUnit = "mi" | "km" | "m" | "steps";
+export type PreferredDistanceUnit = "mi" | "km";
+
 export type SessionRow = {
   id: string;
   user_id: string;
@@ -35,7 +38,7 @@ export type SessionExerciseRow = {
   target_time_seconds_max?: number | null;
   target_distance_min?: number | null;
   target_distance_max?: number | null;
-  target_distance_unit?: "mi" | "km" | "m" | null;
+  target_distance_unit?: FitnessDistanceUnit | null;
   target_calories_min?: number | null;
   target_calories_max?: number | null;
 };
@@ -52,7 +55,7 @@ export type SetRow = {
   notes: string | null;
   duration_seconds: number | null;
   distance: number | null;
-  distance_unit: "mi" | "km" | "m" | null;
+  distance_unit: FitnessDistanceUnit | null;
   calories: number | null;
   rpe: number | null;
   weight_unit: "lbs" | "kg" | null;
@@ -63,7 +66,7 @@ export type ProfileRow = {
   timezone: string;
   active_routine_id: string | null;
   preferred_weight_unit: "lbs" | "kg" | null;
-  preferred_distance_unit: "mi" | "km" | null;
+  preferred_distance_unit: PreferredDistanceUnit | null;
   show_qa_llel_data?: boolean | null;
   user_number: number | null;
   user_kind: "human" | "automation" | "unknown";
@@ -107,12 +110,12 @@ export type RoutineDayExerciseRow = {
   target_weight_unit: "lbs" | "kg" | null;
   target_duration_seconds: number | null;
   target_distance: number | null;
-  target_distance_unit: "mi" | "km" | "m" | null;
+  target_distance_unit: FitnessDistanceUnit | null;
   target_calories: number | null;
   progression_playbook_id?: "double_progression" | "fixed_load_rep_range_progression" | "deload_after_stall" | null;
   progression_playbook_config?: Record<string, unknown> | null;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
-  default_unit?: "mi" | "km" | "m" | null;
+  default_unit?: FitnessDistanceUnit | null;
   notes: string | null;
 };
 

@@ -9,6 +9,7 @@ import { getMeasurementToggleButtonClassName, getMeasurementToggleIntent } from 
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export type ExerciseGoalFormState = {
   sets: string;
@@ -20,7 +21,7 @@ export type ExerciseGoalFormState = {
   distance: string;
   calories: string;
   weightUnit: "lbs" | "kg";
-  distanceUnit: "mi" | "km" | "m";
+  distanceUnit: FitnessDistanceUnit;
   measurements: MeasurementSelection[];
 };
 

@@ -51,6 +51,7 @@ import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
 import { publishEditDayCloseExpandedCard, publishScreenFocusMode, publishScreenMode, subscribeEditDayCloseExpandedCard } from "@/lib/screen-focus-mode";
 import type { TrainingGoalId } from "@/lib/progression-playbooks";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 type SetStepFieldId = "load" | "reps" | "duration" | "distance";
 
@@ -111,7 +112,7 @@ type EditableRoutineDayExerciseItem = {
   categories?: string[] | string | null;
   targetSummary: string;
   isCardio: boolean;
-  defaultDistanceUnit: "mi" | "km" | "m";
+  defaultDistanceUnit: FitnessDistanceUnit;
   image_path?: string | null;
   image_icon_path?: string | null;
   image_howto_path?: string | null;
@@ -125,7 +126,7 @@ type EditableRoutineDayExerciseItem = {
     targetWeightUnit?: "lbs" | "kg" | null;
     targetDurationSeconds?: number | null;
     targetDistance?: number | null;
-    targetDistanceUnit?: "mi" | "km" | "m" | null;
+    targetDistanceUnit?: FitnessDistanceUnit | null;
     targetCalories?: number | null;
     progressionPlaybookId?: ProgressionPlaybookId | null;
     progressionPlaybookConfig?: Record<string, unknown> | null;

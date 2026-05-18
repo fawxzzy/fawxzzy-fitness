@@ -40,11 +40,13 @@ import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
 import { formatDistance, formatDurationShort as formatWorkoutDuration, formatPace } from "@/lib/exercise-stats-formatting";
 import { formatDateShort } from "@/lib/formatting";
+import { isFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryItems, formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { cn } from "@/lib/cn";
 import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
+import type { FitnessDistanceUnit } from "@/types/db";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -54,7 +56,7 @@ type AuditSet = {
   reps: number | null;
   duration_seconds: number | null;
   distance: number | null;
-  distance_unit: "mi" | "km" | "m" | null;
+  distance_unit: FitnessDistanceUnit | null;
   calories: number | null;
   weight_unit: "lbs" | "kg" | null;
 };
@@ -81,8 +83,8 @@ type AuditExercise = {
   sets: AuditSet[];
 };
 
-const resolveDistanceUnit = (value: string | null | undefined): "mi" | "km" | "m" | null => {
-  if (value === "mi" || value === "km" || value === "m") return value;
+const resolveDistanceUnit = (value: string | null | undefined): FitnessDistanceUnit | null => {
+  if (isFitnessDistanceUnit(value)) return value;
   return null;
 };
 

@@ -9,7 +9,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
-import type { SetRow } from "@/types/db";
+import type { FitnessDistanceUnit, SetRow } from "@/types/db";
 
 type ActionResult = {
   ok: boolean;
@@ -135,7 +135,7 @@ export async function addLogExerciseSetAction(payload: {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   weightUnit: "lbs" | "kg";
 }): Promise<ActionResult & { data?: { set: SetRow } }> {
@@ -224,7 +224,7 @@ export async function updateLogExerciseSetAction(payload: {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   weightUnit: "lbs" | "kg";
 }): Promise<ActionResult> {

@@ -67,6 +67,7 @@ import { prepareTodayRecoveryShadowPlacement } from "@/lib/ecosystem/fitness-sha
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 import { loadTodayRecoveryShadowPlacementSafely } from "@/app/today/recovery-shadow-placement.server";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -304,7 +305,7 @@ async function loadProgressionHistoryForExercise(args: {
     weight_unit: "lbs" | "kg" | null;
     duration_seconds: number | null;
     distance: number | null;
-    distance_unit: "mi" | "km" | "m" | null;
+    distance_unit: FitnessDistanceUnit | null;
     calories: number | null;
     is_warmup: boolean;
   }>)
@@ -699,7 +700,7 @@ async function loadTodayProgressionReviewItems(args: {
     weight_unit: "lbs" | "kg" | null;
     duration_seconds: number | null;
     distance: number | null;
-    distance_unit: "mi" | "km" | "m" | null;
+    distance_unit: FitnessDistanceUnit | null;
     calories: number | null;
     is_warmup: boolean;
   }>) {

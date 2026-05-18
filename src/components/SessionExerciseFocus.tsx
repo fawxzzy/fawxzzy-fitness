@@ -34,7 +34,7 @@ import type { ProgressionProgressFill } from "@/lib/progression-progress-percent
 import type { ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import type { PromotionStepFieldId } from "@/lib/session-progression-display";
-import type { SetRow } from "@/types/db";
+import type { FitnessDistanceUnit, SetRow } from "@/types/db";
 
 type AddSetPayload = {
   sessionId: string;
@@ -43,7 +43,7 @@ type AddSetPayload = {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
   rpe: number | null;
@@ -67,7 +67,7 @@ type SyncQueuedSetLogsAction = (payload: {
       reps: number;
       durationSeconds: number | null;
       distance: number | null;
-      distanceUnit: "mi" | "km" | "m" | null;
+      distanceUnit: FitnessDistanceUnit | null;
       calories: number | null;
       isWarmup: boolean;
       rpe: number | null;
@@ -82,7 +82,7 @@ type SessionExercisePrefill = {
   reps?: number;
   durationSeconds?: number;
   distance?: number;
-  distanceUnit?: "mi" | "km" | "m";
+  distanceUnit?: FitnessDistanceUnit;
   calories?: number;
   weightUnit?: "lbs" | "kg";
 };
@@ -124,7 +124,7 @@ export type SessionExerciseFocusItem = {
   exerciseId: string;
   name: string;
   isSkipped: boolean;
-  defaultUnit: "mi" | "km" | "m" | null;
+  defaultUnit: FitnessDistanceUnit | null;
   isCardio: boolean;
   measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;

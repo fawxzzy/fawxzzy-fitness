@@ -1,13 +1,11 @@
+import { formatDistanceNumber, formatDistanceUnitLabel, normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
+
 export function positive(value: number | null | undefined): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
 }
 
 function formatNumber(value: number): string {
-  if (Number.isInteger(value)) {
-    return String(value);
-  }
-
-  return value.toFixed(2).replace(/\.?0+$/, "");
+  return formatDistanceNumber(value);
 }
 
 export function formatDurationShort(seconds?: number | null): string | null {
@@ -29,18 +27,18 @@ export function formatDurationShort(seconds?: number | null): string | null {
 export function formatDistance(distance?: number | null, unit?: string | null): string | null {
   const safeDistance = positive(distance);
   if (safeDistance <= 0) return null;
-  const normalizedUnit = unit === "mi" || unit === "km" || unit === "m" ? unit : null;
-  return normalizedUnit ? `${formatNumber(safeDistance)} ${normalizedUnit}` : formatNumber(safeDistance);
+  const normalizedUnit = normalizeFitnessDistanceUnit(unit, "mi");
+  return `${formatDistanceNumber(safeDistance, normalizedUnit)} ${formatDistanceUnitLabel(normalizedUnit)}`;
 }
 
 export function formatPace(paceSecondsPerUnit?: number | null, unit?: string | null): string | null {
   const safePace = positive(paceSecondsPerUnit);
-  const normalizedUnit = unit === "mi" || unit === "km" || unit === "m" ? unit : null;
+  const normalizedUnit = normalizeFitnessDistanceUnit(unit, "mi");
   if (safePace <= 0 || !normalizedUnit) return null;
 
   const minutes = Math.floor(safePace / 60);
   const seconds = Math.floor(safePace % 60);
-  return `${minutes}:${seconds.toString().padStart(2, "0")}/${normalizedUnit}`;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}/${formatDistanceUnitLabel(normalizedUnit)}`;
 }
 
 export function formatCalories(calories?: number | null): string | null {

@@ -24,7 +24,7 @@ import {
   type ProgressionStatusDisplayItem,
 } from "@/lib/progression-status-display";
 import type { supabaseServer } from "@/lib/supabase/server";
-import type { RoutineDayExerciseRow } from "@/types/db";
+import type { FitnessDistanceUnit, RoutineDayExerciseRow } from "@/types/db";
 
 export function buildProgressionReviewTargetPlan(exercise: RoutineDayExerciseRow): ProgressionTargetPlan {
   return {
@@ -129,7 +129,7 @@ export async function loadProgressionHistoryForExercise(args: {
     weight_unit: "lbs" | "kg" | null;
     duration_seconds: number | null;
     distance: number | null;
-    distance_unit: "mi" | "km" | "m" | null;
+    distance_unit: FitnessDistanceUnit | null;
     calories: number | null;
     is_warmup: boolean;
   }>)
@@ -556,7 +556,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
     weight_unit: "lbs" | "kg" | null;
     duration_seconds: number | null;
     distance: number | null;
-    distance_unit: "mi" | "km" | "m" | null;
+    distance_unit: FitnessDistanceUnit | null;
     calories: number | null;
     is_warmup: boolean;
   }>) {
@@ -664,7 +664,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
           movementPattern: exerciseMetadata?.movementPattern ?? null,
           defaultUnit: exercise.default_unit,
           weightUnit: plan.weightUnit ?? args.fallbackWeightUnit,
-          distanceUnit: plan.distanceUnit === "km" ? "km" : "mi",
+          distanceUnit: plan.distanceUnit ?? null,
           targetWeight: plan.weightMax ?? plan.weightMin ?? null,
           exerciseOverrideValue: selection.config.loadIncrement,
           stepOverrides: selection.config.stepOverrides ?? null,

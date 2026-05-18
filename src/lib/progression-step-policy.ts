@@ -5,6 +5,7 @@ import type {
   TrainingGoalId,
 } from "@/lib/progression-playbooks";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES } from "@/lib/progression-step-defaults";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export type ProgressionStepKind =
   | "load"
@@ -39,7 +40,7 @@ export type ProgressionStepPolicy = {
   equipmentFamily: ProgressionStepEquipmentFamily;
   label: string | null;
   defaultValue: number | null;
-  unit: "lbs" | "kg" | "reps" | "seconds" | "mi" | "km" | "pace/volume" | null;
+  unit: "lbs" | "kg" | "reps" | "seconds" | "mi" | "km" | "m" | "steps" | "pace/volume" | null;
   description: string;
   source: ProgressionStepSource;
 };
@@ -149,7 +150,7 @@ export function inferProgressionStepPolicy(args: {
   movementPattern?: string | null;
   defaultUnit?: string | null;
   weightUnit?: "lbs" | "kg" | null;
-  distanceUnit?: "mi" | "km" | null;
+  distanceUnit?: FitnessDistanceUnit | null;
   trainingGoal?: TrainingGoalId | null;
   progressionMethod?: ProgressionMethodLayerId | null;
   targetWeight?: number | null;
@@ -160,7 +161,7 @@ export function inferProgressionStepPolicy(args: {
 }): ProgressionStepPolicy {
   const measurementType = args.measurementType ?? "reps";
   const weightUnit = args.weightUnit ?? "lbs";
-  const distanceUnit = args.distanceUnit ?? (args.defaultUnit === "km" ? "km" : "mi");
+  const distanceUnit = args.distanceUnit ?? (args.defaultUnit === "km" ? "km" : args.defaultUnit === "steps" ? "steps" : "mi");
   const equipmentFamily = inferProgressionStepEquipmentFamily({
     equipment: args.equipment,
     movementPattern: args.movementPattern,

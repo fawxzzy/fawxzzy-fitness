@@ -1,10 +1,12 @@
 import { formatWeight } from "@/lib/formatting";
+import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import {
   inferProgressionStepPolicy,
   type ProgressionStepPolicy,
 } from "@/lib/progression-step-policy";
 import { applyProgressionVector } from "@/lib/progression-vector";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export const PROGRESSION_PLAYBOOK_IDS = [
   "double_progression",
@@ -365,7 +367,7 @@ export type ProgressionTargetPlan = {
   weightUnit?: "lbs" | "kg" | null;
   durationSeconds?: number | null;
   distance?: number | null;
-  distanceUnit?: "mi" | "km" | "m" | null;
+  distanceUnit?: FitnessDistanceUnit | null;
   calories?: number | null;
 };
 
@@ -378,7 +380,7 @@ export type ProgressionHistorySetRow = {
   weightUnit: "lbs" | "kg" | null;
   durationSeconds?: number | null;
   distance?: number | null;
-  distanceUnit?: "mi" | "km" | "m" | null;
+  distanceUnit?: FitnessDistanceUnit | null;
   calories?: number | null;
   isWarmup: boolean;
 };
@@ -608,7 +610,7 @@ function resolveProgressionStepForPlan(args: {
   return inferProgressionStepPolicy({
     measurementType: args.plan.measurementType,
     weightUnit: args.plan.weightUnit ?? args.fallbackWeightUnit,
-    distanceUnit: args.plan.distanceUnit === "km" ? "km" : "mi",
+    distanceUnit: normalizeFitnessDistanceUnit(args.plan.distanceUnit, "mi"),
     targetWeight: args.plan.weightMax ?? args.plan.weightMin ?? null,
     exerciseOverrideValue: args.configLoadIncrement,
   });
@@ -1161,6 +1163,10 @@ function resolveDistanceStep(args: {
 }) {
   if (args.progressionStepPolicy?.kind === "distance" && isFinitePositiveNumber(args.progressionStepPolicy.defaultValue)) {
     return args.progressionStepPolicy.defaultValue;
+  }
+
+  if (args.plan.distanceUnit === "steps") {
+    return 500;
   }
 
   return args.plan.distanceUnit === "km" ? 0.25 : 0.1;

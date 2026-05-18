@@ -1,6 +1,7 @@
 import { isExerciseDisplayArtifact } from "@/lib/exercise-display";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 import { logDebugSummary } from "@/lib/observability";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
 
@@ -17,7 +18,7 @@ export type RunnableDayExercise = {
   target_weight_unit?: "lbs" | "kg" | null;
   target_duration_seconds?: number | null;
   target_distance?: number | null;
-  target_distance_unit?: "mi" | "km" | "m" | null;
+  target_distance_unit?: FitnessDistanceUnit | null;
   target_calories?: number | null;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;

@@ -1,10 +1,11 @@
 import "server-only";
 
+import { formatDistanceNumber, formatDistanceUnitLabel, normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatDurationPreview } from "@/lib/duration";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { requireUser } from "@/lib/auth";
-import type { RoutineDayExerciseRow, SessionExerciseRow } from "@/types/db";
+import type { FitnessDistanceUnit, RoutineDayExerciseRow, SessionExerciseRow } from "@/types/db";
 
 export type DisplayTarget = {
   setsMin?: number;
@@ -16,7 +17,7 @@ export type DisplayTarget = {
   weightUnit?: "lbs" | "kg";
   durationSeconds?: number;
   distance?: number;
-  distanceUnit?: "mi" | "km" | "m";
+  distanceUnit?: FitnessDistanceUnit;
   calories?: number;
   measurementType?: "reps" | "time" | "distance" | "time_distance" | "none";
   source: "engine" | "template";
@@ -65,7 +66,7 @@ function formatRangeValue(minValue: number | undefined, maxValue: number | undef
   return `${minValue ?? maxValue} ${suffix}`;
 }
 
-function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {
+function toSingularUnit(unit: "lbs" | "kg" | FitnessDistanceUnit | "cal") {
   return unit;
 }
 
@@ -78,8 +79,8 @@ function resolveWeightUnit(value: unknown): "lbs" | "kg" | null {
   return value === "lbs" || value === "kg" ? value : null;
 }
 
-function resolveDistanceUnit(value: unknown): "mi" | "km" | "m" | null {
-  return value === "mi" || value === "km" || value === "m" ? value : null;
+function resolveDistanceUnit(value: unknown): FitnessDistanceUnit | null {
+  return value === null || value === undefined ? null : normalizeFitnessDistanceUnit(value, "mi");
 }
 
 function buildDisplayTargetFromGoalFields(fields: {
@@ -203,7 +204,9 @@ export function formatGoalStatLine(target: DisplayTarget, fallbackWeightUnit: st
   const primary = primaryParts.join(" • ").trim();
   const secondary = [
     target.durationSeconds !== undefined ? formatDurationText(target.durationSeconds) : null,
-    target.distance !== undefined ? `${target.distance} ${toSingularUnit(resolvedDistanceUnit)}` : null,
+    target.distance !== undefined
+      ? `${formatDistanceNumber(target.distance, resolvedDistanceUnit)} ${formatDistanceUnitLabel(resolvedDistanceUnit) ?? toSingularUnit(resolvedDistanceUnit)}`
+      : null,
     target.calories !== undefined ? `${target.calories} ${toSingularUnit("cal")}` : null,
   ].filter((part): part is string => Boolean(part));
 

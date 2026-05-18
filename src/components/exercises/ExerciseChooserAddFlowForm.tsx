@@ -13,6 +13,7 @@ import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
+import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { deriveGoalMeasurementSelections, type GoalModality } from "@/lib/exercise-goal-validation";
 import {
   buildProgressionPlaybookConfigFromFormState,
@@ -481,7 +482,7 @@ export function ExerciseChooserAddFlowForm({
     movementPattern: selectedExercise?.movement_pattern ?? null,
     defaultUnit: selectedExercise?.default_unit ?? null,
     weightUnit,
-    distanceUnit: selectedExercise?.default_unit === "km" ? "km" : "mi",
+    distanceUnit: normalizeFitnessDistanceUnit(selectedExercise?.default_unit, "mi"),
     routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
     stepOverrides: routineDefaultProgressionConfig?.stepOverrides ?? null,
   }), [
@@ -590,7 +591,7 @@ export function ExerciseChooserAddFlowForm({
               movementPattern: activeExercise?.movement_pattern ?? selectedExercise?.movement_pattern ?? null,
               defaultUnit: activeExercise?.default_unit ?? selectedExercise?.default_unit ?? null,
               weightUnit,
-              distanceUnit: (activeExercise?.default_unit ?? selectedExercise?.default_unit) === "km" ? "km" : "mi",
+              distanceUnit: normalizeFitnessDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit, "mi"),
               targetWeight: Number(goalState.weight),
               routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
               exerciseOverrideValue: Number(progressionDraft.progressionLoadIncrement),
@@ -639,7 +640,7 @@ export function ExerciseChooserAddFlowForm({
               movementPattern: activeExercise?.movement_pattern ?? selectedExercise?.movement_pattern ?? null,
               defaultUnit: activeExercise?.default_unit ?? selectedExercise?.default_unit ?? null,
               weightUnit,
-              distanceUnit: (activeExercise?.default_unit ?? selectedExercise?.default_unit) === "km" ? "km" : "mi",
+              distanceUnit: normalizeFitnessDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit, "mi"),
               targetWeight: Number(goalState.weight),
               routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
               exerciseOverrideValue: Number(progressionDraft.progressionLoadIncrement),

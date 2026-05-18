@@ -18,6 +18,7 @@ import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/Ex
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
+import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
 import {
@@ -997,7 +998,7 @@ export function ExercisePicker({
         ...current,
         measurements: getDefaultMeasurementsForGoalModality(inferredCustomGoalModality),
         failure: false,
-        distanceUnit: customExerciseDraftOption.default_unit === "km" ? "km" : "mi",
+        distanceUnit: normalizeFitnessDistanceUnit(customExerciseDraftOption.default_unit, "mi"),
       }));
       resetMeasurementFields("3");
       setDidApplyLast(false);
@@ -1009,9 +1010,7 @@ export function ExercisePicker({
       return;
     }
 
-    const nextDefaultUnit = selectedExercise.default_unit === "km" || selectedExercise.default_unit === "m"
-      ? selectedExercise.default_unit
-      : "mi";
+    const nextDefaultUnit = normalizeFitnessDistanceUnit(selectedExercise.default_unit, "mi");
     const selectedExerciseTags = normalizeExerciseTags(selectedExercise);
     const defaultModality = resolveGoalModality({
       measurementType: selectedExercise.measurement_type,
@@ -1065,7 +1064,7 @@ export function ExercisePicker({
       duration: nextMeasurements.includes("time") ? current.duration : "",
       distance: nextMeasurements.includes("distance") ? current.distance : "",
       calories: nextMeasurements.includes("calories") ? current.calories : "",
-      distanceUnit: customExerciseDraftOption.default_unit === "km" ? "km" : "mi",
+      distanceUnit: normalizeFitnessDistanceUnit(customExerciseDraftOption.default_unit, "mi"),
     }));
     previousCustomProfileKeyRef.current = nextProfileKey;
   }, [customExerciseDraftOption.default_unit, customExerciseDraftOption.equipment, customExerciseDraftOption.measurement_type, customExerciseDraftOption.movement_pattern, inferredCustomGoalModality, isCustomExerciseSelected]);

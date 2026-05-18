@@ -8,6 +8,7 @@ import {
   validateProgressionPlaybookSelection,
   type ProgressionHistorySession,
 } from "@/lib/progression-playbooks";
+import type { FitnessDistanceUnit } from "@/types/db";
 
 export type SessionTargetHintMeasurementType = "reps" | "time" | "distance" | "time_distance" | "none";
 
@@ -23,7 +24,7 @@ export type SessionTargetHintPlan = {
   weightUnit?: "lbs" | "kg" | null;
   durationSeconds?: number | null;
   distance?: number | null;
-  distanceUnit?: "mi" | "km" | "m" | null;
+  distanceUnit?: FitnessDistanceUnit | null;
   calories?: number | null;
 };
 
@@ -33,7 +34,7 @@ export type SessionTargetHintSuggestedValues = {
   reps: number | null;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   weightUnit: "lbs" | "kg" | null;
 };

@@ -7,12 +7,13 @@ import { validateExerciseEquipment, validateExerciseName, validateMovementPatter
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditPath, revalidateHistoryViews, revalidateRoutinesViews, revalidateSessionViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
+import { isFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
 import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import type { ActionResult } from "@/lib/action-result";
-import type { SetRow } from "@/types/db";
+import type { FitnessDistanceUnit, SetRow } from "@/types/db";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
@@ -129,7 +130,7 @@ export async function addSetAction(payload: {
   reps: number;
   durationSeconds: number | null;
   distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
   rpe: number | null;
@@ -162,8 +163,8 @@ export async function addSetAction(payload: {
     return { ok: false, error: "Distance must be 0 or greater" };
   }
 
-  if (distanceUnit !== null && distanceUnit !== "mi" && distanceUnit !== "km" && distanceUnit !== "m") {
-    return { ok: false, error: "Distance unit must be mi, km, or m" };
+  if (distanceUnit !== null && !isFitnessDistanceUnit(distanceUnit)) {
+    return { ok: false, error: "Distance unit must be mi, km, m, or steps" };
   }
 
   if (calories !== null && (!Number.isFinite(calories) || calories < 0)) {
@@ -287,7 +288,7 @@ export async function syncQueuedSetLogsAction(payload: {
       reps: number;
       durationSeconds: number | null;
       distance: number | null;
-      distanceUnit: "mi" | "km" | "m" | null;
+      distanceUnit: FitnessDistanceUnit | null;
       calories: number | null;
       isWarmup: boolean;
       rpe: number | null;
