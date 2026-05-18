@@ -22,7 +22,7 @@ export const DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH = 6;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_WINDOW_MINUTES = 10;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_MAX_REPORTS = 3;
 export const DISCORD_BUG_REPORT_DUPLICATE_WINDOW_DAYS = 30;
-export const DISCORD_BUG_REPORT_DUPLICATE_ACTIVE_STATUSES = ["new", "needs_info", "confirmed", "in_progress"] as const;
+export const DISCORD_BUG_REPORT_DUPLICATE_ACTIVE_STATUSES = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress"] as const;
 export const DISCORD_BUG_REPORT_TYPE_TAG_LABELS = {
   bug: "Bug",
   feature: "Feature",
@@ -32,6 +32,7 @@ export const DISCORD_BUG_REPORT_STATUS_TAG_LABELS = {
   new: "New",
   needs_info: "Needs Info",
   confirmed: "Confirmed",
+  fawxzzy_review: "Ready for Fawxzzy Review",
   in_progress: "In Progress",
   fixed: "Fixed",
   closed: "Closed",
@@ -909,6 +910,14 @@ export function formatDiscordBugReportStatusLabel(status: DiscordBugReportStatus
   return DISCORD_BUG_REPORT_STATUS_TAG_LABELS[status];
 }
 
+export function formatDiscordBugReportStatusTagName(status: DiscordBugReportStatus): string {
+  if (status === "fawxzzy_review") {
+    return "Fawxzzy Review";
+  }
+
+  return formatDiscordBugReportStatusLabel(status);
+}
+
 export function formatDiscordFeedbackDisplayStatusLabel(args: {
   reportType: DiscordBugReportReportType;
   status: DiscordBugReportStatus;
@@ -990,7 +999,7 @@ export function buildDiscordBugForumTagNames(args: {
 }): string[] {
   const names = [
     formatDiscordBugReportTypeLabel(args.reportType),
-    formatDiscordBugReportStatusLabel(args.status),
+    formatDiscordBugReportStatusTagName(args.status),
   ];
 
   if (args.reportType !== "feature" && args.status !== "spam") {

@@ -142,6 +142,7 @@ import {
   createDiscordMessageReaction,
   deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
+  DISCORD_RESOLVED_REACTION_EMOJI,
   editDiscordOriginalInteractionResponse,
   fetchDiscordChannel,
   fetchDiscordGuildChannels,
@@ -490,6 +491,10 @@ function buildDiscordFeedbackLookupFailureResponse(code: string) {
   }
 
   return buildDiscordEphemeralMessageResponse("Could not find that feedback report. Copy the Report ID from the forum post and try again.");
+}
+
+function buildDiscordOutdatedFeedbackPanelResponse() {
+  return buildDiscordEphemeralMessageResponse("This feedback panel is outdated. Ask staff to run /setup-feedback.");
 }
 
 function buildNoContentResponse(status = 202) {
@@ -1801,7 +1806,7 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
       const reactionResult = await createDiscordMessageReaction({
         channelId: updatedReport.discord_forum_thread_id,
         messageId: reactionMessageId,
-        emoji: "✅",
+        emoji: DISCORD_RESOLVED_REACTION_EMOJI,
       });
 
       if (!reactionResult.ok) {
@@ -1816,10 +1821,14 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
     }
   }
 
+  const successContent = updatedReport.status === "fawxzzy_review"
+    ? "Feedback updated.\nStatus: Ready for Fawxzzy Review"
+    : "Feedback updated.";
+
   return buildDiscordEphemeralMessageResponse(
     forumSyncFailed
-      ? `Feedback updated, but the forum thread could not be fully synced. (${formatDiscordBugReportShortId(updatedReport.id)})`
-      : "Feedback updated.",
+      ? `${successContent}\nForum sync warning: the thread could not be fully synced. (${formatDiscordBugReportShortId(updatedReport.id)})`
+      : successContent,
   );
 }
 
@@ -2945,6 +2954,14 @@ export async function POST(request: Request) {
       && interaction.data?.custom_id === FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID
     ) {
       return jsonResponse(buildDiscordEphemeralMessageResponse("Feedback action cancelled."));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && typeof interaction.data?.custom_id === "string"
+      && interaction.data.custom_id.startsWith("fitness_feedback_")
+    ) {
+      return jsonResponse(buildDiscordOutdatedFeedbackPanelResponse());
     }
 
     if (

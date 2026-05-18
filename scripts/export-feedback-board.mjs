@@ -10,8 +10,8 @@ import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
 const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
-const DEFAULT_STATUS_FILTER = ["new", "needs_info", "confirmed", "in_progress", "fixed", "closed", "duplicate"];
-const STATUS_ORDER = ["new", "needs_info", "confirmed", "in_progress", "fixed", "closed", "duplicate"];
+const DEFAULT_STATUS_FILTER = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed", "duplicate"];
+const STATUS_ORDER = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed", "duplicate"];
 const VALID_STATUSES = new Set([...STATUS_ORDER, "withdrawn", "spam"]);
 const VALID_TYPES = new Set(["bug", "feature"]);
 const TYPE_ORDER = ["bug", "feature"];
@@ -274,6 +274,8 @@ function formatStatusLabel(status) {
       return "Needs Info";
     case "confirmed":
       return "Confirmed";
+    case "fawxzzy_review":
+      return "Ready for Fawxzzy Review";
     case "in_progress":
       return "In Progress";
     case "fixed":
@@ -533,7 +535,7 @@ function inferFilesToInspect(record) {
 }
 
 export function renderCodexDrafts(records) {
-  const eligible = records.filter((record) => record.status === "confirmed" || record.status === "in_progress");
+  const eligible = records.filter((record) => record.status === "confirmed" || record.status === "fawxzzy_review" || record.status === "in_progress");
   const lines = [
     "# Feedback Board Codex Drafts",
     "",
@@ -542,7 +544,7 @@ export function renderCodexDrafts(records) {
   ];
 
   if (eligible.length === 0) {
-    lines.push("No confirmed or in-progress cards matched the current filter.");
+    lines.push("No confirmed, Ready for Fawxzzy Review, or in-progress cards matched the current filter.");
     return `${lines.join("\n")}\n`;
   }
 

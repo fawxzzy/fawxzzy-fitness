@@ -40,7 +40,7 @@ Default outputs:
 Optional flags:
 - `--from <path>`
 - `--type bug,feature`
-- `--status confirmed,in_progress`
+- `--status confirmed,fawxzzy_review,in_progress`
 - `--area <area>`
 - `--limit 25`
 - `--out <dir>`
@@ -50,7 +50,10 @@ Optional flags:
 
 Default included statuses:
 - `confirmed`
+- `fawxzzy_review`
 - `in_progress`
+
+`fawxzzy_review` is optional. Use it only when a card needs manual owner review before implementation, closing, or public release.
 
 Default excluded statuses:
 - `withdrawn`

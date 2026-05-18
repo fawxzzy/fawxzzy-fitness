@@ -112,6 +112,7 @@ export const DISCORD_BUG_STATUS_CHOICES = [
   { name: "new", value: "new" },
   { name: "needs_info", value: "needs_info" },
   { name: "confirmed", value: "confirmed" },
+  { name: "Ready for Fawxzzy Review", value: "fawxzzy_review" },
   { name: "in_progress", value: "in_progress" },
   { name: "fixed", value: "fixed" },
   { name: "closed", value: "closed" },

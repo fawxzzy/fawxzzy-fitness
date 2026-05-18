@@ -258,6 +258,7 @@ Status tags:
 - `New`
 - `Needs Info`
 - `Confirmed`
+- `Fawxzzy Review`
 - `In Progress`
 - `Fixed`
 
@@ -331,17 +332,21 @@ It should:
 - sync forum tags and title
 - patch the forum starter post so the visible status and type-aware formatting stay current
 - post a compact status reply
+- allow optional `Ready for Fawxzzy Review` when a card needs owner review before implementation, closing, or a public update
 - mention the reporter only for `Needs Info`, `Fixed`, or `Closed`
 - add a `✅` reaction when status becomes `Fixed` or `Closed`
 
 Display rule:
 - bug cards show stored `fixed` as `Fixed`
 - feature cards show stored `fixed` as `Completed`
+- stored `fawxzzy_review` displays as `Ready for Fawxzzy Review`
+- not every card should pass through `Ready for Fawxzzy Review`
 
 Resolved reaction behavior:
 - preferred target: the forum starter message when `discord_forum_message_id` exists
 - fallback target: the bot status reply in the thread
 - reaction failures should log a safe warning and must not fail the status update
+- use `npm run feedback:sync-resolved-reactions -- --dry-run` before `--apply` to backfill missing resolved checkmarks
 
 ## Feedback card audit comments
 Fawx Security posts a compact thread comment whenever it modifies a feedback card after creation. This keeps the Feedback forum readable as a lightweight board with visible change history.
@@ -417,10 +422,14 @@ Sync script rules:
 - use `--apply` to edit Discord
 - use `--no-audit-comment` to skip thread audit comments during apply mode
 - supports `--limit 50`
-- supports `--status new,confirmed,in_progress,fixed,closed`
+- supports `--status new,confirmed,fawxzzy_review,in_progress,fixed,closed`
 - supports `--report-id <id>`
 - skips rows that do not have `discord_forum_message_id`
 - never deletes anything
+
+Launcher guardrail:
+- `/setup-feedback` refreshes the persistent launcher instead of creating duplicates
+- stale feedback button ids fail gracefully with: `This feedback panel is outdated. Ask staff to run /setup-feedback.`
 
 ## Community doctor
 Run:

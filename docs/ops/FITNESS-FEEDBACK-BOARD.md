@@ -95,6 +95,7 @@ Statuses remain stable in storage:
 - `new`
 - `needs_info`
 - `confirmed`
+- `fawxzzy_review`
 - `in_progress`
 - `fixed`
 - `closed`
@@ -106,6 +107,7 @@ User-facing board meaning:
 - `New`: Fresh report, not reviewed.
 - `Needs Info`: Reporter needs to clarify.
 - `Confirmed`: Valid and ready for planning.
+- `Ready for Fawxzzy Review`: Optional owner-review gate before implementation, closing, or a public update.
 - `In Progress`: Actively being worked.
 - `Fixed`: Bug resolved.
 - `Completed`: Feature completed. This is the display label for feature cards when stored status is `fixed`.
@@ -115,8 +117,8 @@ User-facing board meaning:
 - `Spam`: Invalid or junk.
 
 Lifecycle:
-- Bug: `New -> Confirmed -> In Progress -> Fixed/Closed`
-- Feature: `New -> Confirmed -> In Progress -> Completed/Closed`
+- Bug: `New -> Confirmed -> optional Ready for Fawxzzy Review -> In Progress -> Fixed/Closed`
+- Feature: `New -> Confirmed -> optional Ready for Fawxzzy Review -> In Progress -> Completed/Closed`
 
 ## Command surface
 User-facing flow:
@@ -139,7 +141,7 @@ Card structure sync:
 - optional filters:
   - `--report-id <uuid>`
   - `--limit <count>`
-  - `--status new,confirmed`
+  - `--status new,confirmed,fawxzzy_review`
 - apply mode updates the starter post and leaves the thread audit comment:
   - `Card formatting synced by Fawx Security.`
   - `Reason: Applied Feedback Card Structure v2.`
@@ -159,7 +161,7 @@ Default outputs:
 - `runtime/feedback-board/latest.json`
 
 Optional flags:
-- `--status new,confirmed`
+- `--status new,confirmed,fawxzzy_review`
 - `--type bug,feature`
 - `--area Account`
 - `--limit 100`

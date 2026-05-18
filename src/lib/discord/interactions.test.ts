@@ -403,6 +403,10 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
     feedbackStatus?.default_member_permissions,
     String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(13)) | (BigInt(1) << BigInt(34))),
   );
+  assert.equal(
+    feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "fawxzzy_review" && choice.name === "Ready for Fawxzzy Review"),
+    true,
+  );
   assert.equal(feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "withdrawn"), true);
   assert.ok(feedbackWithdraw);
   assert.equal(feedbackWithdraw?.default_member_permissions, String(BigInt(1) << BigInt(5)));

@@ -10,12 +10,14 @@ import {
   createDiscordThreadMessage,
   deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
+  DISCORD_RESOLVED_REACTION_EMOJI,
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
   editDiscordOriginalInteractionResponse,
   fetchDiscordApplicationEmojis,
   fetchDiscordGuildMember,
   fetchDiscordGuildRoles,
   fetchDiscordGuildEmojis,
+  formatDiscordReactionEmojiIdentifier,
   resolveDiscordForumTagIdsByName,
   updateDiscordChannelPermissionOverwrite,
   updateDiscordForumThreadArchiveState,
@@ -85,7 +87,7 @@ test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an e
     const result = await createDiscordMessageReaction({
       channelId: "1504673475489562745",
       messageId: "1504673475489562746",
-      emoji: "✅",
+      emoji: DISCORD_RESOLVED_REACTION_EMOJI,
     });
 
     assert.deepEqual(result, { ok: true });
@@ -97,6 +99,20 @@ test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an e
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("formatDiscordReactionEmojiIdentifier keeps Unicode emoji raw and normalizes custom emoji shapes", () => {
+  assert.equal(formatDiscordReactionEmojiIdentifier(DISCORD_RESOLVED_REACTION_EMOJI), DISCORD_RESOLVED_REACTION_EMOJI);
+  assert.equal(formatDiscordReactionEmojiIdentifier("Bug:1505007702924068916"), "Bug:1505007702924068916");
+  assert.equal(formatDiscordReactionEmojiIdentifier("<:Bug:1505007702924068916>"), "Bug:1505007702924068916");
+  assert.equal(
+    formatDiscordReactionEmojiIdentifier({
+      id: "1505007651308703877",
+      name: "Feature",
+    }),
+    "Feature:1505007651308703877",
+  );
+  assert.equal(formatDiscordReactionEmojiIdentifier("   "), null);
 });
 
 test("updateDiscordGuildMemberNickname returns a safe forbidden failure", async () => {

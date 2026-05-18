@@ -57,10 +57,10 @@ function writeBoardFixture(records) {
   return { tempDir, sourcePath };
 }
 
-test("task packet parseArgs defaults to confirmed and in_progress statuses", () => {
+test("task packet parseArgs defaults to confirmed, Fawxzzy review, and in_progress statuses", () => {
   const args = parseArgs([]);
 
-  assert.deepEqual(args.statuses, ["confirmed", "in_progress"]);
+  assert.deepEqual(args.statuses, ["confirmed", "fawxzzy_review", "in_progress"]);
   assert.deepEqual(args.types, ["bug", "feature"]);
   assert.equal(args.codexPrompts, false);
 });
@@ -190,6 +190,30 @@ test("task packet export carries card sections and acceptance criteria forward",
 
   assert.equal(result.packets[0].cardSections[0].userStory, "As an admin, I want clearer feedback cards, so that review is faster.");
   assert.deepEqual(result.packets[0].acceptanceCriteria[0], "Feature cards show Title, User Story, Description, Acceptance Criteria, and Evidence.");
+});
+
+test("task packet generation surfaces Fawxzzy review cards clearly", () => {
+  const records = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        status: "fawxzzy_review",
+        area: "Feedback",
+        title: "Queue card for manual owner review",
+      }),
+    ]).sourcePath,
+  );
+  const result = buildTaskPacketResult({
+    records,
+    inputCount: records.length,
+    args: parseArgs([]),
+    sourcePath: "fixture.json",
+  });
+
+  assert.equal(result.packets[0].cardSections[0].statusLabel, "Ready for Fawxzzy Review");
+  assert.equal(
+    result.packets[0].statusSuggestions.some((item) => /Manual Fawxzzy review is active/i.test(item)),
+    true,
+  );
 });
 
 test("task packet generation writes markdown json and optional codex prompts", async () => {

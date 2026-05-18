@@ -13,7 +13,7 @@ const DISCORD_BOT_TOKEN_ENV = "DISCORD_BOT_TOKEN";
 
 export const DEFAULT_LIMIT = 50;
 export const MAX_LIMIT = 100;
-export const DEFAULT_STATUSES = ["new", "needs_info", "confirmed", "in_progress", "fixed", "closed"];
+export const DEFAULT_STATUSES = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed"];
 const VALID_STATUSES = new Set(DEFAULT_STATUSES);
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");

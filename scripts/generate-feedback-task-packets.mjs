@@ -15,13 +15,14 @@ export const DEFAULT_JSON_OUT = "latest.json";
 export const DEFAULT_PROMPTS_OUT = "codex-prompts.md";
 export const DEFAULT_DECISIONS_EXAMPLE_OUT = "review-decisions.example.json";
 
-export const DEFAULT_STATUSES = ["confirmed", "in_progress"];
+export const DEFAULT_STATUSES = ["confirmed", "fawxzzy_review", "in_progress"];
 export const DEFAULT_TYPES = ["bug", "feature"];
 export const EXCLUDED_BY_DEFAULT = ["withdrawn", "spam", "duplicate", "closed", "fixed"];
 export const VALID_STATUSES = new Set([
   "new",
   "needs_info",
   "confirmed",
+  "fawxzzy_review",
   "in_progress",
   "fixed",
   "closed",
@@ -128,6 +129,37 @@ function normalizeType(value) {
 function normalizeDecision(value) {
   const normalized = String(value ?? "").trim().toLowerCase();
   return VALID_DECISIONS.has(normalized) ? normalized : null;
+}
+
+function formatPacketStatusLabel(reportType, status) {
+  if (reportType === "feature" && status === "fixed") {
+    return "Completed";
+  }
+
+  switch (status) {
+    case "new":
+      return "New";
+    case "needs_info":
+      return "Needs Info";
+    case "confirmed":
+      return "Confirmed";
+    case "fawxzzy_review":
+      return "Ready for Fawxzzy Review";
+    case "in_progress":
+      return "In Progress";
+    case "fixed":
+      return "Fixed";
+    case "closed":
+      return "Closed";
+    case "duplicate":
+      return "Duplicate";
+    case "spam":
+      return "Spam";
+    case "withdrawn":
+      return "Withdrawn";
+    default:
+      return "Confirmed";
+  }
 }
 
 function toAbsoluteRepoPath(target) {
@@ -319,6 +351,7 @@ function normalizeBoardRecord(input, index) {
   const cardSections = input?.card_sections && typeof input.card_sections === "object"
     ? {
       headerLabel: clipped(input.card_sections.header_label, 80),
+      statusLabel: formatPacketStatusLabel(reportType, status),
       title: clipped(input.card_sections.title, 160),
       problem: clipped(input.card_sections.problem, 400),
       expectedBehavior: clipped(input.card_sections.expected_behavior, 300),
@@ -335,6 +368,7 @@ function normalizeBoardRecord(input, index) {
     }
     : {
       headerLabel: reportType === "feature" ? "Feature Request" : "Bug Report",
+      statusLabel: formatPacketStatusLabel(reportType, status),
       title,
       problem: reportType === "bug" ? description : null,
       expectedBehavior: null,
@@ -609,6 +643,9 @@ function buildStatusSuggestions(packet) {
   if (packet.records.some((record) => record.status === "confirmed")) {
     suggestions.push("Suggest `/feedback-status in_progress` after human review approves the implementation start.");
   }
+  if (packet.records.some((record) => record.status === "fawxzzy_review")) {
+    suggestions.push("Manual Fawxzzy review is active on this packet before implementation, closing, or public release.");
+  }
 
   suggestions.push("Suggest `/feedback-status fixed` after the implementation is shipped and verified.");
   return suggestions;
@@ -642,6 +679,7 @@ export function finalizePacket(packet, args, decisionMap = new Map()) {
       reportId: record.id,
       shortId: record.shortId,
       headerLabel: record.cardSections.headerLabel,
+      statusLabel: record.cardSections.statusLabel,
       title: record.cardSections.title,
       problem: record.cardSections.problem,
       expectedBehavior: record.cardSections.expectedBehavior,
@@ -821,7 +859,7 @@ export function renderPacketMarkdown(result) {
       if (packet.cardSections.length > 0) {
         lines.push("Card sections:");
         for (const section of packet.cardSections) {
-          lines.push(`- ${section.shortId} | ${section.headerLabel}`);
+          lines.push(`- ${section.shortId} | ${section.headerLabel} | ${section.statusLabel}`);
           if (section.userStory) {
             lines.push(`  User Story: ${section.userStory}`);
           }
@@ -932,7 +970,7 @@ export function renderCodexPrompts(result) {
       lines.push("Card sections");
       lines.push("");
       for (const section of packet.cardSections) {
-        lines.push(`- ${section.shortId} | ${section.headerLabel}`);
+        lines.push(`- ${section.shortId} | ${section.headerLabel} | ${section.statusLabel}`);
         if (section.userStory) {
           lines.push(`  User Story: ${section.userStory}`);
         }

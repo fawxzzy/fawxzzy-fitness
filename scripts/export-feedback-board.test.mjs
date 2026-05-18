@@ -97,6 +97,7 @@ function createMockClient(rows) {
 test("feature fixed displays Completed while bug fixed stays Fixed", () => {
   assert.equal(formatDisplayStatusLabel("feature", "fixed"), "Completed");
   assert.equal(formatDisplayStatusLabel("bug", "fixed"), "Fixed");
+  assert.equal(formatDisplayStatusLabel("bug", "fawxzzy_review"), "Ready for Fawxzzy Review");
 });
 
 test("board export parseArgs defaults to writing markdown and json", () => {
@@ -164,7 +165,7 @@ test("board markdown groups cards by status and separates bugs from features", (
   const markdown = renderBoardMarkdown([
     toBoardRecord(buildRow({
       report_type: "bug",
-      status: "confirmed",
+      status: "fawxzzy_review",
       area: "Account",
       summary: "Copy button does not work",
     })),
@@ -178,7 +179,7 @@ test("board markdown groups cards by status and separates bugs from features", (
   ]);
 
   assert.match(markdown, /## Bugs/);
-  assert.match(markdown, /### Confirmed/);
+  assert.match(markdown, /### Ready for Fawxzzy Review/);
   assert.match(markdown, /\[11111111\] Account — Copy button does not work/);
   assert.match(markdown, /## Features/);
   assert.match(markdown, /### Completed/);
@@ -226,7 +227,7 @@ test("board export includes duplicates only with --include-duplicates", async ()
 test("codex draft output includes the draft-only warning", () => {
   const drafts = renderCodexDrafts([
     toBoardRecord(buildRow({
-      status: "confirmed",
+      status: "fawxzzy_review",
       report_type: "feature",
       area: "Feedback",
       summary: "Add reaction option",

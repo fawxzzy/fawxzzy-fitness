@@ -86,12 +86,55 @@ export type DiscordGuildEmoji = {
 };
 
 export type DiscordApplicationEmoji = DiscordGuildEmoji;
+export type DiscordReactionEmojiInput =
+  | string
+  | {
+    id?: string | null;
+    name?: string | null;
+    animated?: boolean | null;
+  };
+
+export const DISCORD_RESOLVED_REACTION_EMOJI = String.fromCodePoint(0x2705);
 
 type DiscordChannelPermissionOverwrite = {
   allow: string;
   deny: string;
   type: 0 | 1;
 };
+
+function normalizeDiscordReactionEmojiName(value: string): string | null {
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+export function formatDiscordReactionEmojiIdentifier(emoji: DiscordReactionEmojiInput): string | null {
+  if (typeof emoji === "string") {
+    const normalized = emoji.trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const customMatch = normalized.match(/^<(a?):([A-Za-z0-9_]+):(\d+)>$/);
+    if (customMatch) {
+      return `${customMatch[2]}:${customMatch[3]}`;
+    }
+
+    const customParts = normalized.match(/^([A-Za-z0-9_]+):(\d+)$/);
+    if (customParts) {
+      return `${customParts[1]}:${customParts[2]}`;
+    }
+
+    return normalized;
+  }
+
+  const id = typeof emoji.id === "string" ? emoji.id.trim() : "";
+  const name = typeof emoji.name === "string" ? normalizeDiscordReactionEmojiName(emoji.name) : null;
+  if (!id || !name) {
+    return null;
+  }
+
+  return `${name}:${id}`;
+}
 
 async function parseDiscordJson(response: Response): Promise<unknown> {
   const responseText = await response.text();
@@ -418,9 +461,9 @@ export async function updateDiscordChannelPermissionOverwrite(args: {
 export async function createDiscordMessageReaction(args: {
   channelId: string;
   messageId: string;
-  emoji: string;
+  emoji: DiscordReactionEmojiInput;
 }): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
-  const emoji = String(args.emoji ?? "").trim();
+  const emoji = formatDiscordReactionEmojiIdentifier(args.emoji);
   if (!emoji) {
     return {
       ok: false,

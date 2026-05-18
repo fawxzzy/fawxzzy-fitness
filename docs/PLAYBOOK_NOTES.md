@@ -39,6 +39,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: scripts/discord-server-inventory.mjs, scripts/discord-noise-audit.mjs, scripts/discord-noise-apply.mjs, src/lib/discord/server-inventory.ts
 - Status: Proposed
 
+## 2026-05-18 - Fawxzzy Review is an optional owner-review gate, not a universal workflow step
+- Type: Guardrail
+- Summary: Some feedback cards need manual Fawxzzy review before work continues, but most cards should move through the normal board flow without extra owner review.
+- Rule: Owner review is optional and intentional, not mandatory overhead.
+- Pattern: confirmed card -> optional Fawxzzy Review -> in progress -> fixed/completed.
+- Failure Mode: Requiring owner review for every card slows the feedback-to-Codex loop and turns a lightweight board into bureaucracy.
+- Status: Proposed
+
 ## 2026-05-17 - Shipped feedback cards need a distinct updates-channel promotion format
 - Type: Pattern
 - Summary: When a specific Discord feedback card ships and should be announced publicly, the updates-channel post should use a short `Update:` card-promotion format instead of the broad `@everyone` release-summary template.
