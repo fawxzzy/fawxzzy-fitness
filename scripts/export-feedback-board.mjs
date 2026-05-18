@@ -94,6 +94,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     area: null,
     limit: DEFAULT_LIMIT,
     includeDuplicates: false,
+    includeTesting: false,
     debug: false,
     writeMarkdown: true,
     writeJson: true,
@@ -147,6 +148,11 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
     if (token === "--include-duplicates") {
       args.includeDuplicates = true;
+      continue;
+    }
+
+    if (token === "--include-testing") {
+      args.includeTesting = true;
       continue;
     }
 
@@ -428,6 +434,15 @@ export function filterBoardRows(rows, args) {
     }
 
     if (areaFilter && String(row.area ?? "").trim().toLowerCase() !== areaFilter) {
+      return false;
+    }
+
+    if (!args.includeTesting && feedbackHelpers.isDiscordFeedbackTestingCard({
+      discord_forum_channel_id: typeof row.discord_forum_channel_id === "string" ? row.discord_forum_channel_id : null,
+      area: typeof row.area === "string" ? row.area : null,
+      summary: typeof row.summary === "string" ? row.summary : "",
+      details: typeof row.details === "string" ? row.details : null,
+    })) {
       return false;
     }
 

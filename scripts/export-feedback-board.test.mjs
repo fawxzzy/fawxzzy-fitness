@@ -240,6 +240,41 @@ test("board export includes duplicates only with --include-duplicates", async ()
   assert.deepEqual(result.records.map((record) => record.id), ["a", "d"]);
 });
 
+test("board export excludes testing canaries by default and includes them with --include-testing", async () => {
+  const rows = [
+    buildRow({ id: "public-card", status: "new", area: "Account", summary: "Real public card" }),
+    buildRow({
+      id: "testing-card",
+      status: "new",
+      area: "Feedback Testing",
+      summary: "Canary: private testing card",
+      discord_forum_channel_id: "1505827424766660780",
+    }),
+  ];
+
+  const withoutTesting = await exportFeedbackBoard({
+    client: createMockClient(rows),
+    args: {
+      ...parseArgs([]),
+      writeMarkdown: false,
+      writeJson: false,
+    },
+  });
+
+  assert.deepEqual(withoutTesting.records.map((record) => record.id), ["public-card"]);
+
+  const withTesting = await exportFeedbackBoard({
+    client: createMockClient(rows),
+    args: {
+      ...parseArgs(["--include-testing"]),
+      writeMarkdown: false,
+      writeJson: false,
+    },
+  });
+
+  assert.deepEqual(withTesting.records.map((record) => record.id), ["public-card", "testing-card"]);
+});
+
 test("codex draft output includes the draft-only warning", () => {
   const drafts = renderCodexDrafts([
     toBoardRecord(buildRow({
