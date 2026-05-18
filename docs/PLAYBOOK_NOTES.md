@@ -1,6 +1,25 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-05-18 - Completed Fitness feedback cards need post-completion review
+- Type: Guardrail
+- Summary: Fitness app cards marked Fixed or Completed should enter a post-completion review queue so shipped work is checked against card acceptance criteria before being treated as fully closed.
+- Rule: Completion Review is required after Fitness app work is marked done.
+- Rule: Ready for Fawxzzy Review is optional before work starts.
+- Pattern: implementation shipped -> card fixed/completed -> completion review queue -> approved or follow-up.
+- Failure Mode: Marking cards complete without post-completion review lets partial fixes look done and weakens the feedback-to-Codex loop.
+- Status: Proposed
+
+## 2026-05-18 - Discord message content access should stay explicit and scoped
+- Type: Guardrail
+- Summary: Fawx Security can now read message bodies, but that access should only be used for documented ops lanes, moderation, support, collaborator workflows, and explicit workflow capture.
+- Rule: Message content access is scoped operational capability, not broad invisible surveillance.
+- Rule: Administrator permissions and `MESSAGE_CONTENT` visibility are different controls and should be diagnosed separately.
+- Pattern: documented channel or workflow -> bot reads relevant messages -> creates cleaned summary, moderation action, or workflow spec -> stores reviewed output.
+- Failure Mode: using message content broadly without a documented lane makes the bot feel invasive and creates trust risk.
+- Evidence: ATLAS docs/PLAYBOOK_NOTES.md, docs/ops/FITNESS-DISCORD-VERIFICATION.md
+- Status: Proposed
+
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
 - Type: Guardrail
 - Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.
@@ -37,22 +56,6 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: server inventory -> noise audit -> conservative apply recommendations -> reviewed permission changes.
 - Failure Mode: claiming the bot can mute channels for users creates false expectations and hides the real permission model.
 - Evidence: scripts/discord-server-inventory.mjs, scripts/discord-noise-audit.mjs, scripts/discord-noise-apply.mjs, src/lib/discord/server-inventory.ts
-- Status: Proposed
-
-## 2026-05-18 - Fawxzzy Review is an optional owner-review gate, not a universal workflow step
-- Type: Guardrail
-- Summary: Some feedback cards need manual Fawxzzy review before work continues, but most cards should move through the normal board flow without extra owner review.
-- Rule: Owner review is optional and intentional, not mandatory overhead.
-- Pattern: confirmed card -> optional Fawxzzy Review -> in progress -> fixed/completed.
-- Failure Mode: Requiring owner review for every card slows the feedback-to-Codex loop and turns a lightweight board into bureaucracy.
-- Status: Proposed
-
-## 2026-05-18 - Public feedback is for real cards, private testing is for canaries
-- Type: Guardrail
-- Summary: The public Feedback forum should stay user-clean while bot canaries and workflow QA live in a private testing forum.
-- Rule: Public Feedback is for real community cards; private Testing is for canaries.
-- Pattern: canary cards live in Testing -> public board stays clean -> reviewed exports stay meaningful.
-- Failure Mode: Testing on the public board pollutes planning signals and makes the community board noisy.
 - Status: Proposed
 
 ## 2026-05-17 - Shipped feedback cards need a distinct updates-channel promotion format
@@ -297,4 +300,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Every moderation action needs a case record and release path.
 - Pattern: notice/warning -> logged case -> Purgatory if needed -> release/restore.
 - Failure Mode: Silent bans or destructive moderation actions create drama and make recovery harder.
+- Status: Proposed
+
+## 2026-05-17 - Verify channels should be locked bot-owned access panels
+- Type: Guardrail
+- Summary: Discord verification channels should contain one clean bot-owned access panel, not manual notes, user messages, or support threads.
+- Rule: `#verify` is for access, not discussion.
+- Pattern: locked channel -> Fawx Security verify/rules panel -> verification button -> role grant.
+- Failure Mode: Letting users create messages or threads in `#verify` turns access setup into clutter and makes the server feel unpolished.
 - Status: Proposed

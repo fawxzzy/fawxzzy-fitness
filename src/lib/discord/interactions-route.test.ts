@@ -62,6 +62,10 @@ function buildFeedbackReportRow(overrides = {}) {
     status_updated_at: null,
     status_updated_by_discord_user_id: null,
     status_note: null,
+    completion_review_status: "not_required",
+    completion_reviewed_at: null,
+    completion_reviewed_by_discord_user_id: null,
+    completion_review_note: null,
     reporter_mentioned_at: "2026-05-15T13:00:00.000Z",
     created_at: "2026-05-15T13:00:00.000Z",
     updated_at: "2026-05-15T13:00:00.000Z",
@@ -179,10 +183,215 @@ test("Discord interactions route recreates the verify message when setup-verify 
       },
     });
     assert.equal(observedDiscordBodies.length, 1);
+    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Fawxzzy Server Access");
+    assert.equal(String(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "").includes("### Server Rules"), true);
     assert.equal(observedDiscordBodies[0]?.components?.[0]?.components?.[0]?.custom_id, "fitness_verify_open");
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_VERIFY_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route cleans up #verify while preserving one official panel", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504700208251146372";
+
+  const originalFetch = globalThis.fetch;
+  const deletedMessagePaths = [];
+  const deletedThreadPaths = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504700208251146372/messages"
+      && method === "GET"
+    ) {
+      return new Response(JSON.stringify([
+        {
+          id: "official-panel",
+          author: { id: "1504700208251146371" },
+          components: [{ type: 1, components: [{ type: 2, custom_id: "fitness_verify_open" }] }],
+        },
+        {
+          id: "manual-note",
+          author: { id: "222222222222222222" },
+          components: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504700208251146372/messages/official-panel"
+      && method === "PATCH"
+    ) {
+      return new Response(JSON.stringify({ id: "official-panel" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504700208251146372/messages/manual-note"
+      && method === "DELETE"
+    ) {
+      deletedMessagePaths.push(url.pathname);
+      return new Response(null, { status: 204 });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/guilds/1504668396338413670/threads/active"
+      && method === "GET"
+    ) {
+      return new Response(JSON.stringify({
+        threads: [{ id: "verify-thread", parent_id: "1504700208251146372" }],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504700208251146372/threads/archived/public"
+      && method === "GET"
+    ) {
+      return new Response(JSON.stringify({ threads: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504700208251146372/threads/archived/private"
+      && method === "GET"
+    ) {
+      return new Response(JSON.stringify({ threads: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/verify-thread"
+      && method === "DELETE"
+    ) {
+      deletedThreadPaths.push(url.pathname);
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "verify-cleanup",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Verify channel cleaned. Removed 1 message(s) and 1 thread(s). Official panel updated.",
+        flags: 64,
+      },
+    });
+    assert.deepEqual(deletedMessagePaths, ["/api/v10/channels/1504700208251146372/messages/manual-note"]);
+    assert.deepEqual(deletedThreadPaths, ["/api/v10/channels/verify-thread"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_VERIFY_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route applies locked #verify permission overwrites", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504700208251146372";
+  process.env.DISCORD_VERIFIED_ROLE_ID = "1504700208251146373";
+  process.env.DISCORD_UNVERIFIED_ROLE_ID = "1504700208251146374";
+
+  const originalFetch = globalThis.fetch;
+  const overwriteBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname.startsWith("/api/v10/channels/1504700208251146372/permissions/")
+      && method === "PUT"
+    ) {
+      overwriteBodies.push(body);
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "verify-lockdown",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Verify channel locked down. Applied 3 permission overwrite(s) for the access panel.",
+        flags: 64,
+      },
+    });
+    assert.equal(overwriteBodies.length, 3);
+    assert.equal(typeof overwriteBodies[0]?.allow, "string");
+    assert.equal(typeof overwriteBodies[0]?.deny, "string");
+    assert.equal(overwriteBodies[0]?.type, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_VERIFY_CHANNEL_ID;
+    delete process.env.DISCORD_VERIFIED_ROLE_ID;
+    delete process.env.DISCORD_UNVERIFIED_ROLE_ID;
   }
 });
 
@@ -280,115 +489,6 @@ test("Discord interactions route updates an existing feedback panel when setup-f
         "fitness_feedback_update_open",
       ],
     );
-  } finally {
-    globalThis.fetch = originalFetch;
-    delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
-  }
-});
-
-test("Discord interactions route cleans duplicate feedback launcher messages on setup-feedback", async () => {
-  const keyPair = nacl.sign.keyPair();
-  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
-  process.env.DISCORD_GUILD_ID = "1504668396338413670";
-  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
-  process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
-
-  const originalFetch = globalThis.fetch;
-  const deletedMessageIds = [];
-
-  globalThis.fetch = async (input, init) => {
-    const url = new URL(String(input));
-    const method = String(init?.method ?? "GET");
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
-      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562744/messages"
-      && method === "GET"
-      && url.searchParams.get("limit") === "50"
-    ) {
-      return new Response(JSON.stringify([
-        {
-          id: "1504673475489562747",
-          author: { id: "1504700208251146371" },
-          components: [
-            { type: 1, components: [
-              { type: 2, custom_id: "fitness_feedback_submit_open" },
-              { type: 2, custom_id: "fitness_feedback_update_open" },
-            ] },
-          ],
-        },
-        {
-          id: "1504673475489562755",
-          author: { id: "1504700208251146371" },
-          components: [
-            { type: 1, components: [
-              { type: 2, custom_id: "fitness_feedback_submit_open" },
-              { type: 2, custom_id: "fitness_feedback_update_open" },
-            ] },
-          ],
-        },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562747"
-      && method === "PATCH"
-    ) {
-      return new Response(JSON.stringify({ id: "1504673475489562747" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562755"
-      && method === "DELETE"
-    ) {
-      deletedMessageIds.push("1504673475489562755");
-      return new Response(null, { status: 204 });
-    }
-
-    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
-  };
-
-  try {
-    const response = await POST(createSignedRequest(JSON.stringify({
-      type: 2,
-      guild_id: "1504668396338413670",
-      member: {
-        permissions: String(BigInt(1) << BigInt(5)),
-        user: {
-          id: "222222222222222222",
-          username: "staffer",
-        },
-      },
-      data: {
-        name: "setup-feedback",
-      },
-    }), keyPair));
-
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      type: 4,
-      data: {
-        content: "Feedback launcher updated in configured channel. Removed 1 stale panel item.",
-        flags: 64,
-      },
-    });
-    assert.deepEqual(deletedMessageIds, ["1504673475489562755"]);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
@@ -629,203 +729,6 @@ test("Discord interactions route can create the submit-feedback launcher channel
   }
 });
 
-test("Discord interactions route cleans duplicate verify messages on setup-verify", async () => {
-  const keyPair = nacl.sign.keyPair();
-  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
-  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
-  process.env.DISCORD_VERIFY_CHANNEL_ID = "1504668700000000000";
-
-  const originalFetch = globalThis.fetch;
-  const deletedMessageIds = [];
-
-  globalThis.fetch = async (input, init) => {
-    const url = new URL(String(input));
-    const method = String(init?.method ?? "GET");
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504668700000000000/messages"
-      && method === "GET"
-      && url.searchParams.get("limit") === "50"
-    ) {
-      return new Response(JSON.stringify([
-        {
-          id: "1504668700000000100",
-          author: { id: "1504700208251146371" },
-          components: [
-            { type: 1, components: [{ type: 2, custom_id: "fitness_verify_open" }] },
-          ],
-        },
-        {
-          id: "1504668700000000101",
-          author: { id: "1504700208251146371" },
-          components: [
-            { type: 1, components: [{ type: 2, custom_id: "fitness_verify_open" }] },
-          ],
-        },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504668700000000000/messages/1504668700000000100"
-      && method === "PATCH"
-    ) {
-      return new Response(JSON.stringify({ id: "1504668700000000100" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504668700000000000/messages/1504668700000000101"
-      && method === "DELETE"
-    ) {
-      deletedMessageIds.push("1504668700000000101");
-      return new Response(null, { status: 204 });
-    }
-
-    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
-  };
-
-  try {
-    const response = await POST(createSignedRequest(JSON.stringify({
-      type: 2,
-      guild_id: "1504668396338413670",
-      member: {
-        permissions: String(BigInt(1) << BigInt(5)),
-        user: {
-          id: "222222222222222222",
-          username: "staffer",
-        },
-      },
-      data: {
-        name: "setup-verify",
-      },
-    }), keyPair));
-
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      type: 4,
-      data: {
-        content: "Verification message updated in the configured verify channel. Removed 1 stale panel item.",
-        flags: 64,
-      },
-    });
-    assert.deepEqual(deletedMessageIds, ["1504668700000000101"]);
-  } finally {
-    globalThis.fetch = originalFetch;
-    delete process.env.DISCORD_VERIFY_CHANNEL_ID;
-  }
-});
-
-test("Discord interactions route cleans duplicate feedback launcher threads when the panel lives in a forum", async () => {
-  const keyPair = nacl.sign.keyPair();
-  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
-  process.env.DISCORD_GUILD_ID = "1504668396338413670";
-  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
-  process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
-
-  const originalFetch = globalThis.fetch;
-  const deletedThreadIds = [];
-
-  globalThis.fetch = async (input, init) => {
-    const url = new URL(String(input));
-    const method = String(init?.method ?? "GET");
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
-      return new Response(JSON.stringify({ id: "1504673475489562744", type: 15 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/guilds/1504668396338413670/threads/active"
-      && method === "GET"
-    ) {
-      return new Response(JSON.stringify({
-        threads: [
-          {
-            id: "1504673475489562745",
-            parent_id: "1504673475489562744",
-            owner_id: "1504700208251146371",
-            name: "Fawxzzy Feedback",
-          },
-          {
-            id: "1504673475489562748",
-            parent_id: "1504673475489562744",
-            owner_id: "1504700208251146371",
-            name: "Fawxzzy Feedback",
-          },
-        ],
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562745"
-      && method === "PATCH"
-    ) {
-      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562748"
-      && method === "DELETE"
-    ) {
-      deletedThreadIds.push("1504673475489562748");
-      return new Response(null, { status: 204 });
-    }
-
-    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
-  };
-
-  try {
-    const response = await POST(createSignedRequest(JSON.stringify({
-      type: 2,
-      guild_id: "1504668396338413670",
-      member: {
-        permissions: String(BigInt(1) << BigInt(5)),
-        user: {
-          id: "222222222222222222",
-          username: "staffer",
-        },
-      },
-      data: {
-        name: "setup-feedback",
-      },
-    }), keyPair));
-
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      type: 4,
-      data: {
-        content: "Feedback launcher updated in configured channel. Removed 1 stale panel item.",
-        flags: 64,
-      },
-    });
-    assert.deepEqual(deletedThreadIds, ["1504673475489562748"]);
-  } finally {
-    globalThis.fetch = originalFetch;
-    delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
-  }
-});
-
 test("Discord interactions route opens the submit feedback panel modal", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
@@ -841,27 +744,6 @@ test("Discord interactions route opens the submit feedback panel modal", async (
   const payload = await response.json();
   assert.equal(payload.type, 9);
   assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
-});
-
-test("Discord interactions route returns a clean fallback for outdated feedback launcher buttons", async () => {
-  const keyPair = nacl.sign.keyPair();
-  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-
-  const response = await POST(createSignedRequest(JSON.stringify({
-    type: 3,
-    data: {
-      custom_id: "fitness_feedback_withdraw_open",
-    },
-  }), keyPair));
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    type: 4,
-    data: {
-      content: "This feedback panel is outdated. Ask staff to run /setup-feedback.",
-      flags: 64,
-    },
-  });
 });
 
 test("Discord interactions route opens the update feedback picker for recent editable cards", async () => {
@@ -2269,133 +2151,6 @@ test("Discord interactions route syncs feature feedback-status into Supabase and
   }
 });
 
-test("Discord interactions route accepts the optional Fawxzzy review status", async () => {
-  const keyPair = nacl.sign.keyPair();
-  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
-  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
-  process.env.DISCORD_GUILD_ID = "1504668396338413670";
-  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
-
-  const originalFetch = globalThis.fetch;
-  const observedDiscordBodies = [];
-  const observedSupabaseWrites = [];
-
-  globalThis.fetch = async (input, init) => {
-    const url = new URL(String(input));
-    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
-
-    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
-      return new Response(JSON.stringify(buildFeedbackReportRow({
-        status: "confirmed",
-        discord_forum_applied_tag_ids: ["tag-bug", "tag-confirmed", "tag-medium"],
-      })), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
-      observedSupabaseWrites.push(body);
-      if (observedSupabaseWrites.length === 1) {
-        return new Response(JSON.stringify(buildFeedbackReportRow({
-          status: "fawxzzy_review",
-          status_updated_at: "2026-05-18T14:00:00.000Z",
-          status_updated_by_discord_user_id: "222222222222222222",
-          status_note: "Selected for manual owner review.",
-        })), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
-      return new Response(JSON.stringify({
-        id: "1504673475489562744",
-        available_tags: [
-          { id: "tag-bug", name: "Bug" },
-          { id: "tag-review", name: "Fawxzzy Review" },
-          { id: "tag-medium", name: "Medium" },
-        ],
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
-      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
-      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
-      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
-      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
-      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
-      return new Response(JSON.stringify({ id: "discord-message-review" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
-  };
-
-  try {
-    const response = await POST(createSignedRequest(JSON.stringify({
-      type: 2,
-      guild_id: "1504668396338413670",
-      member: {
-        permissions: String(BigInt(1) << BigInt(3)),
-        user: {
-          id: "222222222222222222",
-          username: "staffer",
-        },
-      },
-      data: {
-        name: "feedback-status",
-        options: [
-          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
-          { type: 3, name: "status", value: "fawxzzy_review" },
-          { type: 3, name: "note", value: "Selected for manual owner review." },
-        ],
-      },
-    }), keyPair));
-
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      type: 4,
-      data: {
-        content: "Feedback updated.\nStatus: Ready for Fawxzzy Review",
-        flags: 64,
-      },
-    });
-    assert.equal(observedSupabaseWrites[0]?.status, "fawxzzy_review");
-    assert.deepEqual(observedSupabaseWrites[1]?.discord_forum_applied_tag_ids, ["tag-bug", "tag-review", "tag-medium"]);
-    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
-    assert.match(auditReply?.body?.content ?? "", /Status: Confirmed -> Ready for Fawxzzy Review/);
-  } finally {
-    globalThis.fetch = originalFetch;
-    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
-  }
-});
-
 test("Discord interactions route lets the reporter edit the live feedback card from the panel flow", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
@@ -2921,7 +2676,13 @@ test("Discord interactions route archives duplicate feedback threads after staff
         });
       }
 
-      return new Response(JSON.stringify([]), {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "duplicate",
+        status_updated_at: "2026-05-15T14:00:00.000Z",
+        status_updated_by_discord_user_id: "222222222222222222",
+        status_note: "Matches existing login report.",
+        completion_review_status: "not_required",
+      })), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -3023,6 +2784,7 @@ test("Discord interactions route adds a resolved checkmark to the starter messag
 
   const originalFetch = globalThis.fetch;
   const observedDiscordBodies = [];
+  const observedSupabaseWrites = [];
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
@@ -3043,6 +2805,8 @@ test("Discord interactions route adds a resolved checkmark to the starter messag
     }
 
     if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      observedSupabaseWrites.push(body);
+      if (observedSupabaseWrites.length === 1) {
       return new Response(JSON.stringify(buildFeedbackReportRow({
         report_type: "feature",
         status: "fixed",
@@ -3051,6 +2815,22 @@ test("Discord interactions route adds a resolved checkmark to the starter messag
         status_updated_at: "2026-05-15T14:00:00.000Z",
         status_updated_by_discord_user_id: "222222222222222222",
         status_note: "Shipped in the latest deploy.",
+        completion_review_status: "not_required",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        status: "fixed",
+        area: "Routines",
+        summary: "Let me share a routine",
+        status_updated_at: "2026-05-15T14:00:00.000Z",
+        status_updated_by_discord_user_id: "222222222222222222",
+        status_note: "Shipped in the latest deploy.",
+        completion_review_status: "pending",
       })), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -3132,9 +2912,12 @@ test("Discord interactions route adds a resolved checkmark to the starter messag
         flags: 64,
       },
     });
+    assert.equal(observedSupabaseWrites[0]?.status, "fixed");
+    assert.equal(observedSupabaseWrites[1]?.completion_review_status, "pending");
     const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
     assert.match(auditReply?.body?.content ?? "", /Marked resolved by Fawx Security\./);
     assert.match(auditReply?.body?.content ?? "", /Status: Confirmed -> Completed/);
+    assert.match(auditReply?.body?.content ?? "", /Completion Review: Pending Fawxzzy review\./);
     assert.equal(
       observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/%E2%9C%85/@me") && entry.method === "PUT"),
       true,
@@ -3156,6 +2939,7 @@ test("Discord interactions route keeps fixed status updates successful when the 
 
   const originalFetch = globalThis.fetch;
   const observedDiscordBodies = [];
+  const observedSupabaseWrites = [];
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
@@ -3171,12 +2955,28 @@ test("Discord interactions route keeps fixed status updates successful when the 
     }
 
     if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      observedSupabaseWrites.push(body);
+      if (observedSupabaseWrites.length === 1) {
       return new Response(JSON.stringify(buildFeedbackReportRow({
         status: "fixed",
         discord_forum_message_id: null,
         status_updated_at: "2026-05-15T14:00:00.000Z",
         status_updated_by_discord_user_id: "222222222222222222",
         status_note: body?.status_note ?? null,
+        completion_review_status: "not_required",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "fixed",
+        discord_forum_message_id: null,
+        status_updated_at: "2026-05-15T14:00:00.000Z",
+        status_updated_by_discord_user_id: "222222222222222222",
+        status_note: body?.status_note ?? null,
+        completion_review_status: "pending",
       })), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -3252,13 +3052,347 @@ test("Discord interactions route keeps fixed status updates successful when the 
         flags: 64,
       },
     });
+    assert.equal(observedSupabaseWrites[1]?.completion_review_status, "pending");
     const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
     assert.match(auditReply?.body?.content ?? "", /Marked resolved by Fawx Security\./);
     assert.match(auditReply?.body?.content ?? "", /Status: New -> Fixed/);
+    assert.match(auditReply?.body?.content ?? "", /Completion Review: Pending Fawxzzy review\./);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
   }
+});
+
+test("Discord interactions route does not require completion review for testing canary cards", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+  process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID = "1505827424766660780";
+
+  const originalFetch = globalThis.fetch;
+  const observedSupabaseWrites = [];
+  const observedDiscordBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        status: "confirmed",
+        area: "Discord Feedback Qa",
+        summary: "Canonical Discord feedback canary",
+        details: "Internal reusable test fixture for bot-run Discord feedback verification.",
+        discord_forum_channel_id: "1505827424766660780",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      observedSupabaseWrites.push(body);
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        status: "fixed",
+        area: "Discord Feedback Qa",
+        summary: "Canonical Discord feedback canary",
+        details: "Internal reusable test fixture for bot-run Discord feedback verification.",
+        discord_forum_channel_id: "1505827424766660780",
+        completion_review_status: "not_required",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1505827424766660780") {
+      return new Response(JSON.stringify({
+        id: "1505827424766660780",
+        available_tags: [
+          { id: "tag-feature", name: "Feature" },
+          { id: "tag-fixed", name: "Fixed" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745") {
+      observedDiscordBodies.push({ path: url.pathname, method: String(init?.method ?? "GET"), body });
+      return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PATCH", body });
+      return new Response(JSON.stringify({ id: "1504673475489562746" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-fixed-testing" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(3)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "feedback-status",
+        options: [
+          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          { type: 3, name: "status", value: "fixed" },
+          { type: 3, name: "note", value: "Canary complete." },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.equal(observedSupabaseWrites.some((entry) => entry?.completion_review_status === "pending"), false);
+    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
+    assert.doesNotMatch(auditReply?.body?.content ?? "", /Completion Review:/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+    delete process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route approves completion review for finished feedback", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const originalFetch = globalThis.fetch;
+  const observedSupabaseWrites = [];
+  const observedDiscordBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "fixed",
+        completion_review_status: "pending",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      observedSupabaseWrites.push(body);
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "fixed",
+        completion_review_status: "approved",
+        completion_review_note: "Matches shipped acceptance criteria.",
+        completion_reviewed_by_discord_user_id: "222222222222222222",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-review-approved" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(3)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "feedback-completion-review",
+        options: [
+          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          { type: 3, name: "decision", value: "approved" },
+          { type: 3, name: "note", value: "Matches shipped acceptance criteria." },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Completion review updated. Status: Approved.",
+        flags: 64,
+      },
+    });
+    assert.equal(observedSupabaseWrites[0]?.completion_review_status, "approved");
+    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
+    assert.match(auditReply?.body?.content ?? "", /Completion Review approved by Fawx Security\./);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route marks completion review needs follow-up for finished feedback", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        status: "fixed",
+        completion_review_status: "pending",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        report_type: "feature",
+        status: "fixed",
+        completion_review_status: "needs_followup",
+        completion_review_note: "Needs one more Today-view check.",
+        completion_reviewed_by_discord_user_id: "222222222222222222",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-review-followup" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(3)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "feedback-completion-review",
+        options: [
+          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          { type: 3, name: "decision", value: "needs_followup" },
+          { type: 3, name: "note", value: "Needs one more Today-view check." },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Completion review updated. Status: Needs Follow-Up.",
+        flags: 64,
+      },
+    });
+    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
+    assert.match(auditReply?.body?.content ?? "", /Completion Review needs follow-up\./);
+    assert.match(auditReply?.body?.content ?? "", /Note: Needs one more Today-view check\./);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route rejects completion review for users without staff permissions", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+
+  const response = await POST(createSignedRequest(JSON.stringify({
+    type: 2,
+    guild_id: "1504668396338413670",
+    member: {
+      permissions: "0",
+      user: {
+        id: "123456789012345678",
+        username: "zac",
+      },
+    },
+    data: {
+      name: "feedback-completion-review",
+      options: [
+        { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+        { type: 3, name: "decision", value: "approved" },
+      ],
+    },
+  }), keyPair));
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    type: 4,
+    data: {
+      content: "You do not have permission to review completed feedback.",
+      flags: 64,
+    },
+  });
 });
 
 test("Discord interactions route rejects feedback-withdraw for non-reporters without staff permissions", async () => {

@@ -15,14 +15,13 @@ export const DEFAULT_JSON_OUT = "latest.json";
 export const DEFAULT_PROMPTS_OUT = "codex-prompts.md";
 export const DEFAULT_DECISIONS_EXAMPLE_OUT = "review-decisions.example.json";
 
-export const DEFAULT_STATUSES = ["confirmed", "fawxzzy_review", "in_progress"];
+export const DEFAULT_STATUSES = ["confirmed", "in_progress"];
 export const DEFAULT_TYPES = ["bug", "feature"];
 export const EXCLUDED_BY_DEFAULT = ["withdrawn", "spam", "duplicate", "closed", "fixed"];
 export const VALID_STATUSES = new Set([
   "new",
   "needs_info",
   "confirmed",
-  "fawxzzy_review",
   "in_progress",
   "fixed",
   "closed",
@@ -131,37 +130,6 @@ function normalizeDecision(value) {
   return VALID_DECISIONS.has(normalized) ? normalized : null;
 }
 
-function formatPacketStatusLabel(reportType, status) {
-  if (reportType === "feature" && status === "fixed") {
-    return "Completed";
-  }
-
-  switch (status) {
-    case "new":
-      return "New";
-    case "needs_info":
-      return "Needs Info";
-    case "confirmed":
-      return "Confirmed";
-    case "fawxzzy_review":
-      return "Ready for Fawxzzy Review";
-    case "in_progress":
-      return "In Progress";
-    case "fixed":
-      return "Fixed";
-    case "closed":
-      return "Closed";
-    case "duplicate":
-      return "Duplicate";
-    case "spam":
-      return "Spam";
-    case "withdrawn":
-      return "Withdrawn";
-    default:
-      return "Confirmed";
-  }
-}
-
 function toAbsoluteRepoPath(target) {
   return path.isAbsolute(target) ? target : path.join(repoRoot, target);
 }
@@ -247,6 +215,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     area: null,
     limit: DEFAULT_LIMIT,
     codexPrompts: false,
+    includeCompletedReview: false,
     debug: false,
     decisions: null,
   };
@@ -305,6 +274,11 @@ export function parseArgs(argv = process.argv.slice(2)) {
       continue;
     }
 
+    if (token === "--include-completed-review") {
+      args.includeCompletedReview = true;
+      continue;
+    }
+
     if (token === "--out") {
       args.outDir = toAbsoluteRepoPath(argv[index + 1] ?? DEFAULT_OUT_DIR);
       index += 1;
@@ -348,10 +322,12 @@ function normalizeBoardRecord(input, index) {
   const attachmentCount = Math.max(0, Number(input.attachment_count ?? 0));
   const forumThreadLink = typeof input.forum_thread_link === "string" ? input.forum_thread_link.trim() : null;
   const tokens = tokenizeTopic(`${title} ${description ?? ""}`);
+  const completionReviewStatus = typeof input.completion_review_status === "string"
+    ? input.completion_review_status.trim().toLowerCase()
+    : "not_required";
   const cardSections = input?.card_sections && typeof input.card_sections === "object"
     ? {
       headerLabel: clipped(input.card_sections.header_label, 80),
-      statusLabel: formatPacketStatusLabel(reportType, status),
       title: clipped(input.card_sections.title, 160),
       problem: clipped(input.card_sections.problem, 400),
       expectedBehavior: clipped(input.card_sections.expected_behavior, 300),
@@ -368,7 +344,6 @@ function normalizeBoardRecord(input, index) {
     }
     : {
       headerLabel: reportType === "feature" ? "Feature Request" : "Bug Report",
-      statusLabel: formatPacketStatusLabel(reportType, status),
       title,
       problem: reportType === "bug" ? description : null,
       expectedBehavior: null,
@@ -392,10 +367,20 @@ function normalizeBoardRecord(input, index) {
     attachmentCount,
     forumThreadLink: forumThreadLink || null,
     lastSeenAt: typeof input.last_seen_at === "string" ? input.last_seen_at : null,
+    completionReviewStatus,
+    completionReviewRequired: Boolean(input.completion_review_required),
+    completionReviewNote: clipped(input.completion_review_note ?? input.latest_update_summary ?? "", 240),
+    completionReviewedAt: clipped(input.completion_reviewed_at, 80),
     cardSections,
     debugReporterDiscordUserId: typeof input.reporter_discord_user_id === "string" ? input.reporter_discord_user_id : null,
     topicTokens: tokens,
   };
+}
+
+function isCompletionReviewRecord(record) {
+  return (record.status === "fixed" || record.status === "closed")
+    && (record.completionReviewStatus === "pending" || record.completionReviewStatus === "needs_followup")
+    && record.completionReviewRequired;
 }
 
 export function loadBoardRecords(sourcePath) {
@@ -418,7 +403,9 @@ export function filterBoardRecords(records, args) {
 
   return records
     .filter((record) => {
-      if (!allowedStatuses.has(record.status) || !allowedTypes.has(record.reportType)) {
+      const includeCompletionReview = args.includeCompletedReview && isCompletionReviewRecord(record);
+      const statusAllowed = includeCompletionReview ? true : allowedStatuses.has(record.status);
+      if (!statusAllowed || !allowedTypes.has(record.reportType)) {
         return false;
       }
 
@@ -426,7 +413,7 @@ export function filterBoardRecords(records, args) {
         return false;
       }
 
-      return !EXCLUDED_BY_DEFAULT.includes(record.status);
+      return includeCompletionReview || !EXCLUDED_BY_DEFAULT.includes(record.status);
     })
     .slice(0, args.limit);
 }
@@ -643,12 +630,41 @@ function buildStatusSuggestions(packet) {
   if (packet.records.some((record) => record.status === "confirmed")) {
     suggestions.push("Suggest `/feedback-status in_progress` after human review approves the implementation start.");
   }
-  if (packet.records.some((record) => record.status === "fawxzzy_review")) {
-    suggestions.push("Manual Fawxzzy review is active on this packet before implementation, closing, or public release.");
-  }
 
   suggestions.push("Suggest `/feedback-status fixed` after the implementation is shipped and verified.");
   return suggestions;
+}
+
+function buildCompletionReviewChecklist(record) {
+  return [
+    "Confirm the change was deployed to the intended Fitness environment.",
+    "Confirm the feedback thread has the expected audit comment history.",
+    "Confirm the relevant QA evidence was actually completed for this card.",
+    "Confirm any required user-facing `#updates` post exists only if the change shipped publicly.",
+    "Check the implemented behavior against the card Acceptance Criteria.",
+    "Check that unrelated scope creep was not bundled into the finished work.",
+    "Decide whether this card should stay fixed/completed, move back to in_progress, or become follow-up work.",
+  ];
+}
+
+function buildCompletionReviewPacket(record) {
+  return {
+    reviewId: `completion-review-${record.shortId}`,
+    reportId: record.id,
+    shortId: record.shortId,
+    reportType: record.reportType,
+    reportTypeLabel: record.reportType === "feature" ? "Feature" : "Bug",
+    area: record.area,
+    title: record.title,
+    status: record.status,
+    statusLabel: record.reportType === "feature" && record.status === "fixed" ? "Completed" : safeTitleCase(record.status.replace(/_/g, " ")),
+    completionReviewStatus: record.completionReviewStatus,
+    completionReviewStatusLabel: safeTitleCase(record.completionReviewStatus.replace(/_/g, " ")),
+    forumThreadLink: record.forumThreadLink,
+    acceptanceCriteria: [...(record.cardSections?.acceptanceCriteria ?? [])],
+    latestUpdateSummary: record.completionReviewNote,
+    reviewChecklist: buildCompletionReviewChecklist(record),
+  };
 }
 
 export function finalizePacket(packet, args, decisionMap = new Map()) {
@@ -679,7 +695,6 @@ export function finalizePacket(packet, args, decisionMap = new Map()) {
       reportId: record.id,
       shortId: record.shortId,
       headerLabel: record.cardSections.headerLabel,
-      statusLabel: record.cardSections.statusLabel,
       title: record.cardSections.title,
       problem: record.cardSections.problem,
       expectedBehavior: record.cardSections.expectedBehavior,
@@ -823,7 +838,10 @@ export function renderPacketMarkdown(result) {
     "",
     `- Input cards: ${result.summary.inputCards}`,
     `- Included cards: ${result.summary.includedCards}`,
+    `- Implementation cards: ${result.summary.implementationCards}`,
+    `- Completion-review cards: ${result.summary.completionReviewCards}`,
     `- Active packets: ${result.summary.activePackets}`,
+    `- Completion-review packets: ${result.summary.completionReviewPackets}`,
     `- Approved packets: ${result.summary.approvedPackets}`,
     `- Deferred packets: ${result.summary.deferredPackets}`,
     `- Rejected packets: ${result.summary.rejectedPackets}`,
@@ -859,7 +877,7 @@ export function renderPacketMarkdown(result) {
       if (packet.cardSections.length > 0) {
         lines.push("Card sections:");
         for (const section of packet.cardSections) {
-          lines.push(`- ${section.shortId} | ${section.headerLabel} | ${section.statusLabel}`);
+          lines.push(`- ${section.shortId} | ${section.headerLabel}`);
           if (section.userStory) {
             lines.push(`  User Story: ${section.userStory}`);
           }
@@ -904,6 +922,39 @@ export function renderPacketMarkdown(result) {
     }
   }
 
+  if (result.completionReviewPackets.length > 0) {
+    lines.push("## Completion Review Queue");
+    lines.push("");
+    for (const packet of result.completionReviewPackets) {
+      lines.push(`### ${packet.title} (${packet.reviewId})`);
+      lines.push("");
+      lines.push(`- Report ID: \`${packet.shortId}\``);
+      lines.push(`- Area: ${packet.area}`);
+      lines.push(`- Type: ${packet.reportTypeLabel}`);
+      lines.push(`- Status: ${packet.statusLabel}`);
+      lines.push(`- Completion Review: ${packet.completionReviewStatusLabel}`);
+      if (packet.forumThreadLink) {
+        lines.push(`- Forum thread: ${packet.forumThreadLink}`);
+      }
+      if (packet.latestUpdateSummary) {
+        lines.push(`- Latest update: ${packet.latestUpdateSummary}`);
+      }
+      lines.push("");
+      if (packet.acceptanceCriteria.length > 0) {
+        lines.push("Acceptance criteria:");
+        for (const criterion of packet.acceptanceCriteria) {
+          lines.push(`- ${criterion}`);
+        }
+        lines.push("");
+      }
+      lines.push("Completion review checklist:");
+      for (const item of packet.reviewChecklist) {
+        lines.push(`- ${item}`);
+      }
+      lines.push("");
+    }
+  }
+
   const blockedGroups = [
     ["Approved packets already surfaced first.", []],
     ["Deferred", result.reviewSummary.defer],
@@ -940,101 +991,153 @@ export function renderCodexPrompts(result) {
   const draftOnlyLine = "Draft only \u2014 requires human review before execution.";
 
   if (result.packets.length === 0) {
-    lines.push("No active packets matched the current review filter.");
-    return `${lines.join("\n")}\n`;
+    if (result.completionReviewPackets.length === 0) {
+      lines.push("No active packets matched the current review filter.");
+    }
   }
 
-  for (const packet of result.packets) {
-    lines.push(`## ${packet.title} (${packet.packetId})`);
-    lines.push("");
-    lines.push(draftOnlyLine);
-    lines.push("");
-    lines.push("Objective");
-    lines.push("");
-    lines.push(`Address the reviewed ${packet.reportType} packet "${packet.title}" in the ${packet.area} area.`);
-    lines.push("");
-    lines.push("Context");
-    lines.push("");
-    lines.push(`- Packet ID: \`${packet.packetId}\``);
-    lines.push(`- Feedback report IDs: ${packet.feedbackShortIds.map((id) => `\`${id}\``).join(", ")}`);
-    lines.push(`- Reviewer decision: ${packet.reviewerDecision}`);
-    lines.push(`- Suggested priority: ${packet.suggestedPriority}`);
-    lines.push("");
-    lines.push("Feedback evidence");
-    lines.push("");
-    for (const item of packet.evidenceSummary) {
-      lines.push(item.startsWith("- ") ? item : `- ${item}`);
-    }
-    lines.push("");
-    if (packet.cardSections.length > 0) {
-      lines.push("Card sections");
+  if (result.packets.length > 0) {
+    for (const packet of result.packets) {
+      lines.push(`## ${packet.title} (${packet.packetId})`);
       lines.push("");
-      for (const section of packet.cardSections) {
-        lines.push(`- ${section.shortId} | ${section.headerLabel} | ${section.statusLabel}`);
-        if (section.userStory) {
-          lines.push(`  User Story: ${section.userStory}`);
+      lines.push(draftOnlyLine);
+      lines.push("");
+      lines.push("Objective");
+      lines.push("");
+      lines.push(`Address the reviewed ${packet.reportType} packet "${packet.title}" in the ${packet.area} area.`);
+      lines.push("");
+      lines.push("Context");
+      lines.push("");
+      lines.push(`- Packet ID: \`${packet.packetId}\``);
+      lines.push(`- Feedback report IDs: ${packet.feedbackShortIds.map((id) => `\`${id}\``).join(", ")}`);
+      lines.push(`- Reviewer decision: ${packet.reviewerDecision}`);
+      lines.push(`- Suggested priority: ${packet.suggestedPriority}`);
+      lines.push("");
+      lines.push("Feedback evidence");
+      lines.push("");
+      for (const item of packet.evidenceSummary) {
+        lines.push(item.startsWith("- ") ? item : `- ${item}`);
+      }
+      lines.push("");
+      if (packet.cardSections.length > 0) {
+        lines.push("Card sections");
+        lines.push("");
+        for (const section of packet.cardSections) {
+          lines.push(`- ${section.shortId} | ${section.headerLabel}`);
+          if (section.userStory) {
+            lines.push(`  User Story: ${section.userStory}`);
+          }
+          if (section.problem) {
+            lines.push(`  Problem: ${section.problem}`);
+          }
+          if (section.expectedBehavior) {
+            lines.push(`  Expected behavior: ${section.expectedBehavior}`);
+          }
+          if (section.actualBehavior) {
+            lines.push(`  Actual behavior: ${section.actualBehavior}`);
+          }
+          if (section.description) {
+            lines.push(`  Description: ${section.description}`);
+          }
+          if (section.stepsToReproduce) {
+            lines.push(`  Steps: ${section.stepsToReproduce}`);
+          }
+          if (section.evidenceSummary) {
+            lines.push(`  Evidence: ${section.evidenceSummary}`);
+          }
         }
-        if (section.problem) {
-          lines.push(`  Problem: ${section.problem}`);
+        lines.push("");
+      }
+      lines.push("Implementation plan");
+      lines.push("");
+      lines.push(packet.implementationHypothesis);
+      lines.push("");
+      lines.push("Files to inspect first");
+      lines.push("");
+      for (const file of packet.filesToInspect) {
+        lines.push(`- ${file}`);
+      }
+      lines.push("");
+      lines.push("Constraints");
+      lines.push("");
+      lines.push(`- ${draftOnlyLine}`);
+      lines.push("- Do not create automatic GitHub issues.");
+      lines.push("- Do not write to ATLAS automatically.");
+      lines.push("- Do not mutate Discord or Supabase from the task-packet generator lane.");
+      lines.push("- Keep the one-board, reviewed-export workflow intact.");
+      lines.push("- Card mutation audit comments stay in the Feedback thread. Do not post to #updates unless the shipped change is user-facing and approved.");
+      lines.push("");
+      lines.push("Acceptance criteria");
+      lines.push("");
+      for (const item of packet.acceptanceCriteria) {
+        lines.push(`- ${item}`);
+      }
+      lines.push("");
+      lines.push("Verification steps");
+      lines.push("");
+      for (const item of packet.verificationChecklist) {
+        lines.push(`- ${item}`);
+      }
+      lines.push("");
+      lines.push("Documentation updates");
+      lines.push("");
+      if (packet.docsUpdateNeeded.required && packet.docsUpdateNeeded.suggestedPaths.length > 0) {
+        for (const docPath of packet.docsUpdateNeeded.suggestedPaths) {
+          lines.push(`- ${docPath}`);
         }
-        if (section.expectedBehavior) {
-          lines.push(`  Expected behavior: ${section.expectedBehavior}`);
-        }
-        if (section.actualBehavior) {
-          lines.push(`  Actual behavior: ${section.actualBehavior}`);
-        }
-        if (section.description) {
-          lines.push(`  Description: ${section.description}`);
-        }
-        if (section.stepsToReproduce) {
-          lines.push(`  Steps: ${section.stepsToReproduce}`);
-        }
-        if (section.evidenceSummary) {
-          lines.push(`  Evidence: ${section.evidenceSummary}`);
-        }
+      } else {
+        lines.push("- Update docs only if the user-facing workflow or reviewed task contract changes.");
       }
       lines.push("");
     }
-    lines.push("Implementation plan");
+  }
+
+  if (result.completionReviewPackets.length > 0) {
+    lines.push("## Completion Review Prompts");
     lines.push("");
-    lines.push(packet.implementationHypothesis);
-    lines.push("");
-    lines.push("Files to inspect first");
-    lines.push("");
-    for (const file of packet.filesToInspect) {
-      lines.push(`- ${file}`);
-    }
-    lines.push("");
-    lines.push("Constraints");
-    lines.push("");
-    lines.push(`- ${draftOnlyLine}`);
-    lines.push("- Do not create automatic GitHub issues.");
-    lines.push("- Do not write to ATLAS automatically.");
-    lines.push("- Do not mutate Discord or Supabase from the task-packet generator lane.");
-    lines.push("- Keep the one-board, reviewed-export workflow intact.");
-    lines.push("");
-    lines.push("Acceptance criteria");
-    lines.push("");
-    for (const item of packet.acceptanceCriteria) {
-      lines.push(`- ${item}`);
-    }
-    lines.push("");
-    lines.push("Verification steps");
-    lines.push("");
-    for (const item of packet.verificationChecklist) {
-      lines.push(`- ${item}`);
-    }
-    lines.push("");
-    lines.push("Documentation updates");
-    lines.push("");
-    if (packet.docsUpdateNeeded.required && packet.docsUpdateNeeded.suggestedPaths.length > 0) {
-      for (const docPath of packet.docsUpdateNeeded.suggestedPaths) {
-        lines.push(`- ${docPath}`);
+    for (const packet of result.completionReviewPackets) {
+      lines.push(`### ${packet.title} (${packet.reviewId})`);
+      lines.push("");
+      lines.push(draftOnlyLine);
+      lines.push("");
+      lines.push("Objective");
+      lines.push("");
+      lines.push(`Review the completed Fitness ${packet.reportType} card "${packet.title}" before treating it as fully closed.`);
+      lines.push("");
+      lines.push("Context");
+      lines.push("");
+      lines.push(`- Report ID: \`${packet.shortId}\``);
+      lines.push(`- Current status: ${packet.statusLabel}`);
+      lines.push(`- Completion Review: ${packet.completionReviewStatusLabel}`);
+      if (packet.forumThreadLink) {
+        lines.push(`- Forum thread: ${packet.forumThreadLink}`);
       }
-    } else {
-      lines.push("- Update docs only if the user-facing workflow or reviewed task contract changes.");
+      if (packet.latestUpdateSummary) {
+        lines.push(`- Latest update: ${packet.latestUpdateSummary}`);
+      }
+      lines.push("");
+      lines.push("Completion review checklist");
+      lines.push("");
+      for (const item of packet.reviewChecklist) {
+        lines.push(`- ${item}`);
+      }
+      lines.push("");
+      if (packet.acceptanceCriteria.length > 0) {
+        lines.push("Acceptance criteria to re-check");
+        lines.push("");
+        for (const item of packet.acceptanceCriteria) {
+          lines.push(`- ${item}`);
+        }
+        lines.push("");
+      }
+      lines.push("Constraints");
+      lines.push("");
+      lines.push(`- ${draftOnlyLine}`);
+      lines.push("- This is a review packet, not a new implementation prompt.");
+      lines.push("- Do not post to #updates for completion-review state changes.");
+      lines.push("- Leave audit history in the feedback thread.");
+      lines.push("");
     }
-    lines.push("");
   }
 
   return `${lines.join("\n").trimEnd()}\n`;
@@ -1047,7 +1150,11 @@ export function buildTaskPacketResult({
   sourcePath,
   decisionMap = new Map(),
 }) {
-  const grouped = groupRecordsIntoPackets(records)
+  const implementationRecords = records.filter((record) => !isCompletionReviewRecord(record));
+  const completionReviewPackets = args.includeCompletedReview
+    ? records.filter((record) => isCompletionReviewRecord(record)).map((record) => buildCompletionReviewPacket(record))
+    : [];
+  const grouped = groupRecordsIntoPackets(implementationRecords)
     .map((packet) => finalizePacket(packet, args, decisionMap));
   const ordered = sortPacketsForReview(grouped);
 
@@ -1060,19 +1167,24 @@ export function buildTaskPacketResult({
       area: args.area,
       limit: args.limit,
       codexPrompts: args.codexPrompts,
+      includeCompletedReview: args.includeCompletedReview,
       debug: args.debug,
       decisionsPath: args.decisions,
     },
     summary: {
       inputCards: inputCount,
       includedCards: records.length,
+      implementationCards: implementationRecords.length,
+      completionReviewCards: completionReviewPackets.length,
       activePackets: ordered.active.length,
+      completionReviewPackets: completionReviewPackets.length,
       approvedPackets: ordered.active.filter((packet) => packet.reviewerDecision === "approve").length,
       deferredPackets: ordered.summary.defer.length,
       rejectedPackets: ordered.summary.reject.length,
       needsInfoPackets: ordered.summary.needs_info.length,
     },
     packets: ordered.active,
+    completionReviewPackets,
     reviewSummary: ordered.summary,
   };
 }
@@ -1110,7 +1222,9 @@ export async function generateFeedbackTaskPackets({
     fs.writeFileSync(outputPaths.prompts, renderCodexPrompts(result), "utf8");
   }
 
-  console.log(`Generated ${result.packets.length} active feedback task packet${result.packets.length === 1 ? "" : "s"} from ${records.length} board card${records.length === 1 ? "" : "s"}.`);
+  console.log(
+    `Generated ${result.packets.length} active feedback task packet${result.packets.length === 1 ? "" : "s"} and ${result.completionReviewPackets.length} completion review packet${result.completionReviewPackets.length === 1 ? "" : "s"} from ${records.length} board card${records.length === 1 ? "" : "s"}.`,
+  );
   console.log(`- markdown: ${outputPaths.markdown}`);
   console.log(`- json: ${outputPaths.json}`);
   console.log(`- review decisions example: ${outputPaths.decisionsExample}`);

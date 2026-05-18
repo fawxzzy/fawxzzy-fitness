@@ -26,7 +26,6 @@ function buildRow(overrides = {}) {
     details: "Tapping Copy did not copy the token.",
     duplicate_count: 1,
     attachment_count: 0,
-    discord_forum_channel_id: "1504673475489562744",
     discord_forum_thread_id: "1504673475489562745",
     reporter_discord_user_id: "123456789012345678",
     last_seen_at: "2026-05-16T12:00:00.000Z",
@@ -98,7 +97,6 @@ function createMockClient(rows) {
 test("feature fixed displays Completed while bug fixed stays Fixed", () => {
   assert.equal(formatDisplayStatusLabel("feature", "fixed"), "Completed");
   assert.equal(formatDisplayStatusLabel("bug", "fixed"), "Fixed");
-  assert.equal(formatDisplayStatusLabel("bug", "fawxzzy_review"), "Ready for Fawxzzy Review");
 });
 
 test("board export parseArgs defaults to writing markdown and json", () => {
@@ -166,7 +164,7 @@ test("board markdown groups cards by status and separates bugs from features", (
   const markdown = renderBoardMarkdown([
     toBoardRecord(buildRow({
       report_type: "bug",
-      status: "fawxzzy_review",
+      status: "confirmed",
       area: "Account",
       summary: "Copy button does not work",
     })),
@@ -180,11 +178,28 @@ test("board markdown groups cards by status and separates bugs from features", (
   ]);
 
   assert.match(markdown, /## Bugs/);
-  assert.match(markdown, /### Ready for Fawxzzy Review/);
+  assert.match(markdown, /### Confirmed/);
   assert.match(markdown, /\[11111111\] Account — Copy button does not work/);
   assert.match(markdown, /## Features/);
   assert.match(markdown, /### Completed/);
   assert.match(markdown, /\[22222222\] Feedback — Add reaction option/);
+});
+
+test("board markdown includes a completion review queue for finished public cards", () => {
+  const markdown = renderBoardMarkdown([
+    toBoardRecord(buildRow({
+      report_type: "feature",
+      status: "fixed",
+      area: "History",
+      summary: "Upgrade analytics",
+      completion_review_status: "pending",
+      completion_review_note: "Shipped in production.",
+    })),
+  ]);
+
+  assert.match(markdown, /## Completion Review Queue/);
+  assert.match(markdown, /Completion Review: Pending/);
+  assert.match(markdown, /Latest update: Shipped in production\./);
 });
 
 test("board export excludes withdrawn spam and duplicates by default", async () => {
@@ -225,74 +240,10 @@ test("board export includes duplicates only with --include-duplicates", async ()
   assert.deepEqual(result.records.map((record) => record.id), ["a", "d"]);
 });
 
-test("board export excludes testing forum cards by default", async () => {
-  process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID = "1505827424766660780";
-  const rows = [
-    buildRow({ id: "public-card", discord_forum_channel_id: "1504673475489562744" }),
-    buildRow({ id: "testing-card", discord_forum_channel_id: "1505827424766660780" }),
-  ];
-
-  try {
-    const result = await exportFeedbackBoard({
-      client: createMockClient(rows),
-      args: {
-        ...parseArgs([]),
-        writeMarkdown: false,
-        writeJson: false,
-      },
-    });
-
-    assert.deepEqual(result.records.map((record) => record.id), ["public-card"]);
-  } finally {
-    delete process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID;
-  }
-});
-
-test("board export excludes feedback testing area cards even without a testing forum env", async () => {
-  const rows = [
-    buildRow({ id: "public-card", area: "History / Analytics" }),
-    buildRow({ id: "testing-card", area: "Feedback Testing", discord_forum_channel_id: null }),
-  ];
-
-  const result = await exportFeedbackBoard({
-    client: createMockClient(rows),
-    args: {
-      ...parseArgs([]),
-      writeMarkdown: false,
-      writeJson: false,
-    },
-  });
-
-  assert.deepEqual(result.records.map((record) => record.id), ["public-card"]);
-});
-
-test("board export can include testing forum cards when explicitly requested", async () => {
-  process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID = "1505827424766660780";
-  const rows = [
-    buildRow({ id: "public-card", discord_forum_channel_id: "1504673475489562744" }),
-    buildRow({ id: "testing-card", discord_forum_channel_id: "1505827424766660780" }),
-  ];
-
-  try {
-    const result = await exportFeedbackBoard({
-      client: createMockClient(rows),
-      args: {
-        ...parseArgs(["--include-testing"]),
-        writeMarkdown: false,
-        writeJson: false,
-      },
-    });
-
-    assert.deepEqual(result.records.map((record) => record.id), ["public-card", "testing-card"]);
-  } finally {
-    delete process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID;
-  }
-});
-
 test("codex draft output includes the draft-only warning", () => {
   const drafts = renderCodexDrafts([
     toBoardRecord(buildRow({
-      status: "fawxzzy_review",
+      status: "confirmed",
       report_type: "feature",
       area: "Feedback",
       summary: "Add reaction option",

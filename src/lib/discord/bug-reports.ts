@@ -15,6 +15,7 @@ export const DISCORD_BUG_REPORT_SCREENSHOT_URL_MAX_LENGTH = 500;
 export const DISCORD_BUG_REPORT_FORUM_TITLE_MAX_LENGTH = 100;
 export const DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH = 2000;
 export const DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH = 1000;
+export const DISCORD_FEEDBACK_COMPLETION_REVIEW_NOTE_MAX_LENGTH = 1000;
 export const DISCORD_FEEDBACK_AUDIT_NOTE_MAX_LENGTH = 240;
 export const DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT = 3;
 export const DISCORD_FEEDBACK_ATTACHMENT_MAX_SIZE_BYTES = 8 * 1024 * 1024;
@@ -22,7 +23,7 @@ export const DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH = 6;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_WINDOW_MINUTES = 10;
 export const DISCORD_BUG_REPORT_RATE_LIMIT_MAX_REPORTS = 3;
 export const DISCORD_BUG_REPORT_DUPLICATE_WINDOW_DAYS = 30;
-export const DISCORD_BUG_REPORT_DUPLICATE_ACTIVE_STATUSES = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress"] as const;
+export const DISCORD_BUG_REPORT_DUPLICATE_ACTIVE_STATUSES = ["new", "needs_info", "confirmed", "in_progress"] as const;
 export const DISCORD_BUG_REPORT_TYPE_TAG_LABELS = {
   bug: "Bug",
   feature: "Feature",
@@ -32,7 +33,6 @@ export const DISCORD_BUG_REPORT_STATUS_TAG_LABELS = {
   new: "New",
   needs_info: "Needs Info",
   confirmed: "Confirmed",
-  fawxzzy_review: "Ready for Fawxzzy Review",
   in_progress: "In Progress",
   fixed: "Fixed",
   closed: "Closed",
@@ -40,11 +40,18 @@ export const DISCORD_BUG_REPORT_STATUS_TAG_LABELS = {
   spam: "Spam",
   withdrawn: "Withdrawn",
 } as const;
+export const DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS = {
+  not_required: "Not Required",
+  pending: "Pending",
+  approved: "Approved",
+  needs_followup: "Needs Follow-Up",
+} as const;
 
 export type DiscordBugReportSeverity = "low" | "medium" | "high" | "blocker";
 export type DiscordBugReportStatus = keyof typeof DISCORD_BUG_REPORT_STATUS_TAG_LABELS;
 export type DiscordBugReportReportType = keyof typeof DISCORD_BUG_REPORT_TYPE_TAG_LABELS;
 export type DiscordBugReportReporterUserKind = "human" | "automation" | "unknown";
+export type DiscordFeedbackCompletionReviewStatus = keyof typeof DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS;
 
 export type DiscordBugReportModalFields = {
   summary: string | null;
@@ -71,6 +78,7 @@ export type DiscordBugReportStatusUpdate = {
 
 export type DiscordFeedbackCardAuditAction =
   | "status_update"
+  | "completion_review"
   | "withdraw"
   | "reporter_update"
   | "staff_update"
@@ -120,9 +128,22 @@ export type DiscordBugReportRow = {
   status_updated_at: string | null;
   status_updated_by_discord_user_id: string | null;
   status_note: string | null;
+  completion_review_status: DiscordFeedbackCompletionReviewStatus;
+  completion_reviewed_at: string | null;
+  completion_reviewed_by_discord_user_id: string | null;
+  completion_review_note: string | null;
   reporter_mentioned_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type DiscordFeedbackCompletionReviewUpdate = {
+  reportId: string;
+  completionReviewStatus: DiscordFeedbackCompletionReviewStatus;
+  reviewedByDiscordUserId: string;
+  note: string | null;
+  reviewedAt?: Date;
+  adminClient?: DiscordBugReportsAdminClient;
 };
 
 export type DiscordFeedbackCardEvidence = {
@@ -276,6 +297,10 @@ const DISCORD_BUG_REPORT_SELECT_COLUMNS = [
   "status_updated_at",
   "status_updated_by_discord_user_id",
   "status_note",
+  "completion_review_status",
+  "completion_reviewed_at",
+  "completion_reviewed_by_discord_user_id",
+  "completion_review_note",
   "reporter_mentioned_at",
   "created_at",
   "updated_at",
@@ -639,6 +664,12 @@ function coerceBugReportStatus(value: unknown): DiscordBugReportStatus | null {
     : null;
 }
 
+function coerceCompletionReviewStatus(value: unknown): DiscordFeedbackCompletionReviewStatus | null {
+  return typeof value === "string" && value in DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS
+    ? value as DiscordFeedbackCompletionReviewStatus
+    : null;
+}
+
 function coerceBugReportReportType(value: unknown): DiscordBugReportReportType | null {
   if (value === "feat") {
     return "feature";
@@ -663,6 +694,7 @@ function coerceBugReportRow(data: Record<string, unknown> | null | undefined): D
   const reportType = coerceBugReportReportType(data.report_type);
   const status = coerceBugReportStatus(data.status);
   const severity = coerceBugReportSeverity(data.severity);
+  const completionReviewStatus = coerceCompletionReviewStatus(data.completion_review_status) ?? "not_required";
   if (!reportType || !status || !severity || typeof data.summary !== "string" || typeof data.reporter_discord_user_id !== "string") {
     return null;
   }
@@ -708,10 +740,64 @@ function coerceBugReportRow(data: Record<string, unknown> | null | undefined): D
     status_updated_at: typeof data.status_updated_at === "string" ? data.status_updated_at : null,
     status_updated_by_discord_user_id: typeof data.status_updated_by_discord_user_id === "string" ? data.status_updated_by_discord_user_id : null,
     status_note: typeof data.status_note === "string" ? data.status_note : null,
+    completion_review_status: completionReviewStatus,
+    completion_reviewed_at: typeof data.completion_reviewed_at === "string" ? data.completion_reviewed_at : null,
+    completion_reviewed_by_discord_user_id: typeof data.completion_reviewed_by_discord_user_id === "string" ? data.completion_reviewed_by_discord_user_id : null,
+    completion_review_note: typeof data.completion_review_note === "string" ? data.completion_review_note : null,
     reporter_mentioned_at: typeof data.reporter_mentioned_at === "string" ? data.reporter_mentioned_at : null,
     created_at: typeof data.created_at === "string" ? data.created_at : new Date(0).toISOString(),
     updated_at: typeof data.updated_at === "string" ? data.updated_at : new Date(0).toISOString(),
   };
+}
+
+export function normalizeDiscordCompletionReviewStatus(
+  value: string | null | undefined,
+): DiscordFeedbackCompletionReviewStatus | null {
+  const normalized = normalizeTextInput(value, 40)?.toLowerCase() ?? "";
+  return normalized in DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS
+    ? normalized as DiscordFeedbackCompletionReviewStatus
+    : null;
+}
+
+export function formatDiscordCompletionReviewStatusLabel(
+  value: DiscordFeedbackCompletionReviewStatus | null | undefined,
+): string {
+  if (!value) {
+    return DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS.not_required;
+  }
+
+  return DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS[value] ?? DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS.not_required;
+}
+
+function getDiscordFeedbackTestingForumChannelId(): string | null {
+  const value = process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID?.trim();
+  return value && isDiscordSnowflake(value) ? value : null;
+}
+
+export function isDiscordFeedbackTestingCard(
+  report: Pick<DiscordBugReportRow, "discord_forum_channel_id" | "area" | "summary" | "details">,
+): boolean {
+  const testingForumChannelId = getDiscordFeedbackTestingForumChannelId();
+  if (testingForumChannelId && report.discord_forum_channel_id === testingForumChannelId) {
+    return true;
+  }
+
+  const area = String(report.area ?? "").trim().toLowerCase();
+  const summary = String(report.summary ?? "").trim().toLowerCase();
+  const details = String(report.details ?? "").trim().toLowerCase();
+  const combined = `${area} ${summary} ${details}`;
+
+  if (area === "discord feedback qa" || area === "feedback testing") {
+    return true;
+  }
+
+  return combined.includes("feedback canary") || combined.includes("canonical discord feedback canary");
+}
+
+export function requiresDiscordFeedbackCompletionReview(
+  report: Pick<DiscordBugReportRow, "discord_forum_channel_id" | "area" | "summary" | "details">,
+): boolean {
+  return !isDiscordFeedbackTestingCard(report);
 }
 
 function buildDuplicateLookupCutoff(now: Date): string {
@@ -910,14 +996,6 @@ export function formatDiscordBugReportStatusLabel(status: DiscordBugReportStatus
   return DISCORD_BUG_REPORT_STATUS_TAG_LABELS[status];
 }
 
-export function formatDiscordBugReportStatusTagName(status: DiscordBugReportStatus): string {
-  if (status === "fawxzzy_review") {
-    return "Fawxzzy Review";
-  }
-
-  return formatDiscordBugReportStatusLabel(status);
-}
-
 export function formatDiscordFeedbackDisplayStatusLabel(args: {
   reportType: DiscordBugReportReportType;
   status: DiscordBugReportStatus;
@@ -999,7 +1077,7 @@ export function buildDiscordBugForumTagNames(args: {
 }): string[] {
   const names = [
     formatDiscordBugReportTypeLabel(args.reportType),
-    formatDiscordBugReportStatusTagName(args.status),
+    formatDiscordBugReportStatusLabel(args.status),
   ];
 
   if (args.reportType !== "feature" && args.status !== "spam") {
@@ -1245,6 +1323,7 @@ export function buildFeedbackCardAuditComment(args: {
   reportType?: DiscordBugReportReportType | null;
   statusBefore?: DiscordBugReportStatus | null;
   statusAfter?: DiscordBugReportStatus | null;
+  completionReviewStatus?: DiscordFeedbackCompletionReviewStatus | null;
   note?: string | null;
   reportId?: string | null;
   duplicateCount?: number | null;
@@ -1278,6 +1357,23 @@ export function buildFeedbackCardAuditComment(args: {
         lines.push(`Status: ${afterLabel}`);
       }
 
+      if (noteSummary) {
+        lines.push(`Note: ${noteSummary}`);
+      }
+      if (args.completionReviewStatus === "pending") {
+        lines.push("Completion Review: Pending Fawxzzy review.");
+      }
+      break;
+    }
+    case "completion_review": {
+      const actorLabel = args.actorLabel?.trim() || "Fawx Security";
+      if (args.completionReviewStatus === "approved") {
+        lines.push(`Completion Review approved by ${actorLabel}.`);
+      } else if (args.completionReviewStatus === "needs_followup") {
+        lines.push("Completion Review needs follow-up.");
+      } else {
+        lines.push(`Completion Review updated by ${actorLabel}.`);
+      }
       if (noteSummary) {
         lines.push(`Note: ${noteSummary}`);
       }
@@ -1324,6 +1420,7 @@ export async function postFeedbackCardAuditComment(args: {
   includeReporterMention?: boolean;
   statusBefore?: DiscordBugReportStatus | null;
   statusAfter?: DiscordBugReportStatus | null;
+  completionReviewStatus?: DiscordFeedbackCompletionReviewStatus | null;
   note?: string | null;
   reportId?: string | null;
   duplicateCount?: number | null;
@@ -1906,6 +2003,44 @@ export async function updateDiscordBugReportStatus(args: {
     return { ok: true, report: row };
   } catch {
     return { ok: false, code: "DISCORD_BUG_REPORT_STATUS_UPDATE_FAILED" };
+  }
+}
+
+export async function updateDiscordFeedbackCompletionReview(args: DiscordFeedbackCompletionReviewUpdate): Promise<
+  | { ok: true; report: DiscordBugReportRow }
+  | { ok: false; code: "DISCORD_BUG_REPORT_UPDATE_FAILED" | "DISCORD_BUG_REPORT_INVALID_INPUT" }
+> {
+  if (!isDiscordSnowflake(args.reviewedByDiscordUserId)) {
+    return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
+  }
+
+  const nowIso = (args.reviewedAt ?? new Date()).toISOString();
+  const normalizedNote = normalizeTextInput(args.note, DISCORD_FEEDBACK_COMPLETION_REVIEW_NOTE_MAX_LENGTH);
+  const admin = args.adminClient ?? (supabaseAdmin() as unknown as DiscordBugReportsAdminClient);
+  const isReviewedDecision = args.completionReviewStatus === "approved" || args.completionReviewStatus === "needs_followup";
+
+  try {
+    const { data, error } = await admin
+      .from("discord_feedback_reports")
+      .update({
+        completion_review_status: args.completionReviewStatus,
+        completion_reviewed_at: isReviewedDecision ? nowIso : null,
+        completion_reviewed_by_discord_user_id: isReviewedDecision ? args.reviewedByDiscordUserId : null,
+        completion_review_note: isReviewedDecision ? normalizedNote : null,
+        updated_at: nowIso,
+      })
+      .eq("id", args.reportId)
+      .select(DISCORD_BUG_REPORT_SELECT_COLUMNS)
+      .single();
+
+    const row = coerceBugReportRow(data);
+    if (error || !row) {
+      return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
+    }
+
+    return { ok: true, report: row };
+  } catch {
+    return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
   }
 }
 

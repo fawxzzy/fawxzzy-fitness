@@ -174,27 +174,61 @@ test("resolveDiscordVerifyMessageBody converts escaped newlines into rendered li
   );
 });
 
-test("resolveDiscordVerifyMessageBody falls back to the updated Discord Connector instructions", () => {
-  assert.equal(
-    resolveDiscordVerifyMessageBody(null),
-    [
-      "To unlock the server:",
-      "",
-      "1. Sign into Fawxzzy Fitness.",
-      "2. Go to Settings → Account → Discord Connector.",
-      "3. Generate your Discord verification token.",
-      "4. Click Verify below and paste the token.",
-      "",
-      "Fitness login:",
-      "https://fawxzzy-fitness-local.vercel.app/login",
-    ].join("\n"),
-  );
-});
-
 test("buildDiscordVerifyMessagePayload includes the verify button", () => {
   const payload = buildDiscordVerifyMessagePayload();
 
   assert.equal(payload.components[0]?.components[0]?.custom_id, "fitness_verify_open");
+});
+
+test("resolveDiscordVerifyMessageBody returns the locked access-panel copy", () => {
+  assert.equal(
+    resolveDiscordVerifyMessageBody(null),
+    [
+      "Welcome to Fawxzzy. To unlock the server, verify your Fawxzzy Fitness account.",
+      "",
+      "### Server Rules",
+      "",
+      "**Be respectful**",
+      "No harassment, hate speech, threats, bullying, or personal attacks.",
+      "",
+      "**No spam**",
+      "Do not flood chats, repeat messages, abuse caps, mass mention people, or spam bot commands.",
+      "",
+      "**Use the right channels**",
+      "Keep posts where they belong. Feedback, support, updates, and general chat each have their own spaces.",
+      "",
+      "**No unsafe links**",
+      "No scams, phishing, malware, fake giveaways, suspicious downloads, or links meant to trick people.",
+      "",
+      "**Keep it clean**",
+      "No NSFW, gore, shock content, or graphic material.",
+      "",
+      "**Protect privacy**",
+      "Do not share private info, screenshots, emails, tokens, API keys, or login details.",
+      "",
+      "**Do not bypass verification**",
+      "Do not abuse roles, impersonate staff, exploit bots, or try to access restricted areas.",
+      "",
+      "### How to Verify",
+      "",
+      "1. Sign into Fawxzzy Fitness.",
+      "2. Go to **Settings -> Account -> Discord Connector**.",
+      "3. Generate your Discord verification token.",
+      "4. Click **Verify Fitness Account** below.",
+      "5. Paste your token.",
+      "",
+      "Open Fitness:",
+      "<https://fawxzzy-fitness-local.vercel.app/login>",
+      "",
+      "By verifying, you agree to follow the server rules.",
+    ].join("\n"),
+  );
+});
+
+test("buildDiscordVerifyMessagePayload uses the Fawxzzy Server Access title", () => {
+  const payload = buildDiscordVerifyMessagePayload();
+
+  assert.equal(payload.embeds[0]?.title, "Fawxzzy Server Access");
 });
 
 test("feedback panel button modals expose submit and manage flows", () => {
@@ -375,8 +409,11 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const commands = buildDiscordGuildCommandsDefinition();
   const feedback = commands.find((command) => command.name === "feedback");
   const feedbackStatus = commands.find((command) => command.name === "feedback-status");
+  const feedbackCompletionReview = commands.find((command) => command.name === "feedback-completion-review");
   const feedbackWithdraw = commands.find((command) => command.name === "feedback-withdraw");
   const setupVerify = commands.find((command) => command.name === "setup-verify");
+  const verifyCleanup = commands.find((command) => command.name === "verify-cleanup");
+  const verifyLockdown = commands.find((command) => command.name === "verify-lockdown");
   const setupFeedback = commands.find((command) => command.name === "setup-feedback");
   const updateLatest = commands.find((command) => command.name === "update-latest");
   const updatePublish = commands.find((command) => command.name === "update-publish");
@@ -390,9 +427,13 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const modLog = commands.find((command) => command.name === "mod-log");
   const serverInventory = commands.find((command) => command.name === "server-inventory");
 
-  assert.equal(commands.length, 16);
+  assert.equal(commands.length, 19);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
+  assert.ok(verifyCleanup);
+  assert.equal(verifyCleanup?.default_member_permissions, String(BigInt(1) << BigInt(5)));
+  assert.ok(verifyLockdown);
+  assert.equal(verifyLockdown?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(setupFeedback);
   assert.equal(setupFeedback?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(feedback);
@@ -403,11 +444,13 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
     feedbackStatus?.default_member_permissions,
     String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(13)) | (BigInt(1) << BigInt(34))),
   );
-  assert.equal(
-    feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "fawxzzy_review" && choice.name === "Ready for Fawxzzy Review"),
-    true,
-  );
   assert.equal(feedbackStatus?.options?.[1]?.choices?.some((choice) => choice.value === "withdrawn"), true);
+  assert.ok(feedbackCompletionReview);
+  assert.equal(
+    feedbackCompletionReview?.default_member_permissions,
+    String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(13)) | (BigInt(1) << BigInt(34))),
+  );
+  assert.equal(feedbackCompletionReview?.options?.[1]?.choices?.some((choice) => choice.value === "approved"), true);
   assert.ok(feedbackWithdraw);
   assert.equal(feedbackWithdraw?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.equal(feedbackWithdraw?.options?.[0]?.name, "report_id");

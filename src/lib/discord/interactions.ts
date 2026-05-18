@@ -17,9 +17,12 @@ export const FITNESS_VERIFY_BUTTON_CUSTOM_ID = "fitness_verify_open";
 export const FITNESS_VERIFY_MODAL_CUSTOM_ID = "fitness_verify_modal";
 export const FITNESS_VERIFY_TOKEN_INPUT_CUSTOM_ID = "fitness_token";
 export const FITNESS_VERIFY_COMMAND_NAME = "setup-verify";
+export const FITNESS_VERIFY_CLEANUP_COMMAND_NAME = "verify-cleanup";
+export const FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME = "verify-lockdown";
 export const FITNESS_FEEDBACK_SETUP_COMMAND_NAME = "setup-feedback";
 export const FITNESS_FEEDBACK_COMMAND_NAME = "feedback";
 export const FITNESS_FEEDBACK_STATUS_COMMAND_NAME = "feedback-status";
+export const FITNESS_FEEDBACK_COMPLETION_REVIEW_COMMAND_NAME = "feedback-completion-review";
 export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
 export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
@@ -65,6 +68,7 @@ export const FITNESS_FEEDBACK_TYPE_OPTION_NAME = "type";
 export const FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME = "report_id";
 export const FITNESS_BUG_STATUS_STATUS_OPTION_NAME = "status";
 export const FITNESS_BUG_STATUS_NOTE_OPTION_NAME = "note";
+export const FITNESS_FEEDBACK_COMPLETION_REVIEW_DECISION_OPTION_NAME = "decision";
 export const FITNESS_UPDATE_DRAFT_ID_OPTION_NAME = "draft_id";
 export const FITNESS_UPDATE_SKIP_REASON_OPTION_NAME = "reason";
 export const FITNESS_PURGATORY_USER_OPTION_NAME = "user";
@@ -77,7 +81,46 @@ export const FITNESS_MOD_LOG_LIMIT_OPTION_NAME = "limit";
 export const FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID = "update_title";
 export const FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID = "update_what_changed";
 export const FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID = "update_why_it_matters";
-export const DEFAULT_VERIFY_MESSAGE_TITLE = "Verify your Fawxzzy Fitness account";
+export const DEFAULT_VERIFY_MESSAGE_TITLE = "Fawxzzy Server Access";
+export const DEFAULT_VERIFY_MESSAGE_BODY = [
+  "Welcome to Fawxzzy. To unlock the server, verify your Fawxzzy Fitness account.",
+  "",
+  "### Server Rules",
+  "",
+  "**Be respectful**",
+  "No harassment, hate speech, threats, bullying, or personal attacks.",
+  "",
+  "**No spam**",
+  "Do not flood chats, repeat messages, abuse caps, mass mention people, or spam bot commands.",
+  "",
+  "**Use the right channels**",
+  "Keep posts where they belong. Feedback, support, updates, and general chat each have their own spaces.",
+  "",
+  "**No unsafe links**",
+  "No scams, phishing, malware, fake giveaways, suspicious downloads, or links meant to trick people.",
+  "",
+  "**Keep it clean**",
+  "No NSFW, gore, shock content, or graphic material.",
+  "",
+  "**Protect privacy**",
+  "Do not share private info, screenshots, emails, tokens, API keys, or login details.",
+  "",
+  "**Do not bypass verification**",
+  "Do not abuse roles, impersonate staff, exploit bots, or try to access restricted areas.",
+  "",
+  "### How to Verify",
+  "",
+  "1. Sign into Fawxzzy Fitness.",
+  "2. Go to **Settings -> Account -> Discord Connector**.",
+  "3. Generate your Discord verification token.",
+  "4. Click **Verify Fitness Account** below.",
+  "5. Paste your token.",
+  "",
+  "Open Fitness:",
+  "<https://fawxzzy-fitness-local.vercel.app/login>",
+  "",
+  "By verifying, you agree to follow the server rules.",
+].join("\n");
 export const DEFAULT_FEEDBACK_PANEL_TITLE = "Submit Feedback Here";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
   "Use this channel to send a new bug or feature request.",
@@ -87,38 +130,35 @@ export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
   "",
   "Your feedback card will appear in the Feedback forum after submit.",
 ] as const;
-export const DEFAULT_VERIFY_MESSAGE_BODY_LINES = [
-  "To unlock the server:",
-  "",
-  "1. Sign into Fawxzzy Fitness.",
-  "2. Go to Settings → Account → Discord Connector.",
-  "3. Generate your Discord verification token.",
-  "4. Click Verify below and paste the token.",
-  "",
-  "Fitness login:",
-  "https://fawxzzy-fitness-local.vercel.app/login",
-] as const;
 export const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
 export const DISCORD_PERMISSION_MANAGE_CHANNELS = BigInt(1) << BigInt(4);
 export const DISCORD_PERMISSION_MANAGE_GUILD = BigInt(1) << BigInt(5);
+export const DISCORD_PERMISSION_ADD_REACTIONS = BigInt(1) << BigInt(6);
 export const DISCORD_PERMISSION_VIEW_CHANNEL = BigInt(1) << BigInt(10);
 export const DISCORD_PERMISSION_SEND_MESSAGES = BigInt(1) << BigInt(11);
 export const DISCORD_PERMISSION_MANAGE_MESSAGES = BigInt(1) << BigInt(13);
 export const DISCORD_PERMISSION_READ_MESSAGE_HISTORY = BigInt(1) << BigInt(16);
 export const DISCORD_PERMISSION_MANAGE_ROLES = BigInt(1) << BigInt(28);
 export const DISCORD_PERMISSION_MANAGE_THREADS = BigInt(1) << BigInt(34);
+export const DISCORD_PERMISSION_CREATE_PUBLIC_THREADS = BigInt(1) << BigInt(35);
+export const DISCORD_PERMISSION_CREATE_PRIVATE_THREADS = BigInt(1) << BigInt(36);
+export const DISCORD_PERMISSION_SEND_MESSAGES_IN_THREADS = BigInt(1) << BigInt(38);
 
 export const DISCORD_BUG_STATUS_CHOICES = [
   { name: "new", value: "new" },
   { name: "needs_info", value: "needs_info" },
   { name: "confirmed", value: "confirmed" },
-  { name: "Ready for Fawxzzy Review", value: "fawxzzy_review" },
   { name: "in_progress", value: "in_progress" },
   { name: "fixed", value: "fixed" },
   { name: "closed", value: "closed" },
   { name: "duplicate", value: "duplicate" },
   { name: "spam", value: "spam" },
   { name: "withdrawn", value: "withdrawn" },
+] as const;
+
+export const DISCORD_FEEDBACK_COMPLETION_REVIEW_DECISION_CHOICES = [
+  { name: "approved", value: "approved" },
+  { name: "needs_followup", value: "needs_followup" },
 ] as const;
 
 export const DISCORD_FEEDBACK_TYPE_CHOICES = [
@@ -224,10 +264,10 @@ export function resolveDiscordVerifyMessageTitle(value: string | null | undefine
 
 export function resolveDiscordVerifyMessageBody(value: string | null | undefined): string {
   if (!value) {
-    return DEFAULT_VERIFY_MESSAGE_BODY_LINES.join("\n");
+    return DEFAULT_VERIFY_MESSAGE_BODY;
   }
 
-  return coerceMultilineValue(value).trim() || DEFAULT_VERIFY_MESSAGE_BODY_LINES.join("\n");
+  return coerceMultilineValue(value).trim() || DEFAULT_VERIFY_MESSAGE_BODY;
 }
 
 export function buildDiscordVerifyMessagePayload(args?: {
@@ -461,6 +501,16 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
       default_member_permissions: setupDefaultPermissions,
     },
     {
+      name: FITNESS_VERIFY_CLEANUP_COMMAND_NAME,
+      description: "Remove clutter from #verify and keep one official access panel.",
+      default_member_permissions: setupDefaultPermissions,
+    },
+    {
+      name: FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME,
+      description: "Lock #verify so only the bot and staff can manage the access panel.",
+      default_member_permissions: setupDefaultPermissions,
+    },
+    {
       name: FITNESS_FEEDBACK_SETUP_COMMAND_NAME,
       description: "Post or refresh the Fitness feedback launcher.",
       default_member_permissions: setupDefaultPermissions,
@@ -492,6 +542,32 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
           type: 3,
           name: FITNESS_BUG_STATUS_NOTE_OPTION_NAME,
           description: "Optional status note to add in the forum thread.",
+          required: false,
+        },
+      ],
+    },
+    {
+      name: FITNESS_FEEDBACK_COMPLETION_REVIEW_COMMAND_NAME,
+      description: "Approve or flag follow-up for a completed Fitness feedback card.",
+      default_member_permissions: feedbackStatusDefaultPermissions,
+      options: [
+        {
+          type: 3,
+          name: FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
+          description: "Report ID, short ID, thread ID, or forum URL.",
+          required: true,
+        },
+        {
+          type: 3,
+          name: FITNESS_FEEDBACK_COMPLETION_REVIEW_DECISION_OPTION_NAME,
+          description: "Completion review decision.",
+          required: true,
+          choices: [...DISCORD_FEEDBACK_COMPLETION_REVIEW_DECISION_CHOICES],
+        },
+        {
+          type: 3,
+          name: FITNESS_BUG_STATUS_NOTE_OPTION_NAME,
+          description: "Optional completion review note.",
           required: false,
         },
       ],

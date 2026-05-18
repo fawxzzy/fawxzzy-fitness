@@ -8,6 +8,7 @@ Rule:
 
 Pattern:
 - feedback board export -> reviewed task packet -> Codex draft prompt -> human approval -> implementation -> feedback status update -> curated update post
+- shipped implementation -> fixed/completed card -> completion review queue -> approved or follow-up
 
 Failure mode:
 - running Codex directly from raw forum cards creates noisy sprint churn and duplicate task truth
@@ -40,20 +41,18 @@ Default outputs:
 Optional flags:
 - `--from <path>`
 - `--type bug,feature`
-- `--status confirmed,fawxzzy_review,in_progress`
+- `--status confirmed,in_progress`
 - `--area <area>`
 - `--limit 25`
 - `--out <dir>`
 - `--debug`
 - `--codex-prompts`
 - `--decisions <path>`
+- `--include-completed-review`
 
 Default included statuses:
 - `confirmed`
-- `fawxzzy_review`
 - `in_progress`
-
-`fawxzzy_review` is optional. Use it only when a card needs manual owner review before implementation, closing, or public release.
 
 Default excluded statuses:
 - `withdrawn`
@@ -61,6 +60,10 @@ Default excluded statuses:
 - `duplicate`
 - `closed`
 - `fixed`
+
+Completion Review:
+- `--include-completed-review` surfaces public non-testing `fixed`/`closed` cards whose `completion_review_status` is `pending` or `needs_followup`
+- those cards generate review packets and review prompts, not new implementation prompts by default
 
 ## Review packets
 Each packet is an implementation candidate, not an automatic task. Packets include:
@@ -148,6 +151,7 @@ Follow-up happens through existing workflows:
 Examples:
 - reviewed packet approved -> Codex implementation starts
 - work ships -> `/feedback-status fixed`
+- shipped work -> `/feedback-completion-review report_id:<id> decision:approved`
 - user-facing ship -> curated `#updates` post
 
 ## Scope guardrails

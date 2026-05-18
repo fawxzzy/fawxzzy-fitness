@@ -57,12 +57,13 @@ function writeBoardFixture(records) {
   return { tempDir, sourcePath };
 }
 
-test("task packet parseArgs defaults to confirmed, Fawxzzy review, and in_progress statuses", () => {
+test("task packet parseArgs defaults to confirmed and in_progress statuses", () => {
   const args = parseArgs([]);
 
-  assert.deepEqual(args.statuses, ["confirmed", "fawxzzy_review", "in_progress"]);
+  assert.deepEqual(args.statuses, ["confirmed", "in_progress"]);
   assert.deepEqual(args.types, ["bug", "feature"]);
   assert.equal(args.codexPrompts, false);
+  assert.equal(args.includeCompletedReview, false);
 });
 
 test("task packet output paths stay under runtime/feedback-tasks by default", () => {
@@ -94,6 +95,39 @@ test("task packet generation excludes withdrawn spam duplicate closed and fixed 
 
   assert.equal(result.summary.inputCards, 7);
   assert.equal(result.summary.includedCards, 2);
+});
+
+test("task packet generation surfaces completed cards in a completion review queue only when requested", () => {
+  const records = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        id: "a1111111-1111-4111-8111-111111111111",
+        status: "fixed",
+        completion_review_status: "pending",
+        completion_review_required: true,
+        latest_update_summary: "Shipped in production.",
+      }),
+    ]).sourcePath,
+  );
+
+  const withoutQueue = buildTaskPacketResult({
+    records: [],
+    inputCount: records.length,
+    args: parseArgs([]),
+    sourcePath: "fixture.json",
+  });
+  assert.equal(withoutQueue.completionReviewPackets.length, 0);
+
+  const withQueueArgs = parseArgs(["--include-completed-review"]);
+  const withQueue = buildTaskPacketResult({
+    records: records.filter((record) => record.status === "fixed"),
+    inputCount: records.length,
+    args: withQueueArgs,
+    sourcePath: "fixture.json",
+  });
+  assert.equal(withQueue.packets.length, 0);
+  assert.equal(withQueue.completionReviewPackets.length, 1);
+  assert.equal(withQueue.completionReviewPackets[0].completionReviewStatus, "pending");
 });
 
 test("task packet generation groups related records into a single packet", () => {
@@ -192,30 +226,6 @@ test("task packet export carries card sections and acceptance criteria forward",
   assert.deepEqual(result.packets[0].acceptanceCriteria[0], "Feature cards show Title, User Story, Description, Acceptance Criteria, and Evidence.");
 });
 
-test("task packet generation surfaces Fawxzzy review cards clearly", () => {
-  const records = loadBoardRecords(
-    writeBoardFixture([
-      buildRecord({
-        status: "fawxzzy_review",
-        area: "Feedback",
-        title: "Queue card for manual owner review",
-      }),
-    ]).sourcePath,
-  );
-  const result = buildTaskPacketResult({
-    records,
-    inputCount: records.length,
-    args: parseArgs([]),
-    sourcePath: "fixture.json",
-  });
-
-  assert.equal(result.packets[0].cardSections[0].statusLabel, "Ready for Fawxzzy Review");
-  assert.equal(
-    result.packets[0].statusSuggestions.some((item) => /Manual Fawxzzy review is active/i.test(item)),
-    true,
-  );
-});
-
 test("task packet generation writes markdown json and optional codex prompts", async () => {
   const { tempDir, sourcePath } = writeBoardFixture([
     buildRecord(),
@@ -251,6 +261,33 @@ test("codex prompts include the exact draft-only warning", () => {
   const prompts = renderCodexPrompts(result);
 
   assert.match(prompts, /Draft only — requires human review before execution\./);
+});
+
+test("codex prompts add completion review prompts without creating implementation prompts for completed cards", () => {
+  const args = parseArgs(["--include-completed-review", "--codex-prompts"]);
+  const result = buildTaskPacketResult({
+    records: [
+      loadBoardRecords(writeBoardFixture([
+        buildRecord({
+          id: "11111111-1111-4111-8111-111111111111",
+          status: "fixed",
+          completion_review_status: "pending",
+          completion_review_required: true,
+          latest_update_summary: "Shipped in production.",
+        }),
+      ]).sourcePath)[0],
+    ],
+    inputCount: 1,
+    args,
+    sourcePath: "fixture.json",
+  });
+  const prompts = renderCodexPrompts(result);
+
+  assert.equal(result.packets.length, 0);
+  assert.equal(result.completionReviewPackets.length, 1);
+  assert.match(prompts, /## Completion Review Prompts/);
+  assert.match(prompts, /This is a review packet, not a new implementation prompt\./);
+  assert.match(prompts, /Do not post to #updates for completion-review state changes\./);
 });
 
 test("decisions file orders approved packets first and summarizes deferred packets separately", async () => {

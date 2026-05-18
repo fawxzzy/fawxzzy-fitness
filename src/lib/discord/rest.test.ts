@@ -9,16 +9,13 @@ import {
   createDiscordMessageReaction,
   createDiscordThreadMessage,
   deleteDiscordChannel,
-  deleteDiscordChannelMessage,
   deferDiscordInteractionEphemeral,
-  DISCORD_RESOLVED_REACTION_EMOJI,
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
   editDiscordOriginalInteractionResponse,
   fetchDiscordApplicationEmojis,
   fetchDiscordGuildMember,
   fetchDiscordGuildRoles,
   fetchDiscordGuildEmojis,
-  formatDiscordReactionEmojiIdentifier,
   resolveDiscordForumTagIdsByName,
   updateDiscordChannelPermissionOverwrite,
   updateDiscordForumThreadArchiveState,
@@ -88,7 +85,7 @@ test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an e
     const result = await createDiscordMessageReaction({
       channelId: "1504673475489562745",
       messageId: "1504673475489562746",
-      emoji: DISCORD_RESOLVED_REACTION_EMOJI,
+      emoji: "✅",
     });
 
     assert.deepEqual(result, { ok: true });
@@ -100,20 +97,6 @@ test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an e
   } finally {
     globalThis.fetch = originalFetch;
   }
-});
-
-test("formatDiscordReactionEmojiIdentifier keeps Unicode emoji raw and normalizes custom emoji shapes", () => {
-  assert.equal(formatDiscordReactionEmojiIdentifier(DISCORD_RESOLVED_REACTION_EMOJI), DISCORD_RESOLVED_REACTION_EMOJI);
-  assert.equal(formatDiscordReactionEmojiIdentifier("Bug:1505007702924068916"), "Bug:1505007702924068916");
-  assert.equal(formatDiscordReactionEmojiIdentifier("<:Bug:1505007702924068916>"), "Bug:1505007702924068916");
-  assert.equal(
-    formatDiscordReactionEmojiIdentifier({
-      id: "1505007651308703877",
-      name: "Feature",
-    }),
-    "Feature:1505007651308703877",
-  );
-  assert.equal(formatDiscordReactionEmojiIdentifier("   "), null);
 });
 
 test("updateDiscordGuildMemberNickname returns a safe forbidden failure", async () => {
@@ -797,38 +780,6 @@ test("deleteDiscordChannel DELETEs the forum thread channel", async () => {
     assert.deepEqual(result, { ok: true });
     assert.deepEqual(observedRequest, {
       url: "https://discord.com/api/v10/channels/1504673475489562745",
-      method: "DELETE",
-      body: null,
-    });
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("deleteDiscordChannelMessage DELETEs a stale panel message", async () => {
-  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
-  const originalFetch = globalThis.fetch;
-  let observedRequest = null;
-
-  globalThis.fetch = async (input, init) => {
-    observedRequest = {
-      url: String(input),
-      method: String(init?.method ?? "GET"),
-      body: typeof init?.body === "string" ? init.body : null,
-    };
-
-    return new Response(null, { status: 204 });
-  };
-
-  try {
-    const result = await deleteDiscordChannelMessage({
-      channelId: "1504673475489562744",
-      messageId: "1504673475489562747",
-    });
-
-    assert.deepEqual(result, { ok: true });
-    assert.deepEqual(observedRequest, {
-      url: "https://discord.com/api/v10/channels/1504673475489562744/messages/1504673475489562747",
       method: "DELETE",
       body: null,
     });

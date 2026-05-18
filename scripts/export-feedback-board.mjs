@@ -10,8 +10,8 @@ import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
 const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
-const DEFAULT_STATUS_FILTER = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed", "duplicate"];
-const STATUS_ORDER = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed", "duplicate"];
+const DEFAULT_STATUS_FILTER = ["new", "needs_info", "confirmed", "in_progress", "fixed", "closed", "duplicate"];
+const STATUS_ORDER = ["new", "needs_info", "confirmed", "in_progress", "fixed", "closed", "duplicate"];
 const VALID_STATUSES = new Set([...STATUS_ORDER, "withdrawn", "spam"]);
 const VALID_TYPES = new Set(["bug", "feature"]);
 const TYPE_ORDER = ["bug", "feature"];
@@ -20,8 +20,6 @@ export const MAX_LIMIT = 200;
 export const DEFAULT_MARKDOWN_OUT = "runtime/feedback-board/latest.md";
 export const DEFAULT_JSON_OUT = "runtime/feedback-board/latest.json";
 export const DEFAULT_DRAFTS_OUT = "runtime/feedback-board/codex-drafts.md";
-const DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID_ENV = "DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID";
-const TESTING_AREA_NAME = "feedback testing";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
@@ -101,7 +99,6 @@ export function parseArgs(argv = process.argv.slice(2)) {
     writeJson: true,
     out: null,
     codexDrafts: false,
-    includeTesting: false,
   };
 
   let sawFormatFlag = false;
@@ -188,11 +185,6 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
     if (token === "--codex-drafts") {
       args.codexDrafts = true;
-      continue;
-    }
-
-    if (token === "--include-testing") {
-      args.includeTesting = true;
     }
   }
 
@@ -282,8 +274,6 @@ function formatStatusLabel(status) {
       return "Needs Info";
     case "confirmed":
       return "Confirmed";
-    case "fawxzzy_review":
-      return "Ready for Fawxzzy Review";
     case "in_progress":
       return "In Progress";
     case "fixed":
@@ -307,6 +297,11 @@ export function formatDisplayStatusLabel(reportType, status) {
   }
 
   return formatStatusLabel(status);
+}
+
+function isCompletionReviewQueued(record) {
+  return (record.status === "fixed" || record.status === "closed")
+    && (record.completion_review_status === "pending" || record.completion_review_status === "needs_followup");
 }
 
 function titleCase(value) {
@@ -365,6 +360,7 @@ export function toBoardRecord(row, debug = false) {
   const reportType = normalizeType(row.report_type) ?? "bug";
   const status = normalizeStatus(row.status) ?? "new";
   const threadId = typeof row.discord_forum_thread_id === "string" ? row.discord_forum_thread_id : null;
+  const completionReviewStatus = feedbackHelpers.normalizeDiscordCompletionReviewStatus(row.completion_review_status) ?? "not_required";
   const cardSections = buildBoardCardSections({
     ...row,
     report_type: reportType,
@@ -379,6 +375,22 @@ export function toBoardRecord(row, debug = false) {
     report_type_label: reportType === "feature" ? "Feature" : "Bug",
     status,
     status_label: formatDisplayStatusLabel(reportType, status),
+    completion_review_status: completionReviewStatus,
+    completion_review_status_label: feedbackHelpers.formatDiscordCompletionReviewStatusLabel(completionReviewStatus),
+    completion_review_required: feedbackHelpers.requiresDiscordFeedbackCompletionReview({
+      discord_forum_channel_id: typeof row.discord_forum_channel_id === "string" ? row.discord_forum_channel_id : null,
+      area: typeof row.area === "string" ? row.area : null,
+      summary: typeof row.summary === "string" ? row.summary : "",
+      details: typeof row.details === "string" ? row.details : null,
+    }),
+    completion_review_note: typeof row.completion_review_note === "string" ? row.completion_review_note : null,
+    completion_reviewed_at: typeof row.completion_reviewed_at === "string" ? row.completion_reviewed_at : null,
+    is_testing_card: feedbackHelpers.isDiscordFeedbackTestingCard({
+      discord_forum_channel_id: typeof row.discord_forum_channel_id === "string" ? row.discord_forum_channel_id : null,
+      area: typeof row.area === "string" ? row.area : null,
+      summary: typeof row.summary === "string" ? row.summary : "",
+      details: typeof row.details === "string" ? row.details : null,
+    }),
     area: titleCase(row.area) ?? "General",
     title: typeof row.summary === "string" ? row.summary.trim() : "Untitled",
     description: buildDescriptionSnippet(row),
@@ -386,9 +398,13 @@ export function toBoardRecord(row, debug = false) {
     duplicate_count: Math.max(1, Number(row.duplicate_count ?? 1)),
     attachment_count: Math.max(0, Number(row.attachment_count ?? 0)),
     last_seen_at: row.last_seen_at ?? null,
-    forum_channel_id: debug && typeof row.discord_forum_channel_id === "string" ? row.discord_forum_channel_id : undefined,
     forum_thread_link: toForumThreadLink(threadId),
     forum_thread_id: debug ? threadId : undefined,
+    latest_update_summary: typeof row.completion_review_note === "string"
+      ? row.completion_review_note
+      : typeof row.status_note === "string"
+        ? row.status_note
+        : null,
     reporter_discord_user_id: debug ? row.reporter_discord_user_id ?? null : undefined,
     reporter_discord_user_id_masked: debug ? undefined : maskDiscordUserId(row.reporter_discord_user_id),
   };
@@ -398,7 +414,6 @@ export function filterBoardRows(rows, args) {
   const allowedStatuses = new Set(resolveStatusFilter(args));
   const allowedTypes = new Set(args.types.filter(Boolean));
   const areaFilter = args.area ? args.area.toLowerCase() : null;
-  const testingForumId = getOptionalEnv(DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID_ENV);
 
   return rows.filter((row) => {
     const status = normalizeStatus(row.status);
@@ -413,16 +428,6 @@ export function filterBoardRows(rows, args) {
     }
 
     if (areaFilter && String(row.area ?? "").trim().toLowerCase() !== areaFilter) {
-      return false;
-    }
-
-    if (
-      !args.includeTesting
-      && (
-        (testingForumId && String(row.discord_forum_channel_id ?? "").trim() === testingForumId)
-        || String(row.area ?? "").trim().toLowerCase() === TESTING_AREA_NAME
-      )
-    ) {
       return false;
     }
 
@@ -457,6 +462,7 @@ function renderBoardListItem(record, debug = false) {
     record.forum_thread_link ? `Forum: ${record.forum_thread_link}` : null,
     debug && record.reporter_discord_user_id ? `Reporter ID: ${record.reporter_discord_user_id}` : null,
     !debug && record.reporter_discord_user_id_masked ? `Reporter ID: ${record.reporter_discord_user_id_masked}` : null,
+    isCompletionReviewQueued(record) ? `Completion Review: ${record.completion_review_status_label}` : null,
   ].filter(Boolean);
 
   if (metadata.length > 0) {
@@ -491,12 +497,20 @@ function renderBoardListItem(record, debug = false) {
   if (cardSections?.evidence_summary) {
     parts.push(`  Evidence: ${cardSections.evidence_summary}`);
   }
+  if (isCompletionReviewQueued(record) && record.latest_update_summary) {
+    parts.push(`  Latest review summary: ${record.latest_update_summary}`);
+  }
 
   return parts.join("\n");
 }
 
+function buildCompletionReviewQueue(records) {
+  return records.filter((record) => isCompletionReviewQueued(record) && record.completion_review_required && !record.is_testing_card);
+}
+
 export function renderBoardMarkdown(records, args = {}) {
   const grouped = groupBoardRecords(records);
+  const completionReviewQueue = buildCompletionReviewQueue(records);
   const lines = [
     "# Feedback Board",
     "",
@@ -529,6 +543,28 @@ export function renderBoardMarkdown(records, args = {}) {
     }
   }
 
+  if (completionReviewQueue.length > 0) {
+    lines.push("## Completion Review Queue");
+    lines.push("");
+    for (const record of completionReviewQueue) {
+      lines.push(`- [${record.short_id}] ${record.report_type_label} | ${record.area} | ${record.title}`);
+      lines.push(`  Status: ${record.status_label} | Completion Review: ${record.completion_review_status_label}`);
+      if (Array.isArray(record.card_sections?.acceptance_criteria) && record.card_sections.acceptance_criteria.length > 0) {
+        lines.push("  Acceptance criteria:");
+        for (const criterion of record.card_sections.acceptance_criteria) {
+          lines.push(`    - ${criterion}`);
+        }
+      }
+      if (record.forum_thread_link) {
+        lines.push(`  Forum: ${record.forum_thread_link}`);
+      }
+      if (record.latest_update_summary) {
+        lines.push(`  Latest update: ${record.latest_update_summary}`);
+      }
+    }
+    lines.push("");
+  }
+
   return `${lines.join("\n").trimEnd()}\n`;
 }
 
@@ -555,7 +591,7 @@ function inferFilesToInspect(record) {
 }
 
 export function renderCodexDrafts(records) {
-  const eligible = records.filter((record) => record.status === "confirmed" || record.status === "fawxzzy_review" || record.status === "in_progress");
+  const eligible = records.filter((record) => record.status === "confirmed" || record.status === "in_progress");
   const lines = [
     "# Feedback Board Codex Drafts",
     "",
@@ -564,7 +600,7 @@ export function renderCodexDrafts(records) {
   ];
 
   if (eligible.length === 0) {
-    lines.push("No confirmed, Ready for Fawxzzy Review, or in-progress cards matched the current filter.");
+    lines.push("No confirmed or in-progress cards matched the current filter.");
     return `${lines.join("\n")}\n`;
   }
 
@@ -640,6 +676,10 @@ async function loadRows(client, args) {
       "discord_forum_thread_id",
       "reporter_discord_user_id",
       "last_seen_at",
+      "status_note",
+      "completion_review_status",
+      "completion_reviewed_at",
+      "completion_review_note",
     ].join(", "));
 
   if (args.statuses.length === 1) {

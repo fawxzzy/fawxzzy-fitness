@@ -25,10 +25,12 @@ const expectedFeedbackPanelCustomIds = [
   "fitness_feedback_withdraw_open",
 ];
 const expectedVerifyButtonLabel = "Verify Fitness Account";
-const expectedVerifyCopyNeedle = "Discord Connector";
+const expectedVerifyCopyNeedle = "By verifying, you agree to follow the server rules.";
 const expectedFitnessLoginUrl = "https://fawxzzy-fitness-local.vercel.app/login";
 const expectedCommands = [
   "setup-verify",
+  "verify-cleanup",
+  "verify-lockdown",
   "setup-feedback",
   "feedback",
   "feedback-status",
@@ -982,7 +984,7 @@ async function checkFeedbackHealth(adminClient, debug = false) {
 
   const { data, error } = await adminClient
     .from("discord_feedback_reports")
-    .select("id, status, attachment_count, attachment_metadata, attachment_pruned, duplicate_count, created_at")
+    .select("id, status, attachment_count, attachment_metadata, attachment_pruned, duplicate_count, created_at, updated_at, completion_review_status, discord_forum_channel_id, area, summary, details")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -993,6 +995,21 @@ async function checkFeedbackHealth(adminClient, debug = false) {
   }
 
   const rows = data ?? [];
+  const testingForumChannelId = process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID?.trim() || null;
+  const isTestingCard = (row) => {
+    if (testingForumChannelId && String(row.discord_forum_channel_id ?? "") === testingForumChannelId) {
+      return true;
+    }
+
+    const area = String(row.area ?? "").trim().toLowerCase();
+    const summary = String(row.summary ?? "").trim().toLowerCase();
+    const details = String(row.details ?? "").trim().toLowerCase();
+    const combined = `${area} ${summary} ${details}`;
+    return area === "discord feedback qa"
+      || area === "feedback testing"
+      || combined.includes("feedback canary")
+      || combined.includes("canonical discord feedback canary");
+  };
   const countByStatus = rows.reduce((counts, row) => {
     const key = String(row.status ?? "unknown");
     counts[key] = (counts[key] ?? 0) + 1;
@@ -1004,6 +1021,23 @@ async function checkFeedbackHealth(adminClient, debug = false) {
     (Number(row.attachment_count ?? 0) > 0 || row.attachment_metadata !== null)
     && !row.attachment_pruned
   ));
+  const staleCompletionReviewRows = rows.filter((row) => {
+    const status = String(row.status ?? "");
+    const completionReviewStatus = String(row.completion_review_status ?? "");
+    if (!(status === "fixed" || status === "closed") || completionReviewStatus !== "pending") {
+      return false;
+    }
+    if (isTestingCard(row)) {
+      return false;
+    }
+
+    const updatedAtMs = Date.parse(String(row.updated_at ?? row.created_at ?? ""));
+    if (!Number.isFinite(updatedAtMs)) {
+      return false;
+    }
+
+    return (Date.now() - updatedAtMs) > 7 * 24 * 60 * 60 * 1000;
+  });
   const duplicateSummary = {
     totalRowsWithDuplicates: rows.filter((row) => Number(row.duplicate_count ?? 1) > 1).length,
     maxDuplicateCount: rows.reduce((max, row) => Math.max(max, Number(row.duplicate_count ?? 1)), 1),
@@ -1011,15 +1045,18 @@ async function checkFeedbackHealth(adminClient, debug = false) {
 
   return buildCheck(
     "feedback-health",
-    withdrawnWithoutPrune.length > 0 ? "warn" : "pass",
+    withdrawnWithoutPrune.length > 0 || staleCompletionReviewRows.length > 0 ? "warn" : "pass",
     withdrawnWithoutPrune.length > 0
       ? "Recent withdrawn feedback rows exist without attachment_pruned=true"
+      : staleCompletionReviewRows.length > 0
+        ? "Recent fixed/completed feedback cards are still pending completion review for more than 7 days"
       : "Recent feedback health summary looks consistent with the production feedback contract",
     {
       countByStatus,
       recentAttachmentRows: recentAttachmentRows.length,
       recentWithdrawnRows: withdrawnRows.length,
       withdrawnWithoutPrune: withdrawnWithoutPrune.length,
+      staleCompletionReviews: staleCompletionReviewRows.length,
       duplicateSummary,
       ...(debug
         ? {

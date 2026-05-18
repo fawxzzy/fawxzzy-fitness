@@ -5,7 +5,6 @@ Use the Discord Feedback forum as the visible community board.
 
 Product model:
 - Discord Feedback Forum = user-visible board
-- Discord Testing Forum = private canary lane
 - Supabase = bounded source index
 - Codex = implementation worker after human review
 - Playbook = pattern and governance layer
@@ -73,13 +72,6 @@ Failure modes:
 - writing every card to ATLAS creates duplicate task truth
 - running Codex directly from unreviewed forum cards creates noisy sprint churn
 - keeping separate task copies outside the board/export path causes lost tasks
-- keeping canaries on the public forum pollutes planning signals
-
-## Private Testing Board
-- Create the private board with `npm run discord:testing-board:setup -- --apply --move-report-id b88b31ba`.
-- Keep real community cards on the public Feedback forum.
-- Keep canaries in `Testing / feedback-testing`.
-- `npm run feedback:board:export` excludes `feedback-testing` cards by default unless `--include-testing` is passed explicitly.
 
 ## Release Posts vs Card History
 Release and update posts:
@@ -103,7 +95,6 @@ Statuses remain stable in storage:
 - `new`
 - `needs_info`
 - `confirmed`
-- `fawxzzy_review`
 - `in_progress`
 - `fixed`
 - `closed`
@@ -115,7 +106,6 @@ User-facing board meaning:
 - `New`: Fresh report, not reviewed.
 - `Needs Info`: Reporter needs to clarify.
 - `Confirmed`: Valid and ready for planning.
-- `Ready for Fawxzzy Review`: Optional owner-review gate before implementation, closing, or a public update.
 - `In Progress`: Actively being worked.
 - `Fixed`: Bug resolved.
 - `Completed`: Feature completed. This is the display label for feature cards when stored status is `fixed`.
@@ -125,8 +115,13 @@ User-facing board meaning:
 - `Spam`: Invalid or junk.
 
 Lifecycle:
-- Bug: `New -> Confirmed -> optional Ready for Fawxzzy Review -> In Progress -> Fixed/Closed`
-- Feature: `New -> Confirmed -> optional Ready for Fawxzzy Review -> In Progress -> Completed/Closed`
+- Bug: `New -> Confirmed -> In Progress -> Fixed/Closed`
+- Feature: `New -> Confirmed -> In Progress -> Completed/Closed`
+
+Completion review:
+- `Ready for Fawxzzy Review` is an optional pre-work scope gate.
+- Completion Review is a required post-completion queue for public Fitness app cards marked `Fixed` or `Completed`.
+- Private `feedback-testing` canaries do not require Completion Review by default.
 
 ## Command surface
 User-facing flow:
@@ -137,6 +132,7 @@ User-facing flow:
 
 Staff board control:
 - `/feedback-status`
+- `/feedback-completion-review`
 - `/setup-feedback`
 
 Operator scripts:
@@ -149,7 +145,7 @@ Card structure sync:
 - optional filters:
   - `--report-id <uuid>`
   - `--limit <count>`
-  - `--status new,confirmed,fawxzzy_review`
+  - `--status new,confirmed`
 - apply mode updates the starter post and leaves the thread audit comment:
   - `Card formatting synced by Fawx Security.`
   - `Reason: Applied Feedback Card Structure v2.`
@@ -169,7 +165,7 @@ Default outputs:
 - `runtime/feedback-board/latest.json`
 
 Optional flags:
-- `--status new,confirmed,fawxzzy_review`
+- `--status new,confirmed`
 - `--type bug,feature`
 - `--area Account`
 - `--limit 100`
@@ -183,6 +179,7 @@ Optional flags:
 Export rules:
 - withdrawn and spam are excluded by default
 - duplicate is excluded by default unless `--include-duplicates` is set
+- fixed/completed public Fitness cards with pending or follow-up review appear in the Completion Review Queue
 - Discord user ids are masked by default
 - no raw Discord payloads
 - no file bytes
@@ -210,6 +207,10 @@ Draft rules:
 - no direct ATLAS writes
 
 Each draft should be treated as a starting point for a reviewed implementation task, not as automatic planning truth.
+
+Completion-review queue rule:
+- Completion Review queue items are review artifacts, not new implementation tasks by default.
+- Use `npm run feedback:tasks:generate -- --include-completed-review` to surface completion-review prompts and checklists.
 
 ## Reviewed promotion
 Promotion path:

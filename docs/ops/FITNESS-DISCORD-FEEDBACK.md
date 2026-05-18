@@ -16,15 +16,11 @@ Product rules:
 - Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
 - Optional Discord decoration must fail soft.
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
-- Public Feedback is for real community cards.
-- Private `Testing / feedback-testing` is for canaries and internal QA only.
-- `npm run feedback:board:export` should exclude `feedback-testing` cards by default so reviewed planning stays tied to the real public board.
 
 ## Command surface
 - `/setup-feedback`
   - admin-only
   - posts or refreshes the persistent `Submit Feedback Here` launcher
-  - removes stale duplicate launcher posts or duplicate bot-owned launcher threads when rerun
   - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
   - otherwise finds or creates `submit-feedback` above the Feedback forum
 - `/setup-verify`
@@ -37,6 +33,9 @@ Product rules:
 - `/feedback-status`
   - staff-only
   - status sync only
+- `/feedback-completion-review`
+  - staff-only
+  - post-completion review for public Fitness app cards already marked `Fixed` or `Completed`
 - `/feedback-withdraw`
   - hidden from normal users
   - reporter or staff fallback
@@ -64,11 +63,14 @@ Workflow:
 6. Codex work begins only from reviewed prompts or tasks.
 7. Work ships.
 8. `/feedback-status` marks the card `Fixed` or `Completed`.
-9. Update Bot may publish a curated release post only when the change is user-facing.
+9. Public non-testing Fitness app cards marked `Fixed` or `Completed` enter Completion Review.
+10. Update Bot may publish a curated release post only when the change is user-facing.
 
 Rules:
 - Feedback card updates do not automatically post to the updates channel.
 - Forum card mutations should stay in the thread as compact audit comments.
+- Completion Review is required after Fitness app work is marked done.
+- Ready for Fawxzzy Review remains optional before implementation starts.
 - Exports are review input, not automatic truth.
 - No direct Discord-to-ATLAS or Discord-to-GitHub writes.
 - No routine or workout sharing work in this lane.
@@ -80,14 +82,6 @@ Failure modes:
 - writing every raw card into ATLAS creates duplicate task truth
 - starting Codex work from unreviewed forum cards creates noisy sprint churn
 - creating parallel task copies outside the board/export path causes lost tasks
-- leaving canaries on the public board pollutes community signal
-
-## Private Testing Board
-- Use `npm run discord:testing-board:setup -- --dry-run` to preview the private board setup.
-- Use `npm run discord:testing-board:setup -- --apply --move-report-id b88b31ba` to create the private board and move the canonical Feature canary there.
-- `b88b31ba` is the canonical Feature canary.
-- The canonical Bug canary should live in `feedback-testing`.
-- No `@everyone` posts belong in `feedback-testing`.
 
 ## Release Posts vs Audit Comments
 Release posts:
@@ -270,7 +264,6 @@ Status tags:
 - `New`
 - `Needs Info`
 - `Confirmed`
-- `Fawxzzy Review`
 - `In Progress`
 - `Fixed`
 
@@ -344,21 +337,17 @@ It should:
 - sync forum tags and title
 - patch the forum starter post so the visible status and type-aware formatting stay current
 - post a compact status reply
-- allow optional `Ready for Fawxzzy Review` when a card needs owner review before implementation, closing, or a public update
 - mention the reporter only for `Needs Info`, `Fixed`, or `Closed`
 - add a `✅` reaction when status becomes `Fixed` or `Closed`
 
 Display rule:
 - bug cards show stored `fixed` as `Fixed`
 - feature cards show stored `fixed` as `Completed`
-- stored `fawxzzy_review` displays as `Ready for Fawxzzy Review`
-- not every card should pass through `Ready for Fawxzzy Review`
 
 Resolved reaction behavior:
 - preferred target: the forum starter message when `discord_forum_message_id` exists
 - fallback target: the bot status reply in the thread
 - reaction failures should log a safe warning and must not fail the status update
-- use `npm run feedback:sync-resolved-reactions -- --dry-run` before `--apply` to backfill missing resolved checkmarks
 
 ## Feedback card audit comments
 Fawx Security posts a compact thread comment whenever it modifies a feedback card after creation. This keeps the Feedback forum readable as a lightweight board with visible change history.
@@ -434,14 +423,10 @@ Sync script rules:
 - use `--apply` to edit Discord
 - use `--no-audit-comment` to skip thread audit comments during apply mode
 - supports `--limit 50`
-- supports `--status new,confirmed,fawxzzy_review,in_progress,fixed,closed`
+- supports `--status new,confirmed,in_progress,fixed,closed`
 - supports `--report-id <id>`
 - skips rows that do not have `discord_forum_message_id`
 - never deletes anything
-
-Launcher guardrail:
-- `/setup-feedback` refreshes the persistent launcher instead of creating duplicates
-- stale feedback button ids fail gracefully with: `This feedback panel is outdated. Ask staff to run /setup-feedback.`
 
 ## Community doctor
 Run:

@@ -74,6 +74,10 @@ export type DiscordActiveThreadsResponse = {
   threads?: DiscordChannel[];
 };
 
+export type DiscordArchivedThreadsResponse = {
+  threads?: DiscordChannel[];
+};
+
 type DiscordRequestInit = {
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
@@ -86,55 +90,12 @@ export type DiscordGuildEmoji = {
 };
 
 export type DiscordApplicationEmoji = DiscordGuildEmoji;
-export type DiscordReactionEmojiInput =
-  | string
-  | {
-    id?: string | null;
-    name?: string | null;
-    animated?: boolean | null;
-  };
-
-export const DISCORD_RESOLVED_REACTION_EMOJI = String.fromCodePoint(0x2705);
 
 type DiscordChannelPermissionOverwrite = {
   allow: string;
   deny: string;
   type: 0 | 1;
 };
-
-function normalizeDiscordReactionEmojiName(value: string): string | null {
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-export function formatDiscordReactionEmojiIdentifier(emoji: DiscordReactionEmojiInput): string | null {
-  if (typeof emoji === "string") {
-    const normalized = emoji.trim();
-    if (!normalized) {
-      return null;
-    }
-
-    const customMatch = normalized.match(/^<(a?):([A-Za-z0-9_]+):(\d+)>$/);
-    if (customMatch) {
-      return `${customMatch[2]}:${customMatch[3]}`;
-    }
-
-    const customParts = normalized.match(/^([A-Za-z0-9_]+):(\d+)$/);
-    if (customParts) {
-      return `${customParts[1]}:${customParts[2]}`;
-    }
-
-    return normalized;
-  }
-
-  const id = typeof emoji.id === "string" ? emoji.id.trim() : "";
-  const name = typeof emoji.name === "string" ? normalizeDiscordReactionEmojiName(emoji.name) : null;
-  if (!id || !name) {
-    return null;
-  }
-
-  return `${name}:${id}`;
-}
 
 async function parseDiscordJson(response: Response): Promise<unknown> {
   const responseText = await response.text();
@@ -461,9 +422,9 @@ export async function updateDiscordChannelPermissionOverwrite(args: {
 export async function createDiscordMessageReaction(args: {
   channelId: string;
   messageId: string;
-  emoji: DiscordReactionEmojiInput;
+  emoji: string;
 }): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
-  const emoji = formatDiscordReactionEmojiIdentifier(args.emoji);
+  const emoji = String(args.emoji ?? "").trim();
   if (!emoji) {
     return {
       ok: false,
@@ -547,6 +508,46 @@ export async function fetchDiscordGuildActiveThreads(args: {
   return {
     ok: false,
     code: "DISCORD_FETCH_ACTIVE_THREADS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordChannelArchivedPublicThreads(args: {
+  channelId: string;
+}): Promise<{ ok: true; threads: DiscordChannel[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordArchivedThreadsResponse>(
+    `/channels/${args.channelId}/threads/archived/public`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data?.threads)) {
+    return { ok: true, threads: result.data.threads };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_ARCHIVED_PUBLIC_THREADS_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordChannelArchivedPrivateThreads(args: {
+  channelId: string;
+}): Promise<{ ok: true; threads: DiscordChannel[] } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordArchivedThreadsResponse>(
+    `/channels/${args.channelId}/threads/archived/private`,
+    { method: "GET" },
+  );
+
+  if (result.ok && Array.isArray(result.data?.threads)) {
+    return { ok: true, threads: result.data.threads };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_ARCHIVED_PRIVATE_THREADS_FAILED",
     status: result.status,
     message: result.errorMessage,
   };
@@ -740,18 +741,19 @@ export async function deleteDiscordChannelMessage(args: {
 }): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
   const result = await discordRequest<unknown>(
     `/channels/${args.channelId}/messages/${args.messageId}`,
-    {
-      method: "DELETE",
-    },
+    { method: "DELETE" },
   );
 
-  if (result.ok || result.status === 204) {
+  if (result.ok) {
     return { ok: true };
   }
 
   return {
     ok: false,
-    code: result.status === 404 ? "DISCORD_DELETE_MESSAGE_NOT_FOUND" : "DISCORD_DELETE_MESSAGE_FAILED",
+    code:
+      result.status === 404
+        ? "DISCORD_DELETE_MESSAGE_NOT_FOUND"
+        : "DISCORD_DELETE_MESSAGE_FAILED",
     status: result.status,
     message: result.errorMessage,
   };
