@@ -145,6 +145,8 @@ import {
   editDiscordOriginalInteractionResponse,
   fetchDiscordChannel,
   fetchDiscordGuildChannels,
+  fetchDiscordGuildMember,
+  fetchDiscordGuildRoles,
   fetchDiscordChannelMessages,
   fetchDiscordGuildActiveThreads,
   patchDiscordChannelMessage,
@@ -265,6 +267,195 @@ function resolveDiscordInteractionUser(interaction: DiscordInteraction): {
 
 function interactionMatchesGuild(interaction: DiscordInteraction): boolean {
   return typeof interaction.guild_id === "string" && interaction.guild_id === DISCORD_GUILD_ID();
+}
+
+const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
+const DISCORD_PERMISSION_MANAGE_ROLES = BigInt(1) << BigInt(28);
+
+function parseDiscordPermissionBitfield(value: string | null | undefined): bigint | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return BigInt(value);
+  } catch {
+    return null;
+  }
+}
+
+function getHighestDiscordRolePosition(roleIds: string[] | null | undefined, roles: Array<{ id?: string; position?: number }> | null | undefined) {
+  if (!Array.isArray(roleIds) || !Array.isArray(roles)) {
+    return null;
+  }
+
+  let highest: number | null = null;
+  for (const roleId of roleIds) {
+    const match = roles.find((role) => role.id === roleId);
+    if (!match || typeof match.position !== "number") {
+      continue;
+    }
+
+    highest = highest === null ? match.position : Math.max(highest, match.position);
+  }
+
+  return highest;
+}
+
+function botHasDiscordManageRolesPermission(roles: Array<{ id?: string; permissions?: string }> | null | undefined, botRoleIds: string[] | null | undefined) {
+  if (!Array.isArray(roles) || !Array.isArray(botRoleIds)) {
+    return null;
+  }
+
+  for (const roleId of botRoleIds) {
+    const role = roles.find((entry) => entry.id === roleId);
+    const permissions = parseDiscordPermissionBitfield(role?.permissions ?? null);
+    if (permissions === null) {
+      continue;
+    }
+
+    if (
+      (permissions & DISCORD_PERMISSION_ADMINISTRATOR) === DISCORD_PERMISSION_ADMINISTRATOR
+      || (permissions & DISCORD_PERMISSION_MANAGE_ROLES) === DISCORD_PERMISSION_MANAGE_ROLES
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function diagnoseVerifiedRoleAssignmentFailure(args: {
+  targetDiscordUserId: string;
+  addRoleResult: { code: string; status: number; message: string | null };
+}) {
+  const verifiedRoleId = DISCORD_VERIFIED_ROLE_ID();
+  const [targetMemberResult, guildRolesResult, botMemberResult] = await Promise.all([
+    fetchDiscordGuildMember({
+      guildId: DISCORD_GUILD_ID(),
+      userId: args.targetDiscordUserId,
+    }),
+    fetchDiscordGuildRoles({
+      guildId: DISCORD_GUILD_ID(),
+    }),
+    fetchDiscordGuildMember({
+      guildId: DISCORD_GUILD_ID(),
+      userId: DISCORD_APPLICATION_ID(),
+    }),
+  ]);
+  const targetMemberStatus = targetMemberResult.ok ? 200 : targetMemberResult.status;
+  const guildRolesStatus = guildRolesResult.ok ? 200 : guildRolesResult.status;
+  const botMemberStatus = botMemberResult.ok ? 200 : botMemberResult.status;
+
+  if (targetMemberResult.ok && Array.isArray(targetMemberResult.member.roles) && targetMemberResult.member.roles.includes(verifiedRoleId)) {
+    return {
+      alreadyHasRole: true,
+      message: null,
+      diagnostics: {
+        targetMemberStatus,
+        guildRolesStatus,
+        botMemberStatus,
+      },
+    };
+  }
+
+  if (args.addRoleResult.status === 404 && !targetMemberResult.ok && targetMemberResult.status === 404) {
+    return {
+      alreadyHasRole: false,
+      message: "Fitness verified your token, but Discord could not find your server member record. Leave and rejoin the server, then try Verify again.",
+      diagnostics: {
+        targetMemberStatus,
+        guildRolesStatus,
+        botMemberStatus,
+      },
+    };
+  }
+
+  const verifiedRole = guildRolesResult.ok
+    ? guildRolesResult.roles.find((role) => role.id === verifiedRoleId)
+    : null;
+  if (args.addRoleResult.status === 404 && !verifiedRole) {
+    return {
+      alreadyHasRole: false,
+      message: "Fitness verified your token, but Discord could not find the configured Verified role. Ask an admin to run /server-inventory and confirm the Verified role wiring.",
+      diagnostics: {
+        targetMemberStatus,
+        guildRolesStatus,
+        botMemberStatus,
+      },
+    };
+  }
+
+  if (guildRolesResult.ok && botMemberResult.ok && verifiedRole) {
+    const botHighestRolePosition = getHighestDiscordRolePosition(botMemberResult.member.roles, guildRolesResult.roles);
+    const targetHighestRolePosition = getHighestDiscordRolePosition(targetMemberResult.ok ? targetMemberResult.member.roles : null, guildRolesResult.roles);
+    const botCanManageRoles = botHasDiscordManageRolesPermission(guildRolesResult.roles, botMemberResult.member.roles);
+
+    if (botCanManageRoles === false) {
+      return {
+        alreadyHasRole: false,
+        message: "Fitness verified your token, but Fawx Security no longer has Manage Roles in Discord. Ask an admin to restore that permission and try again.",
+        diagnostics: {
+          botHighestRolePosition,
+          targetHighestRolePosition,
+          verifiedRolePosition: verifiedRole.position ?? null,
+          botCanManageRoles,
+        },
+      };
+    }
+
+    if (typeof botHighestRolePosition === "number" && typeof verifiedRole.position === "number" && botHighestRolePosition <= verifiedRole.position) {
+      return {
+        alreadyHasRole: false,
+        message: "Fitness verified your token, but the Fawx Security role is not above Verified in Discord's role list. Move it higher and try again.",
+        diagnostics: {
+          botHighestRolePosition,
+          targetHighestRolePosition,
+          verifiedRolePosition: verifiedRole.position,
+          botCanManageRoles,
+        },
+      };
+    }
+
+    if (
+      typeof botHighestRolePosition === "number"
+      && typeof targetHighestRolePosition === "number"
+      && targetHighestRolePosition >= botHighestRolePosition
+    ) {
+      return {
+        alreadyHasRole: false,
+        message: "Fitness verified your token, but Discord cannot manage one of your current roles yet. Ask an admin to move Fawx Security above your highest server role and try again.",
+        diagnostics: {
+          botHighestRolePosition,
+          targetHighestRolePosition,
+          verifiedRolePosition: verifiedRole.position ?? null,
+          botCanManageRoles,
+        },
+      };
+    }
+  }
+
+  if (args.addRoleResult.status >= 500 || /internal network error/i.test(String(args.addRoleResult.message ?? ""))) {
+    return {
+      alreadyHasRole: false,
+      message: "Fitness verified your token, but Discord had a temporary role-update failure. Try Verify again in a moment.",
+      diagnostics: {
+        targetMemberStatus,
+        guildRolesStatus,
+        botMemberStatus,
+      },
+    };
+  }
+
+  return {
+    alreadyHasRole: false,
+    message: "Fitness verified your token, but Discord rejected the Verified role update. Ask an admin to confirm Fawx Security can manage the Verified role and retry.",
+    diagnostics: {
+      targetMemberStatus,
+      guildRolesStatus,
+      botMemberStatus,
+    },
+  };
 }
 
 function shouldArchiveFeedbackThread(status: string): boolean {
@@ -1078,16 +1269,25 @@ async function handleVerifyModalSubmit(interaction: DiscordInteraction) {
   });
 
   if (!addRoleResult.ok) {
+    const assignmentDiagnosis = await diagnoseVerifiedRoleAssignmentFailure({
+      targetDiscordUserId: verificationResult.discordUserId,
+      addRoleResult,
+    });
+
     console.error("[discord-interactions] role assignment failed", {
       requestId,
       code: addRoleResult.code,
       status: addRoleResult.status,
       message: addRoleResult.message,
+      diagnostics: assignmentDiagnosis.diagnostics,
     });
 
-    return buildDiscordEphemeralMessageResponse(
-      "Fitness verified your token, but Discord could not assign the role. Ask an admin to check the bot role position and Manage Roles permission.",
-    );
+    if (!assignmentDiagnosis.alreadyHasRole) {
+      return buildDiscordEphemeralMessageResponse(
+        assignmentDiagnosis.message
+        ?? "Fitness verified your token, but Discord rejected the Verified role update. Try again in a moment.",
+      );
+    }
   }
 
   const unverifiedRoleId = DISCORD_UNVERIFIED_ROLE_ID();
