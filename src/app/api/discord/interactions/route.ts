@@ -108,6 +108,10 @@ import {
   FITNESS_RELEASE_NOTE_OPTION_NAME,
   FITNESS_WARNING_CLEAR_COMMAND_NAME,
   FITNESS_WARNING_SEVERITY_OPTION_NAME,
+  FITNESS_SPOTIFY_COMMAND_NAME,
+  FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
+  FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
+  FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME,
   FITNESS_WARNINGS_COMMAND_NAME,
   FITNESS_WARN_COMMAND_NAME,
   FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX,
@@ -131,6 +135,7 @@ import {
   FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME,
   FITNESS_VERIFY_MODAL_CUSTOM_ID,
   extractDiscordCommandIntegerOption,
+  extractDiscordCommandSubcommand,
   extractDiscordCommandStringOption,
   extractDiscordCommandUserOption,
   extractDiscordModalFileUploadIds,
@@ -177,6 +182,12 @@ import {
   updateDiscordForumThreadTitle,
   updateDiscordGuildMemberNickname,
 } from "@/lib/discord/rest";
+import { buildSpotifyAuthorizationUrl } from "@/lib/spotify/oauth";
+import {
+  buildSpotifyStatusCopy,
+  disconnectDiscordSpotifyConnection,
+  getDiscordSpotifyConnection,
+} from "@/lib/spotify/tokens";
 import {
   validateDiscordFeedbackEmojis,
 } from "@/lib/discord/feedback-emojis";
@@ -286,6 +297,69 @@ function resolveDiscordInteractionUser(interaction: DiscordInteraction): {
 
 function interactionMatchesGuild(interaction: DiscordInteraction): boolean {
   return typeof interaction.guild_id === "string" && interaction.guild_id === DISCORD_GUILD_ID();
+}
+
+async function handleSpotifyInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+  }
+
+  const discordUser = resolveDiscordInteractionUser(interaction);
+  const subcommand = extractDiscordCommandSubcommand(interaction.data?.options);
+
+  if (!discordUser.id || !subcommand?.name) {
+    return buildDiscordEphemeralMessageResponse("Spotify Club could not read that command. Try again.");
+  }
+
+  if (subcommand.name === FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME) {
+    try {
+      const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUser.id);
+      return buildDiscordEphemeralMessageResponse(
+        `Connect Spotify to become Jam Ready for Spotify Club.\n${authorizationUrl}`,
+      );
+    } catch (error) {
+      console.error("[discord-interactions] spotify-connect failed", {
+        requestId: randomUUID(),
+        discordUserId: discordUser.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return buildDiscordEphemeralMessageResponse("Spotify could not generate a connect link right now. Try again in a moment.");
+    }
+  }
+
+  if (subcommand.name === FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME) {
+    try {
+      return buildDiscordEphemeralMessageResponse(
+        buildSpotifyStatusCopy(await getDiscordSpotifyConnection(discordUser.id)),
+      );
+    } catch (error) {
+      console.error("[discord-interactions] spotify-status failed", {
+        requestId: randomUUID(),
+        discordUserId: discordUser.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return buildDiscordEphemeralMessageResponse("Spotify status could not be loaded right now. Try again in a moment.");
+    }
+  }
+
+  if (subcommand.name === FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME) {
+    try {
+      await disconnectDiscordSpotifyConnection(discordUser.id);
+      return buildDiscordEphemeralMessageResponse("Spotify disconnected.");
+    } catch (error) {
+      console.error("[discord-interactions] spotify-disconnect failed", {
+        requestId: randomUUID(),
+        discordUserId: discordUser.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return buildDiscordEphemeralMessageResponse("Spotify could not be disconnected right now. Try again in a moment.");
+    }
+  }
+
+  return buildDiscordEphemeralMessageResponse("That Spotify subcommand is not available in this phase yet.");
 }
 
 const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
@@ -3146,6 +3220,13 @@ export async function POST(request: Request) {
       && interaction.data?.name === FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME
     ) {
       return jsonResponse(await handleFeedbackWithdrawInteraction(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
+      && interaction.data?.name === FITNESS_SPOTIFY_COMMAND_NAME
+    ) {
+      return jsonResponse(await handleSpotifyInteraction(interaction));
     }
 
     if (

@@ -143,3 +143,20 @@ export type ExerciseRow = {
   curation_tags?: Record<string, string[]> | null;
   created_at: string;
 };
+
+export type DiscordSpotifyConnectionRow = {
+  id: string;
+  discord_user_id: string;
+  spotify_user_id: string;
+  spotify_display_name: string | null;
+  spotify_product: "premium" | "free" | "open" | "unknown";
+  is_premium: boolean;
+  encrypted_refresh_token: string;
+  access_token_expires_at: string | null;
+  scopes: string[];
+  connected_at: string;
+  last_checked_at: string | null;
+  disconnected_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
