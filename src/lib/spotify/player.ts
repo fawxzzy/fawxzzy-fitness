@@ -113,7 +113,7 @@ function buildSpotifyPlayerApiError(args: {
   });
 }
 
-async function buildSpotifyPlayerAccessToken(connection: DiscordSpotifyConnectionRow): Promise<string> {
+export async function buildSpotifyPlayerAccessToken(connection: DiscordSpotifyConnectionRow): Promise<string> {
   try {
     const refreshToken = decryptSpotifyRefreshToken(connection.encrypted_refresh_token);
     const tokenResult = await refreshSpotifyAccessToken({
@@ -150,6 +150,7 @@ async function spotifyPlayerRequest(args: {
   body?: Record<string, unknown>;
   fallbackMessage: string;
   noActiveDeviceMessage?: string;
+  accessToken?: string;
 }): Promise<Response> {
   if (!hasSpotifyPlaybackScopes(connectionScopesFromConnection(args.connection))) {
     throw new SpotifyPlayerApiError({
@@ -159,7 +160,7 @@ async function spotifyPlayerRequest(args: {
     });
   }
 
-  const accessToken = await buildSpotifyPlayerAccessToken(args.connection);
+  const accessToken = args.accessToken?.trim() || await buildSpotifyPlayerAccessToken(args.connection);
   const response = await fetch(args.url, {
     method: args.method,
     headers: {
@@ -197,12 +198,16 @@ export function buildNoActiveDeviceMessage(): string {
   return "Open Spotify on your phone, desktop, or browser first, then try again.";
 }
 
-export async function getAvailableSpotifyDevices(connection: DiscordSpotifyConnectionRow): Promise<SpotifyAvailableDevice[]> {
+export async function getAvailableSpotifyDevices(
+  connection: DiscordSpotifyConnectionRow,
+  accessToken?: string,
+): Promise<SpotifyAvailableDevice[]> {
   const response = await spotifyPlayerRequest({
     connection,
     url: SPOTIFY_PLAYER_DEVICES_ENDPOINT,
     method: "GET",
     fallbackMessage: "Spotify playback readiness could not be checked right now. Try again in a moment.",
+    accessToken,
   });
 
   const body = await response.json().catch(() => null) as {
@@ -222,12 +227,16 @@ export async function getAvailableSpotifyDevices(connection: DiscordSpotifyConne
     .filter((device): device is SpotifyAvailableDevice => Boolean(device));
 }
 
-export async function getCurrentPlaybackState(connection: DiscordSpotifyConnectionRow): Promise<SpotifyCurrentPlaybackState> {
+export async function getCurrentPlaybackState(
+  connection: DiscordSpotifyConnectionRow,
+  accessToken?: string,
+): Promise<SpotifyCurrentPlaybackState> {
   const response = await spotifyPlayerRequest({
     connection,
     url: SPOTIFY_PLAYER_STATE_ENDPOINT,
     method: "GET",
     fallbackMessage: "Spotify playback state could not be loaded right now. Try again in a moment.",
+    accessToken,
   });
 
   if (response.status === 204) {
@@ -252,6 +261,7 @@ export async function startSpotifyPlaybackOnDevice(args: {
   connection: DiscordSpotifyConnectionRow;
   deviceId: string;
   spotifyUris: string[];
+  accessToken?: string;
 }): Promise<void> {
   const deviceId = args.deviceId.trim();
   if (!deviceId) {
@@ -280,5 +290,6 @@ export async function startSpotifyPlaybackOnDevice(args: {
     },
     fallbackMessage: "Spotify playback could not be started right now. Try again in a moment.",
     noActiveDeviceMessage: buildNoActiveDeviceMessage(),
+    accessToken: args.accessToken,
   });
 }

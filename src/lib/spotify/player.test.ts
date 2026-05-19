@@ -118,3 +118,34 @@ test("getAvailableSpotifyDevices prompts reconnect when Spotify invalidates the 
     global.fetch = originalFetch;
   }
 });
+
+test("startSpotifyPlaybackOnDevice reuses a provided access token without refreshing again", async () => {
+  const observedRequests: Array<{ url: string; method: string }> = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    observedRequests.push({
+      url,
+      method: init?.method ?? "GET",
+    });
+
+    return new Response(null, {
+      status: 204,
+    });
+  };
+
+  try {
+    await startSpotifyPlaybackOnDevice({
+      connection: baseConnection,
+      deviceId: "active-device",
+      spotifyUris: ["spotify:track:3n3Ppam7vgaVa1iaRUc9Lp"],
+      accessToken: "access-token",
+    });
+
+    assert.equal(observedRequests.length, 1);
+    assert.equal(observedRequests[0]?.method, "PUT");
+    assert.match(observedRequests[0]?.url ?? "", /\/me\/player\/play\?device_id=active-device$/);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
