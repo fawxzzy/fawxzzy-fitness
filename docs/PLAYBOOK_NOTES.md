@@ -27,6 +27,26 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating the bot as an audio source creates platform and licensing risk.
 - Status: Proposed
 
+## 2026-05-18 - Discord community features should hide setup commands and surface public actions as panels
+- Type: Pattern
+- Summary: Setup, moderation, and admin configuration commands should stay staff-facing, while normal-user Discord product flows should be delivered through persistent panels, buttons, and modals.
+- Rule: `/setup-*` commands are admin-only.
+- Rule: Moderation and staff control commands are staff-only.
+- Rule: Public user workflows should not depend on memorizing slash commands.
+- Rule: Slash commands are acceptable for early proof phases, but should not remain the main public UX.
+- Pattern: admin setup slash command -> persistent public panel -> user buttons/modals -> bounded workflow state.
+- Failure Mode: Keeping community features slash-command-first hides them from normal users and makes adoption depend on command memorization.
+- Evidence: docs/ops/FITNESS-DISCORD-SPOTIFY-CLUB.md, Feedback panel, Verify panel
+- Status: Proposed
+
+## 2026-05-18 - Spotify Club should move from proof commands to public panels
+- Type: Pattern
+- Summary: Spotify Club Phase 2 should expose user actions through a public panel while keeping setup and lobby controls staff-facing.
+- Rule: Admin/setup commands configure systems; buttons are the public product.
+- Pattern: setup command -> persistent Spotify Club panel -> Connect/Status/Disconnect buttons -> lobby state.
+- Failure Mode: Leaving Spotify Club as slash commands keeps the community feature hidden and underused.
+- Status: Proposed
+
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
 - Type: Guardrail
 - Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.

@@ -6,6 +6,7 @@ import {
   buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
+  buildDiscordSpotifyClubPanelMessagePayload,
   buildDiscordFeedbackUpdatePickerResponse,
   buildDiscordFeedbackReportModalResponse,
   buildDiscordFeedbackUpdateModalResponse,
@@ -18,6 +19,7 @@ import {
   discordMemberHasBugStatusPermission,
   discordMemberHasModerationPermission,
   discordMessageHasFeedbackPanel,
+  discordMessageHasSpotifyClubPanel,
   discordMemberHasSetupPermission,
   extractDiscordCommandIntegerOption,
   extractDiscordCommandSubcommand,
@@ -97,6 +99,30 @@ test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel butt
 test("discordMessageHasFeedbackPanel detects the feedback panel action row", () => {
   assert.equal(discordMessageHasFeedbackPanel(buildDiscordFeedbackPanelMessagePayload()), true);
   assert.equal(discordMessageHasFeedbackPanel(buildDiscordVerifyMessagePayload()), false);
+});
+
+test("buildDiscordSpotifyClubPanelMessagePayload exposes button-first Spotify Club actions", () => {
+  const payload = buildDiscordSpotifyClubPanelMessagePayload({
+    lobbyStatusLabel: "Open",
+    hostDiscordUserId: "123456789012345678",
+  });
+
+  assert.equal(payload.embeds[0]?.title, "Spotify Club");
+  assert.match(payload.embeds[0]?.description ?? "", /Status: \*\*Open\*\*/);
+  assert.match(payload.embeds[0]?.description ?? "", /<@123456789012345678>/);
+  assert.deepEqual(
+    payload.components[0]?.components?.map((component) => component.custom_id),
+    ["spotify_connect_open", "spotify_status_check", "spotify_disconnect"],
+  );
+  assert.deepEqual(
+    payload.components[1]?.components?.map((component) => component.custom_id),
+    ["spotify_join_placeholder", "spotify_suggest_placeholder"],
+  );
+  assert.equal(
+    payload.components[1]?.components?.every((component) => ("disabled" in component ? component.disabled === true : false)),
+    true,
+  );
+  assert.equal(discordMessageHasSpotifyClubPanel(payload), true);
 });
 
 test("resolveDiscordFeedbackReportTypeFromModalCustomId supports feedback modals only", () => {
@@ -436,7 +462,9 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const updateLatest = commands.find((command) => command.name === "update-latest");
   const updatePublish = commands.find((command) => command.name === "update-publish");
   const updateSkip = commands.find((command) => command.name === "update-skip");
+  const setupSpotifyClub = commands.find((command) => command.name === "setup-spotify-club");
   const spotify = commands.find((command) => command.name === "spotify");
+  const jamLobby = commands.find((command) => command.name === "jam-lobby");
   const purgatorySetup = commands.find((command) => command.name === "purgatory-setup");
   const warn = commands.find((command) => command.name === "warn");
   const warnings = commands.find((command) => command.name === "warnings");
@@ -449,7 +477,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const feedbackCompletionReviewDecisionOption = feedbackCompletionReview?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
   const warnSeverityOption = warn?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
 
-  assert.equal(commands.length, 20);
+  assert.equal(commands.length, 22);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(verifyCleanup);
@@ -485,10 +513,18 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.equal(updatePublish?.options?.[0]?.name, "draft_id");
   assert.ok(updateSkip);
   assert.equal(updateSkip?.options?.[1]?.name, "reason");
+  assert.ok(setupSpotifyClub);
+  assert.equal(setupSpotifyClub?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(spotify);
   assert.equal(spotify?.default_member_permissions, undefined);
   assert.deepEqual(spotify?.options?.map((option) => option.name), ["connect", "status", "disconnect"]);
   assert.equal(spotify?.options?.every((option) => option.type === 1), true);
+  assert.ok(jamLobby);
+  assert.equal(
+    jamLobby?.default_member_permissions,
+    String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
+  );
+  assert.deepEqual(jamLobby?.options?.map((option) => option.name), ["open", "close", "status"]);
   assert.ok(purgatorySetup);
   assert.equal(
     purgatorySetup?.default_member_permissions,
