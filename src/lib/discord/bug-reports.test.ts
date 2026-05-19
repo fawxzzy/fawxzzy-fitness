@@ -27,6 +27,7 @@ import {
   recordDiscordBugReportForumState,
   recordDiscordBugReportForumThread,
   recordDiscordBugReportStaffMessage,
+  shouldApplyDiscordFeedbackBacklogTag,
   splitDiscordBugStepsAndScreenshot,
   updateDiscordBugReportStatus,
   withdrawDiscordFeedbackReport,
@@ -577,6 +578,45 @@ test("buildDiscordBugForumTagNames applies severity only to bug cards", () => {
     status: "withdrawn",
     severity: "high",
   }), ["Feature", "Withdrawn"]);
+});
+
+test("buildDiscordBugForumTagNames can include Backlog alongside planning statuses", () => {
+  assert.deepEqual(buildDiscordBugForumTagNames({
+    reportType: "feature",
+    status: "confirmed",
+    severity: "medium",
+    includeBacklog: true,
+  }), ["Feature", "Confirmed", "Backlog"]);
+
+  assert.deepEqual(buildDiscordBugForumTagNames({
+    reportType: "bug",
+    status: "fawxzzy_review",
+    severity: "high",
+    includeBacklog: true,
+  }), ["Bug", "Ready for Fawxzzy Review", "High", "Backlog"]);
+});
+
+test("shouldApplyDiscordFeedbackBacklogTag only applies to public reviewed-not-started cards", () => {
+  assert.equal(shouldApplyDiscordFeedbackBacklogTag(buildStoredRow({
+    status: "confirmed",
+    area: "Spotify Club",
+  })), true);
+
+  assert.equal(shouldApplyDiscordFeedbackBacklogTag(buildStoredRow({
+    status: "fawxzzy_review",
+    area: "Spotify Club",
+  })), true);
+
+  assert.equal(shouldApplyDiscordFeedbackBacklogTag(buildStoredRow({
+    status: "in_progress",
+    area: "Spotify Club",
+  })), false);
+
+  assert.equal(shouldApplyDiscordFeedbackBacklogTag(buildStoredRow({
+    status: "confirmed",
+    area: "Feedback Testing",
+    summary: "Feedback canary: do not promote",
+  })), false);
 });
 
 test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly requested", () => {

@@ -33,6 +33,7 @@ export const DISCORD_BUG_REPORT_STATUS_TAG_LABELS = {
   new: "New",
   needs_info: "Needs Info",
   confirmed: "Confirmed",
+  fawxzzy_review: "Ready for Fawxzzy Review",
   in_progress: "In Progress",
   fixed: "Fixed",
   closed: "Closed",
@@ -40,6 +41,7 @@ export const DISCORD_BUG_REPORT_STATUS_TAG_LABELS = {
   spam: "Spam",
   withdrawn: "Withdrawn",
 } as const;
+export const DISCORD_FEEDBACK_BACKLOG_TAG_LABEL = "Backlog";
 export const DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS = {
   not_required: "Not Required",
   pending: "Pending",
@@ -1074,6 +1076,7 @@ export function buildDiscordBugForumTagNames(args: {
   reportType: DiscordBugReportReportType;
   status: DiscordBugReportStatus;
   severity: DiscordBugReportSeverity;
+  includeBacklog?: boolean;
 }): string[] {
   const names = [
     formatDiscordBugReportTypeLabel(args.reportType),
@@ -1084,7 +1087,22 @@ export function buildDiscordBugForumTagNames(args: {
     names.push(formatForumSeverityLabel(args.severity));
   }
 
-  return [...new Set(names)].slice(0, 3);
+  if (args.includeBacklog) {
+    names.push(DISCORD_FEEDBACK_BACKLOG_TAG_LABEL);
+  }
+
+  return [...new Set(names)].slice(0, 5);
+}
+
+export function shouldApplyDiscordFeedbackBacklogTag(report: Pick<
+  DiscordBugReportRow,
+  "status" | "discord_forum_channel_id" | "area" | "summary" | "details"
+>): boolean {
+  if (isDiscordFeedbackTestingCard(report)) {
+    return false;
+  }
+
+  return report.status === "confirmed" || report.status === "fawxzzy_review";
 }
 
 export function buildDiscordBugForumThreadTitle(args: {

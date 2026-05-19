@@ -23,7 +23,7 @@ Failure mode:
 Discord forums are a readable visual board, not a fully custom sortable planning system.
 
 Use these layers:
-- forum tags for type, status, and severity
+- forum tags for type, status, severity, and planning state
 - text-only thread title prefixes like `Bug: Area - Title` and `Feature: Area - Title`
 - optional pinning for a very small number of current priority threads
 - board exports as the real structured planning order
@@ -35,7 +35,14 @@ Visual board rule:
 
 Recommended visible shape:
 - active first: `In Progress`, `Ready for Fawxzzy Review`, `Confirmed`, `New`
+- reviewed but not started: `Confirmed` or `Ready for Fawxzzy Review` plus `Backlog`
 - less visible historical states: `Fixed`, `Completed`, `Closed`, `Duplicate`, `Withdrawn`, `Spam`
+
+Planning tag rule:
+- `Backlog` is a planning tag, not a stored status
+- apply it to public reviewed cards that are real and not started yet
+- remove it when a card becomes `In Progress`, `Fixed` or `Completed`, `Closed`, `Duplicate`, `Withdrawn`, or `Spam`
+- do not apply it to private `feedback-testing` canaries by default
 
 Canary rule:
 - use private `feedback-testing` for sorting and display canary checks before changing public board hygiene
@@ -108,6 +115,10 @@ Feedback audit comments:
 - document status changes, updates, withdraws, duplicate folds, and sync actions
 - stay compact and operational
 
+Resolved-state marker:
+- fixed or completed public cards should also carry a visible `✅` reaction on the starter post
+- the reaction is board hygiene, not a substitute for the stored status or completion review state
+
 Rule:
 - Release posts announce shipped user-facing changes.
 - Feedback audit comments document card history.
@@ -159,6 +170,7 @@ Staff board control:
 
 Operator scripts:
 - `npm run feedback:sync-forum-posts`
+- `npm run feedback:sync-resolved-reactions`
 - `npm run feedback:board:export`
 
 Card structure sync:
@@ -168,9 +180,19 @@ Card structure sync:
   - `--report-id <uuid>`
   - `--limit <count>`
   - `--status new,confirmed`
+  - `--include-testing`
 - apply mode updates the starter post and leaves the thread audit comment:
   - `Card formatting synced by Fawx Security.`
   - `Reason: Applied Feedback Card Structure v2.`
+
+Resolved reaction sync:
+- `npm run feedback:sync-resolved-reactions -- --dry-run`
+- `npm run feedback:sync-resolved-reactions -- --apply`
+- defaults to public `fixed` cards only
+- optional filters:
+  - `--report-id <uuid-or-short-prefix>`
+  - `--status fixed`
+  - `--include-testing`
 
 There is no automatic `/feedback-triage` or `/feedback-export` slash command in this lane.
 - Board export is an operator workflow, not a public Discord action.

@@ -2,15 +2,17 @@
 import process from "node:process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
+const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
 
 for (const [key, value] of Object.entries(fileEnv)) {
-  if (!process.env[key]) {
+  if (explicitEnvFileOverride || !process.env[key]) {
     process.env[key] = value;
   }
 }
@@ -18,7 +20,9 @@ for (const [key, value] of Object.entries(fileEnv)) {
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
 const DISCORD_API_USER_AGENT = "fawxzzy-fitness-feedback-reaction-sync/1.0";
 export const DISCORD_RESOLVED_REACTION_EMOJI = String.fromCodePoint(0x2705);
-export const DEFAULT_STATUSES = ["fixed", "closed"];
+export const DEFAULT_STATUSES = ["fixed"];
+const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
+const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
 
 function isUuidLike(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -33,23 +37,25 @@ function getRequiredEnv(name) {
   return value;
 }
 
-async function parseJson(response) {
-  const text = await response.text();
-  if (!text) {
-    return null;
+function getOptionalEnv(name) {
+  const value = process.env[name]?.trim();
+  return value && value.length > 0 ? value : null;
+}
+
+function getSupabaseUrl() {
+  const value = getOptionalEnv(SUPABASE_URL_ENV) || getOptionalEnv(FALLBACK_SUPABASE_URL_ENV);
+  if (!value) {
+    throw new Error(`Missing required env: ${SUPABASE_URL_ENV} or ${FALLBACK_SUPABASE_URL_ENV}. Set it in ${envPath} or the current shell.`);
   }
 
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { message: text.slice(0, 300) };
-  }
+  return value;
 }
 
 export function parseArgs(argv = process.argv.slice(2)) {
   const args = {
     apply: false,
     debug: false,
+    includeTesting: false,
     limit: 25,
     reportId: null,
     statuses: [...DEFAULT_STATUSES],
@@ -65,6 +71,11 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
     if (token === "--debug") {
       args.debug = true;
+      continue;
+    }
+
+    if (token === "--include-testing") {
+      args.includeTesting = true;
       continue;
     }
 
@@ -100,38 +111,34 @@ export function parseArgs(argv = process.argv.slice(2)) {
   return args;
 }
 
-function buildSupabaseReportsUrl(baseUrl, args) {
-  const url = new URL(`${baseUrl.replace(/\/$/, "")}/rest/v1/discord_feedback_reports`);
-  url.searchParams.set("select", "id,status,discord_forum_thread_id,discord_forum_message_id");
-  url.searchParams.set("order", "updated_at.desc");
-  url.searchParams.set("limit", String(args.limit));
-
-  if (args.reportId && isUuidLike(args.reportId)) {
-    url.searchParams.set("id", `eq.${args.reportId}`);
-  } else if (args.statuses.length === 1) {
-    url.searchParams.set("status", `eq.${args.statuses[0]}`);
-  } else {
-    url.searchParams.set("status", `in.(${args.statuses.join(",")})`);
-  }
-
-  return url.toString();
-}
-
-export async function loadResolvedReports(args, { fetchImpl = fetch } = {}) {
-  const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const serviceRoleKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
-  const response = await fetchImpl(buildSupabaseReportsUrl(supabaseUrl, args), {
-    method: "GET",
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      Accept: "application/json",
+function createServiceClient() {
+  return createClient(getSupabaseUrl(), getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
     },
   });
+}
 
-  const data = await parseJson(response);
-  if (!response.ok || !Array.isArray(data)) {
-    throw new Error(`Unable to load discord_feedback_reports: ${response.status} ${response.statusText}`);
+export async function loadResolvedReports(args, { client = createServiceClient() } = {}) {
+  let query = client
+    .from("discord_feedback_reports")
+    .select("id,status,report_type,area,summary,details,discord_forum_channel_id,discord_forum_thread_id,discord_forum_message_id,completion_review_status");
+
+  if (args.reportId && isUuidLike(args.reportId)) {
+    query = query.eq("id", args.reportId);
+  } else if (args.statuses.length === 1) {
+    query = query.eq("status", args.statuses[0]);
+  } else {
+    query = query.in("status", args.statuses);
+  }
+
+  const { data, error } = await query
+    .order("updated_at", { ascending: false })
+    .limit(args.limit);
+
+  if (error || !Array.isArray(data)) {
+    throw new Error(`Unable to load discord_feedback_reports: ${error?.message ?? "unknown error"}`);
   }
 
   let reports = data
@@ -139,8 +146,14 @@ export async function loadResolvedReports(args, { fetchImpl = fetch } = {}) {
     .map((report) => ({
       id: report.id,
       status: typeof report.status === "string" ? report.status : null,
+      reportType: typeof report.report_type === "string" ? report.report_type : null,
+      area: typeof report.area === "string" ? report.area : null,
+      summary: typeof report.summary === "string" ? report.summary : null,
+      details: typeof report.details === "string" ? report.details : null,
+      forumChannelId: typeof report.discord_forum_channel_id === "string" ? report.discord_forum_channel_id : null,
       threadId: typeof report.discord_forum_thread_id === "string" ? report.discord_forum_thread_id : null,
       messageId: typeof report.discord_forum_message_id === "string" ? report.discord_forum_message_id : null,
+      completionReviewStatus: typeof report.completion_review_status === "string" ? report.completion_review_status : null,
     }));
 
   if (args.reportId && !isUuidLike(args.reportId)) {
@@ -148,7 +161,29 @@ export async function loadResolvedReports(args, { fetchImpl = fetch } = {}) {
     reports = reports.filter((report) => report.id.toLowerCase().startsWith(prefix));
   }
 
+  if (!args.includeTesting) {
+    reports = reports.filter((report) => !isTestingReport(report));
+  }
+
   return reports;
+}
+
+function isTestingReport(report) {
+  const testingForumChannelId = process.env.DISCORD_FEEDBACK_TESTING_FORUM_CHANNEL_ID?.trim() || null;
+  if (testingForumChannelId && report.forumChannelId === testingForumChannelId) {
+    return true;
+  }
+
+  const area = String(report.area ?? "").trim().toLowerCase();
+  const summary = String(report.summary ?? "").trim().toLowerCase();
+  const details = String(report.details ?? "").trim().toLowerCase();
+  const combined = `${area} ${summary} ${details}`;
+
+  if (area === "discord feedback qa" || area === "feedback testing") {
+    return true;
+  }
+
+  return combined.includes("feedback canary") || combined.includes("canonical discord feedback canary");
 }
 
 export async function applyResolvedReaction(report, { fetchImpl = fetch } = {}) {
@@ -174,8 +209,21 @@ export async function applyResolvedReaction(report, { fetchImpl = fetch } = {}) 
   };
 }
 
-export async function syncResolvedReactions(args, { fetchImpl = fetch, logger = console } = {}) {
-  const reports = await loadResolvedReports(args, { fetchImpl });
+async function parseJson(response) {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text.slice(0, 300) };
+  }
+}
+
+export async function syncResolvedReactions(args, { client = createServiceClient(), fetchImpl = fetch, logger = console } = {}) {
+  const reports = await loadResolvedReports(args, { client });
   const actionable = reports.filter((report) => report.threadId && report.messageId);
   const skippedMissingMessageIds = reports.length - actionable.length;
   const summary = {

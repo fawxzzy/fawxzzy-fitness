@@ -59,9 +59,28 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Type: Pattern
 - Summary: Discord forum tags, titles, and a small amount of pinning make the public board readable, but the exported board and reviewed task packets remain the real sorted planning view.
 - Rule: Forum order is visual only; export order is planning truth.
+- Rule: `Backlog` is a planning tag for reviewed public cards that are not started yet.
 - Rule: Do not churn thread activity just to fake custom sorting.
 - Pattern: tags and title prefixes -> readable forum board -> board export -> reviewed task packets.
 - Failure Mode: relying on Discord forum order alone makes the board feel messy because custom multi-layer sorting is not native there.
+- Status: Proposed
+
+## 2026-05-19 - Completed public feedback cards should show visible resolved state
+- Type: Guardrail
+- Summary: Public feedback cards that are fixed or completed should visibly look done in Discord, while exports and completion review still own the real workflow truth.
+- Rule: Fixed or completed public cards should carry a `✅` reaction on the starter post.
+- Rule: Private testing canaries stay excluded from resolved-reaction hygiene by default.
+- Pattern: status update -> completion review as required -> resolved reaction sync -> historical board card.
+- Failure Mode: Finished public cards without a visible resolved marker make the forum look stale even when the stored status is correct.
+- Status: Proposed
+
+## 2026-05-19 - Spotify Club public channel should be panel-first and low-noise
+- Type: Guardrail
+- Summary: Spotify Club queue and lobby state should live in the public panel, while rollout tests and proof logs stay private.
+- Rule: Public channel state belongs in the canonical panel.
+- Rule: Test and proof chatter belongs in private testing channels.
+- Pattern: user action -> ephemeral confirmation -> panel update -> private proof log when needed.
+- Failure Mode: Public queue audit spam makes Spotify Club feel like an ops log instead of a community feature.
 - Status: Proposed
 
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
