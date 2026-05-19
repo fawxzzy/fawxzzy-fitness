@@ -4,17 +4,21 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
+  ACTIVE_IMPLEMENTATION_STATUSES,
   DEFAULT_DECISIONS_EXAMPLE_OUT,
   DEFAULT_JSON_OUT,
   DEFAULT_MARKDOWN_OUT,
   DEFAULT_PROMPTS_OUT,
   buildTaskPacketResult,
   generateFeedbackTaskPackets,
+  isActiveImplementationStatus,
+  isPendingCompletionReview,
   loadBoardRecords,
   parseArgs,
   renderCodexPrompts,
   repoRoot,
   resolveOutputPaths,
+  shouldIncludeInTaskPackets,
 } from "./generate-feedback-task-packets.mjs";
 
 function buildRecord(overrides = {}) {
@@ -44,6 +48,7 @@ function buildRecord(overrides = {}) {
     },
     forum_thread_link: "https://discord.com/channels/1504668396338413670/1505000000000000000",
     reporter_discord_user_id: "123456789012345678",
+    is_testing_card: false,
     attachments: [{ name: "screen.png", bytes: "raw-bytes-should-never-export" }],
     last_seen_at: "2026-05-17T04:00:00.000Z",
     ...overrides,
@@ -60,7 +65,7 @@ function writeBoardFixture(records) {
 test("task packet parseArgs defaults to confirmed and in_progress statuses", () => {
   const args = parseArgs([]);
 
-  assert.deepEqual(args.statuses, ["confirmed", "in_progress"]);
+  assert.deepEqual(args.statuses, ["confirmed", "in_progress", "fawxzzy_review"]);
   assert.deepEqual(args.types, ["bug", "feature"]);
   assert.equal(args.codexPrompts, false);
   assert.equal(args.includeCompletedReview, false);
@@ -97,6 +102,13 @@ test("task packet generation excludes withdrawn spam duplicate closed and fixed 
   assert.equal(result.summary.includedCards, 2);
 });
 
+test("active implementation status helper includes confirmed in_progress and fawxzzy_review only", () => {
+  assert.equal(isActiveImplementationStatus(buildRecord({ status: "confirmed" })), true);
+  assert.equal(isActiveImplementationStatus(buildRecord({ status: "in_progress" })), true);
+  assert.equal(isActiveImplementationStatus(buildRecord({ status: "fawxzzy_review" })), true);
+  assert.equal(isActiveImplementationStatus(buildRecord({ status: "fixed" })), false);
+});
+
 test("task packet generation surfaces completed cards in a completion review queue only when requested", () => {
   const records = loadBoardRecords(
     writeBoardFixture([
@@ -128,6 +140,91 @@ test("task packet generation surfaces completed cards in a completion review que
   assert.equal(withQueue.packets.length, 0);
   assert.equal(withQueue.completionReviewPackets.length, 1);
   assert.equal(withQueue.completionReviewPackets[0].completionReviewStatus, "pending");
+});
+
+test("pending completion review helper includes only pending or needs_followup completed cards", () => {
+  const [pendingRecord, followupRecord, approvedRecord] = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        id: "pending-review",
+        status: "fixed",
+        completion_review_status: "pending",
+        completion_review_required: true,
+      }),
+      buildRecord({
+        id: "followup-review",
+        status: "fixed",
+        completion_review_status: "needs_followup",
+        completion_review_required: true,
+      }),
+      buildRecord({
+        id: "approved-review",
+        status: "fixed",
+        completion_review_status: "approved",
+        completion_review_required: true,
+      }),
+    ]).sourcePath,
+  );
+
+  assert.equal(isPendingCompletionReview(pendingRecord), true);
+  assert.equal(isPendingCompletionReview(followupRecord), true);
+  assert.equal(isPendingCompletionReview(approvedRecord), false);
+});
+
+test("approved fixed cards are excluded from active packets and completion review packets", () => {
+  const fixedApproved = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        id: "phase2-approved",
+        report_type: "feature",
+        status: "fixed",
+        title: "Spotify Club Phase 2 - Public Jam Panel + Lobby State",
+        completion_review_status: "approved",
+        completion_review_required: true,
+      }),
+    ]).sourcePath,
+  )[0];
+  const args = parseArgs(["--include-completed-review"]);
+  const result = buildTaskPacketResult({
+    records: [fixedApproved],
+    inputCount: 1,
+    args,
+    sourcePath: "fixture.json",
+  });
+
+  assert.equal(result.packets.length, 0);
+  assert.equal(result.completionReviewPackets.length, 0);
+});
+
+test("shouldIncludeInTaskPackets excludes testing canaries by default", () => {
+  const args = parseArgs([]);
+  const record = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        id: "testing-card",
+        status: "confirmed",
+        is_testing_card: true,
+      }),
+    ]).sourcePath,
+  )[0];
+
+  assert.equal(shouldIncludeInTaskPackets(record, args), false);
+});
+
+test("shouldIncludeInTaskPackets includes pending completion review only when requested", () => {
+  const pendingRecord = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        id: "pending-review-card",
+        status: "fixed",
+        completion_review_status: "pending",
+        completion_review_required: true,
+      }),
+    ]).sourcePath,
+  )[0];
+
+  assert.equal(shouldIncludeInTaskPackets(pendingRecord, parseArgs([])), false);
+  assert.equal(shouldIncludeInTaskPackets(pendingRecord, parseArgs(["--include-completed-review"])), true);
 });
 
 test("task packet generation groups related records into a single packet", () => {

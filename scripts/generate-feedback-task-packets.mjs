@@ -15,13 +15,15 @@ export const DEFAULT_JSON_OUT = "latest.json";
 export const DEFAULT_PROMPTS_OUT = "codex-prompts.md";
 export const DEFAULT_DECISIONS_EXAMPLE_OUT = "review-decisions.example.json";
 
-export const DEFAULT_STATUSES = ["confirmed", "in_progress"];
+export const DEFAULT_STATUSES = ["confirmed", "in_progress", "fawxzzy_review"];
 export const DEFAULT_TYPES = ["bug", "feature"];
-export const EXCLUDED_BY_DEFAULT = ["withdrawn", "spam", "duplicate", "closed", "fixed"];
+export const ACTIVE_IMPLEMENTATION_STATUSES = ["confirmed", "in_progress", "fawxzzy_review"];
+export const PENDING_COMPLETION_REVIEW_STATUSES = ["pending", "needs_followup"];
 export const VALID_STATUSES = new Set([
   "new",
   "needs_info",
   "confirmed",
+  "fawxzzy_review",
   "in_progress",
   "fixed",
   "closed",
@@ -371,16 +373,45 @@ function normalizeBoardRecord(input, index) {
     completionReviewRequired: Boolean(input.completion_review_required),
     completionReviewNote: clipped(input.completion_review_note ?? input.latest_update_summary ?? "", 240),
     completionReviewedAt: clipped(input.completion_reviewed_at, 80),
+    isTestingCard: Boolean(input.is_testing_card),
     cardSections,
     debugReporterDiscordUserId: typeof input.reporter_discord_user_id === "string" ? input.reporter_discord_user_id : null,
     topicTokens: tokens,
   };
 }
 
-function isCompletionReviewRecord(record) {
+export function isActiveImplementationStatus(record) {
+  return ACTIVE_IMPLEMENTATION_STATUSES.includes(record.status);
+}
+
+export function isPendingCompletionReview(record) {
   return (record.status === "fixed" || record.status === "closed")
-    && (record.completionReviewStatus === "pending" || record.completionReviewStatus === "needs_followup")
+    && PENDING_COMPLETION_REVIEW_STATUSES.includes(record.completionReviewStatus)
     && record.completionReviewRequired;
+}
+
+export function shouldIncludeInTaskPackets(record, args) {
+  const allowedTypes = new Set(args.types.map(normalizeType).filter(Boolean));
+  const allowedStatuses = new Set(args.statuses.map(normalizeStatus).filter(Boolean));
+  const areaFilter = args.area ? args.area.trim().toLowerCase() : null;
+
+  if (!allowedTypes.has(record.reportType)) {
+    return false;
+  }
+
+  if (record.isTestingCard) {
+    return false;
+  }
+
+  if (areaFilter && record.area.toLowerCase() !== areaFilter) {
+    return false;
+  }
+
+  if (args.includeCompletedReview && isPendingCompletionReview(record)) {
+    return true;
+  }
+
+  return isActiveImplementationStatus(record) && allowedStatuses.has(record.status);
 }
 
 export function loadBoardRecords(sourcePath) {
@@ -397,24 +428,8 @@ export function loadBoardRecords(sourcePath) {
 }
 
 export function filterBoardRecords(records, args) {
-  const allowedStatuses = new Set(args.statuses.map(normalizeStatus).filter(Boolean));
-  const allowedTypes = new Set(args.types.map(normalizeType).filter(Boolean));
-  const areaFilter = args.area ? args.area.trim().toLowerCase() : null;
-
   return records
-    .filter((record) => {
-      const includeCompletionReview = args.includeCompletedReview && isCompletionReviewRecord(record);
-      const statusAllowed = includeCompletionReview ? true : allowedStatuses.has(record.status);
-      if (!statusAllowed || !allowedTypes.has(record.reportType)) {
-        return false;
-      }
-
-      if (areaFilter && record.area.toLowerCase() !== areaFilter) {
-        return false;
-      }
-
-      return includeCompletionReview || !EXCLUDED_BY_DEFAULT.includes(record.status);
-    })
+    .filter((record) => shouldIncludeInTaskPackets(record, args))
     .slice(0, args.limit);
 }
 
@@ -1150,9 +1165,9 @@ export function buildTaskPacketResult({
   sourcePath,
   decisionMap = new Map(),
 }) {
-  const implementationRecords = records.filter((record) => !isCompletionReviewRecord(record));
+  const implementationRecords = records.filter((record) => isActiveImplementationStatus(record));
   const completionReviewPackets = args.includeCompletedReview
-    ? records.filter((record) => isCompletionReviewRecord(record)).map((record) => buildCompletionReviewPacket(record))
+    ? records.filter((record) => isPendingCompletionReview(record)).map((record) => buildCompletionReviewPacket(record))
     : [];
   const grouped = groupRecordsIntoPackets(implementationRecords)
     .map((packet) => finalizePacket(packet, args, decisionMap));
