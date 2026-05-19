@@ -95,6 +95,10 @@ Configure these in local env and Vercel before deploy:
 - `SPOTIFY_OAUTH_STATE_SECRET`
 - `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`
 
+Optional:
+
+- `DISCORD_SPOTIFY_CLUB_TEST_CHANNEL_ID`
+
 Use long random secrets for the encryption and state values.
 
 ## Discord Commands
@@ -132,6 +136,24 @@ Command behavior:
 - `jam-queue approve|reject|remove`: staff/host controls for the Discord-side queue only.
 
 These commands are acceptable as proof/admin tools, but the public Spotify Club product should keep normal-user flows on the panel rather than command memorization.
+
+## Public Channel Hygiene
+
+`#spotify-club` is the public product surface, not the ops log.
+
+Rules:
+
+- the canonical Spotify Club panel is the visible source of lobby and queue state
+- `Suggest Track`, `View Queue`, `Approve`, `Reject`, `Remove`, and lobby open/close confirmations stay ephemeral
+- public queue state changes should appear through panel refreshes, not scrolling audit spam
+- if `DISCORD_SPOTIFY_CLUB_TEST_CHANNEL_ID` is configured, proof or regression logs may go there instead of the public channel
+- testing and canary chatter belongs in a private Spotify Club testing lane, not the public community surface
+
+Operational cleanup:
+
+- `npm run spotify:club:cleanup` runs a dry-run against `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`
+- `npm run spotify:club:cleanup -- --apply` deletes known bot-authored Spotify queue rollout chatter while preserving the canonical panel
+- the cleanup tool only targets the configured public Spotify Club channel
 
 ## Phase 3 Queue Rule
 
@@ -172,6 +194,7 @@ Interaction reliability rule:
 - stale or unknown Spotify Club panel buttons should answer:
   - `This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.`
 - `/setup-spotify-club` remains the recovery path for refreshing the canonical panel and pruning stale duplicates
+- panel refresh failures on aged Discord messages should recreate the canonical panel instead of leaving the public state stale
 
 Still reserved or parked:
 

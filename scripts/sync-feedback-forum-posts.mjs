@@ -14,6 +14,7 @@ const DISCORD_BOT_TOKEN_ENV = "DISCORD_BOT_TOKEN";
 export const DEFAULT_LIMIT = 50;
 export const MAX_LIMIT = 100;
 export const DEFAULT_STATUSES = ["new", "needs_info", "confirmed", "fawxzzy_review", "in_progress", "fixed", "closed"];
+const DISCORD_FORUM_MAX_APPLIED_TAGS = 5;
 const VALID_STATUSES = new Set(DEFAULT_STATUSES);
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
@@ -44,6 +45,7 @@ const DISCORD_FORUM_SYNC_SELECT_COLUMNS = [
   "reporter_discord_username",
   "reporter_member_number",
   "duplicate_count",
+  "discord_forum_channel_id",
   "discord_forum_thread_id",
   "discord_forum_message_id",
   "updated_at",
@@ -59,6 +61,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     statuses: [...DEFAULT_STATUSES],
     reportId: null,
     debug: false,
+    includeTesting: false,
     noAuditComment: false,
   };
 
@@ -99,6 +102,11 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
     if (token === "--debug") {
       args.debug = true;
+      continue;
+    }
+
+    if (token === "--include-testing") {
+      args.includeTesting = true;
       continue;
     }
 
@@ -149,9 +157,12 @@ async function loadFeedbackForumHelpers() {
       .then((module) => ({
         buildBody: module.buildDiscordBugForumThreadBody,
         buildReporterLabel: module.buildDiscordBugReporterLabel,
+        buildTagNames: module.buildDiscordBugForumTagNames,
         buildTitle: module.buildDiscordBugForumThreadTitle,
         buildAuditComment: module.buildFeedbackCardAuditComment,
         formatShortId: module.formatDiscordBugReportShortId,
+        shouldApplyBacklogTag: module.shouldApplyDiscordFeedbackBacklogTag,
+        isTestingCard: module.isDiscordFeedbackTestingCard,
       }));
   }
 
@@ -214,6 +225,73 @@ function createDiscordApi(fetchImpl = globalThis.fetch) {
           "User-Agent": "fawxzzy-fitness-feedback-sync/1.0",
         },
         body: JSON.stringify({ name: title }),
+      });
+      const data = await parseDiscordJson(response);
+
+      return response.ok
+        ? { ok: true }
+        : {
+          ok: false,
+          status: response.status,
+          message: data && typeof data === "object" && "message" in data ? String(data.message ?? response.statusText) : response.statusText,
+        };
+    },
+    async resolveTagIdsByName({ channelId, tagNames }) {
+      const response = await fetchImpl(`https://discord.com/api/v10/channels/${channelId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bot ${getRequiredEnv(DISCORD_BOT_TOKEN_ENV)}`,
+          "Content-Type": "application/json",
+          "User-Agent": "fawxzzy-fitness-feedback-sync/1.0",
+        },
+      });
+      const data = await parseDiscordJson(response);
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          status: response.status,
+          message: data && typeof data === "object" && "message" in data ? String(data.message ?? response.statusText) : response.statusText,
+        };
+      }
+
+      const availableTags = Array.isArray(data?.available_tags)
+        ? data.available_tags.filter((tag) => typeof tag?.id === "string" && typeof tag?.name === "string")
+        : [];
+      const matchedTagIds = [];
+      const missingTagNames = [];
+
+      for (const tagName of tagNames) {
+        const normalizedTagName = String(tagName ?? "").trim().toLowerCase();
+        if (!normalizedTagName) {
+          continue;
+        }
+
+        const match = availableTags.find((tag) => tag.name.trim().toLowerCase() === normalizedTagName);
+        if (match) {
+          matchedTagIds.push(match.id);
+        } else {
+          missingTagNames.push(tagName);
+        }
+      }
+
+      return {
+        ok: true,
+        matchedTagIds: [...new Set(matchedTagIds)].slice(0, DISCORD_FORUM_MAX_APPLIED_TAGS),
+        missingTagNames,
+      };
+    },
+    async updateThreadTags({ threadId, appliedTagIds }) {
+      const response = await fetchImpl(`https://discord.com/api/v10/channels/${threadId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bot ${getRequiredEnv(DISCORD_BOT_TOKEN_ENV)}`,
+          "Content-Type": "application/json",
+          "User-Agent": "fawxzzy-fitness-feedback-sync/1.0",
+        },
+        body: JSON.stringify({
+          applied_tags: appliedTagIds.slice(0, DISCORD_FORUM_MAX_APPLIED_TAGS),
+        }),
       });
       const data = await parseDiscordJson(response);
 
@@ -292,13 +370,16 @@ export async function runSyncFeedbackForumPosts({
 } = {}) {
   const resolvedHelpers = helpers ?? await loadFeedbackForumHelpers();
   const rows = await fetchSyncRows({ client, args });
+  const filteredRows = args.includeTesting
+    ? rows
+    : rows.filter((row) => !resolvedHelpers.isTestingCard(row));
   const notes = [];
   let dryRunCount = 0;
   let updatedCount = 0;
   let skippedMissingMessageId = 0;
   let failedCount = 0;
 
-  for (const row of rows) {
+  for (const row of filteredRows) {
     const shortId = resolvedHelpers.formatShortId(row.id);
 
     if (typeof row.discord_forum_message_id !== "string" || row.discord_forum_message_id.trim().length === 0) {
@@ -310,6 +391,12 @@ export async function runSyncFeedbackForumPosts({
     const reporterLabel = resolvedHelpers.buildReporterLabel({
       reporterDiscordUsername: row.reporter_discord_username ?? null,
       reporterMemberNumber: row.reporter_member_number ?? null,
+    });
+    const tagNames = resolvedHelpers.buildTagNames({
+      reportType: row.report_type,
+      status: row.status,
+      severity: row.severity,
+      includeBacklog: resolvedHelpers.shouldApplyBacklogTag(row),
     });
     const title = resolvedHelpers.buildTitle({
       reportType: row.report_type,
@@ -331,6 +418,34 @@ export async function runSyncFeedbackForumPosts({
       dryRunCount += 1;
       notes.push(`DRY-RUN ${descriptor}`);
       continue;
+    }
+
+    if (typeof row.discord_forum_channel_id === "string" && row.discord_forum_channel_id.trim().length > 0) {
+      const tagResolutionResult = await discordApi.resolveTagIdsByName({
+        channelId: row.discord_forum_channel_id,
+        tagNames,
+      });
+
+      if (!tagResolutionResult.ok) {
+        failedCount += 1;
+        notes.push(`FAIL ${shortId}: forum tag resolution returned ${tagResolutionResult.status ?? "unknown"}${tagResolutionResult.message ? ` (${tagResolutionResult.message})` : ""}`);
+        continue;
+      }
+
+      const tagUpdateResult = await discordApi.updateThreadTags({
+        threadId: row.discord_forum_thread_id,
+        appliedTagIds: tagResolutionResult.matchedTagIds,
+      });
+
+      if (!tagUpdateResult.ok) {
+        failedCount += 1;
+        notes.push(`FAIL ${shortId}: forum tag update returned ${tagUpdateResult.status ?? "unknown"}${tagUpdateResult.message ? ` (${tagUpdateResult.message})` : ""}`);
+        continue;
+      }
+
+      if (tagResolutionResult.missingTagNames.length > 0) {
+        notes.push(`WARN ${shortId}: missing forum tags ${tagResolutionResult.missingTagNames.join(", ")}`);
+      }
     }
 
     const titleResult = await discordApi.updateThreadTitle({
@@ -384,9 +499,10 @@ export async function runSyncFeedbackForumPosts({
     console.log(`Report ID filter: ${args.reportId}`);
   }
   if (args.apply) {
-    console.log(`Audit comments: ${args.noAuditComment ? "disabled" : "enabled"}`);
+  console.log(`Audit comments: ${args.noAuditComment ? "disabled" : "enabled"}`);
   }
   console.log(`Rows with forum threads: ${rows.length}`);
+  console.log(`Rows after testing filter: ${filteredRows.length}`);
   console.log(`Dry-run candidates: ${dryRunCount}`);
   console.log(`Updated: ${updatedCount}`);
   console.log(`Skipped missing starter message id: ${skippedMissingMessageId}`);
@@ -400,7 +516,8 @@ export async function runSyncFeedbackForumPosts({
 
   return {
     apply: args.apply,
-    rows,
+    rows: filteredRows,
+    totalRows: rows.length,
     notes,
     dryRunCount,
     updatedCount,

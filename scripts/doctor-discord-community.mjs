@@ -53,6 +53,8 @@ const requiredFeedbackTags = [
   "New",
   "Needs Info",
   "Confirmed",
+  "Ready for Fawxzzy Review",
+  "Backlog",
   "In Progress",
   "Fixed",
   "Closed",

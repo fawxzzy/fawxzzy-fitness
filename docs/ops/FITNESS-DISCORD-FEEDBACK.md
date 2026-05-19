@@ -16,6 +16,8 @@ Product rules:
 - Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
 - Optional Discord decoration must fail soft.
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
+- `Backlog` is a planning tag for public reviewed cards that are not started yet.
+- Fixed or completed public cards should also show a visible `✅` reaction on the starter post.
 
 ## Command surface
 - `/setup-feedback`
@@ -71,6 +73,7 @@ Rules:
 - Forum card mutations should stay in the thread as compact audit comments.
 - Completion Review is required after Fitness app work is marked done.
 - Ready for Fawxzzy Review remains optional before implementation starts.
+- `Backlog` may coexist with `Confirmed` or `Ready for Fawxzzy Review`, but it is not a stored status.
 - Exports are review input, not automatic truth.
 - No direct Discord-to-ATLAS or Discord-to-GitHub writes.
 - No routine or workout sharing work in this lane.
@@ -117,6 +120,21 @@ Pattern:
 - deferred response
 - bounded row
 - forum thread and tags
+
+## Forum organization
+The public Feedback forum is a readable visual board, not the canonical planning sorter.
+
+Visual rules:
+- thread titles stay text-only
+- type, status, severity, and `Backlog` tags carry the visible organization
+- pin only a very small number of current active or high-priority threads
+- do not bump threads just to fake custom board ordering
+- use private `feedback-testing` for canaries and display experiments
+
+Planning rules:
+- `feedback:board:export` and reviewed task packets are the real sorted planning order
+- `Backlog` means reviewed and real, but not actively started
+- `✅` on fixed or completed public cards makes historical closure visible without changing the export contract
 
 ## Submit modal
 The submit flow should ask for type inside the modal, not in the slash command picker.
@@ -424,9 +442,17 @@ Sync script rules:
 - use `--no-audit-comment` to skip thread audit comments during apply mode
 - supports `--limit 50`
 - supports `--status new,confirmed,in_progress,fixed,closed`
+- supports `--include-testing` when private canaries should be synced intentionally
 - supports `--report-id <id>`
 - skips rows that do not have `discord_forum_message_id`
 - never deletes anything
+
+Resolved reaction sync:
+- `npm run feedback:sync-resolved-reactions -- --dry-run`
+- `npm run feedback:sync-resolved-reactions -- --apply`
+- defaults to public fixed or completed cards
+- uses `✅` on the starter post to make completed public cards visually obvious
+- excludes private `feedback-testing` canaries by default unless `--include-testing` is passed
 
 ## Community doctor
 Run:

@@ -5,6 +5,7 @@ import {
   DISCORD_FEEDBACK_PANEL_CHANNEL_ID,
   DISCORD_GUILD_ID,
   DISCORD_SPOTIFY_CLUB_CHANNEL_ID,
+  DISCORD_SPOTIFY_CLUB_TEST_CHANNEL_ID,
   DISCORD_UPDATES_CHANNEL_ID,
   DISCORD_UNVERIFIED_ROLE_ID,
   DISCORD_VERIFY_CHANNEL_ID,
@@ -35,6 +36,7 @@ import {
   recordDiscordBugReportForumThread,
   recordDiscordBugReportForumState,
   requiresDiscordFeedbackCompletionReview,
+  shouldApplyDiscordFeedbackBacklogTag,
   updateDiscordFeedbackCompletionReview,
   updateDiscordFeedbackReportContent,
   updateDiscordBugReportStatus,
@@ -1090,6 +1092,7 @@ async function syncDiscordFeedbackForumThread(args: {
       reportType: args.report.report_type,
       status: args.report.status,
       severity: args.report.severity,
+      includeBacklog: shouldApplyDiscordFeedbackBacklogTag(args.report),
     }),
   });
 
@@ -2011,12 +2014,13 @@ async function postSpotifyClubQueueAuditMessage(args: {
   channelId: string | null;
   content: string;
 }) {
-  if (!args.channelId) {
+  const testingChannelId = resolveSpotifyClubTestingChannelId(args.channelId);
+  if (!testingChannelId) {
     return { ok: true as const };
   }
 
   const result = await createDiscordChannelMessage({
-    channelId: args.channelId,
+    channelId: testingChannelId,
     body: {
       content: args.content,
       allowed_mentions: buildDiscordAllowedMentions({
@@ -2034,6 +2038,15 @@ async function postSpotifyClubQueueAuditMessage(args: {
       message: result.message,
     });
   }
+}
+
+function resolveSpotifyClubTestingChannelId(publicChannelId: string | null) {
+  const testingChannelId = DISCORD_SPOTIFY_CLUB_TEST_CHANNEL_ID();
+  if (!testingChannelId || testingChannelId === publicChannelId) {
+    return null;
+  }
+
+  return testingChannelId;
 }
 
 async function buildSpotifyQueueCommandListResponse(lobbyId: string) {
@@ -2565,6 +2578,7 @@ async function processFeedbackCreateModalSubmit(
           reportType: creationResult.report.report_type,
           status: creationResult.report.status,
           severity: creationResult.report.severity,
+          includeBacklog: shouldApplyDiscordFeedbackBacklogTag(creationResult.report),
         }),
       });
 

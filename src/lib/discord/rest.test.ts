@@ -644,6 +644,40 @@ test("resolveDiscordForumTagIdsByName matches tags case-insensitively and report
   }
 });
 
+test("resolveDiscordForumTagIdsByName preserves up to five matched tags", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    id: "1504673475489562744",
+    available_tags: [
+      { id: "tag-feature", name: "Feature" },
+      { id: "tag-confirmed", name: "Confirmed" },
+      { id: "tag-medium", name: "Medium" },
+      { id: "tag-backlog", name: "Backlog" },
+      { id: "tag-high", name: "High" },
+    ],
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const result = await resolveDiscordForumTagIdsByName({
+      channelId: "1504673475489562744",
+      tagNames: ["Feature", "Confirmed", "Medium", "Backlog", "High"],
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      matchedTagIds: ["tag-feature", "tag-confirmed", "tag-medium", "tag-backlog", "tag-high"],
+      missingTagNames: [],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("updateDiscordForumThreadTags PATCHes the applied tags", async () => {
   process.env.DISCORD_BOT_TOKEN = "test-bot-token";
   const originalFetch = globalThis.fetch;
@@ -674,6 +708,43 @@ test("updateDiscordForumThreadTags PATCHes the applied tags", async () => {
       method: "PATCH",
       body: JSON.stringify({
         applied_tags: ["tag-bug", "tag-confirmed", "tag-medium"],
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("updateDiscordForumThreadTags supports backlog alongside other visible tags", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "1504673475489562745" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await updateDiscordForumThreadTags({
+      threadId: "1504673475489562745",
+      appliedTagIds: ["tag-feature", "tag-confirmed", "tag-medium", "tag-backlog"],
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745",
+      method: "PATCH",
+      body: JSON.stringify({
+        applied_tags: ["tag-feature", "tag-confirmed", "tag-medium", "tag-backlog"],
       }),
     });
   } finally {

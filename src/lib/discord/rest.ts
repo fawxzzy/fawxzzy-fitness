@@ -4,6 +4,7 @@ import { DISCORD_BOT_TOKEN } from "@/lib/env";
 
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
 const DISCORD_API_USER_AGENT = "fawxzzy-fitness-discord-interactions/1.0";
+const DISCORD_FORUM_MAX_APPLIED_TAGS = 5;
 
 export type DiscordAllowedMentions = {
   parse: string[];
@@ -684,7 +685,7 @@ export async function resolveDiscordForumTagIdsByName(args: {
 
   return {
     ok: true,
-    matchedTagIds: [...new Set(matchedTagIds)].slice(0, 3),
+    matchedTagIds: [...new Set(matchedTagIds)].slice(0, DISCORD_FORUM_MAX_APPLIED_TAGS),
     missingTagNames,
   };
 }
@@ -814,7 +815,9 @@ export async function createDiscordForumThreadWithMessage(args: {
           content: args.messageContent ?? "",
           allowed_mentions: normalizeAllowedMentions(args.allowedMentions),
         },
-        applied_tags: Array.isArray(args.appliedTagIds) && args.appliedTagIds.length > 0 ? args.appliedTagIds.slice(0, 3) : undefined,
+        applied_tags: Array.isArray(args.appliedTagIds) && args.appliedTagIds.length > 0
+          ? args.appliedTagIds.slice(0, DISCORD_FORUM_MAX_APPLIED_TAGS)
+          : undefined,
       },
     },
   );
@@ -858,7 +861,7 @@ export async function updateDiscordForumThreadTags(args: {
     {
       method: "PATCH",
       body: {
-        applied_tags: args.appliedTagIds.slice(0, 3),
+        applied_tags: args.appliedTagIds.slice(0, DISCORD_FORUM_MAX_APPLIED_TAGS),
       },
     },
   );
