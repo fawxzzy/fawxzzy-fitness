@@ -241,6 +241,7 @@ import {
   suggestDiscordSpotifyQueueItem,
 } from "@/lib/spotify/queue";
 import {
+  buildSpotifyPlayerAccessToken,
   getActiveSpotifyDevice,
   getAvailableSpotifyDevices,
   startSpotifyPlaybackOnDevice,
@@ -421,6 +422,7 @@ async function resolveSpotifyPlaybackReadiness(args: {
   connection: Awaited<ReturnType<typeof getDiscordSpotifyConnection>>;
   activeDeviceId: string | null;
   activeDeviceName: string | null;
+  accessToken: string | null;
 }> {
   const connection = await getDiscordSpotifyConnection(args.discordUserId);
   if (!connection) {
@@ -430,6 +432,7 @@ async function resolveSpotifyPlaybackReadiness(args: {
       connection: null,
       activeDeviceId: null,
       activeDeviceName: null,
+      accessToken: null,
     };
   }
 
@@ -440,6 +443,7 @@ async function resolveSpotifyPlaybackReadiness(args: {
       connection,
       activeDeviceId: null,
       activeDeviceName: null,
+      accessToken: null,
     };
   }
 
@@ -452,11 +456,13 @@ async function resolveSpotifyPlaybackReadiness(args: {
       connection,
       activeDeviceId: null,
       activeDeviceName: null,
+      accessToken: null,
     };
   }
 
   try {
-    const devices = await getAvailableSpotifyDevices(connection);
+    const accessToken = await buildSpotifyPlayerAccessToken(connection);
+    const devices = await getAvailableSpotifyDevices(connection, accessToken);
     const activeDevice = getActiveSpotifyDevice(devices);
 
     if (!activeDevice?.id) {
@@ -466,6 +472,7 @@ async function resolveSpotifyPlaybackReadiness(args: {
         connection,
         activeDeviceId: null,
         activeDeviceName: null,
+        accessToken,
       };
     }
 
@@ -475,6 +482,7 @@ async function resolveSpotifyPlaybackReadiness(args: {
       connection,
       activeDeviceId: activeDevice.id,
       activeDeviceName: activeDevice.name,
+      accessToken,
     };
   } catch (error) {
     if (
@@ -488,6 +496,7 @@ async function resolveSpotifyPlaybackReadiness(args: {
         connection,
         activeDeviceId: null,
         activeDeviceName: null,
+        accessToken: null,
       };
     }
 
@@ -497,6 +506,7 @@ async function resolveSpotifyPlaybackReadiness(args: {
       connection,
       activeDeviceId: null,
       activeDeviceName: null,
+      accessToken: null,
     };
   }
 }
@@ -526,7 +536,7 @@ async function buildSpotifyStartQueueResponse(discordUserId: string): Promise<st
     includeUpgradeLink: true,
   });
 
-  if (!readiness.ready || !readiness.connection || !readiness.activeDeviceId) {
+  if (!readiness.ready || !readiness.connection || !readiness.activeDeviceId || !readiness.accessToken) {
     return readiness.content;
   }
 
@@ -547,6 +557,7 @@ async function buildSpotifyStartQueueResponse(discordUserId: string): Promise<st
     connection: readiness.connection,
     deviceId: readiness.activeDeviceId,
     spotifyUris: [nextApprovedItem.spotify_uri],
+    accessToken: readiness.accessToken,
   });
 
   return "Starting the approved Spotify Club queue on your active Spotify device.";
