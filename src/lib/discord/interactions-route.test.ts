@@ -4830,6 +4830,130 @@ test("Discord interactions route opens the jam lobby and refreshes the Spotify C
   }
 });
 
+test("Discord interactions route recreates the Spotify Club panel when Discord blocks edits on an aged message", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+  const observed = {
+    createdDiscordBodies: [] as Array<Record<string, unknown>>,
+    deletedMessageIds: [] as string[],
+  };
+  let currentLobby = {
+    id: "lobby-1",
+    status: "open",
+    host_discord_user_id: "123456789012345678",
+    host_spotify_user_id: null,
+    title: null,
+    description: null,
+    panel_channel_id: "1504668396338413670",
+    panel_message_id: "panel-message-1",
+    opened_at: "2026-05-19T00:00:00.000Z",
+    closed_at: null,
+    created_at: "2026-05-19T00:00:00.000Z",
+    updated_at: "2026-05-19T00:00:00.000Z",
+  };
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([currentLobby]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "PATCH") {
+      currentLobby = {
+        ...currentLobby,
+        ...body,
+      };
+      return new Response(JSON.stringify(currentLobby), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413670/messages/panel-message-1" && method === "PATCH") {
+      return new Response(JSON.stringify({ message: "Maximum number of edits to messages older than 1 hour reached." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413670/messages" && method === "POST") {
+      observed.createdDiscordBodies.push(body);
+      return new Response(JSON.stringify({ id: "panel-message-2" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413670/messages/panel-message-1" && method === "DELETE") {
+      observed.deletedMessageIds.push("panel-message-1");
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(28)),
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        name: "jam-lobby",
+        options: [
+          { type: 1, name: "close" },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Spotify Club lobby is now Closed.",
+        flags: 64,
+      },
+    });
+    assert.equal(currentLobby.status, "closed");
+    assert.equal(currentLobby.panel_message_id, "panel-message-2");
+    assert.deepEqual(observed.deletedMessageIds, ["panel-message-1"]);
+    assert.match(observed.createdDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Status: \*\*Closed\*\*/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("Discord interactions route explains when Fawx Security is below the Verified role", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

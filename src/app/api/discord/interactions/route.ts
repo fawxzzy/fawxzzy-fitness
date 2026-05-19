@@ -1366,7 +1366,7 @@ async function upsertDiscordSpotifyClubPanel() {
     };
   }
 
-  const createPanelMessage = async () => {
+  const createPanelMessage = async (staleMessageIds: string[] = []) => {
     const createResult = await createDiscordChannelMessage({
       channelId: panelChannelResult.channelId,
       body: payload,
@@ -1383,12 +1383,24 @@ async function upsertDiscordSpotifyClubPanel() {
       panelMessageId: createResult.messageId,
     });
 
+    let duplicateCount = 0;
+    for (const messageId of [...new Set(staleMessageIds.filter(Boolean))]) {
+      const deleteResult = await deleteDiscordChannelMessage({
+        channelId: panelChannelResult.channelId,
+        messageId,
+      });
+
+      if (deleteResult.ok || deleteResult.code === "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
+        duplicateCount += 1;
+      }
+    }
+
     return {
       ok: true as const,
       action: "created" as const,
       channelLabel: panelChannelResult.channelLabel,
       messageId: createResult.messageId,
-      duplicateCount: 0,
+      duplicateCount,
     };
   };
 
@@ -1424,24 +1436,32 @@ async function upsertDiscordSpotifyClubPanel() {
     body: payload,
   });
 
-  if (!patchResult.ok && patchResult.status !== 404) {
+  const duplicateMessages = messagesResult.messages.filter((message) => (
+    message.id !== existingMessage.id
+    && message.author?.id === DISCORD_APPLICATION_ID()
+    && discordMessageHasSpotifyClubPanel(message)
+  ));
+  const duplicateMessageIds = duplicateMessages.map((message) => message.id);
+
+  if (
+    !patchResult.ok
+    && patchResult.status !== 404
+    && !isDiscordAgedMessageEditLimitFailure(patchResult)
+  ) {
     return { ok: false as const, code: patchResult.code, status: patchResult.status, message: patchResult.message };
   }
 
-  if (!patchResult.ok && patchResult.status === 404) {
-    return createPanelMessage();
+  if (
+    !patchResult.ok
+    && (patchResult.status === 404 || isDiscordAgedMessageEditLimitFailure(patchResult))
+  ) {
+    return createPanelMessage([existingMessage.id, ...duplicateMessageIds]);
   }
 
   await upsertDiscordSpotifyLobbyPanel({
     panelChannelId: panelChannelResult.channelId,
     panelMessageId: existingMessage.id,
   });
-
-  const duplicateMessages = messagesResult.messages.filter((message) => (
-    message.id !== existingMessage.id
-    && message.author?.id === DISCORD_APPLICATION_ID()
-    && discordMessageHasSpotifyClubPanel(message)
-  ));
 
   let duplicateCount = 0;
   for (const message of duplicateMessages) {
@@ -1462,6 +1482,42 @@ async function upsertDiscordSpotifyClubPanel() {
     messageId: existingMessage.id,
     duplicateCount,
   };
+}
+
+function isDiscordAgedMessageEditLimitFailure(result: {
+  status: number;
+  message: string | null;
+}) {
+  return result.status === 429 && /older than 1 hour/i.test(result.message ?? "");
+}
+
+async function recreateDiscordSpotifyClubPanelFromState(args: {
+  channelId: string;
+  previousMessageId: string;
+  payload: ReturnType<typeof buildDiscordSpotifyClubPanelMessagePayload>;
+}) {
+  const createResult = await createDiscordChannelMessage({
+    channelId: args.channelId,
+    body: args.payload,
+  });
+
+  if (!createResult.ok || !createResult.messageId) {
+    return createResult.ok
+      ? { ok: false as const, code: "DISCORD_SPOTIFY_CLUB_PANEL_MISSING_MESSAGE_ID", status: 500, message: "Spotify Club panel message id was missing." }
+      : createResult;
+  }
+
+  await upsertDiscordSpotifyLobbyPanel({
+    panelChannelId: args.channelId,
+    panelMessageId: createResult.messageId,
+  });
+
+  await deleteDiscordChannelMessage({
+    channelId: args.channelId,
+    messageId: args.previousMessageId,
+  });
+
+  return { ok: true as const, skipped: false as const, recreated: true as const };
 }
 
 async function syncDiscordSpotifyClubPanelFromState() {
@@ -1490,6 +1546,14 @@ async function syncDiscordSpotifyClubPanelFromState() {
 
   if (patchResult.status === 404) {
     return { ok: true as const, skipped: true as const };
+  }
+
+  if (isDiscordAgedMessageEditLimitFailure(patchResult)) {
+    return recreateDiscordSpotifyClubPanelFromState({
+      channelId: lobby.panel_channel_id,
+      previousMessageId: lobby.panel_message_id,
+      payload,
+    });
   }
 
   return { ok: false as const, code: patchResult.code, status: patchResult.status, message: patchResult.message };
