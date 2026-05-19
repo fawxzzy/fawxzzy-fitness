@@ -315,6 +315,13 @@ export function buildDiscordSpotifyQueuePreviewLines(summary: DiscordSpotifyQueu
 }
 
 export function buildDiscordSpotifyQueueSummaryText(summary: DiscordSpotifyQueueSummary): string {
+  return buildDiscordSpotifyQueueSummaryTextForViewer(summary);
+}
+
+export function buildDiscordSpotifyQueueSummaryTextForViewer(
+  summary: DiscordSpotifyQueueSummary,
+  viewerDiscordUserId?: string | null,
+): string {
   const approvedLines = summary.approvedItems.length === 0
     ? ["No approved tracks yet."]
     : summary.approvedItems.slice(0, 10).map((item, index) => {
@@ -329,12 +336,26 @@ export function buildDiscordSpotifyQueueSummaryText(summary: DiscordSpotifyQueue
       return `- ${shortId}: ${formatQueueTrackLabel(item)}`;
     });
 
+  const viewerPendingLines = viewerDiscordUserId
+    ? summary.pendingItems
+      .filter((item) => item.suggested_by_discord_user_id === viewerDiscordUserId)
+      .slice(0, 5)
+      .map((item) => `- ${formatQueueTrackLabel(item)}`)
+    : [];
+
   return [
     "**Approved queue**",
     ...approvedLines,
     "",
     `Pending suggestions: ${summary.pendingItems.length}`,
     ...pendingLines,
+    ...(viewerPendingLines.length > 0
+      ? [
+        "",
+        "**Your pending suggestions**",
+        ...viewerPendingLines,
+      ]
+      : []),
   ].join("\n");
 }
 

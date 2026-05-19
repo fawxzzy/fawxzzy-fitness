@@ -93,6 +93,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Promising broadcast or perfect sync creates platform risk and brittle UX when Spotify devices are unavailable.
 - Status: Proposed
 
+## 2026-05-19 - Spotify Club rooms separate jam membership from Spotify authorization
+- Type: Pattern
+- Summary: Spotify Club should model room membership separately from Spotify account authorization so users can join or leave jams without deleting their saved Spotify connection.
+- Rule: Leave Jam is not Disconnect Spotify Auth.
+- Rule: The default public room should stay panel-first and low-noise.
+- Pattern: connect Spotify -> join room -> search or suggest tracks -> leave room -> keep auth unless explicitly disconnected.
+- Failure Mode: Treating disconnect as leaving the jam makes the product confusing and destroys useful saved auth state.
+- Status: Proposed
+
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
 - Type: Guardrail
 - Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.

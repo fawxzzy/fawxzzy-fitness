@@ -120,14 +120,21 @@ export async function buildSpotifyPlayerAccessToken(connection: DiscordSpotifyCo
       refreshToken,
     });
 
-    await refreshDiscordSpotifyConnectionSession({
-      connectionId: connection.id,
-      accessTokenExpiresAt: tokenResult.expiresAt,
-      encryptedRefreshToken: tokenResult.refreshToken
-        ? encryptSpotifyRefreshToken(tokenResult.refreshToken)
-        : null,
-      scopes: tokenResult.scopes,
-    });
+    try {
+      await refreshDiscordSpotifyConnectionSession({
+        connectionId: connection.id,
+        accessTokenExpiresAt: tokenResult.expiresAt,
+        encryptedRefreshToken: tokenResult.refreshToken
+          ? encryptSpotifyRefreshToken(tokenResult.refreshToken)
+          : null,
+        scopes: tokenResult.scopes,
+      });
+    } catch (error) {
+      console.warn("[spotify-player] connection session refresh persistence failed", {
+        connectionId: connection.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     return tokenResult.accessToken;
   } catch (error) {

@@ -7,6 +7,7 @@ import {
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
+  buildDiscordSpotifyQueueSearchModalResponse,
   buildDiscordSpotifyQueueSuggestModalResponse,
   buildDiscordFeedbackUpdatePickerResponse,
   buildDiscordFeedbackReportModalResponse,
@@ -102,55 +103,65 @@ test("discordMessageHasFeedbackPanel detects the feedback panel action row", () 
   assert.equal(discordMessageHasFeedbackPanel(buildDiscordVerifyMessagePayload()), false);
 });
 
-test("buildDiscordSpotifyClubPanelMessagePayload exposes every normal-user Spotify Club action on the panel", () => {
+test("buildDiscordSpotifyClubPanelMessagePayload exposes the Phase 5 room and search actions on the panel", () => {
   const payload = buildDiscordSpotifyClubPanelMessagePayload({
+    roomName: "Main Room",
+    roomVisibility: "public",
     lobbyStatusLabel: "Open",
     hostDiscordUserId: "123456789012345678",
+    memberCount: 3,
     queuePreviewLines: ["1. Hey Ya! - Outkast"],
     pendingSuggestionCount: 2,
+    hasApprovedQueue: true,
   });
 
   assert.equal(payload.embeds[0]?.title, "Spotify Club");
+  assert.match(payload.embeds[0]?.description ?? "", /Room: \*\*Main Room\*\* \(Public\)/);
   assert.match(payload.embeds[0]?.description ?? "", /Status: \*\*Open\*\*/);
   assert.match(payload.embeds[0]?.description ?? "", /<@123456789012345678>/);
+  assert.match(payload.embeds[0]?.description ?? "", /Joined members: 3/);
   assert.match(payload.embeds[0]?.description ?? "", /Queue:/);
   assert.match(payload.embeds[0]?.description ?? "", /Hey Ya! - Outkast/);
   assert.match(payload.embeds[0]?.description ?? "", /Pending suggestions: 2/);
   assert.match(payload.embeds[0]?.description ?? "", /does not stream audio through Discord/i);
-  assert.match(payload.embeds[0]?.description ?? "", /Playback Ready means Spotify permissions and an active device are ready for handoff/i);
+  assert.match(payload.embeds[0]?.description ?? "", /Leave Jam only leaves the current room/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => component.custom_id),
-    ["spotify_connect_open", "spotify_status_check", "spotify_disconnect"],
+    ["spotify_connect_open", "spotify_join_room", "spotify_leave_room"],
   );
   assert.deepEqual(
     payload.components[1]?.components?.map((component) => component.custom_id),
-    ["spotify_queue_suggest_open", "spotify_queue_view", "spotify_device_check"],
+    ["spotify_queue_search_open", "spotify_queue_suggest_open", "spotify_queue_view"],
   );
   assert.deepEqual(
     payload.components[2]?.components?.map((component) => component.custom_id),
-    ["spotify_start_queue", "spotify_join_placeholder"],
+    ["spotify_device_check", "spotify_start_queue", "spotify_disconnect_auth"],
   );
   const visibleButtonIds = payload.components.flatMap((row) => row.components.map((component) => component.custom_id));
   assert.deepEqual(
     visibleButtonIds,
     [
       "spotify_connect_open",
-      "spotify_status_check",
-      "spotify_disconnect",
+      "spotify_join_room",
+      "spotify_leave_room",
+      "spotify_queue_search_open",
       "spotify_queue_suggest_open",
       "spotify_queue_view",
       "spotify_device_check",
       "spotify_start_queue",
-      "spotify_join_placeholder",
+      "spotify_disconnect_auth",
     ],
   );
   const queueButtons = payload.components[1]?.components ?? [];
+  const roomButtons = payload.components[0]?.components ?? [];
   const playbackButtons = payload.components[2]?.components ?? [];
+  assert.equal(roomButtons[2] && "disabled" in roomButtons[2] ? roomButtons[2].disabled ?? false : false, false);
   assert.equal(queueButtons[0] && "disabled" in queueButtons[0] ? queueButtons[0].disabled ?? false : false, false);
   assert.equal(queueButtons[1] && "disabled" in queueButtons[1] ? queueButtons[1].disabled ?? false : false, false);
   assert.equal(queueButtons[2] && "disabled" in queueButtons[2] ? queueButtons[2].disabled ?? false : false, false);
   assert.equal(playbackButtons[0] && "disabled" in playbackButtons[0] ? playbackButtons[0].disabled ?? false : false, false);
-  assert.equal(playbackButtons[1] && "disabled" in playbackButtons[1] ? playbackButtons[1].disabled ?? false : false, true);
+  assert.equal(playbackButtons[1] && "disabled" in playbackButtons[1] ? playbackButtons[1].disabled ?? false : false, false);
+  assert.equal(playbackButtons[2] && "disabled" in playbackButtons[2] ? playbackButtons[2].disabled ?? false : false, false);
   assert.equal(discordMessageHasSpotifyClubPanel(payload), true);
 });
 
@@ -160,6 +171,14 @@ test("buildDiscordSpotifyQueueSuggestModalResponse opens the queue suggestion mo
   assert.equal(response.type, 9);
   assert.equal(response.data.custom_id, "spotify_queue_suggest_modal");
   assert.equal(response.data.components[0]?.component?.custom_id, "spotify_track");
+});
+
+test("buildDiscordSpotifyQueueSearchModalResponse opens the track search modal", () => {
+  const response = buildDiscordSpotifyQueueSearchModalResponse();
+
+  assert.equal(response.type, 9);
+  assert.equal(response.data.custom_id, "spotify_queue_search_modal");
+  assert.equal(response.data.components[0]?.component?.custom_id, "spotify_search_query");
 });
 
 test("resolveDiscordFeedbackReportTypeFromModalCustomId supports feedback modals only", () => {

@@ -15,6 +15,10 @@ test("Spotify lobby status helpers describe closed and open states", () => {
 
   assert.equal(formatDiscordSpotifyLobbyStatusLabel({
     id: "lobby-1",
+    room_slug: "main",
+    room_name: "Main Room",
+    visibility: "public",
+    join_key_hash: null,
     status: "open",
     host_discord_user_id: "123456789012345678",
     host_spotify_user_id: "spotify-user",
@@ -30,6 +34,10 @@ test("Spotify lobby status helpers describe closed and open states", () => {
   assert.equal(
     buildDiscordSpotifyLobbyStatusSummary({
       id: "lobby-1",
+      room_slug: "main",
+      room_name: "Main Room",
+      visibility: "public",
+      join_key_hash: null,
       status: "open",
       host_discord_user_id: "123456789012345678",
       host_spotify_user_id: "spotify-user",
@@ -62,6 +70,10 @@ test("openDiscordSpotifyLobby creates a fresh open row when the latest lobby is 
                   return Promise.resolve({
                     data: [{
                       id: "lobby-1",
+                      room_slug: "main",
+                      room_name: "Main Room",
+                      visibility: "public",
+                      join_key_hash: null,
                       status: "closed",
                       host_discord_user_id: null,
                       host_spotify_user_id: null,
@@ -111,6 +123,9 @@ test("openDiscordSpotifyLobby creates a fresh open row when the latest lobby is 
   });
 
   assert.equal(observed.insertValues?.status, "open");
+  assert.equal(observed.insertValues?.room_slug, "main");
+  assert.equal(observed.insertValues?.room_name, "Main Room");
+  assert.equal(observed.insertValues?.visibility, "public");
   assert.equal(observed.insertValues?.host_discord_user_id, "123456789012345678");
   assert.equal(observed.insertValues?.host_spotify_user_id, "spotify-user");
   assert.equal(observed.insertValues?.panel_channel_id, "1504668396338413670");
@@ -135,6 +150,10 @@ test("closeDiscordSpotifyLobby closes the latest row and preserves panel linkage
                   return Promise.resolve({
                     data: [{
                       id: "lobby-1",
+                      room_slug: "main",
+                      room_name: "Main Room",
+                      visibility: "public",
+                      join_key_hash: null,
                       status: "open",
                       host_discord_user_id: "123456789012345678",
                       host_spotify_user_id: "spotify-user",
@@ -184,6 +203,8 @@ test("closeDiscordSpotifyLobby closes the latest row and preserves panel linkage
   const row = await closeDiscordSpotifyLobby(admin as never);
 
   assert.equal(observed.updateValues?.status, "closed");
+  assert.equal(observed.updateValues?.room_slug, "main");
+  assert.equal(observed.updateValues?.room_name, "Main Room");
   assert.equal(observed.updateValues?.panel_channel_id, "1504668396338413670");
   assert.equal(observed.updateValues?.panel_message_id, "1504668396338413671");
   assert.equal(row.status, "closed");
@@ -220,6 +241,10 @@ test("upsertDiscordSpotifyLobbyPanel stores panel message linkage even before a 
                   return Promise.resolve({
                     data: {
                       id: "lobby-1",
+                      room_slug: "main",
+                      room_name: "Main Room",
+                      visibility: "public",
+                      join_key_hash: null,
                       ...values,
                       created_at: "2026-05-18T00:00:00.000Z",
                     },

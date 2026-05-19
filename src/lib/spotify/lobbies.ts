@@ -6,6 +6,10 @@ export type DiscordSpotifyLobbyStatus = "open" | "closed";
 
 export type DiscordSpotifyLobbyRow = {
   id: string;
+  room_slug: string;
+  room_name: string;
+  visibility: "public" | "private";
+  join_key_hash: string | null;
   status: DiscordSpotifyLobbyStatus;
   host_discord_user_id: string | null;
   host_spotify_user_id: string | null;
@@ -25,6 +29,10 @@ type SpotifyLobbiesAdminClient = {
 
 const DISCORD_SPOTIFY_LOBBY_SELECT = [
   "id",
+  "room_slug",
+  "room_name",
+  "visibility",
+  "join_key_hash",
   "status",
   "host_discord_user_id",
   "host_spotify_user_id",
@@ -58,6 +66,10 @@ function coerceDiscordSpotifyLobbyRow(row: unknown): DiscordSpotifyLobbyRow | nu
 
   return {
     id: candidate.id,
+    room_slug: typeof candidate.room_slug === "string" && candidate.room_slug.trim() ? candidate.room_slug : "main",
+    room_name: typeof candidate.room_name === "string" && candidate.room_name.trim() ? candidate.room_name : "Main Room",
+    visibility: candidate.visibility === "private" ? "private" : "public",
+    join_key_hash: typeof candidate.join_key_hash === "string" ? candidate.join_key_hash : null,
     status: coerceLobbyStatus(candidate.status),
     host_discord_user_id: typeof candidate.host_discord_user_id === "string" ? candidate.host_discord_user_id : null,
     host_spotify_user_id: typeof candidate.host_spotify_user_id === "string" ? candidate.host_spotify_user_id : null,
@@ -78,6 +90,10 @@ function buildLobbyStatusPayload(args: {
   hostSpotifyUserId?: string | null;
   title?: string | null;
   description?: string | null;
+  roomSlug?: string | null;
+  roomName?: string | null;
+  visibility?: "public" | "private" | null;
+  joinKeyHash?: string | null;
   panelChannelId?: string | null;
   panelMessageId?: string | null;
   openedAt?: string | null;
@@ -87,6 +103,10 @@ function buildLobbyStatusPayload(args: {
 
   return {
     status: args.status,
+    room_slug: args.roomSlug ?? "main",
+    room_name: args.roomName ?? "Main Room",
+    visibility: args.visibility === "private" ? "private" : "public",
+    join_key_hash: args.joinKeyHash ?? null,
     host_discord_user_id: args.hostDiscordUserId ?? null,
     host_spotify_user_id: args.hostSpotifyUserId ?? null,
     title: args.title ?? null,
@@ -195,6 +215,10 @@ export async function upsertDiscordSpotifyLobbyPanel(args: {
   return insertLobbyRow({
     ...buildLobbyStatusPayload({
       status: "closed",
+      roomSlug: "main",
+      roomName: "Main Room",
+      visibility: "public",
+      joinKeyHash: null,
       panelChannelId: args.panelChannelId,
       panelMessageId: args.panelMessageId,
     }),
@@ -212,6 +236,10 @@ export async function openDiscordSpotifyLobby(args: {
   const existing = await selectLatestLobbyRow(admin);
   const values = buildLobbyStatusPayload({
     status: "open",
+    roomSlug: existing?.room_slug ?? "main",
+    roomName: existing?.room_name ?? "Main Room",
+    visibility: existing?.visibility ?? "public",
+    joinKeyHash: existing?.join_key_hash ?? null,
     hostDiscordUserId: args.hostDiscordUserId,
     hostSpotifyUserId: args.hostSpotifyUserId ?? null,
     title: args.title ?? null,
@@ -234,6 +262,10 @@ export async function closeDiscordSpotifyLobby(
   const existing = await selectLatestLobbyRow(admin);
   const values = buildLobbyStatusPayload({
     status: "closed",
+    roomSlug: existing?.room_slug ?? "main",
+    roomName: existing?.room_name ?? "Main Room",
+    visibility: existing?.visibility ?? "public",
+    joinKeyHash: existing?.join_key_hash ?? null,
     hostDiscordUserId: existing?.host_discord_user_id ?? null,
     hostSpotifyUserId: existing?.host_spotify_user_id ?? null,
     title: existing?.title ?? null,

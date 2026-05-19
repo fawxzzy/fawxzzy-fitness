@@ -49,7 +49,9 @@ import {
   buildDiscordFeedbackManageCardResponse,
   buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
+  buildDiscordSpotifyQueueSearchModalResponse,
   buildDiscordSpotifyQueueSuggestModalResponse,
+  buildDiscordSpotifyTrackSearchResultsResponse,
   buildDiscordFeedbackUpdatePickerResponse,
   buildDiscordFeedbackUpdateModalResponse,
   buildDiscordFeedbackWithdrawSelectedModalResponse,
@@ -130,13 +132,19 @@ import {
   FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME,
   FITNESS_SPOTIFY_COMMAND_NAME,
   FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
-  FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
+  FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID,
+  FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_SEARCH_QUERY_INPUT_CUSTOM_ID,
   FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME,
@@ -221,6 +229,16 @@ import {
   upsertDiscordSpotifyLobbyPanel,
 } from "@/lib/spotify/lobbies";
 import {
+  countJoinedDiscordSpotifyRoomMembers,
+  getDiscordSpotifyRoomMember,
+  joinDiscordSpotifyRoom,
+  leaveDiscordSpotifyRoom,
+} from "@/lib/spotify/room-members";
+import {
+  formatSearchResultsForDiscord,
+  searchSpotifyTracks,
+} from "@/lib/spotify/search";
+import {
   buildSpotifyMissingPlaybackPermissionsCopy,
   buildSpotifyNoActiveDeviceCopy,
   buildSpotifyPlaybackReadyCopy,
@@ -233,7 +251,7 @@ import {
   approveDiscordSpotifyQueueItem,
   buildDiscordSpotifyQueueActionSummary,
   buildDiscordSpotifyQueuePreviewLines,
-  buildDiscordSpotifyQueueSummaryText,
+  buildDiscordSpotifyQueueSummaryTextForViewer,
   getCurrentDiscordSpotifyLobbyForQueue,
   getDiscordSpotifyQueueSummary,
   rejectDiscordSpotifyQueueItem,
@@ -311,6 +329,7 @@ type DiscordInteraction = {
   data?: {
     name?: unknown;
     custom_id?: unknown;
+    values?: unknown;
     components?: unknown;
     options?: unknown;
     resolved?: {
@@ -565,7 +584,31 @@ async function buildSpotifyStartQueueResponse(discordUserId: string): Promise<st
 
 async function buildSpotifyDisconnectResponse(discordUserId: string) {
   try {
+    const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
+    if (openLobby) {
+      try {
+        await leaveDiscordSpotifyRoom({
+          lobbyId: openLobby.id,
+          discordUserId,
+        });
+      } catch (error) {
+        console.warn("[discord-interactions] spotify leave-room during disconnect skipped", {
+          requestId: randomUUID(),
+          lobbyId: openLobby.id,
+          discordUserId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
     await disconnectDiscordSpotifyConnection(discordUserId);
+    await syncDiscordSpotifyClubPanelFromState().catch((error) => {
+      console.warn("[discord-interactions] spotify disconnect panel sync skipped", {
+        requestId: randomUUID(),
+        discordUserId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { ok: false as const };
+    });
     return buildDiscordEphemeralMessageResponse("Spotify disconnected.");
   } catch (error) {
     console.error("[discord-interactions] spotify-disconnect failed", {
@@ -575,6 +618,60 @@ async function buildSpotifyDisconnectResponse(discordUserId: string) {
     });
 
     return buildDiscordEphemeralMessageResponse("Spotify could not be disconnected right now. Try again in a moment.");
+  }
+}
+
+async function getSpotifyClubRoomContext() {
+  const lobby = await getLatestDiscordSpotifyLobby();
+  const queueSummary = lobby
+    ? await getDiscordSpotifyQueueSummary({ lobbyId: lobby.id })
+    : { approvedItems: [], pendingItems: [] };
+  let joinedMemberCount = 0;
+  if (lobby) {
+    try {
+      joinedMemberCount = await countJoinedDiscordSpotifyRoomMembers({ lobbyId: lobby.id });
+    } catch (error) {
+      console.warn("[discord-interactions] spotify room member count unavailable", {
+        requestId: randomUUID(),
+        lobbyId: lobby.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return {
+    lobby,
+    queueSummary,
+    joinedMemberCount,
+  };
+}
+
+async function getCurrentDiscordSpotifyRoomMembership(args: {
+  lobbyId: string;
+  discordUserId: string;
+}) {
+  try {
+    const membership = await getDiscordSpotifyRoomMember(args);
+    return membership?.status === "joined" ? membership : null;
+  } catch (error) {
+    console.warn("[discord-interactions] spotify room membership unavailable, using implicit main-room access", {
+      requestId: randomUUID(),
+      lobbyId: args.lobbyId,
+      discordUserId: args.discordUserId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      id: `implicit:${args.lobbyId}:${args.discordUserId}`,
+      lobby_id: args.lobbyId,
+      discord_user_id: args.discordUserId,
+      spotify_user_id: null,
+      status: "joined" as const,
+      joined_at: new Date().toISOString(),
+      left_at: null,
+      last_seen_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   }
 }
 
@@ -1053,6 +1150,12 @@ function resolveSelectedFeedbackReportId(args: {
 }) {
   return extractDiscordModalStringSelectValue(args.components, args.selectCustomId)
     ?? extractDiscordModalTextInputValue(args.components, args.textInputCustomId);
+}
+
+function extractDiscordComponentSelectValue(values: unknown): string | null {
+  return Array.isArray(values) && typeof values[0] === "string"
+    ? values[0]
+    : null;
 }
 
 async function syncDiscordFeedbackStarterMessage(args: {
@@ -1538,15 +1641,16 @@ async function upsertDiscordSpotifyClubPanel() {
     return panelChannelResult;
   }
 
-  const lobby = await getLatestDiscordSpotifyLobby();
-  const queueSummary = lobby
-    ? await getDiscordSpotifyQueueSummary({ lobbyId: lobby.id })
-    : { approvedItems: [], pendingItems: [] };
+  const { lobby, queueSummary, joinedMemberCount } = await getSpotifyClubRoomContext();
   const payload = buildDiscordSpotifyClubPanelMessagePayload({
+    roomName: lobby?.room_name ?? "Main Room",
+    roomVisibility: lobby?.visibility ?? "public",
     lobbyStatusLabel: formatDiscordSpotifyLobbyStatusLabel(lobby),
     hostDiscordUserId: lobby?.status === "open" ? lobby.host_discord_user_id : null,
+    memberCount: joinedMemberCount,
     queuePreviewLines: buildDiscordSpotifyQueuePreviewLines(queueSummary),
     pendingSuggestionCount: queueSummary.pendingItems.length,
+    hasApprovedQueue: queueSummary.approvedItems.length > 0,
   });
 
   const channelResult = await fetchDiscordChannel({ channelId: panelChannelResult.channelId });
@@ -1724,11 +1828,25 @@ async function syncDiscordSpotifyClubPanelFromState() {
   }
 
   const queueSummary = await getDiscordSpotifyQueueSummary({ lobbyId: lobby.id });
+  let joinedMemberCount = 0;
+  try {
+    joinedMemberCount = await countJoinedDiscordSpotifyRoomMembers({ lobbyId: lobby.id });
+  } catch (error) {
+    console.warn("[discord-interactions] spotify room member count unavailable during panel sync", {
+      requestId: randomUUID(),
+      lobbyId: lobby.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
   const payload = buildDiscordSpotifyClubPanelMessagePayload({
+    roomName: lobby.room_name,
+    roomVisibility: lobby.visibility,
     lobbyStatusLabel: formatDiscordSpotifyLobbyStatusLabel(lobby),
     hostDiscordUserId: lobby.status === "open" ? lobby.host_discord_user_id : null,
+    memberCount: joinedMemberCount,
     queuePreviewLines: buildDiscordSpotifyQueuePreviewLines(queueSummary),
     pendingSuggestionCount: queueSummary.pendingItems.length,
+    hasApprovedQueue: queueSummary.approvedItems.length > 0,
   });
 
   const patchResult = await patchDiscordChannelMessage({
@@ -2243,9 +2361,9 @@ function resolveSpotifyClubTestingChannelId(publicChannelId: string | null) {
   return testingChannelId;
 }
 
-async function buildSpotifyQueueCommandListResponse(lobbyId: string) {
+async function buildSpotifyQueueCommandListResponse(lobbyId: string, viewerDiscordUserId?: string | null) {
   const summary = await getDiscordSpotifyQueueSummary({ lobbyId });
-  return buildDiscordEphemeralMessageResponse(buildDiscordSpotifyQueueSummaryText(summary));
+  return buildDiscordEphemeralMessageResponse(buildDiscordSpotifyQueueSummaryTextForViewer(summary, viewerDiscordUserId));
 }
 
 async function handleSpotifyQueueSuggestion(args: {
@@ -2276,6 +2394,18 @@ async function handleSpotifyQueueSuggestion(args: {
   }
 
   return buildDiscordEphemeralMessageResponse("Suggestion added to the queue for host review.");
+}
+
+async function requireJoinedSpotifyRoom(args: {
+  lobbyId: string;
+  discordUserId: string;
+}) {
+  const membership = await getCurrentDiscordSpotifyRoomMembership(args);
+  if (!membership) {
+    throw new Error("Join Spotify Club first.");
+  }
+
+  return membership;
 }
 
 async function handleJamQueueInteraction(interaction: DiscordInteraction) {
@@ -2316,7 +2446,7 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
   }
 
   if (subcommand.name === FITNESS_JAM_QUEUE_LIST_SUBCOMMAND_NAME) {
-    return buildSpotifyQueueCommandListResponse(latestLobby.id);
+    return buildSpotifyQueueCommandListResponse(latestLobby.id, discordUser.id);
   }
 
   const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
@@ -2428,6 +2558,10 @@ async function handleSpotifyQueueSuggestModalSubmit(interaction: DiscordInteract
   }
 
   try {
+    await requireJoinedSpotifyRoom({
+      lobbyId: latestLobby.id,
+      discordUserId: discordUser.id,
+    });
     return await handleSpotifyQueueSuggestion({
       lobbyId: latestLobby.id,
       panelChannelId: latestLobby.panel_channel_id,
@@ -2441,6 +2575,46 @@ async function handleSpotifyQueueSuggestModalSubmit(interaction: DiscordInteract
   }
 }
 
+async function handleSpotifyQueueSearchModalSubmit(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+  }
+
+  const discordUser = resolveDiscordInteractionUser(interaction);
+  const latestLobby = await getCurrentDiscordSpotifyLobbyForQueue();
+  const query = extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_SPOTIFY_SEARCH_QUERY_INPUT_CUSTOM_ID);
+
+  if (!discordUser.id || !query?.trim()) {
+    return buildDiscordEphemeralMessageResponse("Enter a Spotify search query first.");
+  }
+
+  if (!latestLobby) {
+    return buildSpotifyQueueLobbyClosedResponse();
+  }
+
+  try {
+    await requireJoinedSpotifyRoom({
+      lobbyId: latestLobby.id,
+      discordUserId: discordUser.id,
+    });
+
+    const results = await searchSpotifyTracks(query, { limit: 5, market: "US" });
+    const options = formatSearchResultsForDiscord(results);
+    if (options.length === 0) {
+      return buildDiscordEphemeralMessageResponse(`No Spotify tracks matched "${query.trim()}". Try a different search.`);
+    }
+
+    return buildDiscordSpotifyTrackSearchResultsResponse({
+      query,
+      options,
+    });
+  } catch (error) {
+    return buildDiscordEphemeralMessageResponse(
+      error instanceof Error ? error.message : "Spotify search could not be loaded right now.",
+    );
+  }
+}
+
 async function handleSpotifyClubButtonInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
     return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
@@ -2449,22 +2623,102 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
   const discordUser = resolveDiscordInteractionUser(interaction);
   const customId = typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null;
   const latestLobby = await getLatestDiscordSpotifyLobby();
+  const openLobby = latestLobby?.status === "open" ? latestLobby : null;
   const messageId = typeof interaction.message?.id === "string" ? interaction.message.id : null;
 
+  if (!customId || !discordUser.id) {
+    return buildSpotifyClubOutdatedPanelResponse();
+  }
+
+  const discordUserId = discordUser.id;
+
+  if (customId === FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID) {
+    if (!openLobby) {
+      return buildSpotifyQueueLobbyClosedResponse();
+    }
+
+    try {
+      await requireJoinedSpotifyRoom({
+        lobbyId: openLobby.id,
+        discordUserId,
+      });
+
+      const spotifyUri = extractDiscordComponentSelectValue(interaction.data?.values);
+      if (!spotifyUri) {
+        return buildDiscordEphemeralMessageResponse("Choose a Spotify track result first.");
+      }
+
+      return await handleSpotifyQueueSuggestion({
+        lobbyId: openLobby.id,
+        panelChannelId: openLobby.panel_channel_id,
+        discordUserId,
+        spotifyUrlOrUri: spotifyUri,
+      });
+    } catch (error) {
+      return buildDiscordEphemeralMessageResponse(
+        error instanceof Error ? error.message : "Spotify Club could not save that suggestion right now.",
+      );
+    }
+  }
+
   if (
-    !customId
-    || !discordUser.id
-    || !latestLobby?.panel_message_id
+    !latestLobby?.panel_message_id
     || !messageId
     || latestLobby.panel_message_id !== messageId
   ) {
     return buildSpotifyClubOutdatedPanelResponse();
   }
 
-  const discordUserId = discordUser.id;
-
   if (customId === FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID) {
     return buildSpotifyConnectResponse(discordUserId);
+  }
+
+  if (customId === FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID) {
+    if (!openLobby) {
+      return buildSpotifyQueueLobbyClosedResponse();
+    }
+
+    const connection = await getDiscordSpotifyConnection(discordUserId);
+    if (!connection) {
+      return buildDiscordEphemeralMessageResponse("Connect Spotify first, then join Spotify Club.");
+    }
+
+    await joinDiscordSpotifyRoom({
+      lobbyId: openLobby.id,
+      discordUserId,
+      spotifyUserId: connection.spotify_user_id,
+    });
+    const syncResult = await syncDiscordSpotifyClubPanelFromState();
+    return buildDiscordEphemeralMessageResponse(
+      syncResult.ok
+        ? `You joined ${openLobby.room_name || "Spotify Club"}.`
+        : `You joined ${openLobby.room_name || "Spotify Club"}, but the panel could not be refreshed right now.`,
+    );
+  }
+
+  if (customId === FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID) {
+    if (!openLobby) {
+      return buildSpotifyQueueLobbyClosedResponse();
+    }
+
+    const membership = await getCurrentDiscordSpotifyRoomMembership({
+      lobbyId: openLobby.id,
+      discordUserId,
+    });
+    if (!membership) {
+      return buildDiscordEphemeralMessageResponse("You are not in Spotify Club right now.");
+    }
+
+    await leaveDiscordSpotifyRoom({
+      lobbyId: openLobby.id,
+      discordUserId,
+    });
+    const syncResult = await syncDiscordSpotifyClubPanelFromState();
+    return buildDiscordEphemeralMessageResponse(
+      syncResult.ok
+        ? `You left ${openLobby.room_name || "Spotify Club"}.`
+        : `You left ${openLobby.room_name || "Spotify Club"}, but the panel could not be refreshed right now.`,
+    );
   }
 
   if (customId === FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID) {
@@ -2482,17 +2736,49 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
     });
   }
 
-  if (customId === FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID) {
+  if (customId === FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID || customId === "spotify_disconnect") {
     return buildDeferredDiscordEphemeralInteractionResponse({
       interaction,
-      actionLabel: "spotify-disconnect-button",
+      actionLabel: "spotify-disconnect-auth-button",
       fallback: () => buildSpotifyDisconnectResponse(discordUserId),
       process: async () => {
         await disconnectDiscordSpotifyConnection(discordUserId);
+        if (openLobby) {
+          try {
+            await leaveDiscordSpotifyRoom({
+              lobbyId: openLobby.id,
+              discordUserId,
+            });
+          } catch (error) {
+            console.warn("[discord-interactions] spotify leave-room during auth disconnect skipped", {
+              requestId: randomUUID(),
+              lobbyId: openLobby.id,
+              discordUserId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+        await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
         return "Spotify disconnected.";
       },
       genericFailureContent: "Spotify could not be disconnected right now. Try again in a moment.",
     });
+  }
+
+  if (customId === FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID) {
+    if (!openLobby) {
+      return buildSpotifyQueueLobbyClosedResponse();
+    }
+
+    const membership = await getCurrentDiscordSpotifyRoomMembership({
+      lobbyId: openLobby.id,
+      discordUserId,
+    });
+    if (!membership) {
+      return buildDiscordEphemeralMessageResponse("Join Spotify Club first.");
+    }
+
+    return buildDiscordSpotifyQueueSearchModalResponse();
   }
 
   if (customId === FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID) {
@@ -2505,7 +2791,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyQueueLobbyClosedResponse();
         }
 
-        return buildSpotifyQueueCommandListResponse(openLobby.id);
+        return buildSpotifyQueueCommandListResponse(openLobby.id, discordUserId);
       },
       process: async () => {
         const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
@@ -2513,42 +2799,88 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return "Spotify Club lobby is Closed. Open a lobby before using the queue.";
         }
 
-        return buildDiscordSpotifyQueueSummaryText(await getDiscordSpotifyQueueSummary({ lobbyId: openLobby.id }));
+        const membership = await getCurrentDiscordSpotifyRoomMembership({
+          lobbyId: openLobby.id,
+          discordUserId,
+        });
+        if (!membership) {
+          return "Join Spotify Club first.";
+        }
+
+        return buildDiscordSpotifyQueueSummaryTextForViewer(
+          await getDiscordSpotifyQueueSummary({ lobbyId: openLobby.id }),
+          discordUserId,
+        );
       },
       genericFailureContent: "Spotify Club queue could not be loaded right now. Try again in a moment.",
     });
   }
 
   if (customId === FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID) {
-    const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
     if (!openLobby) {
       return buildSpotifyQueueLobbyClosedResponse();
+    }
+
+    const membership = await getCurrentDiscordSpotifyRoomMembership({
+      lobbyId: openLobby.id,
+      discordUserId,
+    });
+    if (!membership) {
+      return buildDiscordEphemeralMessageResponse("Join Spotify Club first.");
     }
 
     return buildDiscordSpotifyQueueSuggestModalResponse();
   }
 
   if (customId === FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID) {
+    if (!openLobby) {
+      return buildSpotifyQueueLobbyClosedResponse();
+    }
+
     return buildDeferredDiscordEphemeralInteractionResponse({
       interaction,
       actionLabel: "spotify-device-check-button",
       fallback: () => buildSpotifyStatusResponse(discordUserId),
-      process: async () => (
-        await resolveSpotifyPlaybackReadiness({
+      process: async () => {
+        const membership = await getCurrentDiscordSpotifyRoomMembership({
+          lobbyId: openLobby.id,
           discordUserId,
-          includeUpgradeLink: true,
-        })
-      ).content,
+        });
+        if (!membership) {
+          return "Join Spotify Club first.";
+        }
+
+        return (
+          await resolveSpotifyPlaybackReadiness({
+            discordUserId,
+            includeUpgradeLink: true,
+          })
+        ).content;
+      },
       genericFailureContent: "Spotify playback readiness could not be checked right now. Try again in a moment.",
     });
   }
 
   if (customId === FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID) {
+    if (!openLobby) {
+      return buildSpotifyQueueLobbyClosedResponse();
+    }
+
     return buildDeferredDiscordEphemeralInteractionResponse({
       interaction,
       actionLabel: "spotify-start-queue-button",
       fallback: async () => buildDiscordEphemeralMessageResponse("Spotify playback could not be started right now. Try again in a moment."),
-      process: async () => buildSpotifyStartQueueResponse(discordUserId),
+      process: async () => {
+        const membership = await getCurrentDiscordSpotifyRoomMembership({
+          lobbyId: openLobby.id,
+          discordUserId,
+        });
+        if (!membership) {
+          return "Join Spotify Club first.";
+        }
+
+        return buildSpotifyStartQueueResponse(discordUserId);
+      },
       genericFailureContent: "Spotify playback could not be started right now. Try again in a moment.",
     });
   }
@@ -4351,7 +4683,7 @@ export async function POST(request: Request) {
       && (
         interaction.data.custom_id === FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID
         || interaction.data.custom_id === FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID
-        || interaction.data.custom_id === FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID
+        || interaction.data.custom_id === FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID
         || interaction.data.custom_id === FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID
         || interaction.data.custom_id === FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID
         || interaction.data.custom_id.startsWith("spotify_")
@@ -4451,6 +4783,13 @@ export async function POST(request: Request) {
       && interaction.data?.custom_id === FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID
     ) {
       return jsonResponse(await handleSpotifyQueueSuggestModalSubmit(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
+      && interaction.data?.custom_id === FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID
+    ) {
+      return jsonResponse(await handleSpotifyQueueSearchModalSubmit(interaction));
     }
 
     if (
