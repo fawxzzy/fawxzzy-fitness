@@ -27,10 +27,20 @@ export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
 export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
 export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";
+export const FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME = "setup-spotify-club";
 export const FITNESS_SPOTIFY_COMMAND_NAME = "spotify";
 export const FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME = "connect";
 export const FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME = "status";
 export const FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME = "disconnect";
+export const FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID = "spotify_connect_open";
+export const FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID = "spotify_status_check";
+export const FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID = "spotify_disconnect";
+export const FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID = "spotify_join_placeholder";
+export const FITNESS_SPOTIFY_SUGGEST_BUTTON_CUSTOM_ID = "spotify_suggest_placeholder";
+export const FITNESS_JAM_LOBBY_COMMAND_NAME = "jam-lobby";
+export const FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME = "open";
+export const FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME = "close";
+export const FITNESS_JAM_LOBBY_STATUS_SUBCOMMAND_NAME = "status";
 export const FITNESS_PURGATORY_SETUP_COMMAND_NAME = "purgatory-setup";
 export const FITNESS_WARN_COMMAND_NAME = "warn";
 export const FITNESS_WARNINGS_COMMAND_NAME = "warnings";
@@ -134,6 +144,7 @@ export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
   "",
   "Your feedback card will appear in the Feedback forum after submit.",
 ] as const;
+export const DEFAULT_SPOTIFY_CLUB_PANEL_TITLE = "Spotify Club";
 export const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
 export const DISCORD_PERMISSION_MANAGE_CHANNELS = BigInt(1) << BigInt(4);
 export const DISCORD_PERMISSION_MANAGE_GUILD = BigInt(1) << BigInt(5);
@@ -497,6 +508,77 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
   };
 }
 
+export function buildDiscordSpotifyClubPanelMessagePayload(args: {
+  lobbyStatusLabel: "Open" | "Closed";
+  hostDiscordUserId?: string | null;
+}): DiscordMessagePayload {
+  const hostLine = args.hostDiscordUserId
+    ? `Host: <@${args.hostDiscordUserId}>`
+    : "Host: Staff host will appear here when a lobby opens.";
+
+  return {
+    embeds: [
+      {
+        title: DEFAULT_SPOTIFY_CLUB_PANEL_TITLE,
+        description: [
+          "Spotify Club is Fawx Den's shared Spotify listening room.",
+          "",
+          "Connect Spotify to become Jam Ready. Music stays inside Spotify on your own account and device. Fawx Security coordinates the lobby; it does not stream audio through Discord.",
+          "",
+          `Status: **${args.lobbyStatusLabel}**`,
+          hostLine,
+          "",
+          "Coming soon: Join Jam and Suggest Track.",
+        ].join("\n"),
+      },
+    ],
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 1,
+            custom_id: FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
+            label: "Connect Spotify",
+          },
+          {
+            type: 2,
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
+            label: "Check Jam Ready Status",
+          },
+          {
+            type: 2,
+            style: 4,
+            custom_id: FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID,
+            label: "Disconnect Spotify",
+          },
+        ],
+      },
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
+            label: "Join Jam",
+            disabled: true,
+          },
+          {
+            type: 2,
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_SUGGEST_BUTTON_CUSTOM_ID,
+            label: "Suggest Track",
+            disabled: true,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommandDefinition[] {
   const setupDefaultPermissions = String(DISCORD_PERMISSION_MANAGE_GUILD);
   const moderationDefaultPermissions = String(
@@ -638,6 +720,11 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
       ],
     },
     {
+      name: FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME,
+      description: "Post or refresh the Spotify Club panel.",
+      default_member_permissions: setupDefaultPermissions,
+    },
+    {
       name: FITNESS_SPOTIFY_COMMAND_NAME,
       description: "Connect Spotify for Spotify Club eligibility.",
       options: [
@@ -655,6 +742,28 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
           type: 1,
           name: FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
           description: "Disconnect your Spotify account from Spotify Club.",
+        },
+      ],
+    },
+    {
+      name: FITNESS_JAM_LOBBY_COMMAND_NAME,
+      description: "Open, close, or inspect the Spotify Club lobby shell.",
+      default_member_permissions: moderationDefaultPermissions,
+      options: [
+        {
+          type: 1,
+          name: FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME,
+          description: "Open the Spotify Club lobby state.",
+        },
+        {
+          type: 1,
+          name: FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME,
+          description: "Close the Spotify Club lobby state.",
+        },
+        {
+          type: 1,
+          name: FITNESS_JAM_LOBBY_STATUS_SUBCOMMAND_NAME,
+          description: "Show the Spotify Club lobby state.",
         },
       ],
     },
@@ -1452,6 +1561,14 @@ export function discordMessageHasFeedbackPanel(message: unknown): boolean {
   return [
     FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
     FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
+  ].every((customId) => discordMessageHasComponentCustomId(message, customId));
+}
+
+export function discordMessageHasSpotifyClubPanel(message: unknown): boolean {
+  return [
+    FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
+    FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
+    FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID,
   ].every((customId) => discordMessageHasComponentCustomId(message, customId));
 }
 
