@@ -38,6 +38,7 @@
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
     "feedback:board:export": "node scripts/export-feedback-board.mjs",
     "feedback:tasks:generate": "node scripts/generate-feedback-task-packets.mjs",
+    "feedback:phase:check": "node scripts/check-feedback-phase-readiness.mjs",
     "feedback:sync-forum-posts": "node scripts/sync-feedback-forum-posts.mjs",
     "feedback:sync-resolved-reactions": "node scripts/sync-feedback-resolved-reactions.mjs",
     "spotify:club:cleanup": "node scripts/cleanup-spotify-club-channel.mjs",
