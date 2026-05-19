@@ -47,6 +47,23 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Leaving Spotify Club as slash commands keeps the community feature hidden and underused.
 - Status: Proposed
 
+## 2026-05-18 - Spotify Club queue should be Discord-side before playback control
+- Type: Guardrail
+- Summary: Spotify Club should prove queue suggestions and host approval as Discord and Supabase state before mutating Spotify playback queues.
+- Rule: Queue approval is not playback control.
+- Pattern: suggest track -> pending queue item -> host approval -> panel queue preview -> later playback integration.
+- Failure Mode: Pushing directly into Spotify playback queues before queue governance is stable creates noisy playback and API risk.
+- Status: Proposed
+
+## 2026-05-19 - Discord forum boards should stay visually clean while exports own planning order
+- Type: Pattern
+- Summary: Discord forum tags, titles, and a small amount of pinning make the public board readable, but the exported board and reviewed task packets remain the real sorted planning view.
+- Rule: Forum order is visual only; export order is planning truth.
+- Rule: Do not churn thread activity just to fake custom sorting.
+- Pattern: tags and title prefixes -> readable forum board -> board export -> reviewed task packets.
+- Failure Mode: relying on Discord forum order alone makes the board feel messy because custom multi-layer sorting is not native there.
+- Status: Proposed
+
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
 - Type: Guardrail
 - Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.
