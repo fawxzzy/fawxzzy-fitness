@@ -37,6 +37,8 @@ export const FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID = "spotify_status_check";
 export const FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID = "spotify_disconnect";
 export const FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID = "spotify_queue_suggest_open";
 export const FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID = "spotify_queue_view";
+export const FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID = "spotify_device_check";
+export const FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID = "spotify_start_queue";
 export const FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID = "spotify_join_placeholder";
 export const FITNESS_JAM_LOBBY_COMMAND_NAME = "jam-lobby";
 export const FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME = "open";
@@ -541,7 +543,10 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
         description: [
           "Spotify Club is Fawx Den's shared Spotify listening room.",
           "",
-          "Connect Spotify to become Jam Ready. Music stays inside Spotify on your own account and device. Fawx Security coordinates the lobby; it does not stream audio through Discord.",
+          "Connect Spotify to become Jam Ready. Music stays inside Spotify on your own account and device. Fawx Security coordinates the lobby and queue; it does not stream audio through Discord.",
+          "",
+          "Jam Ready means Premium is verified.",
+          "Playback Ready means Spotify permissions and an active device are ready for handoff.",
           "",
           `Status: **${args.lobbyStatusLabel}**`,
           hostLine,
@@ -551,7 +556,7 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
           "",
           `Pending suggestions: ${pendingSuggestionCount}`,
           "",
-          "Join Jam and playback sync are still parked for a later phase.",
+          "Playback sync is still parked for a later phase.",
         ].join("\n"),
       },
     ],
@@ -593,6 +598,23 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
             style: 2,
             custom_id: FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
             label: "View Queue",
+          },
+          {
+            type: 2,
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
+            label: "Check Playback Device",
+          },
+        ],
+      },
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 1,
+            custom_id: FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
+            label: "Start Queue on Spotify",
           },
           {
             type: 2,
@@ -776,6 +798,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
     {
       name: FITNESS_SPOTIFY_COMMAND_NAME,
       description: "Connect Spotify for Spotify Club eligibility.",
+      default_member_permissions: moderationDefaultPermissions,
       options: [
         {
           type: 1,
@@ -819,6 +842,7 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
     {
       name: FITNESS_JAM_QUEUE_COMMAND_NAME,
       description: "Suggest tracks or manage the Spotify Club queue.",
+      default_member_permissions: moderationDefaultPermissions,
       options: [
         {
           type: 1,

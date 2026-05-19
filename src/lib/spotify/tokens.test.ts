@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildSpotifyMissingPlaybackPermissionsCopy,
+  buildSpotifyNoActiveDeviceCopy,
+  buildSpotifyPlaybackReadyCopy,
   buildSpotifyStatusCopy,
   disconnectDiscordSpotifyConnection,
   encryptSpotifyRefreshToken,
+  hasSpotifyPlaybackScopes,
 } from "./tokens.ts";
 
 test("Spotify status copy covers Premium, free, unknown, and disconnected states", () => {
@@ -109,4 +113,38 @@ test("Spotify disconnect tombstones token state without deleting history", async
   assert.notEqual(observed.values?.encrypted_refresh_token, refreshTokenCiphertext);
   assert.equal(observed.values?.is_premium, false);
   assert.equal(observed.values?.spotify_product, "unknown");
+});
+
+test("Spotify playback helpers cover scope gating and device status copy", () => {
+  assert.equal(
+    hasSpotifyPlaybackScopes([
+      "user-read-private",
+      "user-read-playback-state",
+      "user-modify-playback-state",
+    ]),
+    true,
+  );
+  assert.equal(
+    hasSpotifyPlaybackScopes([
+      "user-read-private",
+      "user-read-playback-state",
+    ]),
+    false,
+  );
+  assert.equal(
+    buildSpotifyMissingPlaybackPermissionsCopy(),
+    "Spotify is connected, but playback permissions are missing. Reconnect Spotify to enable playback handoff.",
+  );
+  assert.equal(
+    buildSpotifyNoActiveDeviceCopy(),
+    "Open Spotify on your phone, desktop, or browser first, then try again.",
+  );
+  assert.equal(
+    buildSpotifyPlaybackReadyCopy("Web Player"),
+    "Spotify connected. Premium verified. Playback Ready on Web Player.",
+  );
+  assert.equal(
+    buildSpotifyPlaybackReadyCopy(),
+    "Spotify connected. Premium verified. Playback Ready.",
+  );
 });

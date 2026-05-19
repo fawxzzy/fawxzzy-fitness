@@ -1,5 +1,6 @@
 import "server-only";
 
+import { SPOTIFY_PHASE_4_PLAYBACK_SCOPES } from "@/lib/spotify/oauth";
 import { SPOTIFY_TOKEN_ENCRYPTION_KEY } from "@/lib/env";
 import { decryptSpotifySecret, encryptSpotifySecret } from "@/lib/spotify/crypto";
 import type { SpotifyProduct, SpotifyProfileSnapshot } from "@/lib/spotify/profile";
@@ -42,6 +43,14 @@ const DISCORD_SPOTIFY_CONNECTION_SELECT = [
   "created_at",
   "updated_at",
 ].join(", ");
+
+function normalizeSpotifyScopes(scopes: string[]): string[] {
+  return [...new Set(
+    scopes
+      .map((scope) => scope.trim())
+      .filter(Boolean),
+  )];
+}
 
 const SPOTIFY_DISCONNECTED_SENTINEL = "__spotify_disconnected__";
 
@@ -103,6 +112,16 @@ export function decryptSpotifyRefreshToken(ciphertext: string): string {
   return decryptSpotifySecret(ciphertext, SPOTIFY_TOKEN_ENCRYPTION_KEY());
 }
 
+export function hasSpotifyPlaybackScopes(scopes: string[] | null | undefined): boolean {
+  const availableScopes = new Set(
+    Array.isArray(scopes)
+      ? scopes.map((scope) => scope.trim()).filter(Boolean)
+      : [],
+  );
+
+  return SPOTIFY_PHASE_4_PLAYBACK_SCOPES.every((scope) => availableScopes.has(scope));
+}
+
 export function buildSpotifyStatusCopy(connection: DiscordSpotifyConnectionRow | null): string {
   if (!connection || connection.disconnected_at) {
     return "Spotify is not connected yet. Use /spotify connect.";
@@ -117,6 +136,23 @@ export function buildSpotifyStatusCopy(connection: DiscordSpotifyConnectionRow |
   }
 
   return "Spotify connected, but Premium status could not be confirmed. Try reconnecting later.";
+}
+
+export function buildSpotifyMissingPlaybackPermissionsCopy(): string {
+  return "Spotify is connected, but playback permissions are missing. Reconnect Spotify to enable playback handoff.";
+}
+
+export function buildSpotifyNoActiveDeviceCopy(): string {
+  return "Open Spotify on your phone, desktop, or browser first, then try again.";
+}
+
+export function buildSpotifyPlaybackReadyCopy(deviceName?: string | null): string {
+  const trimmedDeviceName = typeof deviceName === "string" ? deviceName.trim() : "";
+  if (trimmedDeviceName) {
+    return `Spotify connected. Premium verified. Playback Ready on ${trimmedDeviceName}.`;
+  }
+
+  return "Spotify connected. Premium verified. Playback Ready.";
 }
 
 export async function getDiscordSpotifyConnection(
@@ -157,7 +193,7 @@ export async function upsertDiscordSpotifyConnection(args: {
       is_premium: args.profile.isPremium,
       encrypted_refresh_token: args.encryptedRefreshToken,
       access_token_expires_at: args.accessTokenExpiresAt,
-      scopes: args.scopes,
+      scopes: normalizeSpotifyScopes(args.scopes),
       connected_at: nowIso,
       last_checked_at: nowIso,
       disconnected_at: null,

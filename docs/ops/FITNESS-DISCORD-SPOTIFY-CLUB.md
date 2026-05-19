@@ -36,12 +36,20 @@ Phase 3 adds:
 - host/staff approval, rejection, and removal workflow
 - queue preview lines in the Spotify Club panel
 
+Phase 4 adds:
+
+- `Check Playback Device` panel button
+- `Start Queue on Spotify` panel button
+- playback-scope upgrade prompts for older Spotify connections
+- active-device readiness checks
+- user-requested Spotify-native playback handoff for the first approved queue item
+
 Spotify Club still does not include:
 
-- Spotify playback sync
-- Spotify player control
-- pushing tracks into Spotify playback queues
 - Discord voice or audio behavior
+- perfect-sync promises
+- auto-start playback when hosts open a lobby
+- pushing multiple tracks into Spotify playback queues
 
 Feedback cards:
 
@@ -58,11 +66,12 @@ Rules:
 - admin and setup commands stay hidden from normal users
 - public user actions should be exposed through a Spotify Club panel with buttons and modals
 - future Jam actions should surface from the panel, not from command memorization
+- `/spotify` and `/jam-queue` stay available as staff or operator fallback commands only
 
 Target split:
 
-- admin/staff: `/setup-spotify-club`, future `/jam-admin ...`
-- users: `Connect Spotify`, `Check Jam Ready Status`, `Disconnect Spotify`, `Suggest Track`, `View Queue`
+- admin/staff: `/setup-spotify-club`, `/jam-lobby`, `/jam-queue`, `/spotify`, future `/jam-admin ...`
+- users: `Connect Spotify`, `Check Jam Ready Status`, `Disconnect Spotify`, `Suggest Track`, `View Queue`, `Check Playback Device`, `Start Queue on Spotify`
 
 Reserved future panel actions:
 
@@ -83,6 +92,17 @@ Add the same redirect URI in the Spotify Developer Dashboard allowlist exactly a
 Requested Phase 1 scope:
 
 - `user-read-private`
+
+Phase 4 playback-readiness scopes:
+
+- `user-read-playback-state`
+- `user-modify-playback-state`
+
+Reconnect or upgrade rule:
+
+- older Phase 1 Spotify connections may be Jam Ready but still miss playback permissions
+- Phase 4 must not silently escalate scopes
+- readiness and handoff flows should explain why playback permissions are needed, then provide a reconnect link with the expanded scopes
 
 ## Environment Variables
 
@@ -127,7 +147,7 @@ Phase 3 queue commands:
 Command behavior:
 
 - `connect`: returns an OAuth link and the Phase 1 Jam Ready explanation.
-- `status`: returns one of Premium, not Premium, unknown, or not connected.
+- `status`: returns one of not connected, not Premium, missing playback permissions, no active device, or Playback Ready.
 - `disconnect`: tombstones the stored connection and removes live token material.
 - `setup-spotify-club`: posts or refreshes the canonical Spotify Club panel in `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`.
 - `jam-lobby`: opens, closes, or reports lobby shell state only. No playback or queue behavior is allowed in this phase.
@@ -135,7 +155,11 @@ Command behavior:
 - `jam-queue list`: shows the current approved queue and pending suggestion count.
 - `jam-queue approve|reject|remove`: staff/host controls for the Discord-side queue only.
 
-These commands are acceptable as proof/admin tools, but the public Spotify Club product should keep normal-user flows on the panel rather than command memorization.
+Visibility rule:
+
+- `/setup-spotify-club`, `/jam-lobby`, `/jam-queue`, and `/spotify` are staff-facing commands
+- normal users should not need slash commands for Spotify Club flows once the panel is live
+- the public Spotify Club product should keep normal-user flows on the panel rather than command memorization
 
 ## Public Channel Hygiene
 
@@ -187,6 +211,23 @@ Panel actions:
 - `Disconnect Spotify`
 - `Suggest Track`
 - `View Queue`
+- `Check Playback Device`
+- `Start Queue on Spotify`
+
+Playback readiness states:
+
+- `Jam Ready`: Premium is verified
+- `Missing playback permissions`: reconnect Spotify with playback scopes
+- `Open Spotify first`: no active Spotify device is available
+- `Playback Ready`: permissions and an active device are available for handoff
+
+Playback handoff rule:
+
+- Phase 4 starts only the first approved queue item
+- playback begins only after a user explicitly clicks `Start Queue on Spotify`
+- playback stays inside Spotify on the user's own active device
+- Phase 4 must not call Spotify Add to Queue
+- Phase 4 must not promise exact sync
 
 Interaction reliability rule:
 
@@ -227,8 +268,8 @@ Spotify Club coordinates Spotify-native listening flows later. It does not strea
 
 ## Future Phases
 
-- Phase 4: Spotify-native playback sync
-- Phase 5: polish, stats, recurring jam nights
+- Phase 5: Spotify-native playback sync, if explicitly approved later
+- Phase 6: polish, stats, recurring jam nights
 
 ## Release Note Rule
 

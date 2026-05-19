@@ -83,6 +83,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Public queue audit spam makes Spotify Club feel like an ops log instead of a community feature.
 - Status: Proposed
 
+## 2026-05-19 - Spotify Club playback handoff must be user-requested and Spotify-native
+- Type: Guardrail
+- Summary: Spotify Club may request playback only on a user's own active Spotify device after Premium, playback-scope, and device checks pass.
+- Rule: Do not auto-start playback or stream Spotify audio through Discord.
+- Rule: Playback readiness is not a promise of perfect sync.
+- Rule: Once the Spotify Club panel exists, `/spotify` and `/jam-queue` should stay staff or operator fallback commands instead of public UX.
+- Pattern: Premium check -> playback scope -> active device -> user-requested playback handoff.
+- Failure Mode: Promising broadcast or perfect sync creates platform risk and brittle UX when Spotify devices are unavailable.
+- Status: Proposed
+
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
 - Type: Guardrail
 - Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.

@@ -131,11 +131,13 @@ import {
   FITNESS_SPOTIFY_COMMAND_NAME,
   FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
+  FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_TRACK_INPUT_CUSTOM_ID,
@@ -219,9 +221,13 @@ import {
   upsertDiscordSpotifyLobbyPanel,
 } from "@/lib/spotify/lobbies";
 import {
+  buildSpotifyMissingPlaybackPermissionsCopy,
+  buildSpotifyNoActiveDeviceCopy,
+  buildSpotifyPlaybackReadyCopy,
   buildSpotifyStatusCopy,
   disconnectDiscordSpotifyConnection,
   getDiscordSpotifyConnection,
+  hasSpotifyPlaybackScopes,
 } from "@/lib/spotify/tokens";
 import {
   approveDiscordSpotifyQueueItem,
@@ -234,6 +240,12 @@ import {
   removeDiscordSpotifyQueueItem,
   suggestDiscordSpotifyQueueItem,
 } from "@/lib/spotify/queue";
+import {
+  getActiveSpotifyDevice,
+  getAvailableSpotifyDevices,
+  startSpotifyPlaybackOnDevice,
+  SpotifyPlayerApiError,
+} from "@/lib/spotify/player";
 import {
   validateDiscordFeedbackEmojis,
 } from "@/lib/discord/feedback-emojis";
@@ -365,10 +377,123 @@ async function buildSpotifyConnectResponse(discordUserId: string) {
   }
 }
 
+async function buildSpotifyPlaybackUpgradeResponse(discordUserId: string) {
+  try {
+    const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUserId, {
+      includePlaybackScopes: true,
+    });
+
+    return buildDiscordEphemeralMessageResponse(
+      `${buildSpotifyMissingPlaybackPermissionsCopy()}\n${authorizationUrl}`,
+    );
+  } catch (error) {
+    console.error("[discord-interactions] spotify-playback-upgrade failed", {
+      requestId: randomUUID(),
+      discordUserId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return buildDiscordEphemeralMessageResponse("Spotify could not generate a playback-upgrade link right now. Try again in a moment.");
+  }
+}
+
+async function buildSpotifyPlaybackUpgradeMessage(discordUserId: string): Promise<string> {
+  const response = await buildSpotifyPlaybackUpgradeResponse(discordUserId);
+  return typeof response.data?.content === "string"
+    ? response.data.content
+    : buildSpotifyMissingPlaybackPermissionsCopy();
+}
+
+function resolveSpotifyPlayerErrorMessage(error: unknown): string {
+  if (error instanceof SpotifyPlayerApiError) {
+    return error.message;
+  }
+
+  return "Spotify playback readiness could not be checked right now. Try again in a moment.";
+}
+
+async function resolveSpotifyPlaybackReadiness(args: {
+  discordUserId: string;
+  includeUpgradeLink?: boolean;
+}): Promise<{
+  ready: boolean;
+  content: string;
+  connection: Awaited<ReturnType<typeof getDiscordSpotifyConnection>>;
+  activeDeviceId: string | null;
+  activeDeviceName: string | null;
+}> {
+  const connection = await getDiscordSpotifyConnection(args.discordUserId);
+  if (!connection) {
+    return {
+      ready: false,
+      content: buildSpotifyStatusCopy(null),
+      connection: null,
+      activeDeviceId: null,
+      activeDeviceName: null,
+    };
+  }
+
+  if (!connection.is_premium) {
+    return {
+      ready: false,
+      content: buildSpotifyStatusCopy(connection),
+      connection,
+      activeDeviceId: null,
+      activeDeviceName: null,
+    };
+  }
+
+  if (!hasSpotifyPlaybackScopes(connection.scopes)) {
+    return {
+      ready: false,
+      content: args.includeUpgradeLink
+        ? await buildSpotifyPlaybackUpgradeMessage(args.discordUserId)
+        : buildSpotifyMissingPlaybackPermissionsCopy(),
+      connection,
+      activeDeviceId: null,
+      activeDeviceName: null,
+    };
+  }
+
+  try {
+    const devices = await getAvailableSpotifyDevices(connection);
+    const activeDevice = getActiveSpotifyDevice(devices);
+
+    if (!activeDevice?.id) {
+      return {
+        ready: false,
+        content: `Spotify connected. Premium verified. ${buildSpotifyNoActiveDeviceCopy()}`,
+        connection,
+        activeDeviceId: null,
+        activeDeviceName: null,
+      };
+    }
+
+    return {
+      ready: true,
+      content: buildSpotifyPlaybackReadyCopy(activeDevice.name),
+      connection,
+      activeDeviceId: activeDevice.id,
+      activeDeviceName: activeDevice.name,
+    };
+  } catch (error) {
+    return {
+      ready: false,
+      content: resolveSpotifyPlayerErrorMessage(error),
+      connection,
+      activeDeviceId: null,
+      activeDeviceName: null,
+    };
+  }
+}
+
 async function buildSpotifyStatusResponse(discordUserId: string) {
   try {
     return buildDiscordEphemeralMessageResponse(
-      buildSpotifyStatusCopy(await getDiscordSpotifyConnection(discordUserId)),
+      (await resolveSpotifyPlaybackReadiness({
+        discordUserId,
+        includeUpgradeLink: true,
+      })).content,
     );
   } catch (error) {
     console.error("[discord-interactions] spotify-status failed", {
@@ -379,6 +504,38 @@ async function buildSpotifyStatusResponse(discordUserId: string) {
 
     return buildDiscordEphemeralMessageResponse("Spotify status could not be loaded right now. Try again in a moment.");
   }
+}
+
+async function buildSpotifyStartQueueResponse(discordUserId: string): Promise<string> {
+  const readiness = await resolveSpotifyPlaybackReadiness({
+    discordUserId,
+    includeUpgradeLink: true,
+  });
+
+  if (!readiness.ready || !readiness.connection || !readiness.activeDeviceId) {
+    return readiness.content;
+  }
+
+  const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
+  if (!openLobby) {
+    return "Spotify Club lobby is Closed. Open a lobby before starting playback.";
+  }
+
+  const queueSummary = await getDiscordSpotifyQueueSummary({
+    lobbyId: openLobby.id,
+  });
+  const nextApprovedItem = queueSummary.approvedItems[0];
+  if (!nextApprovedItem) {
+    return "No approved tracks are queued yet.";
+  }
+
+  await startSpotifyPlaybackOnDevice({
+    connection: readiness.connection,
+    deviceId: readiness.activeDeviceId,
+    spotifyUris: [nextApprovedItem.spotify_uri],
+  });
+
+  return "Starting the approved Spotify Club queue on your active Spotify device.";
 }
 
 async function buildSpotifyDisconnectResponse(discordUserId: string) {
@@ -402,22 +559,34 @@ async function handleSpotifyInteraction(interaction: DiscordInteraction) {
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
+  const discordUserId = discordUser.id;
   const subcommand = extractDiscordCommandSubcommand(interaction.data?.options);
 
-  if (!discordUser.id || !subcommand?.name) {
+  if (!discordUserId || !subcommand?.name) {
     return buildDiscordEphemeralMessageResponse("Spotify Club could not read that command. Try again.");
   }
 
   if (subcommand.name === FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME) {
-    return buildSpotifyConnectResponse(discordUser.id);
+    return buildSpotifyConnectResponse(discordUserId);
   }
 
   if (subcommand.name === FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME) {
-    return buildSpotifyStatusResponse(discordUser.id);
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-status-command",
+      fallback: () => buildSpotifyStatusResponse(discordUserId),
+      process: async () => (
+        await resolveSpotifyPlaybackReadiness({
+          discordUserId,
+          includeUpgradeLink: true,
+        })
+      ).content,
+      genericFailureContent: "Spotify status could not be loaded right now. Try again in a moment.",
+    });
   }
 
   if (subcommand.name === FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME) {
-    return buildSpotifyDisconnectResponse(discordUser.id);
+    return buildSpotifyDisconnectResponse(discordUserId);
   }
 
   return buildDiscordEphemeralMessageResponse("That Spotify subcommand is not available in this phase yet.");
@@ -2278,7 +2447,12 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       interaction,
       actionLabel: "spotify-status-button",
       fallback: () => buildSpotifyStatusResponse(discordUserId),
-      process: async () => buildSpotifyStatusCopy(await getDiscordSpotifyConnection(discordUserId)),
+      process: async () => (
+        await resolveSpotifyPlaybackReadiness({
+          discordUserId,
+          includeUpgradeLink: true,
+        })
+      ).content,
       genericFailureContent: "Spotify status could not be loaded right now. Try again in a moment.",
     });
   }
@@ -2327,6 +2501,31 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
     }
 
     return buildDiscordSpotifyQueueSuggestModalResponse();
+  }
+
+  if (customId === FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-device-check-button",
+      fallback: () => buildSpotifyStatusResponse(discordUserId),
+      process: async () => (
+        await resolveSpotifyPlaybackReadiness({
+          discordUserId,
+          includeUpgradeLink: true,
+        })
+      ).content,
+      genericFailureContent: "Spotify playback readiness could not be checked right now. Try again in a moment.",
+    });
+  }
+
+  if (customId === FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-start-queue-button",
+      fallback: async () => buildDiscordEphemeralMessageResponse("Spotify playback could not be started right now. Try again in a moment."),
+      process: async () => buildSpotifyStartQueueResponse(discordUserId),
+      genericFailureContent: "Spotify playback could not be started right now. Try again in a moment.",
+    });
   }
 
   return buildSpotifyClubOutdatedPanelResponse();
@@ -3991,7 +4190,8 @@ export async function POST(request: Request) {
       interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
       && interaction.data?.name === FITNESS_SPOTIFY_COMMAND_NAME
     ) {
-      return jsonResponse(await handleSpotifyInteraction(interaction));
+      const response = await handleSpotifyInteraction(interaction);
+      return response instanceof Response ? response : jsonResponse(response);
     }
 
     if (

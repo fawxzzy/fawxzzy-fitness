@@ -102,7 +102,7 @@ test("discordMessageHasFeedbackPanel detects the feedback panel action row", () 
   assert.equal(discordMessageHasFeedbackPanel(buildDiscordVerifyMessagePayload()), false);
 });
 
-test("buildDiscordSpotifyClubPanelMessagePayload exposes button-first Spotify Club actions", () => {
+test("buildDiscordSpotifyClubPanelMessagePayload exposes every normal-user Spotify Club action on the panel", () => {
   const payload = buildDiscordSpotifyClubPanelMessagePayload({
     lobbyStatusLabel: "Open",
     hostDiscordUserId: "123456789012345678",
@@ -116,18 +116,41 @@ test("buildDiscordSpotifyClubPanelMessagePayload exposes button-first Spotify Cl
   assert.match(payload.embeds[0]?.description ?? "", /Queue:/);
   assert.match(payload.embeds[0]?.description ?? "", /Hey Ya! - Outkast/);
   assert.match(payload.embeds[0]?.description ?? "", /Pending suggestions: 2/);
+  assert.match(payload.embeds[0]?.description ?? "", /does not stream audio through Discord/i);
+  assert.match(payload.embeds[0]?.description ?? "", /Playback Ready means Spotify permissions and an active device are ready for handoff/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => component.custom_id),
     ["spotify_connect_open", "spotify_status_check", "spotify_disconnect"],
   );
   assert.deepEqual(
     payload.components[1]?.components?.map((component) => component.custom_id),
-    ["spotify_queue_suggest_open", "spotify_queue_view", "spotify_join_placeholder"],
+    ["spotify_queue_suggest_open", "spotify_queue_view", "spotify_device_check"],
+  );
+  assert.deepEqual(
+    payload.components[2]?.components?.map((component) => component.custom_id),
+    ["spotify_start_queue", "spotify_join_placeholder"],
+  );
+  const visibleButtonIds = payload.components.flatMap((row) => row.components.map((component) => component.custom_id));
+  assert.deepEqual(
+    visibleButtonIds,
+    [
+      "spotify_connect_open",
+      "spotify_status_check",
+      "spotify_disconnect",
+      "spotify_queue_suggest_open",
+      "spotify_queue_view",
+      "spotify_device_check",
+      "spotify_start_queue",
+      "spotify_join_placeholder",
+    ],
   );
   const queueButtons = payload.components[1]?.components ?? [];
+  const playbackButtons = payload.components[2]?.components ?? [];
   assert.equal(queueButtons[0] && "disabled" in queueButtons[0] ? queueButtons[0].disabled ?? false : false, false);
   assert.equal(queueButtons[1] && "disabled" in queueButtons[1] ? queueButtons[1].disabled ?? false : false, false);
-  assert.equal(queueButtons[2] && "disabled" in queueButtons[2] ? queueButtons[2].disabled ?? false : false, true);
+  assert.equal(queueButtons[2] && "disabled" in queueButtons[2] ? queueButtons[2].disabled ?? false : false, false);
+  assert.equal(playbackButtons[0] && "disabled" in playbackButtons[0] ? playbackButtons[0].disabled ?? false : false, false);
+  assert.equal(playbackButtons[1] && "disabled" in playbackButtons[1] ? playbackButtons[1].disabled ?? false : false, true);
   assert.equal(discordMessageHasSpotifyClubPanel(payload), true);
 });
 
@@ -463,7 +486,7 @@ test("discordMemberHasModerationPermission accepts administrator, manage guild, 
   assert.equal(discordMemberHasModerationPermission("0"), false);
 });
 
-test("buildDiscordGuildCommandsDefinition includes setup commands, feedback commands, and staff permissions", () => {
+test("buildDiscordGuildCommandsDefinition keeps Spotify Club slash commands staff-facing while the panel remains the public UX", () => {
   const commands = buildDiscordGuildCommandsDefinition();
   const feedback = commands.find((command) => command.name === "feedback");
   const feedbackStatus = commands.find((command) => command.name === "feedback-status");
@@ -531,7 +554,10 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   assert.ok(setupSpotifyClub);
   assert.equal(setupSpotifyClub?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(spotify);
-  assert.equal(spotify?.default_member_permissions, undefined);
+  assert.equal(
+    spotify?.default_member_permissions,
+    String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
+  );
   assert.deepEqual(spotify?.options?.map((option) => option.name), ["connect", "status", "disconnect"]);
   assert.equal(spotify?.options?.every((option) => option.type === 1), true);
   assert.ok(jamLobby);
@@ -541,7 +567,10 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   );
   assert.deepEqual(jamLobby?.options?.map((option) => option.name), ["open", "close", "status"]);
   assert.ok(jamQueue);
-  assert.equal(jamQueue?.default_member_permissions, undefined);
+  assert.equal(
+    jamQueue?.default_member_permissions,
+    String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
+  );
   assert.deepEqual(jamQueue?.options?.map((option) => option.name), ["suggest", "list", "approve", "reject", "remove"]);
   assert.ok(purgatorySetup);
   assert.equal(
