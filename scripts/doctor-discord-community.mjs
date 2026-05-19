@@ -27,6 +27,7 @@ const expectedFeedbackPanelCustomIds = [
 const expectedVerifyButtonLabel = "Verify Fitness Account";
 const expectedVerifyCopyNeedle = "By verifying, you agree to follow the server rules.";
 const expectedFitnessLoginUrl = "https://fawxzzy-fitness-local.vercel.app/login";
+const resolvedReactionEmoji = String.fromCodePoint(0x2705);
 const expectedCommands = [
   "setup-verify",
   "verify-cleanup",
@@ -986,7 +987,7 @@ async function checkFeedbackHealth(adminClient, debug = false) {
 
   const { data, error } = await adminClient
     .from("discord_feedback_reports")
-    .select("id, status, attachment_count, attachment_metadata, attachment_pruned, duplicate_count, created_at, updated_at, completion_review_status, discord_forum_channel_id, area, summary, details")
+    .select("id, status, attachment_count, attachment_metadata, attachment_pruned, duplicate_count, created_at, updated_at, completion_review_status, discord_forum_channel_id, discord_forum_thread_id, discord_forum_message_id, area, summary, details")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -1044,14 +1045,54 @@ async function checkFeedbackHealth(adminClient, debug = false) {
     totalRowsWithDuplicates: rows.filter((row) => Number(row.duplicate_count ?? 1) > 1).length,
     maxDuplicateCount: rows.reduce((max, row) => Math.max(max, Number(row.duplicate_count ?? 1)), 1),
   };
+  const resolvedRows = rows.filter((row) => row.status === "fixed" && !isTestingCard(row));
+  const resolvedRowsMissingStarterIds = resolvedRows.filter((row) => !row.discord_forum_thread_id || !row.discord_forum_message_id);
+  const botToken = process.env.DISCORD_BOT_TOKEN?.trim() || null;
+  const resolvedRowsWithStarterIds = resolvedRows.filter((row) => row.discord_forum_thread_id && row.discord_forum_message_id);
+  const resolvedRowsMissingReaction = [];
+
+  if (botToken) {
+    for (const row of resolvedRowsWithStarterIds.slice(0, 25)) {
+      const messageResult = await discordRequest(
+        `/channels/${row.discord_forum_thread_id}/messages/${row.discord_forum_message_id}`,
+        { botToken },
+      );
+
+      if (!messageResult.ok) {
+        resolvedRowsMissingReaction.push({
+          id: row.id,
+          issue: `starter-post-check-failed:${messageResult.status}`,
+        });
+        continue;
+      }
+
+      const reactions = Array.isArray(messageResult.data?.reactions) ? messageResult.data.reactions : [];
+      const hasResolvedReaction = reactions.some((reaction) => String(reaction?.emoji?.name ?? "") === resolvedReactionEmoji);
+      if (!hasResolvedReaction) {
+        resolvedRowsMissingReaction.push({
+          id: row.id,
+          issue: "missing-resolved-reaction",
+        });
+      }
+    }
+  }
 
   return buildCheck(
     "feedback-health",
-    withdrawnWithoutPrune.length > 0 || staleCompletionReviewRows.length > 0 ? "warn" : "pass",
+    withdrawnWithoutPrune.length > 0
+      || staleCompletionReviewRows.length > 0
+      || resolvedRowsMissingStarterIds.length > 0
+      || resolvedRowsMissingReaction.length > 0
+      ? "warn"
+      : "pass",
     withdrawnWithoutPrune.length > 0
       ? "Recent withdrawn feedback rows exist without attachment_pruned=true"
       : staleCompletionReviewRows.length > 0
         ? "Recent fixed/completed feedback cards are still pending completion review for more than 7 days"
+        : resolvedRowsMissingReaction.length > 0
+          ? "Recent fixed/completed public feedback cards are missing the resolved ✅ reaction"
+          : resolvedRowsMissingStarterIds.length > 0
+            ? "Recent fixed/completed public feedback cards are missing starter post ids, so resolved ✅ checks cannot be verified"
       : "Recent feedback health summary looks consistent with the production feedback contract",
     {
       countByStatus,
@@ -1059,7 +1100,10 @@ async function checkFeedbackHealth(adminClient, debug = false) {
       recentWithdrawnRows: withdrawnRows.length,
       withdrawnWithoutPrune: withdrawnWithoutPrune.length,
       staleCompletionReviews: staleCompletionReviewRows.length,
+      resolvedCardsMissingStarterIds: resolvedRowsMissingStarterIds.map((row) => row.id),
+      resolvedCardsMissingReaction: resolvedRowsMissingReaction,
       duplicateSummary,
+      resolvedReactionCheckSkipped: !botToken,
       ...(debug
         ? {
           recentAttachmentDebug: recentAttachmentRows.slice(0, 5).map((row) => ({

@@ -18,6 +18,7 @@ Product rules:
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
 - `Backlog` is a planning tag for public reviewed cards that are not started yet.
 - Fixed or completed public cards should also show a visible `✅` reaction on the starter post.
+- A public phase card is not fully done until the starter post shows `✅`.
 
 ## Command surface
 - `/setup-feedback`
@@ -67,11 +68,13 @@ Workflow:
 8. `/feedback-status` marks the card `Fixed` or `Completed`.
 9. Public non-testing Fitness app cards marked `Fixed` or `Completed` enter Completion Review.
 10. Update Bot may publish a curated release post only when the change is user-facing.
+11. Do not advance to the next phase until the previous public phase card is fixed/completed, completion-review approved, and visibly reacted with `✅`.
 
 Rules:
 - Feedback card updates do not automatically post to the updates channel.
 - Forum card mutations should stay in the thread as compact audit comments.
 - Completion Review is required after Fitness app work is marked done.
+- Completion review approval should backfill `✅` if the starter post is missing it.
 - Ready for Fawxzzy Review remains optional before implementation starts.
 - `Backlog` may coexist with `Confirmed` or `Ready for Fawxzzy Review`, but it is not a stored status.
 - Exports are review input, not automatic truth.
@@ -363,8 +366,8 @@ Display rule:
 - feature cards show stored `fixed` as `Completed`
 
 Resolved reaction behavior:
-- preferred target: the forum starter message when `discord_forum_message_id` exists
-- fallback target: the bot status reply in the thread
+- required target: the forum starter message
+- do not treat an audit comment reaction as equivalent board hygiene
 - reaction failures should log a safe warning and must not fail the status update
 
 ## Feedback card audit comments
