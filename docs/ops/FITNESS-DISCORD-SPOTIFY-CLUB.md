@@ -44,6 +44,14 @@ Phase 4 adds:
 - active-device readiness checks
 - user-requested Spotify-native playback handoff for the first approved queue item
 
+Phase 5 adds:
+
+- room-aware Spotify Club state anchored to the default public room `main`
+- explicit `Join Spotify Club` and `Leave Jam` flows
+- separate `Disconnect Spotify Auth` behavior
+- Discord-side Spotify track search
+- layered panel actions for connect, room, queue, and playback steps
+
 Spotify Club still does not include:
 
 - Discord voice or audio behavior
@@ -71,12 +79,12 @@ Rules:
 Target split:
 
 - admin/staff: `/setup-spotify-club`, `/jam-lobby`, `/jam-queue`, `/spotify`, future `/jam-admin ...`
-- users: `Connect Spotify`, `Check Jam Ready Status`, `Disconnect Spotify`, `Suggest Track`, `View Queue`, `Check Playback Device`, `Start Queue on Spotify`
+- users: `Connect Spotify`, `Join Spotify Club`, `Leave Jam`, `Search Track`, `Suggest Track`, `View Queue`, `Check Playback Device`, `Start Queue on Spotify`, `Disconnect Spotify Auth`
 
 Reserved future panel actions:
 
-- `Join Jam`
-- `Leave Jam`
+- private room entry
+- room settings
 
 ## OAuth Setup
 
@@ -161,6 +169,24 @@ Visibility rule:
 - normal users should not need slash commands for Spotify Club flows once the panel is live
 - the public Spotify Club product should keep normal-user flows on the panel rather than command memorization
 
+## Phase 5 Room Model
+
+Phase 5 separates room membership from Spotify authorization.
+
+Rules:
+
+- the default public room is `main`
+- joining a room does not require playback handoff
+- leaving a room does not disconnect Spotify auth
+- disconnecting Spotify auth should leave the active room and remove saved Spotify authorization
+- private-room fields may exist in storage before private-room UX is exposed publicly
+
+Current model:
+
+- `discord_spotify_lobbies` carries the canonical room and panel linkage
+- `discord_spotify_room_members` tracks joined vs left membership state
+- all current production behavior still maps to the default public room unless a future room lane expands it
+
 ## Public Channel Hygiene
 
 `#spotify-club` is the public product surface, not the ops log.
@@ -197,8 +223,10 @@ Rules:
 
 The Spotify Club panel now shows:
 
+- room name and visibility
 - lobby status: `Open` or `Closed`
 - current host mention when a lobby is open
+- joined member count
 - queue preview:
   - `No approved tracks yet.` when empty
   - otherwise the top 3 approved queue items
@@ -207,12 +235,29 @@ The Spotify Club panel now shows:
 Panel actions:
 
 - `Connect Spotify`
-- `Check Jam Ready Status`
-- `Disconnect Spotify`
+- `Join Spotify Club`
+- `Leave Jam`
+- `Search Track`
 - `Suggest Track`
 - `View Queue`
 - `Check Playback Device`
 - `Start Queue on Spotify`
+- `Disconnect Spotify Auth`
+
+Interaction model:
+
+- the public panel stays short and low-noise
+- button results are ephemeral where possible
+- `Leave Jam` leaves the current room only
+- `Disconnect Spotify Auth` removes saved Spotify authorization
+- standalone public status checks are replaced by state-aware button flows and direct readiness copy when relevant
+
+Search flow:
+
+- `Search Track` opens a Discord modal for a Spotify search query
+- the bot returns up to 5 track results as an ephemeral select menu
+- choosing a result creates a pending suggestion in the current room queue
+- URL or `spotify:track:` suggestion fallback still exists for staff and proof flows
 
 Playback readiness states:
 
@@ -239,8 +284,9 @@ Interaction reliability rule:
 
 Still reserved or parked:
 
-- `Join Jam`
 - playback sync
+- multiple public rooms
+- private room keys
 
 ## Premium Eligibility
 

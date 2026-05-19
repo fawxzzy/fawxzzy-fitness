@@ -34,12 +34,14 @@ export const FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME = "status";
 export const FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME = "disconnect";
 export const FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID = "spotify_connect_open";
 export const FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID = "spotify_status_check";
-export const FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID = "spotify_disconnect";
+export const FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID = "spotify_disconnect_auth";
+export const FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID = "spotify_join_room";
+export const FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID = "spotify_leave_room";
 export const FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID = "spotify_queue_suggest_open";
+export const FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID = "spotify_queue_search_open";
 export const FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID = "spotify_queue_view";
 export const FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID = "spotify_device_check";
 export const FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID = "spotify_start_queue";
-export const FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID = "spotify_join_placeholder";
 export const FITNESS_JAM_LOBBY_COMMAND_NAME = "jam-lobby";
 export const FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME = "open";
 export const FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME = "close";
@@ -75,6 +77,8 @@ export const FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID = "fitness_feedback
 export const FITNESS_FEEDBACK_WITHDRAW_SELECTED_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_withdraw_selected_modal";
 export const FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX = "fitness_update_publish_modal";
 export const FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID = "spotify_queue_suggest_modal";
+export const FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID = "spotify_queue_search_modal";
+export const FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID = "spotify_queue_search_select";
 export const FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID = "feedback_type";
 export const FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID = "bug_summary";
 export const FITNESS_BUG_AREA_INPUT_CUSTOM_ID = "bug_area";
@@ -83,6 +87,7 @@ export const FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID = "bug_details";
 export const FITNESS_BUG_STEPS_INPUT_CUSTOM_ID = "bug_steps";
 export const FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID = "feedback_attachment";
 export const FITNESS_SPOTIFY_TRACK_INPUT_CUSTOM_ID = "spotify_track";
+export const FITNESS_SPOTIFY_SEARCH_QUERY_INPUT_CUSTOM_ID = "spotify_search_query";
 export const FITNESS_FEEDBACK_UPDATE_REPORT_SELECT_CUSTOM_ID = "feedback_update_report_select";
 export const FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID = "feedback_update_report_id";
 export const FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID = "feedback_update_details";
@@ -523,18 +528,26 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
 }
 
 export function buildDiscordSpotifyClubPanelMessagePayload(args: {
+  roomName?: string | null;
+  roomVisibility?: "public" | "private";
   lobbyStatusLabel: "Open" | "Closed";
   hostDiscordUserId?: string | null;
+  memberCount?: number;
   queuePreviewLines?: string[];
   pendingSuggestionCount?: number;
+  hasApprovedQueue?: boolean;
 }): DiscordMessagePayload {
+  const roomName = args.roomName?.trim() || "Main Room";
+  const roomVisibilityLabel = args.roomVisibility === "private" ? "Private" : "Public";
   const hostLine = args.hostDiscordUserId
     ? `Host: <@${args.hostDiscordUserId}>`
     : "Host: Staff host will appear here when a lobby opens.";
+  const memberCount = Math.max(0, args.memberCount ?? 0);
   const queuePreviewLines = args.queuePreviewLines && args.queuePreviewLines.length > 0
     ? args.queuePreviewLines.map((line) => `- ${line}`)
     : ["- No approved tracks yet."];
   const pendingSuggestionCount = Math.max(0, args.pendingSuggestionCount ?? 0);
+  const hasApprovedQueue = args.hasApprovedQueue ?? false;
 
   return {
     embeds: [
@@ -543,20 +556,21 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
         description: [
           "Spotify Club is Fawx Den's shared Spotify listening room.",
           "",
-          "Connect Spotify to become Jam Ready. Music stays inside Spotify on your own account and device. Fawx Security coordinates the lobby and queue; it does not stream audio through Discord.",
+          "Music stays inside Spotify on your own account and device. Fawx Security coordinates rooms, queue state, and handoff; it does not stream audio through Discord.",
           "",
-          "Jam Ready means Premium is verified.",
-          "Playback Ready means Spotify permissions and an active device are ready for handoff.",
+          "Connect Spotify first. Join the room when you are ready to suggest tracks, view the queue, or start playback on your own device.",
           "",
+          `Room: **${roomName}** (${roomVisibilityLabel})`,
           `Status: **${args.lobbyStatusLabel}**`,
           hostLine,
+          `Joined members: ${memberCount}`,
           "",
           "Queue:",
           ...queuePreviewLines,
           "",
           `Pending suggestions: ${pendingSuggestionCount}`,
           "",
-          "Playback sync is still parked for a later phase.",
+          "Leave Jam only leaves the current room. Disconnect Spotify Auth removes your saved Spotify authorization.",
         ].join("\n"),
       },
     ],
@@ -573,14 +587,15 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
           {
             type: 2,
             style: 2,
-            custom_id: FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
-            label: "Check Jam Ready Status",
+            custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
+            label: "Join Spotify Club",
           },
           {
             type: 2,
-            style: 4,
-            custom_id: FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID,
-            label: "Disconnect Spotify",
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID,
+            label: "Leave Jam",
+            disabled: args.lobbyStatusLabel !== "Open",
           },
         ],
       },
@@ -590,8 +605,16 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
           {
             type: 2,
             style: 2,
+            custom_id: FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID,
+            label: "Search Track",
+            disabled: args.lobbyStatusLabel !== "Open",
+          },
+          {
+            type: 2,
+            style: 2,
             custom_id: FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
             label: "Suggest Track",
+            disabled: args.lobbyStatusLabel !== "Open",
           },
           {
             type: 2,
@@ -599,12 +622,6 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
             custom_id: FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
             label: "View Queue",
           },
-          {
-            type: 2,
-            style: 2,
-            custom_id: FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
-            label: "Check Playback Device",
-          },
         ],
       },
       {
@@ -612,16 +629,22 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
         components: [
           {
             type: 2,
-            style: 1,
-            custom_id: FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
-            label: "Start Queue on Spotify",
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
+            label: "Check Playback Device",
           },
           {
             type: 2,
-            style: 2,
-            custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
-            label: "Join Jam",
-            disabled: true,
+            style: 1,
+            custom_id: FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
+            label: "Start Queue on Spotify",
+            disabled: args.lobbyStatusLabel !== "Open" || !hasApprovedQueue,
+          },
+          {
+            type: 2,
+            style: 4,
+            custom_id: FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
+            label: "Disconnect Spotify Auth",
           },
         ],
       },
@@ -645,6 +668,55 @@ export function buildDiscordSpotifyQueueSuggestModalResponse() {
           required: true,
           maxLength: 500,
         }),
+      ],
+    },
+  };
+}
+
+export function buildDiscordSpotifyQueueSearchModalResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID,
+      title: "Search Spotify Tracks",
+      components: [
+        buildDiscordModalLabelTextInput({
+          label: "Search query",
+          description: "Search Spotify by track, artist, or album keywords.",
+          customId: FITNESS_SPOTIFY_SEARCH_QUERY_INPUT_CUSTOM_ID,
+          style: 1,
+          placeholder: "Example: Wait Earshot",
+          required: true,
+          maxLength: 120,
+        }),
+      ],
+    },
+  };
+}
+
+export function buildDiscordSpotifyTrackSearchResultsResponse(args: {
+  query: string;
+  options: DiscordFeedbackReportSelectOption[];
+}) {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
+      content: `Search results for "${args.query.trim()}". Choose a track to suggest it to the queue.`,
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 3,
+              custom_id: FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID,
+              placeholder: "Choose a Spotify track",
+              min_values: 1,
+              max_values: 1,
+              options: args.options,
+            },
+          ],
+        },
       ],
     },
   };
@@ -1715,8 +1787,8 @@ export function discordMessageHasFeedbackPanel(message: unknown): boolean {
 export function discordMessageHasSpotifyClubPanel(message: unknown): boolean {
   return [
     FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
-    FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
-    FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID,
+    FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
+    FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
   ].every((customId) => discordMessageHasComponentCustomId(message, customId));
 }
 
