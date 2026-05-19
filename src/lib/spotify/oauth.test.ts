@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildSpotifyAuthorizationUrl,
+  refreshSpotifyAccessToken,
   SPOTIFY_PHASE_4_PLAYBACK_SCOPES,
   createSpotifyOAuthState,
   verifySpotifyOAuthState,
@@ -57,5 +58,38 @@ test("Spotify playback-upgrade URL includes playback scopes without dropping Pha
   assert.equal(scopes.includes("user-read-private"), true);
   for (const scope of SPOTIFY_PHASE_4_PLAYBACK_SCOPES) {
     assert.equal(scopes.includes(scope), true);
+  }
+});
+
+test("Spotify refresh token exchange captures rotated refresh tokens when provided", async () => {
+  process.env.SPOTIFY_CLIENT_ID = "spotify-client-id";
+
+  const originalFetch = global.fetch;
+  global.fetch = async () => new Response(JSON.stringify({
+    access_token: "access-token",
+    refresh_token: "rotated-refresh-token",
+    expires_in: 3600,
+    scope: "user-read-private user-read-playback-state user-modify-playback-state",
+  }), {
+    status: 200,
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+
+  try {
+    const result = await refreshSpotifyAccessToken({
+      refreshToken: "refresh-token",
+    });
+
+    assert.equal(result.accessToken, "access-token");
+    assert.equal(result.refreshToken, "rotated-refresh-token");
+    assert.deepEqual(result.scopes, [
+      "user-read-private",
+      "user-read-playback-state",
+      "user-modify-playback-state",
+    ]);
+  } finally {
+    global.fetch = originalFetch;
   }
 });

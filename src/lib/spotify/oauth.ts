@@ -43,6 +43,7 @@ export type SpotifyRefreshTokenResult = {
   accessToken: string;
   expiresAt: string | null;
   scopes: string[];
+  refreshToken: string | null;
 };
 
 function encodeBase64Url(value: Uint8Array | Buffer): string {
@@ -232,6 +233,7 @@ export async function refreshSpotifyAccessToken(args: {
   const body = await response.json().catch(() => null) as {
     access_token?: unknown;
     expires_in?: unknown;
+    refresh_token?: unknown;
     scope?: unknown;
     error?: unknown;
   } | null;
@@ -260,5 +262,8 @@ export async function refreshSpotifyAccessToken(args: {
     scopes: typeof body.scope === "string"
       ? uniqueSpotifyScopes(body.scope.split(/\s+/))
       : [],
+    refreshToken: typeof body.refresh_token === "string" && body.refresh_token.trim()
+      ? body.refresh_token
+      : null,
   };
 }

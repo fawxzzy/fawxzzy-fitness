@@ -477,6 +477,20 @@ async function resolveSpotifyPlaybackReadiness(args: {
       activeDeviceName: activeDevice.name,
     };
   } catch (error) {
+    if (
+      error instanceof SpotifyPlayerApiError
+      && error.code === "SPOTIFY_RECONNECT_REQUIRED"
+      && args.includeUpgradeLink
+    ) {
+      return {
+        ready: false,
+        content: await buildSpotifyPlaybackUpgradeMessage(args.discordUserId),
+        connection,
+        activeDeviceId: null,
+        activeDeviceName: null,
+      };
+    }
+
     return {
       ready: false,
       content: resolveSpotifyPlayerErrorMessage(error),

@@ -142,6 +142,10 @@ export function buildSpotifyMissingPlaybackPermissionsCopy(): string {
   return "Spotify is connected, but playback permissions are missing. Reconnect Spotify to enable playback handoff.";
 }
 
+export function buildSpotifyReconnectPlaybackCopy(): string {
+  return "Spotify playback access expired. Reconnect Spotify to continue playback handoff.";
+}
+
 export function buildSpotifyNoActiveDeviceCopy(): string {
   return "Open Spotify on your phone, desktop, or browser first, then try again.";
 }
@@ -234,5 +238,39 @@ export async function disconnectDiscordSpotifyConnection(
 
   if (error) {
     throw new Error(`Failed to disconnect Spotify connection: ${error.message}`);
+  }
+}
+
+export async function refreshDiscordSpotifyConnectionSession(args: {
+  connectionId: string;
+  accessTokenExpiresAt: string | null;
+  encryptedRefreshToken?: string | null;
+  scopes?: string[] | null;
+  admin?: SpotifyConnectionsAdminClient;
+}): Promise<void> {
+  const admin = args.admin ?? supabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const values: Record<string, unknown> = {
+    access_token_expires_at: args.accessTokenExpiresAt,
+    last_checked_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  if (typeof args.encryptedRefreshToken === "string" && args.encryptedRefreshToken.trim()) {
+    values.encrypted_refresh_token = args.encryptedRefreshToken;
+  }
+
+  if (Array.isArray(args.scopes) && args.scopes.length > 0) {
+    values.scopes = normalizeSpotifyScopes(args.scopes);
+  }
+
+  const { error } = await admin
+    .from("discord_spotify_connections")
+    .update(values)
+    .eq("id", args.connectionId)
+    .is("disconnected_at", null);
+
+  if (error) {
+    throw new Error(`Failed to refresh Spotify connection session: ${error.message}`);
   }
 }

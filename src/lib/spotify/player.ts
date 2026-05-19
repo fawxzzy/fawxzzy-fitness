@@ -4,8 +4,11 @@ import {
   refreshSpotifyAccessToken,
 } from "@/lib/spotify/oauth";
 import {
+  buildSpotifyReconnectPlaybackCopy,
   decryptSpotifyRefreshToken,
+  encryptSpotifyRefreshToken,
   hasSpotifyPlaybackScopes,
+  refreshDiscordSpotifyConnectionSession,
   type DiscordSpotifyConnectionRow,
 } from "@/lib/spotify/tokens";
 
@@ -28,6 +31,7 @@ export type SpotifyCurrentPlaybackState = {
 
 type SpotifyPlayerApiErrorCode =
   | "SPOTIFY_PLAYBACK_SCOPE_REQUIRED"
+  | "SPOTIFY_RECONNECT_REQUIRED"
   | "SPOTIFY_NO_ACTIVE_DEVICE"
   | "SPOTIFY_PLAYER_RATE_LIMITED"
   | "SPOTIFY_PLAYER_API_FAILED";
@@ -110,12 +114,33 @@ function buildSpotifyPlayerApiError(args: {
 }
 
 async function buildSpotifyPlayerAccessToken(connection: DiscordSpotifyConnectionRow): Promise<string> {
-  const refreshToken = decryptSpotifyRefreshToken(connection.encrypted_refresh_token);
-  const tokenResult = await refreshSpotifyAccessToken({
-    refreshToken,
-  });
+  try {
+    const refreshToken = decryptSpotifyRefreshToken(connection.encrypted_refresh_token);
+    const tokenResult = await refreshSpotifyAccessToken({
+      refreshToken,
+    });
 
-  return tokenResult.accessToken;
+    await refreshDiscordSpotifyConnectionSession({
+      connectionId: connection.id,
+      accessTokenExpiresAt: tokenResult.expiresAt,
+      encryptedRefreshToken: tokenResult.refreshToken
+        ? encryptSpotifyRefreshToken(tokenResult.refreshToken)
+        : null,
+      scopes: tokenResult.scopes,
+    });
+
+    return tokenResult.accessToken;
+  } catch (error) {
+    if (error instanceof Error && /invalid_grant/i.test(error.message)) {
+      throw new SpotifyPlayerApiError({
+        code: "SPOTIFY_RECONNECT_REQUIRED",
+        status: 401,
+        message: buildSpotifyReconnectPlaybackCopy(),
+      });
+    }
+
+    throw error;
+  }
 }
 
 async function spotifyPlayerRequest(args: {
