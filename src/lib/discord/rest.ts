@@ -626,15 +626,22 @@ export async function deferDiscordInteractionEphemeral(args: {
 export async function editDiscordOriginalInteractionResponse(args: {
   applicationId: string;
   interactionToken: string;
-  content: string;
+  content?: string;
+  components?: unknown[];
 }): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const body: Record<string, unknown> = {};
+  if (typeof args.content === "string") {
+    body.content = args.content;
+  }
+  if (Array.isArray(args.components)) {
+    body.components = args.components;
+  }
+
   const result = await discordInteractionWebhookRequest<unknown>(
     `/webhooks/${args.applicationId}/${args.interactionToken}/messages/@original`,
     {
       method: "PATCH",
-      body: {
-        content: args.content,
-      },
+      body,
     },
   );
 

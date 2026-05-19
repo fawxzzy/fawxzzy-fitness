@@ -49,6 +49,7 @@ import {
   buildDiscordFeedbackManageCardResponse,
   buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
+  buildDiscordEphemeralMessageResponseWithComponents,
   buildDiscordSpotifyQueueSearchModalResponse,
   buildDiscordSpotifyQueueSuggestModalResponse,
   buildDiscordSpotifyTrackSearchResultsResponse,
@@ -60,6 +61,7 @@ import {
   buildDiscordPongResponse,
   buildDiscordVerifyMessagePayload,
   buildDiscordVerifyModalResponse,
+  DISCORD_MESSAGE_FLAG_EPHEMERAL,
   DISCORD_PERMISSION_ADD_REACTIONS,
   DISCORD_PERMISSION_CREATE_PRIVATE_THREADS,
   DISCORD_PERMISSION_CREATE_PUBLIC_THREADS,
@@ -132,18 +134,22 @@ import {
   FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME,
   FITNESS_SPOTIFY_COMMAND_NAME,
   FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_ROOM_CLOSE_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_SEARCH_QUERY_INPUT_CUSTOM_ID,
   FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
@@ -311,6 +317,7 @@ type DiscordInteraction = {
   guild_id?: unknown;
   message?: {
     id?: unknown;
+    flags?: unknown;
   } | null;
   member?: {
     permissions?: unknown;
@@ -673,6 +680,306 @@ async function getCurrentDiscordSpotifyRoomMembership(args: {
       updated_at: new Date().toISOString(),
     };
   }
+}
+
+async function buildSpotifyConnectMessage(discordUserId: string): Promise<string> {
+  const response = await buildSpotifyConnectResponse(discordUserId);
+  return typeof response.data?.content === "string"
+    ? response.data.content
+    : "Spotify could not generate a connect link right now. Try again in a moment.";
+}
+
+function buildSpotifyControlHubStatusLine(connection: Awaited<ReturnType<typeof getDiscordSpotifyConnection>>): string {
+  if (!connection) {
+    return "Spotify: Not connected yet.";
+  }
+
+  if (!connection.is_premium) {
+    return "Spotify: Connected, but this account is not Premium.";
+  }
+
+  if (!hasSpotifyPlaybackScopes(connection.scopes)) {
+    return "Spotify: Jam Ready. Reconnect Spotify to add playback handoff permissions.";
+  }
+
+  return "Spotify: Jam Ready. Check your playback device before starting the queue on Spotify.";
+}
+
+type SpotifyControlHubState = {
+  lobby: Awaited<ReturnType<typeof getLatestDiscordSpotifyLobby>>;
+  openLobby: Awaited<ReturnType<typeof getLatestDiscordSpotifyLobby>>;
+  queueSummary: Awaited<ReturnType<typeof getDiscordSpotifyQueueSummary>>;
+  joinedMemberCount: number;
+  connection: Awaited<ReturnType<typeof getDiscordSpotifyConnection>>;
+  membership: Awaited<ReturnType<typeof getCurrentDiscordSpotifyRoomMembership>>;
+  canManageRoom: boolean;
+};
+
+async function loadSpotifyControlHubState(args: {
+  discordUserId: string;
+  permissions: string | null;
+}): Promise<SpotifyControlHubState> {
+  const { lobby, queueSummary, joinedMemberCount } = await getSpotifyClubRoomContext();
+  const openLobby = lobby?.status === "open" ? lobby : null;
+  const connection = await getDiscordSpotifyConnection(args.discordUserId);
+  const membership = openLobby
+    ? await getCurrentDiscordSpotifyRoomMembership({
+      lobbyId: openLobby.id,
+      discordUserId: args.discordUserId,
+    })
+    : null;
+
+  return {
+    lobby,
+    openLobby,
+    queueSummary,
+    joinedMemberCount,
+    connection,
+    membership,
+    canManageRoom: spotifyQueueManagementAllowed({
+      permissions: args.permissions,
+      discordUserId: args.discordUserId,
+      lobbyHostDiscordUserId: openLobby?.host_discord_user_id,
+    }),
+  };
+}
+
+function buildSpotifyControlHubMessageBody(args: {
+  state: SpotifyControlHubState;
+  notice?: string | null;
+}) {
+  const roomName = args.state.lobby?.room_name?.trim() || "Main Room";
+  const roomVisibility = args.state.lobby?.visibility === "private" ? "Private" : "Public";
+  const hostLine = args.state.openLobby?.host_discord_user_id
+    ? `Host: <@${args.state.openLobby.host_discord_user_id}>`
+    : "Host: Staff host will appear here when the room opens.";
+  const membershipLabel = args.state.membership ? "Joined" : "Not joined";
+  const queuePreviewLines = buildDiscordSpotifyQueuePreviewLines(args.state.queueSummary).map((line) => `- ${line}`);
+  const approvedQueueCount = args.state.queueSummary.approvedItems.length;
+  const pendingQueueCount = args.state.queueSummary.pendingItems.length;
+
+  return [
+    "**Spotify Club Controls**",
+    ...(args.notice?.trim() ? [args.notice.trim(), ""] : []),
+    `Room: **${roomName}** (${roomVisibility})`,
+    `Status: **${formatDiscordSpotifyLobbyStatusLabel(args.state.lobby)}**`,
+    hostLine,
+    `Membership: ${membershipLabel}`,
+    `Joined members: ${args.state.joinedMemberCount}`,
+    buildSpotifyControlHubStatusLine(args.state.connection),
+    `Queue: ${approvedQueueCount} approved / ${pendingQueueCount} pending`,
+    ...queuePreviewLines,
+    "",
+    "Leave Jam only leaves the current room. Disconnect Spotify Auth removes your saved Spotify authorization.",
+    "Music stays inside Spotify on your own account and device.",
+  ].join("\n");
+}
+
+function buildSpotifyControlHubComponents(args: {
+  state: SpotifyControlHubState;
+}) {
+  const connected = Boolean(args.state.connection);
+  const joined = Boolean(args.state.membership);
+  const roomOpen = Boolean(args.state.openLobby);
+  const hasApprovedQueue = args.state.queueSummary.approvedItems.length > 0;
+  const components: Array<{
+    type: 1;
+    components: Array<{
+      type: 2;
+      style: 1 | 2 | 4;
+      custom_id: string;
+      label: string;
+      disabled?: boolean;
+    }>;
+  }> = [];
+
+  if (!connected) {
+    components.push({
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 1,
+          custom_id: FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
+          label: "Connect Spotify",
+        },
+      ],
+    });
+    return components;
+  }
+
+  if (!joined) {
+    components.push({
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 1,
+          custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
+          label: "Join Spotify Club",
+          disabled: !roomOpen,
+        },
+        {
+          type: 2,
+          style: 4,
+          custom_id: FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
+          label: "Disconnect Spotify Auth",
+        },
+      ],
+    });
+  } else {
+    components.push({
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 2,
+          custom_id: FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID,
+          label: "Search Track",
+          disabled: !roomOpen,
+        },
+        {
+          type: 2,
+          style: 2,
+          custom_id: FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
+          label: "Suggest Track",
+          disabled: !roomOpen,
+        },
+        {
+          type: 2,
+          style: 2,
+          custom_id: FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
+          label: "View Queue",
+        },
+      ],
+    });
+    components.push({
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 2,
+          custom_id: FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID,
+          label: "Leave Jam",
+          disabled: !roomOpen,
+        },
+        {
+          type: 2,
+          style: 2,
+          custom_id: FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
+          label: "Check Playback Device",
+          disabled: !roomOpen,
+        },
+        {
+          type: 2,
+          style: 1,
+          custom_id: FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
+          label: "Start Queue on Spotify",
+          disabled: !roomOpen || !hasApprovedQueue,
+        },
+      ],
+    });
+    components.push({
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 4,
+          custom_id: FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
+          label: "Disconnect Spotify Auth",
+        },
+      ],
+    });
+  }
+
+  if (args.state.canManageRoom) {
+    components.push({
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: roomOpen ? 2 : 1,
+          custom_id: FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID,
+          label: "Open Room",
+          disabled: roomOpen,
+        },
+        {
+          type: 2,
+          style: roomOpen ? 4 : 2,
+          custom_id: FITNESS_SPOTIFY_ROOM_CLOSE_BUTTON_CUSTOM_ID,
+          label: "Close Room",
+          disabled: !roomOpen,
+        },
+        {
+          type: 2,
+          style: 2,
+          custom_id: FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID,
+          label: "View Pending Suggestions",
+          disabled: !roomOpen,
+        },
+      ],
+    });
+  }
+
+  return components;
+}
+
+function buildSpotifyControlHubResponse(args: {
+  state: SpotifyControlHubState;
+  notice?: string | null;
+}) {
+  return buildDiscordEphemeralMessageResponseWithComponents({
+    content: buildSpotifyControlHubMessageBody(args),
+    components: buildSpotifyControlHubComponents({ state: args.state }),
+  });
+}
+
+function buildSpotifyControlHubEditBody(args: {
+  state: SpotifyControlHubState;
+  notice?: string | null;
+}) {
+  return {
+    content: buildSpotifyControlHubMessageBody(args),
+    components: buildSpotifyControlHubComponents({ state: args.state }),
+  };
+}
+
+async function buildSpotifyControlHubEditBodyForUser(args: {
+  discordUserId: string;
+  permissions: string | null;
+  notice?: string | null;
+}) {
+  return buildSpotifyControlHubEditBody({
+    state: await loadSpotifyControlHubState({
+      discordUserId: args.discordUserId,
+      permissions: args.permissions,
+    }),
+    notice: args.notice,
+  });
+}
+
+async function buildSpotifyControlHubResponseForUser(args: {
+  discordUserId: string;
+  permissions: string | null;
+  notice?: string | null;
+}) {
+  return buildSpotifyControlHubResponse({
+    state: await loadSpotifyControlHubState({
+      discordUserId: args.discordUserId,
+      permissions: args.permissions,
+    }),
+    notice: args.notice,
+  });
+}
+
+function isEphemeralSpotifyControlHubInteraction(interaction: DiscordInteraction) {
+  const flags = typeof interaction.message?.flags === "number"
+    ? interaction.message.flags
+    : typeof interaction.message?.flags === "string"
+      ? Number.parseInt(interaction.message.flags, 10)
+      : 0;
+
+  return Number.isFinite(flags) && (flags & DISCORD_MESSAGE_FLAG_EPHEMERAL) === DISCORD_MESSAGE_FLAG_EPHEMERAL;
 }
 
 async function handleSpotifyInteraction(interaction: DiscordInteraction) {
@@ -1158,6 +1465,26 @@ function extractDiscordComponentSelectValue(values: unknown): string | null {
     : null;
 }
 
+type DeferredDiscordEphemeralInteractionResult =
+  | string
+  | {
+    content: string;
+    components?: unknown[];
+  };
+
+function normalizeDeferredDiscordEphemeralInteractionResult(
+  result: DeferredDiscordEphemeralInteractionResult,
+): { content: string; components?: unknown[] } {
+  if (typeof result === "string") {
+    return { content: result };
+  }
+
+  return {
+    content: result.content,
+    components: result.components,
+  };
+}
+
 async function syncDiscordFeedbackStarterMessage(args: {
   report: DiscordBugReportRow;
 }) {
@@ -1203,7 +1530,7 @@ async function buildDeferredDiscordEphemeralInteractionResponse(args: {
   interaction: DiscordInteraction;
   actionLabel: string;
   fallback: () => Promise<Record<string, unknown>>;
-  process: () => Promise<string>;
+  process: () => Promise<DeferredDiscordEphemeralInteractionResult>;
   genericFailureContent: string;
 }) {
   const interactionId = typeof args.interaction.id === "string" ? args.interaction.id : null;
@@ -1230,10 +1557,10 @@ async function buildDeferredDiscordEphemeralInteractionResponse(args: {
     return jsonResponse(await args.fallback());
   }
 
-  let content = args.genericFailureContent;
+  let resultBody = { content: args.genericFailureContent } as { content: string; components?: unknown[] };
 
   try {
-    content = await args.process();
+    resultBody = normalizeDeferredDiscordEphemeralInteractionResult(await args.process());
   } catch (error) {
     console.error(`[discord-interactions] deferred ${args.actionLabel} failed`, {
       requestId: randomUUID(),
@@ -1245,7 +1572,8 @@ async function buildDeferredDiscordEphemeralInteractionResponse(args: {
   const editResult = await editDiscordOriginalInteractionResponse({
     applicationId,
     interactionToken,
-    content,
+    content: resultBody.content,
+    components: resultBody.components,
   });
 
   if (!editResult.ok) {
@@ -2674,6 +3002,8 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
   const latestLobby = await getLatestDiscordSpotifyLobby();
   const openLobby = latestLobby?.status === "open" ? latestLobby : null;
   const messageId = typeof interaction.message?.id === "string" ? interaction.message.id : null;
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+  const isEphemeralHubInteraction = isEphemeralSpotifyControlHubInteraction(interaction);
 
   if (!customId || !discordUser.id) {
     return buildSpotifyClubOutdatedPanelResponse();
@@ -2710,64 +3040,135 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
     }
   }
 
+  const isCanonicalPanelInteraction = Boolean(
+    latestLobby?.panel_message_id
+    && messageId
+    && latestLobby.panel_message_id === messageId,
+  );
+
+  if (customId === FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID && !isCanonicalPanelInteraction) {
+    return buildSpotifyClubOutdatedPanelResponse();
+  }
+
   if (
-    !latestLobby?.panel_message_id
-    || !messageId
-    || latestLobby.panel_message_id !== messageId
+    customId !== FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID
+    && customId !== FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID
+    && !isEphemeralHubInteraction
   ) {
     return buildSpotifyClubOutdatedPanelResponse();
   }
 
+  if (customId === FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID) {
+    return buildSpotifyControlHubResponseForUser({
+      discordUserId,
+      permissions,
+    });
+  }
+
   if (customId === FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID) {
-    return buildSpotifyConnectResponse(discordUserId);
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-controls-connect-button",
+      fallback: () => buildSpotifyConnectResponse(discordUserId),
+      process: async () => buildSpotifyControlHubEditBodyForUser({
+        discordUserId,
+        permissions,
+        notice: await buildSpotifyConnectMessage(discordUserId),
+      }),
+      genericFailureContent: "Spotify could not generate a connect link right now. Try again in a moment.",
+    });
   }
 
   if (customId === FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID) {
-    if (!openLobby) {
-      return buildSpotifyQueueLobbyClosedResponse();
-    }
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-controls-join-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club could not update your room membership right now. Try again in a moment.",
+      }),
+      process: async () => {
+        if (!openLobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. Open a room before joining.",
+          });
+        }
 
-    const connection = await getDiscordSpotifyConnection(discordUserId);
-    if (!connection) {
-      return buildDiscordEphemeralMessageResponse("Connect Spotify first, then join Spotify Club.");
-    }
+        const connection = await getDiscordSpotifyConnection(discordUserId);
+        if (!connection) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Connect Spotify first, then join Spotify Club.",
+          });
+        }
 
-    await joinDiscordSpotifyRoom({
-      lobbyId: openLobby.id,
-      discordUserId,
-      spotifyUserId: connection.spotify_user_id,
+        await joinDiscordSpotifyRoom({
+          lobbyId: openLobby.id,
+          discordUserId,
+          spotifyUserId: connection.spotify_user_id,
+        });
+        const syncResult = await syncDiscordSpotifyClubPanelFromState();
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: syncResult.ok
+            ? `You joined ${openLobby.room_name || "Spotify Club"}.`
+            : `You joined ${openLobby.room_name || "Spotify Club"}, but the public panel could not be refreshed right now.`,
+        });
+      },
+      genericFailureContent: "Spotify Club could not update your room membership right now. Try again in a moment.",
     });
-    const syncResult = await syncDiscordSpotifyClubPanelFromState();
-    return buildDiscordEphemeralMessageResponse(
-      syncResult.ok
-        ? `You joined ${openLobby.room_name || "Spotify Club"}.`
-        : `You joined ${openLobby.room_name || "Spotify Club"}, but the panel could not be refreshed right now.`,
-    );
   }
 
   if (customId === FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID) {
-    if (!openLobby) {
-      return buildSpotifyQueueLobbyClosedResponse();
-    }
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-controls-leave-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club could not update your room membership right now. Try again in a moment.",
+      }),
+      process: async () => {
+        if (!openLobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. There is no active room to leave right now.",
+          });
+        }
 
-    const membership = await getCurrentDiscordSpotifyRoomMembership({
-      lobbyId: openLobby.id,
-      discordUserId,
-    });
-    if (!membership) {
-      return buildDiscordEphemeralMessageResponse("You are not in Spotify Club right now.");
-    }
+        const membership = await getCurrentDiscordSpotifyRoomMembership({
+          lobbyId: openLobby.id,
+          discordUserId,
+        });
+        if (!membership) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "You are not in Spotify Club right now.",
+          });
+        }
 
-    await leaveDiscordSpotifyRoom({
-      lobbyId: openLobby.id,
-      discordUserId,
+        await leaveDiscordSpotifyRoom({
+          lobbyId: openLobby.id,
+          discordUserId,
+        });
+        const syncResult = await syncDiscordSpotifyClubPanelFromState();
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: syncResult.ok
+            ? `You left ${openLobby.room_name || "Spotify Club"}.`
+            : `You left ${openLobby.room_name || "Spotify Club"}, but the public panel could not be refreshed right now.`,
+        });
+      },
+      genericFailureContent: "Spotify Club could not update your room membership right now. Try again in a moment.",
     });
-    const syncResult = await syncDiscordSpotifyClubPanelFromState();
-    return buildDiscordEphemeralMessageResponse(
-      syncResult.ok
-        ? `You left ${openLobby.room_name || "Spotify Club"}.`
-        : `You left ${openLobby.room_name || "Spotify Club"}, but the panel could not be refreshed right now.`,
-    );
   }
 
   if (customId === FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID) {
@@ -2807,8 +3208,14 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
             });
           }
         }
-        await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
-        return "Spotify disconnected.";
+        const syncResult = await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: syncResult.ok
+            ? "Spotify disconnected."
+            : "Spotify disconnected, but the public panel could not be refreshed right now.",
+        });
       },
       genericFailureContent: "Spotify could not be disconnected right now. Try again in a moment.",
     });
@@ -2816,7 +3223,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
 
   if (customId === FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID) {
     if (!openLobby) {
-      return buildSpotifyQueueLobbyClosedResponse();
+      return buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club lobby is Closed. Open a room before searching for tracks.",
+      });
     }
 
     const membership = await getCurrentDiscordSpotifyRoomMembership({
@@ -2824,7 +3235,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       discordUserId,
     });
     if (!membership) {
-      return buildDiscordEphemeralMessageResponse("Join Spotify Club first.");
+      return buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Join Spotify Club first.",
+      });
     }
 
     return buildDiscordSpotifyQueueSearchModalResponse();
@@ -2845,7 +3260,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       process: async () => {
         const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
         if (!openLobby) {
-          return "Spotify Club lobby is Closed. Open a lobby before using the queue.";
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. Open a room before using the queue.",
+          });
         }
 
         const membership = await getCurrentDiscordSpotifyRoomMembership({
@@ -2853,13 +3272,21 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           discordUserId,
         });
         if (!membership) {
-          return "Join Spotify Club first.";
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Join Spotify Club first.",
+          });
         }
 
-        return buildDiscordSpotifyQueueSummaryTextForViewer(
-          await getDiscordSpotifyQueueSummary({ lobbyId: openLobby.id }),
+        return buildSpotifyControlHubEditBodyForUser({
           discordUserId,
-        );
+          permissions,
+          notice: buildDiscordSpotifyQueueSummaryTextForViewer(
+            await getDiscordSpotifyQueueSummary({ lobbyId: openLobby.id }),
+            discordUserId,
+          ),
+        });
       },
       genericFailureContent: "Spotify Club queue could not be loaded right now. Try again in a moment.",
     });
@@ -2867,7 +3294,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
 
   if (customId === FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID) {
     if (!openLobby) {
-      return buildSpotifyQueueLobbyClosedResponse();
+      return buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club lobby is Closed. Open a room before suggesting tracks.",
+      });
     }
 
     const membership = await getCurrentDiscordSpotifyRoomMembership({
@@ -2875,62 +3306,209 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       discordUserId,
     });
     if (!membership) {
-      return buildDiscordEphemeralMessageResponse("Join Spotify Club first.");
+      return buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Join Spotify Club first.",
+      });
     }
 
     return buildDiscordSpotifyQueueSuggestModalResponse();
   }
 
   if (customId === FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID) {
-    if (!openLobby) {
-      return buildSpotifyQueueLobbyClosedResponse();
-    }
-
     return buildDeferredDiscordEphemeralInteractionResponse({
       interaction,
       actionLabel: "spotify-device-check-button",
       fallback: () => buildSpotifyStatusResponse(discordUserId),
       process: async () => {
+        if (!openLobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. Open a room before checking playback readiness.",
+          });
+        }
+
         const membership = await getCurrentDiscordSpotifyRoomMembership({
           lobbyId: openLobby.id,
           discordUserId,
         });
         if (!membership) {
-          return "Join Spotify Club first.";
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Join Spotify Club first.",
+          });
         }
 
-        return (
-          await resolveSpotifyPlaybackReadiness({
-            discordUserId,
-            includeUpgradeLink: true,
-          })
-        ).content;
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: (
+            await resolveSpotifyPlaybackReadiness({
+              discordUserId,
+              includeUpgradeLink: true,
+            })
+          ).content,
+        });
       },
       genericFailureContent: "Spotify playback readiness could not be checked right now. Try again in a moment.",
     });
   }
 
   if (customId === FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID) {
-    if (!openLobby) {
-      return buildSpotifyQueueLobbyClosedResponse();
-    }
-
     return buildDeferredDiscordEphemeralInteractionResponse({
       interaction,
       actionLabel: "spotify-start-queue-button",
       fallback: async () => buildDiscordEphemeralMessageResponse("Spotify playback could not be started right now. Try again in a moment."),
       process: async () => {
+        if (!openLobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. Open a room before starting playback.",
+          });
+        }
+
         const membership = await getCurrentDiscordSpotifyRoomMembership({
           lobbyId: openLobby.id,
           discordUserId,
         });
         if (!membership) {
-          return "Join Spotify Club first.";
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Join Spotify Club first.",
+          });
         }
 
-        return buildSpotifyStartQueueResponse(discordUserId);
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: await buildSpotifyStartQueueResponse(discordUserId),
+        });
       },
       genericFailureContent: "Spotify playback could not be started right now. Try again in a moment.",
+    });
+  }
+
+  if (customId === FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-room-open-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club could not open the room right now. Try again in a moment.",
+      }),
+      process: async () => {
+        if (!spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId,
+          lobbyHostDiscordUserId: openLobby?.host_discord_user_id,
+        })) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "You do not have permission to manage the Spotify Club room.",
+          });
+        }
+
+        const connection = await getDiscordSpotifyConnection(discordUserId);
+        await openDiscordSpotifyLobby({
+          hostDiscordUserId: discordUserId,
+          hostSpotifyUserId: connection?.spotify_user_id ?? null,
+        });
+        const syncResult = await syncDiscordSpotifyClubPanelFromState();
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: syncResult.ok
+            ? "Spotify Club room is now Open."
+            : "Spotify Club room is now Open, but the public panel could not be refreshed right now.",
+        });
+      },
+      genericFailureContent: "Spotify Club could not open the room right now. Try again in a moment.",
+    });
+  }
+
+  if (customId === FITNESS_SPOTIFY_ROOM_CLOSE_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-room-close-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club could not close the room right now. Try again in a moment.",
+      }),
+      process: async () => {
+        if (!spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId,
+          lobbyHostDiscordUserId: openLobby?.host_discord_user_id,
+        })) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "You do not have permission to manage the Spotify Club room.",
+          });
+        }
+
+        await closeDiscordSpotifyLobby();
+        const syncResult = await syncDiscordSpotifyClubPanelFromState();
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: syncResult.ok
+            ? "Spotify Club room is now Closed."
+            : "Spotify Club room is now Closed, but the public panel could not be refreshed right now.",
+        });
+      },
+      genericFailureContent: "Spotify Club could not close the room right now. Try again in a moment.",
+    });
+  }
+
+  if (customId === FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-pending-queue-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club pending suggestions could not be loaded right now. Try again in a moment.",
+      }),
+      process: async () => {
+        if (!openLobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. Open a room before reviewing pending suggestions.",
+          });
+        }
+
+        if (!spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId,
+          lobbyHostDiscordUserId: openLobby.host_discord_user_id,
+        })) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "You do not have permission to manage the Spotify Club queue.",
+          });
+        }
+
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: buildDiscordSpotifyQueueSummaryTextForViewer(
+            await getDiscordSpotifyQueueSummary({ lobbyId: openLobby.id }),
+            discordUserId,
+          ),
+        });
+      },
+      genericFailureContent: "Spotify Club pending suggestions could not be loaded right now. Try again in a moment.",
     });
   }
 

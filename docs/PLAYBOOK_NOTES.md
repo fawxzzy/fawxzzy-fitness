@@ -110,6 +110,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Treating disconnect as leaving the jam makes the product confusing and destroys useful saved auth state.
 - Status: Proposed
 
+## 2026-05-19 - Spotify Club should use one public status panel and a personalized ephemeral control hub
+- Type: Pattern
+- Summary: Spotify Club works better as one shared public status panel with a single controls launcher, while personalized state-aware actions live in one ephemeral control hub per user.
+- Rule: The public `#spotify-club` panel is room status, not a wall of action buttons.
+- Rule: Connect, join, leave, search, queue, readiness, and handoff actions should live in the ephemeral control hub.
+- Rule: Hub actions should refresh or replace the same ephemeral response where practical instead of stacking many separate ephemeral messages.
+- Pattern: public panel -> `Open Spotify Club Controls` -> personalized ephemeral hub -> compact confirmations -> panel refresh only when shared room state changes.
+- Failure Mode: A public multi-button panel plus many separate ephemeral action messages makes Spotify Club feel noisy even when the public channel itself stays technically clean.
+- Status: Proposed
+
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
 - Type: Guardrail
 - Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.

@@ -50,7 +50,7 @@ Phase 5 adds:
 - explicit `Join Spotify Club` and `Leave Jam` flows
 - separate `Disconnect Spotify Auth` behavior
 - Discord-side Spotify track search
-- layered panel actions for connect, room, queue, and playback steps
+- a personalized ephemeral control hub for connect, room, queue, and playback steps
 
 Spotify Club still does not include:
 
@@ -73,13 +73,16 @@ Rules:
 
 - admin and setup commands stay hidden from normal users
 - public user actions should be exposed through a Spotify Club panel with buttons and modals
+- the public panel should stay status-only and low-noise
+- personalized user actions should open from one ephemeral control hub
 - future Jam actions should surface from the panel, not from command memorization
 - `/spotify` and `/jam-queue` stay available as staff or operator fallback commands only
 
 Target split:
 
 - admin/staff: `/setup-spotify-club`, `/jam-lobby`, `/jam-queue`, `/spotify`, future `/jam-admin ...`
-- users: `Connect Spotify`, `Join Spotify Club`, `Leave Jam`, `Search Track`, `Suggest Track`, `View Queue`, `Check Playback Device`, `Start Queue on Spotify`, `Disconnect Spotify Auth`
+- public panel: `Open Spotify Club Controls`
+- users in the control hub: `Connect Spotify`, `Join Spotify Club`, `Leave Jam`, `Search Track`, `Suggest Track`, `View Queue`, `Check Playback Device`, `Start Queue on Spotify`, `Disconnect Spotify Auth`
 
 Reserved future panel actions:
 
@@ -219,9 +222,9 @@ Rules:
 - Phase 3 must not request playback-control scopes
 - Phase 3 must not call Spotify player endpoints or push items into the real Spotify queue
 
-## Phase 3 Panel State
+## Spotify Club Panel And Controls
 
-The Spotify Club panel now shows:
+The public Spotify Club panel now shows:
 
 - room name and visibility
 - lobby status: `Open` or `Closed`
@@ -231,26 +234,40 @@ The Spotify Club panel now shows:
   - `No approved tracks yet.` when empty
   - otherwise the top 3 approved queue items
 - pending suggestion count
+- one public action:
+  - `Open Spotify Club Controls`
 
-Panel actions:
+The public panel does not expose per-user action buttons directly. It is the shared room-status surface only.
 
-- `Connect Spotify`
-- `Join Spotify Club`
-- `Leave Jam`
-- `Search Track`
-- `Suggest Track`
-- `View Queue`
-- `Check Playback Device`
-- `Start Queue on Spotify`
-- `Disconnect Spotify Auth`
+The personalized ephemeral control hub shows state-aware actions:
+
+- not connected:
+  - `Connect Spotify`
+- connected, not joined:
+  - `Join Spotify Club`
+  - `Disconnect Spotify Auth`
+- joined:
+  - `Search Track`
+  - `Suggest Track`
+  - `View Queue`
+  - `Leave Jam`
+  - `Check Playback Device`
+  - `Start Queue on Spotify` when an approved queue item exists
+  - `Disconnect Spotify Auth`
+- staff or host:
+  - `Open Room`
+  - `Close Room`
+  - `View Pending Suggestions`
 
 Interaction model:
 
 - the public panel stays short and low-noise
+- users open one personalized ephemeral control hub from the public panel
+- button results should update or replace the control hub where practical instead of spawning a new public message
 - button results are ephemeral where possible
 - `Leave Jam` leaves the current room only
 - `Disconnect Spotify Auth` removes saved Spotify authorization
-- standalone public status checks are replaced by state-aware button flows and direct readiness copy when relevant
+- standalone public status checks are replaced by hub state and direct readiness copy when relevant
 
 Search flow:
 
@@ -280,6 +297,7 @@ Interaction reliability rule:
 - stale or unknown Spotify Club panel buttons should answer:
   - `This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.`
 - `/setup-spotify-club` remains the recovery path for refreshing the canonical panel and pruning stale duplicates
+- `/setup-spotify-club` should replace older multi-button Spotify panels with the new status-first single-button panel
 - panel refresh failures on aged Discord messages should recreate the canonical panel instead of leaving the public state stale
 
 Still reserved or parked:
