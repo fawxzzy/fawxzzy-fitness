@@ -7,6 +7,7 @@ import {
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
+  buildDiscordSpotifyQueueSuggestModalResponse,
   buildDiscordFeedbackUpdatePickerResponse,
   buildDiscordFeedbackReportModalResponse,
   buildDiscordFeedbackUpdateModalResponse,
@@ -105,24 +106,37 @@ test("buildDiscordSpotifyClubPanelMessagePayload exposes button-first Spotify Cl
   const payload = buildDiscordSpotifyClubPanelMessagePayload({
     lobbyStatusLabel: "Open",
     hostDiscordUserId: "123456789012345678",
+    queuePreviewLines: ["1. Hey Ya! - Outkast"],
+    pendingSuggestionCount: 2,
   });
 
   assert.equal(payload.embeds[0]?.title, "Spotify Club");
   assert.match(payload.embeds[0]?.description ?? "", /Status: \*\*Open\*\*/);
   assert.match(payload.embeds[0]?.description ?? "", /<@123456789012345678>/);
+  assert.match(payload.embeds[0]?.description ?? "", /Queue:/);
+  assert.match(payload.embeds[0]?.description ?? "", /Hey Ya! - Outkast/);
+  assert.match(payload.embeds[0]?.description ?? "", /Pending suggestions: 2/);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => component.custom_id),
     ["spotify_connect_open", "spotify_status_check", "spotify_disconnect"],
   );
   assert.deepEqual(
     payload.components[1]?.components?.map((component) => component.custom_id),
-    ["spotify_join_placeholder", "spotify_suggest_placeholder"],
+    ["spotify_queue_suggest_open", "spotify_queue_view", "spotify_join_placeholder"],
   );
-  assert.equal(
-    payload.components[1]?.components?.every((component) => ("disabled" in component ? component.disabled === true : false)),
-    true,
-  );
+  const queueButtons = payload.components[1]?.components ?? [];
+  assert.equal(queueButtons[0] && "disabled" in queueButtons[0] ? queueButtons[0].disabled ?? false : false, false);
+  assert.equal(queueButtons[1] && "disabled" in queueButtons[1] ? queueButtons[1].disabled ?? false : false, false);
+  assert.equal(queueButtons[2] && "disabled" in queueButtons[2] ? queueButtons[2].disabled ?? false : false, true);
   assert.equal(discordMessageHasSpotifyClubPanel(payload), true);
+});
+
+test("buildDiscordSpotifyQueueSuggestModalResponse opens the queue suggestion modal", () => {
+  const response = buildDiscordSpotifyQueueSuggestModalResponse();
+
+  assert.equal(response.type, 9);
+  assert.equal(response.data.custom_id, "spotify_queue_suggest_modal");
+  assert.equal(response.data.components[0]?.component?.custom_id, "spotify_track");
 });
 
 test("resolveDiscordFeedbackReportTypeFromModalCustomId supports feedback modals only", () => {
@@ -465,6 +479,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const setupSpotifyClub = commands.find((command) => command.name === "setup-spotify-club");
   const spotify = commands.find((command) => command.name === "spotify");
   const jamLobby = commands.find((command) => command.name === "jam-lobby");
+  const jamQueue = commands.find((command) => command.name === "jam-queue");
   const purgatorySetup = commands.find((command) => command.name === "purgatory-setup");
   const warn = commands.find((command) => command.name === "warn");
   const warnings = commands.find((command) => command.name === "warnings");
@@ -477,7 +492,7 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
   const feedbackCompletionReviewDecisionOption = feedbackCompletionReview?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
   const warnSeverityOption = warn?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
 
-  assert.equal(commands.length, 22);
+  assert.equal(commands.length, 23);
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(verifyCleanup);
@@ -525,6 +540,9 @@ test("buildDiscordGuildCommandsDefinition includes setup commands, feedback comm
     String((BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(28))),
   );
   assert.deepEqual(jamLobby?.options?.map((option) => option.name), ["open", "close", "status"]);
+  assert.ok(jamQueue);
+  assert.equal(jamQueue?.default_member_permissions, undefined);
+  assert.deepEqual(jamQueue?.options?.map((option) => option.name), ["suggest", "list", "approve", "reject", "remove"]);
   assert.ok(purgatorySetup);
   assert.equal(
     purgatorySetup?.default_member_permissions,

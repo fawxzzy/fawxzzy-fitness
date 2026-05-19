@@ -35,12 +35,19 @@ export const FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME = "disconnect";
 export const FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID = "spotify_connect_open";
 export const FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID = "spotify_status_check";
 export const FITNESS_SPOTIFY_DISCONNECT_BUTTON_CUSTOM_ID = "spotify_disconnect";
+export const FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID = "spotify_queue_suggest_open";
+export const FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID = "spotify_queue_view";
 export const FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID = "spotify_join_placeholder";
-export const FITNESS_SPOTIFY_SUGGEST_BUTTON_CUSTOM_ID = "spotify_suggest_placeholder";
 export const FITNESS_JAM_LOBBY_COMMAND_NAME = "jam-lobby";
 export const FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME = "open";
 export const FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME = "close";
 export const FITNESS_JAM_LOBBY_STATUS_SUBCOMMAND_NAME = "status";
+export const FITNESS_JAM_QUEUE_COMMAND_NAME = "jam-queue";
+export const FITNESS_JAM_QUEUE_SUGGEST_SUBCOMMAND_NAME = "suggest";
+export const FITNESS_JAM_QUEUE_LIST_SUBCOMMAND_NAME = "list";
+export const FITNESS_JAM_QUEUE_APPROVE_SUBCOMMAND_NAME = "approve";
+export const FITNESS_JAM_QUEUE_REJECT_SUBCOMMAND_NAME = "reject";
+export const FITNESS_JAM_QUEUE_REMOVE_SUBCOMMAND_NAME = "remove";
 export const FITNESS_PURGATORY_SETUP_COMMAND_NAME = "purgatory-setup";
 export const FITNESS_WARN_COMMAND_NAME = "warn";
 export const FITNESS_WARNINGS_COMMAND_NAME = "warnings";
@@ -65,6 +72,7 @@ export const FITNESS_FEEDBACK_MANAGE_WITHDRAW_BUTTON_CUSTOM_ID_PREFIX = "fitness
 export const FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID = "fitness_feedback_manage_action_cancel";
 export const FITNESS_FEEDBACK_WITHDRAW_SELECTED_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_withdraw_selected_modal";
 export const FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX = "fitness_update_publish_modal";
+export const FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID = "spotify_queue_suggest_modal";
 export const FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID = "feedback_type";
 export const FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID = "bug_summary";
 export const FITNESS_BUG_AREA_INPUT_CUSTOM_ID = "bug_area";
@@ -72,6 +80,7 @@ export const FITNESS_BUG_SEVERITY_INPUT_CUSTOM_ID = "bug_severity";
 export const FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID = "bug_details";
 export const FITNESS_BUG_STEPS_INPUT_CUSTOM_ID = "bug_steps";
 export const FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID = "feedback_attachment";
+export const FITNESS_SPOTIFY_TRACK_INPUT_CUSTOM_ID = "spotify_track";
 export const FITNESS_FEEDBACK_UPDATE_REPORT_SELECT_CUSTOM_ID = "feedback_update_report_select";
 export const FITNESS_FEEDBACK_UPDATE_REPORT_ID_INPUT_CUSTOM_ID = "feedback_update_report_id";
 export const FITNESS_FEEDBACK_UPDATE_DETAILS_INPUT_CUSTOM_ID = "feedback_update_details";
@@ -85,6 +94,9 @@ export const FITNESS_BUG_STATUS_NOTE_OPTION_NAME = "note";
 export const FITNESS_FEEDBACK_COMPLETION_REVIEW_DECISION_OPTION_NAME = "decision";
 export const FITNESS_UPDATE_DRAFT_ID_OPTION_NAME = "draft_id";
 export const FITNESS_UPDATE_SKIP_REASON_OPTION_NAME = "reason";
+export const FITNESS_JAM_QUEUE_TRACK_OPTION_NAME = "track";
+export const FITNESS_JAM_QUEUE_ITEM_OPTION_NAME = "item_id";
+export const FITNESS_JAM_QUEUE_REASON_OPTION_NAME = "reason";
 export const FITNESS_PURGATORY_USER_OPTION_NAME = "user";
 export const FITNESS_PURGATORY_REASON_OPTION_NAME = "reason";
 export const FITNESS_PURGATORY_DURATION_OPTION_NAME = "duration";
@@ -511,10 +523,16 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
 export function buildDiscordSpotifyClubPanelMessagePayload(args: {
   lobbyStatusLabel: "Open" | "Closed";
   hostDiscordUserId?: string | null;
+  queuePreviewLines?: string[];
+  pendingSuggestionCount?: number;
 }): DiscordMessagePayload {
   const hostLine = args.hostDiscordUserId
     ? `Host: <@${args.hostDiscordUserId}>`
     : "Host: Staff host will appear here when a lobby opens.";
+  const queuePreviewLines = args.queuePreviewLines && args.queuePreviewLines.length > 0
+    ? args.queuePreviewLines.map((line) => `- ${line}`)
+    : ["- No approved tracks yet."];
+  const pendingSuggestionCount = Math.max(0, args.pendingSuggestionCount ?? 0);
 
   return {
     embeds: [
@@ -528,7 +546,12 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
           `Status: **${args.lobbyStatusLabel}**`,
           hostLine,
           "",
-          "Coming soon: Join Jam and Suggest Track.",
+          "Queue:",
+          ...queuePreviewLines,
+          "",
+          `Pending suggestions: ${pendingSuggestionCount}`,
+          "",
+          "Join Jam and playback sync are still parked for a later phase.",
         ].join("\n"),
       },
     ],
@@ -562,20 +585,46 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
           {
             type: 2,
             style: 2,
-            custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
-            label: "Join Jam",
-            disabled: true,
+            custom_id: FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
+            label: "Suggest Track",
           },
           {
             type: 2,
             style: 2,
-            custom_id: FITNESS_SPOTIFY_SUGGEST_BUTTON_CUSTOM_ID,
-            label: "Suggest Track",
+            custom_id: FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
+            label: "View Queue",
+          },
+          {
+            type: 2,
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
+            label: "Join Jam",
             disabled: true,
           },
         ],
       },
     ],
+  };
+}
+
+export function buildDiscordSpotifyQueueSuggestModalResponse() {
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
+    data: {
+      custom_id: FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID,
+      title: "Suggest a Spotify Track",
+      components: [
+        buildDiscordModalLabelTextInput({
+          label: "Spotify track URL or URI",
+          description: "Paste a Spotify track link or spotify:track URI.",
+          customId: FITNESS_SPOTIFY_TRACK_INPUT_CUSTOM_ID,
+          style: 1,
+          placeholder: "https://open.spotify.com/track/... or spotify:track:...",
+          required: true,
+          maxLength: 500,
+        }),
+      ],
+    },
   };
 }
 
@@ -764,6 +813,81 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
           type: 1,
           name: FITNESS_JAM_LOBBY_STATUS_SUBCOMMAND_NAME,
           description: "Show the Spotify Club lobby state.",
+        },
+      ],
+    },
+    {
+      name: FITNESS_JAM_QUEUE_COMMAND_NAME,
+      description: "Suggest tracks or manage the Spotify Club queue.",
+      options: [
+        {
+          type: 1,
+          name: FITNESS_JAM_QUEUE_SUGGEST_SUBCOMMAND_NAME,
+          description: "Suggest a Spotify track for host review.",
+          options: [
+            {
+              type: 3,
+              name: FITNESS_JAM_QUEUE_TRACK_OPTION_NAME,
+              description: "Spotify track URL or spotify:track URI.",
+              required: true,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: FITNESS_JAM_QUEUE_LIST_SUBCOMMAND_NAME,
+          description: "Show the current approved queue and pending suggestions.",
+        },
+        {
+          type: 1,
+          name: FITNESS_JAM_QUEUE_APPROVE_SUBCOMMAND_NAME,
+          description: "Approve a pending suggestion.",
+          options: [
+            {
+              type: 3,
+              name: FITNESS_JAM_QUEUE_ITEM_OPTION_NAME,
+              description: "Queue item ID or short ID.",
+              required: true,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: FITNESS_JAM_QUEUE_REJECT_SUBCOMMAND_NAME,
+          description: "Reject a pending suggestion.",
+          options: [
+            {
+              type: 3,
+              name: FITNESS_JAM_QUEUE_ITEM_OPTION_NAME,
+              description: "Queue item ID or short ID.",
+              required: true,
+            },
+            {
+              type: 3,
+              name: FITNESS_JAM_QUEUE_REASON_OPTION_NAME,
+              description: "Optional reason for rejecting this suggestion.",
+              required: false,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: FITNESS_JAM_QUEUE_REMOVE_SUBCOMMAND_NAME,
+          description: "Remove a pending or approved queue item.",
+          options: [
+            {
+              type: 3,
+              name: FITNESS_JAM_QUEUE_ITEM_OPTION_NAME,
+              description: "Queue item ID or short ID.",
+              required: true,
+            },
+            {
+              type: 3,
+              name: FITNESS_JAM_QUEUE_REASON_OPTION_NAME,
+              description: "Optional reason for removing this queue item.",
+              required: false,
+            },
+          ],
         },
       ],
     },

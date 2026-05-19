@@ -46,10 +46,9 @@ test("Spotify lobby status helpers describe closed and open states", () => {
   );
 });
 
-test("openDiscordSpotifyLobby updates the latest row into an open lobby", async () => {
+test("openDiscordSpotifyLobby creates a fresh open row when the latest lobby is closed", async () => {
   const observed = {
-    updateValues: null as Record<string, unknown> | null,
-    updateFilters: [] as Array<[string, unknown]>,
+    insertValues: null as Record<string, unknown> | null,
   };
 
   const admin = {
@@ -82,25 +81,20 @@ test("openDiscordSpotifyLobby updates the latest row into an open lobby", async 
             },
           };
         },
-        update(values: Record<string, unknown>) {
-          observed.updateValues = values;
+        insert(values: Record<string, unknown>) {
+          observed.insertValues = values;
           return {
-            eq(column: string, value: unknown) {
-              observed.updateFilters.push([column, value]);
+            select() {
               return {
-                select() {
-                  return {
-                    single() {
-                      return Promise.resolve({
-                        data: {
-                          id: "lobby-1",
-                          ...values,
-                          created_at: "2026-05-18T00:00:00.000Z",
-                        },
-                        error: null,
-                      });
+                single() {
+                  return Promise.resolve({
+                    data: {
+                      id: "lobby-2",
+                      ...values,
+                      created_at: "2026-05-19T00:00:00.000Z",
                     },
-                  };
+                    error: null,
+                  });
                 },
               };
             },
@@ -116,13 +110,12 @@ test("openDiscordSpotifyLobby updates the latest row into an open lobby", async 
     admin: admin as never,
   });
 
-  assert.equal(observed.updateFilters[0]?.[0], "id");
-  assert.equal(observed.updateFilters[0]?.[1], "lobby-1");
-  assert.equal(observed.updateValues?.status, "open");
-  assert.equal(observed.updateValues?.host_discord_user_id, "123456789012345678");
-  assert.equal(observed.updateValues?.host_spotify_user_id, "spotify-user");
-  assert.equal(observed.updateValues?.panel_channel_id, "1504668396338413670");
-  assert.equal(observed.updateValues?.panel_message_id, "1504668396338413671");
+  assert.equal(observed.insertValues?.status, "open");
+  assert.equal(observed.insertValues?.host_discord_user_id, "123456789012345678");
+  assert.equal(observed.insertValues?.host_spotify_user_id, "spotify-user");
+  assert.equal(observed.insertValues?.panel_channel_id, "1504668396338413670");
+  assert.equal(observed.insertValues?.panel_message_id, "1504668396338413671");
+  assert.equal(row.id, "lobby-2");
   assert.equal(row.status, "open");
 });
 

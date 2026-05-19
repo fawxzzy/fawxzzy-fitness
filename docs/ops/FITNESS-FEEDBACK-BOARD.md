@@ -19,6 +19,27 @@ Pattern:
 Failure mode:
 - treating every forum card like automatic repo truth creates noisy sprint churn
 
+## Sorting strategy
+Discord forums are a readable visual board, not a fully custom sortable planning system.
+
+Use these layers:
+- forum tags for type, status, and severity
+- text-only thread title prefixes like `Bug: Area - Title` and `Feature: Area - Title`
+- optional pinning for a very small number of current priority threads
+- board exports as the real structured planning order
+
+Visual board rule:
+- Discord forum order is for readability
+- `feedback:board:export` and reviewed task packets are the real sorted planning view
+- do not bump or churn threads just to fake a custom board order
+
+Recommended visible shape:
+- active first: `In Progress`, `Ready for Fawxzzy Review`, `Confirmed`, `New`
+- less visible historical states: `Fixed`, `Completed`, `Closed`, `Duplicate`, `Withdrawn`, `Spam`
+
+Canary rule:
+- use private `feedback-testing` for sorting and display canary checks before changing public board hygiene
+
 ## Story-card structure
 Feedback cards should read like lightweight story cards, not raw engineering tickets.
 
@@ -66,6 +87,7 @@ Rules:
 - Verta Core / Playbook exports are review input, not automatic truth.
 - No direct Discord-to-ATLAS or Discord-to-GitHub writes.
 - No routine or workout sharing work in this lane.
+- Forum tags and titles make the board readable; exports make it sortable.
 
 Failure modes:
 - posting every feedback card update to `#updates` creates noise

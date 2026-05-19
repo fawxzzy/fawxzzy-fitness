@@ -13,7 +13,7 @@ Phase 1 shipped:
 - Premium / Not Premium / Unknown eligibility state
 - encrypted refresh token storage
 
-Phase 2 adds:
+Phase 2 shipped:
 
 - `/setup-spotify-club`
 - `/jam-lobby open`
@@ -23,15 +23,31 @@ Phase 2 adds:
 - Connect Spotify, Check Jam Ready Status, and Disconnect Spotify buttons
 - basic Open / Closed lobby state
 
+Phase 3 adds:
+
+- `/jam-queue suggest`
+- `/jam-queue list`
+- `/jam-queue approve`
+- `/jam-queue reject`
+- `/jam-queue remove`
+- `Suggest Track` panel button + modal
+- `View Queue` panel button
+- Discord-side queue suggestions
+- host/staff approval, rejection, and removal workflow
+- queue preview lines in the Spotify Club panel
+
 Spotify Club still does not include:
 
-- `/jam start`, `/jam join`, `/jam queue`, or `/jam end`
-- queue control
-- playback sync
+- Spotify playback sync
 - Spotify player control
+- pushing tracks into Spotify playback queues
 - Discord voice or audio behavior
 
-Feedback card: `f31e1150`
+Feedback cards:
+
+- `f31e1150` — Spotify Club Phase 1 - Connect + Premium Check
+- `1e185453` — Spotify Club Phase 2 - Public Jam Panel + Lobby State
+- `b3483cf2` — Spotify Club Phase 3 - Queue Suggestions + Host Approval
 
 ## Product UX Rule
 
@@ -46,12 +62,11 @@ Rules:
 Target split:
 
 - admin/staff: `/setup-spotify-club`, future `/jam-admin ...`
-- users: `Connect Spotify`, `Check Jam Ready Status`, `Disconnect Spotify`
+- users: `Connect Spotify`, `Check Jam Ready Status`, `Disconnect Spotify`, `Suggest Track`, `View Queue`
 
 Reserved future panel actions:
 
 - `Join Jam`
-- `Suggest Track`
 - `Leave Jam`
 
 ## OAuth Setup
@@ -97,6 +112,14 @@ Phase 2 setup and staff commands:
 - `/jam-lobby close`
 - `/jam-lobby status`
 
+Phase 3 queue commands:
+
+- `/jam-queue suggest`
+- `/jam-queue list`
+- `/jam-queue approve`
+- `/jam-queue reject`
+- `/jam-queue remove`
+
 Command behavior:
 
 - `connect`: returns an OAuth link and the Phase 1 Jam Ready explanation.
@@ -104,23 +127,56 @@ Command behavior:
 - `disconnect`: tombstones the stored connection and removes live token material.
 - `setup-spotify-club`: posts or refreshes the canonical Spotify Club panel in `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`.
 - `jam-lobby`: opens, closes, or reports lobby shell state only. No playback or queue behavior is allowed in this phase.
+- `jam-queue suggest`: stores a pending queue suggestion for the active lobby.
+- `jam-queue list`: shows the current approved queue and pending suggestion count.
+- `jam-queue approve|reject|remove`: staff/host controls for the Discord-side queue only.
 
-These commands are acceptable for the early proof phase, but Phase 2 should introduce a public Spotify Club panel so normal users do not need slash commands for basic actions.
+These commands are acceptable as proof/admin tools, but the public Spotify Club product should keep normal-user flows on the panel rather than command memorization.
 
-## Phase 2 UX Target
+## Phase 3 Queue Rule
 
-Phase 2 should begin with panel and lobby-state work before queue depth or playback sync.
+Phase 3 manages queue state in Discord and Supabase only. It does not mutate Spotify playback queues or control playback.
 
-Acceptance target:
+Rules:
 
-- `/setup-spotify-club` is admin-only
-- setup posts a public Spotify Club panel
-- the panel includes `Connect Spotify`, `Check Jam Ready Status`, and `Disconnect Spotify`
-- the panel reserves space for future `Join Jam` and `Suggest Track` actions
-- the panel shows whether the Jam Lobby is Open or Closed
-- `/jam-lobby open` and `/jam-lobby close` update state only and refresh the panel when it exists
-- normal users do not need slash commands for basic Spotify Club actions
-- do not add playback sync or queue mutation unless a later card explicitly approves it
+- users may suggest Spotify track URLs or `spotify:track:` URIs
+- queue suggestions are stored as pending items for the active lobby only
+- host/staff approves, rejects, or removes queue items
+- non-Premium status does not block queue suggestions in this phase
+- the panel shows the top approved queue items and the pending suggestion count
+- Phase 3 must not request playback-control scopes
+- Phase 3 must not call Spotify player endpoints or push items into the real Spotify queue
+
+## Phase 3 Panel State
+
+The Spotify Club panel now shows:
+
+- lobby status: `Open` or `Closed`
+- current host mention when a lobby is open
+- queue preview:
+  - `No approved tracks yet.` when empty
+  - otherwise the top 3 approved queue items
+- pending suggestion count
+
+Panel actions:
+
+- `Connect Spotify`
+- `Check Jam Ready Status`
+- `Disconnect Spotify`
+- `Suggest Track`
+- `View Queue`
+
+Interaction reliability rule:
+
+- panel buttons must either respond immediately or defer ephemerally first
+- stale or unknown Spotify Club panel buttons should answer:
+  - `This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.`
+- `/setup-spotify-club` remains the recovery path for refreshing the canonical panel and pruning stale duplicates
+
+Still reserved or parked:
+
+- `Join Jam`
+- playback sync
 
 ## Premium Eligibility
 
@@ -148,11 +204,9 @@ Spotify Club coordinates Spotify-native listening flows later. It does not strea
 
 ## Future Phases
 
-- Phase 2: Public Jam panel + lobby state
-- Phase 3: queue suggestions + host/mod approval
 - Phase 4: Spotify-native playback sync
 - Phase 5: polish, stats, recurring jam nights
 
 ## Release Note Rule
 
-Do not post a Spotify Club `#updates` announcement until Phase 1 ships and is live-tested.
+Only post Spotify Club `#updates` messages for shipped user-facing phases. Queue-only or board-only hygiene changes do not get update posts.

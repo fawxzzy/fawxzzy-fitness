@@ -4151,6 +4151,571 @@ test("Discord interactions route returns an outdated-panel fallback for stale Sp
   }
 });
 
+test("Discord interactions route returns an outdated-panel fallback for unknown Spotify Club panel buttons", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && String(init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify([{
+        id: "lobby-1",
+        status: "closed",
+        host_discord_user_id: null,
+        host_spotify_user_id: null,
+        title: null,
+        description: null,
+        panel_channel_id: "1504668396338413670",
+        panel_message_id: "panel-message-1",
+        opened_at: null,
+        closed_at: "2026-05-18T00:00:00.000Z",
+        created_at: "2026-05-18T00:00:00.000Z",
+        updated_at: "2026-05-18T00:00:00.000Z",
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "panel-message-1",
+      },
+      data: {
+        custom_id: "spotify_queue_legacy",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.",
+        flags: 64,
+      },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route opens the Spotify queue suggestion modal from the panel button", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && String(init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify([{
+        id: "lobby-1",
+        status: "open",
+        host_discord_user_id: "999999999999999999",
+        host_spotify_user_id: null,
+        title: null,
+        description: null,
+        panel_channel_id: "1504668396338413670",
+        panel_message_id: "panel-message-1",
+        opened_at: "2026-05-19T00:00:00.000Z",
+        closed_at: null,
+        created_at: "2026-05-19T00:00:00.000Z",
+        updated_at: "2026-05-19T00:00:00.000Z",
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "panel-message-1",
+      },
+      data: {
+        custom_id: "spotify_queue_suggest_open",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 9);
+    assert.equal(payload.data.custom_id, "spotify_queue_suggest_modal");
+    assert.equal(payload.data.components[0]?.component?.custom_id, "spotify_track");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route defers the Spotify status button and edits the original response", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordCalls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([{
+        id: "lobby-1",
+        status: "closed",
+        host_discord_user_id: null,
+        host_spotify_user_id: null,
+        title: null,
+        description: null,
+        panel_channel_id: "1504668396338413670",
+        panel_message_id: "panel-message-1",
+        opened_at: null,
+        closed_at: "2026-05-18T00:00:00.000Z",
+        created_at: "2026-05-18T00:00:00.000Z",
+        updated_at: "2026-05-18T00:00:00.000Z",
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "connection-1",
+        discord_user_id: "123456789012345678",
+        spotify_user_id: "spotify-user-1",
+        spotify_display_name: "zac",
+        spotify_product: "premium",
+        is_premium: true,
+        encrypted_refresh_token: "ciphertext",
+        access_token_expires_at: null,
+        scopes: ["user-read-private"],
+        connected_at: "2026-05-19T00:00:00.000Z",
+        last_checked_at: "2026-05-19T00:00:00.000Z",
+        disconnected_at: null,
+        created_at: "2026-05-19T00:00:00.000Z",
+        updated_at: "2026-05-19T00:00:00.000Z",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && method === "POST" && url.pathname === "/api/v10/interactions/spotify-interaction-1/spotify-token-1/callback") {
+      observedDiscordCalls.push({ method, path: url.pathname, body });
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-token-1/messages/@original") {
+      observedDiscordCalls.push({ method, path: url.pathname, body });
+      return new Response(JSON.stringify({ id: "@original" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "spotify-interaction-1",
+      application_id: "1504700208251146371",
+      token: "spotify-token-1",
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "panel-message-1",
+      },
+      data: {
+        custom_id: "spotify_status_check",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    assert.equal(observedDiscordCalls[0]?.path, "/api/v10/interactions/spotify-interaction-1/spotify-token-1/callback");
+    assert.equal(observedDiscordCalls[0]?.body?.type, 5);
+    assert.equal(observedDiscordCalls[1]?.path, "/api/v10/webhooks/1504700208251146371/spotify-token-1/messages/@original");
+    assert.equal(observedDiscordCalls[1]?.body?.content, "Spotify connected. Premium verified. You are Jam Ready.");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route returns the Spotify queue summary from the panel view button", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([{
+        id: "lobby-1",
+        status: "open",
+        host_discord_user_id: "999999999999999999",
+        host_spotify_user_id: null,
+        title: null,
+        description: null,
+        panel_channel_id: "1504668396338413670",
+        panel_message_id: "panel-message-1",
+        opened_at: "2026-05-19T00:00:00.000Z",
+        closed_at: null,
+        created_at: "2026-05-19T00:00:00.000Z",
+        updated_at: "2026-05-19T00:00:00.000Z",
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "abcdef12-0000-4000-8000-000000000000",
+          lobby_id: "lobby-1",
+          status: "approved",
+          spotify_uri: "spotify:track:1111111111111111111111",
+          spotify_url: "https://open.spotify.com/track/1111111111111111111111",
+          track_title: "Song A",
+          artist_name: "Artist A",
+          album_name: null,
+          duration_ms: null,
+          suggested_by_discord_user_id: "123456789012345678",
+          suggested_by_spotify_user_id: null,
+          approved_by_discord_user_id: "999999999999999999",
+          rejected_by_discord_user_id: null,
+          removed_by_discord_user_id: null,
+          rejection_reason: null,
+          removal_reason: null,
+          queue_position: 1,
+          approved_at: "2026-05-19T00:00:00.000Z",
+          rejected_at: null,
+          removed_at: null,
+          played_at: null,
+          skipped_at: null,
+          created_at: "2026-05-19T00:00:00.000Z",
+          updated_at: "2026-05-19T00:00:00.000Z",
+        },
+        {
+          id: "abcdef12-0000-4000-8000-000000000001",
+          lobby_id: "lobby-1",
+          status: "pending",
+          spotify_uri: "spotify:track:2222222222222222222222",
+          spotify_url: "https://open.spotify.com/track/2222222222222222222222",
+          track_title: "Song B",
+          artist_name: "Artist B",
+          album_name: null,
+          duration_ms: null,
+          suggested_by_discord_user_id: "123456789012345678",
+          suggested_by_spotify_user_id: null,
+          approved_by_discord_user_id: null,
+          rejected_by_discord_user_id: null,
+          removed_by_discord_user_id: null,
+          rejection_reason: null,
+          removal_reason: null,
+          queue_position: null,
+          approved_at: null,
+          rejected_at: null,
+          removed_at: null,
+          played_at: null,
+          skipped_at: null,
+          created_at: "2026-05-19T00:00:00.000Z",
+          updated_at: "2026-05-19T00:00:00.000Z",
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "panel-message-1",
+      },
+      data: {
+        custom_id: "spotify_queue_view",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 4);
+    assert.match(payload.data.content, /\*\*Approved queue\*\*/);
+    assert.match(payload.data.content, /1\. Song A - Artist A/);
+    assert.match(payload.data.content, /Pending suggestions: 1/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route stores a pending Spotify queue suggestion and refreshes the panel", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  delete process.env.SPOTIFY_CLIENT_ID;
+  delete process.env.SPOTIFY_CLIENT_SECRET;
+
+  const originalFetch = globalThis.fetch;
+  const observedQueueBodies = [];
+  const observedDiscordBodies = [];
+  const queueItems = [];
+  const currentLobby = {
+    id: "lobby-1",
+    status: "open",
+    host_discord_user_id: "999999999999999999",
+    host_spotify_user_id: null,
+    title: null,
+    description: null,
+    panel_channel_id: "1504668396338413670",
+    panel_message_id: "panel-message-1",
+    opened_at: "2026-05-19T00:00:00.000Z",
+    closed_at: null,
+    created_at: "2026-05-19T00:00:00.000Z",
+    updated_at: "2026-05-19T00:00:00.000Z",
+  };
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([currentLobby]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "POST") {
+      observedQueueBodies.push(body);
+      const row = {
+        id: "abcdef12-0000-4000-8000-000000000000",
+        ...body,
+      };
+      queueItems.push(row);
+      return new Response(JSON.stringify(row), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify(queueItems), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413670/messages/panel-message-1" && method === "PATCH") {
+      observedDiscordBodies.push(body);
+      return new Response(JSON.stringify({ id: "panel-message-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413670/messages" && method === "POST") {
+      observedDiscordBodies.push(body);
+      return new Response(JSON.stringify({ id: "queue-audit-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        name: "jam-queue",
+        options: [
+          {
+            type: 1,
+            name: "suggest",
+            options: [
+              {
+                type: 3,
+                name: "track",
+                value: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+              },
+            ],
+          },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Suggestion added to the queue for host review.",
+        flags: 64,
+      },
+    });
+    assert.equal(observedQueueBodies[0]?.status, "pending");
+    assert.equal(observedQueueBodies[0]?.spotify_uri, "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp");
+    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Pending suggestions: 1/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route blocks queue approval for non-host non-staff members", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && String(init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify([{
+        id: "lobby-1",
+        status: "open",
+        host_discord_user_id: "999999999999999999",
+        host_spotify_user_id: null,
+        title: null,
+        description: null,
+        panel_channel_id: "1504668396338413670",
+        panel_message_id: "panel-message-1",
+        opened_at: "2026-05-19T00:00:00.000Z",
+        closed_at: null,
+        created_at: "2026-05-19T00:00:00.000Z",
+        updated_at: "2026-05-19T00:00:00.000Z",
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: "0",
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        name: "jam-queue",
+        options: [
+          {
+            type: 1,
+            name: "approve",
+            options: [
+              {
+                type: 3,
+                name: "item_id",
+                value: "abcdef12",
+              },
+            ],
+          },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "You do not have permission to manage the Spotify Club queue.",
+        flags: 64,
+      },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("Discord interactions route opens the jam lobby and refreshes the Spotify Club panel", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
@@ -4189,6 +4754,13 @@ test("Discord interactions route opens the jam lobby and refreshes the Spotify C
       });
     }
 
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
       return new Response(JSON.stringify([currentLobby]), {
         status: 200,
@@ -4196,18 +4768,18 @@ test("Discord interactions route opens the jam lobby and refreshes the Spotify C
       });
     }
 
-    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "PATCH") {
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "POST") {
       observedSupabaseBodies.push(body);
       currentLobby = {
-        ...currentLobby,
         ...body,
+        id: "lobby-2",
+        created_at: "2026-05-19T00:00:00.000Z",
       };
       return new Response(JSON.stringify({
-        id: "lobby-1",
+        id: "lobby-2",
         ...currentLobby,
-        created_at: "2026-05-18T00:00:00.000Z",
       }), {
-        status: 200,
+        status: 201,
         headers: { "Content-Type": "application/json" },
       });
     }

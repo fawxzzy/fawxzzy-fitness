@@ -221,7 +221,7 @@ export async function openDiscordSpotifyLobby(args: {
     openedAt: new Date().toISOString(),
   });
 
-  if (existing) {
+  if (existing?.status === "open") {
     return updateLobbyRow(existing.id, values, admin);
   }
 
