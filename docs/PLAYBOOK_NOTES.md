@@ -1,6 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-05-19 - Public completed phase cards need visible resolved state before the next phase starts
+- Type: Guardrail
+- Summary: A public phase card is not fully done until it is fixed or completed, completion-review approved, and visibly reacted with `✅` on the starter post.
+- Rule: Do not advance to the next phase until the previous public phase card shows the resolved `✅`.
+- Pattern: status fixed/completed -> completion review approved -> starter post `✅` -> next phase may start.
+- Failure Mode: Starting the next phase before the previous card visibly closes weakens board trust and makes shipped scope look incomplete.
+- Status: Proposed
+
 ## 2026-05-18 - Completed Fitness feedback cards need post-completion review
 - Type: Guardrail
 - Summary: Fitness app cards marked Fixed or Completed should enter a post-completion review queue so shipped work is checked against card acceptance criteria before being treated as fully closed.

@@ -3062,7 +3062,7 @@ test("Discord interactions route keeps fixed status updates successful when the 
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback updated.",
+        content: "Feedback updated. Warning: Discord could not verify the resolved checkmark because the public starter post id is missing.",
         flags: 64,
       },
     });
@@ -3249,6 +3249,11 @@ test("Discord interactions route approves completion review for finished feedbac
       });
     }
 
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+      observedDiscordBodies.push({ path: url.pathname, method: "PUT", body: null });
+      return new Response(null, { status: 204 });
+    }
+
     throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
   };
 
@@ -3282,6 +3287,101 @@ test("Discord interactions route approves completion review for finished feedbac
       },
     });
     assert.equal(observedSupabaseWrites[0]?.completion_review_status, "approved");
+    const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
+    assert.match(auditReply?.body?.content ?? "", /Completion Review approved by Fawx Security\./);
+    assert.equal(
+      observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/%E2%9C%85/@me") && entry.method === "PUT"),
+      true,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route keeps completion review approval successful when the resolved reaction fails", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "GET") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "fixed",
+        completion_review_status: "pending",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && init?.method === "PATCH") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        status: "fixed",
+        completion_review_status: "approved",
+        completion_review_note: "Matches shipped acceptance criteria.",
+        completion_reviewed_by_discord_user_id: "222222222222222222",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages") {
+      observedDiscordBodies.push({ path: url.pathname, method: "POST", body });
+      return new Response(JSON.stringify({ id: "discord-message-review-approved" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+      return new Response(JSON.stringify({ message: "Missing Permissions" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: String(BigInt(1) << BigInt(3)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "feedback-completion-review",
+        options: [
+          { type: 3, name: "report_id", value: "11111111-1111-4111-8111-111111111111" },
+          { type: 3, name: "decision", value: "approved" },
+          { type: 3, name: "note", value: "Matches shipped acceptance criteria." },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Completion review updated. Status: Approved. Warning: Discord could not apply the resolved checkmark on the public starter post.",
+        flags: 64,
+      },
+    });
     const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
     assert.match(auditReply?.body?.content ?? "", /Completion Review approved by Fawx Security\./);
   } finally {
@@ -3987,6 +4087,20 @@ test("Discord interactions route returns a playback-upgrade prompt when Spotify 
       });
     }
 
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
   };
 
@@ -4356,6 +4470,20 @@ test("Discord interactions route defers the Spotify status button and edits the 
       });
     }
 
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "accounts.spotify.com" && url.pathname === "/api/token" && method === "POST") {
       return new Response(JSON.stringify({
         access_token: "spotify-access-token",
@@ -4492,6 +4620,13 @@ test("Discord interactions route reports when no active Spotify device is availa
       });
     }
 
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "accounts.spotify.com" && url.pathname === "/api/token" && method === "POST") {
       return new Response(JSON.stringify({
         access_token: "spotify-access-token",
@@ -4613,6 +4748,13 @@ test("Discord interactions route blocks Spotify playback handoff for non-Premium
       });
     }
 
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.hostname === "discord.com" && method === "POST" && url.pathname === "/api/v10/interactions/spotify-interaction-3/spotify-token-3/callback") {
       observedDiscordCalls.push({ method, path: url.pathname, body });
       return new Response(null, { status: 204 });
@@ -4713,6 +4855,13 @@ test("Discord interactions route blocks Spotify playback handoff when no approve
         created_at: "2026-05-19T00:00:00.000Z",
         updated_at: "2026-05-19T00:00:00.000Z",
       }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -4854,6 +5003,13 @@ test("Discord interactions route starts the approved queue on the user's active 
         created_at: "2026-05-19T00:00:00.000Z",
         updated_at: "2026-05-19T00:00:00.000Z",
       }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

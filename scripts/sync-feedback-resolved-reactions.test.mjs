@@ -102,6 +102,57 @@ test("syncResolvedReactions dry-run reports actionable resolved cards without mu
   assert.match(String(logs[0] ?? ""), /dry-run/);
 });
 
+test("syncResolvedReactions apply targets one report id prefix when requested", async () => {
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+
+  const attemptedReportIds = [];
+
+  const summary = await syncResolvedReactions(
+    parseArgs(["--apply", "--report-id", "b58590af"]),
+    {
+      client: createMockClient([
+        {
+          id: "b58590af-8c5f-4de0-9466-99d079f74153",
+          status: "fixed",
+          report_type: "feature",
+          area: "Spotify Club",
+          summary: "Spotify Club Phase 4 - Playback Readiness + Device Handoff",
+          details: "Shipped and reviewed.",
+          discord_forum_channel_id: "1504673475489562744",
+          discord_forum_thread_id: "1505318951146491934",
+          discord_forum_message_id: "1505318951146491934",
+          completion_review_status: "approved",
+        },
+        {
+          id: "0ea4e2be-a2c0-41c8-ac2f-d994c10c0b5e",
+          status: "fixed",
+          report_type: "feature",
+          area: "Spotify Club",
+          summary: "Spotify Club Phase 5 - Rooms + Search + Cleaner Panel UX",
+          details: "Not actually complete.",
+          discord_forum_channel_id: "1504673475489562744",
+          discord_forum_thread_id: "1505318951146491999",
+          discord_forum_message_id: "1505318951146491999",
+          completion_review_status: "pending",
+        },
+      ]),
+      fetchImpl: async (input) => {
+        attemptedReportIds.push(String(input));
+        return new Response(null, { status: 204 });
+      },
+      logger: {
+        log: () => {},
+        warn: () => {},
+      },
+    },
+  );
+
+  assert.equal(summary.attempted, 1);
+  assert.equal(summary.applied, 1);
+  assert.equal(attemptedReportIds.length, 1);
+  assert.match(attemptedReportIds[0] ?? "", /1505318951146491934/);
+});
+
 test("syncResolvedReactions apply uses the encoded Unicode checkmark path", async () => {
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
 

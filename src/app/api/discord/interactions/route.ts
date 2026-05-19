@@ -1356,6 +1356,55 @@ function logDiscordFeedbackSoftFailure(args: {
   });
 }
 
+function appendDiscordFeedbackWarning(baseMessage: string, warning: string | null) {
+  if (!warning) {
+    return baseMessage;
+  }
+
+  return `${baseMessage} Warning: ${warning}`;
+}
+
+async function ensureDiscordResolvedFeedbackReaction(args: {
+  report: DiscordBugReportRow;
+}): Promise<{ warning: string | null }> {
+  if (!isResolvedFeedbackStatus(args.report.status) || !requiresDiscordFeedbackCompletionReview(args.report)) {
+    return { warning: null };
+  }
+
+  if (!args.report.discord_forum_thread_id || !args.report.discord_forum_message_id) {
+    logDiscordFeedbackSoftFailure({
+      stage: "resolved-reaction-missing-starter",
+      reportId: args.report.id,
+      message: "Missing forum thread id or starter message id for resolved reaction sync.",
+    });
+    return {
+      warning: "Discord could not verify the resolved checkmark because the public starter post id is missing.",
+    };
+  }
+
+  const reactionResult = await createDiscordMessageReaction({
+    channelId: args.report.discord_forum_thread_id,
+    messageId: args.report.discord_forum_message_id,
+    emoji: "✅",
+  });
+
+  if (reactionResult.ok) {
+    return { warning: null };
+  }
+
+  logDiscordFeedbackSoftFailure({
+    stage: "resolved-reaction",
+    reportId: args.report.id,
+    code: reactionResult.code,
+    status: reactionResult.status,
+    message: reactionResult.message,
+  });
+
+  return {
+    warning: "Discord could not apply the resolved checkmark on the public starter post.",
+  };
+}
+
 function buildDiscordUpdateDraftLookupFailureResponse(code: string) {
   if (code === "DISCORD_UPDATE_DRAFT_AMBIGUOUS_ID") {
     return buildDiscordEphemeralMessageResponse("That update draft id matched multiple drafts. Use the full draft id.");
@@ -3436,7 +3485,6 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
     }
   }
 
-  let auditCommentMessageId: string | null = null;
   if (updatedReport.discord_forum_thread_id) {
     const auditCommentResult = await postFeedbackAuditComment({
       report: updatedReport,
@@ -3450,8 +3498,6 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
     });
     if (!auditCommentResult.ok) {
       forumSyncFailed = true;
-    } else {
-      auditCommentMessageId = auditCommentResult.messageId;
     }
   }
 
@@ -3474,32 +3520,16 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
     }
   }
 
-  if (updatedReport.discord_forum_thread_id && isResolvedFeedbackStatus(updatedReport.status)) {
-    const reactionMessageId = updatedReport.discord_forum_message_id ?? auditCommentMessageId;
-    if (reactionMessageId) {
-      const reactionResult = await createDiscordMessageReaction({
-        channelId: updatedReport.discord_forum_thread_id,
-        messageId: reactionMessageId,
-        emoji: "✅",
-      });
+  const resolvedReactionResult = await ensureDiscordResolvedFeedbackReaction({
+    report: updatedReport,
+  });
 
-      if (!reactionResult.ok) {
-        logDiscordFeedbackSoftFailure({
-          stage: "resolved-reaction",
-          reportId: updatedReport.id,
-          code: reactionResult.code,
-          status: reactionResult.status,
-          message: reactionResult.message,
-        });
-      }
-    }
-  }
-
-  return buildDiscordEphemeralMessageResponse(
+  return buildDiscordEphemeralMessageResponse(appendDiscordFeedbackWarning(
     forumSyncFailed
       ? `Feedback updated, but the forum thread could not be fully synced. (${formatDiscordBugReportShortId(updatedReport.id)})`
       : "Feedback updated.",
-  );
+    resolvedReactionResult.warning,
+  ));
 }
 
 async function handleFeedbackCompletionReviewInteraction(interaction: DiscordInteraction) {
@@ -3556,12 +3586,19 @@ async function handleFeedbackCompletionReviewInteraction(interaction: DiscordInt
     }
   }
 
+  const resolvedReactionResult = decision === "approved"
+    ? await ensureDiscordResolvedFeedbackReaction({
+      report: reviewResult.report,
+    })
+    : { warning: null };
+
   const decisionLabel = formatDiscordCompletionReviewStatusLabel(decision);
-  return buildDiscordEphemeralMessageResponse(
+  return buildDiscordEphemeralMessageResponse(appendDiscordFeedbackWarning(
     forumSyncFailed
       ? `Completion review updated, but the forum thread could not be fully synced. (${formatDiscordBugReportShortId(reviewResult.report.id)})`
       : `Completion review updated. Status: ${decisionLabel}.`,
-  );
+    resolvedReactionResult.warning,
+  ));
 }
 
 function summarizeFeedbackContentChanges(args: {
