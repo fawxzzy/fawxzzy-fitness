@@ -2,10 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildNoActiveDeviceMessage,
+  getAvailableSpotifyDevices,
   getActiveSpotifyDevice,
   SpotifyPlayerApiError,
   startSpotifyPlaybackOnDevice,
 } from "./player.ts";
+import {
+  buildSpotifyReconnectPlaybackCopy,
+  encryptSpotifyRefreshToken,
+} from "./tokens.ts";
 
 const baseConnection = {
   id: "connection-1",
@@ -81,4 +86,35 @@ test("startSpotifyPlaybackOnDevice rejects an empty approved queue before any AP
       && error.message === "No approved tracks are queued yet."
     ),
   );
+});
+
+test("getAvailableSpotifyDevices prompts reconnect when Spotify invalidates the stored refresh token", async () => {
+  process.env.SPOTIFY_CLIENT_ID = "spotify-client-id";
+  process.env.SPOTIFY_TOKEN_ENCRYPTION_KEY = "spotify-token-secret";
+
+  const originalFetch = global.fetch;
+  global.fetch = async () => new Response(JSON.stringify({
+    error: "invalid_grant",
+  }), {
+    status: 400,
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+
+  try {
+    await assert.rejects(
+      getAvailableSpotifyDevices({
+        ...baseConnection,
+        encrypted_refresh_token: encryptSpotifyRefreshToken("refresh-token"),
+      }),
+      (error: unknown) => (
+        error instanceof SpotifyPlayerApiError
+        && error.code === "SPOTIFY_RECONNECT_REQUIRED"
+        && error.message === buildSpotifyReconnectPlaybackCopy()
+      ),
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
