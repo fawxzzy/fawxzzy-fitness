@@ -805,10 +805,7 @@ function buildSpotifyControlHubComponents(args: {
         },
       ],
     });
-    return components;
-  }
-
-  if (!joined) {
+  } else if (!joined) {
     components.push({
       type: 1,
       components: [
@@ -3059,9 +3056,19 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
   }
 
   if (customId === FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID) {
-    return buildSpotifyControlHubResponseForUser({
-      discordUserId,
-      permissions,
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-controls-open-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club controls could not be opened right now. Try again in a moment.",
+      }),
+      process: async () => buildSpotifyControlHubEditBodyForUser({
+        discordUserId,
+        permissions,
+      }),
+      genericFailureContent: "Spotify Club controls could not be opened right now. Try again in a moment.",
     });
   }
 
