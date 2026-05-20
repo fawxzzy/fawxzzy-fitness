@@ -103,7 +103,7 @@ test("discordMessageHasFeedbackPanel detects the feedback panel action row", () 
   assert.equal(discordMessageHasFeedbackPanel(buildDiscordVerifyMessagePayload()), false);
 });
 
-test("buildDiscordSpotifyClubPanelMessagePayload exposes the Phase 5 room and search actions on the panel", () => {
+test("buildDiscordSpotifyClubPanelMessagePayload exposes a single control-hub launcher on the public panel", () => {
   const payload = buildDiscordSpotifyClubPanelMessagePayload({
     roomName: "Main Room",
     roomVisibility: "public",
@@ -124,44 +124,16 @@ test("buildDiscordSpotifyClubPanelMessagePayload exposes the Phase 5 room and se
   assert.match(payload.embeds[0]?.description ?? "", /Hey Ya! - Outkast/);
   assert.match(payload.embeds[0]?.description ?? "", /Pending suggestions: 2/);
   assert.match(payload.embeds[0]?.description ?? "", /does not stream audio through Discord/i);
-  assert.match(payload.embeds[0]?.description ?? "", /Leave Jam only leaves the current room/i);
+  assert.match(payload.embeds[0]?.description ?? "", /Open Spotify Club Controls/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => component.custom_id),
-    ["spotify_connect_open", "spotify_join_room", "spotify_leave_room"],
-  );
-  assert.deepEqual(
-    payload.components[1]?.components?.map((component) => component.custom_id),
-    ["spotify_queue_search_open", "spotify_queue_suggest_open", "spotify_queue_view"],
-  );
-  assert.deepEqual(
-    payload.components[2]?.components?.map((component) => component.custom_id),
-    ["spotify_device_check", "spotify_start_queue", "spotify_disconnect_auth"],
+    ["spotify_controls_open"],
   );
   const visibleButtonIds = payload.components.flatMap((row) => row.components.map((component) => component.custom_id));
   assert.deepEqual(
     visibleButtonIds,
-    [
-      "spotify_connect_open",
-      "spotify_join_room",
-      "spotify_leave_room",
-      "spotify_queue_search_open",
-      "spotify_queue_suggest_open",
-      "spotify_queue_view",
-      "spotify_device_check",
-      "spotify_start_queue",
-      "spotify_disconnect_auth",
-    ],
+    ["spotify_controls_open"],
   );
-  const queueButtons = payload.components[1]?.components ?? [];
-  const roomButtons = payload.components[0]?.components ?? [];
-  const playbackButtons = payload.components[2]?.components ?? [];
-  assert.equal(roomButtons[2] && "disabled" in roomButtons[2] ? roomButtons[2].disabled ?? false : false, false);
-  assert.equal(queueButtons[0] && "disabled" in queueButtons[0] ? queueButtons[0].disabled ?? false : false, false);
-  assert.equal(queueButtons[1] && "disabled" in queueButtons[1] ? queueButtons[1].disabled ?? false : false, false);
-  assert.equal(queueButtons[2] && "disabled" in queueButtons[2] ? queueButtons[2].disabled ?? false : false, false);
-  assert.equal(playbackButtons[0] && "disabled" in playbackButtons[0] ? playbackButtons[0].disabled ?? false : false, false);
-  assert.equal(playbackButtons[1] && "disabled" in playbackButtons[1] ? playbackButtons[1].disabled ?? false : false, false);
-  assert.equal(playbackButtons[2] && "disabled" in playbackButtons[2] ? playbackButtons[2].disabled ?? false : false, false);
   assert.equal(discordMessageHasSpotifyClubPanel(payload), true);
 });
 
