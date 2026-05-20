@@ -111,6 +111,7 @@ test("buildDiscordSpotifyClubPanelMessagePayload exposes a single control-hub la
     hostDiscordUserId: "123456789012345678",
     memberCount: 3,
     queuePreviewLines: ["1. Hey Ya! - Outkast"],
+    activeQueueCount: 1,
     pendingSuggestionCount: 2,
     hasApprovedQueue: true,
   });
@@ -119,12 +120,11 @@ test("buildDiscordSpotifyClubPanelMessagePayload exposes a single control-hub la
   assert.match(payload.embeds[0]?.description ?? "", /Room: \*\*Main Room\*\* \(Public\)/);
   assert.match(payload.embeds[0]?.description ?? "", /Status: \*\*Open\*\*/);
   assert.match(payload.embeds[0]?.description ?? "", /<@123456789012345678>/);
-  assert.match(payload.embeds[0]?.description ?? "", /Joined members: 3/);
-  assert.match(payload.embeds[0]?.description ?? "", /Queue:/);
+  assert.match(payload.embeds[0]?.description ?? "", /Members: 3/);
+  assert.match(payload.embeds[0]?.description ?? "", /Queue: 1 active \/ 2 pending/);
   assert.match(payload.embeds[0]?.description ?? "", /Hey Ya! - Outkast/);
-  assert.match(payload.embeds[0]?.description ?? "", /Pending suggestions: 2/);
-  assert.match(payload.embeds[0]?.description ?? "", /does not stream audio through Discord/i);
-  assert.match(payload.embeds[0]?.description ?? "", /Open Spotify Club Controls/i);
+  assert.doesNotMatch(payload.embeds[0]?.description ?? "", /does not stream audio through Discord/i);
+  assert.match(payload.embeds[0]?.description ?? "", /Open controls for queue/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => component.custom_id),
     ["spotify_controls_open"],

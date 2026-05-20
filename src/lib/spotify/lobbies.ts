@@ -272,6 +272,7 @@ export async function upsertDiscordSpotifyLobbyPanel(args: {
 export async function openDiscordSpotifyLobby(args: {
   hostDiscordUserId: string;
   hostSpotifyUserId?: string | null;
+  spotifyMirrorEnabled?: boolean;
   title?: string | null;
   description?: string | null;
   admin?: SpotifyLobbiesAdminClient;
@@ -285,7 +286,7 @@ export async function openDiscordSpotifyLobby(args: {
     visibility: existing?.visibility ?? "public",
     joinKeyHash: existing?.join_key_hash ?? null,
     approvalMode: existing?.approval_mode ?? "auto_approve_jam_ready",
-    spotifyMirrorEnabled: existing?.spotify_mirror_enabled ?? false,
+    spotifyMirrorEnabled: args.spotifyMirrorEnabled ?? existing?.spotify_mirror_enabled ?? false,
     spotifyMirrorLastSyncedAt: existing?.spotify_mirror_last_synced_at ?? null,
     spotifyMirrorErrorCount: existing?.spotify_mirror_error_count ?? 0,
     stopPlaybackOnClose: existing?.stop_playback_on_close ?? false,

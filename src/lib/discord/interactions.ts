@@ -543,6 +543,7 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
   hostDiscordUserId?: string | null;
   memberCount?: number;
   queuePreviewLines?: string[];
+  activeQueueCount?: number;
   pendingSuggestionCount?: number;
   hasApprovedQueue?: boolean;
 }): DiscordMessagePayload {
@@ -550,34 +551,33 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
   const roomVisibilityLabel = args.roomVisibility === "private" ? "Private" : "Public";
   const hostLine = args.hostDiscordUserId
     ? `Host: <@${args.hostDiscordUserId}>`
-    : "Host: Staff host will appear here when a lobby opens.";
+    : "Host: none";
   const memberCount = Math.max(0, args.memberCount ?? 0);
   const queuePreviewLines = args.queuePreviewLines && args.queuePreviewLines.length > 0
-    ? args.queuePreviewLines.map((line) => `- ${line}`)
-    : ["- No approved tracks yet."];
+    ? args.queuePreviewLines
+    : ["No active tracks."];
   const pendingSuggestionCount = Math.max(0, args.pendingSuggestionCount ?? 0);
-  const hasApprovedQueue = args.hasApprovedQueue ?? false;
+  const activeQueueCount = Math.max(0, args.activeQueueCount ?? (args.hasApprovedQueue ? queuePreviewLines.length : 0));
+  const nowPlayingLine = queuePreviewLines[0] && !/^No active tracks/i.test(queuePreviewLines[0])
+    ? `Now / next: ${queuePreviewLines[0]}`
+    : "Now / next: none";
+  const upNextLines = queuePreviewLines
+    .slice(1, 3)
+    .map((line) => `Up next: ${line}`);
 
   return {
     embeds: [
       {
         title: DEFAULT_SPOTIFY_CLUB_PANEL_TITLE,
         description: [
-          "Spotify Club is Fawx Den's shared Spotify listening room.",
-          "",
-          "Open Spotify Club Controls for your personalized room, queue, and playback actions.",
-          "",
-          "Music stays inside Spotify on your own account and device. Fawx Security coordinates room state, queue approvals, and playback handoff; it does not stream audio through Discord.",
-          "",
           `Room: **${roomName}** (${roomVisibilityLabel})`,
           `Status: **${args.lobbyStatusLabel}**`,
           hostLine,
-          `Joined members: ${memberCount}`,
-          "",
-          "Queue:",
-          ...queuePreviewLines,
-          "",
-          `Pending suggestions: ${pendingSuggestionCount}`,
+          nowPlayingLine,
+          ...upNextLines,
+          `Queue: ${activeQueueCount} active / ${pendingSuggestionCount} pending`,
+          `Members: ${memberCount}`,
+          "Open controls for queue, approval, auth, and mirror details.",
         ].join("\n"),
       },
     ],
@@ -589,7 +589,7 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
             type: 2,
             style: 1,
             custom_id: FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID,
-            label: hasApprovedQueue ? "Open Spotify Club Controls" : "Open Spotify Club Controls",
+            label: "Open Spotify Club Controls",
           },
         ],
       },
@@ -659,6 +659,17 @@ export function buildDiscordSpotifyTrackSearchResultsResponse(args: {
               min_values: 1,
               max_values: 1,
               options: args.options,
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 2,
+              custom_id: FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID,
+              label: "Back to Controls",
             },
           ],
         },

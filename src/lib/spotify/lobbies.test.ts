@@ -144,6 +144,58 @@ test("openDiscordSpotifyLobby creates a fresh open row when the latest lobby is 
   assert.equal(row.status, "open");
 });
 
+test("openDiscordSpotifyLobby can default live mirror on for an authorized host", async () => {
+  const observed = {
+    insertValues: null as Record<string, unknown> | null,
+  };
+
+  const admin = {
+    from() {
+      return {
+        select() {
+          return {
+            order() {
+              return {
+                limit() {
+                  return Promise.resolve({ data: [], error: null });
+                },
+              };
+            },
+          };
+        },
+        insert(values: Record<string, unknown>) {
+          observed.insertValues = values;
+          return {
+            select() {
+              return {
+                single() {
+                  return Promise.resolve({
+                    data: {
+                      id: "lobby-mirror",
+                      ...values,
+                      created_at: "2026-05-20T00:00:00.000Z",
+                    },
+                    error: null,
+                  });
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+
+  const row = await openDiscordSpotifyLobby({
+    hostDiscordUserId: "123456789012345678",
+    spotifyMirrorEnabled: true,
+    admin: admin as never,
+  });
+
+  assert.equal(observed.insertValues?.spotify_mirror_enabled, true);
+  assert.equal(row.spotify_mirror_enabled, true);
+});
+
 test("closeDiscordSpotifyLobby closes the latest row and preserves panel linkage", async () => {
   const observed = {
     updateValues: null as Record<string, unknown> | null,

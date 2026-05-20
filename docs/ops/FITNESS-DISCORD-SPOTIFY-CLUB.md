@@ -52,12 +52,35 @@ Phase 5 adds:
 - Discord-side Spotify track search
 - a personalized ephemeral control hub for connect, room, queue, and playback steps
 
+Phase 7 adds:
+
+- full active Discord queue handoff to Spotify Start/Resume Playback using an ordered URI list
+- best-effort playback reconciliation so played, skipped, and cleared tracks leave the active queue
+- recently played queue history for context and future replay affordances
+- live Spotify mirror enabled by default for active rooms when the host has the required scopes
+- a compact public Spotify Club panel, with detailed queue, mirror, approval, and auth state kept in the ephemeral hub
+
 Spotify Club still does not include:
 
 - Discord voice or audio behavior
 - perfect-sync promises
 - auto-start playback when hosts open a lobby
-- pushing multiple tracks into Spotify playback queues
+- mutating Spotify's native playback queue with rapid add-to-queue calls
+
+Phase 7 rule:
+
+- Spotify playback stays inside Spotify; Discord owns room and queue display state, not the native Spotify queue.
+
+Phase 7 patterns:
+
+- Active queue and playback history are separate. Played/skipped tracks leave the active queue but remain available for context or future replay.
+- The public Spotify Club panel is a compact status surface. Detailed state belongs in the ephemeral hub.
+
+Phase 7 failure modes:
+
+- Starting only the first queued URI makes Discord queue state lie about what Spotify will actually play.
+- Treating skip-back/current playback as a new queue item causes duplicate active rows and re-queued initial tracks.
+- Verbose public panels make the room feel noisy even when messages are technically low-volume.
 
 Feedback cards:
 
