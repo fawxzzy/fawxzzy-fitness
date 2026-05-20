@@ -5,6 +5,7 @@ import {
   approveDiscordSpotifyQueueItem,
   buildDiscordSpotifyQueuePreviewLines,
   buildDiscordSpotifyQueueSummaryText,
+  clearStaleMirroredDiscordSpotifyQueueItems,
   fetchSpotifyTrackMetadata,
   parseSpotifyTrackReference,
   rejectDiscordSpotifyQueueItem,
@@ -585,6 +586,97 @@ test("buildDiscordSpotifyQueueSummaryText shows pending count without user ids",
   assert.doesNotMatch(summary, /123456789012345678/);
 });
 
+test("clearStaleMirroredDiscordSpotifyQueueItems retires only stale mirror-owned rows", async () => {
+  const rows = [
+    buildQueueTestRow({
+      id: "stale-mirror",
+      source_type: "spotify_mirror",
+      spotify_uri: "spotify:track:1111111111111111111111",
+    }),
+    buildQueueTestRow({
+      id: "fresh-mirror",
+      source_type: "spotify_mirror",
+      spotify_uri: "spotify:track:2222222222222222222222",
+    }),
+    buildQueueTestRow({
+      id: "discord-search",
+      source_type: "discord_search",
+      spotify_uri: "spotify:track:3333333333333333333333",
+    }),
+    buildQueueTestRow({
+      id: "discord-link",
+      source_type: "discord_link",
+      spotify_uri: "spotify:track:4444444444444444444444",
+    }),
+    buildQueueTestRow({
+      id: "old-mirror-history",
+      source_type: "spotify_mirror",
+      spotify_uri: "spotify:track:5555555555555555555555",
+      playback_state: "played",
+      status: "played",
+    }),
+  ];
+  const updates: Array<{ id: string; values: Record<string, unknown> }> = [];
+  const admin = {
+    from() {
+      return {
+        select() {
+          const query = {
+            eq() {
+              return query;
+            },
+            order() {
+              return query;
+            },
+            in() {
+              return query;
+            },
+            then(resolve: (value: { data: typeof rows; error: null }) => void) {
+              resolve({ data: rows, error: null });
+            },
+          };
+          return query;
+        },
+        update(values: Record<string, unknown>) {
+          return {
+            eq(_column: string, id: string) {
+              updates.push({ id, values });
+              const row = rows.find((item) => item.id === id);
+              return {
+                select() {
+                  return {
+                    single() {
+                      return Promise.resolve({
+                        data: {
+                          ...row,
+                          ...values,
+                        },
+                        error: null,
+                      });
+                    },
+                  };
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+
+  const retiredCount = await clearStaleMirroredDiscordSpotifyQueueItems({
+    lobbyId: "lobby-1",
+    activeSpotifyUris: ["spotify:track:2222222222222222222222"],
+    admin: admin as never,
+  });
+
+  assert.equal(retiredCount, 1);
+  assert.deepEqual(updates.map((update) => update.id), ["stale-mirror"]);
+  assert.equal(updates[0]?.values.status, "skipped");
+  assert.equal(updates[0]?.values.playback_state, "cleared");
+  assert.equal(updates[0]?.values.cleared_reason, "mirror_missing_from_latest_snapshot");
+});
+
 test("fetchSpotifyTrackMetadata never calls Spotify player APIs", async () => {
   process.env.SPOTIFY_CLIENT_ID = "spotify-client-id";
   process.env.SPOTIFY_CLIENT_SECRET = "spotify-client-secret";
@@ -626,3 +718,43 @@ test("fetchSpotifyTrackMetadata never calls Spotify player APIs", async () => {
     delete process.env.SPOTIFY_CLIENT_SECRET;
   }
 });
+
+function buildQueueTestRow(overrides: Record<string, unknown>) {
+  return {
+    id: "queue-1",
+    lobby_id: "lobby-1",
+    status: "approved",
+    source_type: "discord_link",
+    approval_state: "approved",
+    playback_state: "queued",
+    spotify_uri: "spotify:track:1111111111111111111111",
+    spotify_url: null,
+    track_title: "Song A",
+    artist_name: "Artist A",
+    album_name: null,
+    duration_ms: null,
+    suggested_by_discord_user_id: "123456789012345678",
+    suggested_by_spotify_user_id: null,
+    approved_by_discord_user_id: "999999999999999999",
+    rejected_by_discord_user_id: null,
+    removed_by_discord_user_id: null,
+    rejection_reason: null,
+    removal_reason: null,
+    queue_position: 1,
+    dedupe_key: null,
+    mirror_first_seen_at: null,
+    mirror_last_seen_at: null,
+    display_position: 1,
+    cleared_reason: null,
+    approved_at: null,
+    rejected_at: null,
+    removed_at: null,
+    played_at: null,
+    skipped_at: null,
+    playback_started_at: null,
+    playback_finished_at: null,
+    created_at: "2026-05-19T00:00:00.000Z",
+    updated_at: "2026-05-19T00:00:00.000Z",
+    ...overrides,
+  };
+}

@@ -84,6 +84,32 @@ test("reconcileSpotifyMirrorSnapshot preserves intentional repeats as separate i
   assert.equal(plan.inserts.length, 1);
 });
 
+test("reconcileSpotifyMirrorSnapshot dedupes repeated mirror sync rows", () => {
+  const plan = reconcileSpotifyMirrorSnapshot({
+    existingItems: [queueItem({
+      id: "mirrored-item",
+      source_type: "spotify_mirror",
+      dedupe_key: "lobby-1:spotify_mirror:spotify:track:3n3ppam7vgava1iaruc9lp",
+      mirror_first_seen_at: "2026-05-20T00:00:00.000Z",
+      mirror_last_seen_at: "2026-05-20T00:00:00.000Z",
+    })],
+    snapshot: {
+      currentlyPlaying: null,
+      queue: [{
+        spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotifyUrl: null,
+        trackTitle: "Hey Ya!",
+        artistName: "Outkast",
+        albumName: null,
+        durationMs: null,
+      }],
+    },
+  });
+
+  assert.deepEqual(plan.merges, [{ queueItemId: "mirrored-item", displayPosition: 1 }]);
+  assert.equal(plan.inserts.length, 0);
+});
+
 test("reconcileSpotifyMirrorSnapshot marks matching current playback", () => {
   const plan = reconcileSpotifyMirrorSnapshot({
     existingItems: [queueItem({ id: "current-item" })],

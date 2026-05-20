@@ -4,6 +4,7 @@ import { getDiscordSpotifyConnection } from "@/lib/spotify/tokens";
 import { updateDiscordSpotifyLobbySettings, type DiscordSpotifyLobbyRow } from "@/lib/spotify/lobbies";
 import { buildSpotifyPlayerAccessToken, getSpotifyQueueSnapshot, type SpotifyQueueSnapshot } from "@/lib/spotify/player";
 import {
+  clearStaleMirroredDiscordSpotifyQueueItems,
   getActiveDiscordSpotifyQueueItems,
   insertMirroredDiscordSpotifyQueueItem,
   markDiscordSpotifyQueueItemMirrorSeen,
@@ -139,6 +140,14 @@ export async function syncSpotifyMirrorForLobby(lobby: DiscordSpotifyLobbyRow): 
         queueItemId: plan.currentlyPlayingItemId,
       });
     }
+
+    await clearStaleMirroredDiscordSpotifyQueueItems({
+      lobbyId: lobby.id,
+      activeSpotifyUris: [
+        ...snapshot.queue.map((track) => track.spotifyUri),
+        ...(snapshot.currentlyPlaying ? [snapshot.currentlyPlaying.spotifyUri] : []),
+      ],
+    });
 
     await updateDiscordSpotifyLobbySettings({
       lobbyId: lobby.id,

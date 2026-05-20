@@ -665,6 +665,37 @@ export async function markDiscordSpotifyQueueItemMirrorSeen(args: {
   }, admin);
 }
 
+export async function clearStaleMirroredDiscordSpotifyQueueItems(args: {
+  lobbyId: string;
+  activeSpotifyUris: string[];
+  admin?: SpotifyQueueAdminClient;
+}): Promise<number> {
+  const admin = args.admin ?? supabaseAdmin();
+  const activeUriSet = new Set(args.activeSpotifyUris.map((uri) => uri.trim().toLowerCase()).filter(Boolean));
+  const nowIso = new Date().toISOString();
+  const activeItems = await fetchLobbyQueueItems({
+    lobbyId: args.lobbyId,
+    statuses: ["approved"],
+    admin,
+  });
+  const staleMirrorItems = activeItems.filter((item) => (
+    item.source_type === "spotify_mirror"
+    && item.approval_state === "approved"
+    && (item.playback_state === "queued" || item.playback_state === "playing")
+    && !activeUriSet.has(item.spotify_uri.toLowerCase())
+  ));
+
+  await Promise.all(staleMirrorItems.map((item) => updateQueueItem(item.id, {
+    status: "skipped",
+    playback_state: "cleared",
+    cleared_reason: "mirror_missing_from_latest_snapshot",
+    skipped_at: nowIso,
+    updated_at: nowIso,
+  }, admin)));
+
+  return staleMirrorItems.length;
+}
+
 export async function suggestDiscordSpotifyQueueItem(args: {
   lobbyId: string;
   spotifyUrlOrUri: string;
