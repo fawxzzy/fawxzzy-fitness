@@ -44,7 +44,7 @@ function queueItem(overrides: Partial<DiscordSpotifyQueueItemRow>): DiscordSpoti
   };
 }
 
-test("reconcileSpotifyMirrorSnapshot merges an active Discord-owned duplicate", () => {
+test("reconcileSpotifyMirrorSnapshot treats an active Discord search duplicate as coverage only", () => {
   const plan = reconcileSpotifyMirrorSnapshot({
     existingItems: [queueItem({ id: "discord-item" })],
     snapshot: {
@@ -60,8 +60,52 @@ test("reconcileSpotifyMirrorSnapshot merges an active Discord-owned duplicate", 
     },
   });
 
-  assert.deepEqual(plan.merges, [{ queueItemId: "discord-item", displayPosition: 1 }]);
+  assert.deepEqual(plan.merges, []);
   assert.equal(plan.inserts.length, 0);
+  assert.equal(plan.coveredByDiscordOwned, 1);
+});
+
+test("reconcileSpotifyMirrorSnapshot treats an active Discord link duplicate as coverage only", () => {
+  const plan = reconcileSpotifyMirrorSnapshot({
+    existingItems: [queueItem({ id: "discord-link-item", source_type: "discord_link" })],
+    snapshot: {
+      currentlyPlaying: null,
+      queue: [{
+        spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotifyUrl: "https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp",
+        trackTitle: "Hey Ya!",
+        artistName: "Outkast",
+        albumName: "Speakerboxxx/The Love Below",
+        durationMs: 235213,
+      }],
+    },
+  });
+
+  assert.deepEqual(plan.merges, []);
+  assert.equal(plan.inserts.length, 0);
+  assert.equal(plan.coveredByDiscordOwned, 1);
+});
+
+test("reconcileSpotifyMirrorSnapshot consumes Discord-owned coverage once per matching row", () => {
+  const duplicateTrack = {
+    spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+    spotifyUrl: null,
+    trackTitle: "Hey Ya!",
+    artistName: "Outkast",
+    albumName: null,
+    durationMs: null,
+  };
+  const plan = reconcileSpotifyMirrorSnapshot({
+    existingItems: [queueItem({ id: "discord-item", source_type: "discord_search" })],
+    snapshot: {
+      currentlyPlaying: null,
+      queue: [duplicateTrack, duplicateTrack],
+    },
+  });
+
+  assert.deepEqual(plan.merges, []);
+  assert.equal(plan.inserts.length, 1);
+  assert.equal(plan.coveredByDiscordOwned, 1);
 });
 
 test("reconcileSpotifyMirrorSnapshot preserves intentional repeats as separate inserts", () => {
@@ -82,6 +126,35 @@ test("reconcileSpotifyMirrorSnapshot preserves intentional repeats as separate i
 
   assert.equal(plan.merges.length, 0);
   assert.equal(plan.inserts.length, 1);
+});
+
+test("reconcileSpotifyMirrorSnapshot prefers an existing mirror row over Discord-owned coverage", () => {
+  const plan = reconcileSpotifyMirrorSnapshot({
+    existingItems: [
+      queueItem({ id: "discord-item", source_type: "discord_search", display_position: 1 }),
+      queueItem({
+        id: "mirror-item",
+        source_type: "spotify_mirror",
+        display_position: 2,
+        mirror_first_seen_at: "2026-05-20T00:00:00.000Z",
+      }),
+    ],
+    snapshot: {
+      currentlyPlaying: null,
+      queue: [{
+        spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotifyUrl: null,
+        trackTitle: "Hey Ya!",
+        artistName: "Outkast",
+        albumName: null,
+        durationMs: null,
+      }],
+    },
+  });
+
+  assert.deepEqual(plan.merges, [{ queueItemId: "mirror-item", displayPosition: 1 }]);
+  assert.equal(plan.inserts.length, 0);
+  assert.equal(plan.coveredByDiscordOwned, 0);
 });
 
 test("reconcileSpotifyMirrorSnapshot dedupes repeated mirror sync rows", () => {

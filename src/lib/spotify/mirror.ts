@@ -30,10 +30,16 @@ export type SpotifyMirrorReconcilePlan = {
     queueItemId: string;
     displayPosition: number;
   }>;
+  coveredByDiscordOwned: number;
   currentlyPlayingItemId: string | null;
 };
 
-function findMergeCandidate(args: {
+function isActiveApprovedQueueItem(item: DiscordSpotifyQueueItemRow): boolean {
+  return item.approval_state === "approved"
+    && (item.playback_state === "queued" || item.playback_state === "playing");
+}
+
+function findMirrorMergeCandidate(args: {
   spotifyUri: string;
   existingItems: DiscordSpotifyQueueItemRow[];
   usedItemIds: Set<string>;
@@ -42,8 +48,22 @@ function findMergeCandidate(args: {
   return args.existingItems.find((item) => (
     !args.usedItemIds.has(item.id)
     && item.spotify_uri.toLowerCase() === normalizedUri
-    && item.approval_state === "approved"
-    && (item.playback_state === "queued" || item.playback_state === "playing")
+    && item.source_type === "spotify_mirror"
+    && isActiveApprovedQueueItem(item)
+  )) ?? null;
+}
+
+function findDiscordOwnedCoverageCandidate(args: {
+  spotifyUri: string;
+  existingItems: DiscordSpotifyQueueItemRow[];
+  usedItemIds: Set<string>;
+}): DiscordSpotifyQueueItemRow | null {
+  const normalizedUri = args.spotifyUri.toLowerCase();
+  return args.existingItems.find((item) => (
+    !args.usedItemIds.has(item.id)
+    && item.spotify_uri.toLowerCase() === normalizedUri
+    && (item.source_type === "discord_search" || item.source_type === "discord_link")
+    && isActiveApprovedQueueItem(item)
   )) ?? null;
 }
 
@@ -54,10 +74,11 @@ export function reconcileSpotifyMirrorSnapshot(args: {
   const usedItemIds = new Set<string>();
   const merges: SpotifyMirrorReconcilePlan["merges"] = [];
   const inserts: SpotifyMirrorReconcilePlan["inserts"] = [];
+  let coveredByDiscordOwned = 0;
 
   args.snapshot.queue.forEach((track, index) => {
     const displayPosition = index + 1;
-    const mergeCandidate = findMergeCandidate({
+    const mergeCandidate = findMirrorMergeCandidate({
       spotifyUri: track.spotifyUri,
       existingItems: args.existingItems,
       usedItemIds,
@@ -69,6 +90,17 @@ export function reconcileSpotifyMirrorSnapshot(args: {
         queueItemId: mergeCandidate.id,
         displayPosition,
       });
+      return;
+    }
+
+    const coverageCandidate = findDiscordOwnedCoverageCandidate({
+      spotifyUri: track.spotifyUri,
+      existingItems: args.existingItems,
+      usedItemIds,
+    });
+    if (coverageCandidate) {
+      usedItemIds.add(coverageCandidate.id);
+      coveredByDiscordOwned += 1;
       return;
     }
 
@@ -87,14 +119,14 @@ export function reconcileSpotifyMirrorSnapshot(args: {
   const currentlyPlayingItem = currentUri
     ? args.existingItems.find((item) => (
       item.spotify_uri.toLowerCase() === currentUri
-      && item.approval_state === "approved"
-      && (item.playback_state === "queued" || item.playback_state === "playing")
+      && isActiveApprovedQueueItem(item)
     )) ?? null
     : null;
 
   return {
     inserts,
     merges,
+    coveredByDiscordOwned,
     currentlyPlayingItemId: currentlyPlayingItem?.id ?? null,
   };
 }
