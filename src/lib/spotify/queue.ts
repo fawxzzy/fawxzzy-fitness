@@ -671,19 +671,45 @@ export async function clearStaleMirroredDiscordSpotifyQueueItems(args: {
   admin?: SpotifyQueueAdminClient;
 }): Promise<number> {
   const admin = args.admin ?? supabaseAdmin();
-  const activeUriSet = new Set(args.activeSpotifyUris.map((uri) => uri.trim().toLowerCase()).filter(Boolean));
+  const activeUriCounts = args.activeSpotifyUris.reduce((counts, uri) => {
+    const normalizedUri = uri.trim().toLowerCase();
+    if (normalizedUri) {
+      counts.set(normalizedUri, (counts.get(normalizedUri) ?? 0) + 1);
+    }
+    return counts;
+  }, new Map<string, number>());
   const nowIso = new Date().toISOString();
   const activeItems = await fetchLobbyQueueItems({
     lobbyId: args.lobbyId,
     statuses: ["approved"],
     admin,
   });
-  const staleMirrorItems = activeItems.filter((item) => (
-    item.source_type === "spotify_mirror"
-    && item.approval_state === "approved"
-    && (item.playback_state === "queued" || item.playback_state === "playing")
-    && !activeUriSet.has(item.spotify_uri.toLowerCase())
-  ));
+  const activeMirrorItems = activeItems
+    .filter((item) => (
+      item.source_type === "spotify_mirror"
+      && item.approval_state === "approved"
+      && (item.playback_state === "queued" || item.playback_state === "playing")
+    ))
+    .sort((left, right) => {
+      const leftPosition = left.display_position ?? left.queue_position ?? Number.MAX_SAFE_INTEGER;
+      const rightPosition = right.display_position ?? right.queue_position ?? Number.MAX_SAFE_INTEGER;
+      if (leftPosition !== rightPosition) {
+        return leftPosition - rightPosition;
+      }
+      return left.created_at.localeCompare(right.created_at);
+    });
+  const staleMirrorItems: DiscordSpotifyQueueItemRow[] = [];
+
+  activeMirrorItems.forEach((item) => {
+    const normalizedUri = item.spotify_uri.toLowerCase();
+    const remainingCount = activeUriCounts.get(normalizedUri) ?? 0;
+    if (remainingCount > 0) {
+      activeUriCounts.set(normalizedUri, remainingCount - 1);
+      return;
+    }
+
+    staleMirrorItems.push(item);
+  });
 
   await Promise.all(staleMirrorItems.map((item) => updateQueueItem(item.id, {
     status: "skipped",

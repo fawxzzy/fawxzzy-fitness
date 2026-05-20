@@ -616,65 +616,122 @@ test("clearStaleMirroredDiscordSpotifyQueueItems retires only stale mirror-owned
       status: "played",
     }),
   ];
-  const updates: Array<{ id: string; values: Record<string, unknown> }> = [];
-  const admin = {
-    from() {
-      return {
-        select() {
-          const query = {
-            eq() {
-              return query;
-            },
-            order() {
-              return query;
-            },
-            in() {
-              return query;
-            },
-            then(resolve: (value: { data: typeof rows; error: null }) => void) {
-              resolve({ data: rows, error: null });
-            },
-          };
-          return query;
-        },
-        update(values: Record<string, unknown>) {
-          return {
-            eq(_column: string, id: string) {
-              updates.push({ id, values });
-              const row = rows.find((item) => item.id === id);
-              return {
-                select() {
-                  return {
-                    single() {
-                      return Promise.resolve({
-                        data: {
-                          ...row,
-                          ...values,
-                        },
-                        error: null,
-                      });
-                    },
-                  };
-                },
-              };
-            },
-          };
-        },
-      };
-    },
-  };
-
-  const retiredCount = await clearStaleMirroredDiscordSpotifyQueueItems({
-    lobbyId: "lobby-1",
-    activeSpotifyUris: ["spotify:track:2222222222222222222222"],
-    admin: admin as never,
-  });
+  const { retiredCount, updates } = await runClearStaleMirrorTest(rows, [
+    "spotify:track:2222222222222222222222",
+  ]);
 
   assert.equal(retiredCount, 1);
   assert.deepEqual(updates.map((update) => update.id), ["stale-mirror"]);
   assert.equal(updates[0]?.values.status, "skipped");
   assert.equal(updates[0]?.values.playback_state, "cleared");
   assert.equal(updates[0]?.values.cleared_reason, "mirror_missing_from_latest_snapshot");
+});
+
+test("clearStaleMirroredDiscordSpotifyQueueItems retires extra mirror duplicates by URI count", async () => {
+  const duplicateUri = "spotify:track:1111111111111111111111";
+  const rows = [
+    buildQueueTestRow({
+      id: "mirror-first",
+      source_type: "spotify_mirror",
+      spotify_uri: duplicateUri,
+      display_position: 1,
+      queue_position: 1,
+      created_at: "2026-05-19T00:00:00.000Z",
+    }),
+    buildQueueTestRow({
+      id: "mirror-second",
+      source_type: "spotify_mirror",
+      spotify_uri: duplicateUri,
+      display_position: 2,
+      queue_position: 2,
+      created_at: "2026-05-19T00:01:00.000Z",
+    }),
+  ];
+  const { retiredCount, updates } = await runClearStaleMirrorTest(rows, [duplicateUri]);
+
+  assert.equal(retiredCount, 1);
+  assert.deepEqual(updates.map((update) => update.id), ["mirror-second"]);
+  assert.equal(updates[0]?.values.status, "skipped");
+  assert.equal(updates[0]?.values.playback_state, "cleared");
+});
+
+test("clearStaleMirroredDiscordSpotifyQueueItems keeps mirror duplicates when URI counts match", async () => {
+  const duplicateUri = "spotify:track:1111111111111111111111";
+  const rows = [
+    buildQueueTestRow({
+      id: "mirror-first",
+      source_type: "spotify_mirror",
+      spotify_uri: duplicateUri,
+      display_position: 1,
+      queue_position: 1,
+    }),
+    buildQueueTestRow({
+      id: "mirror-second",
+      source_type: "spotify_mirror",
+      spotify_uri: duplicateUri,
+      display_position: 2,
+      queue_position: 2,
+    }),
+  ];
+  const { retiredCount, updates } = await runClearStaleMirrorTest(rows, [duplicateUri, duplicateUri]);
+
+  assert.equal(retiredCount, 0);
+  assert.deepEqual(updates, []);
+});
+
+test("clearStaleMirroredDiscordSpotifyQueueItems counts only mirror-owned rows for duplicate clearing", async () => {
+  const duplicateUri = "spotify:track:1111111111111111111111";
+  const rows = [
+    buildQueueTestRow({
+      id: "discord-search",
+      source_type: "discord_search",
+      spotify_uri: duplicateUri,
+      display_position: 1,
+      queue_position: 1,
+    }),
+    buildQueueTestRow({
+      id: "mirror-row",
+      source_type: "spotify_mirror",
+      spotify_uri: duplicateUri,
+      display_position: 2,
+      queue_position: 2,
+    }),
+  ];
+  const { retiredCount, updates } = await runClearStaleMirrorTest(rows, [duplicateUri]);
+
+  assert.equal(retiredCount, 0);
+  assert.deepEqual(updates, []);
+});
+
+test("clearStaleMirroredDiscordSpotifyQueueItems clears all active mirror rows for absent URIs", async () => {
+  const rows = [
+    buildQueueTestRow({
+      id: "mirror-first",
+      source_type: "spotify_mirror",
+      spotify_uri: "spotify:track:1111111111111111111111",
+      display_position: 1,
+      queue_position: 1,
+    }),
+    buildQueueTestRow({
+      id: "mirror-second",
+      source_type: "spotify_mirror",
+      spotify_uri: "spotify:track:1111111111111111111111",
+      display_position: 2,
+      queue_position: 2,
+    }),
+    buildQueueTestRow({
+      id: "discord-link",
+      source_type: "discord_link",
+      spotify_uri: "spotify:track:1111111111111111111111",
+      display_position: 3,
+      queue_position: 3,
+    }),
+  ];
+  const { retiredCount, updates } = await runClearStaleMirrorTest(rows, []);
+
+  assert.equal(retiredCount, 2);
+  assert.deepEqual(updates.map((update) => update.id), ["mirror-first", "mirror-second"]);
+  assert.equal(updates.every((update) => update.values.cleared_reason === "mirror_missing_from_latest_snapshot"), true);
 });
 
 test("fetchSpotifyTrackMetadata never calls Spotify player APIs", async () => {
@@ -757,4 +814,65 @@ function buildQueueTestRow(overrides: Record<string, unknown>) {
     updated_at: "2026-05-19T00:00:00.000Z",
     ...overrides,
   };
+}
+
+async function runClearStaleMirrorTest(
+  rows: Array<ReturnType<typeof buildQueueTestRow>>,
+  activeSpotifyUris: string[],
+) {
+  const updates: Array<{ id: string; values: Record<string, unknown> }> = [];
+  const admin = {
+    from() {
+      return {
+        select() {
+          const query = {
+            eq() {
+              return query;
+            },
+            order() {
+              return query;
+            },
+            in() {
+              return query;
+            },
+            then(resolve: (value: { data: typeof rows; error: null }) => void) {
+              resolve({ data: rows, error: null });
+            },
+          };
+          return query;
+        },
+        update(values: Record<string, unknown>) {
+          return {
+            eq(_column: string, id: string) {
+              updates.push({ id, values });
+              const row = rows.find((item) => item.id === id);
+              return {
+                select() {
+                  return {
+                    single() {
+                      return Promise.resolve({
+                        data: {
+                          ...row,
+                          ...values,
+                        },
+                        error: null,
+                      });
+                    },
+                  };
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+
+  const retiredCount = await clearStaleMirroredDiscordSpotifyQueueItems({
+    lobbyId: "lobby-1",
+    activeSpotifyUris,
+    admin: admin as never,
+  });
+
+  return { retiredCount, updates };
 }
