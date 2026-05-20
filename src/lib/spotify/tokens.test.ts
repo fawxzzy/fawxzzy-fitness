@@ -123,6 +123,7 @@ test("Spotify playback helpers cover scope gating and device status copy", () =>
       "user-read-private",
       "user-read-playback-state",
       "user-modify-playback-state",
+      "user-read-currently-playing",
     ]),
     true,
   );
@@ -135,7 +136,7 @@ test("Spotify playback helpers cover scope gating and device status copy", () =>
   );
   assert.equal(
     buildSpotifyMissingPlaybackPermissionsCopy(),
-    "Spotify is connected, but playback permissions are missing. Reconnect Spotify to enable playback handoff.",
+    "Spotify is connected, but live queue permissions are missing. Upgrade Spotify access to enable playback handoff and host queue mirroring.",
   );
   assert.equal(
     buildSpotifyReconnectPlaybackCopy(),

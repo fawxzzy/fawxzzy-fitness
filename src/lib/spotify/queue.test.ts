@@ -41,7 +41,7 @@ test("parseSpotifyTrackReference rejects non-track input", () => {
   );
 });
 
-test("suggestDiscordSpotifyQueueItem creates a pending queue item", async () => {
+test("suggestDiscordSpotifyQueueItem creates a pending queue item in review mode", async () => {
   const observed = {
     insertValues: null as Record<string, unknown> | null,
   };
@@ -83,6 +83,7 @@ test("suggestDiscordSpotifyQueueItem creates a pending queue item", async () => 
       spotifyUrlOrUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
       suggestedByDiscordUserId: "123456789012345678",
       suggestedBySpotifyUserId: "spotify-user-1",
+      approvalMode: "review",
       admin: admin as never,
     });
 
@@ -498,6 +499,9 @@ test("buildDiscordSpotifyQueuePreviewLines shows top approved items only", () =>
         id: "queue-1",
         lobby_id: "lobby-1",
         status: "approved",
+        source_type: "discord_link",
+        approval_state: "approved",
+        playback_state: "queued",
         spotify_uri: "spotify:track:1111111111111111111111",
         spotify_url: null,
         track_title: "Song A",
@@ -512,11 +516,18 @@ test("buildDiscordSpotifyQueuePreviewLines shows top approved items only", () =>
         rejection_reason: null,
         removal_reason: null,
         queue_position: 1,
+        dedupe_key: null,
+        mirror_first_seen_at: null,
+        mirror_last_seen_at: null,
+        display_position: 1,
+        cleared_reason: null,
         approved_at: null,
         rejected_at: null,
         removed_at: null,
         played_at: null,
         skipped_at: null,
+        playback_started_at: null,
+        playback_finished_at: null,
         created_at: "2026-05-19T00:00:00.000Z",
         updated_at: "2026-05-19T00:00:00.000Z",
       },
@@ -524,7 +535,7 @@ test("buildDiscordSpotifyQueuePreviewLines shows top approved items only", () =>
     pendingItems: [],
   });
 
-  assert.deepEqual(lines, ["1. Song A - Artist A"]);
+  assert.deepEqual(lines, ["1. Song A - Artist A (Discord link)"]);
 });
 
 test("buildDiscordSpotifyQueueSummaryText shows pending count without user ids", () => {
@@ -535,6 +546,9 @@ test("buildDiscordSpotifyQueueSummaryText shows pending count without user ids",
         id: "abcdef12-0000-4000-8000-000000000000",
         lobby_id: "lobby-1",
         status: "pending",
+        source_type: "discord_link",
+        approval_state: "pending",
+        playback_state: "queued",
         spotify_uri: "spotify:track:1111111111111111111111",
         spotify_url: null,
         track_title: "Song A",
@@ -549,11 +563,18 @@ test("buildDiscordSpotifyQueueSummaryText shows pending count without user ids",
         rejection_reason: null,
         removal_reason: null,
         queue_position: null,
+        dedupe_key: null,
+        mirror_first_seen_at: null,
+        mirror_last_seen_at: null,
+        display_position: null,
+        cleared_reason: null,
         approved_at: null,
         rejected_at: null,
         removed_at: null,
         played_at: null,
         skipped_at: null,
+        playback_started_at: null,
+        playback_finished_at: null,
         created_at: "2026-05-19T00:00:00.000Z",
         updated_at: "2026-05-19T00:00:00.000Z",
       },

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { SPOTIFY_PHASE_4_PLAYBACK_SCOPES } from "@/lib/spotify/oauth";
+import { SPOTIFY_PHASE_6_LIVE_QUEUE_SCOPES } from "@/lib/spotify/oauth";
 import { SPOTIFY_TOKEN_ENCRYPTION_KEY } from "@/lib/env";
 import { decryptSpotifySecret, encryptSpotifySecret } from "@/lib/spotify/crypto";
 import type { SpotifyProduct, SpotifyProfileSnapshot } from "@/lib/spotify/profile";
@@ -113,13 +113,17 @@ export function decryptSpotifyRefreshToken(ciphertext: string): string {
 }
 
 export function hasSpotifyPlaybackScopes(scopes: string[] | null | undefined): boolean {
+  return hasSpotifyLiveQueueScopes(scopes);
+}
+
+export function hasSpotifyLiveQueueScopes(scopes: string[] | null | undefined): boolean {
   const availableScopes = new Set(
     Array.isArray(scopes)
       ? scopes.map((scope) => scope.trim()).filter(Boolean)
       : [],
   );
 
-  return SPOTIFY_PHASE_4_PLAYBACK_SCOPES.every((scope) => availableScopes.has(scope));
+  return SPOTIFY_PHASE_6_LIVE_QUEUE_SCOPES.every((scope) => availableScopes.has(scope));
 }
 
 export function buildSpotifyStatusCopy(connection: DiscordSpotifyConnectionRow | null): string {
@@ -139,7 +143,7 @@ export function buildSpotifyStatusCopy(connection: DiscordSpotifyConnectionRow |
 }
 
 export function buildSpotifyMissingPlaybackPermissionsCopy(): string {
-  return "Spotify is connected, but playback permissions are missing. Reconnect Spotify to enable playback handoff.";
+  return "Spotify is connected, but live queue permissions are missing. Upgrade Spotify access to enable playback handoff and host queue mirroring.";
 }
 
 export function buildSpotifyReconnectPlaybackCopy(): string {

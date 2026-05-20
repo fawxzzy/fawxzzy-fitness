@@ -42,6 +42,11 @@ export const FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID = "spotify_queue_sug
 export const FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID = "spotify_queue_search_open";
 export const FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID = "spotify_queue_view";
 export const FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID = "spotify_queue_pending_view";
+export const FITNESS_SPOTIFY_QUEUE_PENDING_APPROVE_BUTTON_CUSTOM_ID = "spotify_queue_pending_approve";
+export const FITNESS_SPOTIFY_QUEUE_PENDING_REJECT_BUTTON_CUSTOM_ID = "spotify_queue_pending_reject";
+export const FITNESS_SPOTIFY_APPROVAL_MODE_TOGGLE_BUTTON_CUSTOM_ID = "spotify_approval_mode_toggle";
+export const FITNESS_SPOTIFY_MIRROR_TOGGLE_BUTTON_CUSTOM_ID = "spotify_mirror_toggle";
+export const FITNESS_SPOTIFY_MIRROR_REFRESH_BUTTON_CUSTOM_ID = "spotify_mirror_refresh";
 export const FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID = "spotify_device_check";
 export const FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID = "spotify_start_queue";
 export const FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID = "spotify_room_open";
@@ -597,7 +602,7 @@ export function buildDiscordSpotifyQueueSuggestModalResponse() {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
     data: {
       custom_id: FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID,
-      title: "Suggest a Spotify Track",
+      title: "Add a Spotify Track",
       components: [
         buildDiscordModalLabelTextInput({
           label: "Spotify track URL or URI",
@@ -642,7 +647,7 @@ export function buildDiscordSpotifyTrackSearchResultsResponse(args: {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.CHANNEL_MESSAGE_WITH_SOURCE,
     data: {
       flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
-      content: `Search results for "${args.query.trim()}". Choose a track to suggest it to the queue.`,
+      content: `Search results for "${args.query.trim()}". Choose a track to add it to the queue.`,
       components: [
         {
           type: 1,

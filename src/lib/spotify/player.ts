@@ -14,6 +14,7 @@ import {
 
 const SPOTIFY_PLAYER_DEVICES_ENDPOINT = "https://api.spotify.com/v1/me/player/devices";
 const SPOTIFY_PLAYER_STATE_ENDPOINT = "https://api.spotify.com/v1/me/player";
+const SPOTIFY_PLAYER_QUEUE_ENDPOINT = "https://api.spotify.com/v1/me/player/queue";
 
 export type SpotifyAvailableDevice = {
   id: string | null;
@@ -27,6 +28,20 @@ export type SpotifyAvailableDevice = {
 export type SpotifyCurrentPlaybackState = {
   device: SpotifyAvailableDevice | null;
   is_playing: boolean | null;
+};
+
+export type SpotifyQueueTrackSnapshot = {
+  spotifyUri: string;
+  spotifyUrl: string | null;
+  trackTitle: string | null;
+  artistName: string | null;
+  albumName: string | null;
+  durationMs: number | null;
+};
+
+export type SpotifyQueueSnapshot = {
+  currentlyPlaying: SpotifyQueueTrackSnapshot | null;
+  queue: SpotifyQueueTrackSnapshot[];
 };
 
 type SpotifyPlayerApiErrorCode =
@@ -86,7 +101,7 @@ function buildSpotifyPlayerApiError(args: {
     return new SpotifyPlayerApiError({
       code: "SPOTIFY_PLAYBACK_SCOPE_REQUIRED",
       status: args.status,
-      message: "Spotify is connected, but playback permissions are missing. Reconnect Spotify to enable playback handoff.",
+      message: "Spotify is connected, but live queue permissions are missing. Upgrade Spotify access to enable playback handoff and host queue mirroring.",
     });
   }
 
@@ -163,7 +178,7 @@ async function spotifyPlayerRequest(args: {
     throw new SpotifyPlayerApiError({
       code: "SPOTIFY_PLAYBACK_SCOPE_REQUIRED",
       status: 403,
-      message: "Spotify is connected, but playback permissions are missing. Reconnect Spotify to enable playback handoff.",
+      message: "Spotify is connected, but live queue permissions are missing. Upgrade Spotify access to enable playback handoff and host queue mirroring.",
     });
   }
 
@@ -187,6 +202,43 @@ async function spotifyPlayerRequest(args: {
   }
 
   return response;
+}
+
+function coerceSpotifyQueueTrack(value: unknown): SpotifyQueueTrackSnapshot | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const uri = typeof candidate.uri === "string" ? candidate.uri : null;
+  if (!uri || !/^spotify:track:[A-Za-z0-9]{22}$/i.test(uri)) {
+    return null;
+  }
+
+  const externalUrls = candidate.external_urls && typeof candidate.external_urls === "object"
+    ? candidate.external_urls as Record<string, unknown>
+    : {};
+  const album = candidate.album && typeof candidate.album === "object"
+    ? candidate.album as Record<string, unknown>
+    : {};
+
+  return {
+    spotifyUri: uri,
+    spotifyUrl: typeof externalUrls.spotify === "string" ? externalUrls.spotify : null,
+    trackTitle: typeof candidate.name === "string" ? candidate.name.trim() || null : null,
+    artistName: Array.isArray(candidate.artists)
+      ? candidate.artists
+        .map((artist) => artist && typeof artist === "object" && typeof (artist as Record<string, unknown>).name === "string"
+          ? String((artist as Record<string, unknown>).name).trim()
+          : "")
+        .filter(Boolean)
+        .join(", ") || null
+      : null,
+    albumName: typeof album.name === "string" ? album.name.trim() || null : null,
+    durationMs: typeof candidate.duration_ms === "number" && Number.isFinite(candidate.duration_ms) && candidate.duration_ms > 0
+      ? candidate.duration_ms
+      : null,
+  };
 }
 
 function connectionScopesFromConnection(connection: DiscordSpotifyConnectionRow): string[] {
@@ -261,6 +313,39 @@ export async function getCurrentPlaybackState(
   return {
     device: coerceSpotifyAvailableDevice(body?.device),
     is_playing: typeof body?.is_playing === "boolean" ? body.is_playing : null,
+  };
+}
+
+export async function getSpotifyQueueSnapshot(
+  connection: DiscordSpotifyConnectionRow,
+  accessToken?: string,
+): Promise<SpotifyQueueSnapshot> {
+  const response = await spotifyPlayerRequest({
+    connection,
+    url: SPOTIFY_PLAYER_QUEUE_ENDPOINT,
+    method: "GET",
+    fallbackMessage: "Spotify live queue could not be loaded right now. Try again in a moment.",
+    accessToken,
+  });
+
+  const body = await response.json().catch(() => null) as {
+    currently_playing?: unknown;
+    queue?: unknown[];
+  } | null;
+
+  if (!body || !Array.isArray(body.queue)) {
+    throw new SpotifyPlayerApiError({
+      code: "SPOTIFY_PLAYER_API_FAILED",
+      status: 500,
+      message: "Spotify live queue could not be loaded right now. Try again in a moment.",
+    });
+  }
+
+  return {
+    currentlyPlaying: coerceSpotifyQueueTrack(body.currently_playing),
+    queue: body.queue
+      .map((item) => coerceSpotifyQueueTrack(item))
+      .filter((item): item is SpotifyQueueTrackSnapshot => Boolean(item)),
   };
 }
 

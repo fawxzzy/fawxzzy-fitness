@@ -31,6 +31,7 @@ test("searchSpotifyTracks returns top Spotify track results", async () => {
             name: "Hey Ya!",
             artists: [{ name: "Outkast" }],
             album: { name: "Speakerboxxx/The Love Below" },
+            duration_ms: 235213,
           }],
         },
       }), {
@@ -63,9 +64,10 @@ test("formatSearchResultsForDiscord creates select menu options", () => {
     trackTitle: "Hey Ya!",
     artistName: "Outkast",
     albumName: "Speakerboxxx/The Love Below",
+    durationMs: 235213,
   }]), [{
     label: "Hey Ya! - Outkast",
     value: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
-    description: "Album: Speakerboxxx/The Love Below",
+    description: "Album: Speakerboxxx/The Love Below | 3:55",
   }]);
 });

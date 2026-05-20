@@ -109,6 +109,11 @@ function buildSpotifyClubLobbyRow(overrides = {}) {
     host_spotify_user_id: null,
     room_name: "Main Room",
     visibility: "public",
+    approval_mode: "auto_approve_jam_ready",
+    spotify_mirror_enabled: false,
+    spotify_mirror_last_synced_at: null,
+    spotify_mirror_error_count: 0,
+    stop_playback_on_close: true,
     title: null,
     description: null,
     panel_channel_id: "1504668396338413670",
@@ -131,7 +136,7 @@ function buildSpotifyConnectionRow(overrides = {}) {
     is_premium: true,
     encrypted_refresh_token: "ciphertext",
     access_token_expires_at: null,
-    scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state"],
+    scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state", "user-read-currently-playing"],
     connected_at: "2026-05-19T00:00:00.000Z",
     last_checked_at: "2026-05-19T00:00:00.000Z",
     disconnected_at: null,
@@ -4196,8 +4201,7 @@ test("Discord interactions route shows manager controls in the Spotify control h
     assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
       "spotify_connect_open",
       "spotify_room_open",
-      "spotify_room_close",
-      "spotify_queue_pending_view",
+      "spotify_approval_mode_toggle",
     ]);
   } finally {
     globalThis.fetch = originalFetch;
@@ -4289,7 +4293,6 @@ test("Discord interactions route shows Join and Disconnect in the Spotify contro
     assert.equal(response.status, 202);
     assert.equal(observedDiscordCalls[0]?.body?.type, 5);
     assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
-      "spotify_join_room",
       "spotify_disconnect_auth",
     ]);
   } finally {
@@ -4410,7 +4413,6 @@ test("Discord interactions route shows queue and playback actions in the Spotify
       "spotify_queue_view",
       "spotify_leave_room",
       "spotify_device_check",
-      "spotify_start_queue",
       "spotify_disconnect_auth",
     ]);
   } finally {
@@ -4521,6 +4523,8 @@ test("Discord interactions route returns a Spotify auth link from the ephemeral 
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Connect Spotify to become Jam Ready for Spotify Club\./);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /client_id=spotify-client-id/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /user-read-currently-playing/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /user-modify-playback-state/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -4682,10 +4686,11 @@ test("Discord interactions route returns a playback-upgrade prompt when playback
     }), keyPair));
 
     assert.equal(response.status, 202);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /playback permissions are missing/i);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /live queue permissions are missing/i);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /user-read-playback-state/);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /user-modify-playback-state/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /user-read-currently-playing/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -5068,7 +5073,7 @@ test("Discord interactions route defers playback device checks from the ephemera
         is_premium: true,
         encrypted_refresh_token: encryptedRefreshToken,
         access_token_expires_at: null,
-        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state"],
+        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state", "user-read-currently-playing"],
         connected_at: "2026-05-19T00:00:00.000Z",
         last_checked_at: "2026-05-19T00:00:00.000Z",
         disconnected_at: null,
@@ -5219,7 +5224,7 @@ test("Discord interactions route reports when no active Spotify device is availa
         is_premium: true,
         encrypted_refresh_token: encryptedRefreshToken,
         access_token_expires_at: null,
-        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state"],
+        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state", "user-read-currently-playing"],
         connected_at: "2026-05-19T00:00:00.000Z",
         last_checked_at: "2026-05-19T00:00:00.000Z",
         disconnected_at: null,
@@ -5475,7 +5480,7 @@ test("Discord interactions route blocks Spotify playback handoff when no approve
         is_premium: true,
         encrypted_refresh_token: encryptedRefreshToken,
         access_token_expires_at: null,
-        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state"],
+        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state", "user-read-currently-playing"],
         connected_at: "2026-05-19T00:00:00.000Z",
         last_checked_at: "2026-05-19T00:00:00.000Z",
         disconnected_at: null,
@@ -5624,7 +5629,7 @@ test("Discord interactions route starts the approved queue on the user's active 
         is_premium: true,
         encrypted_refresh_token: encryptedRefreshToken,
         access_token_expires_at: null,
-        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state"],
+        scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state", "user-read-currently-playing"],
         connected_at: "2026-05-19T00:00:00.000Z",
         last_checked_at: "2026-05-19T00:00:00.000Z",
         disconnected_at: null,
@@ -5672,6 +5677,48 @@ test("Discord interactions route starts the approved queue on the user's active 
           updated_at: "2026-05-19T00:00:00.000Z",
         },
       ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "PATCH") {
+      return new Response(JSON.stringify({
+        id: "abcdef12-0000-4000-8000-000000000000",
+        lobby_id: "lobby-1",
+        status: "approved",
+        source_type: "discord_link",
+        approval_state: "approved",
+        playback_state: "playing",
+        spotify_uri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotify_url: "https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp",
+        track_title: "Hey Ya!",
+        artist_name: "Outkast",
+        album_name: null,
+        duration_ms: null,
+        suggested_by_discord_user_id: "123456789012345678",
+        suggested_by_spotify_user_id: null,
+        approved_by_discord_user_id: "999999999999999999",
+        rejected_by_discord_user_id: null,
+        removed_by_discord_user_id: null,
+        rejection_reason: null,
+        removal_reason: null,
+        queue_position: 1,
+        dedupe_key: null,
+        mirror_first_seen_at: null,
+        mirror_last_seen_at: null,
+        display_position: 1,
+        cleared_reason: null,
+        approved_at: "2026-05-19T00:00:00.000Z",
+        rejected_at: null,
+        removed_at: null,
+        played_at: null,
+        skipped_at: null,
+        playback_started_at: "2026-05-19T00:00:00.000Z",
+        playback_finished_at: null,
+        created_at: "2026-05-19T00:00:00.000Z",
+        updated_at: "2026-05-19T00:00:00.000Z",
+      }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -5914,7 +5961,7 @@ test("Discord interactions route returns the Spotify queue summary from the ephe
   }
 });
 
-test("Discord interactions route stores a pending Spotify queue suggestion and refreshes the panel", async () => {
+test("Discord interactions route stores an auto-approved Spotify queue suggestion and refreshes the panel", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -5957,7 +6004,12 @@ test("Discord interactions route stores a pending Spotify queue suggestion and r
     }
 
     if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
-      return new Response(JSON.stringify(null), {
+      return new Response(JSON.stringify(buildSpotifyConnectionRow({
+        discord_user_id: "123456789012345678",
+        spotify_user_id: "spotify-user-1",
+        spotify_product: "premium",
+        is_premium: true,
+      })), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -6026,14 +6078,110 @@ test("Discord interactions route stores a pending Spotify queue suggestion and r
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Suggestion added to the queue for host review.",
+        content: "Track added to the Spotify Club queue.",
         flags: 64,
       },
     });
-    assert.equal(observedQueueBodies[0]?.status, "pending");
+    assert.equal(observedQueueBodies[0]?.status, "approved");
+    assert.equal(observedQueueBodies[0]?.approval_state, "approved");
+    assert.equal(observedQueueBodies[0]?.playback_state, "queued");
     assert.equal(observedQueueBodies[0]?.spotify_uri, "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp");
     assert.equal(observedDiscordBodies.length, 1);
-    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Pending suggestions: 1/);
+    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Queue:\n- 1\. spotify:track:3n3Ppam7vgaVa1iaRUc9Lp \(Discord link\)/);
+    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Pending suggestions: 0/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route blocks normal queue adds in host-only approval mode", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  delete process.env.SPOTIFY_CLIENT_ID;
+  delete process.env.SPOTIFY_CLIENT_SECRET;
+
+  const originalFetch = globalThis.fetch;
+  let queueInsertCount = 0;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([buildSpotifyClubLobbyRow({
+        id: "lobby-1",
+        status: "open",
+        host_discord_user_id: "999999999999999999",
+        approval_mode: "host_only",
+      })]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify(buildSpotifyConnectionRow({
+        discord_user_id: "123456789012345678",
+        spotify_product: "premium",
+        is_premium: true,
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "POST") {
+      queueInsertCount += 1;
+      return new Response(JSON.stringify({}), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: "0",
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        name: "jam-queue",
+        options: [
+          {
+            type: 1,
+            name: "suggest",
+            options: [
+              {
+                type: 3,
+                name: "track",
+                value: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+              },
+            ],
+          },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "This Spotify Club room is host-only right now.",
+        flags: 64,
+      },
+    });
+    assert.equal(queueInsertCount, 0);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -6439,6 +6587,55 @@ test("Discord interactions route recreates the Spotify Club panel when Discord b
         ...body,
       };
       return new Response(JSON.stringify(currentLobby), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_room_members") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "PATCH") {
+      return new Response(JSON.stringify({
+        id: "abcdef12-0000-4000-8000-000000000000",
+        lobby_id: "lobby-1",
+        status: "approved",
+        source_type: "discord_link",
+        approval_state: "approved",
+        playback_state: "playing",
+        spotify_uri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotify_url: "https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp",
+        track_title: "Hey Ya!",
+        artist_name: "Outkast",
+        album_name: null,
+        duration_ms: null,
+        suggested_by_discord_user_id: "123456789012345678",
+        suggested_by_spotify_user_id: null,
+        approved_by_discord_user_id: "999999999999999999",
+        rejected_by_discord_user_id: null,
+        removed_by_discord_user_id: null,
+        rejection_reason: null,
+        removal_reason: null,
+        queue_position: 1,
+        dedupe_key: null,
+        mirror_first_seen_at: null,
+        mirror_last_seen_at: null,
+        display_position: 1,
+        cleared_reason: null,
+        approved_at: "2026-05-19T00:00:00.000Z",
+        rejected_at: null,
+        removed_at: null,
+        played_at: null,
+        skipped_at: null,
+        playback_started_at: "2026-05-19T00:00:00.000Z",
+        playback_finished_at: null,
+        created_at: "2026-05-19T00:00:00.000Z",
+        updated_at: "2026-05-19T00:00:00.000Z",
+      }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

@@ -2,15 +2,21 @@ import "server-only";
 
 import { Buffer } from "node:buffer";
 import { optionalEnv } from "@/lib/env";
-import { getLatestDiscordSpotifyLobby, type DiscordSpotifyLobbyRow } from "@/lib/spotify/lobbies";
+import { getLatestDiscordSpotifyLobby, type DiscordSpotifyApprovalMode, type DiscordSpotifyLobbyRow } from "@/lib/spotify/lobbies";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export type DiscordSpotifyQueueItemStatus = "pending" | "approved" | "rejected" | "removed" | "played" | "skipped";
+export type DiscordSpotifyQueueSourceType = "discord_search" | "discord_link" | "spotify_mirror";
+export type DiscordSpotifyQueueApprovalState = "pending" | "approved" | "rejected" | "removed";
+export type DiscordSpotifyQueuePlaybackState = "queued" | "playing" | "played" | "skipped" | "cleared";
 
 export type DiscordSpotifyQueueItemRow = {
   id: string;
   lobby_id: string | null;
   status: DiscordSpotifyQueueItemStatus;
+  source_type: DiscordSpotifyQueueSourceType;
+  approval_state: DiscordSpotifyQueueApprovalState;
+  playback_state: DiscordSpotifyQueuePlaybackState;
   spotify_uri: string;
   spotify_url: string | null;
   track_title: string | null;
@@ -25,11 +31,18 @@ export type DiscordSpotifyQueueItemRow = {
   rejection_reason: string | null;
   removal_reason: string | null;
   queue_position: number | null;
+  dedupe_key: string | null;
+  mirror_first_seen_at: string | null;
+  mirror_last_seen_at: string | null;
+  display_position: number | null;
+  cleared_reason: string | null;
   approved_at: string | null;
   rejected_at: string | null;
   removed_at: string | null;
   played_at: string | null;
   skipped_at: string | null;
+  playback_started_at: string | null;
+  playback_finished_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -66,6 +79,9 @@ const DISCORD_SPOTIFY_QUEUE_SELECT = [
   "id",
   "lobby_id",
   "status",
+  "source_type",
+  "approval_state",
+  "playback_state",
   "spotify_uri",
   "spotify_url",
   "track_title",
@@ -80,11 +96,18 @@ const DISCORD_SPOTIFY_QUEUE_SELECT = [
   "rejection_reason",
   "removal_reason",
   "queue_position",
+  "dedupe_key",
+  "mirror_first_seen_at",
+  "mirror_last_seen_at",
+  "display_position",
+  "cleared_reason",
   "approved_at",
   "rejected_at",
   "removed_at",
   "played_at",
   "skipped_at",
+  "playback_started_at",
+  "playback_finished_at",
   "created_at",
   "updated_at",
 ].join(", ");
@@ -98,6 +121,38 @@ function coerceQueueStatus(status: unknown): DiscordSpotifyQueueItemStatus | nul
     || status === "skipped"
     ? status
     : null;
+}
+
+function coerceSourceType(value: unknown): DiscordSpotifyQueueSourceType {
+  return value === "discord_search" || value === "spotify_mirror" ? value : "discord_link";
+}
+
+function coerceApprovalState(value: unknown, legacyStatus: DiscordSpotifyQueueItemStatus): DiscordSpotifyQueueApprovalState {
+  if (value === "pending" || value === "approved" || value === "rejected" || value === "removed") {
+    return value;
+  }
+
+  if (legacyStatus === "pending" || legacyStatus === "rejected" || legacyStatus === "removed") {
+    return legacyStatus;
+  }
+
+  return "approved";
+}
+
+function coercePlaybackState(value: unknown, legacyStatus: DiscordSpotifyQueueItemStatus): DiscordSpotifyQueuePlaybackState {
+  if (value === "queued" || value === "playing" || value === "played" || value === "skipped" || value === "cleared") {
+    return value;
+  }
+
+  if (legacyStatus === "played" || legacyStatus === "skipped") {
+    return legacyStatus;
+  }
+
+  if (legacyStatus === "removed") {
+    return "cleared";
+  }
+
+  return "queued";
 }
 
 function coerceQueueItemRow(row: unknown): DiscordSpotifyQueueItemRow | null {
@@ -122,6 +177,9 @@ function coerceQueueItemRow(row: unknown): DiscordSpotifyQueueItemRow | null {
     id: candidate.id,
     lobby_id: typeof candidate.lobby_id === "string" ? candidate.lobby_id : null,
     status,
+    source_type: coerceSourceType(candidate.source_type),
+    approval_state: coerceApprovalState(candidate.approval_state, status),
+    playback_state: coercePlaybackState(candidate.playback_state, status),
     spotify_uri: candidate.spotify_uri,
     spotify_url: typeof candidate.spotify_url === "string" ? candidate.spotify_url : null,
     track_title: typeof candidate.track_title === "string" ? candidate.track_title : null,
@@ -136,11 +194,30 @@ function coerceQueueItemRow(row: unknown): DiscordSpotifyQueueItemRow | null {
     rejection_reason: typeof candidate.rejection_reason === "string" ? candidate.rejection_reason : null,
     removal_reason: typeof candidate.removal_reason === "string" ? candidate.removal_reason : null,
     queue_position: typeof candidate.queue_position === "number" ? candidate.queue_position : null,
+    dedupe_key: typeof candidate.dedupe_key === "string" ? candidate.dedupe_key : null,
+    mirror_first_seen_at: typeof candidate.mirror_first_seen_at === "string" ? candidate.mirror_first_seen_at : null,
+    mirror_last_seen_at: typeof candidate.mirror_last_seen_at === "string" ? candidate.mirror_last_seen_at : null,
+    display_position: typeof candidate.display_position === "number"
+      ? candidate.display_position
+      : typeof candidate.queue_position === "number"
+        ? candidate.queue_position
+        : null,
+    cleared_reason: typeof candidate.cleared_reason === "string" ? candidate.cleared_reason : null,
     approved_at: typeof candidate.approved_at === "string" ? candidate.approved_at : null,
     rejected_at: typeof candidate.rejected_at === "string" ? candidate.rejected_at : null,
     removed_at: typeof candidate.removed_at === "string" ? candidate.removed_at : null,
     played_at: typeof candidate.played_at === "string" ? candidate.played_at : null,
     skipped_at: typeof candidate.skipped_at === "string" ? candidate.skipped_at : null,
+    playback_started_at: typeof candidate.playback_started_at === "string"
+      ? candidate.playback_started_at
+      : typeof candidate.played_at === "string"
+        ? candidate.played_at
+        : null,
+    playback_finished_at: typeof candidate.playback_finished_at === "string"
+      ? candidate.playback_finished_at
+      : typeof candidate.played_at === "string"
+        ? candidate.played_at
+        : null,
     created_at: candidate.created_at,
     updated_at: candidate.updated_at,
   };
@@ -154,6 +231,14 @@ function normalizeReason(value: string | null | undefined): string | null {
 function normalizeTrackDisplayValue(value: string | null | undefined): string | null {
   const normalized = String(value ?? "").trim().replace(/\s+/g, " ");
   return normalized ? normalized.slice(0, 200) : null;
+}
+
+export function buildDiscordSpotifyQueueDedupeKey(args: {
+  lobbyId: string;
+  spotifyUri: string;
+  sourceType: DiscordSpotifyQueueSourceType;
+}): string {
+  return `${args.lobbyId}:${args.sourceType}:${args.spotifyUri.toLowerCase()}`;
 }
 
 function optionalSpotifyClientId(): string | null {
@@ -303,6 +388,16 @@ function formatQueueTrackLabel(item: Pick<DiscordSpotifyQueueItemRow, "track_tit
   return item.spotify_uri;
 }
 
+export function formatQueueSourceLabel(sourceType: DiscordSpotifyQueueSourceType): string {
+  if (sourceType === "discord_search") {
+    return "Discord search";
+  }
+  if (sourceType === "spotify_mirror") {
+    return "Spotify mirror";
+  }
+  return "Discord link";
+}
+
 export function buildDiscordSpotifyQueuePreviewLines(summary: DiscordSpotifyQueueSummary): string[] {
   if (summary.approvedItems.length === 0) {
     return ["No approved tracks yet."];
@@ -310,7 +405,7 @@ export function buildDiscordSpotifyQueuePreviewLines(summary: DiscordSpotifyQueu
 
   return summary.approvedItems.slice(0, 3).map((item, index) => {
     const position = item.queue_position ?? index + 1;
-    return `${position}. ${formatQueueTrackLabel(item)}`;
+    return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)})`;
   });
 }
 
@@ -326,14 +421,15 @@ export function buildDiscordSpotifyQueueSummaryTextForViewer(
     ? ["No approved tracks yet."]
     : summary.approvedItems.slice(0, 10).map((item, index) => {
       const position = item.queue_position ?? index + 1;
-      return `${position}. ${formatQueueTrackLabel(item)}`;
+      const playbackLabel = item.playback_state === "playing" ? "Now playing" : "Queued";
+      return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)}, ${playbackLabel})`;
     });
 
   const pendingLines = summary.pendingItems.length === 0
     ? ["No pending suggestions."]
     : summary.pendingItems.slice(0, 10).map((item) => {
       const shortId = item.id.split("-")[0]?.slice(0, 8) ?? item.id;
-      return `- ${shortId}: ${formatQueueTrackLabel(item)}`;
+      return `- ${shortId}: ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)})`;
     });
 
   const viewerPendingLines = viewerDiscordUserId
@@ -371,11 +467,16 @@ export function buildDiscordSpotifyQueueActionSummary(args: {
   const reasonLine = args.reason ? ` Reason: ${args.reason}` : "";
 
   if (args.action === "suggested") {
+    if (args.item.approval_state === "approved") {
+      const position = args.item.display_position ?? args.item.queue_position ?? "?";
+      return `Queue added: \`${shortId}\` ${trackLabel} is now #${position}${actorLine}.`;
+    }
+
     return `Queue suggestion pending: \`${shortId}\` ${trackLabel}${actorLine}.`;
   }
 
   if (args.action === "approved") {
-    const position = args.item.queue_position ?? "?";
+    const position = args.item.display_position ?? args.item.queue_position ?? "?";
     return `Queue approved: \`${shortId}\` ${trackLabel} is now #${position}${actorLine}.${reasonLine}`;
   }
 
@@ -469,23 +570,99 @@ export async function getDiscordSpotifyQueueSummary(args: {
 }): Promise<DiscordSpotifyQueueSummary> {
   const items = await fetchLobbyQueueItems({
     lobbyId: args.lobbyId,
-    statuses: ["pending", "approved"],
+    statuses: ["pending", "approved", "played", "skipped"],
     admin: args.admin,
   });
 
   return {
-    approvedItems: items.filter((item) => item.status === "approved").sort((left, right) => {
-      const leftPosition = left.queue_position ?? Number.MAX_SAFE_INTEGER;
-      const rightPosition = right.queue_position ?? Number.MAX_SAFE_INTEGER;
+    approvedItems: items.filter((item) => (
+      item.approval_state === "approved"
+      && (item.playback_state === "queued" || item.playback_state === "playing")
+    )).sort((left, right) => {
+      const leftPosition = left.display_position ?? left.queue_position ?? Number.MAX_SAFE_INTEGER;
+      const rightPosition = right.display_position ?? right.queue_position ?? Number.MAX_SAFE_INTEGER;
       if (leftPosition !== rightPosition) {
         return leftPosition - rightPosition;
       }
       return left.created_at.localeCompare(right.created_at);
     }),
-    pendingItems: items.filter((item) => item.status === "pending").sort((left, right) => (
+    pendingItems: items.filter((item) => item.approval_state === "pending").sort((left, right) => (
       left.created_at.localeCompare(right.created_at)
     )),
   };
+}
+
+export async function getActiveDiscordSpotifyQueueItems(args: {
+  lobbyId: string;
+  admin?: SpotifyQueueAdminClient;
+}): Promise<DiscordSpotifyQueueItemRow[]> {
+  return fetchLobbyQueueItems({
+    lobbyId: args.lobbyId,
+    statuses: ["pending", "approved", "played", "skipped"],
+    admin: args.admin,
+  });
+}
+
+export async function insertMirroredDiscordSpotifyQueueItem(args: {
+  lobbyId: string;
+  spotifyUri: string;
+  spotifyUrl: string | null;
+  trackTitle: string | null;
+  artistName: string | null;
+  albumName: string | null;
+  durationMs: number | null;
+  displayPosition: number | null;
+  hostDiscordUserId: string;
+  firstSeenAt?: string;
+  admin?: SpotifyQueueAdminClient;
+}): Promise<DiscordSpotifyQueueItemRow> {
+  const admin = args.admin ?? supabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const seenAt = args.firstSeenAt ?? nowIso;
+  const displayPosition = args.displayPosition ?? await getNextQueuePosition(args.lobbyId, admin);
+
+  return insertQueueItem({
+    lobby_id: args.lobbyId,
+    status: "approved",
+    source_type: "spotify_mirror",
+    approval_state: "approved",
+    playback_state: "queued",
+    spotify_uri: args.spotifyUri,
+    spotify_url: args.spotifyUrl,
+    track_title: args.trackTitle,
+    artist_name: args.artistName,
+    album_name: args.albumName,
+    duration_ms: args.durationMs,
+    suggested_by_discord_user_id: args.hostDiscordUserId,
+    approved_by_discord_user_id: args.hostDiscordUserId,
+    queue_position: displayPosition,
+    display_position: displayPosition,
+    dedupe_key: buildDiscordSpotifyQueueDedupeKey({
+      lobbyId: args.lobbyId,
+      spotifyUri: args.spotifyUri,
+      sourceType: "spotify_mirror",
+    }),
+    mirror_first_seen_at: seenAt,
+    mirror_last_seen_at: nowIso,
+    approved_at: nowIso,
+    created_at: nowIso,
+    updated_at: nowIso,
+  }, admin);
+}
+
+export async function markDiscordSpotifyQueueItemMirrorSeen(args: {
+  queueItemId: string;
+  displayPosition: number | null;
+  admin?: SpotifyQueueAdminClient;
+}): Promise<DiscordSpotifyQueueItemRow> {
+  const admin = args.admin ?? supabaseAdmin();
+  const nowIso = new Date().toISOString();
+  return updateQueueItem(args.queueItemId, {
+    mirror_last_seen_at: nowIso,
+    display_position: args.displayPosition,
+    queue_position: args.displayPosition,
+    updated_at: nowIso,
+  }, admin);
 }
 
 export async function suggestDiscordSpotifyQueueItem(args: {
@@ -493,16 +670,25 @@ export async function suggestDiscordSpotifyQueueItem(args: {
   spotifyUrlOrUri: string;
   suggestedByDiscordUserId: string;
   suggestedBySpotifyUserId?: string | null;
+  approvalMode?: DiscordSpotifyApprovalMode;
+  sourceType?: Exclude<DiscordSpotifyQueueSourceType, "spotify_mirror">;
   admin?: SpotifyQueueAdminClient;
 }): Promise<DiscordSpotifyQueueItemRow> {
   const admin = args.admin ?? supabaseAdmin();
   const reference = parseSpotifyTrackReference(args.spotifyUrlOrUri);
   const metadata = await fetchSpotifyTrackMetadata(reference.trackId);
   const nowIso = new Date().toISOString();
+  const approvalMode = args.approvalMode ?? "auto_approve_jam_ready";
+  const sourceType = args.sourceType ?? "discord_link";
+  const approved = approvalMode === "auto_approve_jam_ready" || approvalMode === "host_only";
+  const queuePosition = approved ? await getNextQueuePosition(args.lobbyId, admin) : null;
 
   return insertQueueItem({
     lobby_id: args.lobbyId,
-    status: "pending",
+    status: approved ? "approved" : "pending",
+    source_type: sourceType,
+    approval_state: approved ? "approved" : "pending",
+    playback_state: "queued",
     spotify_uri: reference.spotifyUri,
     spotify_url: reference.spotifyUrl,
     track_title: metadata?.trackTitle ?? null,
@@ -511,6 +697,15 @@ export async function suggestDiscordSpotifyQueueItem(args: {
     duration_ms: metadata?.durationMs ?? null,
     suggested_by_discord_user_id: args.suggestedByDiscordUserId,
     suggested_by_spotify_user_id: args.suggestedBySpotifyUserId ?? null,
+    approved_by_discord_user_id: approved ? args.suggestedByDiscordUserId : null,
+    queue_position: queuePosition,
+    display_position: queuePosition,
+    dedupe_key: buildDiscordSpotifyQueueDedupeKey({
+      lobbyId: args.lobbyId,
+      spotifyUri: reference.spotifyUri,
+      sourceType,
+    }),
+    approved_at: approved ? nowIso : null,
     created_at: nowIso,
     updated_at: nowIso,
   }, admin);
@@ -546,7 +741,11 @@ export async function findDiscordSpotifyQueueItemByIdOrPrefix(args: {
 async function getNextQueuePosition(lobbyId: string, admin: SpotifyQueueAdminClient): Promise<number> {
   const items = await fetchLobbyQueueItems({ lobbyId, admin });
   const maxPosition = items.reduce((highest, item) => (
-    typeof item.queue_position === "number" && item.queue_position > highest ? item.queue_position : highest
+    typeof item.display_position === "number" && item.display_position > highest
+      ? item.display_position
+      : typeof item.queue_position === "number" && item.queue_position > highest
+        ? item.queue_position
+        : highest
   ), 0);
   return maxPosition + 1;
 }
@@ -567,7 +766,7 @@ export async function approveDiscordSpotifyQueueItem(args: {
   if (!item) {
     throw new Error("Queue item not found.");
   }
-  if (item.status !== "pending") {
+  if (item.approval_state !== "pending") {
     throw new Error("Only pending suggestions can be approved.");
   }
 
@@ -575,8 +774,11 @@ export async function approveDiscordSpotifyQueueItem(args: {
   const queuePosition = await getNextQueuePosition(args.lobbyId, admin);
   return updateQueueItem(item.id, {
     status: "approved",
+    approval_state: "approved",
+    playback_state: "queued",
     approved_by_discord_user_id: args.approvedByDiscordUserId,
     queue_position: queuePosition,
+    display_position: queuePosition,
     approved_at: nowIso,
     updated_at: nowIso,
   }, admin);
@@ -599,13 +801,14 @@ export async function rejectDiscordSpotifyQueueItem(args: {
   if (!item) {
     throw new Error("Queue item not found.");
   }
-  if (item.status !== "pending") {
+  if (item.approval_state !== "pending") {
     throw new Error("Only pending suggestions can be rejected.");
   }
 
   const nowIso = new Date().toISOString();
   return updateQueueItem(item.id, {
     status: "rejected",
+    approval_state: "rejected",
     rejected_by_discord_user_id: args.rejectedByDiscordUserId,
     rejection_reason: normalizeReason(args.reason),
     rejected_at: nowIso,
@@ -630,16 +833,82 @@ export async function removeDiscordSpotifyQueueItem(args: {
   if (!item) {
     throw new Error("Queue item not found.");
   }
-  if (item.status !== "pending" && item.status !== "approved") {
+  if (item.approval_state !== "pending" && item.approval_state !== "approved") {
     throw new Error("Only pending or approved queue items can be removed.");
   }
 
   const nowIso = new Date().toISOString();
   return updateQueueItem(item.id, {
     status: "removed",
+    approval_state: "removed",
+    playback_state: "cleared",
     removed_by_discord_user_id: args.removedByDiscordUserId,
     removal_reason: normalizeReason(args.reason),
+    cleared_reason: normalizeReason(args.reason) ?? "removed",
     removed_at: nowIso,
     updated_at: nowIso,
   }, admin);
+}
+
+export async function markDiscordSpotifyQueueItemPlaying(args: {
+  queueItemId: string;
+  lobbyId: string;
+  admin?: SpotifyQueueAdminClient;
+}): Promise<DiscordSpotifyQueueItemRow> {
+  const admin = args.admin ?? supabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const activeItems = await fetchLobbyQueueItems({
+    lobbyId: args.lobbyId,
+    statuses: ["approved"],
+    admin,
+  });
+
+  await Promise.all(activeItems
+    .filter((item) => item.playback_state === "playing" && item.id !== args.queueItemId)
+    .map((item) => updateQueueItem(item.id, {
+      status: "played",
+      playback_state: "played",
+      played_at: nowIso,
+      playback_finished_at: nowIso,
+      updated_at: nowIso,
+    }, admin)));
+
+  return updateQueueItem(args.queueItemId, {
+    status: "approved",
+    approval_state: "approved",
+    playback_state: "playing",
+    playback_started_at: nowIso,
+    updated_at: nowIso,
+  }, admin);
+}
+
+export async function clearActiveDiscordSpotifyQueueItems(args: {
+  lobbyId: string;
+  reason: "room_closed" | "host_disconnect";
+  admin?: SpotifyQueueAdminClient;
+}): Promise<void> {
+  const admin = args.admin ?? supabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const items = await fetchLobbyQueueItems({
+    lobbyId: args.lobbyId,
+    statuses: ["pending", "approved"],
+    admin,
+  });
+
+  await Promise.all(items
+    .filter((item) => (
+      item.approval_state === "pending"
+      || item.approval_state === "approved"
+      || item.playback_state === "queued"
+      || item.playback_state === "playing"
+    ))
+    .map((item) => updateQueueItem(item.id, {
+      status: item.approval_state === "pending" ? "removed" : "skipped",
+      approval_state: item.approval_state === "pending" ? "removed" : item.approval_state,
+      playback_state: "cleared",
+      cleared_reason: args.reason,
+      removed_at: item.approval_state === "pending" ? nowIso : item.removed_at,
+      skipped_at: item.approval_state === "approved" ? nowIso : item.skipped_at,
+      updated_at: nowIso,
+    }, admin)));
 }

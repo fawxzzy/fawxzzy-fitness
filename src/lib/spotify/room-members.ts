@@ -208,3 +208,25 @@ export async function leaveDiscordSpotifyRoom(args: {
 
   return row;
 }
+
+export async function leaveAllJoinedDiscordSpotifyRoomMembers(args: {
+  lobbyId: string;
+  admin?: SpotifyRoomMembersAdminClient;
+}): Promise<void> {
+  const admin = args.admin ?? supabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const { error } = await admin
+    .from("discord_spotify_room_members")
+    .update({
+      status: "left",
+      left_at: nowIso,
+      last_seen_at: nowIso,
+      updated_at: nowIso,
+    })
+    .eq("lobby_id", args.lobbyId)
+    .eq("status", "joined");
+
+  if (error) {
+    throw new Error(`Failed to clear Spotify room members: ${error.message}`);
+  }
+}

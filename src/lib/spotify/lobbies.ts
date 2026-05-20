@@ -3,6 +3,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export type DiscordSpotifyLobbyStatus = "open" | "closed";
+export type DiscordSpotifyApprovalMode = "auto_approve_jam_ready" | "review" | "host_only";
 
 export type DiscordSpotifyLobbyRow = {
   id: string;
@@ -13,6 +14,11 @@ export type DiscordSpotifyLobbyRow = {
   status: DiscordSpotifyLobbyStatus;
   host_discord_user_id: string | null;
   host_spotify_user_id: string | null;
+  approval_mode: DiscordSpotifyApprovalMode;
+  spotify_mirror_enabled: boolean;
+  spotify_mirror_last_synced_at: string | null;
+  spotify_mirror_error_count: number;
+  stop_playback_on_close: boolean;
   title: string | null;
   description: string | null;
   panel_channel_id: string | null;
@@ -36,6 +42,11 @@ const DISCORD_SPOTIFY_LOBBY_SELECT = [
   "status",
   "host_discord_user_id",
   "host_spotify_user_id",
+  "approval_mode",
+  "spotify_mirror_enabled",
+  "spotify_mirror_last_synced_at",
+  "spotify_mirror_error_count",
+  "stop_playback_on_close",
   "title",
   "description",
   "panel_channel_id",
@@ -48,6 +59,14 @@ const DISCORD_SPOTIFY_LOBBY_SELECT = [
 
 function coerceLobbyStatus(status: unknown): DiscordSpotifyLobbyStatus {
   return status === "open" ? "open" : "closed";
+}
+
+function coerceApprovalMode(value: unknown): DiscordSpotifyApprovalMode {
+  if (value === "review" || value === "host_only") {
+    return value;
+  }
+
+  return "auto_approve_jam_ready";
 }
 
 function coerceDiscordSpotifyLobbyRow(row: unknown): DiscordSpotifyLobbyRow | null {
@@ -73,6 +92,16 @@ function coerceDiscordSpotifyLobbyRow(row: unknown): DiscordSpotifyLobbyRow | nu
     status: coerceLobbyStatus(candidate.status),
     host_discord_user_id: typeof candidate.host_discord_user_id === "string" ? candidate.host_discord_user_id : null,
     host_spotify_user_id: typeof candidate.host_spotify_user_id === "string" ? candidate.host_spotify_user_id : null,
+    approval_mode: coerceApprovalMode(candidate.approval_mode),
+    spotify_mirror_enabled: candidate.spotify_mirror_enabled === true,
+    spotify_mirror_last_synced_at: typeof candidate.spotify_mirror_last_synced_at === "string"
+      ? candidate.spotify_mirror_last_synced_at
+      : null,
+    spotify_mirror_error_count: typeof candidate.spotify_mirror_error_count === "number"
+      && Number.isFinite(candidate.spotify_mirror_error_count)
+      ? candidate.spotify_mirror_error_count
+      : 0,
+    stop_playback_on_close: candidate.stop_playback_on_close === true,
     title: typeof candidate.title === "string" ? candidate.title : null,
     description: typeof candidate.description === "string" ? candidate.description : null,
     panel_channel_id: typeof candidate.panel_channel_id === "string" ? candidate.panel_channel_id : null,
@@ -94,6 +123,11 @@ function buildLobbyStatusPayload(args: {
   roomName?: string | null;
   visibility?: "public" | "private" | null;
   joinKeyHash?: string | null;
+  approvalMode?: DiscordSpotifyApprovalMode | null;
+  spotifyMirrorEnabled?: boolean | null;
+  spotifyMirrorLastSyncedAt?: string | null;
+  spotifyMirrorErrorCount?: number | null;
+  stopPlaybackOnClose?: boolean | null;
   panelChannelId?: string | null;
   panelMessageId?: string | null;
   openedAt?: string | null;
@@ -107,6 +141,11 @@ function buildLobbyStatusPayload(args: {
     room_name: args.roomName ?? "Main Room",
     visibility: args.visibility === "private" ? "private" : "public",
     join_key_hash: args.joinKeyHash ?? null,
+    approval_mode: args.approvalMode ?? "auto_approve_jam_ready",
+    spotify_mirror_enabled: args.spotifyMirrorEnabled ?? false,
+    spotify_mirror_last_synced_at: args.spotifyMirrorLastSyncedAt ?? null,
+    spotify_mirror_error_count: args.spotifyMirrorErrorCount ?? 0,
+    stop_playback_on_close: args.stopPlaybackOnClose ?? false,
     host_discord_user_id: args.hostDiscordUserId ?? null,
     host_spotify_user_id: args.hostSpotifyUserId ?? null,
     title: args.title ?? null,
@@ -219,6 +258,11 @@ export async function upsertDiscordSpotifyLobbyPanel(args: {
       roomName: "Main Room",
       visibility: "public",
       joinKeyHash: null,
+      approvalMode: "auto_approve_jam_ready",
+      spotifyMirrorEnabled: false,
+      spotifyMirrorLastSyncedAt: null,
+      spotifyMirrorErrorCount: 0,
+      stopPlaybackOnClose: false,
       panelChannelId: args.panelChannelId,
       panelMessageId: args.panelMessageId,
     }),
@@ -240,6 +284,11 @@ export async function openDiscordSpotifyLobby(args: {
     roomName: existing?.room_name ?? "Main Room",
     visibility: existing?.visibility ?? "public",
     joinKeyHash: existing?.join_key_hash ?? null,
+    approvalMode: existing?.approval_mode ?? "auto_approve_jam_ready",
+    spotifyMirrorEnabled: existing?.spotify_mirror_enabled ?? false,
+    spotifyMirrorLastSyncedAt: existing?.spotify_mirror_last_synced_at ?? null,
+    spotifyMirrorErrorCount: existing?.spotify_mirror_error_count ?? 0,
+    stopPlaybackOnClose: existing?.stop_playback_on_close ?? false,
     hostDiscordUserId: args.hostDiscordUserId,
     hostSpotifyUserId: args.hostSpotifyUserId ?? null,
     title: args.title ?? null,
@@ -266,6 +315,11 @@ export async function closeDiscordSpotifyLobby(
     roomName: existing?.room_name ?? "Main Room",
     visibility: existing?.visibility ?? "public",
     joinKeyHash: existing?.join_key_hash ?? null,
+    approvalMode: existing?.approval_mode ?? "auto_approve_jam_ready",
+    spotifyMirrorEnabled: existing?.spotify_mirror_enabled ?? false,
+    spotifyMirrorLastSyncedAt: existing?.spotify_mirror_last_synced_at ?? null,
+    spotifyMirrorErrorCount: existing?.spotify_mirror_error_count ?? 0,
+    stopPlaybackOnClose: existing?.stop_playback_on_close ?? false,
     hostDiscordUserId: existing?.host_discord_user_id ?? null,
     hostSpotifyUserId: existing?.host_spotify_user_id ?? null,
     title: existing?.title ?? null,
@@ -280,4 +334,37 @@ export async function closeDiscordSpotifyLobby(
   }
 
   return insertLobbyRow(values, admin);
+}
+
+export async function updateDiscordSpotifyLobbySettings(args: {
+  lobbyId: string;
+  approvalMode?: DiscordSpotifyApprovalMode;
+  spotifyMirrorEnabled?: boolean;
+  spotifyMirrorLastSyncedAt?: string | null;
+  spotifyMirrorErrorCount?: number;
+  stopPlaybackOnClose?: boolean;
+  admin?: SpotifyLobbiesAdminClient;
+}): Promise<DiscordSpotifyLobbyRow> {
+  const admin = args.admin ?? supabaseAdmin();
+  const values: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (args.approvalMode) {
+    values.approval_mode = args.approvalMode;
+  }
+  if (typeof args.spotifyMirrorEnabled === "boolean") {
+    values.spotify_mirror_enabled = args.spotifyMirrorEnabled;
+  }
+  if (args.spotifyMirrorLastSyncedAt !== undefined) {
+    values.spotify_mirror_last_synced_at = args.spotifyMirrorLastSyncedAt;
+  }
+  if (typeof args.spotifyMirrorErrorCount === "number" && Number.isFinite(args.spotifyMirrorErrorCount)) {
+    values.spotify_mirror_error_count = Math.max(0, Math.trunc(args.spotifyMirrorErrorCount));
+  }
+  if (typeof args.stopPlaybackOnClose === "boolean") {
+    values.stop_playback_on_close = args.stopPlaybackOnClose;
+  }
+
+  return updateLobbyRow(args.lobbyId, values, admin);
 }
