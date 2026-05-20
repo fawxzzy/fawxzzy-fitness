@@ -9,6 +9,7 @@ export type SpotifyTrackSearchResult = {
   trackTitle: string;
   artistName: string;
   albumName: string | null;
+  durationMs: number | null;
 };
 
 const SPOTIFY_SEARCH_API_URL = "https://api.spotify.com/v1/search";
@@ -81,7 +82,7 @@ export async function searchSpotifyTracks(query: string, args?: {
   const url = new URL(SPOTIFY_SEARCH_API_URL);
   url.searchParams.set("q", normalizedQuery);
   url.searchParams.set("type", "track");
-  url.searchParams.set("limit", String(Math.min(Math.max(args?.limit ?? 5, 1), 5)));
+  url.searchParams.set("limit", String(Math.min(Math.max(args?.limit ?? 10, 1), 10)));
   url.searchParams.set("market", args?.market?.trim() || "US");
 
   const response = await fetch(url, {
@@ -99,6 +100,7 @@ export async function searchSpotifyTracks(query: string, args?: {
         name?: unknown;
         artists?: Array<{ name?: unknown }> | null;
         album?: { name?: unknown } | null;
+        duration_ms?: unknown;
       }>;
     };
   } | null;
@@ -129,8 +131,22 @@ export async function searchSpotifyTracks(query: string, args?: {
       trackTitle,
       artistName,
       albumName: normalizeSearchDisplayValue(typeof item?.album?.name === "string" ? item.album.name : null),
+      durationMs: typeof item?.duration_ms === "number" && Number.isFinite(item.duration_ms) && item.duration_ms > 0
+        ? item.duration_ms
+        : null,
     }];
   });
+}
+
+function formatDuration(durationMs: number | null): string | null {
+  if (!durationMs) {
+    return null;
+  }
+
+  const totalSeconds = Math.round(durationMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export function formatSearchResultsForDiscord(results: SpotifyTrackSearchResult[]): Array<{
@@ -138,9 +154,12 @@ export function formatSearchResultsForDiscord(results: SpotifyTrackSearchResult[
   value: string;
   description: string;
 }> {
-  return results.slice(0, 5).map((result) => ({
+  return results.slice(0, 10).map((result) => ({
     label: normalizeSearchDisplayValue(`${result.trackTitle} - ${result.artistName}`, 100),
     value: result.spotifyUri,
-    description: normalizeSearchDisplayValue(result.albumName ? `Album: ${result.albumName}` : result.spotifyUrl, 100),
+    description: normalizeSearchDisplayValue([
+      result.albumName ? `Album: ${result.albumName}` : null,
+      formatDuration(result.durationMs),
+    ].filter(Boolean).join(" | ") || result.spotifyUrl, 100),
   }));
 }

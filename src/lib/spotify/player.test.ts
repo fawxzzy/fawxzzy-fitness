@@ -21,7 +21,7 @@ const baseConnection = {
   is_premium: true,
   encrypted_refresh_token: "ciphertext",
   access_token_expires_at: null,
-  scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state"],
+  scopes: ["user-read-private", "user-read-playback-state", "user-modify-playback-state", "user-read-currently-playing"],
   connected_at: "2026-05-19T00:00:00.000Z",
   last_checked_at: "2026-05-19T00:00:00.000Z",
   disconnected_at: null,

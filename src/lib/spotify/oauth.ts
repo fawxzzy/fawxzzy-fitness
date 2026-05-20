@@ -15,6 +15,10 @@ export const SPOTIFY_PHASE_4_PLAYBACK_SCOPES = [
   "user-read-playback-state",
   "user-modify-playback-state",
 ] as const;
+export const SPOTIFY_PHASE_6_LIVE_QUEUE_SCOPES = [
+  ...SPOTIFY_PHASE_4_PLAYBACK_SCOPES,
+  "user-read-currently-playing",
+] as const;
 const SPOTIFY_PKCE_VERIFIER_BYTES = 48;
 const SPOTIFY_OAUTH_STATE_MAX_AGE_MS = 15 * 60_000;
 
@@ -68,10 +72,15 @@ function uniqueSpotifyScopes(scopes: Iterable<string>): string[] {
 
 export function buildSpotifyAuthorizationScopes(args?: {
   includePlaybackScopes?: boolean;
+  includeLiveQueueScopes?: boolean;
 }): string[] {
   return uniqueSpotifyScopes([
     ...SPOTIFY_PHASE_1_SCOPES,
-    ...(args?.includePlaybackScopes ? SPOTIFY_PHASE_4_PLAYBACK_SCOPES : []),
+    ...(args?.includeLiveQueueScopes
+      ? SPOTIFY_PHASE_6_LIVE_QUEUE_SCOPES
+      : args?.includePlaybackScopes
+        ? SPOTIFY_PHASE_4_PLAYBACK_SCOPES
+        : []),
   ]);
 }
 
@@ -126,6 +135,7 @@ export function buildSpotifyAuthorizationUrl(
   discordUserId: string,
   args?: {
     includePlaybackScopes?: boolean;
+    includeLiveQueueScopes?: boolean;
   },
 ): SpotifyAuthorizationUrlResult {
   const codeVerifier = createSpotifyCodeVerifier();
@@ -136,6 +146,7 @@ export function buildSpotifyAuthorizationUrl(
   });
   const scopes = buildSpotifyAuthorizationScopes({
     includePlaybackScopes: args?.includePlaybackScopes,
+    includeLiveQueueScopes: args?.includeLiveQueueScopes,
   });
 
   const url = new URL(SPOTIFY_AUTHORIZE_URL);

@@ -135,6 +135,7 @@ import {
   FITNESS_SPOTIFY_COMMAND_NAME,
   FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_APPROVAL_MODE_TOGGLE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
@@ -142,6 +143,8 @@ import {
   FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_QUEUE_PENDING_APPROVE_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_QUEUE_PENDING_REJECT_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID,
@@ -150,6 +153,8 @@ import {
   FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_ROOM_CLOSE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_MIRROR_REFRESH_BUTTON_CUSTOM_ID,
+  FITNESS_SPOTIFY_MIRROR_TOGGLE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_SEARCH_QUERY_INPUT_CUSTOM_ID,
   FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
@@ -232,12 +237,15 @@ import {
   formatDiscordSpotifyLobbyStatusLabel,
   getLatestDiscordSpotifyLobby,
   openDiscordSpotifyLobby,
+  updateDiscordSpotifyLobbySettings,
   upsertDiscordSpotifyLobbyPanel,
+  type DiscordSpotifyApprovalMode,
 } from "@/lib/spotify/lobbies";
 import {
   countJoinedDiscordSpotifyRoomMembers,
   getDiscordSpotifyRoomMember,
   joinDiscordSpotifyRoom,
+  leaveAllJoinedDiscordSpotifyRoomMembers,
   leaveDiscordSpotifyRoom,
 } from "@/lib/spotify/room-members";
 import {
@@ -258,12 +266,15 @@ import {
   buildDiscordSpotifyQueueActionSummary,
   buildDiscordSpotifyQueuePreviewLines,
   buildDiscordSpotifyQueueSummaryTextForViewer,
+  clearActiveDiscordSpotifyQueueItems,
   getCurrentDiscordSpotifyLobbyForQueue,
   getDiscordSpotifyQueueSummary,
+  markDiscordSpotifyQueueItemPlaying,
   rejectDiscordSpotifyQueueItem,
   removeDiscordSpotifyQueueItem,
   suggestDiscordSpotifyQueueItem,
 } from "@/lib/spotify/queue";
+import { syncSpotifyMirrorForLobby } from "@/lib/spotify/mirror";
 import {
   buildSpotifyPlayerAccessToken,
   getActiveSpotifyDevice,
@@ -389,7 +400,9 @@ function interactionMatchesGuild(interaction: DiscordInteraction): boolean {
 
 async function buildSpotifyConnectResponse(discordUserId: string) {
   try {
-    const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUserId);
+    const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUserId, {
+      includeLiveQueueScopes: true,
+    });
     return buildDiscordEphemeralMessageResponse(
       `Connect Spotify to become Jam Ready for Spotify Club.\n${authorizationUrl}`,
     );
@@ -407,7 +420,7 @@ async function buildSpotifyConnectResponse(discordUserId: string) {
 async function buildSpotifyPlaybackUpgradeResponse(discordUserId: string) {
   try {
     const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUserId, {
-      includePlaybackScopes: true,
+      includeLiveQueueScopes: true,
     });
 
     return buildDiscordEphemeralMessageResponse(
@@ -586,6 +599,12 @@ async function buildSpotifyStartQueueResponse(discordUserId: string): Promise<st
     accessToken: readiness.accessToken,
   });
 
+  await markDiscordSpotifyQueueItemPlaying({
+    lobbyId: openLobby.id,
+    queueItemId: nextApprovedItem.id,
+  });
+  await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
+
   return "Starting the approved Spotify Club queue on your active Spotify device.";
 }
 
@@ -594,6 +613,12 @@ async function buildSpotifyDisconnectResponse(discordUserId: string) {
     const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
     if (openLobby) {
       try {
+        if (openLobby.host_discord_user_id === discordUserId) {
+          await clearActiveDiscordSpotifyQueueItems({
+            lobbyId: openLobby.id,
+            reason: "host_disconnect",
+          });
+        }
         await leaveDiscordSpotifyRoom({
           lobbyId: openLobby.id,
           discordUserId,
@@ -630,6 +655,16 @@ async function buildSpotifyDisconnectResponse(discordUserId: string) {
 
 async function getSpotifyClubRoomContext() {
   const lobby = await getLatestDiscordSpotifyLobby();
+  if (lobby?.status === "open" && lobby.spotify_mirror_enabled) {
+    await syncSpotifyMirrorForLobby(lobby).catch((error) => {
+      console.warn("[discord-interactions] spotify mirror context sync skipped", {
+        requestId: randomUUID(),
+        lobbyId: lobby.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    });
+  }
   const queueSummary = lobby
     ? await getDiscordSpotifyQueueSummary({ lobbyId: lobby.id })
     : { approvedItems: [], pendingItems: [] };
@@ -651,6 +686,29 @@ async function getSpotifyClubRoomContext() {
     queueSummary,
     joinedMemberCount,
   };
+}
+
+async function closeSpotifyRoomWithCleanup() {
+  const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
+  if (openLobby) {
+    await clearActiveDiscordSpotifyQueueItems({
+      lobbyId: openLobby.id,
+      reason: "room_closed",
+    });
+    await leaveAllJoinedDiscordSpotifyRoomMembers({
+      lobbyId: openLobby.id,
+    });
+  }
+
+  return closeDiscordSpotifyLobby();
+}
+
+async function syncSpotifyMirrorIfEnabled(lobby: Awaited<ReturnType<typeof getLatestDiscordSpotifyLobby>>) {
+  if (!lobby || lobby.status !== "open" || !lobby.spotify_mirror_enabled) {
+    return null;
+  }
+
+  return syncSpotifyMirrorForLobby(lobby);
 }
 
 async function getCurrentDiscordSpotifyRoomMembership(args: {
@@ -699,7 +757,7 @@ function buildSpotifyControlHubStatusLine(connection: Awaited<ReturnType<typeof 
   }
 
   if (!hasSpotifyPlaybackScopes(connection.scopes)) {
-    return "Spotify: Jam Ready. Reconnect Spotify to add playback handoff permissions.";
+    return "Spotify: Jam Ready. Upgrade Spotify access for live queue and playback handoff.";
   }
 
   return "Spotify: Jam Ready. Check your playback device before starting the queue on Spotify.";
@@ -757,6 +815,15 @@ function buildSpotifyControlHubMessageBody(args: {
   const queuePreviewLines = buildDiscordSpotifyQueuePreviewLines(args.state.queueSummary).map((line) => `- ${line}`);
   const approvedQueueCount = args.state.queueSummary.approvedItems.length;
   const pendingQueueCount = args.state.queueSummary.pendingItems.length;
+  const approvalModeLabel = args.state.lobby?.approval_mode === "review"
+    ? "Review"
+    : args.state.lobby?.approval_mode === "host_only"
+      ? "Host Only"
+      : "Auto for Jam Ready";
+  const mirrorLabel = args.state.lobby?.spotify_mirror_enabled ? "On" : "Off";
+  const mirrorFreshnessLine = args.state.lobby?.spotify_mirror_last_synced_at
+    ? `Mirror last synced: ${args.state.lobby.spotify_mirror_last_synced_at}`
+    : "Mirror last synced: Not yet.";
 
   return [
     "**Spotify Club Controls**",
@@ -767,6 +834,9 @@ function buildSpotifyControlHubMessageBody(args: {
     `Membership: ${membershipLabel}`,
     `Joined members: ${args.state.joinedMemberCount}`,
     buildSpotifyControlHubStatusLine(args.state.connection),
+    `Approval mode: ${approvalModeLabel}`,
+    `Live Spotify mirror: ${mirrorLabel}`,
+    mirrorFreshnessLine,
     `Queue: ${approvedQueueCount} approved / ${pendingQueueCount} pending`,
     ...queuePreviewLines,
     "",
@@ -782,6 +852,8 @@ function buildSpotifyControlHubComponents(args: {
   const joined = Boolean(args.state.membership);
   const roomOpen = Boolean(args.state.openLobby);
   const hasApprovedQueue = args.state.queueSummary.approvedItems.length > 0;
+  const reviewMode = args.state.lobby?.approval_mode === "review";
+  const hostOnlyMode = args.state.lobby?.approval_mode === "host_only";
   const components: Array<{
     type: 1;
     components: Array<{
@@ -806,23 +878,24 @@ function buildSpotifyControlHubComponents(args: {
       ],
     });
   } else if (!joined) {
+    const row = [];
+    if (roomOpen) {
+      row.push({
+        type: 2 as const,
+        style: 1 as const,
+        custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
+        label: "Join Spotify Club",
+      });
+    }
+    row.push({
+      type: 2 as const,
+      style: 4 as const,
+      custom_id: FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
+      label: "Disconnect Spotify Auth",
+    });
     components.push({
       type: 1,
-      components: [
-        {
-          type: 2,
-          style: 1,
-          custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
-          label: "Join Spotify Club",
-          disabled: !roomOpen,
-        },
-        {
-          type: 2,
-          style: 4,
-          custom_id: FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
-          label: "Disconnect Spotify Auth",
-        },
-      ],
+      components: row,
     });
   } else {
     components.push({
@@ -833,14 +906,12 @@ function buildSpotifyControlHubComponents(args: {
           style: 2,
           custom_id: FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID,
           label: "Search Track",
-          disabled: !roomOpen,
         },
         {
           type: 2,
           style: 2,
           custom_id: FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
-          label: "Suggest Track",
-          disabled: !roomOpen,
+          label: reviewMode ? "Suggest Track" : hostOnlyMode ? "Host Add" : "Add Track",
         },
         {
           type: 2,
@@ -858,22 +929,21 @@ function buildSpotifyControlHubComponents(args: {
           style: 2,
           custom_id: FITNESS_SPOTIFY_LEAVE_BUTTON_CUSTOM_ID,
           label: "Leave Jam",
-          disabled: !roomOpen,
         },
         {
           type: 2,
           style: 2,
           custom_id: FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
           label: "Check Playback Device",
-          disabled: !roomOpen,
         },
-        {
-          type: 2,
-          style: 1,
-          custom_id: FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
-          label: "Start Queue on Spotify",
-          disabled: !roomOpen || !hasApprovedQueue,
-        },
+        ...(roomOpen && hasApprovedQueue
+          ? [{
+            type: 2 as const,
+            style: 1 as const,
+            custom_id: FITNESS_SPOTIFY_START_QUEUE_BUTTON_CUSTOM_ID,
+            label: "Start Queue on Spotify",
+          }]
+          : []),
       ],
     });
     components.push({
@@ -890,32 +960,77 @@ function buildSpotifyControlHubComponents(args: {
   }
 
   if (args.state.canManageRoom) {
+    const roomButtons = [];
+    if (!roomOpen) {
+      roomButtons.push({
+        type: 2 as const,
+        style: 1 as const,
+        custom_id: FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID,
+        label: "Open Room",
+      });
+    } else {
+      roomButtons.push({
+        type: 2 as const,
+        style: 4 as const,
+        custom_id: FITNESS_SPOTIFY_ROOM_CLOSE_BUTTON_CUSTOM_ID,
+        label: "Close Room",
+      });
+    }
+    roomButtons.push({
+      type: 2 as const,
+      style: 2 as const,
+      custom_id: FITNESS_SPOTIFY_APPROVAL_MODE_TOGGLE_BUTTON_CUSTOM_ID,
+      label: reviewMode ? "Use Host Only" : hostOnlyMode ? "Use Auto Adds" : "Use Review Mode",
+    });
+    if (roomOpen) {
+      roomButtons.push({
+        type: 2 as const,
+        style: 2 as const,
+        custom_id: FITNESS_SPOTIFY_MIRROR_TOGGLE_BUTTON_CUSTOM_ID,
+        label: args.state.lobby?.spotify_mirror_enabled ? "Mirror Off" : "Mirror On",
+      });
+      if (args.state.lobby?.spotify_mirror_enabled) {
+        roomButtons.push({
+          type: 2 as const,
+          style: 2 as const,
+          custom_id: FITNESS_SPOTIFY_MIRROR_REFRESH_BUTTON_CUSTOM_ID,
+          label: "Refresh Mirror",
+        });
+      }
+    }
     components.push({
       type: 1,
-      components: [
-        {
-          type: 2,
-          style: roomOpen ? 2 : 1,
-          custom_id: FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID,
-          label: "Open Room",
-          disabled: roomOpen,
-        },
-        {
-          type: 2,
-          style: roomOpen ? 4 : 2,
-          custom_id: FITNESS_SPOTIFY_ROOM_CLOSE_BUTTON_CUSTOM_ID,
-          label: "Close Room",
-          disabled: !roomOpen,
-        },
-        {
-          type: 2,
-          style: 2,
-          custom_id: FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID,
-          label: "View Pending Suggestions",
-          disabled: !roomOpen,
-        },
-      ],
+      components: roomButtons,
     });
+    if (roomOpen && reviewMode) {
+      components.push({
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 2,
+            custom_id: FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID,
+            label: "View Pending Suggestions",
+          },
+          ...(args.state.queueSummary.pendingItems.length > 0
+            ? [
+              {
+                type: 2 as const,
+                style: 1 as const,
+                custom_id: FITNESS_SPOTIFY_QUEUE_PENDING_APPROVE_BUTTON_CUSTOM_ID,
+                label: "Approve Next",
+              },
+              {
+                type: 2 as const,
+                style: 4 as const,
+                custom_id: FITNESS_SPOTIFY_QUEUE_PENDING_REJECT_BUTTON_CUSTOM_ID,
+                label: "Reject Next",
+              },
+            ]
+            : []),
+        ],
+      });
+    }
   }
 
   return components;
@@ -2664,7 +2779,7 @@ async function handleJamLobbyInteraction(interaction: DiscordInteraction) {
   }
 
   if (subcommand.name === FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME) {
-    await closeDiscordSpotifyLobby();
+    await closeSpotifyRoomWithCleanup();
     const syncResult = await syncDiscordSpotifyClubPanelFromState();
 
     if (!syncResult.ok) {
@@ -2736,6 +2851,10 @@ function resolveSpotifyClubTestingChannelId(publicChannelId: string | null) {
 }
 
 async function buildSpotifyQueueCommandListResponse(lobbyId: string, viewerDiscordUserId?: string | null) {
+  const lobby = await getLatestDiscordSpotifyLobby();
+  if (lobby?.id === lobbyId) {
+    await syncSpotifyMirrorIfEnabled(lobby).catch(() => null);
+  }
   const summary = await getDiscordSpotifyQueueSummary({ lobbyId });
   return buildDiscordEphemeralMessageResponse(buildDiscordSpotifyQueueSummaryTextForViewer(summary, viewerDiscordUserId));
 }
@@ -2745,13 +2864,28 @@ async function handleSpotifyQueueSuggestion(args: {
   panelChannelId: string | null;
   discordUserId: string;
   spotifyUrlOrUri: string;
+  approvalMode: DiscordSpotifyApprovalMode;
+  sourceType?: "discord_search" | "discord_link";
+  canManageQueue?: boolean;
 }) {
   const connection = await getDiscordSpotifyConnection(args.discordUserId);
+  if (args.approvalMode === "host_only" && !args.canManageQueue) {
+    throw new Error("This Spotify Club room is host-only right now.");
+  }
+  if (!connection) {
+    throw new Error("Connect Spotify before adding tracks to Spotify Club.");
+  }
+  if (!connection.is_premium) {
+    throw new Error("Spotify Club queue adds require a Premium account to be Jam Ready.");
+  }
+
   const item = await suggestDiscordSpotifyQueueItem({
     lobbyId: args.lobbyId,
     spotifyUrlOrUri: args.spotifyUrlOrUri,
     suggestedByDiscordUserId: args.discordUserId,
     suggestedBySpotifyUserId: connection?.spotify_user_id ?? null,
+    approvalMode: args.approvalMode,
+    sourceType: args.sourceType ?? "discord_link",
   });
   const syncResult = await syncDiscordSpotifyClubPanelFromState();
   await postSpotifyClubQueueAuditMessage({
@@ -2763,11 +2897,15 @@ async function handleSpotifyQueueSuggestion(args: {
     }),
   });
 
+  const successMessage = item.approval_state === "approved"
+    ? "Track added to the Spotify Club queue."
+    : "Suggestion added to the queue for host review.";
+
   if (!syncResult.ok) {
-    return buildDiscordEphemeralMessageResponse("Suggestion added to the queue for host review. The panel could not be refreshed right now.");
+    return buildDiscordEphemeralMessageResponse(`${successMessage} The panel could not be refreshed right now.`);
   }
 
-  return buildDiscordEphemeralMessageResponse("Suggestion added to the queue for host review.");
+  return buildDiscordEphemeralMessageResponse(successMessage);
 }
 
 async function requireJoinedSpotifyRoom(args: {
@@ -2799,6 +2937,8 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
     return buildSpotifyQueueLobbyClosedResponse();
   }
 
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
+
   if (subcommand.name === FITNESS_JAM_QUEUE_SUGGEST_SUBCOMMAND_NAME) {
     const spotifyUrlOrUri = extractDiscordCommandStringOption(subcommand.options, FITNESS_JAM_QUEUE_TRACK_OPTION_NAME);
     if (!spotifyUrlOrUri) {
@@ -2811,6 +2951,13 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
         panelChannelId: latestLobby.panel_channel_id,
         discordUserId: discordUser.id,
         spotifyUrlOrUri,
+        approvalMode: latestLobby.approval_mode,
+        sourceType: "discord_link",
+        canManageQueue: spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId: discordUser.id,
+          lobbyHostDiscordUserId: latestLobby.host_discord_user_id,
+        }),
       });
     } catch (error) {
       return buildDiscordEphemeralMessageResponse(
@@ -2823,7 +2970,6 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
     return buildSpotifyQueueCommandListResponse(latestLobby.id, discordUser.id);
   }
 
-  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
   if (!spotifyQueueManagementAllowed({
     permissions,
     discordUserId: discordUser.id,
@@ -2920,6 +3066,7 @@ async function handleSpotifyQueueSuggestModalSubmit(interaction: DiscordInteract
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
   const latestLobby = await getCurrentDiscordSpotifyLobbyForQueue();
   const spotifyUrlOrUri = extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_SPOTIFY_TRACK_INPUT_CUSTOM_ID);
 
@@ -2941,6 +3088,13 @@ async function handleSpotifyQueueSuggestModalSubmit(interaction: DiscordInteract
       panelChannelId: latestLobby.panel_channel_id,
       discordUserId: discordUser.id,
       spotifyUrlOrUri,
+      approvalMode: latestLobby.approval_mode,
+      sourceType: "discord_link",
+      canManageQueue: spotifyQueueManagementAllowed({
+        permissions,
+        discordUserId: discordUser.id,
+        lobbyHostDiscordUserId: latestLobby.host_discord_user_id,
+      }),
     });
   } catch (error) {
     return buildDiscordEphemeralMessageResponse(
@@ -2955,6 +3109,7 @@ async function handleSpotifyQueueSearchModalSubmit(interaction: DiscordInteracti
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
+  const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
   const latestLobby = await getCurrentDiscordSpotifyLobbyForQueue();
   const query = extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_SPOTIFY_SEARCH_QUERY_INPUT_CUSTOM_ID);
 
@@ -2972,7 +3127,23 @@ async function handleSpotifyQueueSearchModalSubmit(interaction: DiscordInteracti
       discordUserId: discordUser.id,
     });
 
-    const results = await searchSpotifyTracks(query, { limit: 5, market: "US" });
+    if (/spotify:track:[A-Za-z0-9]{22}/i.test(query) || /open\.spotify\.com\/track\/[A-Za-z0-9]{22}/i.test(query)) {
+      return await handleSpotifyQueueSuggestion({
+        lobbyId: latestLobby.id,
+        panelChannelId: latestLobby.panel_channel_id,
+        discordUserId: discordUser.id,
+        spotifyUrlOrUri: query,
+        approvalMode: latestLobby.approval_mode,
+        sourceType: "discord_link",
+        canManageQueue: spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId: discordUser.id,
+          lobbyHostDiscordUserId: latestLobby.host_discord_user_id,
+        }),
+      });
+    }
+
+    const results = await searchSpotifyTracks(query, { limit: 10, market: "US" });
     const options = formatSearchResultsForDiscord(results);
     if (options.length === 0) {
       return buildDiscordEphemeralMessageResponse(`No Spotify tracks matched "${query.trim()}". Try a different search.`);
@@ -3029,6 +3200,13 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         panelChannelId: openLobby.panel_channel_id,
         discordUserId,
         spotifyUrlOrUri: spotifyUri,
+        approvalMode: openLobby.approval_mode,
+        sourceType: "discord_search",
+        canManageQueue: spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId,
+          lobbyHostDiscordUserId: openLobby.host_discord_user_id,
+        }),
       });
     } catch (error) {
       return buildDiscordEphemeralMessageResponse(
@@ -3202,6 +3380,12 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         await disconnectDiscordSpotifyConnection(discordUserId);
         if (openLobby) {
           try {
+            if (openLobby.host_discord_user_id === discordUserId) {
+              await clearActiveDiscordSpotifyQueueItems({
+                lobbyId: openLobby.id,
+                reason: "host_disconnect",
+              });
+            }
             await leaveDiscordSpotifyRoom({
               lobbyId: openLobby.id,
               discordUserId,
@@ -3286,6 +3470,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           });
         }
 
+        await syncSpotifyMirrorIfEnabled(openLobby).catch(() => null);
         return buildSpotifyControlHubEditBodyForUser({
           discordUserId,
           permissions,
@@ -3462,7 +3647,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           });
         }
 
-        await closeDiscordSpotifyLobby();
+        await closeSpotifyRoomWithCleanup();
         const syncResult = await syncDiscordSpotifyClubPanelFromState();
         return buildSpotifyControlHubEditBodyForUser({
           discordUserId,
@@ -3473,6 +3658,186 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         });
       },
       genericFailureContent: "Spotify Club could not close the room right now. Try again in a moment.",
+    });
+  }
+
+  if (customId === FITNESS_SPOTIFY_APPROVAL_MODE_TOGGLE_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-approval-mode-toggle-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club approval mode could not be updated right now. Try again in a moment.",
+      }),
+      process: async () => {
+        const lobby = await getLatestDiscordSpotifyLobby();
+        if (!lobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club room settings are not available yet.",
+          });
+        }
+
+        if (!spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId,
+          lobbyHostDiscordUserId: lobby.host_discord_user_id,
+        })) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "You do not have permission to manage the Spotify Club room.",
+          });
+        }
+
+        const nextMode: DiscordSpotifyApprovalMode = lobby.approval_mode === "auto_approve_jam_ready"
+          ? "review"
+          : lobby.approval_mode === "review"
+            ? "host_only"
+            : "auto_approve_jam_ready";
+        await updateDiscordSpotifyLobbySettings({
+          lobbyId: lobby.id,
+          approvalMode: nextMode,
+        });
+        await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
+
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: nextMode === "auto_approve_jam_ready"
+            ? "Approval mode is now Auto for Jam Ready users. New Jam Ready adds go straight into the queue."
+            : nextMode === "review"
+              ? "Approval mode is now Review. New adds wait for host approval."
+              : "Approval mode is now Host Only. Only the host or staff can add tracks.",
+        });
+      },
+      genericFailureContent: "Spotify Club approval mode could not be updated right now. Try again in a moment.",
+    });
+  }
+
+  if (customId === FITNESS_SPOTIFY_MIRROR_TOGGLE_BUTTON_CUSTOM_ID || customId === FITNESS_SPOTIFY_MIRROR_REFRESH_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-mirror-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify live queue mirror could not be updated right now. Try again in a moment.",
+      }),
+      process: async () => {
+        const lobby = await getCurrentDiscordSpotifyLobbyForQueue();
+        if (!lobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. Open a room before using live queue mirror.",
+          });
+        }
+
+        if (!spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId,
+          lobbyHostDiscordUserId: lobby.host_discord_user_id,
+        })) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "You do not have permission to manage the Spotify Club room.",
+          });
+        }
+
+        const nextEnabled = customId === FITNESS_SPOTIFY_MIRROR_REFRESH_BUTTON_CUSTOM_ID
+          ? lobby.spotify_mirror_enabled
+          : !lobby.spotify_mirror_enabled;
+        const updatedLobby = await updateDiscordSpotifyLobbySettings({
+          lobbyId: lobby.id,
+          spotifyMirrorEnabled: nextEnabled,
+        });
+        const syncResult = nextEnabled ? await syncSpotifyMirrorForLobby(updatedLobby) : null;
+        await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
+
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: nextEnabled
+            ? syncResult?.ok
+              ? `Live Spotify mirror synced ${syncResult.queueSize} queued tracks.`
+              : syncResult?.message ?? "Live Spotify mirror is on. It will sync when Spotify is available."
+            : "Live Spotify mirror is off.",
+        });
+      },
+      genericFailureContent: "Spotify live queue mirror could not be updated right now. Try again in a moment.",
+    });
+  }
+
+  if (customId === FITNESS_SPOTIFY_QUEUE_PENDING_APPROVE_BUTTON_CUSTOM_ID || customId === FITNESS_SPOTIFY_QUEUE_PENDING_REJECT_BUTTON_CUSTOM_ID) {
+    return buildDeferredDiscordEphemeralInteractionResponse({
+      interaction,
+      actionLabel: "spotify-pending-action-button",
+      fallback: async () => buildSpotifyControlHubResponseForUser({
+        discordUserId,
+        permissions,
+        notice: "Spotify Club pending suggestion could not be updated right now. Try again in a moment.",
+      }),
+      process: async () => {
+        const lobby = await getCurrentDiscordSpotifyLobbyForQueue();
+        if (!lobby) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "Spotify Club lobby is Closed. Open a room before reviewing pending suggestions.",
+          });
+        }
+
+        if (!spotifyQueueManagementAllowed({
+          permissions,
+          discordUserId,
+          lobbyHostDiscordUserId: lobby.host_discord_user_id,
+        })) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "You do not have permission to manage the Spotify Club queue.",
+          });
+        }
+
+        const summary = await getDiscordSpotifyQueueSummary({ lobbyId: lobby.id });
+        const nextPending = summary.pendingItems[0];
+        if (!nextPending) {
+          return buildSpotifyControlHubEditBodyForUser({
+            discordUserId,
+            permissions,
+            notice: "No pending suggestions need review.",
+          });
+        }
+
+        const item = customId === FITNESS_SPOTIFY_QUEUE_PENDING_APPROVE_BUTTON_CUSTOM_ID
+          ? await approveDiscordSpotifyQueueItem({
+            queueItemIdOrPrefix: nextPending.id,
+            lobbyId: lobby.id,
+            approvedByDiscordUserId: discordUserId,
+          })
+          : await rejectDiscordSpotifyQueueItem({
+            queueItemIdOrPrefix: nextPending.id,
+            lobbyId: lobby.id,
+            rejectedByDiscordUserId: discordUserId,
+            reason: "Rejected from Spotify Club controls.",
+          });
+        await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
+
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+          notice: buildDiscordSpotifyQueueActionSummary({
+            action: customId === FITNESS_SPOTIFY_QUEUE_PENDING_APPROVE_BUTTON_CUSTOM_ID ? "approved" : "rejected",
+            item,
+            actorDiscordUserId: discordUserId,
+          }),
+        });
+      },
+      genericFailureContent: "Spotify Club pending suggestion could not be updated right now. Try again in a moment.",
     });
   }
 
