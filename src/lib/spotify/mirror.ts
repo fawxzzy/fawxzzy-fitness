@@ -9,6 +9,7 @@ import {
   insertMirroredDiscordSpotifyQueueItem,
   markDiscordSpotifyQueueItemMirrorSeen,
   markDiscordSpotifyQueueItemPlaying,
+  reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot,
   type DiscordSpotifyQueueItemRow,
 } from "@/lib/spotify/queue";
 
@@ -37,6 +38,14 @@ export type SpotifyMirrorReconcilePlan = {
 function isActiveApprovedQueueItem(item: DiscordSpotifyQueueItemRow): boolean {
   return item.approval_state === "approved"
     && (item.playback_state === "queued" || item.playback_state === "playing");
+}
+
+function hasRoomManagedPlaybackInProgress(items: DiscordSpotifyQueueItemRow[]): boolean {
+  return items.some((item) => (
+    item.source_type !== "spotify_mirror"
+    && item.approval_state === "approved"
+    && item.playback_state === "playing"
+  ));
 }
 
 function findMirrorMergeCandidate(args: {
@@ -70,6 +79,7 @@ function findDiscordOwnedCoverageCandidate(args: {
 export function reconcileSpotifyMirrorSnapshot(args: {
   snapshot: SpotifyQueueSnapshot;
   existingItems: DiscordSpotifyQueueItemRow[];
+  roomManagedPlaybackInProgress?: boolean;
 }): SpotifyMirrorReconcilePlan {
   const usedItemIds = new Set<string>();
   const merges: SpotifyMirrorReconcilePlan["merges"] = [];
@@ -120,6 +130,7 @@ export function reconcileSpotifyMirrorSnapshot(args: {
     ? args.existingItems.find((item) => (
       item.spotify_uri.toLowerCase() === currentUri
       && isActiveApprovedQueueItem(item)
+      && (item.source_type === "spotify_mirror" || args.roomManagedPlaybackInProgress)
     )) ?? null
     : null;
 
@@ -153,7 +164,12 @@ export async function syncSpotifyMirrorForLobby(lobby: DiscordSpotifyLobbyRow): 
     const accessToken = await buildSpotifyPlayerAccessToken(connection);
     const snapshot = await getSpotifyQueueSnapshot(connection, accessToken);
     const existingItems = await getActiveDiscordSpotifyQueueItems({ lobbyId: lobby.id });
-    const plan = reconcileSpotifyMirrorSnapshot({ snapshot, existingItems });
+    const roomManagedPlaybackInProgress = hasRoomManagedPlaybackInProgress(existingItems);
+    const plan = reconcileSpotifyMirrorSnapshot({
+      snapshot,
+      existingItems,
+      roomManagedPlaybackInProgress,
+    });
 
     await Promise.all(plan.merges.map((merge) => markDiscordSpotifyQueueItemMirrorSeen({
       queueItemId: merge.queueItemId,
@@ -173,12 +189,21 @@ export async function syncSpotifyMirrorForLobby(lobby: DiscordSpotifyLobbyRow): 
       });
     }
 
+    const activeSpotifyUris = [
+      ...(snapshot.currentlyPlaying ? [snapshot.currentlyPlaying.spotifyUri] : []),
+      ...snapshot.queue.map((track) => track.spotifyUri),
+    ];
+
+    if (roomManagedPlaybackInProgress) {
+      await reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot({
+        lobbyId: lobby.id,
+        activeSpotifyUris,
+      });
+    }
+
     await clearStaleMirroredDiscordSpotifyQueueItems({
       lobbyId: lobby.id,
-      activeSpotifyUris: [
-        ...snapshot.queue.map((track) => track.spotifyUri),
-        ...(snapshot.currentlyPlaying ? [snapshot.currentlyPlaying.spotifyUri] : []),
-      ],
+      activeSpotifyUris,
     });
 
     await updateDiscordSpotifyLobbySettings({

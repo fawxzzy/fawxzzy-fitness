@@ -7,11 +7,53 @@ import {
   buildDiscordSpotifyQueueSummaryText,
   clearStaleMirroredDiscordSpotifyQueueItems,
   fetchSpotifyTrackMetadata,
+  planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot,
   parseSpotifyTrackReference,
   rejectDiscordSpotifyQueueItem,
   removeDiscordSpotifyQueueItem,
   suggestDiscordSpotifyQueueItem,
+  type DiscordSpotifyQueueItemRow,
 } from "./queue.ts";
+
+function queueItem(overrides: Partial<DiscordSpotifyQueueItemRow>): DiscordSpotifyQueueItemRow {
+  return {
+    id: "queue-1",
+    lobby_id: "lobby-1",
+    status: "approved",
+    source_type: "discord_search",
+    approval_state: "approved",
+    playback_state: "queued",
+    spotify_uri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+    spotify_url: null,
+    track_title: "Hey Ya!",
+    artist_name: "Outkast",
+    album_name: null,
+    duration_ms: null,
+    suggested_by_discord_user_id: "123456789012345678",
+    suggested_by_spotify_user_id: null,
+    approved_by_discord_user_id: "123456789012345678",
+    rejected_by_discord_user_id: null,
+    removed_by_discord_user_id: null,
+    rejection_reason: null,
+    removal_reason: null,
+    queue_position: 1,
+    dedupe_key: null,
+    mirror_first_seen_at: null,
+    mirror_last_seen_at: null,
+    display_position: 1,
+    cleared_reason: null,
+    approved_at: null,
+    rejected_at: null,
+    removed_at: null,
+    played_at: null,
+    skipped_at: null,
+    playback_started_at: null,
+    playback_finished_at: null,
+    created_at: "2026-05-20T00:00:00.000Z",
+    updated_at: "2026-05-20T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 test("parseSpotifyTrackReference accepts Spotify track URLs", () => {
   assert.deepEqual(
@@ -40,6 +82,55 @@ test("parseSpotifyTrackReference rejects non-track input", () => {
     () => parseSpotifyTrackReference("https://open.spotify.com/playlist/37i9dQZF1DX4WYpdgoIcn6"),
     /Only Spotify track URLs/,
   );
+});
+
+test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot retires played and skipped rows missing from Spotify", () => {
+  const inactive = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
+    activeSpotifyUris: ["spotify:track:1111111111111111111111"],
+    activeItems: [
+      queueItem({
+        id: "playing-missing",
+        playback_state: "playing",
+        spotify_uri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+      }),
+      queueItem({
+        id: "queued-present",
+        spotify_uri: "spotify:track:1111111111111111111111",
+        display_position: 2,
+      }),
+      queueItem({
+        id: "queued-missing",
+        spotify_uri: "spotify:track:2222222222222222222222",
+        display_position: 3,
+      }),
+    ],
+  });
+
+  assert.deepEqual(inactive.map((item) => item.id), ["playing-missing", "queued-missing"]);
+});
+
+test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot is count-aware for repeated tracks", () => {
+  const inactive = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
+    activeSpotifyUris: ["spotify:track:3n3Ppam7vgaVa1iaRUc9Lp"],
+    activeItems: [
+      queueItem({ id: "repeat-1", display_position: 1 }),
+      queueItem({ id: "repeat-2", display_position: 2 }),
+    ],
+  });
+
+  assert.deepEqual(inactive.map((item) => item.id), ["repeat-2"]);
+});
+
+test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot ignores history rows", () => {
+  const inactive = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
+    activeSpotifyUris: [],
+    activeItems: [
+      queueItem({ id: "played", status: "played", playback_state: "played" }),
+      queueItem({ id: "skipped", status: "skipped", playback_state: "skipped" }),
+    ],
+  });
+
+  assert.deepEqual(inactive, []);
 });
 
 test("suggestDiscordSpotifyQueueItem creates a pending queue item in review mode", async () => {

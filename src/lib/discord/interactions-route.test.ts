@@ -5798,7 +5798,7 @@ test("Discord interactions route starts the approved queue on the user's active 
     }), keyPair));
 
     assert.equal(response.status, 202);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Starting the approved Spotify Club queue on your active Spotify device\./);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Starting 1 Spotify Club track on your active Spotify device\./);
     assert.deepEqual(observedSpotifyCalls.some((call) => call.path === "/v1/me/player/queue"), false);
     assert.equal(observedSpotifyCalls.some((call) => String(call.path).startsWith("/v1/me/player/play?device_id=device-1")), true);
     const playCall = observedSpotifyCalls.find((call) => String(call.path).startsWith("/v1/me/player/play?device_id=device-1"));
@@ -6087,8 +6087,8 @@ test("Discord interactions route stores an auto-approved Spotify queue suggestio
     assert.equal(observedQueueBodies[0]?.playback_state, "queued");
     assert.equal(observedQueueBodies[0]?.spotify_uri, "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp");
     assert.equal(observedDiscordBodies.length, 1);
-    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Queue:\n- 1\. spotify:track:3n3Ppam7vgaVa1iaRUc9Lp \(Discord link\)/);
-    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Pending suggestions: 0/);
+    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Now \/ next: 1\. spotify:track:3n3Ppam7vgaVa1iaRUc9Lp \(Discord link\)/);
+    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Queue: 1 active \/ 0 pending/);
   } finally {
     globalThis.fetch = originalFetch;
   }

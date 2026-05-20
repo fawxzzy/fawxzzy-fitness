@@ -374,7 +374,7 @@ export async function fetchSpotifyTrackMetadata(trackId: string): Promise<Spotif
   };
 }
 
-function formatQueueTrackLabel(item: Pick<DiscordSpotifyQueueItemRow, "track_title" | "artist_name" | "spotify_uri">): string {
+export function formatQueueTrackLabel(item: Pick<DiscordSpotifyQueueItemRow, "track_title" | "artist_name" | "spotify_uri">): string {
   const title = item.track_title?.trim();
   const artist = item.artist_name?.trim();
   if (title && artist) {
@@ -603,6 +603,32 @@ export async function getActiveDiscordSpotifyQueueItems(args: {
   });
 }
 
+export async function getRecentDiscordSpotifyQueueHistory(args: {
+  lobbyId: string;
+  limit?: number;
+  admin?: SpotifyQueueAdminClient;
+}): Promise<DiscordSpotifyQueueItemRow[]> {
+  const limit = Math.max(1, Math.min(args.limit ?? 5, 20));
+  const items = await fetchLobbyQueueItems({
+    lobbyId: args.lobbyId,
+    statuses: ["approved", "played", "skipped", "removed"],
+    admin: args.admin,
+  });
+
+  return items
+    .filter((item) => (
+      item.playback_state === "played"
+      || item.playback_state === "skipped"
+      || item.playback_state === "cleared"
+    ))
+    .sort((left, right) => {
+      const leftTime = left.playback_finished_at ?? left.skipped_at ?? left.removed_at ?? left.updated_at;
+      const rightTime = right.playback_finished_at ?? right.skipped_at ?? right.removed_at ?? right.updated_at;
+      return rightTime.localeCompare(leftTime);
+    })
+    .slice(0, limit);
+}
+
 export async function insertMirroredDiscordSpotifyQueueItem(args: {
   lobbyId: string;
   spotifyUri: string;
@@ -720,6 +746,89 @@ export async function clearStaleMirroredDiscordSpotifyQueueItems(args: {
   }, admin)));
 
   return staleMirrorItems.length;
+}
+
+export function planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot(args: {
+  activeItems: DiscordSpotifyQueueItemRow[];
+  activeSpotifyUris: string[];
+}): DiscordSpotifyQueueItemRow[] {
+  const activeUriCounts = args.activeSpotifyUris.reduce((counts, uri) => {
+    const normalizedUri = uri.trim().toLowerCase();
+    if (normalizedUri) {
+      counts.set(normalizedUri, (counts.get(normalizedUri) ?? 0) + 1);
+    }
+    return counts;
+  }, new Map<string, number>());
+  const inactiveItems: DiscordSpotifyQueueItemRow[] = [];
+
+  args.activeItems
+    .filter((item) => (
+      item.approval_state === "approved"
+      && (item.playback_state === "queued" || item.playback_state === "playing")
+    ))
+    .sort((left, right) => {
+      if (left.playback_state !== right.playback_state) {
+        return left.playback_state === "playing" ? -1 : 1;
+      }
+      const leftPosition = left.display_position ?? left.queue_position ?? Number.MAX_SAFE_INTEGER;
+      const rightPosition = right.display_position ?? right.queue_position ?? Number.MAX_SAFE_INTEGER;
+      if (leftPosition !== rightPosition) {
+        return leftPosition - rightPosition;
+      }
+      return left.created_at.localeCompare(right.created_at);
+    })
+    .forEach((item) => {
+      const normalizedUri = item.spotify_uri.toLowerCase();
+      const remainingCount = activeUriCounts.get(normalizedUri) ?? 0;
+      if (remainingCount > 0) {
+        activeUriCounts.set(normalizedUri, remainingCount - 1);
+        return;
+      }
+
+      inactiveItems.push(item);
+    });
+
+  return inactiveItems;
+}
+
+export async function reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot(args: {
+  lobbyId: string;
+  activeSpotifyUris: string[];
+  admin?: SpotifyQueueAdminClient;
+}): Promise<number> {
+  const admin = args.admin ?? supabaseAdmin();
+  const nowIso = new Date().toISOString();
+  const activeItems = await fetchLobbyQueueItems({
+    lobbyId: args.lobbyId,
+    statuses: ["approved"],
+    admin,
+  });
+  const inactiveItems = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
+    activeItems,
+    activeSpotifyUris: args.activeSpotifyUris,
+  });
+
+  await Promise.all(inactiveItems.map((item) => {
+    if (item.playback_state === "playing") {
+      return updateQueueItem(item.id, {
+        status: "played",
+        playback_state: "played",
+        played_at: item.played_at ?? nowIso,
+        playback_finished_at: item.playback_finished_at ?? nowIso,
+        updated_at: nowIso,
+      }, admin);
+    }
+
+    return updateQueueItem(item.id, {
+      status: "skipped",
+      playback_state: "skipped",
+      cleared_reason: "missing_from_latest_playback_snapshot",
+      skipped_at: item.skipped_at ?? nowIso,
+      updated_at: nowIso,
+    }, admin);
+  }));
+
+  return inactiveItems.length;
 }
 
 export async function suggestDiscordSpotifyQueueItem(args: {

@@ -186,6 +186,7 @@ test("reconcileSpotifyMirrorSnapshot dedupes repeated mirror sync rows", () => {
 test("reconcileSpotifyMirrorSnapshot marks matching current playback", () => {
   const plan = reconcileSpotifyMirrorSnapshot({
     existingItems: [queueItem({ id: "current-item" })],
+    roomManagedPlaybackInProgress: true,
     snapshot: {
       currentlyPlaying: {
         spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
@@ -200,4 +201,54 @@ test("reconcileSpotifyMirrorSnapshot marks matching current playback", () => {
   });
 
   assert.equal(plan.currentlyPlayingItemId, "current-item");
+});
+
+test("reconcileSpotifyMirrorSnapshot does not promote unstarted Discord-owned current matches", () => {
+  const plan = reconcileSpotifyMirrorSnapshot({
+    existingItems: [queueItem({ id: "queued-discord-item" })],
+    roomManagedPlaybackInProgress: false,
+    snapshot: {
+      currentlyPlaying: {
+        spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotifyUrl: null,
+        trackTitle: "Hey Ya!",
+        artistName: "Outkast",
+        albumName: null,
+        durationMs: null,
+      },
+      queue: [],
+    },
+  });
+
+  assert.equal(plan.currentlyPlayingItemId, null);
+  assert.deepEqual(plan.merges, []);
+  assert.deepEqual(plan.inserts, []);
+});
+
+test("reconcileSpotifyMirrorSnapshot does not requeue a recently played current track", () => {
+  const plan = reconcileSpotifyMirrorSnapshot({
+    existingItems: [
+      queueItem({
+        id: "recently-played",
+        status: "played",
+        playback_state: "played",
+        playback_finished_at: "2026-05-20T00:05:00.000Z",
+      }),
+    ],
+    snapshot: {
+      currentlyPlaying: {
+        spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotifyUrl: null,
+        trackTitle: "Hey Ya!",
+        artistName: "Outkast",
+        albumName: null,
+        durationMs: null,
+      },
+      queue: [],
+    },
+  });
+
+  assert.equal(plan.currentlyPlayingItemId, null);
+  assert.deepEqual(plan.merges, []);
+  assert.deepEqual(plan.inserts, []);
 });

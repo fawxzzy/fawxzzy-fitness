@@ -120,13 +120,14 @@ test("getAvailableSpotifyDevices prompts reconnect when Spotify invalidates the 
 });
 
 test("startSpotifyPlaybackOnDevice reuses a provided access token without refreshing again", async () => {
-  const observedRequests: Array<{ url: string; method: string }> = [];
+  const observedRequests: Array<{ url: string; method: string; body: string | null }> = [];
   const originalFetch = global.fetch;
   global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     observedRequests.push({
       url,
       method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? init.body : null,
     });
 
     return new Response(null, {
@@ -138,13 +139,24 @@ test("startSpotifyPlaybackOnDevice reuses a provided access token without refres
     await startSpotifyPlaybackOnDevice({
       connection: baseConnection,
       deviceId: "active-device",
-      spotifyUris: ["spotify:track:3n3Ppam7vgaVa1iaRUc9Lp"],
+      spotifyUris: [
+        "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        "spotify:track:1111111111111111111111",
+        "spotify:track:2222222222222222222222",
+      ],
       accessToken: "access-token",
     });
 
     assert.equal(observedRequests.length, 1);
     assert.equal(observedRequests[0]?.method, "PUT");
     assert.match(observedRequests[0]?.url ?? "", /\/me\/player\/play\?device_id=active-device$/);
+    assert.deepEqual(JSON.parse(observedRequests[0]?.body ?? "{}"), {
+      uris: [
+        "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        "spotify:track:1111111111111111111111",
+        "spotify:track:2222222222222222222222",
+      ],
+    });
   } finally {
     global.fetch = originalFetch;
   }
