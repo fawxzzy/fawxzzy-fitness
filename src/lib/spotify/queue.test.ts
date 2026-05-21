@@ -10,6 +10,7 @@ import {
   getDiscordSpotifyQueueSummary,
   planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot,
   parseSpotifyTrackReference,
+  reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot,
   rejectDiscordSpotifyQueueItem,
   removeDiscordSpotifyQueueItem,
   suggestDiscordSpotifyQueueItem,
@@ -108,6 +109,46 @@ test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot retires played and
   });
 
   assert.deepEqual(inactive.map((item) => item.id), ["playing-missing", "queued-missing"]);
+});
+
+test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot retires previous current when Spotify current changes", () => {
+  const inactive = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
+    currentSpotifyUri: "spotify:track:2222222222222222222222",
+    activeSpotifyUris: [
+      "spotify:track:2222222222222222222222",
+      "spotify:track:1111111111111111111111",
+    ],
+    activeItems: [
+      queueItem({
+        id: "previous-current",
+        playback_state: "playing",
+        spotify_uri: "spotify:track:1111111111111111111111",
+      }),
+      queueItem({
+        id: "new-current",
+        spotify_uri: "spotify:track:2222222222222222222222",
+        display_position: 2,
+      }),
+    ],
+  });
+
+  assert.deepEqual(inactive.map((item) => item.id), ["previous-current"]);
+});
+
+test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot keeps the current playing room queue item", () => {
+  const inactive = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
+    currentSpotifyUri: "spotify:track:1111111111111111111111",
+    activeSpotifyUris: ["spotify:track:1111111111111111111111"],
+    activeItems: [
+      queueItem({
+        id: "current-playing",
+        playback_state: "playing",
+        spotify_uri: "spotify:track:1111111111111111111111",
+      }),
+    ],
+  });
+
+  assert.deepEqual(inactive, []);
 });
 
 test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot is count-aware for repeated tracks", () => {
@@ -676,6 +717,40 @@ test("buildDiscordSpotifyQueueSummaryText separates Current from upcoming Room Q
   assert.doesNotMatch(summary, /1\. Current Song - Current Artist \(Discord search, Current\)/);
 });
 
+test("buildDiscordSpotifyQueueSummaryText shows mirror-only current without counting it as Room Queue", () => {
+  const mirrorCurrentItem = queueItem({
+    id: "mirror-current-track",
+    source_type: "spotify_mirror",
+    playback_state: "playing",
+    spotify_uri: "spotify:track:1111111111111111111111",
+    track_title: "Spotify Current",
+    artist_name: "Spotify Artist",
+    display_position: 1,
+    queue_position: 1,
+  });
+  const nextRoomItem = queueItem({
+    id: "room-next-track",
+    playback_state: "queued",
+    spotify_uri: "spotify:track:2222222222222222222222",
+    track_title: "Room Next",
+    artist_name: "Room Artist",
+    display_position: 2,
+    queue_position: 2,
+  });
+
+  const summary = buildDiscordSpotifyQueueSummaryText({
+    roomQueueItems: [nextRoomItem],
+    spotifyUpNextItems: [mirrorCurrentItem],
+    approvedItems: [nextRoomItem],
+    pendingItems: [],
+    recentItems: [],
+  });
+
+  assert.match(summary, /Current: Spotify Current - Spotify Artist \(Spotify Up Next\)/);
+  assert.match(summary, /Next: Room Next - Room Artist \(Discord search\)/);
+  assert.doesNotMatch(summary, /1\. Spotify Current - Spotify Artist \(Spotify Up Next\)/);
+});
+
 test("getDiscordSpotifyQueueSummary separates Room Queue from Spotify Up Next and Recent", async () => {
   const rows = [
     buildQueueTestRow({
@@ -869,6 +944,46 @@ test("clearStaleMirroredDiscordSpotifyQueueItems clears all active mirror rows f
   assert.equal(updates.every((update) => update.values.cleared_reason === "mirror_missing_from_latest_snapshot"), true);
 });
 
+test("reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot promotes new current and retires previous current", async () => {
+  const rows = [
+    buildQueueTestRow({
+      id: "previous-current",
+      source_type: "discord_search",
+      playback_state: "playing",
+      spotify_uri: "spotify:track:1111111111111111111111",
+      display_position: 1,
+      queue_position: 1,
+    }),
+    buildQueueTestRow({
+      id: "new-current",
+      source_type: "discord_search",
+      playback_state: "queued",
+      spotify_uri: "spotify:track:2222222222222222222222",
+      display_position: 2,
+      queue_position: 2,
+    }),
+    buildQueueTestRow({
+      id: "spotify-up-next",
+      source_type: "spotify_mirror",
+      playback_state: "queued",
+      spotify_uri: "spotify:track:1111111111111111111111",
+      display_position: 1,
+      queue_position: 1,
+    }),
+  ];
+  const updates = await runPlaybackSnapshotReconcileTest(rows, {
+    currentSpotifyUri: "spotify:track:2222222222222222222222",
+    activeSpotifyUris: [
+      "spotify:track:2222222222222222222222",
+      "spotify:track:1111111111111111111111",
+    ],
+  });
+
+  assert.equal(updates.find((update) => update.id === "previous-current")?.values.playback_state, "played");
+  assert.equal(updates.find((update) => update.id === "new-current")?.values.playback_state, "playing");
+  assert.equal(updates.some((update) => update.id === "spotify-up-next"), false);
+});
+
 test("fetchSpotifyTrackMetadata never calls Spotify player APIs", async () => {
   process.env.SPOTIFY_CLIENT_ID = "spotify-client-id";
   process.env.SPOTIFY_CLIENT_SECRET = "spotify-client-secret";
@@ -1036,4 +1151,72 @@ async function runClearStaleMirrorTest(
   });
 
   return { retiredCount, updates };
+}
+
+async function runPlaybackSnapshotReconcileTest(
+  rows: Array<ReturnType<typeof buildQueueTestRow>>,
+  snapshot: {
+    currentSpotifyUri: string | null;
+    activeSpotifyUris: string[];
+  },
+) {
+  const updates: Array<{ id: string; values: Record<string, unknown> }> = [];
+  const admin = {
+    from() {
+      return {
+        select() {
+          const query = {
+            eq() {
+              return query;
+            },
+            order() {
+              return query;
+            },
+            in() {
+              return query;
+            },
+            then(resolve: (value: { data: typeof rows; error: null }) => void) {
+              resolve({ data: rows, error: null });
+            },
+          };
+          return query;
+        },
+        update(values: Record<string, unknown>) {
+          return {
+            eq(_column: string, id: string) {
+              updates.push({ id, values });
+              const row = rows.find((item) => item.id === id);
+              if (row) {
+                Object.assign(row, values);
+              }
+              return {
+                select() {
+                  return {
+                    single() {
+                      return Promise.resolve({
+                        data: {
+                          ...row,
+                          ...values,
+                        },
+                        error: null,
+                      });
+                    },
+                  };
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+
+  await reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot({
+    lobbyId: "lobby-1",
+    currentSpotifyUri: snapshot.currentSpotifyUri,
+    activeSpotifyUris: snapshot.activeSpotifyUris,
+    admin: admin as never,
+  });
+
+  return updates;
 }

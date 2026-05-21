@@ -203,6 +203,37 @@ test("reconcileSpotifyMirrorSnapshot marks matching current playback", () => {
   assert.equal(plan.currentlyPlayingItemId, "current-item");
 });
 
+test("reconcileSpotifyMirrorSnapshot prefers Room Queue current over Spotify Up Next current", () => {
+  const plan = reconcileSpotifyMirrorSnapshot({
+    existingItems: [
+      queueItem({
+        id: "spotify-up-next-current",
+        source_type: "spotify_mirror",
+        display_position: 1,
+      }),
+      queueItem({
+        id: "room-queue-current",
+        source_type: "discord_search",
+        display_position: 2,
+      }),
+    ],
+    roomManagedPlaybackInProgress: true,
+    snapshot: {
+      currentlyPlaying: {
+        spotifyUri: "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp",
+        spotifyUrl: null,
+        trackTitle: "Hey Ya!",
+        artistName: "Outkast",
+        albumName: null,
+        durationMs: null,
+      },
+      queue: [],
+    },
+  });
+
+  assert.equal(plan.currentlyPlayingItemId, "room-queue-current");
+});
+
 test("reconcileSpotifyMirrorSnapshot does not promote unstarted Discord-owned current matches", () => {
   const plan = reconcileSpotifyMirrorSnapshot({
     existingItems: [queueItem({ id: "queued-discord-item" })],
