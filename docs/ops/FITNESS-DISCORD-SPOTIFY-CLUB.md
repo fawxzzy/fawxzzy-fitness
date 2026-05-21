@@ -54,11 +54,12 @@ Phase 5 adds:
 
 Phase 7 adds:
 
-- full active Discord queue handoff to Spotify Start/Resume Playback using an ordered URI list
-- best-effort playback reconciliation so played, skipped, and cleared tracks leave the active queue
+- full Room Queue handoff to Spotify Start/Resume Playback using an ordered Discord-owned URI list
+- best-effort playback reconciliation so played, skipped, and cleared tracks leave the active Room Queue
 - recently played queue history for context and future replay affordances
 - live Spotify mirror enabled by default for active rooms when the host has the required scopes
-- a compact public Spotify Club panel, with detailed queue, mirror, approval, and auth state kept in the ephemeral hub
+- a compact public Spotify Club panel, with detailed Room Queue, Spotify Up Next, Recent, approval, and auth state kept in the ephemeral hub
+- a hard UI and data split between Room Queue, Spotify Up Next, and Recent history
 
 Spotify Club still does not include:
 
@@ -70,15 +71,21 @@ Spotify Club still does not include:
 Phase 7 rule:
 
 - Spotify playback stays inside Spotify; Discord owns room and queue display state, not the native Spotify queue.
+- Spotify mirror is a visibility layer. Room Queue is the user-managed product queue.
 
 Phase 7 patterns:
 
-- Active queue and playback history are separate. Played/skipped tracks leave the active queue but remain available for context or future replay.
+- Room Queue, Spotify Up Next, and Recent are separate surfaces.
+- Room Queue contains Discord-owned tracks from search, pasted Spotify links, and explicit future requeues. It controls Start Queue ordering and active queue counts.
+- Spotify Up Next contains `spotify_mirror` rows only. It previews Spotify's native queue best-effort and does not own room ordering or active room counts.
+- Active queue and playback history are separate. Played/skipped tracks leave the active Room Queue but remain available for context or future replay.
 - The public Spotify Club panel is a compact status surface. Detailed state belongs in the ephemeral hub.
 
 Phase 7 failure modes:
 
 - Starting only the first queued URI makes Discord queue state lie about what Spotify will actually play.
+- Counting Spotify native Up Next as Room Queue makes generated Spotify tracks overpower Discord/user intent.
+- Mixing Previous, Current, Next, Room Queue, Spotify Up Next, and Recent creates false priority and stale queue bugs.
 - Treating skip-back/current playback as a new queue item causes duplicate active rows and re-queued initial tracks.
 - Verbose public panels make the room feel noisy even when messages are technically low-volume.
 
@@ -105,7 +112,8 @@ Target split:
 
 - admin/staff: `/setup-spotify-club`, `/jam-lobby`, `/jam-queue`, `/spotify`, future `/jam-admin ...`
 - public panel: `Open Spotify Club Controls`
-- users in the control hub: `Connect Spotify`, `Join Spotify Club`, `Leave Jam`, `Search Track`, `Suggest Track`, `View Queue`, `Check Playback Device`, `Start Queue on Spotify`, `Disconnect Spotify Auth`
+- users in the control hub: `Connect Spotify`, `Join Spotify Club`, `Leave Jam`, `Search Track`, `Paste Spotify Link`, `View Queue`, `Start Queue on Spotify`, `Refresh Spotify Status`, `Disconnect Spotify Auth`
+- host/staff tools: room open/close, approval mode controls, and Spotify Up Next diagnostics
 
 Reserved future panel actions:
 
@@ -252,51 +260,62 @@ The public Spotify Club panel now shows:
 - room name and visibility
 - lobby status: `Open` or `Closed`
 - current host mention when a lobby is open
-- joined member count
-- queue preview:
-  - `No approved tracks yet.` when empty
-  - otherwise the top 3 approved queue items
+- current track when known
+- next Room Queue track when known
+- Room Queue count
 - pending suggestion count
 - one public action:
   - `Open Spotify Club Controls`
 
-The public panel does not expose per-user action buttons directly. It is the shared room-status surface only.
+The public panel does not expose per-user action buttons directly. It is the shared compact room-status surface only.
 
 The personalized ephemeral control hub shows state-aware actions:
 
 - not connected:
   - `Connect Spotify`
+  - `Refresh Spotify Status`
 - connected, not joined:
   - `Join Spotify Club`
   - `Disconnect Spotify Auth`
 - joined:
   - `Search Track`
-  - `Suggest Track`
+  - `Paste Spotify Link`
   - `View Queue`
   - `Leave Jam`
-  - `Check Playback Device`
-  - `Start Queue on Spotify` when an approved queue item exists
+  - `Start Queue on Spotify` when a Room Queue or labeled Spotify Up Next handoff item exists
+  - `Refresh Spotify Status`
   - `Disconnect Spotify Auth`
 - staff or host:
   - `Open Room`
   - `Close Room`
-  - `View Pending Suggestions`
+  - approval mode controls
+  - `Refresh Spotify Up Next`
 
 Interaction model:
 
 - the public panel stays short and low-noise
 - users open one personalized ephemeral control hub from the public panel
 - button results should update or replace the control hub where practical instead of spawning a new public message
+- search/result messages should be deleted or compacted after selection where Discord allows
 - button results are ephemeral where possible
 - `Leave Jam` leaves the current room only
 - `Disconnect Spotify Auth` removes saved Spotify authorization
 - standalone public status checks are replaced by hub state and direct readiness copy when relevant
+- Spotify authorization uses a browser link button plus `Refresh Spotify Status`; users should not need to click `Connect Spotify` again after completing OAuth.
+
+View Queue model:
+
+- `Current / Next` shows the active playback context.
+- `Room Queue` shows upcoming Discord-owned tracks only; the current playing track is not repeated in this list.
+- `Spotify Up Next` shows best-effort mirrored Spotify native queue rows.
+- `Recent` keeps played, skipped, and cleared history separate from active queue state.
 
 Search flow:
 
 - `Search Track` opens a Discord modal for a Spotify search query
-- the bot returns up to 5 track results as an ephemeral select menu
-- choosing a result creates a pending suggestion in the current room queue
+- the bot returns track results as an ephemeral select menu
+- choosing a result adds to the Room Queue directly when the user is Jam Ready and the room approval mode allows it
+- review mode still routes additions into pending approval
 - URL or `spotify:track:` suggestion fallback still exists for staff and proof flows
 
 Playback readiness states:
@@ -308,11 +327,12 @@ Playback readiness states:
 
 Playback handoff rule:
 
-- Phase 4 starts only the first approved queue item
+- Phase 7 starts the ordered Room Queue, capped to the safe Spotify request size
+- Spotify Up Next can be used for handoff only when Room Queue is empty and the copy labels it as mirror playback
 - playback begins only after a user explicitly clicks `Start Queue on Spotify`
 - playback stays inside Spotify on the user's own active device
-- Phase 4 must not call Spotify Add to Queue
-- Phase 4 must not promise exact sync
+- Spotify Club must not call rapid mixed player/add-to-queue sequences to simulate exact queue control
+- Spotify Club must not promise exact sync
 
 Interaction reliability rule:
 

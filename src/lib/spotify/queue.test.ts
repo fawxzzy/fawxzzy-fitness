@@ -7,6 +7,7 @@ import {
   buildDiscordSpotifyQueueSummaryText,
   clearStaleMirroredDiscordSpotifyQueueItems,
   fetchSpotifyTrackMetadata,
+  getDiscordSpotifyQueueSummary,
   planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot,
   parseSpotifyTrackReference,
   rejectDiscordSpotifyQueueItem,
@@ -131,6 +132,18 @@ test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot ignores history ro
   });
 
   assert.deepEqual(inactive, []);
+});
+
+test("planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot ignores Spotify Up Next mirror rows", () => {
+  const inactive = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
+    activeSpotifyUris: [],
+    activeItems: [
+      queueItem({ id: "room-queue", source_type: "discord_search" }),
+      queueItem({ id: "spotify-up-next", source_type: "spotify_mirror" }),
+    ],
+  });
+
+  assert.deepEqual(inactive.map((item) => item.id), ["room-queue"]);
 });
 
 test("suggestDiscordSpotifyQueueItem creates a pending queue item in review mode", async () => {
@@ -585,96 +598,127 @@ test("removeDiscordSpotifyQueueItem stores the removal reason", async () => {
 });
 
 test("buildDiscordSpotifyQueuePreviewLines shows top approved items only", () => {
+  const item = queueItem({
+    id: "queue-1",
+    source_type: "discord_link",
+    spotify_uri: "spotify:track:1111111111111111111111",
+    track_title: "Song A",
+    artist_name: "Artist A",
+  });
   const lines = buildDiscordSpotifyQueuePreviewLines({
-    approvedItems: [
-      {
-        id: "queue-1",
-        lobby_id: "lobby-1",
-        status: "approved",
-        source_type: "discord_link",
-        approval_state: "approved",
-        playback_state: "queued",
-        spotify_uri: "spotify:track:1111111111111111111111",
-        spotify_url: null,
-        track_title: "Song A",
-        artist_name: "Artist A",
-        album_name: null,
-        duration_ms: null,
-        suggested_by_discord_user_id: "1",
-        suggested_by_spotify_user_id: null,
-        approved_by_discord_user_id: "2",
-        rejected_by_discord_user_id: null,
-        removed_by_discord_user_id: null,
-        rejection_reason: null,
-        removal_reason: null,
-        queue_position: 1,
-        dedupe_key: null,
-        mirror_first_seen_at: null,
-        mirror_last_seen_at: null,
-        display_position: 1,
-        cleared_reason: null,
-        approved_at: null,
-        rejected_at: null,
-        removed_at: null,
-        played_at: null,
-        skipped_at: null,
-        playback_started_at: null,
-        playback_finished_at: null,
-        created_at: "2026-05-19T00:00:00.000Z",
-        updated_at: "2026-05-19T00:00:00.000Z",
-      },
-    ],
+    roomQueueItems: [item],
+    spotifyUpNextItems: [],
+    approvedItems: [item],
     pendingItems: [],
+    recentItems: [],
   });
 
   assert.deepEqual(lines, ["1. Song A - Artist A (Discord link)"]);
 });
 
 test("buildDiscordSpotifyQueueSummaryText shows pending count without user ids", () => {
+  const pendingItem = queueItem({
+    id: "abcdef12-0000-4000-8000-000000000000",
+    status: "pending",
+    source_type: "discord_link",
+    approval_state: "pending",
+    spotify_uri: "spotify:track:1111111111111111111111",
+    track_title: "Song A",
+    artist_name: "Artist A",
+    suggested_by_discord_user_id: "123456789012345678",
+    approved_by_discord_user_id: null,
+    queue_position: null,
+    display_position: null,
+  });
   const summary = buildDiscordSpotifyQueueSummaryText({
+    roomQueueItems: [],
+    spotifyUpNextItems: [],
     approvedItems: [],
-    pendingItems: [
-      {
-        id: "abcdef12-0000-4000-8000-000000000000",
-        lobby_id: "lobby-1",
-        status: "pending",
-        source_type: "discord_link",
-        approval_state: "pending",
-        playback_state: "queued",
-        spotify_uri: "spotify:track:1111111111111111111111",
-        spotify_url: null,
-        track_title: "Song A",
-        artist_name: "Artist A",
-        album_name: null,
-        duration_ms: null,
-        suggested_by_discord_user_id: "123456789012345678",
-        suggested_by_spotify_user_id: null,
-        approved_by_discord_user_id: null,
-        rejected_by_discord_user_id: null,
-        removed_by_discord_user_id: null,
-        rejection_reason: null,
-        removal_reason: null,
-        queue_position: null,
-        dedupe_key: null,
-        mirror_first_seen_at: null,
-        mirror_last_seen_at: null,
-        display_position: null,
-        cleared_reason: null,
-        approved_at: null,
-        rejected_at: null,
-        removed_at: null,
-        played_at: null,
-        skipped_at: null,
-        playback_started_at: null,
-        playback_finished_at: null,
-        created_at: "2026-05-19T00:00:00.000Z",
-        updated_at: "2026-05-19T00:00:00.000Z",
-      },
-    ],
+    pendingItems: [pendingItem],
+    recentItems: [],
   });
 
   assert.match(summary, /Pending suggestions: 1/);
   assert.doesNotMatch(summary, /123456789012345678/);
+});
+
+test("buildDiscordSpotifyQueueSummaryText separates Current from upcoming Room Queue", () => {
+  const currentItem = queueItem({
+    id: "current-track",
+    playback_state: "playing",
+    spotify_uri: "spotify:track:1111111111111111111111",
+    track_title: "Current Song",
+    artist_name: "Current Artist",
+    queue_position: 1,
+    display_position: 1,
+  });
+  const nextItem = queueItem({
+    id: "next-track",
+    playback_state: "queued",
+    spotify_uri: "spotify:track:2222222222222222222222",
+    track_title: "Next Song",
+    artist_name: "Next Artist",
+    queue_position: 2,
+    display_position: 2,
+  });
+
+  const summary = buildDiscordSpotifyQueueSummaryText({
+    roomQueueItems: [currentItem, nextItem],
+    spotifyUpNextItems: [],
+    approvedItems: [currentItem, nextItem],
+    pendingItems: [],
+    recentItems: [],
+  });
+
+  assert.match(summary, /Current: Current Song - Current Artist/);
+  assert.match(summary, /Next: Next Song - Next Artist/);
+  assert.match(summary, /2\. Next Song - Next Artist \(Discord search, Queued\)/);
+  assert.doesNotMatch(summary, /1\. Current Song - Current Artist \(Discord search, Current\)/);
+});
+
+test("getDiscordSpotifyQueueSummary separates Room Queue from Spotify Up Next and Recent", async () => {
+  const rows = [
+    buildQueueTestRow({
+      id: "room-discord-search",
+      source_type: "discord_search",
+      spotify_uri: "spotify:track:1111111111111111111111",
+      display_position: 5,
+      queue_position: 5,
+    }),
+    buildQueueTestRow({
+      id: "room-discord-link",
+      source_type: "discord_link",
+      spotify_uri: "spotify:track:2222222222222222222222",
+      display_position: 6,
+      queue_position: 6,
+    }),
+    buildQueueTestRow({
+      id: "spotify-up-next",
+      source_type: "spotify_mirror",
+      spotify_uri: "spotify:track:3333333333333333333333",
+      display_position: 1,
+      queue_position: 1,
+    }),
+    buildQueueTestRow({
+      id: "recent-played",
+      source_type: "discord_search",
+      status: "played",
+      playback_state: "played",
+      spotify_uri: "spotify:track:4444444444444444444444",
+      playback_finished_at: "2026-05-20T00:05:00.000Z",
+    }),
+  ];
+  const admin = buildSelectOnlyQueueAdmin(rows);
+
+  const summary = await getDiscordSpotifyQueueSummary({
+    lobbyId: "lobby-1",
+    admin: admin as never,
+  });
+
+  assert.deepEqual(summary.roomQueueItems.map((item) => item.id), ["room-discord-search", "room-discord-link"]);
+  assert.deepEqual(summary.approvedItems.map((item) => item.id), ["room-discord-search", "room-discord-link"]);
+  assert.deepEqual(summary.spotifyUpNextItems.map((item) => item.id), ["spotify-up-next"]);
+  assert.deepEqual(summary.recentItems.map((item) => item.id), ["recent-played"]);
 });
 
 test("clearStaleMirroredDiscordSpotifyQueueItems retires only stale mirror-owned rows", async () => {
@@ -904,6 +948,32 @@ function buildQueueTestRow(overrides: Record<string, unknown>) {
     created_at: "2026-05-19T00:00:00.000Z",
     updated_at: "2026-05-19T00:00:00.000Z",
     ...overrides,
+  };
+}
+
+function buildSelectOnlyQueueAdmin(rows: Array<ReturnType<typeof buildQueueTestRow>>) {
+  return {
+    from() {
+      return {
+        select() {
+          const query = {
+            eq() {
+              return query;
+            },
+            order() {
+              return query;
+            },
+            in() {
+              return query;
+            },
+            then(resolve: (value: { data: typeof rows; error: null }) => void) {
+              resolve({ data: rows, error: null });
+            },
+          };
+          return query;
+        },
+      };
+    },
   };
 }
 

@@ -101,6 +101,42 @@ function listDiscordMessageComponentCustomIds(body) {
   ));
 }
 
+function findDiscordMessageButtonByCustomId(body, customId) {
+  if (!Array.isArray(body?.components)) {
+    return null;
+  }
+
+  for (const row of body.components) {
+    if (!Array.isArray(row?.components)) {
+      continue;
+    }
+    const found = row.components.find((component) => component?.custom_id === customId);
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
+
+function findDiscordMessageLinkButtonByLabel(body, label) {
+  if (!Array.isArray(body?.components)) {
+    return null;
+  }
+
+  for (const row of body.components) {
+    if (!Array.isArray(row?.components)) {
+      continue;
+    }
+    const found = row.components.find((component) => component?.style === 5 && component?.label === label);
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
+
 function buildSpotifyClubLobbyRow(overrides = {}) {
   return {
     id: "lobby-1",
@@ -4021,7 +4057,7 @@ test("Discord interactions route rejects setup-spotify-club for users without se
   });
 });
 
-test("Discord interactions route defers the Spotify control hub opener and shows only Connect Spotify for disconnected non-managers", async () => {
+test("Discord interactions route defers the Spotify control hub opener and shows Connect plus refresh for disconnected non-managers", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -4108,6 +4144,7 @@ test("Discord interactions route defers the Spotify control hub opener and shows
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
     assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
       "spotify_connect_open",
+      "spotify_status_check",
     ]);
   } finally {
     globalThis.fetch = originalFetch;
@@ -4200,8 +4237,8 @@ test("Discord interactions route shows manager controls in the Spotify control h
     assert.equal(observedDiscordCalls[0]?.body?.type, 5);
     assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
       "spotify_connect_open",
+      "spotify_status_check",
       "spotify_room_open",
-      "spotify_approval_mode_toggle",
     ]);
   } finally {
     globalThis.fetch = originalFetch;
@@ -4320,6 +4357,7 @@ test("Discord interactions route shows queue and playback actions in the Spotify
       return new Response(JSON.stringify([buildSpotifyClubLobbyRow({
         status: "open",
         host_discord_user_id: "999999999999999999",
+        spotify_mirror_enabled: true,
         opened_at: "2026-05-19T00:00:00.000Z",
         closed_at: null,
       })]), {
@@ -4354,7 +4392,44 @@ test("Discord interactions route shows queue and playback actions in the Spotify
     }
 
     if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
-      return new Response(JSON.stringify([]), {
+      return new Response(JSON.stringify([
+        {
+          id: "spotify-up-next-1",
+          lobby_id: "lobby-1",
+          status: "approved",
+          source_type: "spotify_mirror",
+          approval_state: "approved",
+          playback_state: "queued",
+          spotify_uri: "spotify:track:3333333333333333333333",
+          spotify_url: "https://open.spotify.com/track/3333333333333333333333",
+          track_title: "Mirror Song",
+          artist_name: "Mirror Artist",
+          album_name: null,
+          duration_ms: null,
+          suggested_by_discord_user_id: "999999999999999999",
+          suggested_by_spotify_user_id: null,
+          approved_by_discord_user_id: "999999999999999999",
+          rejected_by_discord_user_id: null,
+          removed_by_discord_user_id: null,
+          rejection_reason: null,
+          removal_reason: null,
+          queue_position: null,
+          display_position: 1,
+          dedupe_key: "mirror-key",
+          mirror_first_seen_at: "2026-05-19T00:00:00.000Z",
+          mirror_last_seen_at: "2026-05-19T00:00:00.000Z",
+          cleared_reason: null,
+          approved_at: "2026-05-19T00:00:00.000Z",
+          rejected_at: null,
+          removed_at: null,
+          played_at: null,
+          skipped_at: null,
+          playback_started_at: null,
+          playback_finished_at: null,
+          created_at: "2026-05-19T00:00:00.000Z",
+          updated_at: "2026-05-19T00:00:00.000Z",
+        },
+      ]), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -4411,10 +4486,14 @@ test("Discord interactions route shows queue and playback actions in the Spotify
       "spotify_queue_search_open",
       "spotify_queue_suggest_open",
       "spotify_queue_view",
+      "spotify_start_queue",
+      "spotify_status_check",
       "spotify_leave_room",
-      "spotify_device_check",
       "spotify_disconnect_auth",
     ]);
+    assert.equal(findDiscordMessageButtonByCustomId(observedDiscordCalls[1]?.body, "spotify_start_queue")?.disabled, false);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Room Queue: 0 active \/ 0 pending/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Mirror: On \/ 1 Spotify Up Next/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -4520,11 +4599,17 @@ test("Discord interactions route returns a Spotify auth link from the ephemeral 
 
     assert.equal(response.status, 202);
     assert.equal(observedDiscordCalls[0]?.body?.type, 5);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Connect Spotify to become Jam Ready for Spotify Club\./);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /client_id=spotify-client-id/);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /user-read-currently-playing/);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /user-modify-playback-state/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Authorize Spotify in your browser/);
+    assert.doesNotMatch(observedDiscordCalls[1]?.body?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
+    const oauthButton = findDiscordMessageLinkButtonByLabel(observedDiscordCalls[1]?.body, "Authorize Spotify");
+    assert.equal(oauthButton?.style, 5);
+    assert.match(oauthButton?.url ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
+    assert.match(oauthButton?.url ?? "", /client_id=spotify-client-id/);
+    assert.match(oauthButton?.url ?? "", /user-read-currently-playing/);
+    assert.match(oauthButton?.url ?? "", /user-modify-playback-state/);
+    assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
+      "spotify_status_check",
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -5573,7 +5658,7 @@ test("Discord interactions route blocks Spotify playback handoff when no approve
     }), keyPair));
 
     assert.equal(response.status, 202);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /No approved tracks are queued yet\./);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /No Room Queue tracks are queued yet\./);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -5798,7 +5883,7 @@ test("Discord interactions route starts the approved queue on the user's active 
     }), keyPair));
 
     assert.equal(response.status, 202);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Starting 1 Spotify Club track on your active Spotify device\./);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Starting 1 Room Queue track on your active Spotify device\./);
     assert.deepEqual(observedSpotifyCalls.some((call) => call.path === "/v1/me/player/queue"), false);
     assert.equal(observedSpotifyCalls.some((call) => String(call.path).startsWith("/v1/me/player/play?device_id=device-1")), true);
     const playCall = observedSpotifyCalls.find((call) => String(call.path).startsWith("/v1/me/player/play?device_id=device-1"));
@@ -5953,7 +6038,7 @@ test("Discord interactions route returns the Spotify queue summary from the ephe
 
     assert.equal(response.status, 202);
     assert.equal(observedDiscordCalls[0]?.body?.type, 5);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Approved queue\*\*/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Room Queue\*\*/);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /1\. Song A - Artist A/);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Pending suggestions: 1/);
   } finally {
@@ -6088,7 +6173,7 @@ test("Discord interactions route stores an auto-approved Spotify queue suggestio
     assert.equal(observedQueueBodies[0]?.spotify_uri, "spotify:track:3n3Ppam7vgaVa1iaRUc9Lp");
     assert.equal(observedDiscordBodies.length, 1);
     assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Now \/ next: 1\. spotify:track:3n3Ppam7vgaVa1iaRUc9Lp \(Discord link\)/);
-    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Queue: 1 active \/ 0 pending/);
+    assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Room Queue: 1 active \/ 0 pending/);
   } finally {
     globalThis.fetch = originalFetch;
   }
