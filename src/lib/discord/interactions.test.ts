@@ -86,7 +86,7 @@ test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel butt
   assert.equal(payload.embeds[0]?.title, "Submit Feedback Here");
   assert.match(payload.embeds[0]?.description ?? "", /send a new bug or feature request/i);
   assert.deepEqual(
-    payload.components[0]?.components?.map((component) => component.custom_id),
+    payload.components[0]?.components?.map((component) => ("custom_id" in component ? component.custom_id : null)),
     [
       "fitness_feedback_submit_open",
       "fitness_feedback_update_open",
@@ -121,15 +121,18 @@ test("buildDiscordSpotifyClubPanelMessagePayload exposes a single control-hub la
   assert.match(payload.embeds[0]?.description ?? "", /Status: \*\*Open\*\*/);
   assert.match(payload.embeds[0]?.description ?? "", /<@123456789012345678>/);
   assert.match(payload.embeds[0]?.description ?? "", /Members: 3/);
-  assert.match(payload.embeds[0]?.description ?? "", /Queue: 1 active \/ 2 pending/);
+  assert.match(payload.embeds[0]?.description ?? "", /Room Queue: 1 active \/ 2 pending/);
   assert.match(payload.embeds[0]?.description ?? "", /Hey Ya! - Outkast/);
   assert.doesNotMatch(payload.embeds[0]?.description ?? "", /does not stream audio through Discord/i);
-  assert.match(payload.embeds[0]?.description ?? "", /Open controls for queue/i);
+  assert.match(payload.embeds[0]?.description ?? "", /Open controls for room queue/i);
+  assert.equal(payload.embeds[0]?.color, 0x22c55e);
   assert.deepEqual(
-    payload.components[0]?.components?.map((component) => component.custom_id),
+    payload.components[0]?.components?.map((component) => ("custom_id" in component ? component.custom_id : null)),
     ["spotify_controls_open"],
   );
-  const visibleButtonIds = payload.components.flatMap((row) => row.components.map((component) => component.custom_id));
+  const visibleButtonIds = payload.components.flatMap((row) => (
+    row.components.map((component) => ("custom_id" in component ? component.custom_id : null))
+  ));
   assert.deepEqual(
     visibleButtonIds,
     ["spotify_controls_open"],
@@ -249,7 +252,8 @@ test("resolveDiscordVerifyMessageBody converts escaped newlines into rendered li
 test("buildDiscordVerifyMessagePayload includes the verify button", () => {
   const payload = buildDiscordVerifyMessagePayload();
 
-  assert.equal(payload.components[0]?.components[0]?.custom_id, "fitness_verify_open");
+  const firstButton = payload.components[0]?.components[0];
+  assert.equal(firstButton && "custom_id" in firstButton ? firstButton.custom_id : null, "fitness_verify_open");
 });
 
 test("resolveDiscordVerifyMessageBody returns the locked access-panel copy", () => {

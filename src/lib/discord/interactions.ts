@@ -13,6 +13,10 @@ export const DISCORD_INTERACTION_RESPONSE_TYPE = {
 } as const;
 
 export const DISCORD_MESSAGE_FLAG_EPHEMERAL = 64;
+export const DISCORD_EMBED_COLOR_SUCCESS = 0x22c55e;
+export const DISCORD_EMBED_COLOR_WARNING = 0xf59e0b;
+export const DISCORD_EMBED_COLOR_ERROR = 0xef4444;
+export const DISCORD_EMBED_COLOR_INFO = 0x3b82f6;
 export const FITNESS_VERIFY_BUTTON_CUSTOM_ID = "fitness_verify_open";
 export const FITNESS_VERIFY_MODAL_CUSTOM_ID = "fitness_verify_modal";
 export const FITNESS_VERIFY_TOKEN_INPUT_CUSTOM_ID = "fitness_token";
@@ -214,7 +218,7 @@ export const DISCORD_MODERATION_WARNING_SEVERITY_CHOICES = [
   { name: "Warning", value: "warning" },
   { name: "Critical", value: "critical" },
 ] as const;
-type DiscordButtonComponent = {
+type DiscordCustomButtonComponent = {
   type: 2;
   style: 1 | 2 | 4;
   custom_id: string;
@@ -225,6 +229,16 @@ type DiscordButtonComponent = {
     name: string;
   };
 };
+
+type DiscordLinkButtonComponent = {
+  type: 2;
+  style: 5;
+  label: string;
+  url: string;
+  disabled?: boolean;
+};
+
+type DiscordButtonComponent = DiscordCustomButtonComponent | DiscordLinkButtonComponent;
 
 type DiscordStringSelectComponent = {
   type: 3;
@@ -239,6 +253,7 @@ type DiscordMessagePayload = {
   embeds: Array<{
     title: string;
     description: string;
+    color?: number;
   }>;
   components: Array<{
     type: 1;
@@ -569,15 +584,16 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
     embeds: [
       {
         title: DEFAULT_SPOTIFY_CLUB_PANEL_TITLE,
+        color: args.lobbyStatusLabel === "Open" ? DISCORD_EMBED_COLOR_SUCCESS : DISCORD_EMBED_COLOR_INFO,
         description: [
           `Room: **${roomName}** (${roomVisibilityLabel})`,
           `Status: **${args.lobbyStatusLabel}**`,
           hostLine,
           nowPlayingLine,
           ...upNextLines,
-          `Queue: ${activeQueueCount} active / ${pendingSuggestionCount} pending`,
+          `Room Queue: ${activeQueueCount} active / ${pendingSuggestionCount} pending`,
           `Members: ${memberCount}`,
-          "Open controls for queue, approval, auth, and mirror details.",
+          "Open controls for room queue and playback handoff.",
         ].join("\n"),
       },
     ],

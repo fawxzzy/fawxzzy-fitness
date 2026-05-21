@@ -120,6 +120,17 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: A public multi-button panel plus many separate ephemeral action messages makes Spotify Club feel noisy even when the public channel itself stays technically clean.
 - Status: Proposed
 
+## 2026-05-20 - Spotify Club mirror is visibility, not room queue authority
+- Type: Guardrail
+- Summary: Spotify Club should separate Discord-owned Room Queue state from Spotify's native Up Next mirror so generated Spotify tracks do not overpower user-managed room intent.
+- Rule: Spotify mirror is a visibility layer. Room Queue is the user-managed product queue.
+- Rule: No new Spotify Club phase starts until the previous public phase has live verification recorded and either a `#updates` post or an explicit failed-live-test follow-up card.
+- Pattern: Previous / Current / Next / Room Queue / Spotify Up Next / Recent stay separate in data, UI copy, and queue counts.
+- Failure Mode: Counting Spotify native Up Next as Room Queue makes generated Spotify tracks overpower Discord/user intent.
+- Failure Mode: Every button click creating a new ephemeral message makes the control hub feel broken even when the public channel stays clean.
+- Evidence: docs/ops/FITNESS-DISCORD-SPOTIFY-CLUB.md, Phase 7 stabilization feedback card
+- Status: Proposed
+
 ## 2026-05-17 - Feedback-to-Codex should require reviewed task packets
 - Type: Guardrail
 - Summary: Discord feedback can generate implementation packets, but Codex work should begin only after a human-reviewed task packet approves the scope.

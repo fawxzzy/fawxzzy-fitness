@@ -61,8 +61,11 @@ export type SpotifyTrackMetadata = {
 };
 
 export type DiscordSpotifyQueueSummary = {
+  roomQueueItems: DiscordSpotifyQueueItemRow[];
+  spotifyUpNextItems: DiscordSpotifyQueueItemRow[];
   approvedItems: DiscordSpotifyQueueItemRow[];
   pendingItems: DiscordSpotifyQueueItemRow[];
+  recentItems: DiscordSpotifyQueueItemRow[];
 };
 
 type SpotifyQueueAdminClient = {
@@ -393,17 +396,17 @@ export function formatQueueSourceLabel(sourceType: DiscordSpotifyQueueSourceType
     return "Discord search";
   }
   if (sourceType === "spotify_mirror") {
-    return "Spotify mirror";
+    return "Spotify Up Next";
   }
   return "Discord link";
 }
 
 export function buildDiscordSpotifyQueuePreviewLines(summary: DiscordSpotifyQueueSummary): string[] {
-  if (summary.approvedItems.length === 0) {
-    return ["No approved tracks yet."];
+  if (summary.roomQueueItems.length === 0) {
+    return ["No room queue tracks yet."];
   }
 
-  return summary.approvedItems.slice(0, 3).map((item, index) => {
+  return summary.roomQueueItems.slice(0, 3).map((item, index) => {
     const position = item.queue_position ?? index + 1;
     return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)})`;
   });
@@ -417,12 +420,36 @@ export function buildDiscordSpotifyQueueSummaryTextForViewer(
   summary: DiscordSpotifyQueueSummary,
   viewerDiscordUserId?: string | null,
 ): string {
-  const approvedLines = summary.approvedItems.length === 0
-    ? ["No approved tracks yet."]
-    : summary.approvedItems.slice(0, 10).map((item, index) => {
+  const currentItem = summary.roomQueueItems.find((item) => item.playback_state === "playing") ?? null;
+  const nextItem = summary.roomQueueItems.find((item) => item.playback_state === "queued") ?? null;
+  const upcomingRoomQueueItems = summary.roomQueueItems.filter((item) => item.playback_state === "queued");
+  const currentLines = currentItem
+    ? [`Current: ${formatQueueTrackLabel(currentItem)} (${formatQueueSourceLabel(currentItem.source_type)})`]
+    : ["Current: none"];
+  const nextLines = nextItem
+    ? [`Next: ${formatQueueTrackLabel(nextItem)} (${formatQueueSourceLabel(nextItem.source_type)})`]
+    : ["Next: none"];
+  const roomQueueLines = upcomingRoomQueueItems.length === 0
+    ? ["No upcoming room queue tracks."]
+    : upcomingRoomQueueItems.slice(0, 10).map((item, index) => {
       const position = item.queue_position ?? index + 1;
-      const playbackLabel = item.playback_state === "playing" ? "Now playing" : "Queued";
-      return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)}, ${playbackLabel})`;
+      return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)}, Queued)`;
+    });
+  const spotifyUpNextLines = summary.spotifyUpNextItems.length === 0
+    ? ["No Spotify Up Next mirror items."]
+    : summary.spotifyUpNextItems.slice(0, 10).map((item, index) => {
+      const position = item.display_position ?? index + 1;
+      return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)})`;
+    });
+  const recentLines = summary.recentItems.length === 0
+    ? ["No recent played or skipped tracks yet."]
+    : summary.recentItems.slice(0, 5).map((item) => {
+      const playbackLabel = item.playback_state === "played"
+        ? "Played"
+        : item.playback_state === "skipped"
+          ? "Skipped"
+          : "Cleared";
+      return `- ${formatQueueTrackLabel(item)} (${playbackLabel}, ${formatQueueSourceLabel(item.source_type)})`;
     });
 
   const pendingLines = summary.pendingItems.length === 0
@@ -440,8 +467,19 @@ export function buildDiscordSpotifyQueueSummaryTextForViewer(
     : [];
 
   return [
-    "**Approved queue**",
-    ...approvedLines,
+    "**Current / Next**",
+    ...currentLines,
+    ...nextLines,
+    "",
+    "**Room Queue**",
+    ...roomQueueLines,
+    "",
+    "**Spotify Up Next**",
+    "Best-effort mirror of Spotify's native queue. It does not own Room Queue order.",
+    ...spotifyUpNextLines,
+    "",
+    "**Recent**",
+    ...recentLines,
     "",
     `Pending suggestions: ${summary.pendingItems.length}`,
     ...pendingLines,
@@ -574,8 +612,7 @@ export async function getDiscordSpotifyQueueSummary(args: {
     admin: args.admin,
   });
 
-  return {
-    approvedItems: items.filter((item) => (
+  const activeApprovedItems = items.filter((item) => (
       item.approval_state === "approved"
       && (item.playback_state === "queued" || item.playback_state === "playing")
     )).sort((left, right) => {
@@ -585,10 +622,30 @@ export async function getDiscordSpotifyQueueSummary(args: {
         return leftPosition - rightPosition;
       }
       return left.created_at.localeCompare(right.created_at);
-    }),
+    });
+  const roomQueueItems = activeApprovedItems.filter((item) => item.source_type !== "spotify_mirror");
+  const spotifyUpNextItems = activeApprovedItems.filter((item) => item.source_type === "spotify_mirror");
+  const recentItems = items
+    .filter((item) => (
+      item.playback_state === "played"
+      || item.playback_state === "skipped"
+      || item.playback_state === "cleared"
+    ))
+    .sort((left, right) => {
+      const leftTime = left.playback_finished_at ?? left.skipped_at ?? left.removed_at ?? left.updated_at;
+      const rightTime = right.playback_finished_at ?? right.skipped_at ?? right.removed_at ?? right.updated_at;
+      return rightTime.localeCompare(leftTime);
+    });
+
+  return {
+    roomQueueItems,
+    spotifyUpNextItems,
+    // Backward-compatible alias. Product semantics now treat this as Room Queue.
+    approvedItems: roomQueueItems,
     pendingItems: items.filter((item) => item.approval_state === "pending").sort((left, right) => (
       left.created_at.localeCompare(right.created_at)
     )),
+    recentItems,
   };
 }
 
@@ -645,7 +702,7 @@ export async function insertMirroredDiscordSpotifyQueueItem(args: {
   const admin = args.admin ?? supabaseAdmin();
   const nowIso = new Date().toISOString();
   const seenAt = args.firstSeenAt ?? nowIso;
-  const displayPosition = args.displayPosition ?? await getNextQueuePosition(args.lobbyId, admin);
+  const displayPosition = args.displayPosition;
 
   return insertQueueItem({
     lobby_id: args.lobbyId,
@@ -661,7 +718,7 @@ export async function insertMirroredDiscordSpotifyQueueItem(args: {
     duration_ms: args.durationMs,
     suggested_by_discord_user_id: args.hostDiscordUserId,
     approved_by_discord_user_id: args.hostDiscordUserId,
-    queue_position: displayPosition,
+    queue_position: null,
     display_position: displayPosition,
     dedupe_key: buildDiscordSpotifyQueueDedupeKey({
       lobbyId: args.lobbyId,
@@ -686,7 +743,6 @@ export async function markDiscordSpotifyQueueItemMirrorSeen(args: {
   return updateQueueItem(args.queueItemId, {
     mirror_last_seen_at: nowIso,
     display_position: args.displayPosition,
-    queue_position: args.displayPosition,
     updated_at: nowIso,
   }, admin);
 }
@@ -764,6 +820,7 @@ export function planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot(args: {
   args.activeItems
     .filter((item) => (
       item.approval_state === "approved"
+      && item.source_type !== "spotify_mirror"
       && (item.playback_state === "queued" || item.playback_state === "playing")
     ))
     .sort((left, right) => {
@@ -906,7 +963,7 @@ export async function findDiscordSpotifyQueueItemByIdOrPrefix(args: {
 
 async function getNextQueuePosition(lobbyId: string, admin: SpotifyQueueAdminClient): Promise<number> {
   const items = await fetchLobbyQueueItems({ lobbyId, admin });
-  const maxPosition = items.reduce((highest, item) => (
+  const maxPosition = items.filter((item) => item.source_type !== "spotify_mirror").reduce((highest, item) => (
     typeof item.display_position === "number" && item.display_position > highest
       ? item.display_position
       : typeof item.queue_position === "number" && item.queue_position > highest
