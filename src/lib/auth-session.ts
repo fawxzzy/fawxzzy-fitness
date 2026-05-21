@@ -19,6 +19,7 @@ const PUBLIC_AUTHLESS_PATHS = new Set([
   "/api/discord/member-numbers/sync",
   "/api/discord/verify",
   "/api/spotify/oauth/callback",
+  "/api/spotify/oauth/start",
   "/api/vercel/deployment-webhook",
 ]);
 
