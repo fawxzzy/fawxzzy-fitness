@@ -5,7 +5,7 @@ import { handleAuthSessionMiddleware } from "@/middleware";
 
 test("middleware skips session refresh for authless routes", async () => {
   let recoverCalls = 0;
-  const request = new NextRequest("https://example.com/auth/confirm");
+  const request = new NextRequest("https://example.com/api/spotify/oauth/start?token=short-token");
 
   const response = await handleAuthSessionMiddleware(request, {
     async recoverSession() {

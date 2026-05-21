@@ -46,6 +46,7 @@ test("Spotify OAuth start token round-trips scope intent and rejects invalid pay
   assert.equal(verified.discordUserId, "123456789012345678");
   assert.equal(verified.includeLiveQueueScopes, true);
   assert.equal(verified.includePlaybackScopes, false);
+  assert.equal(typeof verified.issuedAt, "number");
   assert.throws(() => verifySpotifyOAuthStartToken(`${token}x`), /Invalid Spotify OAuth start token/);
 });
 
@@ -59,6 +60,21 @@ test("Spotify OAuth start URL stays short and first-party", () => {
   const url = new URL(startUrl);
 
   assert.equal(url.origin, "https://fitness.example.com");
+  assert.equal(url.pathname, "/api/spotify/oauth/start");
+  assert.ok(url.searchParams.get("token"));
+  assert.equal(startUrl.length <= 512, true);
+});
+
+test("Spotify OAuth start URL uses the configured production app host", () => {
+  process.env.SPOTIFY_OAUTH_STATE_SECRET = "spotify-oauth-state-secret";
+  process.env.SPOTIFY_REDIRECT_URI = "https://fawxzzy-fitness-local.vercel.app/api/spotify/oauth/callback";
+
+  const startUrl = buildSpotifyOAuthStartUrl("123456789012345678", {
+    includeLiveQueueScopes: true,
+  });
+  const url = new URL(startUrl);
+
+  assert.equal(url.origin, "https://fawxzzy-fitness-local.vercel.app");
   assert.equal(url.pathname, "/api/spotify/oauth/start");
   assert.ok(url.searchParams.get("token"));
   assert.equal(startUrl.length <= 512, true);
@@ -124,15 +140,30 @@ test("Spotify OAuth start route rejects invalid and expired tokens", async () =>
   process.env.SPOTIFY_OAUTH_STATE_SECRET = "spotify-oauth-state-secret";
   process.env.SPOTIFY_REDIRECT_URI = "https://fitness.example.com/api/spotify/oauth/callback";
 
+  const missingTokenResponse = handleSpotifyOAuthStart(buildSpotifyOAuthStartRequest("https://fitness.example.com/api/spotify/oauth/start"));
+  const missingTokenBody = await missingTokenResponse.text();
+  assert.equal(missingTokenResponse.status, 400);
+  assert.equal(missingTokenResponse.headers.get("content-type"), "text/plain; charset=utf-8");
+  assert.doesNotMatch(missingTokenBody, /<html/i);
+  assert.match(missingTokenBody, /Missing Spotify authorization token/);
+
   const invalidResponse = handleSpotifyOAuthStart(buildSpotifyOAuthStartRequest("https://fitness.example.com/api/spotify/oauth/start?token=invalid"));
+  const invalidBody = await invalidResponse.text();
   assert.equal(invalidResponse.status, 400);
+  assert.equal(invalidResponse.headers.get("content-type"), "text/plain; charset=utf-8");
+  assert.doesNotMatch(invalidBody, /<html/i);
+  assert.match(invalidBody, /Invalid or expired Spotify authorization token/);
 
   const expiredToken = createSpotifyOAuthStartToken({
     discordUserId: "123456789012345678",
     issuedAt: Date.now() - 20 * 60_000,
   });
   const expiredResponse = handleSpotifyOAuthStart(buildSpotifyOAuthStartRequest(`https://fitness.example.com/api/spotify/oauth/start?token=${encodeURIComponent(expiredToken)}`));
+  const expiredBody = await expiredResponse.text();
   assert.equal(expiredResponse.status, 400);
+  assert.equal(expiredResponse.headers.get("content-type"), "text/plain; charset=utf-8");
+  assert.doesNotMatch(expiredBody, /<html/i);
+  assert.match(expiredBody, /Invalid or expired Spotify authorization token/);
 });
 
 test("Spotify refresh token exchange captures rotated refresh tokens when provided", async () => {

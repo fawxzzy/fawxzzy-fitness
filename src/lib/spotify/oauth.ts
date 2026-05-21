@@ -49,6 +49,7 @@ export type SpotifyOAuthStartTokenResult = {
   discordUserId: string;
   includePlaybackScopes: boolean;
   includeLiveQueueScopes: boolean;
+  issuedAt: number;
 };
 
 export type SpotifyTokenExchangeResult = {
@@ -163,6 +164,7 @@ export function verifySpotifyOAuthStartToken(token: string, now = Date.now()): S
     discordUserId: parsed.discordUserId,
     includePlaybackScopes: parsed.includePlaybackScopes === true,
     includeLiveQueueScopes: parsed.includeLiveQueueScopes === true,
+    issuedAt: parsed.issuedAt,
   };
 }
 

@@ -17,7 +17,16 @@ function buildSpotifyOAuthStartFailure(message: string) {
 export function GET(request: NextRequest) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
+  console.info("[spotify-oauth-start] route hit", {
+    host: url.host,
+    path: url.pathname,
+    hasToken: Boolean(token),
+  });
   if (!token) {
+    console.warn("[spotify-oauth-start] missing token", {
+      host: url.host,
+      path: url.pathname,
+    });
     return buildSpotifyOAuthStartFailure("Missing Spotify authorization token.");
   }
 
@@ -26,6 +35,11 @@ export function GET(request: NextRequest) {
     const { authorizationUrl } = buildSpotifyAuthorizationUrl(verifiedToken.discordUserId, {
       includePlaybackScopes: verifiedToken.includePlaybackScopes,
       includeLiveQueueScopes: verifiedToken.includeLiveQueueScopes,
+    });
+    const redirectTarget = new URL(authorizationUrl);
+    console.info("[spotify-oauth-start] redirecting", {
+      redirectHost: redirectTarget.host,
+      tokenAgeMs: Date.now() - verifiedToken.issuedAt,
     });
 
     return NextResponse.redirect(authorizationUrl, {
@@ -37,6 +51,8 @@ export function GET(request: NextRequest) {
   } catch (error) {
     console.error("[spotify-oauth-start] failed", {
       error: error instanceof Error ? error.message : String(error),
+      host: url.host,
+      path: url.pathname,
     });
     return buildSpotifyOAuthStartFailure("Invalid or expired Spotify authorization token.");
   }
