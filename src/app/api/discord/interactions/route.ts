@@ -408,11 +408,26 @@ async function buildSpotifyConnectResponse(discordUserId: string) {
       ...buildSpotifyConnectActionBody(discordUserId),
     });
   } catch (error) {
-    console.error("[discord-interactions] spotify-connect failed", {
+    console.error("[discord-interactions] spotify-connect-button failed", {
       requestId: randomUUID(),
       discordUserId,
       error: error instanceof Error ? error.message : String(error),
     });
+
+    try {
+      const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUserId, {
+        includeLiveQueueScopes: true,
+      });
+      return buildDiscordEphemeralMessageResponse(
+        `Spotify could not render the authorize button. Open this fallback link, then return here and press Refresh Spotify Status:\n${authorizationUrl}`,
+      );
+    } catch (fallbackError) {
+      console.error("[discord-interactions] spotify-connect-button fallback failed", {
+        requestId: randomUUID(),
+        discordUserId,
+        error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+      });
+    }
 
     return buildDiscordEphemeralMessageResponse("Spotify could not generate a connect link right now. Try again in a moment.");
   }
@@ -3402,13 +3417,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
   }
 
   if (customId === FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID) {
-    return buildDeferredDiscordEphemeralInteractionResponse({
-      interaction,
-      actionLabel: "spotify-controls-connect-button",
-      fallback: () => buildSpotifyConnectResponse(discordUserId),
-      process: async () => buildSpotifyConnectActionBody(discordUserId),
-      genericFailureContent: "Spotify could not generate a connect link right now. Try again in a moment.",
-    });
+    return buildSpotifyConnectResponse(discordUserId);
   }
 
   if (customId === FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID) {

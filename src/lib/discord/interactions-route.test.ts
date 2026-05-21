@@ -4499,7 +4499,7 @@ test("Discord interactions route shows queue and playback actions in the Spotify
   }
 });
 
-test("Discord interactions route returns a Spotify auth link from the ephemeral control hub", async () => {
+test("Discord interactions route returns an immediate Spotify auth link from the ephemeral control hub", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -4511,68 +4511,14 @@ test("Discord interactions route returns a Spotify auth link from the ephemeral 
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
 
   const originalFetch = globalThis.fetch;
-  const observedDiscordCalls = [];
+  const observedFetches = [];
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
     const method = String(init?.method ?? "GET");
-    const body = parseJsonBody(init?.body);
+    observedFetches.push({ method, path: url.pathname, host: url.hostname });
 
-    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
-      return new Response(JSON.stringify([{
-        id: "lobby-1",
-        status: "open",
-        host_discord_user_id: "999999999999999999",
-        host_spotify_user_id: null,
-        title: null,
-        description: null,
-        panel_channel_id: "1504668396338413670",
-        panel_message_id: "panel-message-1",
-        opened_at: "2026-05-19T00:00:00.000Z",
-        closed_at: null,
-        created_at: "2026-05-19T00:00:00.000Z",
-        updated_at: "2026-05-19T00:00:00.000Z",
-      }]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
-      return new Response(JSON.stringify(null), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
-      return new Response(JSON.stringify(null), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && method === "POST" && url.pathname === "/api/v10/interactions/spotify-connect-interaction/spotify-connect-token/callback") {
-      observedDiscordCalls.push({ method, path: url.pathname, body });
-      return new Response(null, { status: 204 });
-    }
-
-    if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-connect-token/messages/@original") {
-      observedDiscordCalls.push({ method, path: url.pathname, body });
-      return new Response(JSON.stringify({ id: "@original" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+    throw new Error(`Connect button should not fetch before responding: ${url.toString()} (${method})`);
   };
 
   try {
@@ -4597,17 +4543,20 @@ test("Discord interactions route returns a Spotify auth link from the ephemeral 
       },
     }), keyPair));
 
-    assert.equal(response.status, 202);
-    assert.equal(observedDiscordCalls[0]?.body?.type, 5);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /After authorizing, return here and press Refresh Spotify Status/);
-    assert.doesNotMatch(observedDiscordCalls[1]?.body?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
-    const oauthButton = findDiscordMessageLinkButtonByLabel(observedDiscordCalls[1]?.body, "Authorize Spotify");
+    assert.equal(response.status, 200);
+    assert.deepEqual(observedFetches, []);
+
+    const body = await response.json();
+    assert.equal(body.type, 4);
+    assert.match(body.data?.content ?? "", /After authorizing, return here and press Refresh Spotify Status/);
+    assert.doesNotMatch(body.data?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
+    const oauthButton = findDiscordMessageLinkButtonByLabel(body.data, "Authorize Spotify");
     assert.equal(oauthButton?.style, 5);
     assert.match(oauthButton?.url ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
     assert.match(oauthButton?.url ?? "", /client_id=spotify-client-id/);
     assert.match(oauthButton?.url ?? "", /user-read-currently-playing/);
     assert.match(oauthButton?.url ?? "", /user-modify-playback-state/);
-    assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
+    assert.deepEqual(listDiscordMessageComponentCustomIds(body.data), [
       "spotify_status_check",
     ]);
   } finally {
