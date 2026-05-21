@@ -207,6 +207,7 @@ import {
   createDiscordGuildChannel,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
+  createDiscordInteractionFollowupMessage,
   createDiscordMessageReaction,
   deleteDiscordChannelMessage,
   deleteDiscordChannel,
@@ -417,16 +418,19 @@ async function buildSpotifyConnectResponse(discordUserId: string) {
   }
 }
 
-function buildSpotifyConnectActionBody(discordUserId: string) {
+function buildSpotifyConnectActionBody(discordUserId: string, args?: {
+  authorizeLabel?: string;
+  copy?: string[];
+}) {
   const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUserId, {
     includeLiveQueueScopes: true,
   });
 
   return {
-    content: [
-      "Authorize Spotify in your browser, then return here and press Refresh Spotify Status.",
+    content: (args?.copy ?? [
+      "After authorizing, return here and press Refresh Spotify Status.",
       "If Discord has not updated yet, open Spotify Club Controls again.",
-    ].join("\n"),
+    ]).join("\n"),
     components: [
       {
         type: 1 as const,
@@ -434,7 +438,7 @@ function buildSpotifyConnectActionBody(discordUserId: string) {
           {
             type: 2 as const,
             style: 5 as const,
-            label: "Authorize Spotify",
+            label: args?.authorizeLabel ?? "Authorize Spotify",
             url: authorizationUrl,
           },
           {
@@ -1119,6 +1123,44 @@ async function buildSpotifyControlHubEditBodyForUser(args: {
   });
 }
 
+async function buildSpotifyStatusHubEditBodyForUser(args: {
+  discordUserId: string;
+  permissions: string | null;
+}) {
+  const connection = await getDiscordSpotifyConnection(args.discordUserId);
+  if (!connection) {
+    return buildSpotifyConnectActionBody(args.discordUserId);
+  }
+
+  if (!connection.is_premium) {
+    return buildSpotifyControlHubEditBodyForUser({
+      discordUserId: args.discordUserId,
+      permissions: args.permissions,
+      notice: buildSpotifyStatusCopy(connection),
+    });
+  }
+
+  if (!hasSpotifyPlaybackScopes(connection.scopes)) {
+    return buildSpotifyConnectActionBody(args.discordUserId, {
+      authorizeLabel: "Upgrade Spotify Access",
+      copy: [
+        buildSpotifyStatusCopy(connection),
+        "After authorizing, return here and press Refresh Spotify Status.",
+      ],
+    });
+  }
+
+  const readiness = await resolveSpotifyPlaybackReadiness({
+    discordUserId: args.discordUserId,
+    includeUpgradeLink: false,
+  });
+  return buildSpotifyControlHubEditBodyForUser({
+    discordUserId: args.discordUserId,
+    permissions: args.permissions,
+    notice: readiness.content,
+  });
+}
+
 async function buildSpotifyControlHubResponseForUser(args: {
   discordUserId: string;
   permissions: string | null;
@@ -1745,6 +1787,22 @@ async function buildDeferredDiscordEphemeralInteractionResponse(args: {
       status: editResult.status,
       message: editResult.message,
     });
+    const followupResult = await createDiscordInteractionFollowupMessage({
+      applicationId,
+      interactionToken,
+      content: resultBody.content || args.genericFailureContent,
+      components: resultBody.components,
+      flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
+    });
+    if (!followupResult.ok) {
+      console.error(`[discord-interactions] followup ${args.actionLabel} interaction failed`, {
+        requestId: randomUUID(),
+        interactionId,
+        code: followupResult.code,
+        status: followupResult.status,
+        message: followupResult.message,
+      });
+    }
   }
 
   return buildNoContentResponse();
@@ -3223,8 +3281,6 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
 
   const discordUser = resolveDiscordInteractionUser(interaction);
   const customId = typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null;
-  const latestLobby = await getLatestDiscordSpotifyLobby();
-  const openLobby = latestLobby?.status === "open" ? latestLobby : null;
   const messageId = typeof interaction.message?.id === "string" ? interaction.message.id : null;
   const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
   const isEphemeralHubInteraction = isEphemeralSpotifyControlHubInteraction(interaction);
@@ -3234,6 +3290,18 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
   }
 
   const discordUserId = discordUser.id;
+  const loadLatestLobby = () => getLatestDiscordSpotifyLobby();
+  const loadOpenLobby = async () => {
+    const lobby = await loadLatestLobby();
+    return lobby?.status === "open" ? lobby : null;
+  };
+  const validateCanonicalPanelInteraction = async () => {
+    if (isEphemeralHubInteraction) {
+      return true;
+    }
+    const latestLobby = await loadLatestLobby();
+    return Boolean(latestLobby?.panel_message_id && messageId && latestLobby.panel_message_id === messageId);
+  };
 
   if (customId === FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID) {
     return buildDeferredDiscordEphemeralInteractionResponse({
@@ -3245,6 +3313,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         notice: "Spotify Club could not save that track right now. Try again in a moment.",
       }),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         if (!openLobby) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
@@ -3301,20 +3370,6 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
     });
   }
 
-  const isCanonicalPanelInteraction = Boolean(
-    latestLobby?.panel_message_id
-    && messageId
-    && latestLobby.panel_message_id === messageId,
-  );
-
-  if (
-    customId === FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID
-    && !isCanonicalPanelInteraction
-    && !isEphemeralHubInteraction
-  ) {
-    return buildSpotifyClubOutdatedPanelResponse();
-  }
-
   if (
     customId !== FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID
     && customId !== FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID
@@ -3332,10 +3387,16 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         permissions,
         notice: "Spotify Club controls could not be opened right now. Try again in a moment.",
       }),
-      process: async () => buildSpotifyControlHubEditBodyForUser({
-        discordUserId,
-        permissions,
-      }),
+      process: async () => {
+        if (!await validateCanonicalPanelInteraction()) {
+          return "This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.";
+        }
+
+        return buildSpotifyControlHubEditBodyForUser({
+          discordUserId,
+          permissions,
+        });
+      },
       genericFailureContent: "Spotify Club controls could not be opened right now. Try again in a moment.",
     });
   }
@@ -3360,6 +3421,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         notice: "Spotify Club could not update your room membership right now. Try again in a moment.",
       }),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         if (!openLobby) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
@@ -3405,6 +3467,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         notice: "Spotify Club could not update your room membership right now. Try again in a moment.",
       }),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         if (!openLobby) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
@@ -3447,12 +3510,10 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       interaction,
       actionLabel: "spotify-status-button",
       fallback: () => buildSpotifyStatusResponse(discordUserId),
-      process: async () => (
-        await resolveSpotifyPlaybackReadiness({
-          discordUserId,
-          includeUpgradeLink: true,
-        })
-      ).content,
+      process: async () => buildSpotifyStatusHubEditBodyForUser({
+        discordUserId,
+        permissions,
+      }),
       genericFailureContent: "Spotify status could not be loaded right now. Try again in a moment.",
     });
   }
@@ -3463,6 +3524,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       actionLabel: "spotify-disconnect-auth-button",
       fallback: () => buildSpotifyDisconnectResponse(discordUserId),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         await disconnectDiscordSpotifyConnection(discordUserId);
         if (openLobby) {
           try {
@@ -3499,26 +3561,6 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
   }
 
   if (customId === FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID) {
-    if (!openLobby) {
-      return buildSpotifyControlHubResponseForUser({
-        discordUserId,
-        permissions,
-        notice: "Spotify Club lobby is Closed. Open a room before searching for tracks.",
-      });
-    }
-
-    const membership = await getCurrentDiscordSpotifyRoomMembership({
-      lobbyId: openLobby.id,
-      discordUserId,
-    });
-    if (!membership) {
-      return buildSpotifyControlHubResponseForUser({
-        discordUserId,
-        permissions,
-        notice: "Join Spotify Club first.",
-      });
-    }
-
     return buildDiscordSpotifyQueueSearchModalResponse();
   }
 
@@ -3568,26 +3610,6 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
   }
 
   if (customId === FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID) {
-    if (!openLobby) {
-      return buildSpotifyControlHubResponseForUser({
-        discordUserId,
-        permissions,
-        notice: "Spotify Club lobby is Closed. Open a room before suggesting tracks.",
-      });
-    }
-
-    const membership = await getCurrentDiscordSpotifyRoomMembership({
-      lobbyId: openLobby.id,
-      discordUserId,
-    });
-    if (!membership) {
-      return buildSpotifyControlHubResponseForUser({
-        discordUserId,
-        permissions,
-        notice: "Join Spotify Club first.",
-      });
-    }
-
     return buildDiscordSpotifyQueueSuggestModalResponse();
   }
 
@@ -3597,6 +3619,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       actionLabel: "spotify-device-check-button",
       fallback: () => buildSpotifyStatusResponse(discordUserId),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         if (!openLobby) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
@@ -3638,6 +3661,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       actionLabel: "spotify-start-queue-button",
       fallback: async () => buildDiscordEphemeralMessageResponse("Spotify playback could not be started right now. Try again in a moment."),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         if (!openLobby) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
@@ -3678,10 +3702,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         notice: "Spotify Club could not open the room right now. Try again in a moment.",
       }),
       process: async () => {
+        const latestLobby = await loadLatestLobby();
         if (!spotifyQueueManagementAllowed({
           permissions,
           discordUserId,
-          lobbyHostDiscordUserId: openLobby?.host_discord_user_id,
+          lobbyHostDiscordUserId: latestLobby?.status === "open" ? latestLobby.host_discord_user_id : null,
         })) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
@@ -3719,6 +3744,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         notice: "Spotify Club could not close the room right now. Try again in a moment.",
       }),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         if (!spotifyQueueManagementAllowed({
           permissions,
           discordUserId,
@@ -3935,6 +3961,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
         notice: "Spotify Club pending suggestions could not be loaded right now. Try again in a moment.",
       }),
       process: async () => {
+        const openLobby = await loadOpenLobby();
         if (!openLobby) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,

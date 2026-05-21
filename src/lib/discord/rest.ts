@@ -657,6 +657,43 @@ export async function editDiscordOriginalInteractionResponse(args: {
   };
 }
 
+export async function createDiscordInteractionFollowupMessage(args: {
+  applicationId: string;
+  interactionToken: string;
+  content: string;
+  components?: unknown[];
+  flags?: number;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const body: Record<string, unknown> = {
+    content: args.content,
+  };
+  if (Array.isArray(args.components)) {
+    body.components = args.components;
+  }
+  if (typeof args.flags === "number") {
+    body.flags = args.flags;
+  }
+
+  const result = await discordInteractionWebhookRequest<unknown>(
+    `/webhooks/${args.applicationId}/${args.interactionToken}`,
+    {
+      method: "POST",
+      body,
+    },
+  );
+
+  if (result.ok) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_CREATE_INTERACTION_FOLLOWUP_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function resolveDiscordForumTagIdsByName(args: {
   channelId: string;
   tagNames: string[];
