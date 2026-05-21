@@ -420,9 +420,16 @@ export function buildDiscordSpotifyQueueSummaryTextForViewer(
   summary: DiscordSpotifyQueueSummary,
   viewerDiscordUserId?: string | null,
 ): string {
-  const currentItem = summary.roomQueueItems.find((item) => item.playback_state === "playing") ?? null;
+  const currentRoomQueueItem = summary.roomQueueItems.find((item) => item.playback_state === "playing") ?? null;
+  const currentSpotifyUpNextItem = currentRoomQueueItem
+    ? null
+    : summary.spotifyUpNextItems.find((item) => item.playback_state === "playing") ?? null;
+  const currentItem = currentRoomQueueItem ?? currentSpotifyUpNextItem;
   const nextItem = summary.roomQueueItems.find((item) => item.playback_state === "queued") ?? null;
   const upcomingRoomQueueItems = summary.roomQueueItems.filter((item) => item.playback_state === "queued");
+  const upcomingSpotifyUpNextItems = currentItem
+    ? summary.spotifyUpNextItems.filter((item) => item.id !== currentItem.id)
+    : summary.spotifyUpNextItems;
   const currentLines = currentItem
     ? [`Current: ${formatQueueTrackLabel(currentItem)} (${formatQueueSourceLabel(currentItem.source_type)})`]
     : ["Current: none"];
@@ -435,9 +442,9 @@ export function buildDiscordSpotifyQueueSummaryTextForViewer(
       const position = item.queue_position ?? index + 1;
       return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)}, Queued)`;
     });
-  const spotifyUpNextLines = summary.spotifyUpNextItems.length === 0
+  const spotifyUpNextLines = upcomingSpotifyUpNextItems.length === 0
     ? ["No Spotify Up Next mirror items."]
-    : summary.spotifyUpNextItems.slice(0, 10).map((item, index) => {
+    : upcomingSpotifyUpNextItems.slice(0, 10).map((item, index) => {
       const position = item.display_position ?? index + 1;
       return `${position}. ${formatQueueTrackLabel(item)} (${formatQueueSourceLabel(item.source_type)})`;
     });
@@ -807,6 +814,7 @@ export async function clearStaleMirroredDiscordSpotifyQueueItems(args: {
 export function planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot(args: {
   activeItems: DiscordSpotifyQueueItemRow[];
   activeSpotifyUris: string[];
+  currentSpotifyUri?: string | null;
 }): DiscordSpotifyQueueItemRow[] {
   const activeUriCounts = args.activeSpotifyUris.reduce((counts, uri) => {
     const normalizedUri = uri.trim().toLowerCase();
@@ -815,6 +823,7 @@ export function planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot(args: {
     }
     return counts;
   }, new Map<string, number>());
+  const currentSpotifyUri = args.currentSpotifyUri?.trim().toLowerCase() ?? null;
   const inactiveItems: DiscordSpotifyQueueItemRow[] = [];
 
   args.activeItems
@@ -836,6 +845,19 @@ export function planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot(args: {
     })
     .forEach((item) => {
       const normalizedUri = item.spotify_uri.toLowerCase();
+      if (item.playback_state === "playing") {
+        if (currentSpotifyUri && normalizedUri === currentSpotifyUri) {
+          const remainingCount = activeUriCounts.get(normalizedUri) ?? 0;
+          if (remainingCount > 0) {
+            activeUriCounts.set(normalizedUri, remainingCount - 1);
+          }
+          return;
+        }
+
+        inactiveItems.push(item);
+        return;
+      }
+
       const remainingCount = activeUriCounts.get(normalizedUri) ?? 0;
       if (remainingCount > 0) {
         activeUriCounts.set(normalizedUri, remainingCount - 1);
@@ -851,6 +873,7 @@ export function planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot(args: {
 export async function reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot(args: {
   lobbyId: string;
   activeSpotifyUris: string[];
+  currentSpotifyUri?: string | null;
   admin?: SpotifyQueueAdminClient;
 }): Promise<number> {
   const admin = args.admin ?? supabaseAdmin();
@@ -860,9 +883,39 @@ export async function reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot(arg
     statuses: ["approved"],
     admin,
   });
+  const currentSpotifyUri = args.currentSpotifyUri?.trim().toLowerCase() ?? null;
+  const currentRoomQueueItem = currentSpotifyUri
+    ? activeItems.find((item) => (
+      item.approval_state === "approved"
+      && item.source_type !== "spotify_mirror"
+      && (item.playback_state === "queued" || item.playback_state === "playing")
+      && item.spotify_uri.toLowerCase() === currentSpotifyUri
+    )) ?? null
+    : null;
+  const itemsForPlanning = currentRoomQueueItem && currentRoomQueueItem.playback_state === "queued"
+    ? activeItems.map((item) => {
+      if (item.id === currentRoomQueueItem.id) {
+        return { ...item, playback_state: "playing" as const };
+      }
+      if (item.source_type !== "spotify_mirror" && item.playback_state === "playing") {
+        return { ...item, status: "played" as const, playback_state: "played" as const };
+      }
+      return item;
+    })
+    : activeItems;
+
+  if (currentRoomQueueItem && currentRoomQueueItem.playback_state === "queued") {
+    await markDiscordSpotifyQueueItemPlaying({
+      lobbyId: args.lobbyId,
+      queueItemId: currentRoomQueueItem.id,
+      admin,
+    });
+  }
+
   const inactiveItems = planInactiveDiscordSpotifyQueueItemsForPlaybackSnapshot({
-    activeItems,
+    activeItems: itemsForPlanning,
     activeSpotifyUris: args.activeSpotifyUris,
+    currentSpotifyUri: args.currentSpotifyUri,
   });
 
   await Promise.all(inactiveItems.map((item) => {

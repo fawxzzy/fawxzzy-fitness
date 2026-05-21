@@ -126,13 +126,21 @@ export function reconcileSpotifyMirrorSnapshot(args: {
   });
 
   const currentUri = args.snapshot.currentlyPlaying?.spotifyUri.toLowerCase() ?? null;
-  const currentlyPlayingItem = currentUri
+  const currentDiscordOwnedItem = currentUri && args.roomManagedPlaybackInProgress
+    ? args.existingItems.find((item) => (
+      item.spotify_uri.toLowerCase() === currentUri
+      && item.source_type !== "spotify_mirror"
+      && isActiveApprovedQueueItem(item)
+    )) ?? null
+    : null;
+  const currentMirrorItem = currentUri
     ? args.existingItems.find((item) => (
       item.spotify_uri.toLowerCase() === currentUri
       && isActiveApprovedQueueItem(item)
-      && (item.source_type === "spotify_mirror" || args.roomManagedPlaybackInProgress)
+      && item.source_type === "spotify_mirror"
     )) ?? null
     : null;
+  const currentlyPlayingItem = currentDiscordOwnedItem ?? currentMirrorItem;
 
   return {
     inserts,
@@ -198,6 +206,7 @@ export async function syncSpotifyMirrorForLobby(lobby: DiscordSpotifyLobbyRow): 
       await reconcileActiveDiscordSpotifyQueueWithPlaybackSnapshot({
         lobbyId: lobby.id,
         activeSpotifyUris,
+        currentSpotifyUri: snapshot.currentlyPlaying?.spotifyUri ?? null,
       });
     }
 
