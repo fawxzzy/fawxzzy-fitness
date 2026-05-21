@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import {
   SPOTIFY_CLIENT_ID,
   SPOTIFY_OAUTH_STATE_SECRET,
@@ -21,10 +21,19 @@ export const SPOTIFY_PHASE_6_LIVE_QUEUE_SCOPES = [
 ] as const;
 const SPOTIFY_PKCE_VERIFIER_BYTES = 48;
 const SPOTIFY_OAUTH_STATE_MAX_AGE_MS = 15 * 60_000;
+const SPOTIFY_OAUTH_START_TOKEN_MAX_AGE_MS = 15 * 60_000;
 
 type SpotifyOAuthStatePayload = {
   discordUserId: string;
   codeVerifier: string;
+  issuedAt: number;
+  nonce: string;
+};
+
+type SpotifyOAuthStartTokenPayload = {
+  discordUserId: string;
+  includePlaybackScopes?: boolean;
+  includeLiveQueueScopes?: boolean;
   issuedAt: number;
   nonce: string;
 };
@@ -34,6 +43,12 @@ export type SpotifyAuthorizationUrlResult = {
   state: string;
   codeChallenge: string;
   scopes: string[];
+};
+
+export type SpotifyOAuthStartTokenResult = {
+  discordUserId: string;
+  includePlaybackScopes: boolean;
+  includeLiveQueueScopes: boolean;
 };
 
 export type SpotifyTokenExchangeResult = {
@@ -52,6 +67,12 @@ export type SpotifyRefreshTokenResult = {
 
 function encodeBase64Url(value: Uint8Array | Buffer): string {
   return Buffer.from(value).toString("base64url");
+}
+
+function signSpotifyOAuthStartPayload(payload: string): string {
+  return createHmac("sha256", SPOTIFY_OAUTH_STATE_SECRET())
+    .update(payload)
+    .digest("base64url");
 }
 
 function buildPkceCodeChallenge(codeVerifier: string): string {
@@ -82,6 +103,83 @@ export function buildSpotifyAuthorizationScopes(args?: {
         ? SPOTIFY_PHASE_4_PLAYBACK_SCOPES
         : []),
   ]);
+}
+
+export function createSpotifyOAuthStartToken(args: {
+  discordUserId: string;
+  includePlaybackScopes?: boolean;
+  includeLiveQueueScopes?: boolean;
+  issuedAt?: number;
+}): string {
+  const payload = encodeBase64Url(Buffer.from(JSON.stringify({
+    discordUserId: args.discordUserId,
+    includePlaybackScopes: Boolean(args.includePlaybackScopes),
+    includeLiveQueueScopes: Boolean(args.includeLiveQueueScopes),
+    issuedAt: args.issuedAt ?? Date.now(),
+    nonce: encodeBase64Url(randomBytes(9)),
+  } satisfies SpotifyOAuthStartTokenPayload), "utf8"));
+
+  return `${payload}.${signSpotifyOAuthStartPayload(payload)}`;
+}
+
+export function verifySpotifyOAuthStartToken(token: string, now = Date.now()): SpotifyOAuthStartTokenResult {
+  const [payload, signature, ...extra] = token.split(".");
+  if (!payload || !signature || extra.length > 0) {
+    throw new Error("Invalid Spotify OAuth start token.");
+  }
+
+  const expectedSignature = signSpotifyOAuthStartPayload(payload);
+  const signatureBuffer = Buffer.from(signature, "base64url");
+  const expectedSignatureBuffer = Buffer.from(expectedSignature, "base64url");
+  if (
+    signatureBuffer.length !== expectedSignatureBuffer.length
+    || !timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
+  ) {
+    throw new Error("Invalid Spotify OAuth start token.");
+  }
+
+  let parsed: Partial<SpotifyOAuthStartTokenPayload> | null = null;
+  try {
+    parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<SpotifyOAuthStartTokenPayload>;
+  } catch {
+    throw new Error("Invalid Spotify OAuth start token.");
+  }
+
+  if (
+    !parsed
+    || typeof parsed.discordUserId !== "string"
+    || !/^\d{5,32}$/.test(parsed.discordUserId)
+    || typeof parsed.issuedAt !== "number"
+    || !Number.isFinite(parsed.issuedAt)
+  ) {
+    throw new Error("Invalid Spotify OAuth start token.");
+  }
+
+  if (Math.abs(now - parsed.issuedAt) > SPOTIFY_OAUTH_START_TOKEN_MAX_AGE_MS) {
+    throw new Error("Expired Spotify OAuth start token.");
+  }
+
+  return {
+    discordUserId: parsed.discordUserId,
+    includePlaybackScopes: parsed.includePlaybackScopes === true,
+    includeLiveQueueScopes: parsed.includeLiveQueueScopes === true,
+  };
+}
+
+export function buildSpotifyOAuthStartUrl(
+  discordUserId: string,
+  args?: {
+    includePlaybackScopes?: boolean;
+    includeLiveQueueScopes?: boolean;
+  },
+): string {
+  const url = new URL("/api/spotify/oauth/start", SPOTIFY_REDIRECT_URI());
+  url.searchParams.set("token", createSpotifyOAuthStartToken({
+    discordUserId,
+    includePlaybackScopes: args?.includePlaybackScopes,
+    includeLiveQueueScopes: args?.includeLiveQueueScopes,
+  }));
+  return url.toString();
 }
 
 export function createSpotifyOAuthState(args: {

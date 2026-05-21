@@ -231,7 +231,7 @@ import {
   updateDiscordForumThreadTitle,
   updateDiscordGuildMemberNickname,
 } from "@/lib/discord/rest";
-import { buildSpotifyAuthorizationUrl } from "@/lib/spotify/oauth";
+import { buildSpotifyAuthorizationUrl, buildSpotifyOAuthStartUrl } from "@/lib/spotify/oauth";
 import {
   buildDiscordSpotifyLobbyStatusSummary,
   closeDiscordSpotifyLobby,
@@ -437,7 +437,7 @@ function buildSpotifyConnectActionBody(discordUserId: string, args?: {
   authorizeLabel?: string;
   copy?: string[];
 }) {
-  const { authorizationUrl } = buildSpotifyAuthorizationUrl(discordUserId, {
+  const authorizationUrl = buildSpotifyOAuthStartUrl(discordUserId, {
     includeLiveQueueScopes: true,
   });
 

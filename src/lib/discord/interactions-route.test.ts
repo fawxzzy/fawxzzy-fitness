@@ -4552,10 +4552,9 @@ test("Discord interactions route returns an immediate Spotify auth link from the
     assert.doesNotMatch(body.data?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
     const oauthButton = findDiscordMessageLinkButtonByLabel(body.data, "Authorize Spotify");
     assert.equal(oauthButton?.style, 5);
-    assert.match(oauthButton?.url ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
-    assert.match(oauthButton?.url ?? "", /client_id=spotify-client-id/);
-    assert.match(oauthButton?.url ?? "", /user-read-currently-playing/);
-    assert.match(oauthButton?.url ?? "", /user-modify-playback-state/);
+    assert.match(oauthButton?.url ?? "", /^https:\/\/example\.com\/api\/spotify\/oauth\/start\?token=/);
+    assert.doesNotMatch(oauthButton?.url ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
+    assert.equal((oauthButton?.url ?? "").length <= 512, true);
     assert.deepEqual(listDiscordMessageComponentCustomIds(body.data), [
       "spotify_status_check",
     ]);
