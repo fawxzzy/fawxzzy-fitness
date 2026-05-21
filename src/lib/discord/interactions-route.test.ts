@@ -4599,7 +4599,7 @@ test("Discord interactions route returns a Spotify auth link from the ephemeral 
 
     assert.equal(response.status, 202);
     assert.equal(observedDiscordCalls[0]?.body?.type, 5);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Authorize Spotify in your browser/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /After authorizing, return here and press Refresh Spotify Status/);
     assert.doesNotMatch(observedDiscordCalls[1]?.body?.content ?? "", /https:\/\/accounts\.spotify\.com\/authorize\?/);
     const oauthButton = findDiscordMessageLinkButtonByLabel(observedDiscordCalls[1]?.body, "Authorize Spotify");
     assert.equal(oauthButton?.style, 5);
@@ -4609,6 +4609,377 @@ test("Discord interactions route returns a Spotify auth link from the ephemeral 
     assert.match(oauthButton?.url ?? "", /user-modify-playback-state/);
     assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
       "spotify_status_check",
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route defers Spotify controls before loading lobby state", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+  const callOrder = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+
+    if (url.hostname === "discord.com" && method === "POST" && url.pathname === "/api/v10/interactions/spotify-controls-slow-interaction/spotify-controls-slow-token/callback") {
+      callOrder.push("discord-defer");
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      callOrder.push("lobbies-get");
+      return new Response(JSON.stringify([buildSpotifyClubLobbyRow({
+        status: "closed",
+        panel_message_id: "panel-message-1",
+      })]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_room_members") && method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "Content-Range": "*/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-controls-slow-token/messages/@original") {
+      callOrder.push("discord-edit");
+      assert.match(body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
+      return new Response(JSON.stringify({ id: "@original" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "spotify-controls-slow-interaction",
+      application_id: "1504700208251146371",
+      token: "spotify-controls-slow-token",
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: "0",
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "panel-message-1",
+      },
+      data: {
+        custom_id: "spotify_controls_open",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    assert.ok(callOrder.indexOf("discord-defer") !== -1);
+    assert.ok(callOrder.indexOf("lobbies-get") !== -1);
+    assert.ok(callOrder.indexOf("discord-defer") < callOrder.indexOf("lobbies-get"));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route defers Spotify room open before loading lobby state", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+  const callOrder = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+
+    if (url.hostname === "discord.com" && method === "POST" && url.pathname === "/api/v10/interactions/spotify-room-open-slow-interaction/spotify-room-open-slow-token/callback") {
+      callOrder.push("discord-defer");
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      callOrder.push("lobbies-get");
+      return new Response(JSON.stringify([buildSpotifyClubLobbyRow({
+        status: "closed",
+        panel_message_id: "panel-message-1",
+      })]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_room_members") && method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "Content-Range": "*/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-room-open-slow-token/messages/@original") {
+      callOrder.push("discord-edit");
+      assert.match(body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
+      assert.match(body?.content ?? "", /You do not have permission to manage the Spotify Club room/);
+      return new Response(JSON.stringify({ id: "@original" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "spotify-room-open-slow-interaction",
+      application_id: "1504700208251146371",
+      token: "spotify-room-open-slow-token",
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        permissions: "0",
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "spotify-controls-message-1",
+        flags: 64,
+      },
+      data: {
+        custom_id: "spotify_room_open",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    assert.ok(callOrder.indexOf("discord-defer") !== -1);
+    assert.ok(callOrder.indexOf("lobbies-get") !== -1);
+    assert.ok(callOrder.indexOf("discord-defer") < callOrder.indexOf("lobbies-get"));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route refreshes disconnected Spotify status back to authorize controls", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.SPOTIFY_CLIENT_ID = "spotify-client-id";
+  process.env.SPOTIFY_REDIRECT_URI = "https://example.com/api/spotify/oauth/callback";
+  process.env.SPOTIFY_OAUTH_STATE_SECRET = "spotify-oauth-state-secret";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordCalls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && method === "POST" && url.pathname === "/api/v10/interactions/spotify-status-disconnected-interaction/spotify-status-disconnected-token/callback") {
+      observedDiscordCalls.push({ method, path: url.pathname, body });
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-status-disconnected-token/messages/@original") {
+      observedDiscordCalls.push({ method, path: url.pathname, body });
+      return new Response(JSON.stringify({ id: "@original" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "spotify-status-disconnected-interaction",
+      application_id: "1504700208251146371",
+      token: "spotify-status-disconnected-token",
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "spotify-controls-message-1",
+        flags: 64,
+      },
+      data: {
+        custom_id: "spotify_status_check",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    assert.equal(observedDiscordCalls[0]?.body?.type, 5);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /After authorizing, return here and press Refresh Spotify Status/);
+    assert.equal(findDiscordMessageLinkButtonByLabel(observedDiscordCalls[1]?.body, "Authorize Spotify")?.style, 5);
+    assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
+      "spotify_status_check",
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord interactions route refreshes connected Spotify status back to the control hub", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+  const observedDiscordCalls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_connections") && method === "GET") {
+      return new Response(JSON.stringify(buildSpotifyConnectionRow({
+        spotify_product: "free",
+        is_premium: false,
+        scopes: ["user-read-private"],
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([buildSpotifyClubLobbyRow({
+        status: "closed",
+      })]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_room_members") && method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "Content-Range": "*/0" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && method === "POST" && url.pathname === "/api/v10/interactions/spotify-status-connected-interaction/spotify-status-connected-token/callback") {
+      observedDiscordCalls.push({ method, path: url.pathname, body });
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-status-connected-token/messages/@original") {
+      observedDiscordCalls.push({ method, path: url.pathname, body });
+      return new Response(JSON.stringify({ id: "@original" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "spotify-status-connected-interaction",
+      application_id: "1504700208251146371",
+      token: "spotify-status-connected-token",
+      type: 3,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      message: {
+        id: "spotify-controls-message-1",
+        flags: 64,
+      },
+      data: {
+        custom_id: "spotify_status_check",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    assert.equal(observedDiscordCalls[0]?.body?.type, 5);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Spotify: Connected \/ Not Premium/);
+    assert.doesNotMatch(observedDiscordCalls[1]?.body?.content ?? "", /use \/spotify connect/i);
+    assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
+      "spotify_disconnect_auth",
     ]);
   } finally {
     globalThis.fetch = originalFetch;
