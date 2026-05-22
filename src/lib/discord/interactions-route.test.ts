@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import nacl from "tweetnacl";
-import { POST } from "@/app/api/discord/interactions/route.ts";
+import { GET, POST } from "@/app/api/discord/interactions/route.ts";
 import { encryptSpotifyRefreshToken } from "@/lib/spotify/tokens.ts";
 
 function toHex(value) {
@@ -1033,21 +1033,348 @@ test("Discord interactions route opens the edit modal after clicking the manage 
 test("Discord interactions route opens the general feedback modal for /feedback", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  const originalFetch = globalThis.fetch;
+  let fetchCallCount = 0;
 
-  const response = await POST(createSignedRequest(JSON.stringify({
-    type: 2,
-    data: {
-      name: "feedback",
-    },
-  }), keyPair));
+  globalThis.fetch = async () => {
+    fetchCallCount += 1;
+    throw new Error("Feedback modal launcher must not fetch before responding.");
+  };
 
-  assert.equal(response.status, 200);
-  const payload = await response.json();
-  assert.equal(payload.type, 9);
-  assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
-  assert.equal(payload.data.title, "Submit Feedback");
-  assert.equal(payload.data.components[0]?.component?.custom_id, "feedback_type");
-  assert.equal(payload.data.components[4]?.component?.custom_id, "feedback_attachment");
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      data: {
+        name: "feedback",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 9);
+    assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
+    assert.equal(payload.data.title, "Submit Feedback");
+    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "feedback_type");
+    assert.equal(payload.data.components[0]?.components[0]?.type, 4);
+    assert.equal(payload.data.components[0]?.components[0]?.placeholder, "Bug or Feature");
+    assert.equal(payload.data.components[3]?.components[0]?.custom_id, "bug_details");
+    assert.equal(payload.data.components.some((row) => row?.type === 18), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":19"), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":3"), false);
+    assert.equal(fetchCallCount, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord message command poll is secret-gated", async () => {
+  delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+  delete process.env.CRON_SECRET;
+
+  const response = await GET(new Request("http://localhost/api/discord/interactions", {
+    method: "GET",
+  }));
+
+  assert.equal(response.status, 503);
+});
+
+test("Discord message command poll lets a manager bootstrap the commander role and setup feedback", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
+  delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
+  delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;
+
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    calls.push({ method, pathname: url.pathname, body: parseJsonBody(init?.body) });
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      assert.equal(url.searchParams.get("limit"), "25");
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-1",
+          content: "yo bot feedback setup please",
+          author: { id: "123456789012345678", bot: false },
+          member: { roles: ["manager-role"] },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "manager-role", name: "Ops", permissions: String(BigInt(1) << BigInt(5)) },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.name, "Fawxzzy Commander");
+      return new Response(JSON.stringify({ id: "commander-role", name: "Fawxzzy Commander", permissions: "0" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/members/123456789012345678/roles/commander-role" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "submit-feedback" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
+      return new Response(JSON.stringify({ id: "feedback-panel-message-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Feedback launcher created/);
+      assert.equal(body?.message_reference?.message_id, "main-message-1");
+      assert.deepEqual(body?.allowed_mentions, { parse: [], replied_user: false });
+      return new Response(JSON.stringify({ id: "reply-message-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-1/reactions/%E2%9C%85/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-1",
+          ok: true,
+          code: null,
+          action: "created",
+        },
+      ],
+    });
+    assert.equal(calls.some((call) => call.method === "POST" && call.pathname.endsWith("/roles")), true);
+    assert.equal(calls.some((call) => call.method === "PUT" && call.pathname.includes("/roles/commander-role")), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
+    delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
+  }
+});
+
+test("Discord message command poll requires the commander role after bootstrap", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-2",
+          content: "bot feedback setup",
+          author: { id: "123456789012345678", bot: false },
+          member: { roles: [] },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Fawxzzy Commander/);
+      assert.equal(body?.message_reference?.message_id, "main-message-2");
+      return new Response(JSON.stringify({ id: "reply-message-2" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-2/reactions/%F0%9F%9A%AB/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-2",
+          ok: false,
+          code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN",
+          action: null,
+        },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+  }
+});
+
+test("Discord message command poll skips messages already marked processed", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  globalThis.fetch = async (input, init) => {
+    fetchCount += 1;
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-3",
+          content: "bot feedback setup",
+          author: { id: "123456789012345678", bot: false },
+          reactions: [{ me: true, emoji: { name: "✅" } }],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true, processed: [] });
+    assert.equal(fetchCount, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route opens the feedback panel submit modal without pre-response fetches", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  const originalFetch = globalThis.fetch;
+  let fetchCallCount = 0;
+
+  globalThis.fetch = async () => {
+    fetchCallCount += 1;
+    throw new Error("Feedback submit button must not fetch before opening the modal.");
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      data: {
+        custom_id: "fitness_feedback_submit_open",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 9);
+    assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
+    assert.equal(payload.data.title, "Submit Feedback");
+    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "feedback_type");
+    assert.equal(payload.data.components[0]?.components[0]?.type, 4);
+    assert.equal(payload.data.components[3]?.components[0]?.custom_id, "bug_details");
+    assert.equal(payload.data.components.some((row) => row?.type === 18), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":19"), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":3"), false);
+    assert.equal(fetchCallCount, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("Discord interactions route defers feedback submit and edits the original ephemeral response after success", async () => {
@@ -1192,6 +1519,119 @@ test("Discord interactions route defers feedback submit and edits the original e
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route sends a feedback submit followup when editing the deferred response fails", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+
+  const originalFetch = globalThis.fetch;
+  const observedRequests = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+    observedRequests.push({ path: url.pathname, method, body });
+
+    if (url.pathname === "/api/v10/interactions/interaction-1/interaction-token/callback") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "HEAD") {
+      return new Response(null, { status: 200, headers: { "content-range": "0-0/0" } });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response("null", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "GET") {
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "POST") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        reporter_fitness_user_id: null,
+        reporter_member_number: null,
+        reporter_user_kind: null,
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        discord_forum_applied_tag_ids: null,
+        discord_forum_title: null,
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original") {
+      return new Response(JSON.stringify({ message: "Original response expired" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token") {
+      return new Response(JSON.stringify({ id: "followup-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      application_id: "1504700208251146371",
+      token: "interaction-token",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_submit_modal",
+        components: [
+          {
+            type: 18,
+            label: "Feedback type",
+            component: { type: 3, custom_id: "feedback_type", values: ["bug"] },
+          },
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 18, label: "Screenshot or image", component: { type: 19, custom_id: "feedback_attachment", values: [] } },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    const followupCall = observedRequests.find((entry) => entry.path === "/api/v10/webhooks/1504700208251146371/interaction-token" && entry.method === "POST");
+    assert.deepEqual(followupCall?.body, {
+      content: "Feedback received. Thanks for helping improve Fitness.",
+      flags: 64,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });
 
