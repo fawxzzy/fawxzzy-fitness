@@ -2294,7 +2294,7 @@ async function upsertDiscordFeedbackPanel(args: {
     return { ok: false as const, code: patchResult.code, status: patchResult.status, message: patchResult.message };
   }
 
-  const createPanelMessage = async () => {
+  const createPanelMessage = async (action: "created" | "reposted" = "created") => {
     const createResult = await createDiscordChannelMessage({
       channelId,
       body: payload,
@@ -2312,7 +2312,7 @@ async function upsertDiscordFeedbackPanel(args: {
       });
     }
 
-    return { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel };
+    return { ok: true as const, action, channelLabel: panelChannelResult.channelLabel };
   };
 
   const messagesResult = await fetchDiscordChannelMessages({
@@ -2336,29 +2336,16 @@ async function upsertDiscordFeedbackPanel(args: {
     return createPanelMessage();
   }
 
-  const patchResult = await patchDiscordChannelMessage({
+  const deleteResult = await deleteDiscordChannelMessage({
     channelId,
     messageId: existingMessage.id,
-    body: payload,
   });
 
-  if (patchResult.ok) {
-    if (args.cleanupLegacyPanels === true) {
-      await cleanupLegacyDiscordFeedbackPanels({
-        targetChannelId: channelId,
-        keepMessageIds: [existingMessage.id],
-        includeLegacyChannels: true,
-      });
-    }
-
-    return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel };
+  if (deleteResult.ok || deleteResult.code === "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
+    return createPanelMessage("reposted");
   }
 
-  if (patchResult.status === 404) {
-    return createPanelMessage();
-  }
-
-  return { ok: false as const, code: patchResult.code, status: patchResult.status, message: patchResult.message };
+  return { ok: false as const, code: deleteResult.code, status: deleteResult.status, message: deleteResult.message };
 }
 
 async function upsertDiscordSpotifyClubPanel() {
@@ -2660,7 +2647,7 @@ function parseDiscordComputaLiveMessageCommand(message: DiscordMessageCommand): 
     };
   }
 
-  const commandMatch = rawContent.match(/^computa\s+live(?:\s+(.+))?$/i);
+  const commandMatch = rawContent.match(/^computa\s+post\s+live(?:\s+(.+))?$/i);
   if (!commandMatch) {
     return null;
   }
@@ -2710,7 +2697,7 @@ function discordMessageRequestsComputaLive(message: DiscordMessageCommand): bool
   }
 
   const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
-  return normalizedContent === "live" || normalizedContent.startsWith("computa live");
+  return normalizedContent === "live" || normalizedContent.startsWith("computa post live");
 }
 
 function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): boolean {
@@ -2772,9 +2759,9 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
           "`computa` - Show this command card.",
           "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
-          "`computa live twitch` - Owner-only Twitch live announcement.",
-          "`computa live tiktok` - Owner-only TikTok live announcement.",
-          "`computa live [link]` - Owner-only custom live announcement.",
+          "`computa post live twitch` - Owner-only Twitch live announcement.",
+          "`computa post live tiktok` - Owner-only TikTok live announcement.",
+          "`computa post live [link]` - Owner-only custom live announcement.",
           "`live` - Owner-only live announcement.",
         ].join("\n"),
         color: DISCORD_EMBED_COLOR_SUCCESS,
@@ -3146,7 +3133,7 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
 
   await sendDiscordMessageCommandPrivateNotice({
     userId: authorId,
-    content: upsertResult.action === "updated"
+    content: upsertResult.action === "updated" || upsertResult.action === "reposted"
       ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
       : `Feedback launcher created in ${upsertResult.channelLabel}.`,
   });
@@ -3172,7 +3159,7 @@ async function processDiscordComputaLiveMessageCommand(args: {
   if (!command) {
     await sendDiscordMessageCommandPrivateNotice({
       userId: authorId,
-      content: "Use `computa live twitch`, `computa live tiktok`, `computa live [link]`, or `live`.",
+      content: "Use `computa post live twitch`, `computa post live tiktok`, `computa post live [link]`, or `live`.",
     });
     await markDiscordMessageCommandProcessed({
       channelId: args.channelId,
@@ -3185,7 +3172,7 @@ async function processDiscordComputaLiveMessageCommand(args: {
   if (authorId !== resolveDiscordComputaOwnerUserId()) {
     await sendDiscordMessageCommandPrivateNotice({
       userId: authorId,
-      content: "Only the configured Fawxzzy owner account can use computa live commands.",
+      content: "Only the configured Fawxzzy owner account can use computa post live commands.",
     });
     await markDiscordMessageCommandProcessed({
       channelId: args.channelId,
@@ -3220,7 +3207,7 @@ async function processDiscordComputaLiveMessageCommand(args: {
   });
 
   if (!createResult.ok) {
-    console.error("[discord-message-command] computa live update failed", {
+    console.error("[discord-message-command] computa post live update failed", {
       requestId: randomUUID(),
       code: createResult.code,
       status: createResult.status,
@@ -3670,7 +3657,7 @@ async function handleSetupFeedbackInteraction(interaction: DiscordInteraction) {
   }
 
   return buildDiscordEphemeralMessageResponse(
-    upsertResult.action === "updated"
+    upsertResult.action === "updated" || upsertResult.action === "reposted"
       ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
       : `Feedback launcher created in ${upsertResult.channelLabel}.`,
   );

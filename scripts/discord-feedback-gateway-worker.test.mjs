@@ -62,7 +62,7 @@ test("feedback gateway worker detects owner live message command shapes", () => 
   assert.equal(
     messageRequestsComputaLive({
       channel_id: "main-channel",
-      content: "computa live twitch",
+      content: "computa post live twitch",
       author: { bot: false },
     }, "main-channel"),
     true,
@@ -70,7 +70,7 @@ test("feedback gateway worker detects owner live message command shapes", () => 
   assert.equal(
     messageRequestsComputaLive({
       channel_id: "main-channel",
-      content: "computa live [https://example.com/live]",
+      content: "computa post live [https://example.com/live]",
       author: { bot: false },
     }, "main-channel"),
     true,
@@ -79,6 +79,14 @@ test("feedback gateway worker detects owner live message command shapes", () => 
     messageRequestsComputaLive({
       channel_id: "main-channel",
       content: "computa live twitch",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaLive({
+      channel_id: "main-channel",
+      content: "computa post live twitch",
       author: { bot: true },
     }, "main-channel"),
     false,
@@ -113,7 +121,7 @@ test("feedback gateway worker detects exact computa menu messages", () => {
   assert.equal(
     messageRequestsComputaMenu({
       channel_id: "main-channel",
-      content: "computa live twitch",
+      content: "computa post live twitch",
       author: { bot: false },
     }, "main-channel"),
     false,
