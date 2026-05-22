@@ -27,13 +27,15 @@ Product rules:
 - `/setup-feedback`
   - admin-only
   - posts or refreshes the persistent `Submit Feedback Here` launcher
-  - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
-  - otherwise finds or creates `submit-feedback` above the Feedback forum
+  - uses the channel where the command is run when Discord provides a source channel
+  - removes older launcher messages from the previous configured or `submit-feedback` channel after successful source-channel setup
+  - falls back to `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` or `submit-feedback` only when no source channel is available
 - main-channel message triggers: `bot feedback setup` and `bot setup feedback`
   - requires the `Fawxzzy Commander` role after bootstrap
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`
-  - calls the same idempotent setup path as `/setup-feedback`
+  - posts or refreshes the launcher in the channel where the trigger message was sent
+  - removes older launcher messages from previous feedback setup channels after successful setup
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
 - `/setup-verify`
   - admin-only
@@ -123,8 +125,8 @@ Rule:
 - Feedback audit comments tell a card's history.
 
 ## User flow
-1. An admin runs `/setup-feedback`.
-2. Fitness creates or updates a dedicated launcher message in `submit-feedback`.
+1. An admin runs `/setup-feedback` in the intended channel.
+2. Fitness creates or updates a dedicated launcher message in that channel.
 3. A user clicks `Submit`.
 4. Fitness opens one general modal.
 5. The modal collects `Feedback type` inside the flow.
@@ -133,7 +135,7 @@ Rule:
 8. Fitness edits the original ephemeral response with the final success or failure result.
 
 Pattern:
-- dedicated submit-feedback launcher
+- source-channel feedback launcher
 - general submit button
 - modal with text-only type field
 - deferred response
@@ -218,14 +220,16 @@ Stored attachment metadata should stay bounded to:
 - Discord URL fields when present
 
 ## Launcher placement
-- Preferred env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
-- Fallback env: `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
+- Preferred behavior: place the launcher in the channel where `/setup-feedback` or the main-chat trigger is used.
+- Fallback env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
+- Legacy fallback env: `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 
-`/setup-feedback` is idempotent:
-- if an existing bot-authored feedback launcher is found, edit it
-- if a configured launcher channel exists, reuse it
+`/setup-feedback` and the main-chat trigger are idempotent:
+- if an existing bot-authored feedback launcher is found in the source channel, edit it
+- if the launcher message is missing or deleted, create a new one in the source channel
+- after successful source-channel setup, remove older launcher messages from the previous configured or `submit-feedback` channel
+- if Discord does not provide a source channel, reuse `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
 - otherwise, create or reuse `submit-feedback` as a normal text channel above the Feedback forum
-- if the launcher message is missing or deleted, create a new one
 
 If panel creation fails with Discord `50013 Missing Permissions`, the admin response should mention:
 - `View Channel`

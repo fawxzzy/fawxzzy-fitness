@@ -350,6 +350,7 @@ type DiscordInteraction = {
   token?: unknown;
   type?: unknown;
   guild_id?: unknown;
+  channel_id?: unknown;
   message?: {
     id?: unknown;
     flags?: unknown;
@@ -1562,7 +1563,20 @@ function truncateDiscordSelectText(value: string, maxLength: number) {
   return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
-async function ensureFeedbackPanelChannel() {
+async function ensureFeedbackPanelChannel(args: { targetChannelId?: string | null } = {}) {
+  if (args.targetChannelId) {
+    const channelResult = await fetchDiscordChannel({ channelId: args.targetChannelId });
+    if (!channelResult.ok) {
+      return channelResult;
+    }
+
+    return {
+      ok: true as const,
+      channelId: args.targetChannelId,
+      channelLabel: `<#${args.targetChannelId}>`,
+    };
+  }
+
   const configuredChannelId = DISCORD_FEEDBACK_PANEL_CHANNEL_ID();
   if (configuredChannelId) {
     return {
@@ -2154,8 +2168,105 @@ async function postFeedbackAuditComment(args: {
   return { ok: true, messageId: result.messageId };
 }
 
-async function upsertDiscordFeedbackPanel() {
-  const panelChannelResult = await ensureFeedbackPanelChannel();
+async function collectLegacyDiscordFeedbackPanelChannelIds(targetChannelId: string) {
+  const channelIds = new Set<string>();
+  const configuredChannelId = DISCORD_FEEDBACK_PANEL_CHANNEL_ID();
+  if (configuredChannelId && configuredChannelId !== targetChannelId) {
+    channelIds.add(configuredChannelId);
+  }
+
+  const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
+  if (!guildChannelsResult.ok) {
+    console.warn("[discord-feedback-panel] legacy channel lookup failed", {
+      code: guildChannelsResult.code,
+      status: guildChannelsResult.status,
+      message: guildChannelsResult.message,
+    });
+    return Array.from(channelIds);
+  }
+
+  for (const channel of guildChannelsResult.channels) {
+    if (
+      channel.id
+      && channel.id !== targetChannelId
+      && channel.type === 0
+      && channel.name === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
+    ) {
+      channelIds.add(channel.id);
+    }
+  }
+
+  return Array.from(channelIds);
+}
+
+async function deleteDiscordFeedbackPanelMessagesInChannel(args: {
+  channelId: string;
+  keepMessageIds?: string[];
+}) {
+  const messagesResult = await fetchDiscordChannelMessages({
+    channelId: args.channelId,
+    limit: 50,
+  });
+
+  if (!messagesResult.ok) {
+    console.warn("[discord-feedback-panel] stale panel scan failed", {
+      channelId: args.channelId,
+      code: messagesResult.code,
+      status: messagesResult.status,
+      message: messagesResult.message,
+    });
+    return;
+  }
+
+  const keepMessageIds = new Set(args.keepMessageIds ?? []);
+  const stalePanelMessages = messagesResult.messages.filter((message) => (
+    message.id
+    && !keepMessageIds.has(message.id)
+    && discordMessageHasFeedbackPanel(message)
+  ));
+
+  for (const message of stalePanelMessages) {
+    const deleteResult = await deleteDiscordChannelMessage({
+      channelId: args.channelId,
+      messageId: message.id,
+    });
+    if (!deleteResult.ok && deleteResult.code !== "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
+      console.warn("[discord-feedback-panel] stale panel delete failed", {
+        channelId: args.channelId,
+        messageId: message.id,
+        code: deleteResult.code,
+        status: deleteResult.status,
+        message: deleteResult.message,
+      });
+    }
+  }
+}
+
+async function cleanupLegacyDiscordFeedbackPanels(args: {
+  targetChannelId: string;
+  keepMessageIds?: string[];
+  includeLegacyChannels: boolean;
+}) {
+  await deleteDiscordFeedbackPanelMessagesInChannel({
+    channelId: args.targetChannelId,
+    keepMessageIds: args.keepMessageIds,
+  });
+
+  if (!args.includeLegacyChannels) {
+    return;
+  }
+
+  const legacyChannelIds = await collectLegacyDiscordFeedbackPanelChannelIds(args.targetChannelId);
+  for (const channelId of legacyChannelIds) {
+    await deleteDiscordFeedbackPanelMessagesInChannel({ channelId });
+  }
+}
+
+async function upsertDiscordFeedbackPanel(args: {
+  targetChannelId?: string | null;
+  cleanupLegacyPanels?: boolean;
+} = {}) {
+  const panelChannelResult = await ensureFeedbackPanelChannel({ targetChannelId: args.targetChannelId });
   if (!panelChannelResult.ok) {
     return panelChannelResult;
   }
@@ -2235,9 +2346,19 @@ async function upsertDiscordFeedbackPanel() {
       body: payload,
     });
 
-    return createResult.ok
-      ? { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel }
-      : { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
+    if (!createResult.ok) {
+      return { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
+    }
+
+    if (args.cleanupLegacyPanels === true) {
+      await cleanupLegacyDiscordFeedbackPanels({
+        targetChannelId: channelId,
+        keepMessageIds: createResult.messageId ? [createResult.messageId] : [],
+        includeLegacyChannels: true,
+      });
+    }
+
+    return { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel };
   };
 
   const messagesResult = await fetchDiscordChannelMessages({
@@ -2268,6 +2389,14 @@ async function upsertDiscordFeedbackPanel() {
   });
 
   if (patchResult.ok) {
+    if (args.cleanupLegacyPanels === true) {
+      await cleanupLegacyDiscordFeedbackPanels({
+        targetChannelId: channelId,
+        keepMessageIds: [existingMessage.id],
+        includeLegacyChannels: true,
+      });
+    }
+
     return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel };
   }
 
@@ -2759,7 +2888,10 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
     return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN" };
   }
 
-  const upsertResult = await upsertDiscordFeedbackPanel();
+  const upsertResult = await upsertDiscordFeedbackPanel({
+    targetChannelId: args.channelId,
+    cleanupLegacyPanels: true,
+  });
   if (!upsertResult.ok) {
     console.error("[discord-message-command] feedback setup failed", {
       requestId: randomUUID(),
@@ -3174,7 +3306,11 @@ async function handleSetupFeedbackInteraction(interaction: DiscordInteraction) {
     return buildDiscordEphemeralMessageResponse("You do not have permission to set up feedback.");
   }
 
-  const upsertResult = await upsertDiscordFeedbackPanel();
+  const sourceChannelId = typeof interaction.channel_id === "string" ? interaction.channel_id : null;
+  const upsertResult = await upsertDiscordFeedbackPanel({
+    targetChannelId: sourceChannelId,
+    cleanupLegacyPanels: Boolean(sourceChannelId),
+  });
   if (!upsertResult.ok) {
     console.error("[discord-interactions] setup-feedback failed", {
       requestId: randomUUID(),
