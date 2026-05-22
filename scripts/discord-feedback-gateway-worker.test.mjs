@@ -3,8 +3,11 @@ import test from "node:test";
 import {
   calculateDiscordGatewayReconnectDelayMs,
   callDiscordMessageCommandPoll,
+  createDiscordGatewayChannelMessage,
   createDiscordGatewayMessageReaction,
+  getTimeZoneDateKey,
   getRequestedBotMessageReactions,
+  isScheduledBotPostDue,
   messageRequestsComputaArchiveCheckedCards,
   messageRequestsComputaCommandCardRepair,
   messageRequestsComputaFeedbackReactionSync,
@@ -20,6 +23,7 @@ import {
   normalizeDiscordMessageCommandContent,
   resolveDiscordMessageCommandPollIntervalMs,
   resolveDiscordMessageCommandPollUrl,
+  resolveScheduledPostIntervalMs,
 } from "./discord-feedback-gateway-worker.mjs";
 
 test("feedback gateway worker normalizes trigger text", () => {
@@ -444,6 +448,59 @@ test("feedback gateway worker creates passive bot reactions through Discord REST
   assert.equal(requests[0].init.headers.authorization, "Bot bot-token");
 });
 
+test("feedback gateway worker identifies scheduled Grand Rising window in Eastern time", () => {
+  const rule = {
+    key: "grand-rising",
+    enabled: true,
+    timeZone: "America/New_York",
+    hour: 10,
+    minuteStart: 0,
+    minuteWindow: 15,
+  };
+  const now = new Date("2026-05-22T14:05:00.000Z");
+  const dateKey = getTimeZoneDateKey(now, "America/New_York");
+
+  assert.equal(dateKey, "2026-05-22");
+  assert.equal(isScheduledBotPostDue({ now, rule, lastPostedDateKey: null }), true);
+  assert.equal(isScheduledBotPostDue({ now, rule, lastPostedDateKey: "2026-05-22" }), false);
+  assert.equal(
+    isScheduledBotPostDue({
+      now: new Date("2026-05-22T14:30:00.000Z"),
+      rule,
+      lastPostedDateKey: null,
+    }),
+    false,
+  );
+});
+
+test("feedback gateway worker creates scheduled channel messages through Discord REST", async () => {
+  const requests = [];
+  const result = await createDiscordGatewayChannelMessage({
+    token: "bot-token",
+    channelId: "main-channel",
+    body: {
+      content: "<:GM:1507443437916524675> Grand Rising",
+      allowed_mentions: { parse: [] },
+    },
+    fetchImpl: async (url, init) => {
+      requests.push({ url: String(url), init });
+      return new Response(JSON.stringify({ id: "message-gm" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.body.id, "message-gm");
+  assert.equal(requests[0].url, "https://discord.com/api/v10/channels/main-channel/messages");
+  assert.equal(requests[0].init.method, "POST");
+  assert.deepEqual(JSON.parse(requests[0].init.body), {
+    content: "<:GM:1507443437916524675> Grand Rising",
+    allowed_mentions: { parse: [] },
+  });
+});
+
 test("feedback gateway worker resolves the production poll URL safely", () => {
   assert.equal(
     resolveDiscordMessageCommandPollUrl({ NEXT_PUBLIC_SITE_URL: "https://fitness.example.com/" }),
@@ -464,6 +521,8 @@ test("feedback gateway worker bounds the fallback poll interval", () => {
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "1000" }), 5_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "30000" }), 30_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "999999" }), 120_000);
+  assert.equal(resolveScheduledPostIntervalMs({}), 60_000);
+  assert.equal(resolveScheduledPostIntervalMs({ DISCORD_SCHEDULED_POST_INTERVAL_MS: "1000" }), 30_000);
 });
 
 test("feedback gateway worker calls the secured poll endpoint", async () => {

@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 
@@ -16,6 +17,8 @@ const DISCORD_GATEWAY_INTENT_GUILD_MESSAGES = 1 << 9;
 const DISCORD_GATEWAY_INTENT_MESSAGE_CONTENT = 1 << 15;
 const DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS = 15_000;
 const DEFAULT_EPIC_REACTION_EMOJI = "epic:1507434865505603757";
+const DEFAULT_GRAND_RISING_EMOJI = "GM:1507443437916524675";
+const DEFAULT_SCHEDULED_POST_INTERVAL_MS = 60_000;
 const DEFAULT_BOT_MESSAGE_REACTION_RULES = [
   {
     key: "epic",
@@ -32,6 +35,16 @@ const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 function readEnv(name, env = process.env) {
   const value = env[name];
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readNumberEnv(name, env = process.env) {
+  const value = readEnv(name, env);
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function loadDiscordFeedbackWorkerEnvFile(env = process.env) {
@@ -76,6 +89,52 @@ export function getRequestedBotMessageReactions(message, rules = DEFAULT_BOT_MES
 
 export function messageRequestsBotReaction(message, rules = DEFAULT_BOT_MESSAGE_REACTION_RULES) {
   return getRequestedBotMessageReactions(message, rules).length > 0;
+}
+
+export function getDateTimePartsInTimeZone(date, timeZone) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+    second: Number(parts.second),
+  };
+}
+
+export function getTimeZoneDateKey(date, timeZone) {
+  const parts = getDateTimePartsInTimeZone(date, timeZone);
+  return `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+export function isScheduledBotPostDue({ now = new Date(), rule, lastPostedDateKey }) {
+  if (!rule?.enabled) {
+    return false;
+  }
+
+  const timeZone = rule.timeZone ?? "America/New_York";
+  const parts = getDateTimePartsInTimeZone(now, timeZone);
+  const dateKey = getTimeZoneDateKey(now, timeZone);
+  const hour = Number(rule.hour);
+  const minuteStart = Number(rule.minuteStart ?? 0);
+  const minuteWindow = Number(rule.minuteWindow ?? 15);
+  const minuteEnd = minuteStart + Math.max(0, minuteWindow);
+
+  return lastPostedDateKey !== dateKey
+    && parts.hour === hour
+    && parts.minute >= minuteStart
+    && parts.minute <= minuteEnd;
 }
 
 export function messageRequestsFeedbackSetup(message, mainChannelId) {
@@ -304,6 +363,42 @@ export function resolveDiscordMessageCommandPollIntervalMs(env = process.env) {
   return Math.max(5_000, Math.min(Math.floor(intervalMs), 120_000));
 }
 
+export function resolveScheduledPostIntervalMs(env = process.env) {
+  const rawValue = readNumberEnv("DISCORD_SCHEDULED_POST_INTERVAL_MS", env);
+  if (!rawValue || rawValue <= 0) {
+    return DEFAULT_SCHEDULED_POST_INTERVAL_MS;
+  }
+
+  return Math.max(30_000, Math.min(Math.floor(rawValue), 15 * 60_000));
+}
+
+export function resolveDiscordWorkerStatePath(env = process.env) {
+  const configuredPath = readEnv("DISCORD_FEEDBACK_WORKER_STATE_PATH", env);
+  if (configuredPath) {
+    return path.resolve(configuredPath);
+  }
+
+  return path.resolve(REPO_ROOT, "..", "..", "runtime", "state", "discord-feedback-worker-state.json");
+}
+
+export async function readDiscordWorkerState(statePath) {
+  try {
+    const body = await fs.readFile(statePath, "utf8");
+    const parsed = JSON.parse(body);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return {};
+    }
+    throw error;
+  }
+}
+
+export async function writeDiscordWorkerState(statePath, state) {
+  await fs.mkdir(path.dirname(statePath), { recursive: true });
+  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+}
+
 export async function callDiscordMessageCommandPoll({
   fetchImpl = globalThis.fetch,
   pollUrl,
@@ -339,6 +434,50 @@ export async function callDiscordMessageCommandPoll({
     ok: response.ok,
     status: response.status,
     body,
+    bodyText,
+  };
+}
+
+export async function createDiscordGatewayChannelMessage({
+  fetchImpl = globalThis.fetch,
+  token,
+  channelId,
+  body,
+}) {
+  if (typeof fetchImpl !== "function") {
+    throw new Error("Global fetch is not available.");
+  }
+
+  if (!token) {
+    throw new Error("Missing DISCORD_BOT_TOKEN.");
+  }
+
+  if (!channelId) {
+    throw new Error("Missing Discord message channel.");
+  }
+
+  const response = await fetchImpl(
+    `https://discord.com/api/v10/channels/${channelId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bot ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  const bodyText = await response.text();
+  let responseBody = null;
+  if (bodyText.trim().startsWith("{")) {
+    responseBody = JSON.parse(bodyText);
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: responseBody,
     bodyText,
   };
 }
@@ -396,6 +535,10 @@ export class DiscordFeedbackGatewayWorker {
     logger = console,
     pollIntervalMs = DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS,
     botMessageReactionRules = DEFAULT_BOT_MESSAGE_REACTION_RULES,
+    scheduledPostRules = [],
+    scheduledPostIntervalMs = DEFAULT_SCHEDULED_POST_INTERVAL_MS,
+    scheduledPostStatePath = resolveDiscordWorkerStatePath(),
+    now = () => new Date(),
   }) {
     this.token = token;
     this.mainChannelId = mainChannelId;
@@ -414,6 +557,12 @@ export class DiscordFeedbackGatewayWorker {
     this.seenMessageIds = new Set();
     this.pollInFlight = false;
     this.botMessageReactionRules = botMessageReactionRules;
+    this.scheduledPostRules = scheduledPostRules;
+    this.scheduledPostIntervalMs = scheduledPostIntervalMs;
+    this.scheduledPostStatePath = scheduledPostStatePath;
+    this.now = now;
+    this.scheduledPostTimer = null;
+    this.scheduledPostInFlight = false;
   }
 
   start() {
@@ -436,12 +585,14 @@ export class DiscordFeedbackGatewayWorker {
     this.stopped = false;
     this.connect();
     this.startPeriodicPoll();
+    this.startScheduledBotPosts();
   }
 
   stop() {
     this.stopped = true;
     this.clearHeartbeat();
     this.clearPeriodicPoll();
+    this.clearScheduledBotPosts();
     if (this.socket) {
       this.socket.close(1000, "worker stopped");
       this.socket = null;
@@ -462,6 +613,25 @@ export class DiscordFeedbackGatewayWorker {
     if (this.pollTimer) {
       clearInterval(this.pollTimer);
       this.pollTimer = null;
+    }
+  }
+
+  startScheduledBotPosts() {
+    this.clearScheduledBotPosts();
+    if (this.scheduledPostRules.length === 0) {
+      return;
+    }
+
+    void this.runScheduledBotPosts("startup");
+    this.scheduledPostTimer = setInterval(() => {
+      void this.runScheduledBotPosts("interval");
+    }, this.scheduledPostIntervalMs);
+  }
+
+  clearScheduledBotPosts() {
+    if (this.scheduledPostTimer) {
+      clearInterval(this.scheduledPostTimer);
+      this.scheduledPostTimer = null;
     }
   }
 
@@ -647,6 +817,77 @@ export class DiscordFeedbackGatewayWorker {
     }
   }
 
+  async runScheduledBotPosts(reason) {
+    if (this.scheduledPostInFlight) {
+      this.logger.info("[discord-feedback-worker] scheduled post already in flight", { reason });
+      return;
+    }
+
+    this.scheduledPostInFlight = true;
+    try {
+      const now = this.now();
+      const state = await readDiscordWorkerState(this.scheduledPostStatePath);
+      const dailyPosts = state.dailyPosts && typeof state.dailyPosts === "object" ? state.dailyPosts : {};
+      let changed = false;
+
+      for (const rule of this.scheduledPostRules) {
+        const dateKey = getTimeZoneDateKey(now, rule.timeZone ?? "America/New_York");
+        if (!isScheduledBotPostDue({
+          now,
+          rule,
+          lastPostedDateKey: dailyPosts[rule.key],
+        })) {
+          continue;
+        }
+
+        const channelId = rule.channelId ?? this.mainChannelId;
+        const result = await createDiscordGatewayChannelMessage({
+          fetchImpl: this.fetchImpl,
+          token: this.token,
+          channelId,
+          body: {
+            content: rule.content,
+            allowed_mentions: { parse: [] },
+          },
+        });
+
+        if (!result.ok) {
+          this.logger.warn("[discord-feedback-worker] scheduled post failed", {
+            reason,
+            ruleKey: rule.key,
+            status: result.status,
+            body: result.body ?? result.bodyText,
+          });
+          continue;
+        }
+
+        dailyPosts[rule.key] = dateKey;
+        changed = true;
+        this.logger.info("[discord-feedback-worker] scheduled post completed", {
+          reason,
+          ruleKey: rule.key,
+          channelId,
+          messageId: result.body?.id ?? null,
+          dateKey,
+        });
+      }
+
+      if (changed) {
+        await writeDiscordWorkerState(this.scheduledPostStatePath, {
+          ...state,
+          dailyPosts,
+        });
+      }
+    } catch (error) {
+      this.logger.warn("[discord-feedback-worker] scheduled post threw", {
+        reason,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      this.scheduledPostInFlight = false;
+    }
+  }
+
   async runMessageCommandPoll({ reason, messageId }) {
     if (this.pollInFlight) {
       this.logger.info("[discord-feedback-worker] poll already in flight", { reason, messageId });
@@ -701,6 +942,20 @@ export function buildDiscordFeedbackGatewayWorkerFromEnv(env = process.env) {
         pattern: /(^|[^a-z0-9])epic([^a-z0-9]|$)/i,
       },
     ],
+    scheduledPostRules: [
+      {
+        key: "grand-rising",
+        enabled: readEnv("DISCORD_GRAND_RISING_ENABLED", env) !== "false",
+        channelId: readEnv("DISCORD_GRAND_RISING_CHANNEL_ID", env) ?? readEnv("DISCORD_MAIN_CHANNEL_ID", env),
+        timeZone: readEnv("DISCORD_GRAND_RISING_TIME_ZONE", env) ?? "America/New_York",
+        hour: readNumberEnv("DISCORD_GRAND_RISING_HOUR", env) ?? 10,
+        minuteStart: readNumberEnv("DISCORD_GRAND_RISING_MINUTE_START", env) ?? 0,
+        minuteWindow: readNumberEnv("DISCORD_GRAND_RISING_MINUTE_WINDOW", env) ?? 15,
+        content: `<:${readEnv("DISCORD_GRAND_RISING_EMOJI", env) ?? DEFAULT_GRAND_RISING_EMOJI}> Grand Rising`,
+      },
+    ],
+    scheduledPostIntervalMs: resolveScheduledPostIntervalMs(env),
+    scheduledPostStatePath: resolveDiscordWorkerStatePath(env),
   });
 }
 
