@@ -16,6 +16,7 @@ npm run
 | `npm run prebuild` | Refresh generated assets before build. |
 | `npm run qa:screenshot -- <config.json>` | Run one Edge CDP screenshot capture from a config file. |
 | `npm run qa:matrix [config.json ...]` | Run the QA screenshot matrix without coupling it to `build`. |
+| `npm run qa:fitness:ui-checkpoint` | Run the default Fitness UI proof loop: fresh dev on `3002`, auth bootstrap, and progression LLEL receipt refresh. |
 
 ## Assets/icons
 

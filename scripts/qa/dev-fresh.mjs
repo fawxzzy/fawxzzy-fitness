@@ -17,6 +17,7 @@ import {
 import {
   cleanNextOutput,
   isSafeRepoProcess,
+  listActiveRecordedDevServers,
   readListeningProcesses,
   readRepoLocalNextProcesses,
   stopProcessTrees,
@@ -318,6 +319,33 @@ function summarizePortOwner(processInfo) {
   };
 }
 
+function enrichPortOwners(owners, recordedDevServers, port, { trustPortFallback = false } = {}) {
+  return owners.map((owner) => {
+    const exactRecorded = recordedDevServers.find((entry) => (
+      entry.port === port
+      && Number.isInteger(entry.pid)
+      && entry.pid === owner.pid
+    ));
+    const fallbackRecorded = trustPortFallback
+      && !owner.name
+      && !owner.executablePath
+      && !owner.commandLine
+      ? recordedDevServers.find((entry) => entry.port === port && typeof entry.commandLine === "string" && entry.commandLine.length > 0)
+      : null;
+    const recorded = exactRecorded ?? fallbackRecorded;
+    if (!recorded) {
+      return summarizePortOwner(owner);
+    }
+
+    return summarizePortOwner({
+      pid: owner.pid,
+      name: owner.name ?? recorded.processName ?? recorded.name ?? "next-dev",
+      executablePath: owner.executablePath ?? recorded.executablePath ?? null,
+      commandLine: owner.commandLine ?? recorded.commandLine ?? null,
+    });
+  });
+}
+
 async function attemptLaunch({
   port,
   hostname,
@@ -334,7 +362,12 @@ async function attemptLaunch({
   const childArgs = [path.join(repoRoot, "scripts", "dev.mjs"), "--hostname", hostname, "--port", String(port)];
   const command = formatCommand(process.execPath, childArgs);
   const env = loadPinnedEnv();
-  const existingOwners = (await readListeningProcesses(port)).map(summarizePortOwner);
+  const recordedDevServers = await listActiveRecordedDevServers();
+  let existingOwners = enrichPortOwners(
+    await readListeningProcesses(port),
+    recordedDevServers,
+    port,
+  );
   const existingRepoDevProcesses = (await readRepoLocalNextProcesses()).map(summarizePortOwner);
   let childPid = null;
   let stoppedProcesses = [];
@@ -357,7 +390,28 @@ async function attemptLaunch({
   let failure = null;
 
   try {
-    const unsafeOwners = existingOwners.filter((entry) => !entry.safeToStop);
+    let unsafeOwners = existingOwners.filter((entry) => !entry.safeToStop);
+    if (
+      unsafeOwners.length > 0
+      && recordedDevServers.some((entry) => entry.port === port)
+      && unsafeOwners.every((entry) => !entry.name && !entry.executablePath && !entry.commandLine)
+    ) {
+      try {
+        const loginProbe = await requestRoute(loginUrl);
+        if (loginProbe.status === 200 && !loginProbe.interimErrorMarkup) {
+          existingOwners = enrichPortOwners(
+            await readListeningProcesses(port),
+            recordedDevServers,
+            port,
+            { trustPortFallback: true },
+          );
+          unsafeOwners = existingOwners.filter((entry) => !entry.safeToStop);
+        }
+      } catch {
+        // Keep the original unsafe-owner classification if the probe itself fails.
+      }
+    }
+
     if (unsafeOwners.length > 0) {
       throw new Error(
         `Port ${port} is already owned by a non-Fitness process: ${unsafeOwners.map((entry) => `${entry.pid}:${entry.name ?? "unknown"}`).join(", ")}.`,

@@ -6,7 +6,7 @@ import process from "node:process";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { getOptionalEnv, repoRoot } from "./fitness-qa-config.mjs";
+import { getOptionalEnv, repoRoot, resolveBaseUrl } from "./fitness-qa-config.mjs";
 
 const execFileAsync = promisify(execFile);
 const runnerPath = path.resolve(repoRoot, "scripts", "qa", "cdp-edge.mjs");
@@ -181,7 +181,7 @@ async function main() {
   const flags = parseArgs();
   const configuredBaseUrl = typeof flags["base-url"] === "string"
     ? String(flags["base-url"])
-    : getOptionalEnv("FITNESS_QA_LOCAL_BASE_URL") ?? "http://127.0.0.1:3000";
+    : getOptionalEnv("FITNESS_QA_LOCAL_BASE_URL") ?? resolveBaseUrl();
   const baseUrl = configuredBaseUrl.replace(/\/$/, "");
 
   await ensureServerIsReachable(baseUrl);

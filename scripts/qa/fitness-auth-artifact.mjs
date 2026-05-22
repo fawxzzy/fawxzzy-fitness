@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { buildSessionCookies, createAnonClient } from "./fitness-qa-config.mjs";
+import { buildSessionCookies, createAnonClient, resolveBaseUrl } from "./fitness-qa-config.mjs";
 
 const MIN_TTL_SECONDS = 90;
 
@@ -77,7 +77,7 @@ function mergeRefreshedSession(artifact, nextSession) {
 
   const baseUrl = typeof artifact.baseUrl === "string" && artifact.baseUrl.length > 0
     ? artifact.baseUrl
-    : "http://127.0.0.1:3000";
+    : resolveBaseUrl();
   const refreshedAt = new Date().toISOString();
   const expiresAtEpochSeconds = Number(nextSession.expires_at ?? Number.NaN);
 

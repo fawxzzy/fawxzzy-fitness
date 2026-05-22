@@ -36,7 +36,7 @@ export const NEXT_PUBLIC_SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 export const NEXT_PUBLIC_SUPABASE_ANON_KEY_ENV = "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 export const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
 export const QA_SESSION_STALE_BUFFER_SECONDS = 300;
-export const DEFAULT_QA_PORT = 3000;
+export const DEFAULT_QA_PORT = 3002;
 export const DEFAULT_QA_HOST = "127.0.0.1";
 export const DEFAULT_QA_LAN_HOST = "0.0.0.0";
 
@@ -202,7 +202,7 @@ export function getRequiredEnv(name) {
 
 export function resolveBaseUrl() {
   const configured = getOptionalEnv("APP_URL") ?? getOptionalEnv("NEXT_PUBLIC_APP_URL");
-  return (configured ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+  return (configured ?? `http://${DEFAULT_QA_HOST}:${DEFAULT_QA_PORT}`).replace(/\/$/, "");
 }
 
 export function hasOptionalEnv(name) {

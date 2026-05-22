@@ -13,6 +13,7 @@ import {
   getOptionalEnv,
   getHistoryPreviewEnabled,
   repoRoot,
+  resolveBaseUrl,
   sessionArtifactPath,
 } from "./fitness-qa-config.mjs";
 import { bootstrapQaSession, readQaSessionArtifact } from "./fitness-qa-user.mjs";
@@ -232,7 +233,7 @@ async function main() {
   const flags = parseArgs();
   const configuredBaseUrl = typeof flags["base-url"] === "string"
     ? String(flags["base-url"])
-    : getOptionalEnv("FITNESS_QA_LOCAL_BASE_URL") ?? "http://127.0.0.1:3000";
+    : getOptionalEnv("FITNESS_QA_LOCAL_BASE_URL") ?? resolveBaseUrl();
   const baseUrl = configuredBaseUrl.replace(/\/$/, "");
   const historyModeFlag = typeof flags["history-mode"] === "string" ? flags["history-mode"] : "auto";
   const historyMode = historyModeFlag === "preview"

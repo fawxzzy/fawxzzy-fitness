@@ -183,8 +183,8 @@ async function recoverLocalDevServer(url) {
   }).catch(() => {});
 
   await fs.mkdir(runtimeRoot, { recursive: true });
-  const outHandle = await fs.open(path.join(runtimeRoot, "app-3000.out.log"), "w");
-  const errHandle = await fs.open(path.join(runtimeRoot, "app-3000.err.log"), "w");
+  const outHandle = await fs.open(path.join(runtimeRoot, `app-${port}.out.log`), "w");
+  const errHandle = await fs.open(path.join(runtimeRoot, `app-${port}.err.log`), "w");
 
   try {
     const child = spawn(process.execPath, ["scripts/dev.mjs", "--hostname", "127.0.0.1", "--port", String(port)], {

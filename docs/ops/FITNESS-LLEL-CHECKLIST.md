@@ -6,7 +6,7 @@ Purpose: run a structured live-local-edit-loop pass across FIT-03 and FIT-04 wit
 
 ```powershell
 cd C:\ATLAS\repos\fawxzzy-fitness
-npm run dev:fitness:lps
+npm run qa:fitness:ui-checkpoint
 ```
 
 Open:
@@ -21,6 +21,15 @@ http://127.0.0.1:3002/routines
 http://127.0.0.1:3002/today
 http://127.0.0.1:3002/history
 ```
+
+The repo-default Fitness UI proof lane is now:
+
+1. `npm run qa:dev:fresh -- --port 3002`
+2. `npm run qa:auth:bootstrap`
+3. `npm run qa:llel:progression`
+4. browser or manual proof for touched routes
+
+`npm run qa:fitness:ui-checkpoint` runs the first three steps and prints the current receipt paths.
 
 Protected routes require a browser profile with valid auth cookies. Browser automation without cookies should redirect to `/login`.
 
