@@ -504,7 +504,7 @@ test("Discord interactions route applies locked #verify permission overwrites", 
   }
 });
 
-test("Discord interactions route updates an existing feedback panel when setup-feedback is rerun", async () => {
+test("Discord interactions route reposts an existing feedback panel when setup-feedback is rerun", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -514,6 +514,7 @@ test("Discord interactions route updates an existing feedback panel when setup-f
 
   const originalFetch = globalThis.fetch;
   const observedDiscordBodies = [];
+  let deletedOldPanel = false;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
@@ -554,10 +555,19 @@ test("Discord interactions route updates an existing feedback panel when setup-f
     if (
       url.hostname === "discord.com"
       && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562747"
-      && String(init?.method ?? "GET") === "PATCH"
+      && String(init?.method ?? "GET") === "DELETE"
+    ) {
+      deletedOldPanel = true;
+      return new Response(null, { status: 204 });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504673475489562744/messages"
+      && String(init?.method ?? "GET") === "POST"
     ) {
       observedDiscordBodies.push(body);
-      return new Response(JSON.stringify({ id: "1504673475489562747" }), {
+      return new Response(JSON.stringify({ id: "1504673475489562748" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -590,6 +600,7 @@ test("Discord interactions route updates an existing feedback panel when setup-f
         flags: 64,
       },
     });
+    assert.equal(deletedOldPanel, true);
     assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Submit Feedback Here");
     assert.deepEqual(
       observedDiscordBodies[0]?.components?.[0]?.components?.map((component) => component.custom_id),
@@ -774,7 +785,7 @@ test("Discord interactions route recreates the feedback panel when the old panel
     if (
       url.hostname === "discord.com"
       && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562747"
-      && String(init?.method ?? "GET") === "PATCH"
+      && String(init?.method ?? "GET") === "DELETE"
     ) {
       return new Response(JSON.stringify({ message: "Unknown Message" }), {
         status: 404,
@@ -817,7 +828,7 @@ test("Discord interactions route recreates the feedback panel when the old panel
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback launcher created in configured channel.",
+        content: "Feedback launcher updated in configured channel.",
         flags: 64,
       },
     });
@@ -1528,7 +1539,7 @@ test("Discord message command poll requires the commander role after bootstrap",
   }
 });
 
-test("Discord message command poll posts owner computa live preset updates", async () => {
+test("Discord message command poll posts owner computa post live preset updates", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
@@ -1551,7 +1562,7 @@ test("Discord message command poll posts owner computa live preset updates", asy
       return new Response(JSON.stringify([
         {
           id: "main-message-live-1",
-          content: "computa live twitch",
+          content: "computa post live twitch",
           author: { id: "owner-user", bot: false },
           reactions: [],
         },
@@ -1628,7 +1639,7 @@ test("Discord message command poll posts owner computa live preset updates", asy
   }
 });
 
-test("Discord message command poll posts owner computa live custom link updates", async () => {
+test("Discord message command poll posts owner computa post live custom link updates", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
@@ -1649,7 +1660,7 @@ test("Discord message command poll posts owner computa live custom link updates"
       return new Response(JSON.stringify([
         {
           id: "main-message-live-2",
-          content: "computa live [https://example.com/stream]",
+          content: "computa post live [https://example.com/stream]",
           author: { id: "owner-user", bot: false },
           reactions: [],
         },
@@ -1718,7 +1729,7 @@ test("Discord message command poll posts owner computa live custom link updates"
   }
 });
 
-test("Discord message command poll rejects non-owner computa live updates", async () => {
+test("Discord message command poll rejects non-owner computa post live updates", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";

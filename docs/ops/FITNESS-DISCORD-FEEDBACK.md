@@ -31,7 +31,7 @@ Product rules:
   - marks the trigger message with a public reaction
 - `/setup-feedback`
   - admin-only
-  - posts or refreshes the persistent `Submit Feedback Here` launcher
+  - deletes the old post and reposts the persistent `Submit Feedback Here` launcher
   - uses the channel where the command is run when Discord provides a source channel
   - removes older launcher messages from previous feedback setup channels after successful source-channel setup
   - deletes the legacy `submit-feedback` channel after moving setup to a source channel
@@ -41,17 +41,17 @@ Product rules:
   - requires the `Fawxzzy Commander` role after bootstrap
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`
-  - posts or refreshes the launcher in the channel where the trigger message was sent
+  - deletes the old launcher and reposts the launcher in the channel where the trigger message was sent
   - removes older launcher messages from previous feedback setup channels after successful setup
   - marks the trigger message with a public reaction
   - sends setup/permission/failure details to the triggering user by DM instead of posting bot replies in main chat
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
 - owner-only main-channel live triggers:
   - `live`
-  - `computa live`
-  - `computa live twitch`
-  - `computa live tiktok`
-  - `computa live [https://example.com/live]`
+  - `computa post live`
+  - `computa post live twitch`
+  - `computa post live tiktok`
+  - `computa post live [https://example.com/live]`
   - posts a short `@everyone` live notice in `DISCORD_UPDATES_CHANNEL_ID`
   - only the configured owner account can run it
   - marks the trigger message with a public reaction
@@ -197,11 +197,11 @@ The live trigger is a narrow owner-only convenience for posting a live notice to
 
 Accepted messages in `DISCORD_MAIN_CHANNEL_ID`:
 - `live`
-- `computa live`
-- `computa live twitch`
-- `computa live tiktok`
-- `computa live [https://example.com/live]`
-- `computa live https://example.com/live`
+- `computa post live`
+- `computa post live twitch`
+- `computa post live tiktok`
+- `computa post live [https://example.com/live]`
+- `computa post live https://example.com/live`
 
 Default saved provider links:
 - Twitch: `https://www.twitch.tv/fawxzzy`
@@ -317,7 +317,7 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DISCORD_MEMBER_SYNC_SECRET`
 - `DISCORD_MAIN_CHANNEL_ID` optional for `computa feedback setup`
-- `DISCORD_UPDATES_CHANNEL_ID` required for `live` / `computa live`
+- `DISCORD_UPDATES_CHANNEL_ID` required for `live` / `computa post live`
 - `DISCORD_MESSAGE_COMMAND_POLL_SECRET` optional; falls back to `CRON_SECRET`
 - `DISCORD_COMPUTA_OWNER_USER_ID` optional; defaults to the Fawxzzy owner account
 - `DISCORD_COMPUTA_LIVE_TWITCH_URL` optional

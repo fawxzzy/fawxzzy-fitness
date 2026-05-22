@@ -77,7 +77,7 @@ export function messageRequestsComputaLive(message, mainChannelId) {
   }
 
   const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
-  return normalizedContent === "live" || normalizedContent.startsWith("computa live");
+  return normalizedContent === "live" || normalizedContent.startsWith("computa post live");
 }
 
 export function messageRequestsComputaMenu(message, mainChannelId) {
