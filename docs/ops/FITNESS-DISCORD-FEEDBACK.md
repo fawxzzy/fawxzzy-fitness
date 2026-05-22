@@ -41,6 +41,17 @@ Product rules:
   - marks the trigger message with a public reaction
   - sends setup/permission/failure details to the triggering user by DM instead of posting bot replies in main chat
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
+- owner-only main-channel live triggers:
+  - `live`
+  - `computa live`
+  - `computa live twitch`
+  - `computa live tiktok`
+  - `computa live [https://example.com/live]`
+  - posts a short `@everyone` live notice in `DISCORD_UPDATES_CHANNEL_ID`
+  - only the configured owner account can run it
+  - marks the trigger message with a public reaction
+  - sends permission/failure/success details to the triggering user by DM instead of posting bot replies in main chat
+  - is protected by the same message-command poll secret and worker path
 - `/setup-verify`
   - admin-only
   - posts or refreshes the verification panel
@@ -66,7 +77,7 @@ Feedback-facing commands should remain:
 - `feedback-status`
 - `feedback-withdraw`
 
-Message-content triggers are intentionally rare. Any future main-chat phrase command should use the same `Fawxzzy Commander` role gate, main-channel-only polling, processed-message marker, and secret-protected cron route.
+Message-content triggers are intentionally rare. Any future main-chat phrase command should use an explicit role or owner gate, main-channel-only polling, processed-message marker, and secret-protected cron route.
 
 Runtime note:
 - The Vercel Hobby plan only allows daily cron schedules.
@@ -157,7 +168,7 @@ Rules:
 - A member with the `Fawxzzy Commander` role may run the trigger.
 - If the role does not exist, a member with Manage Server or Administrator may bootstrap it; the bot creates `Fawxzzy Commander`, assigns it to that member when allowed, and runs setup.
 - The poll endpoint requires `Authorization: Bearer <DISCORD_MESSAGE_COMMAND_POLL_SECRET>` or `Authorization: Bearer <CRON_SECRET>`.
-- Successful processing replies compactly to the source message and marks it processed.
+- Successful processing sends a DM notice to the triggering user and marks the source message processed.
 - Vercel Hobby cannot run this poll frequently enough by itself; use an external scheduler or `npm run discord:feedback:worker` for near-real-time behavior.
 
 Gateway worker:
@@ -173,6 +184,56 @@ Gateway worker:
 - Discord Developer Portal must have Message Content Intent enabled for this trigger to work.
 
 This is not a broad chat-command framework. Future phrase commands must stay role-gated, low-noise, idempotent, and documented before release.
+
+## Owner-only live trigger
+The live trigger is a narrow owner-only convenience for posting a live notice to `#updates`.
+
+Accepted messages in `DISCORD_MAIN_CHANNEL_ID`:
+- `live`
+- `computa live`
+- `computa live twitch`
+- `computa live tiktok`
+- `computa live [https://example.com/live]`
+- `computa live https://example.com/live`
+
+Default saved provider links:
+- Twitch: `https://www.twitch.tv/fawxzzy`
+- TikTok: `https://www.tiktok.com/@fawxzzy`
+
+Default owner account:
+- `552278941159784460`
+
+Environment overrides:
+- `DISCORD_COMPUTA_OWNER_USER_ID`
+- `DISCORD_COMPUTA_LIVE_TWITCH_URL`
+- `DISCORD_COMPUTA_LIVE_TIKTOK_URL`
+
+Post formats:
+
+```txt
+@everyone
+
+Going live on Twitch https://www.twitch.tv/fawxzzy
+
+Pull up
+```
+
+```txt
+@everyone
+
+Going live https://example.com/live
+
+Pull up
+```
+
+Rules:
+- The trigger is case-insensitive.
+- Bot-authored messages are ignored.
+- Messages already marked with the bot's processed reaction are ignored.
+- Only `DISCORD_MAIN_CHANNEL_ID` is polled.
+- The updates post allows only the explicit `@everyone` mention.
+- Success/failure details are sent by DM to avoid bot clutter in main chat.
+- Non-owner attempts are rejected and marked with the forbidden reaction.
 
 ## Forum organization
 The public Feedback forum is a readable visual board, not the canonical planning sorter.
@@ -249,7 +310,11 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DISCORD_MEMBER_SYNC_SECRET`
 - `DISCORD_MAIN_CHANNEL_ID` optional for `computa feedback setup`
+- `DISCORD_UPDATES_CHANNEL_ID` required for `live` / `computa live`
 - `DISCORD_MESSAGE_COMMAND_POLL_SECRET` optional; falls back to `CRON_SECRET`
+- `DISCORD_COMPUTA_OWNER_USER_ID` optional; defaults to the Fawxzzy owner account
+- `DISCORD_COMPUTA_LIVE_TWITCH_URL` optional
+- `DISCORD_COMPUTA_LIVE_TIKTOK_URL` optional
 - `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` optional
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 - `DISCORD_FEEDBACK_BUG_EMOJI_ID` optional

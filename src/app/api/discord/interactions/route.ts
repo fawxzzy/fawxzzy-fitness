@@ -330,6 +330,9 @@ const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
   "computa feedback setup",
   "computa setup feedback",
 ];
+const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
+const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";
+const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy";
 const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
 const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
 const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = "\u2705";
@@ -397,6 +400,11 @@ type DiscordMessageCommand = {
     roles?: unknown;
   };
   reactions?: unknown;
+};
+
+type DiscordComputaLiveCommand = {
+  provider: "twitch" | "tiktok" | "custom" | "generic";
+  url: string | null;
 };
 
 function jsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
@@ -2603,6 +2611,122 @@ function discordMessageRequestsFeedbackSetup(message: DiscordMessageCommand): bo
   return DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
+function resolveDiscordComputaOwnerUserId(): string {
+  return optionalEnv("DISCORD_COMPUTA_OWNER_USER_ID") ?? DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT;
+}
+
+function resolveDiscordComputaLiveProviderUrl(provider: "twitch" | "tiktok"): string {
+  if (provider === "twitch") {
+    return optionalEnv("DISCORD_COMPUTA_LIVE_TWITCH_URL") ?? DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT;
+  }
+
+  return optionalEnv("DISCORD_COMPUTA_LIVE_TIKTOK_URL") ?? DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT;
+}
+
+function normalizeDiscordComputaLiveUrl(value: string): string | null {
+  const trimmedValue = value.trim().replace(/[)>.,]+$/, "");
+  if (/^https?:\/\/\S+$/i.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  if (/^www\.\S+\.\S+$/i.test(trimmedValue)) {
+    return `https://${trimmedValue}`;
+  }
+
+  if (/^[a-z0-9.-]+\.[a-z]{2,}(?:\/\S*)?$/i.test(trimmedValue)) {
+    return `https://${trimmedValue}`;
+  }
+
+  return null;
+}
+
+function parseDiscordComputaLiveMessageCommand(message: DiscordMessageCommand): DiscordComputaLiveCommand | null {
+  if (typeof message.content !== "string") {
+    return null;
+  }
+
+  const rawContent = message.content.trim();
+  const normalizedContent = normalizeDiscordMessageCommandContent(rawContent);
+  if (normalizedContent === "live") {
+    return {
+      provider: "generic",
+      url: null,
+    };
+  }
+
+  const commandMatch = rawContent.match(/^computa\s+live(?:\s+(.+))?$/i);
+  if (!commandMatch) {
+    return null;
+  }
+
+  const rawArgument = commandMatch[1]?.trim() ?? "";
+  if (!rawArgument) {
+    return {
+      provider: "generic",
+      url: null,
+    };
+  }
+
+  const bracketMatch = rawArgument.match(/^\[([\s\S]*)]$/);
+  const argument = (bracketMatch ? bracketMatch[1] : rawArgument).trim();
+  const normalizedArgument = normalizeDiscordMessageCommandContent(argument);
+
+  if (normalizedArgument === "twitch") {
+    return {
+      provider: "twitch",
+      url: resolveDiscordComputaLiveProviderUrl("twitch"),
+    };
+  }
+
+  if (normalizedArgument === "tiktok" || normalizedArgument === "tik tok") {
+    return {
+      provider: "tiktok",
+      url: resolveDiscordComputaLiveProviderUrl("tiktok"),
+    };
+  }
+
+  if (argument) {
+    const url = normalizeDiscordComputaLiveUrl(argument);
+    if (url) {
+      return {
+        provider: "custom",
+        url,
+      };
+    }
+  }
+
+  return null;
+}
+
+function discordMessageRequestsComputaLive(message: DiscordMessageCommand): boolean {
+  if (typeof message.content !== "string") {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return normalizedContent === "live" || normalizedContent.startsWith("computa live");
+}
+
+function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): boolean {
+  return discordMessageRequestsFeedbackSetup(message) || discordMessageRequestsComputaLive(message);
+}
+
+function buildDiscordComputaLiveUpdateContent(command: DiscordComputaLiveCommand): string {
+  if (command.provider === "twitch") {
+    return `@everyone\n\nGoing live on Twitch ${command.url}\n\nPull up`;
+  }
+
+  if (command.provider === "tiktok") {
+    return `@everyone\n\nGoing live on TikTok ${command.url}\n\nPull up`;
+  }
+
+  if (command.url) {
+    return `@everyone\n\nGoing live ${command.url}\n\nPull up`;
+  }
+
+  return "@everyone\n\nGoing live\n\nPull up";
+}
+
 function discordMessageHasProcessedCommandReaction(message: DiscordMessageCommand): boolean {
   const reactions = Array.isArray(message.reactions) ? message.reactions : [];
   return reactions.some((reaction) => {
@@ -2881,6 +3005,98 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
   return { ok: true as const, action: upsertResult.action };
 }
 
+async function processDiscordComputaLiveMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  const authorId = typeof args.message.author?.id === "string" ? args.message.author.id : null;
+  if (!messageId || !authorId) {
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  const command = parseDiscordComputaLiveMessageCommand(args.message);
+  if (!command) {
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
+      content: "Use `computa live twitch`, `computa live tiktok`, `computa live [link]`, or `live`.",
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_COMPUTA_LIVE_INVALID_COMMAND" };
+  }
+
+  if (authorId !== resolveDiscordComputaOwnerUserId()) {
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
+      content: "Only the configured Fawxzzy owner account can use computa live commands.",
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_COMPUTA_LIVE_FORBIDDEN" };
+  }
+
+  const updatesChannelId = DISCORD_UPDATES_CHANNEL_ID();
+  if (!updatesChannelId) {
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
+      content: "Discord updates channel is not configured.",
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_UPDATES_CHANNEL_NOT_CONFIGURED" };
+  }
+
+  const createResult = await createDiscordChannelMessage({
+    channelId: updatesChannelId,
+    body: {
+      content: buildDiscordComputaLiveUpdateContent(command),
+      allowed_mentions: {
+        parse: ["everyone"],
+      },
+    },
+  });
+
+  if (!createResult.ok) {
+    console.error("[discord-message-command] computa live update failed", {
+      requestId: randomUUID(),
+      code: createResult.code,
+      status: createResult.status,
+      message: createResult.message,
+    });
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
+      content: "Live update failed. Check bot permissions for the updates channel.",
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return createResult;
+  }
+
+  await sendDiscordMessageCommandPrivateNotice({
+    userId: authorId,
+    content: `Live update posted in <#${updatesChannelId}>.`,
+  });
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return { ok: true as const, action: "posted", provider: command.provider };
+}
+
 function validateDiscordMessageCommandPollRequest(request: Request):
   | { ok: true }
   | { ok: false; status: number; message: string } {
@@ -2934,17 +3150,23 @@ async function pollDiscordMessageCommands() {
     .filter((message) => {
       const candidate = message as DiscordMessageCommand;
       return candidate.author?.bot !== true
-        && discordMessageRequestsFeedbackSetup(candidate)
+        && discordMessageRequestsMessageCommand(candidate)
         && !discordMessageHasProcessedCommandReaction(candidate);
     })
     .slice(0, DISCORD_MESSAGE_COMMAND_MAX_PER_RUN);
 
   const processed = [];
   for (const message of candidates) {
-    const result = await processDiscordFeedbackSetupMessageCommand({
-      channelId,
-      message: message as DiscordMessageCommand,
-    });
+    const candidate = message as DiscordMessageCommand;
+    const result = discordMessageRequestsComputaLive(candidate)
+      ? await processDiscordComputaLiveMessageCommand({
+        channelId,
+        message: candidate,
+      })
+      : await processDiscordFeedbackSetupMessageCommand({
+        channelId,
+        message: candidate,
+      });
     processed.push({
       messageId: message.id,
       ok: result.ok,
