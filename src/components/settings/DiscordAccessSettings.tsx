@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
+import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToast } from "@/components/ui/ToastProvider";
-import { appTokens } from "@/components/ui/app/tokens";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { cn } from "@/lib/cn";
 
@@ -53,17 +53,6 @@ export function DiscordAccessSettings() {
   }, [copyLabel]);
 
   const expiryLabel = useMemo(() => formatExpiry(expiresAt), [expiresAt]);
-  const connectorSummary = useMemo(() => {
-    if (token && expiryLabel) {
-      return `Verification token ready until ${expiryLabel}.`;
-    }
-
-    if (token) {
-      return "Verification token ready.";
-    }
-
-    return "Generate a one-time token to verify your Fitness account in Discord.";
-  }, [expiryLabel, token]);
   const cardStateKey = token ? `token:${token}:${expiresAt ?? "none"}` : errorMessage ? `error:${errorMessage}` : "idle";
 
   const generateToken = () => {
@@ -125,102 +114,60 @@ export function DiscordAccessSettings() {
       <CollapsibleCard
         key={cardStateKey}
         title="Discord Connector"
-        summary={connectorSummary}
         defaultOpen={Boolean(token || errorMessage)}
-        bodyClassName="space-y-3"
+        bodyClassName="space-y-4"
       >
-        <div className={appTokens.settingsBlockStack}>
-          <p className={appTokens.settingsBodyText}>
-            Generate a short-lived one-time token to verify your Fitness account in the Discord server.
-          </p>
-        </div>
-
-        {token ? (
-          <div className="space-y-3">
-            <LabeledEditorField label="Verification token">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={token}
-                  readOnly
-                  aria-label="Discord verification token"
-                  className={cn(
-                    labeledEditorFieldControlClassName,
-                    "h-12 pr-24 pl-4 py-3 font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => void copyToken()}
-                  className={getAppButtonClassName({
-                    variant: copyLabel === "Copied" ? "secondary" : "tertiary",
-                    size: "sm",
-                    className: "absolute right-2 top-1/2 min-h-[2.1rem] -translate-y-1/2 px-3 text-xs",
-                  })}
-                >
-                  {copyLabel}
-                </button>
-              </div>
-            </LabeledEditorField>
-
-            <div className={appTokens.settingsStatusStack}>
-              {expiryLabel ? (
-                <p className={appTokens.settingsStatusMuted}>
-                  Expires at {expiryLabel}. Tokens can only be used once.
-                </p>
-              ) : (
-                <p className={appTokens.settingsStatusMuted}>Tokens can only be used once.</p>
+        <div className="space-y-4">
+          <div className="mx-auto max-w-[22rem]">
+            <input
+              type="text"
+              value={token ?? ""}
+              readOnly
+              aria-label="Discord verification token"
+              className={cn(
+                labeledEditorFieldControlClassName,
+                "h-12 px-4 py-3 text-center font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none placeholder:text-[rgb(var(--text-muted)/0.58)] focus-visible:!border-0 focus-visible:!ring-0",
               )}
-              <div className={appTokens.settingsActionRow}>
-                <button
-                  type="button"
-                  onClick={generateToken}
-                  disabled={isGenerating}
-                  className={getAppButtonClassName({
-                    variant: "secondary",
-                    size: "sm",
-                    className: "px-4",
-                  })}
-                >
-                  {isGenerating ? "Generating..." : "Generate new token"}
-                </button>
-              </div>
-            </div>
+            />
           </div>
-        ) : (
-          <div className="space-y-3">
-            <LabeledEditorField label="Verification token">
-              <input
-                type="text"
-                value=""
-                readOnly
-                placeholder="No token generated yet"
-                aria-label="Discord verification token"
-                className={cn(
-                  labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-                )}
-              />
-            </LabeledEditorField>
 
-            <div className={appTokens.settingsActionRow}>
-              <button
-                type="button"
-                onClick={generateToken}
-                disabled={isGenerating}
-                className={getAppButtonClassName({
-                  variant: "primary",
-                  size: "sm",
-                  className: "px-4",
-                })}
-              >
-                {isGenerating ? "Generating..." : "Generate token"}
-              </button>
-            </div>
+          <div className="mx-auto flex max-w-[22rem] flex-col items-center gap-1.5 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
+              {expiryLabel ? `One-Time Key | ${expiryLabel}` : "One-Time Key"}
+            </p>
+            <MetricAccentBar variant="thin" className="w-full opacity-85" />
+            {errorMessage ? (
+              <p className="text-xs leading-5 text-[rgb(var(--danger-rgb)/0.92)]">{errorMessage}</p>
+            ) : null}
           </div>
-        )}
 
-        {errorMessage ? <p className={appTokens.settingsStatusError}>{errorMessage}</p> : null}
+          <div className="mx-auto flex w-full max-w-[22rem] items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => void copyToken()}
+              disabled={!token}
+              className={getAppButtonClassName({
+                variant: copyLabel === "Copied" ? "secondary" : "tertiary",
+                size: "sm",
+                className: "min-w-[6.5rem] px-4",
+              })}
+            >
+              {copyLabel}
+            </button>
+            <button
+              type="button"
+              onClick={generateToken}
+              disabled={isGenerating}
+              className={getAppButtonClassName({
+                variant: token ? "secondary" : "primary",
+                size: "sm",
+                className: "min-w-[7.5rem] px-4",
+              })}
+            >
+              {isGenerating ? "Generating..." : "Generate"}
+            </button>
+          </div>
+        </div>
       </CollapsibleCard>
     </div>
   );

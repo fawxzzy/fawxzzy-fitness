@@ -4893,10 +4893,10 @@ export function ProgressionPlaybookEditor({
         {showLegacyTopMethodRail ? (
         <section className={progressionInfoMiniCardClassName}>
           <div className="px-3 pb-3 pt-2.5">
-          <div className="overflow-x-auto pb-1 pt-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="overflow-x-auto pb-1 pt-0 pl-1 pr-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mx-auto w-full max-w-full space-y-3">
               <div className="space-y-2">
-                <div className="mx-auto flex w-fit max-w-full flex-nowrap items-end justify-center gap-[3px]">
+                <div className="mx-auto flex min-w-max flex-nowrap items-end justify-center gap-[3px]">
                   <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
                     <div className="space-y-[2px]">
                       <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
 import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -235,84 +236,88 @@ export function LegacyMigrationSettings({
 
   return (
     <div className="space-y-3 pt-2">
-      <PublishBottomActions>
-        <BottomActionSingle>
-          <BottomDockButton
-            type="button"
-            intent="positive"
-            onClick={handleRunMigration}
-            loading={isPending}
-            disabled={!canRunMigration}
-          >
-            Run Migration
-          </BottomDockButton>
-        </BottomActionSingle>
-      </PublishBottomActions>
+      <div className="space-y-3">
+        <PublishBottomActions>
+          <BottomActionSingle>
+            <BottomDockButton
+              type="button"
+              intent="positive"
+              onClick={handleRunMigration}
+              loading={isPending}
+              disabled={!canRunMigration}
+            >
+              Run Migration
+            </BottomDockButton>
+          </BottomActionSingle>
+        </PublishBottomActions>
 
-      {migrationStatusLabel ? (
-        <p className={cn(appTokens.settingsBodyText, "text-[rgb(var(--text-secondary)/0.92)]")}>{migrationStatusLabel}</p>
-      ) : null}
-
-      <div className={appTokens.settingsTwoColumnGrid}>
-        <div className={appTokens.settingsFieldStack}>
-          <LabeledEditorField label="Legacy email">
-            <Input
-              id="legacy-email"
-              type="email"
-              autoComplete="email"
-              value={legacyEmail}
-              onChange={(event) => setLegacyEmail(event.target.value)}
-              placeholder="legacy@email.com"
-              className={cn(
-                labeledEditorFieldControlClassName,
-                "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-              )}
-            />
-          </LabeledEditorField>
-        </div>
-        <div className={appTokens.settingsFieldStack}>
-          <LabeledEditorField label="Legacy password">
-            <PasswordInput
-              id="legacy-password"
-              autoComplete="current-password"
-              value={legacyPassword}
-              onChange={(event) => setLegacyPassword(event.target.value)}
-              placeholder="Required for export"
-              className={cn(
-                labeledEditorFieldControlClassName,
-                "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
-              )}
-            />
-          </LabeledEditorField>
-        </div>
-      </div>
-
-      <div className={appTokens.settingsFieldStack}>
-        {exportCounts ? (
-          <p className={appTokens.settingsBodyText}>
-            Export counts: <SignatureInlineList items={formatCounts(exportCounts)} separator="pipe" className="align-middle" />
-          </p>
+        {migrationStatusLabel ? (
+          <p className={cn(appTokens.settingsBodyText, "text-[rgb(var(--text-secondary)/0.92)]")}>{migrationStatusLabel}</p>
         ) : null}
-        {importSummary ? (
-          <p className={appTokens.settingsBodyText}>
-            Imported <SignatureInlineList items={formatCounts(importSummary.importedCounts)} separator="pipe" className="align-middle" />. Global exercises resolved {importSummary.resolvedGlobalExercises}; created {importSummary.createdGlobalExercises}.
-          </p>
-        ) : null}
-        {parity ? (
-          <div className={cn(appTokens.settingsBodyText, appTokens.settingsStatusStack)}>
-            {parity.counts.map((count) => (
-              <p key={count.metric}>
-                {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}
-              </p>
-            ))}
+
+        <div className={appTokens.settingsTwoColumnGrid}>
+          <div className={appTokens.settingsFieldStack}>
+            <LabeledEditorField label="Legacy email">
+              <Input
+                id="legacy-email"
+                type="email"
+                autoComplete="email"
+                value={legacyEmail}
+                onChange={(event) => setLegacyEmail(event.target.value)}
+                placeholder="legacy@email.com"
+                className={cn(
+                  labeledEditorFieldControlClassName,
+                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                )}
+              />
+            </LabeledEditorField>
           </div>
-        ) : null}
-        {status?.text ? (
-          <p className={cn(appTokens.settingsBodyText, statusClassName)}>
-            {status.text}
-          </p>
-        ) : null}
+          <div className={appTokens.settingsFieldStack}>
+            <LabeledEditorField label="Legacy password">
+              <PasswordInput
+                id="legacy-password"
+                autoComplete="current-password"
+                value={legacyPassword}
+                onChange={(event) => setLegacyPassword(event.target.value)}
+                placeholder="Required for export"
+                className={cn(
+                  labeledEditorFieldControlClassName,
+                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                )}
+              />
+            </LabeledEditorField>
+          </div>
+        </div>
+
+        <div className={appTokens.settingsFieldStack}>
+          {exportCounts ? (
+            <p className={appTokens.settingsBodyText}>
+              Export counts: <SignatureInlineList items={formatCounts(exportCounts)} separator="pipe" className="align-middle" />
+            </p>
+          ) : null}
+          {importSummary ? (
+            <p className={appTokens.settingsBodyText}>
+              Imported <SignatureInlineList items={formatCounts(importSummary.importedCounts)} separator="pipe" className="align-middle" />. Global exercises resolved {importSummary.resolvedGlobalExercises}; created {importSummary.createdGlobalExercises}.
+            </p>
+          ) : null}
+          {parity ? (
+            <div className={cn(appTokens.settingsBodyText, appTokens.settingsStatusStack)}>
+              {parity.counts.map((count) => (
+                <p key={count.metric}>
+                  {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {status?.text ? (
+            <p className={cn(appTokens.settingsBodyText, statusClassName)}>
+              {status.text}
+            </p>
+          ) : null}
+        </div>
       </div>
+
+      <DiscordAccessSettings />
     </div>
   );
 }

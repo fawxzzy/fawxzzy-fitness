@@ -6,7 +6,6 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { SignOutButton } from "@/components/SignOutButton";
-import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -128,7 +127,6 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
             <div className={appTokens.settingsFieldStack}>
               {emailState.message ? <p className={cn(appTokens.settingsBodyText, emailMessageTone)}>{emailState.message}</p> : null}
             </div>
-            <DiscordAccessSettings />
           </div>
         </div>
       </form>
