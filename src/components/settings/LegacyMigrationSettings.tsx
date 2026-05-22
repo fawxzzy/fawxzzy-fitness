@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
 import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -317,7 +316,6 @@ export function LegacyMigrationSettings({
         </div>
       </div>
 
-      <DiscordAccessSettings />
     </div>
   );
 }

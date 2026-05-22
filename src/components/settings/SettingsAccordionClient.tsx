@@ -3,6 +3,7 @@
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
+import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
 import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
@@ -24,6 +25,8 @@ export function getSettingsSectionMeta(section: Exclude<SettingsSectionKey, null
       return { title: "Data" };
     case "legacy":
       return { title: "Legacy & Migration" };
+    case "discord":
+      return { title: "Discord Connector" };
     default:
       return null;
   }
@@ -94,6 +97,7 @@ export function SettingsAccordionClient({
   const showAccount = expandedSection === null || expandedSection === "account";
   const showData = expandedSection === null || expandedSection === "data";
   const showLegacy = expandedSection === null || expandedSection === "legacy";
+  const showDiscord = expandedSection === null || expandedSection === "discord";
   const showTheme = expandedSection === null || expandedSection === "theme";
 
   return (
@@ -165,6 +169,19 @@ export function SettingsAccordionClient({
               defaultLegacyEmail={email}
             />
           ) : null}
+        </div>
+      ) : null}
+
+      {showDiscord ? (
+        <div className="space-y-3">
+          {expandedSection !== "discord" ? (
+            <SettingsAccordionTrigger
+              title="Discord Connector"
+              expanded={false}
+              onClick={() => setExpandedSection("discord")}
+            />
+          ) : null}
+          {expandedSection === "discord" ? <DiscordAccessSettings /> : null}
         </div>
       ) : null}
     </div>
