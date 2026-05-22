@@ -64,6 +64,7 @@ test("shouldRefreshAuthSession skips public auth and install routes", () => {
   assert.equal(shouldRefreshAuthSession("/dev/stretch-card-pass"), false);
   assert.equal(shouldRefreshAuthSession("/install"), false);
   assert.equal(shouldRefreshAuthSession("/api/app-version"), false);
+  assert.equal(shouldRefreshAuthSession("/api/discord/interactions"), false);
 });
 
 test("classifyAuthSessionFailure treats expired and invalid tokens as session-expired logins", () => {
