@@ -1,6 +1,14 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-05-22 - Fitness migration readiness should preserve exact remote versions and use local-only linked DB secrets
+- Type: Guardrail
+- Summary: When the linked Fitness migration chain is validated locally, the repo should preserve the exact remote migration version instead of a local timestamp alias, and standalone validation may load `SUPABASE_DB_PASSWORD` from the documented local-only secret lane when the shell does not already provide it.
+- Rule: If local and remote migration SQL are the same but the version differs, restore the exact remote version locally instead of carrying a new alias.
+- Rule: Linked migration validation may read `secrets/local/fawxzzy-fitness-prod-db.env` for `SUPABASE_DB_PASSWORD`, but that secret must stay local-only and uncommitted.
+- Pattern: inspect linked drift -> prove SQL equivalence -> restore exact remote version -> load local-only DB password for dry-run validation -> rerun migration and release readiness.
+- Failure Mode: carrying a local migration alias or relying on ad hoc shell secrets keeps `migration:validate` red even when schema truth is already aligned.
+- Status: Proposed
 ## 2026-05-19 - Public completed phase cards need visible resolved state before the next phase starts
 - Type: Guardrail
 - Summary: A public phase card is not fully done until it is fixed or completed, completion-review approved, and visibly reacted with `✅` on the starter post.
