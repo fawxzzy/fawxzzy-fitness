@@ -73,7 +73,7 @@ test("checkFeedbackPhaseReadiness fails when the required prior card is missing 
   );
 
   assert.equal(result.ok, false);
-  assert.match(result.failures[0] ?? "", /missing the resolved ✅ reaction/);
+  assert.match(result.failures[0] ?? "", /missing the resolved fawxzzy:1507384062166302851 reaction/);
 });
 
 test("checkFeedbackPhaseReadiness passes when the required prior card is fixed, approved, and reacted", async () => {
@@ -103,7 +103,7 @@ test("checkFeedbackPhaseReadiness passes when the required prior card is fixed, 
       fetchImpl: async () => new Response(JSON.stringify({
         reactions: [
           {
-            emoji: { name: "✅" },
+            emoji: { id: "1507384062166302851", name: "fawxzzy" },
           },
         ],
       }), {
