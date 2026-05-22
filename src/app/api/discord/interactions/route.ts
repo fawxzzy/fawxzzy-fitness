@@ -327,8 +327,8 @@ const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
 const DISCORD_COMMANDER_ROLE_NAME = "Fawxzzy Commander";
 const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
-  "bot feedback setup",
-  "bot setup feedback",
+  "computa feedback setup",
+  "computa setup feedback",
 ];
 const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
 const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
@@ -2735,7 +2735,7 @@ async function ensureDiscordCommanderRole(args: {
     return {
       ok: false as const,
       code: "DISCORD_COMMANDER_ROLE_MISSING",
-      message: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
+      message: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use computa message commands.`,
     };
   }
 
@@ -2809,7 +2809,7 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
   if (!commanderRoleResult.ok) {
     await sendDiscordMessageCommandPrivateNotice({
       userId: authorId,
-      content: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
+      content: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use computa message commands.`,
     });
     await markDiscordMessageCommandProcessed({
       channelId: args.channelId,
@@ -2834,7 +2834,7 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
       userId: authorId,
       content: commanderRoleResult.roleCreated
         ? `${DISCORD_COMMANDER_ROLE_NAME} was created. Assign it to yourself or another operator, then retry.`
-        : `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
+        : `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use computa message commands.`,
     });
     await markDiscordMessageCommandProcessed({
       channelId: args.channelId,

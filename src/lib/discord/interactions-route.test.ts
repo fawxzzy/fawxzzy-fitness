@@ -1151,7 +1151,7 @@ test("Discord message command poll lets a manager bootstrap the commander role a
       return new Response(JSON.stringify([
         {
           id: "main-message-1",
-          content: "yo bot setup feedback please",
+          content: "yo computa setup feedback please",
           author: { id: "123456789012345678", bot: false },
           member: { roles: ["manager-role"] },
           reactions: [],
@@ -1337,7 +1337,7 @@ test("Discord message command poll requires the commander role after bootstrap",
       return new Response(JSON.stringify([
         {
           id: "main-message-2",
-          content: "bot feedback setup",
+          content: "computa feedback setup",
           author: { id: "123456789012345678", bot: false },
           member: { roles: [] },
           reactions: [],
@@ -1427,7 +1427,7 @@ test("Discord message command poll skips messages already marked processed", asy
       return new Response(JSON.stringify([
         {
           id: "main-message-3",
-          content: "bot feedback setup",
+          content: "computa feedback setup",
           author: { id: "123456789012345678", bot: false },
           reactions: [{ me: true, emoji: { name: "✅" } }],
         },

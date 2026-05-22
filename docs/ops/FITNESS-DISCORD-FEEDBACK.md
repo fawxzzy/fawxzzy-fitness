@@ -32,7 +32,7 @@ Product rules:
   - deletes the legacy `submit-feedback` channel after moving setup to a source channel
   - falls back to `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` only when no source channel is available
   - does not create a dedicated `submit-feedback` channel
-- main-channel message triggers: `bot feedback setup` and `bot setup feedback`
+- main-channel message triggers: `computa feedback setup` and `computa setup feedback`
   - requires the `Fawxzzy Commander` role after bootstrap
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`
@@ -71,7 +71,7 @@ Message-content triggers are intentionally rare. Any future main-chat phrase com
 Runtime note:
 - The Vercel Hobby plan only allows daily cron schedules.
 - Near-real-time message-content triggers require either an external scheduler that calls the secret poll route or the persistent Discord Gateway worker.
-- Do not claim `bot feedback setup` is live as an automatic main-chat trigger unless one of those runners is active.
+- Do not claim `computa feedback setup` is live as an automatic main-chat trigger unless one of those runners is active.
 
 Separate production-update staff commands may also exist:
 - `update-latest`
@@ -129,7 +129,7 @@ Rule:
 - Feedback audit comments tell a card's history.
 
 ## User flow
-1. An admin runs `/setup-feedback` in the intended channel, or an approved commander says `bot setup feedback` in main chat.
+1. An admin runs `/setup-feedback` in the intended channel, or an approved commander says `computa setup feedback` in main chat.
 2. Fitness creates or updates a dedicated launcher message in that channel.
 3. A user clicks `Submit`.
 4. Fitness opens one general modal.
@@ -147,7 +147,7 @@ Pattern:
 - forum thread and tags
 
 ## Main-chat setup trigger
-`bot feedback setup` or `bot setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
+`computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
 Rules:
 - The trigger is case-insensitive.
@@ -248,7 +248,7 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `DISCORD_GUILD_ID`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DISCORD_MEMBER_SYNC_SECRET`
-- `DISCORD_MAIN_CHANNEL_ID` optional for `bot feedback setup`
+- `DISCORD_MAIN_CHANNEL_ID` optional for `computa feedback setup`
 - `DISCORD_MESSAGE_COMMAND_POLL_SECRET` optional; falls back to `CRON_SECRET`
 - `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` optional
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
@@ -470,7 +470,7 @@ After verify-copy changes, rerun:
 1. Make sure the Feedback forum has the required tags.
 2. Register commands with `npm run discord:commands:register`.
 3. Set the forum and optional fallback panel env vars.
-4. Run `/setup-feedback` in the channel where the launcher should live, or say `bot setup feedback` in main chat.
+4. Run `/setup-feedback` in the channel where the launcher should live, or say `computa setup feedback` in main chat.
 5. Pin the panel if needed.
 6. Run `npm run discord:emoji:bootstrap -- --apply --write-env-template` if bot-owned emoji should be available.
 7. Test `Submit Feedback` with both `Bug` and `Feature`.
