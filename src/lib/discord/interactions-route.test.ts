@@ -1214,7 +1214,7 @@ test("Discord message command poll replaces one computa command menu per channel
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-menu/reactions/%E2%9C%85/@me" && method === "PUT") {
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-menu/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
 
@@ -1409,7 +1409,7 @@ test("Discord message command poll lets a manager bootstrap the commander role a
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-1/reactions/%E2%9C%85/@me" && method === "PUT") {
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-1/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
 
@@ -1507,7 +1507,7 @@ test("Discord message command poll requires the commander role after bootstrap",
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-2/reactions/%F0%9F%9A%AB/@me" && method === "PUT") {
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-2/reactions/fawxzzy%3A1507384094424694785/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
 
@@ -1604,7 +1604,7 @@ test("Discord message command poll posts owner computa post live preset updates"
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-1/reactions/%E2%9C%85/@me" && method === "PUT") {
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-1/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
 
@@ -1696,7 +1696,7 @@ test("Discord message command poll posts owner computa post live custom link upd
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-2/reactions/%E2%9C%85/@me" && method === "PUT") {
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-2/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
 
@@ -1752,7 +1752,7 @@ test("Discord message command poll rejects non-owner computa post live updates",
       return new Response(JSON.stringify([
         {
           id: "main-message-live-3",
-          content: "live",
+          content: "computa post live",
           author: { id: "other-user", bot: false },
           reactions: [],
         },
@@ -1780,7 +1780,7 @@ test("Discord message command poll rejects non-owner computa post live updates",
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-3/reactions/%F0%9F%9A%AB/@me" && method === "PUT") {
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-3/reactions/fawxzzy%3A1507384094424694785/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
 
@@ -1815,6 +1815,144 @@ test("Discord message command poll rejects non-owner computa post live updates",
   }
 });
 
+test("Discord message command poll archives checked feedback cards for commanders", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const patchedThreads = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-archive",
+          content: "computa archive checked cards",
+          author: { id: "123456789012345678", bot: false },
+          member: { roles: ["commander-role"] },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/threads/active" && method === "GET") {
+      return new Response(JSON.stringify({
+        threads: [
+          { id: "thread-checked", parent_id: "1504673475489562744", archived: false },
+          { id: "thread-open", parent_id: "1504673475489562744", archived: false },
+          { id: "thread-other", parent_id: "other-forum", archived: false },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/thread-checked/messages/thread-checked" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "thread-checked",
+        reactions: [{ emoji: { id: "1507384062166302851", name: "fawxzzy" } }],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/thread-open/messages/thread-open" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "thread-open",
+        reactions: [],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/thread-checked" && method === "PATCH") {
+      const body = parseJsonBody(init?.body);
+      patchedThreads.push(body);
+      assert.equal(body?.archived, true);
+      assert.equal(body?.locked, true);
+      return new Response(JSON.stringify({ id: "thread-checked", archived: true, locked: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      return new Response(JSON.stringify({ id: "dm-archive" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-archive/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Archived 1\/1 checked feedback card/);
+      return new Response(JSON.stringify({ id: "dm-archive-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-archive/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-archive",
+          ok: true,
+          code: null,
+          action: "archived",
+        },
+      ],
+    });
+    assert.equal(patchedThreads.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
 test("Discord message command poll skips messages already marked processed", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -1834,7 +1972,7 @@ test("Discord message command poll skips messages already marked processed", asy
           id: "main-message-3",
           content: "computa feedback setup",
           author: { id: "123456789012345678", bot: false },
-          reactions: [{ me: true, emoji: { name: "✅" } }],
+          reactions: [{ me: true, emoji: { id: "1507384062166302851", name: "fawxzzy" } }],
         },
       ]), {
         status: 200,

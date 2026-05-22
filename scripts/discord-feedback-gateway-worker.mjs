@@ -78,7 +78,7 @@ export function messageRequestsComputaLive(message, mainChannelId) {
   }
 
   const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
-  return normalizedContent === "live" || normalizedContent.startsWith("computa post live");
+  return normalizedContent.startsWith("computa post live");
 }
 
 export function messageRequestsComputaMenu(message, mainChannelId) {
@@ -97,9 +97,32 @@ export function messageRequestsComputaMenu(message, mainChannelId) {
   return normalizeDiscordMessageCommandContent(message.content) === "computa";
 }
 
+export function messageRequestsComputaArchiveCheckedCards(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return [
+    "computa archive checked cards",
+    "computa archive checked",
+    "computa archive resolved cards",
+    "computa feedback archive checked cards",
+  ].some((trigger) => normalizedContent.includes(trigger));
+}
+
 export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
   return messageRequestsComputaMenu(message, mainChannelId)
     || messageRequestsFeedbackSetup(message, mainChannelId)
+    || messageRequestsComputaArchiveCheckedCards(message, mainChannelId)
     || messageRequestsComputaLive(message, mainChannelId);
 }
 
