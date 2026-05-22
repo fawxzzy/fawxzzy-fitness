@@ -24,6 +24,11 @@ Product rules:
 - A public phase card is not fully done until the starter post shows `✅`.
 
 ## Command surface
+- `computa`
+  - main-channel message trigger
+  - posts the user-facing Computa command card in the channel where it was used
+  - deletes the previous Computa command card in that channel before reposting
+  - marks the trigger message with a public reaction
 - `/setup-feedback`
   - admin-only
   - posts or refreshes the persistent `Submit Feedback Here` launcher
@@ -158,6 +163,8 @@ Pattern:
 - forum thread and tags
 
 ## Main-chat setup trigger
+`computa` posts the compact command card in the channel where it is used. Only one Computa command card is kept per channel; rerunning the command removes the previous card and posts the current one.
+
 `computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
 Rules:

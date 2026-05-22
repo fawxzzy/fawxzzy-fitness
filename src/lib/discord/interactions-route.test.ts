@@ -1120,6 +1120,124 @@ test("Discord message command poll is secret-gated", async () => {
   assert.equal(response.status, 503);
 });
 
+test("Discord message command poll replaces one computa command menu per channel", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+
+  const originalFetch = globalThis.fetch;
+  const postedBodies = [];
+  let channelMessageFetchCount = 0;
+  let deletedOldMenu = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      channelMessageFetchCount += 1;
+      if (url.searchParams.get("limit") === "25") {
+        return new Response(JSON.stringify([
+          {
+            id: "main-message-computa-menu",
+            content: "computa",
+            author: { id: "123456789012345678", bot: false },
+            reactions: [],
+          },
+        ]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      assert.equal(url.searchParams.get("limit"), "50");
+      return new Response(JSON.stringify([
+        {
+          id: "old-computa-menu",
+          content: "",
+          author: { id: "1504700208251146371", bot: true },
+          embeds: [
+            {
+              title: "Computa",
+              footer: { text: "fawx-computa-command-menu:v1" },
+            },
+          ],
+        },
+        {
+          id: "main-message-computa-menu",
+          content: "computa",
+          author: { id: "123456789012345678", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/old-computa-menu" && method === "DELETE") {
+      deletedOldMenu = true;
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      postedBodies.push(body);
+      assert.equal(body?.content, "");
+      assert.equal(body?.embeds?.[0]?.title, "Computa");
+      assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
+      assert.equal(body?.embeds?.[0]?.footer?.text, "fawx-computa-command-menu:v1");
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa` - Show this command card\./);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa feedback setup`/);
+      assert.deepEqual(body?.allowed_mentions, { parse: [] });
+      return new Response(JSON.stringify({ id: "new-computa-menu" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-menu/reactions/%E2%9C%85/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-computa-menu",
+          ok: true,
+          code: null,
+          action: "posted",
+        },
+      ],
+    });
+    assert.equal(channelMessageFetchCount, 2);
+    assert.equal(deletedOldMenu, true);
+    assert.equal(postedBodies.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
+  }
+});
+
 test("Discord message command poll lets a manager bootstrap the commander role and setup feedback", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";

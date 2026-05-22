@@ -63,6 +63,7 @@ import {
   buildDiscordPongResponse,
   buildDiscordVerifyMessagePayload,
   buildDiscordVerifyModalResponse,
+  DISCORD_EMBED_COLOR_SUCCESS,
   DISCORD_MESSAGE_FLAG_EPHEMERAL,
   DISCORD_PERMISSION_ADD_REACTIONS,
   DISCORD_PERMISSION_ADMINISTRATOR,
@@ -333,6 +334,7 @@ const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
 const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
 const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";
 const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy";
+const DISCORD_COMPUTA_COMMAND_MENU_MARKER = "fawx-computa-command-menu:v1";
 const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
 const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
 const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = "\u2705";
@@ -2611,6 +2613,10 @@ function discordMessageRequestsFeedbackSetup(message: DiscordMessageCommand): bo
   return DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
+function discordMessageRequestsComputaMenu(message: DiscordMessageCommand): boolean {
+  return normalizeDiscordMessageCommandContent(message.content) === "computa";
+}
+
 function resolveDiscordComputaOwnerUserId(): string {
   return optionalEnv("DISCORD_COMPUTA_OWNER_USER_ID") ?? DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT;
 }
@@ -2708,7 +2714,9 @@ function discordMessageRequestsComputaLive(message: DiscordMessageCommand): bool
 }
 
 function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): boolean {
-  return discordMessageRequestsFeedbackSetup(message) || discordMessageRequestsComputaLive(message);
+  return discordMessageRequestsComputaMenu(message)
+    || discordMessageRequestsFeedbackSetup(message)
+    || discordMessageRequestsComputaLive(message);
 }
 
 function buildDiscordComputaLiveUpdateContent(command: DiscordComputaLiveCommand): string {
@@ -2725,6 +2733,57 @@ function buildDiscordComputaLiveUpdateContent(command: DiscordComputaLiveCommand
   }
 
   return "@everyone\n\nGoing live\n\nPull up";
+}
+
+function discordMessageHasComputaCommandMenu(message: unknown): boolean {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  const embeds = "embeds" in message ? (message as { embeds?: unknown }).embeds : undefined;
+  if (!Array.isArray(embeds)) {
+    return false;
+  }
+
+  return embeds.some((embed) => {
+    if (!embed || typeof embed !== "object") {
+      return false;
+    }
+
+    const footer = "footer" in embed ? (embed as { footer?: unknown }).footer : undefined;
+    if (footer && typeof footer === "object" && "text" in footer) {
+      return (footer as { text?: unknown }).text === DISCORD_COMPUTA_COMMAND_MENU_MARKER;
+    }
+
+    return "title" in embed && (embed as { title?: unknown }).title === "Computa";
+  });
+}
+
+function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
+  return {
+    content: "",
+    allowed_mentions: {
+      parse: [],
+    },
+    embeds: [
+      {
+        title: "Computa",
+        description: [
+          "`computa` - Show this command card.",
+          "`computa feedback setup` - Refresh feedback buttons in this channel.",
+          "`computa setup feedback` - Refresh feedback buttons in this channel.",
+          "`computa live twitch` - Owner-only Twitch live announcement.",
+          "`computa live tiktok` - Owner-only TikTok live announcement.",
+          "`computa live [link]` - Owner-only custom live announcement.",
+          "`live` - Owner-only live announcement.",
+        ].join("\n"),
+        color: DISCORD_EMBED_COLOR_SUCCESS,
+        footer: {
+          text: DISCORD_COMPUTA_COMMAND_MENU_MARKER,
+        },
+      },
+    ],
+  };
 }
 
 function discordMessageHasProcessedCommandReaction(message: DiscordMessageCommand): boolean {
@@ -2833,6 +2892,61 @@ async function markDiscordMessageCommandProcessed(args: {
   }
 }
 
+async function replaceDiscordSingleBotChannelPost(args: {
+  channelId: string;
+  body: Record<string, unknown>;
+  matchesMessage: (message: unknown) => boolean;
+  logLabel: string;
+}) {
+  const messagesResult = await fetchDiscordChannelMessages({
+    channelId: args.channelId,
+    limit: 50,
+  });
+
+  if (!messagesResult.ok) {
+    console.warn("[discord-message-command] single-post scan failed", {
+      label: args.logLabel,
+      channelId: args.channelId,
+      code: messagesResult.code,
+      status: messagesResult.status,
+      message: messagesResult.message,
+    });
+    return messagesResult;
+  }
+
+  const previousMessages = messagesResult.messages.filter((message) => (
+    message.id
+    && message.author?.id === DISCORD_APPLICATION_ID()
+    && args.matchesMessage(message)
+  ));
+
+  for (const message of previousMessages) {
+    const deleteResult = await deleteDiscordChannelMessage({
+      channelId: args.channelId,
+      messageId: message.id,
+    });
+    if (!deleteResult.ok && deleteResult.code !== "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
+      console.warn("[discord-message-command] single-post delete failed", {
+        label: args.logLabel,
+        channelId: args.channelId,
+        messageId: message.id,
+        code: deleteResult.code,
+        status: deleteResult.status,
+        message: deleteResult.message,
+      });
+    }
+  }
+
+  const createResult = await createDiscordChannelMessage({
+    channelId: args.channelId,
+    body: args.body,
+  });
+
+  return createResult.ok
+    ? { ok: true as const, action: "posted" as const, deletedCount: previousMessages.length, messageId: createResult.messageId }
+    : createResult;
+}
+
 async function ensureDiscordCommanderRole(args: {
   guildId: string;
   authorId: string;
@@ -2882,6 +2996,45 @@ async function ensureDiscordCommanderRole(args: {
     roleCreated: true,
     authorCanBootstrap,
   };
+}
+
+async function processDiscordComputaMenuMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  if (!messageId) {
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  const postResult = await replaceDiscordSingleBotChannelPost({
+    channelId: args.channelId,
+    body: buildDiscordComputaCommandMenuPayload(),
+    matchesMessage: discordMessageHasComputaCommandMenu,
+    logLabel: "computa-command-menu",
+  });
+
+  if (!postResult.ok) {
+    console.error("[discord-message-command] computa command menu failed", {
+      requestId: randomUUID(),
+      code: postResult.code,
+      status: "status" in postResult ? postResult.status : undefined,
+      message: postResult.message,
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return postResult;
+  }
+
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return { ok: true as const, action: postResult.action, deletedCount: postResult.deletedCount };
 }
 
 async function processDiscordFeedbackSetupMessageCommand(args: {
@@ -3158,15 +3311,27 @@ async function pollDiscordMessageCommands() {
   const processed = [];
   for (const message of candidates) {
     const candidate = message as DiscordMessageCommand;
-    const result = discordMessageRequestsComputaLive(candidate)
-      ? await processDiscordComputaLiveMessageCommand({
-        channelId,
-        message: candidate,
-      })
-      : await processDiscordFeedbackSetupMessageCommand({
+    let result:
+      | Awaited<ReturnType<typeof processDiscordComputaMenuMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordComputaLiveMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordFeedbackSetupMessageCommand>>;
+
+    if (discordMessageRequestsComputaMenu(candidate)) {
+      result = await processDiscordComputaMenuMessageCommand({
         channelId,
         message: candidate,
       });
+    } else if (discordMessageRequestsComputaLive(candidate)) {
+      result = await processDiscordComputaLiveMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else {
+      result = await processDiscordFeedbackSetupMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    }
     processed.push({
       messageId: message.id,
       ok: result.ok,

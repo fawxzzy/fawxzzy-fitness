@@ -4,6 +4,7 @@ import {
   calculateDiscordGatewayReconnectDelayMs,
   callDiscordMessageCommandPoll,
   messageRequestsComputaLive,
+  messageRequestsComputaMenu,
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
   normalizeDiscordMessageCommandContent,
@@ -94,6 +95,49 @@ test("feedback gateway worker detects owner live message command shapes", () => 
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa setup feedback",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects exact computa menu messages", () => {
+  assert.equal(
+    messageRequestsComputaMenu({
+      channel_id: "main-channel",
+      content: "  ComPuTa  ",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaMenu({
+      channel_id: "main-channel",
+      content: "computa live twitch",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaMenu({
+      channel_id: "other-channel",
+      content: "computa",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaMenu({
+      channel_id: "main-channel",
+      content: "computa",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa",
       author: { bot: false },
     }, "main-channel"),
     true,
