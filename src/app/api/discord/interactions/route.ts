@@ -209,7 +209,6 @@ import {
 } from "@/lib/discord/moderation";
 import {
   addDiscordGuildMemberRole,
-  createDiscordDirectMessageChannel,
   createDiscordRole,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
@@ -2863,40 +2862,12 @@ async function sendDiscordMessageCommandPrivateNotice(args: {
   userId: string;
   content: string;
 }) {
-  const dmChannelResult = await createDiscordDirectMessageChannel({
-    recipientUserId: args.userId,
+  console.info("[discord-message-command] private notice skipped for passive message command", {
+    requestId: randomUUID(),
+    userId: args.userId,
+    contentLength: args.content.length,
   });
-
-  if (!dmChannelResult.ok) {
-    console.warn("[discord-message-command] private notice dm channel failed", {
-      requestId: randomUUID(),
-      code: dmChannelResult.code,
-      status: dmChannelResult.status,
-      message: dmChannelResult.message,
-    });
-    return dmChannelResult;
-  }
-
-  const messageResult = await createDiscordChannelMessage({
-    channelId: dmChannelResult.channel.id,
-    body: {
-      content: args.content,
-      allowed_mentions: {
-        parse: [],
-      },
-    },
-  });
-
-  if (!messageResult.ok) {
-    console.warn("[discord-message-command] private notice send failed", {
-      requestId: randomUUID(),
-      code: messageResult.code,
-      status: messageResult.status,
-      message: messageResult.message,
-    });
-  }
-
-  return messageResult;
+  return { ok: true as const, skipped: true as const };
 }
 
 async function markDiscordMessageCommandProcessed(args: {

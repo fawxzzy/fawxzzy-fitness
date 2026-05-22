@@ -28,14 +28,14 @@ Product rules:
   - main-channel message trigger
   - posts the user-facing Computa command card in the channel where it was used
   - shows normal command discovery only; owner-only live commands stay hidden from the public card
-  - sends the owner-only command list by DM when the configured owner runs it
+  - keeps owner-only command details out of the public card; true user-only notices should use interaction ephemerals when available
   - deletes the previous Computa command card in that channel before reposting
   - marks the trigger message with a public reaction
 - `computa archive checked cards`
   - main-channel message trigger
   - commander-only
   - archives active Feedback forum cards whose starter post already has the configured success reaction
-  - sends the archive count by DM and marks the trigger with the configured success/failure reaction
+  - marks the trigger with the configured success/failure reaction; detailed private output should use interaction ephemerals where possible
 - `/setup-feedback`
   - admin-only
   - deletes the old post and reposts the persistent `Submit Feedback Here` launcher
@@ -51,7 +51,7 @@ Product rules:
   - deletes the old launcher and reposts the launcher in the channel where the trigger message was sent
   - removes older launcher messages from previous feedback setup channels after successful setup
   - marks the trigger message with a public reaction
-  - sends setup/permission/failure details to the triggering user by DM instead of posting bot replies in main chat
+  - marks setup/permission/failure outcomes with reactions; detailed private output should use interaction ephemerals where possible
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
 - owner-only main-channel live triggers:
   - `computa post live`
@@ -61,7 +61,7 @@ Product rules:
   - posts a short `@everyone` live notice in `DISCORD_UPDATES_CHANNEL_ID`
   - only the configured owner account can run it
   - marks the trigger message with a public reaction
-  - sends permission/failure/success details to the triggering user by DM instead of posting bot replies in main chat
+  - marks permission/failure/success outcomes with reactions; detailed private output should use interaction ephemerals where possible
   - is protected by the same message-command poll secret and worker path
 - `/setup-verify`
   - admin-only
@@ -171,7 +171,7 @@ Pattern:
 ## Main-chat setup trigger
 `computa` posts the compact command card in the channel where it is used. Only one Computa command card is kept per channel; rerunning the command removes the previous card and posts the current one.
 
-If the configured Computa owner runs `computa`, the public card stays normal-user-facing and owner-only commands are sent by DM.
+If the configured Computa owner runs `computa`, the public card stays normal-user-facing and owner-only commands must not be exposed publicly. A future interaction path can show owner-only commands ephemerally.
 
 `computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
@@ -183,7 +183,7 @@ Rules:
 - A member with the `Fawxzzy Commander` role may run the trigger.
 - If the role does not exist, a member with Manage Server or Administrator may bootstrap it; the bot creates `Fawxzzy Commander`, assigns it to that member when allowed, and runs setup.
 - The poll endpoint requires `Authorization: Bearer <DISCORD_MESSAGE_COMMAND_POLL_SECRET>` or `Authorization: Bearer <CRON_SECRET>`.
-- Successful processing sends a DM notice to the triggering user when details are needed and marks the source message processed.
+- Successful processing marks the source message processed. Detailed private output should use interaction ephemerals where possible.
 - Public command reactions use the configured success/failure custom emoji:
   - success: `fawxzzy:1507384062166302851`
   - failure: `fawxzzy:1507384094424694785`
@@ -249,7 +249,7 @@ Rules:
 - Messages already marked with the bot's processed reaction are ignored.
 - Only `DISCORD_MAIN_CHANNEL_ID` is polled.
 - The updates post allows only the explicit `@everyone` mention.
-- Success/failure details are sent by DM to avoid bot clutter in main chat.
+- Success/failure is shown with reactions to avoid bot clutter in main chat. Detailed private output should use interaction ephemerals where possible.
 - Non-owner attempts are rejected and marked with the forbidden reaction.
 
 ## Computa Command Router Foundation
@@ -262,7 +262,7 @@ Implemented scope:
 - owner-only live announcement lane
 - one-per-channel canonical post replacement for `computa` and feedback setup
 - custom success/failure reactions for command outcomes
-- DM notices for user-specific details because message-created commands cannot use true Discord ephemeral replies
+- public reactions for message-created commands because they cannot use true Discord ephemeral replies
 - phrase aliases for feedback setup and archive checked cards
 
 New command:
@@ -279,7 +279,7 @@ Planned but not implemented in this foundation:
 
 Rule:
 - Automate repetitive deterministic Discord work first. Anything that requires reasoning should stay behind explicit confirmation or a future AI-backed lane.
-- Normal message commands cannot create dismissible in-channel ephemeral replies. Keep message-command details private by DM, or move the flow to a slash/button interaction when true ephemeral responses are required.
+- Normal message commands cannot create dismissible in-channel ephemeral replies. Keep message-command output to reactions, or move the flow to a slash/button interaction when true ephemeral responses are required.
 
 ## Forum organization
 The public Feedback forum is a readable visual board, not the canonical planning sorter.
