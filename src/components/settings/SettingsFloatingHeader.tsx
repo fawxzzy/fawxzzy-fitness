@@ -14,17 +14,12 @@ export function SettingsFloatingHeader({
   username: string;
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
-  const shouldHideIdentity = expandedSection === "theme";
   const activeSectionMeta = expandedSection ? getSettingsSectionMeta(expandedSection) : null;
-
-  if (shouldHideIdentity && !activeSectionMeta) {
-    return null;
-  }
 
   return (
     <ContentRail className={appTokens.settingsFloatingHeaderRail}>
       <div className="space-y-3 px-4 py-3">
-        {!shouldHideIdentity ? <SettingsHeaderIdentity email={email} username={username} /> : null}
+        <SettingsHeaderIdentity email={email} username={username} />
         {activeSectionMeta ? (
           <SettingsAccordionTrigger
             title={activeSectionMeta.title}
