@@ -795,13 +795,33 @@ export async function patchDiscordChannelMessage(args: {
   };
 }
 
+export function sanitizeDiscordChannelMessageBody(body: Record<string, unknown>): Record<string, unknown> {
+  const embeds = Array.isArray(body.embeds) ? body.embeds : [];
+  const flags = typeof body.flags === "number" ? body.flags : null;
+
+  if (embeds.length === 0 || flags === null || (flags & DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS) === 0) {
+    return body;
+  }
+
+  const nextFlags = flags & ~DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS;
+  const sanitized = { ...body };
+  if (nextFlags === 0) {
+    delete sanitized.flags;
+  } else {
+    sanitized.flags = nextFlags;
+  }
+
+  return sanitized;
+}
+
 export async function createDiscordChannelMessage(args: {
   channelId: string;
   body: Record<string, unknown>;
 }): Promise<{ ok: true; messageId: string | null } | { ok: false; code: string; status: number; message: string | null }> {
+  const body = sanitizeDiscordChannelMessageBody(args.body);
   const result = await discordRequest<{ id?: string }>(
     `/channels/${args.channelId}/messages`,
-    { method: "POST", body: args.body },
+    { method: "POST", body },
   );
 
   if (result.ok) {

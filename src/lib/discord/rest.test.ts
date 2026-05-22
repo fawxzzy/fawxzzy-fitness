@@ -19,6 +19,7 @@ import {
   fetchDiscordGuildRoles,
   fetchDiscordGuildEmojis,
   resolveDiscordForumTagIdsByName,
+  sanitizeDiscordChannelMessageBody,
   updateDiscordChannelPermissionOverwrite,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
@@ -347,6 +348,78 @@ test("createDiscordChannelMessage forwards flags for embed suppression", async (
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("createDiscordChannelMessage strips suppress-embed flags when sending embeds", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(JSON.stringify({ id: "1505098072089296999" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const result = await createDiscordChannelMessage({
+      channelId: "1504671871512346695",
+      body: {
+        content: "",
+        flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
+        embeds: [
+          {
+            title: "Computa feedback tools updated",
+            color: 0x22c55e,
+            description: "Feedback cards use the custom success reaction now.",
+          },
+        ],
+      },
+    });
+
+    assert.deepEqual(result, {
+      ok: true,
+      messageId: "1505098072089296999",
+    });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504671871512346695/messages",
+      method: "POST",
+      body: JSON.stringify({
+        content: "",
+        embeds: [
+          {
+            title: "Computa feedback tools updated",
+            color: 0x22c55e,
+            description: "Feedback cards use the custom success reaction now.",
+          },
+        ],
+      }),
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("sanitizeDiscordChannelMessageBody preserves non-suppress flags on embed posts", () => {
+  assert.deepEqual(
+    sanitizeDiscordChannelMessageBody({
+      content: "",
+      flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS | 4096,
+      embeds: [{ title: "Update" }],
+    }),
+    {
+      content: "",
+      flags: 4096,
+      embeds: [{ title: "Update" }],
+    },
+  );
 });
 
 test("fetchDiscordGuildEmojis returns guild emoji records", async () => {
