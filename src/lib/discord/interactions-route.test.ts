@@ -1329,10 +1329,12 @@ test("Discord message command poll replaces one owner computa command menu per c
       assert.equal(body?.content, "");
       assert.equal(body?.embeds?.[0]?.title, "Computa Owner");
       assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
-      assert.equal(body?.embeds?.[0]?.footer?.text, "fawx-computa-owner-command-menu:v1");
+      assert.equal(body?.embeds?.[0]?.footer, undefined);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa owner` - Show this owner command card\./);
-      assert.match(body?.embeds?.[0]?.description ?? "", /`computa repair command card`/);
-      assert.match(body?.embeds?.[0]?.description ?? "", /`computa repair feedback launcher`/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa repair command card`/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa repair feedback launcher`/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa sync feedback reactions`/);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa release check`/);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa archive checked cards`/);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa post live twitch`/);
       assert.equal(body?.components, undefined);
