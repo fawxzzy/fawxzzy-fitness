@@ -2217,6 +2217,7 @@ test("Discord message command poll archives checked feedback cards for commander
       return new Response(JSON.stringify({
         threads: [
           { id: "thread-checked", parent_id: "1504673475489562744", archived: false },
+          { id: "thread-legacy-checked", parent_id: "1504673475489562744", archived: false },
           { id: "thread-open", parent_id: "1504673475489562744", archived: false },
           { id: "thread-other", parent_id: "other-forum", archived: false },
         ],
@@ -2240,6 +2241,16 @@ test("Discord message command poll archives checked feedback cards for commander
       return new Response(JSON.stringify({
         id: "thread-open",
         reactions: [],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/thread-legacy-checked/messages/thread-legacy-checked" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "thread-legacy-checked",
+        reactions: [{ emoji: { name: "\u2705" } }],
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -2458,7 +2469,7 @@ test("Discord message command poll syncs feedback resolved reactions for command
         && method === "PUT"
       )
       || (
-        url.pathname === "/api/v10/channels/thread-legacy-migrate/messages/thread-legacy-migrate/reactions/%E2%9C%85/@me"
+        url.pathname === "/api/v10/channels/thread-legacy-migrate/messages/thread-legacy-migrate/reactions/%E2%9C%85"
         && method === "DELETE"
       )
       || (
@@ -2466,7 +2477,7 @@ test("Discord message command poll syncs feedback resolved reactions for command
         && method === "PUT"
       )
       || (
-        url.pathname === "/api/v10/channels/thread-archived-legacy/messages/thread-archived-legacy/reactions/%E2%9C%85/@me"
+        url.pathname === "/api/v10/channels/thread-archived-legacy/messages/thread-archived-legacy/reactions/%E2%9C%85"
         && method === "DELETE"
       )
     ) {
@@ -4538,7 +4549,7 @@ test("Discord interactions route archives duplicate feedback threads after staff
   }
 });
 
-test("Discord interactions route adds a resolved checkmark to the starter message for fixed feedback", async () => {
+test("Discord interactions route adds the resolved success reaction to the starter message for fixed feedback", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
@@ -4813,7 +4824,7 @@ test("Discord interactions route keeps fixed status updates successful when the 
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback updated. Warning: Discord could not verify the resolved checkmark because the public starter post id is missing.",
+        content: "Feedback updated. Warning: Discord could not verify the resolved success reaction because the public starter post id is missing.",
         flags: 64,
       },
     });
@@ -5129,7 +5140,7 @@ test("Discord interactions route keeps completion review approval successful whe
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Completion review updated. Status: Approved. Warning: Discord could not apply the resolved checkmark on the public starter post.",
+        content: "Completion review updated. Status: Approved. Warning: Discord could not apply the resolved success reaction on the public starter post.",
         flags: 64,
       },
     });

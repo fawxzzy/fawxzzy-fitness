@@ -48,7 +48,7 @@ Product rules:
   - commander-only
   - adds the configured success reaction when a Feedback forum starter has a resolved tag such as `Fixed`, `Closed`, `Resolved`, `Done`, `Complete`, or `Completed`
   - scans active cards and archived public/private cards where Discord permissions allow it
-  - migrates bot-owned legacy checkmark reactions to the configured success emoji
+  - removes legacy white-checkmark reactions and uses the configured success emoji instead
   - removes the configured success reaction when the starter no longer has a resolved tag
   - aliases: `computa feedback sync reactions`, `computa sync checked cards`
   - marks the trigger with the configured success/failure reaction

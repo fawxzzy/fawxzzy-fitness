@@ -214,6 +214,7 @@ import {
   createDiscordForumThreadWithMessage,
   createDiscordInteractionFollowupMessage,
   createDiscordMessageReaction,
+  deleteDiscordMessageReactionEmoji,
   deleteDiscordOwnMessageReaction,
   deleteDiscordChannelMessage,
   deleteDiscordChannel,
@@ -355,7 +356,6 @@ const DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS = new Set([
   DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
   DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
-  "\u2705",
   "\u26a0\ufe0f",
   "\ud83d\udeab",
 ]);
@@ -1951,7 +1951,7 @@ async function ensureDiscordResolvedFeedbackReaction(args: {
       message: "Missing forum thread id or starter message id for resolved reaction sync.",
     });
     return {
-      warning: "Discord could not verify the resolved checkmark because the public starter post id is missing.",
+      warning: "Discord could not verify the resolved success reaction because the public starter post id is missing.",
     };
   }
 
@@ -1974,7 +1974,7 @@ async function ensureDiscordResolvedFeedbackReaction(args: {
   });
 
   return {
-    warning: "Discord could not apply the resolved checkmark on the public starter post.",
+    warning: "Discord could not apply the resolved success reaction on the public starter post.",
   };
 }
 
@@ -2963,7 +2963,7 @@ function discordMessageHasProcessedCommandReaction(message: DiscordMessageComman
 }
 
 function discordMessageHasCheckedReaction(message: DiscordMessageCommand): boolean {
-  return discordMessageHasCustomSuccessReaction(message) || discordMessageHasLegacySuccessReaction(message);
+  return discordMessageHasCustomSuccessReaction(message);
 }
 
 function discordMessageHasCustomSuccessReaction(message: DiscordMessageCommand): boolean {
@@ -3592,7 +3592,7 @@ async function syncDiscordFeedbackResolvedReactions() {
     }
 
     if (hasLegacyReaction) {
-      const deleteLegacyResult = await deleteDiscordOwnMessageReaction({
+      const deleteLegacyResult = await deleteDiscordMessageReactionEmoji({
         channelId: thread.id,
         messageId: thread.id,
         emoji: DISCORD_LEGACY_SUCCESS_REACTION,
