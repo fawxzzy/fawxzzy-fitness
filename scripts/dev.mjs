@@ -9,9 +9,14 @@ import {
   writeDevServerState,
 } from "./next-workspace-guard.mjs";
 import {
+  assertExpectedFitnessSupabaseHost,
   assertSafeLocalSupabaseDev,
+  DEFAULT_EXPECTED_SUPABASE_HOST,
   DEV_ENV_FILE_OVERRIDE_ENV,
-  parseDotenvFile,
+  FITNESS_EXPECT_SUPABASE_HOST_ENV,
+  parseDotenvFiles,
+  resolveEnvFilePaths,
+  resolveUrlHost,
   resolveEnvFilePath,
 } from "./env-file.mjs";
 
@@ -27,11 +32,17 @@ const DEV_ENV_KEYS = [
   "LEGACY_SUPABASE_ANON_KEY",
   "NEXT_PUBLIC_APP_URL",
   "APP_URL",
+  "FITNESS_QA_EMAIL",
+  "FITNESS_QA_PASSWORD",
+  "FITNESS_ZAC_EMAIL",
+  "FITNESS_ZAC_PASSWORD",
+  "FITNESS_LOCAL_DEV_ENTRY_PATH",
+  "FITNESS_LOCAL_DEV_ROUTINE_ID",
+  "FITNESS_LOCAL_DEV_DAY_ID",
   "ALLOW_PROD_SUPABASE_IN_DEV",
   "HISTORY_QA_PREVIEW_ENABLED",
-  "FITNESS_EXPECT_SUPABASE_HOST",
+  FITNESS_EXPECT_SUPABASE_HOST_ENV,
 ];
-const DEFAULT_EXPECTED_SUPABASE_HOST = "lpswxoyfniocuhljgzbc.supabase.co";
 const middlewareManifestStub = JSON.stringify({
   version: 3,
   middleware: {},
@@ -78,8 +89,9 @@ function stripCustomArgs(args) {
   return sanitized;
 }
 
+const envPaths = resolveEnvFilePaths(repoRoot, readArgValue(["--env-file"], process.env[DEV_ENV_FILE_OVERRIDE_ENV] ?? ""));
 const envPath = resolveEnvFilePath(repoRoot, readArgValue(["--env-file"], process.env[DEV_ENV_FILE_OVERRIDE_ENV] ?? ""));
-const fileEnv = parseDotenvFile(envPath);
+const fileEnv = parseDotenvFiles(envPaths);
 const childEnv = { ...process.env };
 const overriddenKeys = [];
 const devArgs = stripCustomArgs(rawDevArgs);
@@ -120,16 +132,8 @@ function printLanHint() {
   );
 }
 
-function resolveUrlHost(value) {
-  try {
-    return new URL(value).host.toLowerCase();
-  } catch {
-    return "";
-  }
-}
-
 function warnIfUnexpectedSupabaseHost(env) {
-  const expectedHost = (env.FITNESS_EXPECT_SUPABASE_HOST || DEFAULT_EXPECTED_SUPABASE_HOST).trim().toLowerCase();
+  const expectedHost = String(env[FITNESS_EXPECT_SUPABASE_HOST_ENV] || DEFAULT_EXPECTED_SUPABASE_HOST).trim().toLowerCase();
   const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || "");
 
   if (!expectedHost || actualHost === expectedHost) {
@@ -203,6 +207,10 @@ for (const key of DEV_ENV_KEYS) {
 assertSafeLocalSupabaseDev({
   env: childEnv,
   envFilePath: envPath,
+  commandName: "next dev",
+});
+assertExpectedFitnessSupabaseHost({
+  env: childEnv,
   commandName: "next dev",
 });
 

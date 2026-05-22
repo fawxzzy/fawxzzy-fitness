@@ -5,8 +5,10 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
 import {
+  assertExpectedFitnessSupabaseHost,
   assertSafeLocalSupabaseDev,
-  parseDotenvFile,
+  parseDotenvFiles,
+  resolveEnvFilePaths,
   resolveEnvFilePath,
 } from "../env-file.mjs";
 
@@ -15,6 +17,7 @@ const scriptDir = path.dirname(scriptPath);
 
 export const repoRoot = path.resolve(scriptDir, "..", "..");
 export const atlasRoot = path.resolve(repoRoot, "..", "..");
+export const envPaths = resolveEnvFilePaths(repoRoot);
 export const envPath = resolveEnvFilePath(repoRoot);
 export const runtimeRoot = path.join(atlasRoot, "runtime", "fitness");
 export const captureRoot = path.join(atlasRoot, "tmp", "captures", "fitness", "qa-local-feedback");
@@ -160,7 +163,7 @@ export function loadPinnedEnv() {
     return cachedEnv;
   }
 
-  const fileEnv = parseDotenvFile(envPath);
+  const fileEnv = parseDotenvFiles(envPaths);
   cachedEnv = {
     ...process.env,
     ...fileEnv,
@@ -168,6 +171,10 @@ export function loadPinnedEnv() {
   assertSafeLocalSupabaseDev({
     env: cachedEnv,
     envFilePath: envPath,
+    commandName: "fitness QA workflow",
+  });
+  assertExpectedFitnessSupabaseHost({
+    env: cachedEnv,
     commandName: "fitness QA workflow",
   });
 

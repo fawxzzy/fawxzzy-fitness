@@ -5,6 +5,12 @@ import process from "node:process";
 export const DEFAULT_DEV_ENV_FILE = ".env.local";
 export const DEV_ENV_FILE_OVERRIDE_ENV = "FITNESS_ENV_FILE";
 export const ALLOW_PROD_SUPABASE_IN_DEV_ENV = "ALLOW_PROD_SUPABASE_IN_DEV";
+export const FITNESS_EXPECT_SUPABASE_HOST_ENV = "FITNESS_EXPECT_SUPABASE_HOST";
+export const DEFAULT_EXPECTED_SUPABASE_HOST = "lpswxoyfniocuhljgzbc.supabase.co";
+export const DEFAULT_SHARED_ENV_FILES = [
+  "fitness-doctor.env",
+  "fitness-lps-dev.env",
+];
 
 export function normalizeEnvValue(rawValue) {
   const trimmed = rawValue.trim();
@@ -45,19 +51,56 @@ export function parseDotenvFile(filePath) {
   return entries;
 }
 
-export function resolveEnvFilePath(repoRoot, override = process.env[DEV_ENV_FILE_OVERRIDE_ENV] ?? "") {
-  const requested = override.trim();
-  if (!requested) {
-    return path.join(repoRoot, DEFAULT_DEV_ENV_FILE);
+export function parseDotenvFiles(filePaths) {
+  const mergedEntries = {};
+
+  for (const filePath of filePaths) {
+    const entries = parseDotenvFile(filePath);
+    for (const [key, value] of Object.entries(entries)) {
+      if (!(key in mergedEntries)) {
+        mergedEntries[key] = value;
+      }
+    }
   }
 
-  return path.isAbsolute(requested)
+  return mergedEntries;
+}
+
+export function resolveEnvFilePaths(repoRoot, override = process.env[DEV_ENV_FILE_OVERRIDE_ENV] ?? "") {
+  const requested = override.trim();
+  if (!requested) {
+    const repoDefault = path.join(repoRoot, DEFAULT_DEV_ENV_FILE);
+    if (fs.existsSync(repoDefault)) {
+      return [repoDefault];
+    }
+
+    const atlasRoot = path.resolve(repoRoot, "..", "..");
+    const sharedEnvPaths = DEFAULT_SHARED_ENV_FILES
+      .map((candidateName) => path.join(atlasRoot, "secrets", candidateName))
+      .filter((candidatePath) => fs.existsSync(candidatePath));
+
+    return sharedEnvPaths.length > 0 ? sharedEnvPaths : [repoDefault];
+  }
+
+  return [path.isAbsolute(requested)
     ? path.normalize(requested)
-    : path.join(repoRoot, requested);
+    : path.join(repoRoot, requested)];
+}
+
+export function resolveEnvFilePath(repoRoot, override = process.env[DEV_ENV_FILE_OVERRIDE_ENV] ?? "") {
+  return resolveEnvFilePaths(repoRoot, override)[0];
 }
 
 export function isTruthyEnvValue(rawValue) {
   return /^(1|true|yes|on)$/i.test((rawValue ?? "").trim());
+}
+
+export function resolveUrlHost(value) {
+  try {
+    return new URL(value).host.toLowerCase();
+  } catch {
+    return "";
+  }
 }
 
 function looksLikeProductionEnvFile(filePath) {
@@ -86,4 +129,31 @@ export function assertSafeLocalSupabaseDev({
     `Refusing to start${usageTarget} with ${path.basename(envFilePath)} while pointed at production-style data${dataTarget}. ` +
     `Set ${ALLOW_PROD_SUPABASE_IN_DEV_ENV}=1 to confirm that local actions may write to production data via ${appUrl}.`,
   );
+}
+
+export function assertExpectedFitnessSupabaseHost({
+  env,
+  commandName,
+}) {
+  const expectedHost = String(env[FITNESS_EXPECT_SUPABASE_HOST_ENV] || DEFAULT_EXPECTED_SUPABASE_HOST).trim().toLowerCase();
+  const actualHost = resolveUrlHost(env.NEXT_PUBLIC_SUPABASE_URL || "");
+  const usageTarget = commandName ? ` for ${commandName}` : "";
+
+  if (!expectedHost) {
+    return;
+  }
+
+  if (!actualHost) {
+    throw new Error(
+      `Refusing to continue${usageTarget} without NEXT_PUBLIC_SUPABASE_URL. Expected Supabase host: ${expectedHost}.`,
+    );
+  }
+
+  if (actualHost !== expectedHost) {
+    throw new Error(
+      `Refusing to continue${usageTarget} because Fitness is pointed at the wrong Supabase project. ` +
+      `Expected ${expectedHost}, received ${actualHost}. ` +
+      `Fix ${FITNESS_EXPECT_SUPABASE_HOST_ENV} or NEXT_PUBLIC_SUPABASE_URL before running the local Fitness workflow.`,
+    );
+  }
 }

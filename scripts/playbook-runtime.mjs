@@ -93,6 +93,10 @@ function formatNpmInstallCommand(args) {
   return ['npm', ...args].join(' ');
 }
 
+export function resolveNpmCommand(platform = process.platform) {
+  return platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
 function summarizeError(error, depth = 0) {
   if (!error || depth > 3) {
     return [];
@@ -151,8 +155,10 @@ export async function normalizeFallbackInstallTarget({
   }
 
   const absoluteRuntimeRoot = toAbsolutePath(runtimeRoot);
-  mkdirSync(absoluteRuntimeRoot, { recursive: true });
-  const tempDir = mkdtempSync(path.join(absoluteRuntimeRoot, 'download-'));
+  const runtimeStateRoot = path.dirname(absoluteRuntimeRoot);
+  const cacheRoot = path.join(runtimeStateRoot, 'cache');
+  mkdirSync(cacheRoot, { recursive: true });
+  const tempDir = mkdtempSync(path.join(cacheRoot, 'download-'));
   const downloadPath = path.join(tempDir, 'playbook-cli.tgz');
 
   logger.error(`[playbook-runtime] Downloading official fallback URL: ${fallbackSpec.normalized}`);
@@ -198,11 +204,13 @@ function installViaNpm({ targetSpec, prefix }) {
 
   args.push(targetSpec);
 
+  const npmCommand = resolveNpmCommand();
   return {
     args,
-    result: spawnSync('npm', args, {
+    result: spawnSync(npmCommand, args, {
       stdio: 'inherit',
-      env: process.env
+      env: process.env,
+      shell: shouldUseShellForExecutable(npmCommand),
     })
   };
 }
