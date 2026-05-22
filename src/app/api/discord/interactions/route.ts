@@ -210,7 +210,6 @@ import {
   addDiscordGuildMemberRole,
   createDiscordDirectMessageChannel,
   createDiscordRole,
-  createDiscordGuildChannel,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordInteractionFollowupMessage,
@@ -230,7 +229,6 @@ import {
   patchDiscordChannelMessage,
   resolveDiscordForumTagIdsByName,
   removeDiscordGuildMemberRole,
-  updateDiscordChannel,
   updateDiscordChannelPermissionOverwrite,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
@@ -327,7 +325,6 @@ const DISCORD_FEEDBACK_ALLOWED_ATTACHMENT_CONTENT_TYPES = new Set([
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_COUNT = 3;
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
-const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC = "Start here to submit or manage Fawxzzy Fitness feedback cards.";
 const DISCORD_COMMANDER_ROLE_NAME = "Fawxzzy Commander";
 const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
   "bot feedback setup",
@@ -1524,7 +1521,7 @@ function isDiscordMissingPermissionsFailure(result: { status?: number; message?:
 
 function buildDiscordPanelPermissionFailureResponse() {
   return buildDiscordEphemeralMessageResponse(
-    "Discord could not create the feedback launcher. The bot needs View Channel, Read Message History, and Send Messages. Manage Channels may also be required when auto-creating submit-feedback. Embed Links and Use External Emojis are optional.",
+    "Discord could not create the feedback launcher. The bot needs View Channel, Read Message History, and Send Messages in the channel where setup is used. Embed Links and Use External Emojis are optional.",
   );
 }
 
@@ -1587,82 +1584,10 @@ async function ensureFeedbackPanelChannel(args: { targetChannelId?: string | nul
     };
   }
 
-  const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
-  if (!forumChannelId) {
-    return {
-      ok: false as const,
-      code: "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED",
-      message: "Missing feedback panel channel and feedback forum channel.",
-    };
-  }
-
-  const forumResult = await fetchDiscordChannel({ channelId: forumChannelId });
-  if (!forumResult.ok) {
-    return forumResult;
-  }
-
-  const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
-  if (!guildChannelsResult.ok) {
-    return guildChannelsResult;
-  }
-
-  const existingChannel = guildChannelsResult.channels.find((channel) => (
-    channel.type === 0
-    && channel.name === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
-    && channel.parent_id === forumResult.channel.parent_id
-  ));
-
-  const targetPosition = typeof forumResult.channel.position === "number"
-    ? Math.max(0, forumResult.channel.position)
-    : undefined;
-
-  if (existingChannel?.id) {
-    const shouldRetunePlacement =
-      existingChannel.topic !== DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC
-      || existingChannel.parent_id !== forumResult.channel.parent_id
-      || (
-        typeof targetPosition === "number"
-        && typeof existingChannel.position === "number"
-        && existingChannel.position !== targetPosition
-      );
-
-    if (shouldRetunePlacement) {
-      const updateResult = await updateDiscordChannel({
-        channelId: existingChannel.id,
-        topic: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC,
-        parentId: forumResult.channel.parent_id ?? null,
-        position: targetPosition,
-      });
-
-      if (!updateResult.ok) {
-        return updateResult;
-      }
-    }
-
-    return {
-      ok: true as const,
-      channelId: existingChannel.id,
-      channelLabel: `#${DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME}`,
-    };
-  }
-
-  const createResult = await createDiscordGuildChannel({
-    guildId: DISCORD_GUILD_ID(),
-    name: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME,
-    type: 0,
-    topic: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC,
-    parentId: forumResult.channel.parent_id ?? null,
-    position: targetPosition,
-  });
-
-  if (!createResult.ok) {
-    return createResult;
-  }
-
   return {
-    ok: true as const,
-    channelId: createResult.channel.id,
-    channelLabel: `#${DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME}`,
+    ok: false as const,
+    code: "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED",
+    message: "Discord did not provide a setup source channel and no fallback feedback panel channel is configured.",
   };
 }
 

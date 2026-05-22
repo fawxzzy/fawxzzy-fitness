@@ -169,7 +169,7 @@ export const DEFAULT_VERIFY_MESSAGE_BODY = [
 ].join("\n");
 export const DEFAULT_FEEDBACK_PANEL_TITLE = "Submit Feedback Here";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
-  "Use this channel to send a new bug or feature request.",
+  "Use this panel to send a new bug or feature request from wherever staff places it.",
   "",
   "- Submit: create a new feedback card.",
   "- Edit: manage one of your existing cards, including withdraw.",

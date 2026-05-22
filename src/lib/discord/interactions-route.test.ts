@@ -820,7 +820,7 @@ test("Discord interactions route recreates the feedback panel when the old panel
   }
 });
 
-test("Discord interactions route can create the submit-feedback launcher channel beside the forum", async () => {
+test("Discord interactions route does not auto-create a submit-feedback launcher channel", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -830,89 +830,15 @@ test("Discord interactions route can create the submit-feedback launcher channel
   process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
 
   const originalFetch = globalThis.fetch;
-  const observedBodies = [];
+  let discordFetchCount = 0;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
-    const method = String(init?.method ?? "GET");
-    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
-      return new Response(JSON.stringify({
-        id: "1504673475489562744",
-        type: 15,
-        parent_id: "1504673475489562000",
-        position: 8,
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (url.hostname === "discord.com") {
+      discordFetchCount += 1;
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
-      return new Response(JSON.stringify([
-        {
-          id: "1504673475489562744",
-          type: 15,
-          name: "feedback",
-          parent_id: "1504673475489562000",
-          position: 8,
-        },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "POST") {
-      observedBodies.push(body);
-      return new Response(JSON.stringify({
-        id: "1504673475489562999",
-        type: 0,
-        name: "submit-feedback",
-        parent_id: "1504673475489562000",
-        position: 8,
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562999"
-    ) {
-      return new Response(JSON.stringify({ id: "1504673475489562999", type: 0 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562999/messages"
-      && method === "GET"
-      && url.searchParams.get("limit") === "50"
-    ) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562999/messages"
-      && method === "POST"
-    ) {
-      observedBodies.push(body);
-      return new Response(JSON.stringify({ id: "1504673475489563001" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
   };
 
   try {
@@ -935,15 +861,11 @@ test("Discord interactions route can create the submit-feedback launcher channel
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback launcher created in #submit-feedback.",
+        content: "Discord feedback panel channel is not configured.",
         flags: 64,
       },
     });
-    assert.equal(observedBodies[0]?.name, "submit-feedback");
-    assert.equal(observedBodies[0]?.type, 0);
-    assert.equal(observedBodies[0]?.parent_id, "1504673475489562000");
-    assert.equal(observedBodies[0]?.position, 8);
-    assert.equal(observedBodies[1]?.embeds?.[0]?.title, "Submit Feedback Here");
+    assert.equal(discordFetchCount, 0);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
