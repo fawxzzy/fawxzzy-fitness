@@ -130,6 +130,44 @@ export function messageRequestsComputaOwnerMenu(message, mainChannelId) {
   return normalizeDiscordMessageCommandContent(message.content) === "computa owner";
 }
 
+export function messageRequestsComputaCommandCardRepair(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  return [
+    "computa repair command card",
+    "computa repair computa",
+  ].includes(normalizeDiscordMessageCommandContent(message.content));
+}
+
+export function messageRequestsComputaFeedbackLauncherRepair(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  return [
+    "computa repair feedback launcher",
+    "computa repair feedback setup",
+  ].some((trigger) => normalizeDiscordMessageCommandContent(message.content).includes(trigger));
+}
+
 export function messageRequestsComputaArchiveCheckedCards(message, mainChannelId) {
   if (!message || typeof message !== "object") {
     return false;
@@ -176,6 +214,8 @@ export function messageRequestsComputaFeedbackReactionSync(message, mainChannelI
 export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
   return messageRequestsComputaMenu(message, mainChannelId)
     || messageRequestsComputaOwnerMenu(message, mainChannelId)
+    || messageRequestsComputaCommandCardRepair(message, mainChannelId)
+    || messageRequestsComputaFeedbackLauncherRepair(message, mainChannelId)
     || messageRequestsFeedbackSetup(message, mainChannelId)
     || messageRequestsComputaArchiveCheckedCards(message, mainChannelId)
     || messageRequestsComputaFeedbackReactionSync(message, mainChannelId)

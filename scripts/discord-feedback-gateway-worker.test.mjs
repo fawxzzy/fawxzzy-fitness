@@ -4,7 +4,9 @@ import {
   calculateDiscordGatewayReconnectDelayMs,
   callDiscordMessageCommandPoll,
   messageRequestsComputaArchiveCheckedCards,
+  messageRequestsComputaCommandCardRepair,
   messageRequestsComputaFeedbackReactionSync,
+  messageRequestsComputaFeedbackLauncherRepair,
   messageRequestsComputaLive,
   messageRequestsComputaMenu,
   messageRequestsComputaOwnerMenu,
@@ -229,6 +231,49 @@ test("feedback gateway worker detects exact computa owner menu messages", () => 
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa owner",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects canonical repair command messages", () => {
+  assert.equal(
+    messageRequestsComputaCommandCardRepair({
+      channel_id: "main-channel",
+      content: "computa repair command card",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaCommandCardRepair({
+      channel_id: "main-channel",
+      content: "please computa repair command card",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaFeedbackLauncherRepair({
+      channel_id: "main-channel",
+      content: "please computa repair feedback launcher",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaFeedbackLauncherRepair({
+      channel_id: "main-channel",
+      content: "computa repair feedback launcher",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa repair command card",
       author: { bot: false },
     }, "main-channel"),
     true,
