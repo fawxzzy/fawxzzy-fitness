@@ -10,10 +10,13 @@ Product rules:
 - Historical `fix` rows may remain readable and exportable.
 - The Feedback forum is a display surface; Supabase is the source of truth.
 - Normal users should use persistent buttons and modals, not admin-style slash command choices.
-- The primary user entry should be a dedicated text channel such as `submit-feedback`, not a control post inside the forum itself.
+- The primary user entry is a launcher panel placed in the channel where staff runs `/setup-feedback` or the approved message trigger.
+- Feedback modal launchers must return the modal immediately.
+- The primary submit modal should use conservative Discord modal components: action rows with text inputs only.
+- Do not put string selects, file-upload components, or label-wrapped components in the first submit modal unless live Discord compatibility has been reverified.
 - Feedback submit should defer the interaction before heavy Discord or DB work.
 - Feedback intake success depends on the bounded report row first and the forum thread second.
-- Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
+- Discord-hosted screenshot evidence can be added by links or follow-up thread replies; Supabase stores bounded metadata only.
 - Optional Discord decoration must fail soft.
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
 - `Backlog` is a planning tag for public reviewed cards that are not started yet.
@@ -21,11 +24,40 @@ Product rules:
 - A public phase card is not fully done until the starter post shows `✅`.
 
 ## Command surface
+- `computa`
+  - main-channel message trigger
+  - posts the user-facing Computa command card in the channel where it was used
+  - shows normal command discovery only; owner-only live commands stay hidden from the public card
+  - deletes the previous Computa command card in that channel before reposting
+  - marks the trigger message with a public reaction
 - `/setup-feedback`
   - admin-only
-  - posts or refreshes the persistent `Submit Feedback Here` launcher
-  - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
-  - otherwise finds or creates `submit-feedback` above the Feedback forum
+  - deletes the old post and reposts the persistent `Submit Feedback Here` launcher
+  - uses the channel where the command is run when Discord provides a source channel
+  - removes older launcher messages from previous feedback setup channels after successful source-channel setup
+  - deletes the legacy `submit-feedback` channel after moving setup to a source channel
+  - falls back to `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` only when no source channel is available
+  - does not create a dedicated `submit-feedback` channel
+- main-channel message triggers: `computa feedback setup` and `computa setup feedback`
+  - requires the `Fawxzzy Commander` role after bootstrap
+  - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
+  - polls only `DISCORD_MAIN_CHANNEL_ID`
+  - deletes the old launcher and reposts the launcher in the channel where the trigger message was sent
+  - removes older launcher messages from previous feedback setup channels after successful setup
+  - marks the trigger message with a public reaction
+  - sends setup/permission/failure details to the triggering user by DM instead of posting bot replies in main chat
+  - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
+- owner-only main-channel live triggers:
+  - `live`
+  - `computa post live`
+  - `computa post live twitch`
+  - `computa post live tiktok`
+  - `computa post live [https://example.com/live]`
+  - posts a short `@everyone` live notice in `DISCORD_UPDATES_CHANNEL_ID`
+  - only the configured owner account can run it
+  - marks the trigger message with a public reaction
+  - sends permission/failure/success details to the triggering user by DM instead of posting bot replies in main chat
+  - is protected by the same message-command poll secret and worker path
 - `/setup-verify`
   - admin-only
   - posts or refreshes the verification panel
@@ -50,6 +82,13 @@ Feedback-facing commands should remain:
 - `feedback`
 - `feedback-status`
 - `feedback-withdraw`
+
+Message-content triggers are intentionally rare. Any future main-chat phrase command should use an explicit role or owner gate, main-channel-only polling, processed-message marker, and secret-protected cron route.
+
+Runtime note:
+- The Vercel Hobby plan only allows daily cron schedules.
+- Near-real-time message-content triggers require either an external scheduler that calls the secret poll route or the persistent Discord Gateway worker.
+- Do not claim `computa feedback setup` is live as an automatic main-chat trigger unless one of those runners is active.
 
 Separate production-update staff commands may also exist:
 - `update-latest`
@@ -107,8 +146,8 @@ Rule:
 - Feedback audit comments tell a card's history.
 
 ## User flow
-1. An admin runs `/setup-feedback`.
-2. Fitness creates or updates a dedicated launcher message in `submit-feedback`.
+1. An admin runs `/setup-feedback` in the intended channel, or an approved commander says `computa setup feedback` in main chat.
+2. Fitness creates or updates a dedicated launcher message in that channel.
 3. A user clicks `Submit`.
 4. Fitness opens one general modal.
 5. The modal collects `Feedback type` inside the flow.
@@ -117,12 +156,92 @@ Rule:
 8. Fitness edits the original ephemeral response with the final success or failure result.
 
 Pattern:
-- dedicated submit-feedback launcher
+- source-channel feedback launcher
 - general submit button
-- modal with type choice
+- modal with text-only type field
 - deferred response
 - bounded row
 - forum thread and tags
+
+## Main-chat setup trigger
+`computa` posts the compact command card in the channel where it is used. Only one Computa command card is kept per channel; rerunning the command removes the previous card and posts the current one.
+
+`computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
+
+Rules:
+- The trigger is case-insensitive.
+- Bot-authored messages are ignored.
+- Messages already marked with the bot's processed reaction are ignored.
+- Only `DISCORD_MAIN_CHANNEL_ID` is polled.
+- A member with the `Fawxzzy Commander` role may run the trigger.
+- If the role does not exist, a member with Manage Server or Administrator may bootstrap it; the bot creates `Fawxzzy Commander`, assigns it to that member when allowed, and runs setup.
+- The poll endpoint requires `Authorization: Bearer <DISCORD_MESSAGE_COMMAND_POLL_SECRET>` or `Authorization: Bearer <CRON_SECRET>`.
+- Successful processing sends a DM notice to the triggering user and marks the source message processed.
+- Vercel Hobby cannot run this poll frequently enough by itself; use an external scheduler or `npm run discord:feedback:worker` for near-real-time behavior.
+
+Gateway worker:
+- Script: `scripts/discord-feedback-gateway-worker.mjs`
+- Command: `npm run discord:feedback:worker`
+- Requires Node 22+ or another runtime with global `WebSocket`.
+- Requires `DISCORD_BOT_TOKEN`.
+- Requires `DISCORD_MAIN_CHANNEL_ID`.
+- Requires `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`.
+- Optional `DISCORD_MESSAGE_COMMAND_POLL_URL` overrides the default production endpoint.
+- The worker listens only for Discord Gateway `MESSAGE_CREATE` events in `DISCORD_MAIN_CHANNEL_ID`.
+- The worker does not perform setup directly; it wakes the secured app endpoint, which owns role checks, setup, replies, and processed reactions.
+- Discord Developer Portal must have Message Content Intent enabled for this trigger to work.
+
+This is not a broad chat-command framework. Future phrase commands must stay role-gated, low-noise, idempotent, and documented before release.
+
+## Owner-only live trigger
+The live trigger is a narrow owner-only convenience for posting a live notice to `#updates`.
+
+Accepted messages in `DISCORD_MAIN_CHANNEL_ID`:
+- `live`
+- `computa post live`
+- `computa post live twitch`
+- `computa post live tiktok`
+- `computa post live [https://example.com/live]`
+- `computa post live https://example.com/live`
+
+Default saved provider links:
+- Twitch: `https://www.twitch.tv/fawxzzy`
+- TikTok: `https://www.tiktok.com/@fawxzzy`
+
+Default owner account:
+- `552278941159784460`
+
+Environment overrides:
+- `DISCORD_COMPUTA_OWNER_USER_ID`
+- `DISCORD_COMPUTA_LIVE_TWITCH_URL`
+- `DISCORD_COMPUTA_LIVE_TIKTOK_URL`
+
+Post formats:
+
+```txt
+@everyone
+
+Going live on Twitch https://www.twitch.tv/fawxzzy
+
+Pull up
+```
+
+```txt
+@everyone
+
+Going live https://example.com/live
+
+Pull up
+```
+
+Rules:
+- The trigger is case-insensitive.
+- Bot-authored messages are ignored.
+- Messages already marked with the bot's processed reaction are ignored.
+- Only `DISCORD_MAIN_CHANNEL_ID` is polled.
+- The updates post allows only the explicit `@everyone` mention.
+- Success/failure details are sent by DM to avoid bot clutter in main chat.
+- Non-owner attempts are rejected and marked with the forbidden reaction.
 
 ## Forum organization
 The public Feedback forum is a readable visual board, not the canonical planning sorter.
@@ -146,7 +265,7 @@ Current user-facing types:
 - `Bug`
 - `Feature`
 
-If Discord modal select or radio components are not used, the text field should accept only:
+The submit modal intentionally uses text inputs only for Discord compatibility. The type field should accept only:
 - `Bug`
 - `Feature`
 
@@ -156,13 +275,9 @@ Invalid values should respond with:
 Choose Bug or Feature for the feedback type.
 ```
 
-The submit modal also supports optional image evidence:
-- up to 3 files
-- `image/png`
-- `image/jpeg`
-- `image/webp`
-- `image/gif`
-- max 8 MB each
+The first submit modal should not depend on Discord file-upload components. Users can add optional image evidence by:
+- pasting a screenshot or evidence URL into the details field
+- replying in the created feedback thread after submit
 
 Attachment guardrails:
 - Discord remains the file host
@@ -178,20 +293,21 @@ Stored attachment metadata should stay bounded to:
 - Discord URL fields when present
 
 ## Launcher placement
-- Preferred env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
-- Fallback env: `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
+- Preferred behavior: place the launcher in the channel where `/setup-feedback` or the main-chat trigger is used.
+- Fallback env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
 
-`/setup-feedback` is idempotent:
-- if an existing bot-authored feedback launcher is found, edit it
-- if a configured launcher channel exists, reuse it
-- otherwise, create or reuse `submit-feedback` as a normal text channel above the Feedback forum
-- if the launcher message is missing or deleted, create a new one
+`/setup-feedback` and the main-chat trigger are idempotent:
+- if an existing bot-authored feedback launcher is found in the source channel, edit it
+- if the launcher message is missing or deleted, create a new one in the source channel
+- after successful source-channel setup, remove older launcher messages from previous feedback setup channels
+- after successful source-channel setup, delete the legacy `submit-feedback` text channel if it exists
+- if Discord does not provide a source channel, reuse `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
+- do not create or reuse a dedicated `submit-feedback` channel
 
 If panel creation fails with Discord `50013 Missing Permissions`, the admin response should mention:
 - `View Channel`
 - `Read Message History`
 - `Send Messages`
-- `Manage Channels` when auto-creating `submit-feedback`
 - `Embed Links` optional
 - `Use External Emojis` optional
 
@@ -201,6 +317,12 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `DISCORD_GUILD_ID`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DISCORD_MEMBER_SYNC_SECRET`
+- `DISCORD_MAIN_CHANNEL_ID` optional for `computa feedback setup`
+- `DISCORD_UPDATES_CHANNEL_ID` required for `live` / `computa post live`
+- `DISCORD_MESSAGE_COMMAND_POLL_SECRET` optional; falls back to `CRON_SECRET`
+- `DISCORD_COMPUTA_OWNER_USER_ID` optional; defaults to the Fawxzzy owner account
+- `DISCORD_COMPUTA_LIVE_TWITCH_URL` optional
+- `DISCORD_COMPUTA_LIVE_TIKTOK_URL` optional
 - `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` optional
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 - `DISCORD_FEEDBACK_BUG_EMOJI_ID` optional
@@ -264,10 +386,10 @@ Do not use custom emoji in the forum thread title. Keep titles text-only and sea
 - If validation fails, the flow must fall back to text-only surfaces without blocking intake.
 
 Attachment handling:
-- accepted images may be referenced in the forum body so staff can review them in Discord
-- the forum starter post should include a visible `Attachments` section with file links when uploads are present
-- attachment links from the modal resolution path should be treated as Discord-hosted evidence, not durable app storage
-- v1 uses Discord attachment URLs as visible evidence links and does not re-upload files into the forum thread as a persistence layer
+- accepted evidence links may be referenced in the forum body so staff can review them in Discord
+- if a future modal upload path is re-enabled, the forum starter post should include a visible `Attachments` section with file links when uploads are present
+- attachment links from Discord should be treated as Discord-hosted evidence, not durable app storage
+- v1 uses Discord URLs as visible evidence links and does not re-upload files into the forum thread as a persistence layer
 - withdraw should clear or minimize stored attachment metadata and mark the report as attachment-pruned
 
 Allowed mentions:
@@ -420,8 +542,8 @@ After verify-copy changes, rerun:
 ## Operator checklist
 1. Make sure the Feedback forum has the required tags.
 2. Register commands with `npm run discord:commands:register`.
-3. Set the forum and optional panel env vars.
-4. Run `/setup-feedback`.
+3. Set the forum and optional fallback panel env vars.
+4. Run `/setup-feedback` in the channel where the launcher should live, or say `computa setup feedback` in main chat.
 5. Pin the panel if needed.
 6. Run `npm run discord:emoji:bootstrap -- --apply --write-env-template` if bot-owned emoji should be available.
 7. Test `Submit Feedback` with both `Bug` and `Feature`.
@@ -429,7 +551,7 @@ After verify-copy changes, rerun:
 9. Test `Update Feedback`.
 10. Test `/feedback-status`.
 11. Test `Withdraw Feedback`.
-12. Test image upload with a small PNG or JPG.
+12. Test evidence links or a follow-up screenshot reply in the created thread.
 13. Confirm the user receives one final success message after the deferred response completes.
 
 ## Forum starter sync
@@ -485,9 +607,11 @@ Rule: feedback reports are bounded input signals, not repo truth.
 
 Rule: admin setup commands are not normal-user UX.
 
-Rule: feedback attachments are Discord-hosted evidence, not app database blobs.
+Rule: feedback evidence is Discord-hosted or URL-hosted evidence, not app database blobs.
 
 Rule: feedback submit should defer first and edit the original ephemeral response after processing.
+
+Rule: feedback modal launch should not touch network, Supabase, Discord REST, emoji validation, or forum tags before returning the modal.
 
 Rule: optional Discord decoration must not break core feedback intake.
 

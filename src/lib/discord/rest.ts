@@ -17,8 +17,25 @@ export type DiscordChannelMessage = {
   id: string;
   author?: {
     id?: string;
+    bot?: boolean;
   };
+  content?: string;
+  embeds?: Array<{
+    title?: string;
+    footer?: {
+      text?: string;
+    };
+  }>;
   components?: unknown[];
+  member?: {
+    roles?: string[];
+  };
+  reactions?: Array<{
+    me?: boolean;
+    emoji?: {
+      name?: string;
+    };
+  }>;
 };
 
 export const DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS = 1 << 2;

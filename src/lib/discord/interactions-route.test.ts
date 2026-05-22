@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import nacl from "tweetnacl";
-import { POST } from "@/app/api/discord/interactions/route.ts";
+import { GET, POST } from "@/app/api/discord/interactions/route.ts";
 import { encryptSpotifyRefreshToken } from "@/lib/spotify/tokens.ts";
 
 function toHex(value) {
@@ -504,7 +504,7 @@ test("Discord interactions route applies locked #verify permission overwrites", 
   }
 });
 
-test("Discord interactions route updates an existing feedback panel when setup-feedback is rerun", async () => {
+test("Discord interactions route reposts an existing feedback panel when setup-feedback is rerun", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -514,6 +514,7 @@ test("Discord interactions route updates an existing feedback panel when setup-f
 
   const originalFetch = globalThis.fetch;
   const observedDiscordBodies = [];
+  let deletedOldPanel = false;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
@@ -554,10 +555,19 @@ test("Discord interactions route updates an existing feedback panel when setup-f
     if (
       url.hostname === "discord.com"
       && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562747"
-      && String(init?.method ?? "GET") === "PATCH"
+      && String(init?.method ?? "GET") === "DELETE"
+    ) {
+      deletedOldPanel = true;
+      return new Response(null, { status: 204 });
+    }
+
+    if (
+      url.hostname === "discord.com"
+      && url.pathname === "/api/v10/channels/1504673475489562744/messages"
+      && String(init?.method ?? "GET") === "POST"
     ) {
       observedDiscordBodies.push(body);
-      return new Response(JSON.stringify({ id: "1504673475489562747" }), {
+      return new Response(JSON.stringify({ id: "1504673475489562748" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -590,6 +600,7 @@ test("Discord interactions route updates an existing feedback panel when setup-f
         flags: 64,
       },
     });
+    assert.equal(deletedOldPanel, true);
     assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Submit Feedback Here");
     assert.deepEqual(
       observedDiscordBodies[0]?.components?.[0]?.components?.map((component) => component.custom_id),
@@ -598,6 +609,126 @@ test("Discord interactions route updates an existing feedback panel when setup-f
         "fitness_feedback_update_open",
       ],
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route posts setup-feedback in the invoking channel and removes the old panel", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+    calls.push({ method, pathname: url.pathname, body });
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504668396338413671", type: 0, name: "main" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
+      return new Response(JSON.stringify({ id: "new-panel-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "1504668396338413671", type: 0, name: "main" },
+        { id: "1504673475489562744", type: 0, name: "submit-feedback" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "GET") {
+      return new Response(JSON.stringify([{
+        id: "old-panel-message",
+        author: { id: "1504700208251146371" },
+        components: [
+          {
+            type: 1,
+            components: [
+              { type: 2, custom_id: "fitness_feedback_submit_open" },
+              { type: 2, custom_id: "fitness_feedback_update_open" },
+            ],
+          },
+        ],
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages/old-panel-message" && method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "DELETE") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", name: "submit-feedback" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      channel_id: "1504668396338413671",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "setup-feedback",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Feedback launcher created in <#1504668396338413671>.",
+        flags: 64,
+      },
+    });
+    assert.equal(calls.some((call) => call.method === "POST" && call.pathname === "/api/v10/channels/1504668396338413671/messages"), true);
+    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504673475489562744/messages/old-panel-message"), true);
+    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504673475489562744"), true);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
@@ -654,7 +785,7 @@ test("Discord interactions route recreates the feedback panel when the old panel
     if (
       url.hostname === "discord.com"
       && url.pathname === "/api/v10/channels/1504673475489562744/messages/1504673475489562747"
-      && String(init?.method ?? "GET") === "PATCH"
+      && String(init?.method ?? "GET") === "DELETE"
     ) {
       return new Response(JSON.stringify({ message: "Unknown Message" }), {
         status: 404,
@@ -697,7 +828,7 @@ test("Discord interactions route recreates the feedback panel when the old panel
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback launcher created in configured channel.",
+        content: "Feedback launcher updated in configured channel.",
         flags: 64,
       },
     });
@@ -708,7 +839,7 @@ test("Discord interactions route recreates the feedback panel when the old panel
   }
 });
 
-test("Discord interactions route can create the submit-feedback launcher channel beside the forum", async () => {
+test("Discord interactions route does not auto-create a submit-feedback launcher channel", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -718,89 +849,15 @@ test("Discord interactions route can create the submit-feedback launcher channel
   process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
 
   const originalFetch = globalThis.fetch;
-  const observedBodies = [];
+  let discordFetchCount = 0;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
-    const method = String(init?.method ?? "GET");
-    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562744") {
-      return new Response(JSON.stringify({
-        id: "1504673475489562744",
-        type: 15,
-        parent_id: "1504673475489562000",
-        position: 8,
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (url.hostname === "discord.com") {
+      discordFetchCount += 1;
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
-      return new Response(JSON.stringify([
-        {
-          id: "1504673475489562744",
-          type: 15,
-          name: "feedback",
-          parent_id: "1504673475489562000",
-          position: 8,
-        },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "POST") {
-      observedBodies.push(body);
-      return new Response(JSON.stringify({
-        id: "1504673475489562999",
-        type: 0,
-        name: "submit-feedback",
-        parent_id: "1504673475489562000",
-        position: 8,
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562999"
-    ) {
-      return new Response(JSON.stringify({ id: "1504673475489562999", type: 0 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562999/messages"
-      && method === "GET"
-      && url.searchParams.get("limit") === "50"
-    ) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (
-      url.hostname === "discord.com"
-      && url.pathname === "/api/v10/channels/1504673475489562999/messages"
-      && method === "POST"
-    ) {
-      observedBodies.push(body);
-      return new Response(JSON.stringify({ id: "1504673475489563001" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+    throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
   };
 
   try {
@@ -823,15 +880,11 @@ test("Discord interactions route can create the submit-feedback launcher channel
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback launcher created in #submit-feedback.",
+        content: "Discord feedback panel channel is not configured.",
         flags: 64,
       },
     });
-    assert.equal(observedBodies[0]?.name, "submit-feedback");
-    assert.equal(observedBodies[0]?.type, 0);
-    assert.equal(observedBodies[0]?.parent_id, "1504673475489562000");
-    assert.equal(observedBodies[0]?.position, 8);
-    assert.equal(observedBodies[1]?.embeds?.[0]?.title, "Submit Feedback Here");
+    assert.equal(discordFetchCount, 0);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
@@ -1033,21 +1086,816 @@ test("Discord interactions route opens the edit modal after clicking the manage 
 test("Discord interactions route opens the general feedback modal for /feedback", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  const originalFetch = globalThis.fetch;
+  let fetchCallCount = 0;
 
-  const response = await POST(createSignedRequest(JSON.stringify({
-    type: 2,
-    data: {
-      name: "feedback",
-    },
-  }), keyPair));
+  globalThis.fetch = async () => {
+    fetchCallCount += 1;
+    throw new Error("Feedback modal launcher must not fetch before responding.");
+  };
 
-  assert.equal(response.status, 200);
-  const payload = await response.json();
-  assert.equal(payload.type, 9);
-  assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
-  assert.equal(payload.data.title, "Submit Feedback");
-  assert.equal(payload.data.components[0]?.component?.custom_id, "feedback_type");
-  assert.equal(payload.data.components[4]?.component?.custom_id, "feedback_attachment");
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      data: {
+        name: "feedback",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 9);
+    assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
+    assert.equal(payload.data.title, "Submit Feedback");
+    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "feedback_type");
+    assert.equal(payload.data.components[0]?.components[0]?.type, 4);
+    assert.equal(payload.data.components[0]?.components[0]?.placeholder, "Bug or Feature");
+    assert.equal(payload.data.components[3]?.components[0]?.custom_id, "bug_details");
+    assert.equal(payload.data.components.some((row) => row?.type === 18), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":19"), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":3"), false);
+    assert.equal(fetchCallCount, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Discord message command poll is secret-gated", async () => {
+  delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+  delete process.env.CRON_SECRET;
+
+  const response = await GET(new Request("http://localhost/api/discord/interactions", {
+    method: "GET",
+  }));
+
+  assert.equal(response.status, 503);
+});
+
+test("Discord message command poll replaces one computa command menu per channel", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+
+  const originalFetch = globalThis.fetch;
+  const postedBodies = [];
+  let channelMessageFetchCount = 0;
+  let deletedOldMenu = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      channelMessageFetchCount += 1;
+      if (url.searchParams.get("limit") === "25") {
+        return new Response(JSON.stringify([
+          {
+            id: "main-message-computa-menu",
+            content: "computa",
+            author: { id: "123456789012345678", bot: false },
+            reactions: [],
+          },
+        ]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      assert.equal(url.searchParams.get("limit"), "50");
+      return new Response(JSON.stringify([
+        {
+          id: "old-computa-menu",
+          content: "",
+          author: { id: "1504700208251146371", bot: true },
+          embeds: [
+            {
+              title: "Computa",
+              footer: { text: "fawx-computa-command-menu:v1" },
+            },
+          ],
+        },
+        {
+          id: "main-message-computa-menu",
+          content: "computa",
+          author: { id: "123456789012345678", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/old-computa-menu" && method === "DELETE") {
+      deletedOldMenu = true;
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      postedBodies.push(body);
+      assert.equal(body?.content, "");
+      assert.equal(body?.embeds?.[0]?.title, "Computa Commands");
+      assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
+      assert.equal(body?.embeds?.[0]?.footer, undefined);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa` - Show this command card\./);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa feedback setup`/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /live/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /Owner-only/);
+      assert.deepEqual(body?.allowed_mentions, { parse: [] });
+      return new Response(JSON.stringify({ id: "new-computa-menu" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-menu/reactions/%E2%9C%85/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-computa-menu",
+          ok: true,
+          code: null,
+          action: "posted",
+        },
+      ],
+    });
+    assert.equal(channelMessageFetchCount, 2);
+    assert.equal(deletedOldMenu, true);
+    assert.equal(postedBodies.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
+  }
+});
+
+test("Discord message command poll lets a manager bootstrap the commander role and setup feedback", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
+  delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
+  delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;
+
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    calls.push({ method, pathname: url.pathname, body: parseJsonBody(init?.body) });
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (
+      url.pathname === "/api/v10/channels/1504668396338413671/messages"
+      && method === "GET"
+      && url.searchParams.get("limit") === "25"
+    ) {
+      assert.equal(url.searchParams.get("limit"), "25");
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-1",
+          content: "yo computa setup feedback please",
+          author: { id: "123456789012345678", bot: false },
+          member: { roles: ["manager-role"] },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504668396338413671", type: 0, name: "main" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "manager-role", name: "Ops", permissions: String(BigInt(1) << BigInt(5)) },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.name, "Fawxzzy Commander");
+      return new Response(JSON.stringify({ id: "commander-role", name: "Fawxzzy Commander", permissions: "0" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/members/123456789012345678/roles/commander-role" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "submit-feedback" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      url.pathname === "/api/v10/channels/1504668396338413671/messages"
+      && method === "GET"
+      && url.searchParams.get("limit") === "50"
+    ) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.message_reference, undefined);
+      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
+      return new Response(JSON.stringify({ id: "feedback-panel-message-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "1504668396338413671", type: 0, name: "main" },
+        { id: "1504673475489562744", type: 0, name: "submit-feedback" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "GET") {
+      return new Response(JSON.stringify([{
+        id: "old-feedback-panel-message",
+        author: { id: "1504700208251146371" },
+        components: [
+          {
+            type: 1,
+            components: [
+              { type: 2, custom_id: "fitness_feedback_submit_open" },
+              { type: 2, custom_id: "fitness_feedback_update_open" },
+            ],
+          },
+        ],
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages/old-feedback-panel-message" && method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "DELETE") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", name: "submit-feedback" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.recipient_id, "123456789012345678");
+      return new Response(JSON.stringify({ id: "dm-feedback-command" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-feedback-command/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Feedback launcher created in <#1504668396338413671>/);
+      assert.deepEqual(body?.allowed_mentions, { parse: [] });
+      return new Response(JSON.stringify({ id: "dm-message-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-1/reactions/%E2%9C%85/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-1",
+          ok: true,
+          code: null,
+          action: "created",
+        },
+      ],
+    });
+    assert.equal(calls.some((call) => call.method === "POST" && call.pathname.endsWith("/roles")), true);
+    assert.equal(calls.some((call) => call.method === "PUT" && call.pathname.includes("/roles/commander-role")), true);
+    assert.equal(calls.some((call) => call.body?.message_reference?.message_id === "main-message-1"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
+    delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
+  }
+});
+
+test("Discord message command poll requires the commander role after bootstrap", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-2",
+          content: "computa feedback setup",
+          author: { id: "123456789012345678", bot: false },
+          member: { roles: [] },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.recipient_id, "123456789012345678");
+      return new Response(JSON.stringify({ id: "dm-feedback-command-forbidden" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-feedback-command-forbidden/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Fawxzzy Commander/);
+      assert.equal(body?.message_reference, undefined);
+      return new Response(JSON.stringify({ id: "dm-message-2" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-2/reactions/%F0%9F%9A%AB/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-2",
+          ok: false,
+          code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN",
+          action: null,
+        },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+  }
+});
+
+test("Discord message command poll posts owner computa post live preset updates", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_UPDATES_CHANNEL_ID = "1504671871512346695";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user";
+  process.env.DISCORD_COMPUTA_LIVE_TWITCH_URL = "https://www.twitch.tv/fawxzzy";
+
+  const originalFetch = globalThis.fetch;
+  const postedBodies = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-live-1",
+          content: "computa post live twitch",
+          author: { id: "owner-user", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504671871512346695/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      postedBodies.push(body);
+      assert.equal(body?.content, "@everyone\n\nGoing live on Twitch https://www.twitch.tv/fawxzzy\n\nPull up");
+      assert.deepEqual(body?.allowed_mentions, { parse: ["everyone"] });
+      return new Response(JSON.stringify({ id: "updates-live-message-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.recipient_id, "owner-user");
+      return new Response(JSON.stringify({ id: "dm-computa-live" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-computa-live/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Live update posted in <#1504671871512346695>/);
+      assert.deepEqual(body?.allowed_mentions, { parse: [] });
+      return new Response(JSON.stringify({ id: "dm-message-live-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-1/reactions/%E2%9C%85/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-live-1",
+          ok: true,
+          code: null,
+          action: "posted",
+        },
+      ],
+    });
+    assert.equal(postedBodies.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_UPDATES_CHANNEL_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
+    delete process.env.DISCORD_COMPUTA_LIVE_TWITCH_URL;
+  }
+});
+
+test("Discord message command poll posts owner computa post live custom link updates", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_UPDATES_CHANNEL_ID = "1504671871512346695";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-live-2",
+          content: "computa post live [https://example.com/stream]",
+          author: { id: "owner-user", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504671871512346695/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.content, "@everyone\n\nGoing live https://example.com/stream\n\nPull up");
+      assert.deepEqual(body?.allowed_mentions, { parse: ["everyone"] });
+      return new Response(JSON.stringify({ id: "updates-live-message-2" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      return new Response(JSON.stringify({ id: "dm-computa-live-custom" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-computa-live-custom/messages" && method === "POST") {
+      return new Response(JSON.stringify({ id: "dm-message-live-2" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-2/reactions/%E2%9C%85/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-live-2",
+          ok: true,
+          code: null,
+          action: "posted",
+        },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_UPDATES_CHANNEL_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
+  }
+});
+
+test("Discord message command poll rejects non-owner computa post live updates", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_UPDATES_CHANNEL_ID = "1504671871512346695";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-live-3",
+          content: "live",
+          author: { id: "other-user", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.recipient_id, "other-user");
+      return new Response(JSON.stringify({ id: "dm-computa-live-forbidden" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-computa-live-forbidden/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Only the configured Fawxzzy owner account/);
+      return new Response(JSON.stringify({ id: "dm-message-live-3" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-live-3/reactions/%F0%9F%9A%AB/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-live-3",
+          ok: false,
+          code: "DISCORD_COMPUTA_LIVE_FORBIDDEN",
+          action: null,
+        },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_UPDATES_CHANNEL_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
+  }
+});
+
+test("Discord message command poll skips messages already marked processed", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  globalThis.fetch = async (input, init) => {
+    fetchCount += 1;
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-3",
+          content: "computa feedback setup",
+          author: { id: "123456789012345678", bot: false },
+          reactions: [{ me: true, emoji: { name: "✅" } }],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true, processed: [] });
+    assert.equal(fetchCount, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route opens the feedback panel submit modal without pre-response fetches", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  const originalFetch = globalThis.fetch;
+  let fetchCallCount = 0;
+
+  globalThis.fetch = async () => {
+    fetchCallCount += 1;
+    throw new Error("Feedback submit button must not fetch before opening the modal.");
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 3,
+      data: {
+        custom_id: "fitness_feedback_submit_open",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.type, 9);
+    assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
+    assert.equal(payload.data.title, "Submit Feedback");
+    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "feedback_type");
+    assert.equal(payload.data.components[0]?.components[0]?.type, 4);
+    assert.equal(payload.data.components[3]?.components[0]?.custom_id, "bug_details");
+    assert.equal(payload.data.components.some((row) => row?.type === 18), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":19"), false);
+    assert.equal(JSON.stringify(payload.data).includes("\"type\":3"), false);
+    assert.equal(fetchCallCount, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("Discord interactions route defers feedback submit and edits the original ephemeral response after success", async () => {
@@ -1192,6 +2040,119 @@ test("Discord interactions route defers feedback submit and edits the original e
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route sends a feedback submit followup when editing the deferred response fails", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+
+  const originalFetch = globalThis.fetch;
+  const observedRequests = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+    observedRequests.push({ path: url.pathname, method, body });
+
+    if (url.pathname === "/api/v10/interactions/interaction-1/interaction-token/callback") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "HEAD") {
+      return new Response(null, { status: 200, headers: { "content-range": "0-0/0" } });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response("null", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "GET") {
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "POST") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        reporter_fitness_user_id: null,
+        reporter_member_number: null,
+        reporter_user_kind: null,
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        discord_forum_applied_tag_ids: null,
+        discord_forum_title: null,
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original") {
+      return new Response(JSON.stringify({ message: "Original response expired" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token") {
+      return new Response(JSON.stringify({ id: "followup-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      application_id: "1504700208251146371",
+      token: "interaction-token",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_submit_modal",
+        components: [
+          {
+            type: 18,
+            label: "Feedback type",
+            component: { type: 3, custom_id: "feedback_type", values: ["bug"] },
+          },
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 18, label: "Screenshot or image", component: { type: 19, custom_id: "feedback_attachment", values: [] } },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    const followupCall = observedRequests.find((entry) => entry.path === "/api/v10/webhooks/1504700208251146371/interaction-token" && entry.method === "POST");
+    assert.deepEqual(followupCall?.body, {
+      content: "Feedback received. Thanks for helping improve Fitness.",
+      flags: 64,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });
 

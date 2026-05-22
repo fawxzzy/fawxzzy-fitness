@@ -169,12 +169,13 @@ export const DEFAULT_VERIFY_MESSAGE_BODY = [
 ].join("\n");
 export const DEFAULT_FEEDBACK_PANEL_TITLE = "Submit Feedback Here";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
-  "Use this channel to send a new bug or feature request.",
+  "Use this panel to send a new bug or feature request from wherever staff places it.",
   "",
   "- Submit: create a new feedback card.",
   "- Edit: manage one of your existing cards, including withdraw.",
+  "- Resolved cards are marked with a checkmark and archived when complete.",
   "",
-  "Your feedback card will appear in the Feedback forum after submit.",
+  "Your feedback card appears in the Feedback forum after submit. Do not include passwords, tokens, or private info.",
 ] as const;
 export const DEFAULT_SPOTIFY_CLUB_PANEL_TITLE = "Spotify Club";
 export const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
@@ -392,6 +393,32 @@ function buildDiscordModalLabelTextInput(args: {
   };
 }
 
+function buildDiscordModalActionRowTextInput(args: {
+  label: string;
+  customId: string;
+  style: 1 | 2;
+  placeholder?: string;
+  value?: string;
+  required?: boolean;
+  maxLength?: number;
+}) {
+  return {
+    type: 1,
+    components: [
+      {
+        type: 4,
+        custom_id: args.customId,
+        label: args.label,
+        style: args.style,
+        ...(args.placeholder ? { placeholder: args.placeholder } : {}),
+        ...(typeof args.value === "string" ? { value: args.value } : {}),
+        required: args.required ?? true,
+        ...(typeof args.maxLength === "number" ? { max_length: args.maxLength } : {}),
+      },
+    ],
+  };
+}
+
 function buildDiscordFeedbackTypeSelectComponent(args?: {
   defaultReportType?: "bug" | "feature" | null;
   emojis?: DiscordFeedbackEmojiMap | null;
@@ -482,11 +509,16 @@ function buildDiscordFeedbackSubmitModalData(args?: {
     custom_id: args?.customId ?? FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
     title: args?.title ?? "Submit Feedback",
     components: [
-      buildDiscordFeedbackTypeSelectComponent({
-        defaultReportType,
-        emojis: args?.emojis,
+      buildDiscordModalActionRowTextInput({
+        label: "Type",
+        customId: FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
+        style: 1,
+        placeholder: "Bug or Feature",
+        value: defaultReportType === "feature" ? "Feature" : defaultReportType === "bug" ? "Bug" : undefined,
+        required: true,
+        maxLength: 16,
       }),
-      buildDiscordModalLabelTextInput({
+      buildDiscordModalActionRowTextInput({
         label: "Title",
         customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
         style: 1,
@@ -496,7 +528,7 @@ function buildDiscordFeedbackSubmitModalData(args?: {
         required: true,
         maxLength: 120,
       }),
-      buildDiscordModalLabelTextInput({
+      buildDiscordModalActionRowTextInput({
         label: "Area / screen",
         customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
         style: 1,
@@ -504,17 +536,16 @@ function buildDiscordFeedbackSubmitModalData(args?: {
         required: false,
         maxLength: 80,
       }),
-      buildDiscordModalLabelTextInput({
+      buildDiscordModalActionRowTextInput({
         label: defaultReportType === "feature" || defaultReportType === "bug"
           ? "Description"
           : "Details",
-        description: "Describe the issue or idea clearly. Include steps, context, or expected behavior if that helps.",
         customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
         style: 2,
+        placeholder: "Describe the issue or idea. Include steps, context, or expected behavior if helpful.",
         required: true,
         maxLength: 1200,
       }),
-      buildDiscordFeedbackAttachmentComponent(),
     ],
   };
 }
