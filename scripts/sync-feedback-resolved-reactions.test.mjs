@@ -153,7 +153,7 @@ test("syncResolvedReactions apply targets one report id prefix when requested", 
   assert.match(attemptedReportIds[0] ?? "", /1505318951146491934/);
 });
 
-test("syncResolvedReactions apply uses the encoded Unicode checkmark path", async () => {
+test("syncResolvedReactions apply uses the encoded custom success emoji path", async () => {
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
 
   const requests = [];

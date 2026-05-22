@@ -11,9 +11,9 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed
 ## 2026-05-19 - Public completed phase cards need visible resolved state before the next phase starts
 - Type: Guardrail
-- Summary: A public phase card is not fully done until it is fixed or completed, completion-review approved, and visibly reacted with `✅` on the starter post.
-- Rule: Do not advance to the next phase until the previous public phase card shows the resolved `✅`.
-- Pattern: status fixed/completed -> completion review approved -> starter post `✅` -> next phase may start.
+- Summary: A public phase card is not fully done until it is fixed or completed, completion-review approved, and visibly reacted with the configured success reaction on the starter post.
+- Rule: Do not advance to the next phase until the previous public phase card shows the resolved success reaction (`fawxzzy:1507384062166302851`).
+- Pattern: status fixed/completed -> completion review approved -> starter post success reaction -> next phase may start.
 - Failure Mode: Starting the next phase before the previous card visibly closes weakens board trust and makes shipped scope look incomplete.
 - Status: Proposed
 
@@ -84,7 +84,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 ## 2026-05-19 - Completed public feedback cards should show visible resolved state
 - Type: Guardrail
 - Summary: Public feedback cards that are fixed or completed should visibly look done in Discord, while exports and completion review still own the real workflow truth.
-- Rule: Fixed or completed public cards should carry a `✅` reaction on the starter post.
+- Rule: Fixed or completed public cards should carry the configured success reaction on the starter post.
 - Rule: Private testing canaries stay excluded from resolved-reaction hygiene by default.
 - Pattern: status update -> completion review as required -> resolved reaction sync -> historical board card.
 - Failure Mode: Finished public cards without a visible resolved marker make the forum look stale even when the stored status is correct.

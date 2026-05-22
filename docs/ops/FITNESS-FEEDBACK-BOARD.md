@@ -116,9 +116,9 @@ Feedback audit comments:
 - stay compact and operational
 
 Resolved-state marker:
-- fixed or completed public cards should also carry a visible `✅` reaction on the starter post
+- fixed or completed public cards should also carry the configured success reaction (`fawxzzy:1507384062166302851`) on the starter post
 - the reaction is board hygiene, not a substitute for the stored status or completion review state
-- do not advance to the next phase card until the prior public phase card is fixed/completed, completion-review approved, and visibly reacted with `✅`
+- do not advance to the next phase card until the prior public phase card is fixed/completed, completion-review approved, and visibly reacted with the configured success reaction
 
 Rule:
 - Release posts announce shipped user-facing changes.
@@ -156,7 +156,7 @@ Completion review:
 - `Ready for Fawxzzy Review` is an optional pre-work scope gate.
 - Completion Review is a required post-completion queue for public Fitness app cards marked `Fixed` or `Completed`.
 - Private `feedback-testing` canaries do not require Completion Review by default.
-- Completion review approval should backfill `✅` if it is missing.
+- Completion review approval should backfill the configured success reaction if it is missing.
 
 ## Command surface
 User-facing flow:

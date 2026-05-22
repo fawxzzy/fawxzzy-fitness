@@ -26,7 +26,9 @@ const expectedFeedbackPanelCustomIds = [
 const expectedVerifyButtonLabel = "Verify Fitness Account";
 const expectedVerifyCopyNeedle = "By verifying, you agree to follow the server rules.";
 const expectedFitnessLoginUrl = "https://fawxzzy-fitness-local.vercel.app/login";
-const resolvedReactionEmoji = String.fromCodePoint(0x2705);
+const resolvedReactionEmojiName = "fawxzzy";
+const resolvedReactionEmojiId = "1507384062166302851";
+const resolvedReactionLabel = `${resolvedReactionEmojiName}:${resolvedReactionEmojiId}`;
 const expectedCommands = [
   "setup-verify",
   "verify-cleanup",
@@ -1069,7 +1071,7 @@ async function checkFeedbackHealth(adminClient, debug = false) {
       }
 
       const reactions = Array.isArray(messageResult.data?.reactions) ? messageResult.data.reactions : [];
-      const hasResolvedReaction = reactions.some((reaction) => String(reaction?.emoji?.name ?? "") === resolvedReactionEmoji);
+      const hasResolvedReaction = reactions.some((reaction) => String(reaction?.emoji?.id ?? "") === resolvedReactionEmojiId);
       if (!hasResolvedReaction) {
         resolvedRowsMissingReaction.push({
           id: row.id,
@@ -1092,9 +1094,9 @@ async function checkFeedbackHealth(adminClient, debug = false) {
       : staleCompletionReviewRows.length > 0
         ? "Recent fixed/completed feedback cards are still pending completion review for more than 7 days"
         : resolvedRowsMissingReaction.length > 0
-          ? "Recent fixed/completed public feedback cards are missing the resolved ✅ reaction"
+          ? `Recent fixed/completed public feedback cards are missing the resolved ${resolvedReactionLabel} reaction`
           : resolvedRowsMissingStarterIds.length > 0
-            ? "Recent fixed/completed public feedback cards are missing starter post ids, so resolved ✅ checks cannot be verified"
+            ? `Recent fixed/completed public feedback cards are missing starter post ids, so resolved ${resolvedReactionLabel} checks cannot be verified`
       : "Recent feedback health summary looks consistent with the production feedback contract",
     {
       countByStatus,

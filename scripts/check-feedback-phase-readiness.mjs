@@ -11,7 +11,9 @@ const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
 const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
 const discordApiBaseUrl = "https://discord.com/api/v10";
-const resolvedReactionEmoji = String.fromCodePoint(0x2705);
+const resolvedReactionEmojiName = "fawxzzy";
+const resolvedReactionEmojiId = "1507384062166302851";
+const resolvedReactionLabel = `${resolvedReactionEmojiName}:${resolvedReactionEmojiId}`;
 
 for (const [key, value] of Object.entries(fileEnv)) {
   if (explicitEnvFileOverride || !process.env[key]) {
@@ -168,10 +170,10 @@ export async function reportHasResolvedReaction(report, { fetchImpl = fetch } = 
   }
 
   const reactions = Array.isArray(result.data?.reactions) ? result.data.reactions : [];
-  const hasResolvedReaction = reactions.some((reaction) => String(reaction?.emoji?.name ?? "") === resolvedReactionEmoji);
+  const hasResolvedReaction = reactions.some((reaction) => String(reaction?.emoji?.id ?? "") === resolvedReactionEmojiId);
   return hasResolvedReaction
     ? { ok: true, reason: null }
-    : { ok: false, reason: `starter post is missing ${resolvedReactionEmoji}` };
+    : { ok: false, reason: `starter post is missing ${resolvedReactionLabel}` };
 }
 
 export async function checkFeedbackPhaseReadiness(args, { client = createServiceClient(), fetchImpl = fetch, logger = console } = {}) {
@@ -189,7 +191,7 @@ export async function checkFeedbackPhaseReadiness(args, { client = createService
 
   const resolvedReactionResult = await reportHasResolvedReaction(requiredReport, { fetchImpl });
   if (!resolvedReactionResult.ok) {
-    failures.push(`required prior card ${requiredReport.id} is missing the resolved ${resolvedReactionEmoji} reaction: ${resolvedReactionResult.reason}`);
+    failures.push(`required prior card ${requiredReport.id} is missing the resolved ${resolvedReactionLabel} reaction: ${resolvedReactionResult.reason}`);
   }
 
   if (args.debug) {

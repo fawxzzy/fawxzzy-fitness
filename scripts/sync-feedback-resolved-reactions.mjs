@@ -19,7 +19,9 @@ for (const [key, value] of Object.entries(fileEnv)) {
 
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
 const DISCORD_API_USER_AGENT = "fawxzzy-fitness-feedback-reaction-sync/1.0";
-export const DISCORD_RESOLVED_REACTION_EMOJI = String.fromCodePoint(0x2705);
+export const DISCORD_RESOLVED_REACTION_EMOJI_NAME = "fawxzzy";
+export const DISCORD_RESOLVED_REACTION_EMOJI_ID = "1507384062166302851";
+export const DISCORD_RESOLVED_REACTION_EMOJI = `${DISCORD_RESOLVED_REACTION_EMOJI_NAME}:${DISCORD_RESOLVED_REACTION_EMOJI_ID}`;
 export const DEFAULT_STATUSES = ["fixed"];
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
