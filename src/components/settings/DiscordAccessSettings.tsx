@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToast } from "@/components/ui/ToastProvider";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { cn } from "@/lib/cn";
 
 type DiscordTokenResponse =
@@ -53,7 +54,6 @@ export function DiscordAccessSettings() {
   }, [copyLabel]);
 
   const expiryLabel = useMemo(() => formatExpiry(expiresAt), [expiresAt]);
-  const cardStateKey = token ? `token:${token}:${expiresAt ?? "none"}` : errorMessage ? `error:${errorMessage}` : "idle";
 
   const generateToken = () => {
     startGenerateTransition(async () => {
@@ -110,65 +110,57 @@ export function DiscordAccessSettings() {
   };
 
   return (
-    <div className="border-t border-[rgb(var(--border-strong)/0.12)] pt-3">
-      <CollapsibleCard
-        key={cardStateKey}
-        title="Discord Connector"
-        defaultOpen={Boolean(token || errorMessage)}
-        bodyClassName="space-y-4"
-      >
-        <div className="space-y-4">
-          <div className="mx-auto max-w-[22rem]">
-            <input
-              type="text"
-              value={token ?? ""}
-              readOnly
-              aria-label="Discord verification token"
-              className={cn(
-                labeledEditorFieldControlClassName,
-                "h-12 px-4 py-3 text-center font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none placeholder:text-[rgb(var(--text-muted)/0.58)] focus-visible:!border-0 focus-visible:!ring-0",
-              )}
-            />
-          </div>
-
-          <div className="mx-auto flex max-w-[22rem] flex-col items-center gap-1.5 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
-              {expiryLabel ? `One-Time Key | ${expiryLabel}` : "One-Time Key"}
-            </p>
-            <MetricAccentBar variant="thin" className="w-full opacity-85" />
-            {errorMessage ? (
-              <p className="text-xs leading-5 text-[rgb(var(--danger-rgb)/0.92)]">{errorMessage}</p>
-            ) : null}
-          </div>
-
-          <div className="mx-auto flex w-full max-w-[22rem] items-center justify-between gap-3">
-            <button
+    <>
+      <PublishBottomActions>
+        <BottomActionSplit
+          secondary={(
+            <BottomDockButton
               type="button"
+              intent={copyLabel === "Copied" ? "toggleActive" : "info"}
               onClick={() => void copyToken()}
               disabled={!token}
-              className={getAppButtonClassName({
-                variant: copyLabel === "Copied" ? "secondary" : "tertiary",
-                size: "sm",
-                className: "min-w-[6.5rem] px-4",
-              })}
             >
               {copyLabel}
-            </button>
-            <button
+            </BottomDockButton>
+          )}
+          primary={(
+            <BottomDockButton
               type="button"
+              intent={token ? "info" : "positive"}
               onClick={generateToken}
               disabled={isGenerating}
-              className={getAppButtonClassName({
-                variant: token ? "secondary" : "primary",
-                size: "sm",
-                className: "min-w-[7.5rem] px-4",
-              })}
+              loading={isGenerating}
             >
               {isGenerating ? "Generating..." : "Generate"}
-            </button>
-          </div>
+            </BottomDockButton>
+          )}
+        />
+      </PublishBottomActions>
+
+      <div className="space-y-4 pt-2">
+        <div className="mx-auto max-w-[22rem]">
+          <input
+            type="text"
+            value={token ?? ""}
+            readOnly
+            aria-label="Discord verification token"
+            className={cn(
+              labeledEditorFieldControlClassName,
+              "h-12 px-4 py-3 text-center font-semibold tracking-[0.14em] !border-0 !bg-transparent !shadow-none placeholder:text-[rgb(var(--text-muted)/0.58)] focus-visible:!border-0 focus-visible:!ring-0",
+            )}
+          />
         </div>
-      </CollapsibleCard>
-    </div>
+
+        <div className="mx-auto flex max-w-[22rem] flex-col items-center gap-1.5 text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
+            {expiryLabel ? `One-Time Key | ${expiryLabel}` : "One-Time Key"}
+          </p>
+          <MetricAccentBar variant="thin" className="w-full opacity-85" />
+          {errorMessage ? (
+            <p className="text-xs leading-5 text-[rgb(var(--danger-rgb)/0.92)]">{errorMessage}</p>
+          ) : null}
+        </div>
+      </div>
+    </>
   );
 }
