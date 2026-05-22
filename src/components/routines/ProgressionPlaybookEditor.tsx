@@ -1742,6 +1742,7 @@ function SetFlowMeasurementStepRow({
   onDirectionToggle,
   onGroupedDirectionToggle,
   infoHandlers,
+  useScrollRail = true,
 }: {
   measurements: SetFlowMeasurementKey[];
   links: PromotionMeasurementConnector[];
@@ -1763,6 +1764,7 @@ function SetFlowMeasurementStepRow({
     onFocusCapture?: () => void;
     onPointerDownCapture?: () => void;
   };
+  useScrollRail?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const labels: Record<SetFlowMeasurementKey, string> = {
@@ -1876,7 +1878,9 @@ function SetFlowMeasurementStepRow({
     <div className="space-y-0" {...infoHandlers}>
       <div
         ref={scrollRef}
-        className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
+        className={useScrollRail
+          ? "hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
+          : "w-max min-w-max"}
       >
         <div className="mx-auto flex w-max min-w-max justify-center px-1">
           <div
@@ -3471,13 +3475,14 @@ export function ProgressionPlaybookEditor({
   const progressionSettingsGroupLabelClassName = "text-[9.5px] font-semibold uppercase tracking-[0.15em]";
   const progressionSettingsFieldRowClassName = "flex w-max flex-nowrap items-center justify-center gap-1.5";
   const progressionSettingsPipeClassName = "h-11 w-px shrink-0 self-end -translate-y-[31px] rounded-full bg-[rgb(var(--accent-strong)/0.82)]";
+  const progressionSettingsRailClassName = "hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
   const renderInlineSettingsFields = (fields: ReactNode[], infoSection: ActiveProgressionInfoSection) => {
     if (fields.length === 0) {
       return null;
     }
 
     return (
-      <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]" {...getInfoSectionHandlers(infoSection)}>
+      <div className={progressionSettingsRailClassName} {...getInfoSectionHandlers(infoSection)}>
         <div className={cn(progressionSettingsFieldRowClassName, "mx-auto px-1")}>
           {fields}
         </div>
@@ -3494,7 +3499,7 @@ export function ProgressionPlaybookEditor({
     }
 
     return (
-      <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]" {...getInfoSectionHandlers(infoSection)}>
+      <div className={progressionSettingsRailClassName} {...getInfoSectionHandlers(infoSection)}>
         <div className={cn(progressionSettingsFieldRowClassName, "mx-auto items-end px-1")}>
           {visibleGroups.map((group, groupIndex) => (
             <Fragment key={group.key}>
@@ -4629,6 +4634,34 @@ export function ProgressionPlaybookEditor({
       infoHandlers={getInfoSectionHandlers("set_step_settings")}
     />
   );
+  const setFlowSettingsRailEmbeddedRow = (
+    <SetFlowMeasurementStepRow
+      measurements={setFlowMeasurements}
+      links={setFlowLinks}
+      weightUnit={weightUnit}
+      values={setFlowStepValues}
+      counts={value.progressionSetFlowCountMap}
+      groupedCounts={value.progressionSetFlowGroupedCountMap}
+      directions={setFlowDirections}
+      groupedDirections={value.progressionSetFlowGroupedDirectionMap}
+      defaultCount={defaultSetFlowCount}
+      onMove={moveSetFlowMeasurement}
+      onToggleConnector={toggleSetFlowConnector}
+      onStepChange={(measurement, nextValue) => {
+        updateSetFlowStepValue(measurement, nextValue);
+        showCustomInfo(getSetFlowInfoPayload(measurement));
+      }}
+      onCountChange={setSetFlowCount}
+      onGroupedCountChange={setSetFlowGroupedCount}
+      onDirectionToggle={(measurement, stepValue) => {
+        toggleSetFlowDirection(measurement, stepValue);
+        showCustomInfo(getSetFlowInfoPayload(measurement));
+      }}
+      onGroupedDirectionToggle={setSetFlowGroupedDirection}
+      infoHandlers={getInfoSectionHandlers("set_step_settings")}
+      useScrollRail={false}
+    />
+  );
   void setExampleEntries;
   const renderProgressionSettingsRow = () => {
     if (!shouldRenderProgressionSettingsRow) {
@@ -4663,7 +4696,7 @@ export function ProgressionPlaybookEditor({
         infoSection: "set_step_settings",
         fields: [
           <div key="set-flow-row" className="shrink-0">
-            {setFlowSettingsRow}
+            {setFlowSettingsRailEmbeddedRow}
           </div>,
         ],
       });
@@ -4893,85 +4926,86 @@ export function ProgressionPlaybookEditor({
         {showLegacyTopMethodRail ? (
         <section className={progressionInfoMiniCardClassName}>
           <div className="px-3 pb-3 pt-2.5">
-          <div className="overflow-x-auto pb-1 pt-0 pl-1 pr-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mx-auto w-full max-w-full space-y-3">
               <div className="space-y-2">
-                <div className="mx-auto flex min-w-max flex-nowrap items-end justify-center gap-[3px]">
-                  <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
-                    <div className="space-y-[2px]">
-                      <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                        Progression
-                      </div>
-                      <MetricAccentBar variant="thin" className="w-full opacity-80" />
-                    </div>
-                    <ProgressionBinaryToggleButton
-                      label={selectedPlaybookId ? "Auto" : "Manual"}
-                      ariaLabel="Progression method"
-                      onClick={() => {
-                        const nextValue = selectedPlaybookId ? "" : "double_progression";
-                        setPlaybookId(nextValue as ProgressionPlaybookId | "");
-                        showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
-                      }}
-                      className="min-w-[8.5rem]"
-                    />
-                  </div>
-
-                  {selectedPlaybookId ? (
-                    <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
+                <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 pt-0 pl-1 pr-2 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
+                  <div className="mx-auto flex w-max min-w-max flex-nowrap items-end justify-center gap-[3px]">
+                    <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
                       <div className="space-y-[2px]">
-                        <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-yellow-on))]">
-                          Regression
+                        <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                          Progression
                         </div>
                         <MetricAccentBar variant="thin" className="w-full opacity-80" />
                       </div>
                       <ProgressionBinaryToggleButton
-                        label={value.progressionStallPolicy === "deload_after_stall" ? "Deload" : "None"}
-                        ariaLabel="Regression policy"
+                        label={selectedPlaybookId ? "Auto" : "Manual"}
+                        ariaLabel="Progression method"
                         onClick={() => {
-                          const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
-                            ? "none"
-                            : "deload_after_stall";
-                          setStallPolicy(nextPolicy);
-                          showCustomInfo(getRegressionInfoPayload(nextPolicy));
+                          const nextValue = selectedPlaybookId ? "" : "double_progression";
+                          setPlaybookId(nextValue as ProgressionPlaybookId | "");
+                          showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
                         }}
                         className="min-w-[8.5rem]"
                       />
                     </div>
-                  ) : null}
 
-                  {shouldRenderPromotionStepSettings ? (
-                    <div className="min-w-0 shrink-0 space-y-[5px]" {...getInfoSectionHandlers("day_settings")}>
-                      <div className="space-y-[2px]">
-                        <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                          Day Sync Session
+                    {selectedPlaybookId ? (
+                      <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
+                        <div className="space-y-[2px]">
+                          <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-yellow-on))]">
+                            Regression
+                          </div>
+                          <MetricAccentBar variant="thin" className="w-full opacity-80" />
                         </div>
-                        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                        <ProgressionBinaryToggleButton
+                          label={value.progressionStallPolicy === "deload_after_stall" ? "Deload" : "None"}
+                          ariaLabel="Regression policy"
+                          onClick={() => {
+                            const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
+                              ? "none"
+                              : "deload_after_stall";
+                            setStallPolicy(nextPolicy);
+                            showCustomInfo(getRegressionInfoPayload(nextPolicy));
+                          }}
+                          className="min-w-[8.5rem]"
+                        />
                       </div>
-                      <ProgressionBinaryToggleButton
-                        label={value.progressionDayMode === "synced" ? "Synced" : "Unsynced"}
-                        ariaLabel="Day settings sync mode"
-                        onClick={() => setDayMode(value.progressionDayMode === "synced" ? "unsynced" : "synced")}
-                        className="min-w-[8.5rem]"
-                      />
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  {showAutoApplyUpdatesControl ? (
-                    <div className="min-w-0 shrink-0 space-y-[5px]">
-                      <div className="space-y-[2px]">
-                        <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                          Auto Apply Updates
+                    {shouldRenderPromotionStepSettings ? (
+                      <div className="min-w-0 shrink-0 space-y-[5px]" {...getInfoSectionHandlers("day_settings")}>
+                        <div className="space-y-[2px]">
+                          <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                            Day Sync Session
+                          </div>
+                          <MetricAccentBar variant="thin" className="w-full opacity-80" />
                         </div>
-                        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                        <ProgressionBinaryToggleButton
+                          label={value.progressionDayMode === "synced" ? "Synced" : "Unsynced"}
+                          ariaLabel="Day settings sync mode"
+                          onClick={() => setDayMode(value.progressionDayMode === "synced" ? "unsynced" : "synced")}
+                          className="min-w-[8.5rem]"
+                        />
                       </div>
-                      <ProgressionBinaryToggleButton
-                        label={autoApplyUpdatesToExercises ? "Active" : "Inactive"}
-                        ariaLabel="Auto apply updates to current exercises"
-                        onClick={() => onAutoApplyUpdatesToExercisesChange(!autoApplyUpdatesToExercises)}
-                        className="min-w-[8.5rem]"
-                      />
-                    </div>
-                  ) : null}
+                    ) : null}
+
+                    {showAutoApplyUpdatesControl ? (
+                      <div className="min-w-0 shrink-0 space-y-[5px]">
+                        <div className="space-y-[2px]">
+                          <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                            Auto Apply Updates
+                          </div>
+                          <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                        </div>
+                        <ProgressionBinaryToggleButton
+                          label={autoApplyUpdatesToExercises ? "Active" : "Inactive"}
+                          ariaLabel="Auto apply updates to current exercises"
+                          onClick={() => onAutoApplyUpdatesToExercisesChange(!autoApplyUpdatesToExercises)}
+                          className="min-w-[8.5rem]"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
                 {selectedPlaybookId && (shouldRenderDeloadSettings || shouldShowTopRowDaySettingFields) ? renderInlineSettingsFieldGroups([
                   {
@@ -4984,7 +5018,6 @@ export function ProgressionPlaybookEditor({
                 ], "deload_settings") : null}
               </div>
             </div>
-          </div>
           </div>
         </section>
         ) : null}
