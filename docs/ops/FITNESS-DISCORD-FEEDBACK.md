@@ -32,6 +32,12 @@ Product rules:
   - does not expose owner-only tools as public buttons because Discord cannot hide public message components per user
   - deletes the previous Computa command card in that channel before reposting
   - marks the trigger message with a public reaction
+- `computa owner`
+  - main-channel exact-message trigger
+  - configured-owner-only
+  - posts a separate owner command card in the channel where it was used
+  - deletes the previous owner command card in that channel before reposting
+  - marks the trigger message with a public reaction
 - `computa archive checked cards`
   - main-channel message trigger
   - commander-only
@@ -41,7 +47,8 @@ Product rules:
   - main-channel message trigger
   - commander-only
   - adds the configured success reaction when a Feedback forum starter has a resolved tag such as `Fixed`, `Closed`, `Resolved`, `Done`, `Complete`, or `Completed`
-  - migrates bot-owned legacy checkmark reactions to the configured success emoji
+  - scans active cards and archived public/private cards where Discord permissions allow it
+  - removes legacy white-checkmark reactions and uses the configured success emoji instead
   - removes the configured success reaction when the starter no longer has a resolved tag
   - aliases: `computa feedback sync reactions`, `computa sync checked cards`
   - marks the trigger with the configured success/failure reaction
@@ -186,7 +193,7 @@ Pattern:
 ## Main-chat setup trigger
 `computa` posts the compact command card in the channel where it is used. Only one Computa command card is kept per channel; rerunning the command removes the previous card and posts the current one. This command is gated to `Fawxzzy Commander` members or the configured owner account.
 
-If the configured Computa owner runs `computa`, the public card still stays normal-user-facing and owner-only commands must not be exposed publicly. A future slash-command or component path can show owner-only commands ephemerally.
+If the configured Computa owner runs `computa`, the public card still stays normal-user-facing and owner-only commands must not be exposed on that card. The owner can run `computa owner` to post a separate owner command card in the current channel when needed.
 
 `computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
@@ -203,6 +210,12 @@ Rules:
   - success: `fawxzzy:1507384062166302851`
   - failure: `fawxzzy:1507384094424694785`
 - Vercel Hobby cannot run this poll frequently enough by itself; use an external scheduler or `npm run discord:feedback:worker` for near-real-time behavior.
+
+Owner card:
+- `computa owner` is exact-match and owner-only.
+- It posts a separate `Computa Owner` command card in the channel where it is used.
+- Only one owner command card is kept per channel; rerunning the command removes the previous owner card and posts the current one.
+- The card may be public. Do not add owner-only controls to the normal `computa` card because public Discord message components cannot be hidden per user.
 
 Gateway worker:
 - Script: `scripts/discord-feedback-gateway-worker.mjs`

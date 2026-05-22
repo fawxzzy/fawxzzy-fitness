@@ -9,6 +9,7 @@ import {
   createDiscordMessageReaction,
   createDiscordThreadMessage,
   deleteDiscordChannel,
+  deleteDiscordMessageReactionEmoji,
   deleteDiscordOwnMessageReaction,
   deferDiscordInteractionEphemeral,
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
@@ -67,7 +68,7 @@ test("updateDiscordGuildMemberNickname PATCHes the guild member nickname", async
   }
 });
 
-test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an encoded emoji path", async () => {
+test("createDiscordMessageReaction PUTs a configured reaction using an encoded emoji path", async () => {
   process.env.DISCORD_BOT_TOKEN = "test-bot-token";
   const originalFetch = globalThis.fetch;
   let observedRequest = null;
@@ -86,13 +87,46 @@ test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an e
     const result = await createDiscordMessageReaction({
       channelId: "1504673475489562745",
       messageId: "1504673475489562746",
-      emoji: "✅",
+      emoji: "fawxzzy:1507384062166302851",
     });
 
     assert.deepEqual(result, { ok: true });
     assert.deepEqual(observedRequest, {
-      url: "https://discord.com/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me",
+      url: "https://discord.com/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me",
       method: "PUT",
+      body: null,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("deleteDiscordMessageReactionEmoji DELETEs every legacy reaction for an emoji", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    const result = await deleteDiscordMessageReactionEmoji({
+      channelId: "1504673475489562745",
+      messageId: "1504673475489562746",
+      emoji: "\u2705",
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85",
+      method: "DELETE",
       body: null,
     });
   } finally {
