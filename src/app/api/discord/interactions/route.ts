@@ -51,7 +51,6 @@ import {
   buildDiscordFeedbackManageCardResponse,
   buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
-  DISCORD_COMPUTA_OWNER_TOOLS_BUTTON_CUSTOM_ID,
   buildDiscordEphemeralMessageResponseWithComponents,
   buildDiscordSpotifyQueueSearchModalResponse,
   buildDiscordSpotifyQueueSuggestModalResponse,
@@ -349,7 +348,8 @@ const DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID = "1507384094424694785";
 const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID}`;
 const DISCORD_MESSAGE_COMMAND_WARNING_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID}`;
 const DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID}`;
-const DISCORD_FEEDBACK_RESOLVED_TAG_NAMES = ["Fixed", "Closed"];
+const DISCORD_LEGACY_SUCCESS_REACTION = "\u2705";
+const DISCORD_FEEDBACK_RESOLVED_TAG_NAMES = ["Fixed", "Closed", "Resolved", "Done", "Complete", "Completed"];
 const DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS = new Set([
   DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
@@ -1947,7 +1947,7 @@ async function ensureDiscordResolvedFeedbackReaction(args: {
   const reactionResult = await createDiscordMessageReaction({
     channelId: args.report.discord_forum_thread_id,
     messageId: args.report.discord_forum_message_id,
-    emoji: "✅",
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   });
 
   if (reactionResult.ok) {
@@ -2862,41 +2862,7 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
         color: DISCORD_EMBED_COLOR_SUCCESS,
       },
     ],
-    components: [
-      {
-        type: 1,
-        components: [
-          {
-            type: 2,
-            style: 2,
-            custom_id: DISCORD_COMPUTA_OWNER_TOOLS_BUTTON_CUSTOM_ID,
-            label: "Owner Tools",
-          },
-        ],
-      },
-    ],
   };
-}
-
-function buildDiscordComputaOwnerCommandSummary(): string {
-  return [
-    "Owner-only Computa commands:",
-    "- `computa post live twitch` - Post the saved Twitch live announcement.",
-    "- `computa post live tiktok` - Post the saved TikTok live announcement.",
-    "- `computa post live [https://example.com/live]` - Post a custom live link.",
-    "- `computa post update [Title | body]` - Post a formatted green update card.",
-    "- `computa archive checked cards` - Archive active feedback forum cards that already have the success reaction.",
-    "- `computa sync feedback reactions` - Sync success reactions from resolved feedback tags.",
-  ].join("\n");
-}
-
-function handleDiscordComputaOwnerToolsButton(interaction: DiscordInteraction) {
-  const user = resolveDiscordInteractionUser(interaction);
-  if (user.id !== resolveDiscordComputaOwnerUserId()) {
-    return buildDiscordEphemeralMessageResponse("Owner tools are only available to the configured Fawxzzy owner account.");
-  }
-
-  return buildDiscordEphemeralMessageResponse(buildDiscordComputaOwnerCommandSummary());
 }
 
 function discordMessageHasProcessedCommandReaction(message: DiscordMessageCommand): boolean {
@@ -2927,6 +2893,10 @@ function discordMessageHasProcessedCommandReaction(message: DiscordMessageComman
 }
 
 function discordMessageHasCheckedReaction(message: DiscordMessageCommand): boolean {
+  return discordMessageHasCustomSuccessReaction(message) || discordMessageHasLegacySuccessReaction(message);
+}
+
+function discordMessageHasCustomSuccessReaction(message: DiscordMessageCommand): boolean {
   const reactions = Array.isArray(message.reactions) ? message.reactions : [];
   return reactions.some((reaction) => {
     if (!reaction || typeof reaction !== "object") {
@@ -2939,8 +2909,23 @@ function discordMessageHasCheckedReaction(message: DiscordMessageCommand): boole
         name?: unknown;
       };
     };
-    return candidate.emoji?.id === DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID
-      || candidate.emoji?.name === "\u2705";
+    return candidate.emoji?.id === DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID;
+  });
+}
+
+function discordMessageHasLegacySuccessReaction(message: DiscordMessageCommand): boolean {
+  const reactions = Array.isArray(message.reactions) ? message.reactions : [];
+  return reactions.some((reaction) => {
+    if (!reaction || typeof reaction !== "object") {
+      return false;
+    }
+
+    const candidate = reaction as {
+      emoji?: {
+        name?: unknown;
+      };
+    };
+    return candidate.emoji?.name === DISCORD_LEGACY_SUCCESS_REACTION;
   });
 }
 
@@ -3122,6 +3107,10 @@ async function authorizeDiscordCommanderMessageCommand(args: {
     return { ok: false, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
   }
 
+  if (authorId === resolveDiscordComputaOwnerUserId()) {
+    return { ok: true, authorId, messageId };
+  }
+
   const guildId = DISCORD_GUILD_ID();
   const rolesResult = await fetchDiscordGuildRoles({ guildId });
   if (!rolesResult.ok) {
@@ -3203,9 +3192,9 @@ async function processDiscordComputaMenuMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
 }) {
-  const messageId = typeof args.message.id === "string" ? args.message.id : null;
-  if (!messageId) {
-    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  if (!authorization.ok) {
+    return authorization;
   }
 
   const postResult = await replaceDiscordSingleBotChannelPost({
@@ -3224,7 +3213,7 @@ async function processDiscordComputaMenuMessageCommand(args: {
     });
     await markDiscordMessageCommandProcessed({
       channelId: args.channelId,
-      messageId,
+      messageId: authorization.messageId,
       emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
     });
     return postResult;
@@ -3232,16 +3221,9 @@ async function processDiscordComputaMenuMessageCommand(args: {
 
   await markDiscordMessageCommandProcessed({
     channelId: args.channelId,
-    messageId,
+    messageId: authorization.messageId,
     emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   });
-
-  if (args.message.author?.id === resolveDiscordComputaOwnerUserId()) {
-    await sendDiscordMessageCommandPrivateNotice({
-      userId: args.message.author.id,
-      content: buildDiscordComputaOwnerCommandSummary(),
-    });
-  }
 
   return { ok: true as const, action: postResult.action, deletedCount: postResult.deletedCount };
 }
@@ -3401,9 +3383,10 @@ async function syncDiscordFeedbackResolvedReactions() {
       ? thread.applied_tags.filter((tagId): tagId is string => typeof tagId === "string")
       : [];
     const shouldHaveReaction = appliedTagIds.some((tagId) => resolvedTagIds.has(tagId));
-    const hasReaction = discordMessageHasCheckedReaction(starterResult.message as DiscordMessageCommand);
+    const hasCustomReaction = discordMessageHasCustomSuccessReaction(starterResult.message as DiscordMessageCommand);
+    const hasLegacyReaction = discordMessageHasLegacySuccessReaction(starterResult.message as DiscordMessageCommand);
 
-    if (shouldHaveReaction && !hasReaction) {
+    if (shouldHaveReaction && !hasCustomReaction) {
       const reactionResult = await createDiscordMessageReaction({
         channelId: thread.id,
         messageId: thread.id,
@@ -3413,10 +3396,17 @@ async function syncDiscordFeedbackResolvedReactions() {
         return reactionResult;
       }
       addedCount += 1;
-      continue;
     }
 
-    if (!shouldHaveReaction && hasReaction) {
+    if (hasLegacyReaction) {
+      await deleteDiscordOwnMessageReaction({
+        channelId: thread.id,
+        messageId: thread.id,
+        emoji: DISCORD_LEGACY_SUCCESS_REACTION,
+      });
+    }
+
+    if (!shouldHaveReaction && hasCustomReaction) {
       const deleteResult = await deleteDiscordOwnMessageReaction({
         channelId: thread.id,
         messageId: thread.id,
@@ -7042,13 +7032,6 @@ export async function POST(request: Request) {
       && interaction.data?.custom_id === FITNESS_VERIFY_BUTTON_CUSTOM_ID
     ) {
       return jsonResponse(buildDiscordVerifyModalResponse());
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === DISCORD_COMPUTA_OWNER_TOOLS_BUTTON_CUSTOM_ID
-    ) {
-      return jsonResponse(handleDiscordComputaOwnerToolsButton(interaction));
     }
 
     if (

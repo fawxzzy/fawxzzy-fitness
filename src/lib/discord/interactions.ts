@@ -28,7 +28,6 @@ export const FITNESS_FEEDBACK_COMMAND_NAME = "feedback";
 export const FITNESS_FEEDBACK_STATUS_COMMAND_NAME = "feedback-status";
 export const FITNESS_FEEDBACK_COMPLETION_REVIEW_COMMAND_NAME = "feedback-completion-review";
 export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
-export const DISCORD_COMPUTA_OWNER_TOOLS_BUTTON_CUSTOM_ID = "computa_owner_tools";
 export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
 export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";

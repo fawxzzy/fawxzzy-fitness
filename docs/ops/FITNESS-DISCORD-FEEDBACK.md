@@ -26,9 +26,10 @@ Product rules:
 ## Command surface
 - `computa`
   - main-channel message trigger
+  - commander-only, with configured owner bypass
   - posts the user-facing Computa command card in the channel where it was used
   - shows normal command discovery only; owner-only live commands stay hidden from the public card
-  - includes an `Owner Tools` button that shows owner-only commands ephemerally to the configured owner
+  - does not expose owner-only tools as public buttons because Discord cannot hide public message components per user
   - deletes the previous Computa command card in that channel before reposting
   - marks the trigger message with a public reaction
 - `computa archive checked cards`
@@ -39,7 +40,8 @@ Product rules:
 - `computa sync feedback reactions`
   - main-channel message trigger
   - commander-only
-  - adds the configured success reaction when a Feedback forum starter has a resolved tag such as `Fixed` or `Closed`
+  - adds the configured success reaction when a Feedback forum starter has a resolved tag such as `Fixed`, `Closed`, `Resolved`, `Done`, `Complete`, or `Completed`
+  - migrates bot-owned legacy checkmark reactions to the configured success emoji
   - removes the configured success reaction when the starter no longer has a resolved tag
   - aliases: `computa feedback sync reactions`, `computa sync checked cards`
   - marks the trigger with the configured success/failure reaction
@@ -182,9 +184,9 @@ Pattern:
 - forum thread and tags
 
 ## Main-chat setup trigger
-`computa` posts the compact command card in the channel where it is used. Only one Computa command card is kept per channel; rerunning the command removes the previous card and posts the current one.
+`computa` posts the compact command card in the channel where it is used. Only one Computa command card is kept per channel; rerunning the command removes the previous card and posts the current one. This command is gated to `Fawxzzy Commander` members or the configured owner account.
 
-If the configured Computa owner runs `computa`, the public card stays normal-user-facing and owner-only commands must not be exposed publicly. A future interaction path can show owner-only commands ephemerally.
+If the configured Computa owner runs `computa`, the public card still stays normal-user-facing and owner-only commands must not be exposed publicly. A future slash-command or component path can show owner-only commands ephemerally.
 
 `computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
@@ -278,7 +280,7 @@ Implemented scope:
 - custom success/failure reactions for command outcomes
 - public reactions for message-created commands because they cannot use true Discord ephemeral replies
 - phrase aliases for feedback setup, archive checked cards, and feedback reaction sync
-- owner-only command discovery through the `Owner Tools` ephemeral button on the Computa card
+- `computa` itself is now commander-gated, with the configured owner allowed directly
 
 New command:
 - `computa archive checked cards`
