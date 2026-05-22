@@ -328,7 +328,10 @@ const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC = "Start here to submit or manage Fawxzzy Fitness feedback cards.";
 const DISCORD_COMMANDER_ROLE_NAME = "Fawxzzy Commander";
-const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGER = "bot feedback setup";
+const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
+  "bot feedback setup",
+  "bot setup feedback",
+];
 const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
 const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
 const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = "\u2705";
@@ -2523,8 +2526,8 @@ function normalizeDiscordMessageCommandContent(value: unknown): string {
 }
 
 function discordMessageRequestsFeedbackSetup(message: DiscordMessageCommand): boolean {
-  return normalizeDiscordMessageCommandContent(message.content)
-    .includes(DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGER);
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
 function discordMessageHasProcessedCommandReaction(message: DiscordMessageCommand): boolean {

@@ -29,7 +29,7 @@ Product rules:
   - posts or refreshes the persistent `Submit Feedback Here` launcher
   - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
   - otherwise finds or creates `submit-feedback` above the Feedback forum
-- main-channel message trigger: `bot feedback setup`
+- main-channel message triggers: `bot feedback setup` and `bot setup feedback`
   - requires the `Fawxzzy Commander` role after bootstrap
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`
@@ -141,7 +141,7 @@ Pattern:
 - forum thread and tags
 
 ## Main-chat setup trigger
-`bot feedback setup` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
+`bot feedback setup` or `bot setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
 Rules:
 - The trigger is case-insensitive.

@@ -23,6 +23,14 @@ test("feedback gateway worker detects only main-channel human trigger messages",
   );
   assert.equal(
     messageRequestsFeedbackSetup({
+      channel_id: "main-channel",
+      content: "please bot setup feedback",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsFeedbackSetup({
       channel_id: "other-channel",
       content: "bot feedback setup",
       author: { bot: false },
