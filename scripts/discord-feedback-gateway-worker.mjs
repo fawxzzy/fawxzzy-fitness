@@ -14,7 +14,10 @@ const DISCORD_GATEWAY_OPCODE = {
 };
 const DISCORD_GATEWAY_INTENT_GUILD_MESSAGES = 1 << 9;
 const DISCORD_GATEWAY_INTENT_MESSAGE_CONTENT = 1 << 15;
-const FEEDBACK_SETUP_TRIGGER = "bot feedback setup";
+const FEEDBACK_SETUP_TRIGGERS = [
+  "bot feedback setup",
+  "bot setup feedback",
+];
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 function readEnv(name, env = process.env) {
@@ -56,7 +59,8 @@ export function messageRequestsFeedbackSetup(message, mainChannelId) {
     return false;
   }
 
-  return normalizeDiscordMessageCommandContent(message.content).includes(FEEDBACK_SETUP_TRIGGER);
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
 export function resolveDiscordMessageCommandPollUrl(env = process.env) {
