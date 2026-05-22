@@ -1,8 +1,40 @@
+import path from "node:path";
+import process from "node:process";
 import { spawnSync } from "node:child_process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseDotenvFile } from "../env-file.mjs";
 const MIGRATION_ROW = /^\s*(\d+)?\s*\|\s*(\d+)?\s*\|/;
+const currentFilePath = fileURLToPath(import.meta.url);
+const repoRoot = path.resolve(path.dirname(currentFilePath), "..", "..");
+const atlasRoot = path.resolve(repoRoot, "..", "..");
+const LOCAL_REMOTE_DB_ENV_PATH = path.join(atlasRoot, "secrets", "local", "fawxzzy-fitness-prod-db.env");
+const EXPECTED_PROJECT_REF = "lpswxoyfniocuhljgzbc";
+
+function resolveSupabaseCommandEnv() {
+  const commandEnv = { ...process.env };
+  const hasPassword = typeof commandEnv.SUPABASE_DB_PASSWORD === "string" && commandEnv.SUPABASE_DB_PASSWORD.trim().length > 0;
+  if (hasPassword) {
+    return commandEnv;
+  }
+
+  const localSecretEnv = parseDotenvFile(LOCAL_REMOTE_DB_ENV_PATH);
+  const localProjectRef = String(localSecretEnv.SUPABASE_PROJECT_REF ?? "").trim();
+  if (localProjectRef && localProjectRef !== EXPECTED_PROJECT_REF) {
+    throw new Error(
+      `Refusing to use ${LOCAL_REMOTE_DB_ENV_PATH} because SUPABASE_PROJECT_REF must be ${EXPECTED_PROJECT_REF}, got ${localProjectRef}.`,
+    );
+  }
+
+  const localPassword = String(localSecretEnv.SUPABASE_DB_PASSWORD ?? "").trim();
+  if (localPassword) {
+    commandEnv.SUPABASE_DB_PASSWORD = localPassword;
+  }
+
+  return commandEnv;
+}
 
 export function runSupabaseCommand(args) {
+  const commandEnv = resolveSupabaseCommandEnv();
   const result = spawnSync(
     process.platform === "win32" ? "cmd.exe" : "npx",
     process.platform === "win32"
@@ -11,6 +43,7 @@ export function runSupabaseCommand(args) {
     {
       cwd: process.cwd(),
       encoding: "utf8",
+      env: commandEnv,
       shell: false,
     },
   );
@@ -55,7 +88,22 @@ export function parsePendingDryRun(output) {
 }
 
 export function getMigrationHistoryDrift() {
-  const migrationList = runSupabaseCommand(["supabase", "migration", "list", "--linked"]);
+  let migrationList;
+  try {
+    migrationList = runSupabaseCommand(["supabase", "migration", "list", "--linked"]);
+  } catch (error) {
+    return {
+      ok: false,
+      command: "npx supabase migration list --linked",
+      result: {
+        status: 1,
+        stdout: "",
+        stderr: "",
+        combined: error instanceof Error ? error.message : String(error),
+      },
+      mismatches: [],
+    };
+  }
 
   if (migrationList.status !== 0) {
     return {

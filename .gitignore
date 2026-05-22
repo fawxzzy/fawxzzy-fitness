@@ -28,5 +28,6 @@ public/splash/*.png
 .codex/logs/
 .codex/qa/*
 !.codex/qa/cdp-edge.mjs
+runtime/fitness/release-draft.json
 
 .vercel
