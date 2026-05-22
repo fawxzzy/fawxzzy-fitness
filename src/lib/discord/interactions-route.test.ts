@@ -1331,6 +1331,8 @@ test("Discord message command poll replaces one owner computa command menu per c
       assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
       assert.equal(body?.embeds?.[0]?.footer?.text, "fawx-computa-owner-command-menu:v1");
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa owner` - Show this owner command card\./);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa repair command card`/);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa repair feedback launcher`/);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa archive checked cards`/);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa post live twitch`/);
       assert.equal(body?.components, undefined);
@@ -1375,6 +1377,101 @@ test("Discord message command poll replaces one owner computa command menu per c
     delete process.env.DISCORD_MAIN_CHANNEL_ID;
     delete process.env.DISCORD_APPLICATION_ID;
     delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
+  }
+});
+
+test("Discord message command poll repairs the public computa command card for commanders", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+
+  const originalFetch = globalThis.fetch;
+  let postedMenu = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      if (url.searchParams.get("limit") === "25") {
+        return new Response(JSON.stringify([
+          {
+            id: "main-message-computa-repair",
+            content: "computa repair command card",
+            author: { id: "123456789012345678", bot: false },
+            member: { roles: ["commander-role"] },
+            reactions: [],
+          },
+        ]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      postedMenu = true;
+      assert.equal(body?.embeds?.[0]?.title, "Computa");
+      return new Response(JSON.stringify({ id: "new-computa-menu" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-repair/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-computa-repair",
+          ok: true,
+          code: null,
+          action: "posted",
+        },
+      ],
+    });
+    assert.equal(postedMenu, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
   }
 });
 

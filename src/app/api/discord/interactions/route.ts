@@ -338,6 +338,14 @@ const DISCORD_MESSAGE_COMMAND_FEEDBACK_REACTION_SYNC_TRIGGERS = [
   "computa feedback sync reactions",
   "computa sync checked cards",
 ];
+const DISCORD_MESSAGE_COMMAND_COMMAND_CARD_REPAIR_TRIGGERS = [
+  "computa repair command card",
+  "computa repair computa",
+];
+const DISCORD_MESSAGE_COMMAND_FEEDBACK_LAUNCHER_REPAIR_TRIGGERS = [
+  "computa repair feedback launcher",
+  "computa repair feedback setup",
+];
 const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
 const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";
 const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy";
@@ -2652,6 +2660,15 @@ function discordMessageRequestsComputaOwnerMenu(message: DiscordMessageCommand):
   return normalizeDiscordMessageCommandContent(message.content) === "computa owner";
 }
 
+function discordMessageRequestsComputaCommandCardRepair(message: DiscordMessageCommand): boolean {
+  return DISCORD_MESSAGE_COMMAND_COMMAND_CARD_REPAIR_TRIGGERS.includes(normalizeDiscordMessageCommandContent(message.content));
+}
+
+function discordMessageRequestsComputaFeedbackLauncherRepair(message: DiscordMessageCommand): boolean {
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return DISCORD_MESSAGE_COMMAND_FEEDBACK_LAUNCHER_REPAIR_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
+}
+
 function resolveDiscordComputaOwnerUserId(): string {
   return optionalEnv("DISCORD_COMPUTA_OWNER_USER_ID") ?? DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT;
 }
@@ -2795,6 +2812,8 @@ function discordMessageRequestsComputaUpdate(message: DiscordMessageCommand): bo
 function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): boolean {
   return discordMessageRequestsComputaMenu(message)
     || discordMessageRequestsComputaOwnerMenu(message)
+    || discordMessageRequestsComputaCommandCardRepair(message)
+    || discordMessageRequestsComputaFeedbackLauncherRepair(message)
     || discordMessageRequestsFeedbackSetup(message)
     || discordMessageRequestsArchiveCheckedCards(message)
     || discordMessageRequestsFeedbackReactionSync(message)
@@ -2919,6 +2938,8 @@ function buildDiscordComputaOwnerCommandMenuPayload(): Record<string, unknown> {
           "`computa owner` - Show this owner command card.",
           "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
+          "`computa repair command card` - Repost the public command card.",
+          "`computa repair feedback launcher` - Repost feedback buttons in this channel.",
           "`computa archive checked cards` - Archive resolved feedback cards with the success reaction.",
           "`computa sync feedback reactions` - Sync resolved feedback cards to the success reaction.",
           "`computa post update [Title | body]` - Post a formatted update.",
@@ -3930,6 +3951,16 @@ async function pollDiscordMessageCommands() {
       });
     } else if (discordMessageRequestsComputaOwnerMenu(candidate)) {
       result = await processDiscordComputaOwnerMenuMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else if (discordMessageRequestsComputaCommandCardRepair(candidate)) {
+      result = await processDiscordComputaMenuMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else if (discordMessageRequestsComputaFeedbackLauncherRepair(candidate)) {
+      result = await processDiscordFeedbackSetupMessageCommand({
         channelId,
         message: candidate,
       });

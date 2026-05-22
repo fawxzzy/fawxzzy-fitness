@@ -38,6 +38,16 @@ Product rules:
   - posts a separate owner command card in the channel where it was used
   - deletes the previous owner command card in that channel before reposting
   - marks the trigger message with a public reaction
+- `computa repair command card`
+  - main-channel exact-message trigger
+  - commander-only, with configured owner bypass
+  - reposts the current public Computa command card in the channel where it was used
+  - aliases: `computa repair computa`
+- `computa repair feedback launcher`
+  - main-channel message trigger
+  - commander-only, with configured owner bypass
+  - reposts the feedback launcher in the channel where it was used
+  - aliases: `computa repair feedback setup`
 - `computa archive checked cards`
   - main-channel message trigger
   - commander-only
