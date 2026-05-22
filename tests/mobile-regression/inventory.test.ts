@@ -3,21 +3,22 @@ import test from "node:test";
 
 import { mobileRegressionScenarios } from "../../src/features/mobile-regression/fixtures.ts";
 
-test("fixture inventory covers all mobile screens from the pre-fix set", () => {
+test("fixture inventory covers the current canonical mobile screen set", () => {
   const byRoute = new Map<string, number>();
   for (const scenario of mobileRegressionScenarios) {
     byRoute.set(scenario.route, (byRoute.get(scenario.route) ?? 0) + 1);
   }
 
-  assert.equal(byRoute.get("today"), 5);
+  assert.equal(byRoute.get("today"), 6);
   assert.equal(byRoute.get("session"), 12);
   assert.equal(byRoute.get("routines"), 2);
   assert.equal(byRoute.get("viewDay"), 3);
   assert.equal(byRoute.get("editDay"), 6);
   assert.equal(byRoute.get("createRoutine"), 1);
   assert.equal(byRoute.get("editRoutine"), 1);
-  assert.equal(byRoute.get("addExercise"), 1);
+  assert.equal(byRoute.get("addExercise"), 2);
   assert.equal(byRoute.get("historySessions"), 2);
+  assert.equal(byRoute.get("historyProgression"), 2);
   assert.equal(byRoute.get("historyExercises"), 5);
   assert.equal(byRoute.get("historyDetail"), 1);
   assert.equal(byRoute.get("settings"), 2);
