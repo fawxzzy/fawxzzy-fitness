@@ -62,6 +62,11 @@ Feedback-facing commands should remain:
 
 Message-content triggers are intentionally rare. Any future main-chat phrase command should use the same `Fawxzzy Commander` role gate, main-channel-only polling, processed-message marker, and secret-protected cron route.
 
+Runtime note:
+- The Vercel Hobby plan only allows daily cron schedules.
+- Near-real-time message-content triggers require either an external scheduler that calls the secret poll route or a persistent Discord Gateway worker.
+- Do not claim `bot feedback setup` is live as an automatic main-chat trigger unless one of those runners is active.
+
 Separate production-update staff commands may also exist:
 - `update-latest`
 - `update-publish`
@@ -147,6 +152,7 @@ Rules:
 - If the role does not exist, a member with Manage Server or Administrator may bootstrap it; the bot creates `Fawxzzy Commander`, assigns it to that member when allowed, and runs setup.
 - The poll endpoint requires `Authorization: Bearer <DISCORD_MESSAGE_COMMAND_POLL_SECRET>` or `Authorization: Bearer <CRON_SECRET>`.
 - Successful processing replies compactly to the source message and marks it processed.
+- Vercel Hobby cannot run this poll frequently enough by itself; use an external scheduler or a persistent Gateway worker for near-real-time behavior.
 
 This is not a broad chat-command framework. Future phrase commands must stay role-gated, low-noise, idempotent, and documented before release.
 
