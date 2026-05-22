@@ -9,14 +9,14 @@ import {
 } from "./discord-feedback-gateway-worker.mjs";
 
 test("feedback gateway worker normalizes trigger text", () => {
-  assert.equal(normalizeDiscordMessageCommandContent("Yo   BOT Feedback SETUP please"), "yo bot feedback setup please");
+  assert.equal(normalizeDiscordMessageCommandContent("Yo   COMPUTA Feedback SETUP please"), "yo computa feedback setup please");
 });
 
 test("feedback gateway worker detects only main-channel human trigger messages", () => {
   assert.equal(
     messageRequestsFeedbackSetup({
       channel_id: "main-channel",
-      content: "please bot feedback setup",
+      content: "please computa feedback setup",
       author: { bot: false },
     }, "main-channel"),
     true,
@@ -24,7 +24,7 @@ test("feedback gateway worker detects only main-channel human trigger messages",
   assert.equal(
     messageRequestsFeedbackSetup({
       channel_id: "main-channel",
-      content: "please bot setup feedback",
+      content: "please computa setup feedback",
       author: { bot: false },
     }, "main-channel"),
     true,
@@ -32,7 +32,7 @@ test("feedback gateway worker detects only main-channel human trigger messages",
   assert.equal(
     messageRequestsFeedbackSetup({
       channel_id: "other-channel",
-      content: "bot feedback setup",
+      content: "computa feedback setup",
       author: { bot: false },
     }, "main-channel"),
     false,
@@ -40,7 +40,7 @@ test("feedback gateway worker detects only main-channel human trigger messages",
   assert.equal(
     messageRequestsFeedbackSetup({
       channel_id: "main-channel",
-      content: "bot feedback setup",
+      content: "computa feedback setup",
       author: { bot: true },
     }, "main-channel"),
     false,

@@ -15,8 +15,8 @@ const DISCORD_GATEWAY_OPCODE = {
 const DISCORD_GATEWAY_INTENT_GUILD_MESSAGES = 1 << 9;
 const DISCORD_GATEWAY_INTENT_MESSAGE_CONTENT = 1 << 15;
 const FEEDBACK_SETUP_TRIGGERS = [
-  "bot feedback setup",
-  "bot setup feedback",
+  "computa feedback setup",
+  "computa setup feedback",
 ];
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
