@@ -921,6 +921,28 @@ export async function createDiscordForumThreadWithMessage(args: {
   };
 }
 
+export async function deleteDiscordOwnMessageReaction(args: {
+  channelId: string;
+  messageId: string;
+  emoji: string;
+}): Promise<{ ok: true } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<null>(
+    `/channels/${args.channelId}/messages/${args.messageId}/reactions/${encodeURIComponent(args.emoji)}/@me`,
+    { method: "DELETE" },
+  );
+
+  if (result.ok || result.status === 204 || result.status === 404) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_DELETE_REACTION_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
 export async function createDiscordThreadMessage(args: {
   threadId: string;
   content: string;

@@ -4,8 +4,10 @@ import {
   calculateDiscordGatewayReconnectDelayMs,
   callDiscordMessageCommandPoll,
   messageRequestsComputaArchiveCheckedCards,
+  messageRequestsComputaFeedbackReactionSync,
   messageRequestsComputaLive,
   messageRequestsComputaMenu,
+  messageRequestsComputaUpdate,
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
   normalizeDiscordMessageCommandContent,
@@ -111,6 +113,41 @@ test("feedback gateway worker detects owner live message command shapes", () => 
   );
 });
 
+test("feedback gateway worker detects owner formatted update command shapes", () => {
+  assert.equal(
+    messageRequestsComputaUpdate({
+      channel_id: "main-channel",
+      content: "computa post update [Title | Body copy]",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaUpdate({
+      channel_id: "main-channel",
+      content: "computa update [Title | Body copy]",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaUpdate({
+      channel_id: "main-channel",
+      content: "computa post update [Title | Body copy]",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa post update [Title | Body copy]",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
 test("feedback gateway worker detects exact computa menu messages", () => {
   assert.equal(
     messageRequestsComputaMenu({
@@ -183,6 +220,41 @@ test("feedback gateway worker detects archive checked card command aliases", () 
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa archive checked cards",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects feedback reaction sync command aliases", () => {
+  assert.equal(
+    messageRequestsComputaFeedbackReactionSync({
+      channel_id: "main-channel",
+      content: "computa sync feedback reactions",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaFeedbackReactionSync({
+      channel_id: "main-channel",
+      content: "please computa feedback sync reactions",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaFeedbackReactionSync({
+      channel_id: "main-channel",
+      content: "computa sync checked cards",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa sync checked cards",
       author: { bot: false },
     }, "main-channel"),
     true,

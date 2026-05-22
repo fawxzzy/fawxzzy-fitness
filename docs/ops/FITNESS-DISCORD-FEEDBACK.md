@@ -28,7 +28,7 @@ Product rules:
   - main-channel message trigger
   - posts the user-facing Computa command card in the channel where it was used
   - shows normal command discovery only; owner-only live commands stay hidden from the public card
-  - keeps owner-only command details out of the public card; true user-only notices should use interaction ephemerals when available
+  - includes an `Owner Tools` button that shows owner-only commands ephemerally to the configured owner
   - deletes the previous Computa command card in that channel before reposting
   - marks the trigger message with a public reaction
 - `computa archive checked cards`
@@ -36,6 +36,13 @@ Product rules:
   - commander-only
   - archives active Feedback forum cards whose starter post already has the configured success reaction
   - marks the trigger with the configured success/failure reaction; detailed private output should use interaction ephemerals where possible
+- `computa sync feedback reactions`
+  - main-channel message trigger
+  - commander-only
+  - adds the configured success reaction when a Feedback forum starter has a resolved tag such as `Fixed` or `Closed`
+  - removes the configured success reaction when the starter no longer has a resolved tag
+  - aliases: `computa feedback sync reactions`, `computa sync checked cards`
+  - marks the trigger with the configured success/failure reaction
 - `/setup-feedback`
   - admin-only
   - deletes the old post and reposts the persistent `Submit Feedback Here` launcher
@@ -63,6 +70,12 @@ Product rules:
   - marks the trigger message with a public reaction
   - marks permission/failure/success outcomes with reactions; detailed private output should use interaction ephemerals where possible
   - is protected by the same message-command poll secret and worker path
+- owner-only main-channel update trigger:
+  - `computa post update [Title | body]`
+  - posts a green embed card in `DISCORD_UPDATES_CHANNEL_ID`
+  - does not mention everyone or roles
+  - only the configured owner account can run it
+  - marks the trigger message with a public reaction
 - `/setup-verify`
   - admin-only
   - posts or refreshes the verification panel
@@ -260,14 +273,18 @@ Implemented scope:
 - fallback interval polling so missed Gateway events still get processed
 - role-gated operator commands using `Fawxzzy Commander`
 - owner-only live announcement lane
+- owner-only formatted update-post lane
 - one-per-channel canonical post replacement for `computa` and feedback setup
 - custom success/failure reactions for command outcomes
 - public reactions for message-created commands because they cannot use true Discord ephemeral replies
-- phrase aliases for feedback setup and archive checked cards
+- phrase aliases for feedback setup, archive checked cards, and feedback reaction sync
+- owner-only command discovery through the `Owner Tools` ephemeral button on the Computa card
 
 New command:
 - `computa archive checked cards`
 - aliases: `computa archive checked`, `computa archive resolved cards`, `computa feedback archive checked cards`
+- `computa sync feedback reactions`
+- aliases: `computa feedback sync reactions`, `computa sync checked cards`
 
 Planned but not implemented in this foundation:
 - AI-backed Feedback Intake Assistant
@@ -276,6 +293,9 @@ Planned but not implemented in this foundation:
 - release ledger guard automation
 - broader moderation cleanup helpers
 - Music Sesh command role and command tree
+- AI-backed update formatting assistant
+- automatic thread notes
+- pinned/canonical message repair beyond current Computa and feedback launcher posts
 
 Rule:
 - Automate repetitive deterministic Discord work first. Anything that requires reasoning should stay behind explicit confirmation or a future AI-backed lane.
