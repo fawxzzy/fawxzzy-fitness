@@ -10,6 +10,7 @@ import {
   messageRequestsComputaLive,
   messageRequestsComputaMenu,
   messageRequestsComputaOwnerMenu,
+  messageRequestsComputaReleaseCheck,
   messageRequestsComputaUpdate,
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
@@ -344,6 +345,41 @@ test("feedback gateway worker detects feedback reaction sync command aliases", (
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa sync checked cards",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects release ledger check command aliases", () => {
+  assert.equal(
+    messageRequestsComputaReleaseCheck({
+      channel_id: "main-channel",
+      content: "computa release check",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaReleaseCheck({
+      channel_id: "main-channel",
+      content: "please computa ledger check",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaReleaseCheck({
+      channel_id: "main-channel",
+      content: "computa release check",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa check release",
       author: { bot: false },
     }, "main-channel"),
     true,

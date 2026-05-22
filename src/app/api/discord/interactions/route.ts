@@ -64,6 +64,7 @@ import {
   buildDiscordVerifyMessagePayload,
   buildDiscordVerifyModalResponse,
   DISCORD_EMBED_COLOR_SUCCESS,
+  DISCORD_EMBED_COLOR_WARNING,
   DISCORD_MESSAGE_FLAG_EPHEMERAL,
   DISCORD_PERMISSION_ADD_REACTIONS,
   DISCORD_PERMISSION_ADMINISTRATOR,
@@ -346,11 +347,18 @@ const DISCORD_MESSAGE_COMMAND_FEEDBACK_LAUNCHER_REPAIR_TRIGGERS = [
   "computa repair feedback launcher",
   "computa repair feedback setup",
 ];
+const DISCORD_MESSAGE_COMMAND_RELEASE_CHECK_TRIGGERS = [
+  "computa release check",
+  "computa check release",
+  "computa ledger check",
+  "computa check ledger",
+];
 const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
 const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";
 const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy";
 const DISCORD_COMPUTA_COMMAND_MENU_MARKER = "fawx-computa-command-menu:v1";
 const DISCORD_COMPUTA_OWNER_COMMAND_MENU_MARKER = "fawx-computa-owner-command-menu:v1";
+const DISCORD_COMPUTA_RELEASE_CHECK_MARKER = "fawx-computa-release-check:v1";
 const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
 const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
 const DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID = "1507384062166302851";
@@ -2669,6 +2677,11 @@ function discordMessageRequestsComputaFeedbackLauncherRepair(message: DiscordMes
   return DISCORD_MESSAGE_COMMAND_FEEDBACK_LAUNCHER_REPAIR_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
+function discordMessageRequestsComputaReleaseCheck(message: DiscordMessageCommand): boolean {
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return DISCORD_MESSAGE_COMMAND_RELEASE_CHECK_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
+}
+
 function resolveDiscordComputaOwnerUserId(): string {
   return optionalEnv("DISCORD_COMPUTA_OWNER_USER_ID") ?? DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT;
 }
@@ -2814,6 +2827,7 @@ function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): b
     || discordMessageRequestsComputaOwnerMenu(message)
     || discordMessageRequestsComputaCommandCardRepair(message)
     || discordMessageRequestsComputaFeedbackLauncherRepair(message)
+    || discordMessageRequestsComputaReleaseCheck(message)
     || discordMessageRequestsFeedbackSetup(message)
     || discordMessageRequestsArchiveCheckedCards(message)
     || discordMessageRequestsFeedbackReactionSync(message)
@@ -2938,19 +2952,14 @@ function buildDiscordComputaOwnerCommandMenuPayload(): Record<string, unknown> {
           "`computa owner` - Show this owner command card.",
           "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
-          "`computa repair command card` - Repost the public command card.",
-          "`computa repair feedback launcher` - Repost feedback buttons in this channel.",
+          "`computa release check` - Check Feedback release ledger reactions.",
           "`computa archive checked cards` - Archive resolved feedback cards with the success reaction.",
-          "`computa sync feedback reactions` - Sync resolved feedback cards to the success reaction.",
           "`computa post update [Title | body]` - Post a formatted update.",
           "`computa post live twitch` - Post the saved Twitch live announcement.",
           "`computa post live tiktok` - Post the saved TikTok live announcement.",
           "`computa post live [link]` - Post a custom live announcement.",
         ].join("\n"),
         color: DISCORD_EMBED_COLOR_SUCCESS,
-        footer: {
-          text: DISCORD_COMPUTA_OWNER_COMMAND_MENU_MARKER,
-        },
       },
     ],
   };
@@ -3648,6 +3657,172 @@ async function syncDiscordFeedbackResolvedReactions() {
   };
 }
 
+function discordMessageHasComputaReleaseCheck(message: unknown): boolean {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  const embeds = "embeds" in message ? (message as { embeds?: unknown }).embeds : undefined;
+  if (!Array.isArray(embeds)) {
+    return false;
+  }
+
+  return embeds.some((embed) => {
+    if (!embed || typeof embed !== "object") {
+      return false;
+    }
+
+    const footer = "footer" in embed ? (embed as { footer?: unknown }).footer : undefined;
+    if (footer && typeof footer === "object" && "text" in footer) {
+      return (footer as { text?: unknown }).text === DISCORD_COMPUTA_RELEASE_CHECK_MARKER;
+    }
+
+    return "title" in embed && (embed as { title?: unknown }).title === "Computa Release Check";
+  });
+}
+
+async function buildDiscordReleaseLedgerCheckPayload(): Promise<
+  | { ok: true; body: Record<string, unknown>; issueCount: number }
+  | { ok: false; code: string; status?: number; message?: string | null }
+> {
+  const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
+  if (!forumChannelId) {
+    return { ok: false as const, code: "DISCORD_FEEDBACK_FORUM_NOT_CONFIGURED" };
+  }
+
+  const forumResult = await fetchDiscordChannel({ channelId: forumChannelId });
+  if (!forumResult.ok) {
+    return forumResult;
+  }
+
+  const resolvedTagIds = new Set(resolveDiscordForumTagIdsByNames(forumResult.channel, DISCORD_FEEDBACK_RESOLVED_TAG_NAMES));
+  if (resolvedTagIds.size === 0) {
+    return { ok: false as const, code: "DISCORD_FEEDBACK_RESOLVED_TAGS_NOT_FOUND" };
+  }
+
+  const threadsResult = await listDiscordFeedbackThreadsForReactionSync(forumChannelId);
+  if (!threadsResult.ok) {
+    return threadsResult;
+  }
+
+  let resolvedCount = 0;
+  let missingSuccessCount = 0;
+  let unresolvedWithSuccessCount = 0;
+  let legacyReactionCount = 0;
+  let skippedCount = 0;
+
+  for (const thread of threadsResult.threads) {
+    const starterResult = await fetchDiscordChannelMessage({
+      channelId: thread.id,
+      messageId: thread.id,
+    });
+    if (!starterResult.ok) {
+      skippedCount += 1;
+      continue;
+    }
+
+    const appliedTagIds = Array.isArray(thread.applied_tags) ? thread.applied_tags : [];
+    const isResolved = appliedTagIds.some((tagId) => resolvedTagIds.has(tagId));
+    const hasCustomSuccess = discordMessageHasCustomSuccessReaction(starterResult.message as DiscordMessageCommand);
+    const hasLegacySuccess = discordMessageHasLegacySuccessReaction(starterResult.message as DiscordMessageCommand);
+
+    if (isResolved) {
+      resolvedCount += 1;
+      if (!hasCustomSuccess) {
+        missingSuccessCount += 1;
+      }
+    } else if (hasCustomSuccess) {
+      unresolvedWithSuccessCount += 1;
+    }
+
+    if (hasLegacySuccess) {
+      legacyReactionCount += 1;
+    }
+  }
+
+  const issueCount = missingSuccessCount + unresolvedWithSuccessCount + legacyReactionCount;
+  const scanNotes = [
+    threadsResult.skippedArchivedPublic ? "- Archived public scan was skipped by Discord permissions." : null,
+    threadsResult.skippedArchivedPrivate ? "- Archived private scan was skipped by Discord permissions." : null,
+    skippedCount > 0 ? `- ${skippedCount} starter post(s) could not be inspected.` : null,
+  ].filter(Boolean);
+
+  return {
+    ok: true as const,
+    issueCount,
+    body: {
+      content: "",
+      allowed_mentions: {
+        parse: [],
+      },
+      embeds: [
+        {
+          title: "Computa Release Check",
+          description: [
+            issueCount === 0
+              ? "Feedback release ledger checks are clean."
+              : "Feedback release ledger checks need attention.",
+            "",
+            `Resolved cards scanned: ${resolvedCount}`,
+            `Missing success reaction: ${missingSuccessCount}`,
+            `Unresolved cards with success reaction: ${unresolvedWithSuccessCount}`,
+            `Legacy white-checkmark reactions: ${legacyReactionCount}`,
+            `Total forum cards scanned: ${threadsResult.threads.length}`,
+            ...(scanNotes.length > 0 ? ["", ...scanNotes] : []),
+          ].join("\n"),
+          color: issueCount === 0 ? DISCORD_EMBED_COLOR_SUCCESS : DISCORD_EMBED_COLOR_WARNING,
+          footer: {
+            text: DISCORD_COMPUTA_RELEASE_CHECK_MARKER,
+          },
+        },
+      ],
+    },
+  };
+}
+
+async function processDiscordReleaseLedgerCheckMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  if (!authorization.ok) {
+    return authorization;
+  }
+
+  const payloadResult = await buildDiscordReleaseLedgerCheckPayload();
+  if (!payloadResult.ok) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId: authorization.messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return payloadResult;
+  }
+
+  const postResult = await replaceDiscordSingleBotChannelPost({
+    channelId: args.channelId,
+    body: payloadResult.body,
+    matchesMessage: discordMessageHasComputaReleaseCheck,
+    logLabel: "computa-release-check",
+  });
+
+  if (!postResult.ok) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId: authorization.messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return postResult;
+  }
+
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId: authorization.messageId,
+    emoji: payloadResult.issueCount === 0 ? DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION : DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+  });
+  return { ok: true as const, action: "checked", issueCount: payloadResult.issueCount };
+}
+
 async function processDiscordArchiveCheckedCardsMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
@@ -3940,6 +4115,7 @@ async function pollDiscordMessageCommands() {
       | Awaited<ReturnType<typeof processDiscordComputaOwnerMenuMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaLiveMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaUpdateMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordReleaseLedgerCheckMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordArchiveCheckedCardsMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordFeedbackReactionSyncMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordFeedbackSetupMessageCommand>>;
@@ -3961,6 +4137,11 @@ async function pollDiscordMessageCommands() {
       });
     } else if (discordMessageRequestsComputaFeedbackLauncherRepair(candidate)) {
       result = await processDiscordFeedbackSetupMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else if (discordMessageRequestsComputaReleaseCheck(candidate)) {
+      result = await processDiscordReleaseLedgerCheckMessageCommand({
         channelId,
         message: candidate,
       });

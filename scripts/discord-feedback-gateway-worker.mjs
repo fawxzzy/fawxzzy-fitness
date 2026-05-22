@@ -168,6 +168,28 @@ export function messageRequestsComputaFeedbackLauncherRepair(message, mainChanne
   ].some((trigger) => normalizeDiscordMessageCommandContent(message.content).includes(trigger));
 }
 
+export function messageRequestsComputaReleaseCheck(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return [
+    "computa release check",
+    "computa check release",
+    "computa ledger check",
+    "computa check ledger",
+  ].some((trigger) => normalizedContent.includes(trigger));
+}
+
 export function messageRequestsComputaArchiveCheckedCards(message, mainChannelId) {
   if (!message || typeof message !== "object") {
     return false;
@@ -216,6 +238,7 @@ export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
     || messageRequestsComputaOwnerMenu(message, mainChannelId)
     || messageRequestsComputaCommandCardRepair(message, mainChannelId)
     || messageRequestsComputaFeedbackLauncherRepair(message, mainChannelId)
+    || messageRequestsComputaReleaseCheck(message, mainChannelId)
     || messageRequestsFeedbackSetup(message, mainChannelId)
     || messageRequestsComputaArchiveCheckedCards(message, mainChannelId)
     || messageRequestsComputaFeedbackReactionSync(message, mainChannelId)
