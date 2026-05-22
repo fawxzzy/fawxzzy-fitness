@@ -2742,7 +2742,10 @@ function discordMessageHasComputaCommandMenu(message: unknown): boolean {
       return (footer as { text?: unknown }).text === DISCORD_COMPUTA_COMMAND_MENU_MARKER;
     }
 
-    return "title" in embed && (embed as { title?: unknown }).title === "Computa";
+    return "title" in embed && (
+      (embed as { title?: unknown }).title === "Computa"
+      || (embed as { title?: unknown }).title === "Computa Commands"
+    );
   });
 }
 
@@ -2754,20 +2757,13 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
     },
     embeds: [
       {
-        title: "Computa",
+        title: "Computa Commands",
         description: [
           "`computa` - Show this command card.",
           "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
-          "`computa post live twitch` - Owner-only Twitch live announcement.",
-          "`computa post live tiktok` - Owner-only TikTok live announcement.",
-          "`computa post live [link]` - Owner-only custom live announcement.",
-          "`live` - Owner-only live announcement.",
         ].join("\n"),
         color: DISCORD_EMBED_COLOR_SUCCESS,
-        footer: {
-          text: DISCORD_COMPUTA_COMMAND_MENU_MARKER,
-        },
       },
     ],
   };

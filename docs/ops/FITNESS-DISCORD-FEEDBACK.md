@@ -27,6 +27,7 @@ Product rules:
 - `computa`
   - main-channel message trigger
   - posts the user-facing Computa command card in the channel where it was used
+  - shows normal command discovery only; owner-only live commands stay hidden from the public card
   - deletes the previous Computa command card in that channel before reposting
   - marks the trigger message with a public reaction
 - `/setup-feedback`

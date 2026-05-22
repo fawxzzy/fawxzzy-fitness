@@ -1200,11 +1200,13 @@ test("Discord message command poll replaces one computa command menu per channel
       const body = parseJsonBody(init?.body);
       postedBodies.push(body);
       assert.equal(body?.content, "");
-      assert.equal(body?.embeds?.[0]?.title, "Computa");
+      assert.equal(body?.embeds?.[0]?.title, "Computa Commands");
       assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
-      assert.equal(body?.embeds?.[0]?.footer?.text, "fawx-computa-command-menu:v1");
+      assert.equal(body?.embeds?.[0]?.footer, undefined);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa` - Show this command card\./);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa feedback setup`/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /live/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /Owner-only/);
       assert.deepEqual(body?.allowed_mentions, { parse: [] });
       return new Response(JSON.stringify({ id: "new-computa-menu" }), {
         status: 200,
