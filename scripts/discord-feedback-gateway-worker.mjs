@@ -63,6 +63,27 @@ export function messageRequestsFeedbackSetup(message, mainChannelId) {
   return FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
+export function messageRequestsComputaLive(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return normalizedContent === "live" || normalizedContent.startsWith("computa live");
+}
+
+export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
+  return messageRequestsFeedbackSetup(message, mainChannelId) || messageRequestsComputaLive(message, mainChannelId);
+}
+
 export function resolveDiscordMessageCommandPollUrl(env = process.env) {
   const explicitUrl = readEnv("DISCORD_MESSAGE_COMMAND_POLL_URL", env);
   if (explicitUrl) {
@@ -301,7 +322,7 @@ export class DiscordFeedbackGatewayWorker {
   }
 
   async handleMessageCreate(message) {
-    if (!messageRequestsFeedbackSetup(message, this.mainChannelId)) {
+    if (!messageRequestsDiscordMessageCommand(message, this.mainChannelId)) {
       return;
     }
 

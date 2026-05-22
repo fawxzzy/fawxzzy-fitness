@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   calculateDiscordGatewayReconnectDelayMs,
   callDiscordMessageCommandPoll,
+  messageRequestsComputaLive,
+  messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
   normalizeDiscordMessageCommandContent,
   resolveDiscordMessageCommandPollUrl,
@@ -44,6 +46,57 @@ test("feedback gateway worker detects only main-channel human trigger messages",
       author: { bot: true },
     }, "main-channel"),
     false,
+  );
+});
+
+test("feedback gateway worker detects owner live message command shapes", () => {
+  assert.equal(
+    messageRequestsComputaLive({
+      channel_id: "main-channel",
+      content: "live",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaLive({
+      channel_id: "main-channel",
+      content: "computa live twitch",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaLive({
+      channel_id: "main-channel",
+      content: "computa live [https://example.com/live]",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaLive({
+      channel_id: "main-channel",
+      content: "computa live twitch",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaLive({
+      channel_id: "other-channel",
+      content: "live",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa setup feedback",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
   );
 });
 
