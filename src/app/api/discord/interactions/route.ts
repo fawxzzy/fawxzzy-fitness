@@ -2095,10 +2095,10 @@ async function postFeedbackAuditComment(args: {
 }
 
 async function collectLegacyDiscordFeedbackPanelChannelIds(targetChannelId: string) {
-  const channelIds = new Set<string>();
+  const channels = new Map<string, { id: string; name?: string | null }>();
   const configuredChannelId = DISCORD_FEEDBACK_PANEL_CHANNEL_ID();
   if (configuredChannelId && configuredChannelId !== targetChannelId) {
-    channelIds.add(configuredChannelId);
+    channels.set(configuredChannelId, { id: configuredChannelId });
   }
 
   const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
@@ -2108,21 +2108,25 @@ async function collectLegacyDiscordFeedbackPanelChannelIds(targetChannelId: stri
       status: guildChannelsResult.status,
       message: guildChannelsResult.message,
     });
-    return Array.from(channelIds);
+    return Array.from(channels.values());
   }
 
   for (const channel of guildChannelsResult.channels) {
+    if (channel.id && channels.has(channel.id)) {
+      channels.set(channel.id, { id: channel.id, name: channel.name ?? null });
+    }
+
     if (
       channel.id
       && channel.id !== targetChannelId
       && channel.type === 0
       && channel.name === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
     ) {
-      channelIds.add(channel.id);
+      channels.set(channel.id, { id: channel.id, name: channel.name });
     }
   }
 
-  return Array.from(channelIds);
+  return Array.from(channels.values());
 }
 
 async function deleteDiscordFeedbackPanelMessagesInChannel(args: {
@@ -2182,9 +2186,23 @@ async function cleanupLegacyDiscordFeedbackPanels(args: {
     return;
   }
 
-  const legacyChannelIds = await collectLegacyDiscordFeedbackPanelChannelIds(args.targetChannelId);
-  for (const channelId of legacyChannelIds) {
-    await deleteDiscordFeedbackPanelMessagesInChannel({ channelId });
+  const legacyChannels = await collectLegacyDiscordFeedbackPanelChannelIds(args.targetChannelId);
+  for (const channel of legacyChannels) {
+    await deleteDiscordFeedbackPanelMessagesInChannel({ channelId: channel.id });
+
+    if (channel.name !== DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME) {
+      continue;
+    }
+
+    const deleteChannelResult = await deleteDiscordChannel({ channelId: channel.id });
+    if (!deleteChannelResult.ok) {
+      console.warn("[discord-feedback-panel] legacy launcher channel delete failed", {
+        channelId: channel.id,
+        code: deleteChannelResult.code,
+        status: deleteChannelResult.status,
+        message: deleteChannelResult.message,
+      });
+    }
   }
 }
 

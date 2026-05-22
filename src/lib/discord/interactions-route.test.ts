@@ -680,6 +680,13 @@ test("Discord interactions route posts setup-feedback in the invoking channel an
       return new Response(null, { status: 204 });
     }
 
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "DELETE") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", name: "submit-feedback" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
   };
 
@@ -710,6 +717,7 @@ test("Discord interactions route posts setup-feedback in the invoking channel an
     });
     assert.equal(calls.some((call) => call.method === "POST" && call.pathname === "/api/v10/channels/1504668396338413671/messages"), true);
     assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504673475489562744/messages/old-panel-message"), true);
+    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504673475489562744"), true);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
@@ -1242,6 +1250,13 @@ test("Discord message command poll lets a manager bootstrap the commander role a
 
     if (url.pathname === "/api/v10/channels/1504673475489562744/messages/old-feedback-panel-message" && method === "DELETE") {
       return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "DELETE") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", name: "submit-feedback" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {

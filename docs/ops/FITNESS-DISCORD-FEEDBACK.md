@@ -28,7 +28,8 @@ Product rules:
   - admin-only
   - posts or refreshes the persistent `Submit Feedback Here` launcher
   - uses the channel where the command is run when Discord provides a source channel
-  - removes older launcher messages from the previous configured or legacy `submit-feedback` channel after successful source-channel setup
+  - removes older launcher messages from previous feedback setup channels after successful source-channel setup
+  - deletes the legacy `submit-feedback` channel after moving setup to a source channel
   - falls back to `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` only when no source channel is available
   - does not create a dedicated `submit-feedback` channel
 - main-channel message triggers: `bot feedback setup` and `bot setup feedback`
@@ -229,7 +230,8 @@ Stored attachment metadata should stay bounded to:
 `/setup-feedback` and the main-chat trigger are idempotent:
 - if an existing bot-authored feedback launcher is found in the source channel, edit it
 - if the launcher message is missing or deleted, create a new one in the source channel
-- after successful source-channel setup, remove older launcher messages from the previous configured or legacy `submit-feedback` channel
+- after successful source-channel setup, remove older launcher messages from previous feedback setup channels
+- after successful source-channel setup, delete the legacy `submit-feedback` text channel if it exists
 - if Discord does not provide a source channel, reuse `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
 - do not create or reuse a dedicated `submit-feedback` channel
 
