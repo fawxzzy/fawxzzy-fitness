@@ -1,6 +1,5 @@
 import { formatDurationPreview } from "./duration";
-import { formatDistanceNumber, formatDistanceUnitLabel } from "./fitness-distance-units";
-import type { FitnessDistanceUnit } from "@/types/db";
+import type { FitnessDistanceUnit } from "./fitness-distance-units";
 
 export type SessionQuickLogTarget = {
   repsMin?: number;
@@ -135,9 +134,7 @@ export function formatQuickLogPreviewLabel({
   const repsSummary = hasValue(repsValue ?? undefined) ? `${repsValue} reps` : null;
   const weightSummary = hasValue(weightValue ?? undefined) ? `${weightValue} ${weightUnit}` : null;
   const durationSummary = hasValue(target?.durationSeconds) ? formatDurationPreview(Number(target?.durationSeconds)) : null;
-  const distanceSummary = hasValue(target?.distance)
-    ? `${formatDistanceNumber(target?.distance as number, target?.distanceUnit)} ${formatDistanceUnitLabel(target?.distanceUnit) ?? "mi"}`
-    : null;
+  const distanceSummary = hasValue(target?.distance) ? `${target?.distance} ${target?.distanceUnit ?? "mi"}` : null;
   const caloriesSummary = hasValue(target?.calories) ? `${target?.calories} cal` : null;
 
   const measurementType = target?.measurementType ?? "reps";

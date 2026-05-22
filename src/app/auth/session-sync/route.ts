@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server.js";
+import { NextResponse } from "next/server";
 import { clearSessionCookies, setSessionCookies } from "@/lib/auth-session";
 
 type SessionSyncBody = {
@@ -6,14 +6,8 @@ type SessionSyncBody = {
   refreshToken?: unknown;
 };
 
-function buildResponse(body: Record<string, unknown>, init?: ResponseInit) {
-  return NextResponse.json(body, {
-    ...init,
-    headers: {
-      "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-      ...(init?.headers ?? {}),
-    },
-  });
+function buildResponse() {
+  return NextResponse.json({ ok: true });
 }
 
 export async function POST(request: Request) {
@@ -22,23 +16,23 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return buildResponse({ ok: false, error: "Invalid session payload." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Invalid session payload." }, { status: 400 });
   }
 
   const accessToken = typeof body?.accessToken === "string" ? body.accessToken.trim() : "";
   const refreshToken = typeof body?.refreshToken === "string" ? body.refreshToken.trim() : "";
 
   if (!accessToken || !refreshToken) {
-    return buildResponse({ ok: false, error: "Missing session tokens." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Missing session tokens." }, { status: 400 });
   }
 
-  const response = buildResponse({ ok: true });
+  const response = buildResponse();
   setSessionCookies(response.cookies, { accessToken, refreshToken });
   return response;
 }
 
 export async function DELETE() {
-  const response = buildResponse({ ok: true });
+  const response = buildResponse();
   clearSessionCookies(response.cookies);
   return response;
 }

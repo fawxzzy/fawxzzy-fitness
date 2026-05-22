@@ -1,4 +1,4 @@
-import type { FitnessDistanceUnit } from "@/types/db";
+export type FitnessDistanceUnit = "mi" | "km" | "m" | "steps";
 
 export function isFitnessDistanceUnit(value: unknown): value is FitnessDistanceUnit {
   return value === "mi" || value === "km" || value === "m" || value === "steps";

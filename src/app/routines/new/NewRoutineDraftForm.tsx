@@ -38,6 +38,18 @@ import {
 import { TRAINING_GOAL_IDS, type TrainingGoalId } from "@/lib/progression-playbooks";
 
 const STORAGE_KEY = "routine-new-draft-v1";
+const LEGACY_SET_FLOW_DRAFT_DEFAULTS = {
+  load: "5",
+  reps: "2",
+  duration: "30",
+  distance: "0.5",
+} as const;
+
+function createNewRoutineProgressionDraft() {
+  return createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+  });
+}
 
 type NewRoutineDraftDefaults = Omit<RoutineDetailsDraft, "distanceUnit"> & {
   distanceUnit?: string;
@@ -62,6 +74,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     () => normalizeRoutineDetailsDraft(defaults, {
       name: defaults.name,
       cycleLengthDays: defaults.cycleLengthDays,
+      scheduleMode: defaults.scheduleMode,
       startDate: defaults.startDate,
       startWeekday: defaults.startWeekday,
       timezone: defaults.timezone,
@@ -79,7 +92,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     ],
   );
   const [draft, setDraft] = useState<RoutineDetailsDraft>(normalizedDefaults);
-  const [progressionDraft, setProgressionDraft] = useState(() => createProgressionPlaybookFormState());
+  const [progressionDraft, setProgressionDraft] = useState(() => createNewRoutineProgressionDraft());
   const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(normalizedDefaults.cycleLengthDays));
   const [hasUserEdited, setHasUserEdited] = useState(false);
@@ -109,6 +122,21 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           progressionSetFlowRepStep?: string;
           progressionSetFlowDurationStep?: string;
           progressionSetFlowDistanceStep?: string;
+          progressionDayMode?: "synced" | "unsynced";
+          progressionDayLoadStep?: string;
+          progressionDayRepStep?: string;
+          progressionDayDurationStep?: string;
+          progressionDayDistanceStep?: string;
+          progressionEffortWaveDirections?: Array<"straight" | "up" | "down">;
+          progressionSetFlowTimeDirection?: "straight" | "up" | "down";
+          progressionSetFlowDistanceDirection?: "straight" | "up" | "down";
+          progressionSetFlowRepDirection?: "straight" | "up" | "down";
+          progressionSetFlowLoadDirection?: "straight" | "up" | "down";
+          progressionPromotionBasis?: "weight_only" | "reps_only" | "weight_and_reps";
+          progressionRepPromotionThreshold?: "top_of_range" | "top_half_of_range" | "custom";
+          progressionCustomRepPromotionTarget?: string;
+          progressionPromotionSessionCountMap?: Record<string, string>;
+          progressionPromotionGroupedSessionCountMap?: Record<string, string>;
           progressionTrainingGoal?: string | null;
         };
         const normalizedParsed = normalizeRoutineDetailsDraft(parsed, normalizedDefaults);
@@ -121,10 +149,20 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           startWeekday: shouldResetStartWeekday ? normalizedDefaults.startWeekday : normalizedParsed.startWeekday,
         };
 
+        const shouldUpgradeLegacySetFlowDefaults =
+          parsed.progressionSetFlowLoadStep === LEGACY_SET_FLOW_DRAFT_DEFAULTS.load
+          && parsed.progressionSetFlowRepStep === LEGACY_SET_FLOW_DRAFT_DEFAULTS.reps
+          && parsed.progressionSetFlowDurationStep === LEGACY_SET_FLOW_DRAFT_DEFAULTS.duration
+          && parsed.progressionSetFlowDistanceStep === LEGACY_SET_FLOW_DRAFT_DEFAULTS.distance;
         setDraft(nextDraft);
+        const fallbackProgressionDraft = createNewRoutineProgressionDraft();
+        const resolvedPlaybookId =
+          typeof parsed.progressionPlaybookId === "string" && parsed.progressionPlaybookId.trim().length > 0
+            ? parsed.progressionPlaybookId
+            : fallbackProgressionDraft.progressionPlaybookId;
         setProgressionDraft((current) => ({
           ...createProgressionPlaybookFormState({
-            playbookId: parsed.progressionPlaybookId ?? current.progressionPlaybookId,
+            playbookId: resolvedPlaybookId ?? current.progressionPlaybookId,
             config: parsed.progressionPlaybookConfig ?? null,
           }),
           progressionLoadIncrement: typeof parsed.progressionLoadIncrement === "string" ? parsed.progressionLoadIncrement : current.progressionLoadIncrement,
@@ -139,8 +177,37 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           progressionDistanceIncrement: typeof parsed.progressionDistanceIncrement === "string" ? parsed.progressionDistanceIncrement : current.progressionDistanceIncrement,
           progressionSetFlowLoadStep: typeof parsed.progressionSetFlowLoadStep === "string" ? parsed.progressionSetFlowLoadStep : current.progressionSetFlowLoadStep,
           progressionSetFlowRepStep: typeof parsed.progressionSetFlowRepStep === "string" ? parsed.progressionSetFlowRepStep : current.progressionSetFlowRepStep,
-          progressionSetFlowDurationStep: typeof parsed.progressionSetFlowDurationStep === "string" ? parsed.progressionSetFlowDurationStep : current.progressionSetFlowDurationStep,
-          progressionSetFlowDistanceStep: typeof parsed.progressionSetFlowDistanceStep === "string" ? parsed.progressionSetFlowDistanceStep : current.progressionSetFlowDistanceStep,
+          progressionSetFlowDurationStep: shouldUpgradeLegacySetFlowDefaults
+            ? "60"
+            : typeof parsed.progressionSetFlowDurationStep === "string" ? parsed.progressionSetFlowDurationStep : current.progressionSetFlowDurationStep,
+          progressionSetFlowDistanceStep: shouldUpgradeLegacySetFlowDefaults
+            ? "1"
+            : typeof parsed.progressionSetFlowDistanceStep === "string" ? parsed.progressionSetFlowDistanceStep : current.progressionSetFlowDistanceStep,
+          progressionDayMode: parsed.progressionDayMode === "synced" || parsed.progressionDayMode === "unsynced"
+            ? parsed.progressionDayMode
+            : current.progressionDayMode,
+          progressionDayLoadStep: typeof parsed.progressionDayLoadStep === "string" ? parsed.progressionDayLoadStep : current.progressionDayLoadStep,
+          progressionDayRepStep: typeof parsed.progressionDayRepStep === "string" ? parsed.progressionDayRepStep : current.progressionDayRepStep,
+          progressionDayDurationStep: typeof parsed.progressionDayDurationStep === "string" ? parsed.progressionDayDurationStep : current.progressionDayDurationStep,
+          progressionDayDistanceStep: typeof parsed.progressionDayDistanceStep === "string" ? parsed.progressionDayDistanceStep : current.progressionDayDistanceStep,
+          progressionEffortWaveDirections: Array.isArray(parsed.progressionEffortWaveDirections) && parsed.progressionEffortWaveDirections.length > 0
+            ? parsed.progressionEffortWaveDirections.map((direction) => (
+              direction === "up" || direction === "down" || direction === "straight" ? direction : "straight"
+            ))
+            : current.progressionEffortWaveDirections,
+          progressionSetFlowTimeDirection: parsed.progressionSetFlowTimeDirection ?? current.progressionSetFlowTimeDirection,
+          progressionSetFlowDistanceDirection: parsed.progressionSetFlowDistanceDirection ?? current.progressionSetFlowDistanceDirection,
+          progressionSetFlowRepDirection: parsed.progressionSetFlowRepDirection ?? current.progressionSetFlowRepDirection,
+          progressionSetFlowLoadDirection: parsed.progressionSetFlowLoadDirection ?? current.progressionSetFlowLoadDirection,
+          progressionPromotionBasis: typeof parsed.progressionPromotionBasis === "string" ? parsed.progressionPromotionBasis : current.progressionPromotionBasis,
+          progressionRepPromotionThreshold: typeof parsed.progressionRepPromotionThreshold === "string" ? parsed.progressionRepPromotionThreshold : current.progressionRepPromotionThreshold,
+          progressionCustomRepPromotionTarget: typeof parsed.progressionCustomRepPromotionTarget === "string" ? parsed.progressionCustomRepPromotionTarget : current.progressionCustomRepPromotionTarget,
+          progressionPromotionSessionCountMap: parsed.progressionPromotionSessionCountMap && typeof parsed.progressionPromotionSessionCountMap === "object"
+            ? parsed.progressionPromotionSessionCountMap
+            : current.progressionPromotionSessionCountMap,
+          progressionPromotionGroupedSessionCountMap: parsed.progressionPromotionGroupedSessionCountMap && typeof parsed.progressionPromotionGroupedSessionCountMap === "object"
+            ? parsed.progressionPromotionGroupedSessionCountMap
+            : current.progressionPromotionGroupedSessionCountMap,
         }));
         setSelectedTrainingGoal(normalizeTrainingGoalId(parsed.progressionTrainingGoal));
         setCycleLengthInput(String(nextDraft.cycleLengthDays));
@@ -180,7 +247,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
   const validation = validateRoutineDetailsDraft(draft);
   const initialSnapshot = buildRoutineDetailsSnapshot(normalizedDefaults);
   const currentSnapshot = buildRoutineDetailsSnapshot(draft);
-  const initialProgressionSnapshot = buildProgressionPlaybookFormSnapshot(createProgressionPlaybookFormState());
+  const initialProgressionSnapshot = buildProgressionPlaybookFormSnapshot(createNewRoutineProgressionDraft());
   const currentProgressionSnapshot = buildProgressionPlaybookFormSnapshot(progressionDraft);
   const isDirty = currentSnapshot !== initialSnapshot || currentProgressionSnapshot !== initialProgressionSnapshot;
   const hasDirtyChanges = hasUserEdited && isDirty;
@@ -199,10 +266,12 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
             name: resolveRoutineDraftFieldValue("name", nextValue),
           }));
         }}
-        placeholder="Push/Pull/Legs"
+        placeholder="Enter Routine Name"
         ariaLabel="Routine Name"
         maxLength={15}
         className="text-center"
+        hideLabel
+        plainShell
       />
     </div>
   ), [draft.name]);
@@ -243,9 +312,10 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
       <RoutineEditorPageBody className={appTokens.routineEditorSectionStack}>
         <div className="space-y-2 pt-4">
           <RoutineEditorFormFields
-            fields={["cycleLengthDays", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+            fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
             cycleLengthInputValue={cycleLengthInput}
             cycleLengthDefaultValue={draft.cycleLengthDays}
+            scheduleModeDefaultValue={draft.scheduleMode}
             startDateDefaultValue={draft.startDate}
             startWeekdayDefaultValue={draft.startWeekday}
             timezoneDefaultValue={draft.timezone}
@@ -272,9 +342,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
               setProgressionDraft(nextValue);
             }}
             weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
+            distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
+            cycleLengthDays={draft.cycleLengthDays}
             context="routine-default"
             collapsible
-            defaultExpanded={false}
+            defaultExpanded
             separateInfoBox
             trainingFocusValue={selectedTrainingGoal}
             trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
@@ -313,6 +385,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
                   const formData = new FormData();
                   formData.set("name", trimmedRoutineName);
                   formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+                  formData.set("scheduleMode", nextDraft.scheduleMode);
                   formData.set("startDate", nextDraft.startDate);
                   formData.set("startWeekday", nextDraft.startWeekday);
                   formData.set("timezone", nextDraft.timezone);

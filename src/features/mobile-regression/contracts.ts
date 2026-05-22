@@ -5,6 +5,7 @@ const MAX_GOAL_FORM_LABEL_LENGTH = 36;
 
 function isHistoryRoute(scenario: MobileFixtureScenario) {
   return scenario.route === "historySessions"
+    || scenario.route === "historyProgression"
     || scenario.route === "historyExercises"
     || scenario.route === "historyDetail";
 }
@@ -163,6 +164,10 @@ export function historyRoutesHaveSingleHeaderOwner(scenario: MobileFixtureScenar
 }
 
 export function historySurfaceMatchesRouteFamily(scenario: MobileFixtureScenario) {
+  if (scenario.route === "historyProgression") {
+    return scenario.historySurfaceToken === "history-progression";
+  }
+
   if (scenario.route === "historyExercises") {
     return scenario.historySurfaceToken === "history-browser";
   }

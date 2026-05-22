@@ -31,7 +31,6 @@ function withEnv<T>(overrides: Record<string, string | undefined>, run: () => T)
 test("buildAtlasHealthPayload reports ok when the canonical auth env is present", () => {
   const payload = withEnv(
     {
-      CI: undefined,
       NODE_ENV: "production",
       VERCEL_ENV: "production",
       VERCEL_GIT_COMMIT_SHA: "abcdef1234567890",
@@ -52,7 +51,6 @@ test("buildAtlasHealthPayload reports ok when the canonical auth env is present"
 test("buildAtlasHealthPayload degrades when the service-role key is absent", () => {
   const payload = withEnv(
     {
-      CI: undefined,
       NODE_ENV: "production",
       VERCEL_ENV: "preview",
       VERCEL_GIT_COMMIT_SHA: "abcdef1",

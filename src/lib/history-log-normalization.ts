@@ -1,4 +1,4 @@
-import type { FitnessDistanceUnit } from "@/types/db";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 
 export type HistoryAuditSet = {
   id: string;

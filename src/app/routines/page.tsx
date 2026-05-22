@@ -12,7 +12,7 @@ import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import { getRoutineStartWeekdayFromDate, getTimeZoneDayWindow, resolveRoutineScheduleForToday } from "@/lib/routines";
 import {
   filterQaLlelRows,
   QA_LLEL_VISIBILITY_COOKIE,
@@ -124,7 +124,7 @@ export default async function RoutinesPage({
 
   const { data } = await diagnostics.measure("routines.list.fetch", async () => await supabase
     .from("routines")
-    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+    .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false }), {
     blockingReason: "Waiting for routines overview list.",
@@ -243,14 +243,16 @@ export default async function RoutinesPage({
   const trainingDays = Math.max(totalDays - restDays, 0);
   const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
   const cycleSummary = activeRoutine ? `${trainingDays} training • ${restDays} rest` : undefined;
-  const todayRoutineDayComputation = activeRoutine?.start_date && cycleLength > 0
-    ? getRoutineDayComputation({
+  const todayRoutineSchedule = activeRoutine?.start_date && cycleLength > 0
+    ? resolveRoutineScheduleForToday({
         cycleLengthDays: cycleLength,
+        scheduleMode: activeRoutine.schedule_mode,
         startDate: activeRoutine.start_date,
+        startWeekday: getRoutineStartWeekdayFromDate(activeRoutine.start_date),
         profileTimeZone: activeRoutine.timezone || profile.timezone,
       })
     : null;
-  const todayRoutineDayIndex = todayRoutineDayComputation?.dayIndex ?? null;
+  const todayRoutineDayIndex = todayRoutineSchedule?.dayIndex ?? null;
   const todayRowIndex = todayRoutineDayIndex === null
     ? -1
     : sortedActiveRoutineDays.findIndex((day, index) => {
@@ -266,10 +268,17 @@ export default async function RoutinesPage({
     const routineTimeZone = activeRoutine.timezone || profile.timezone;
     const safeCycleLength = Number.isFinite(cycleLength) && cycleLength > 0 ? Math.floor(cycleLength) : 1;
 
-    if (activeRoutine.start_date && todayRoutineDayComputation && todayRoutineDayComputation.daysSinceStart >= 0) {
-      const currentCycleStartOffset = Math.floor(todayRoutineDayComputation.daysSinceStart / safeCycleLength) * safeCycleLength;
+    if (activeRoutine.start_date && todayRoutineSchedule?.resolution.status === "scheduled" && todayRoutineSchedule.dayIndex !== null) {
+      const todayDate = todayRoutineSchedule.todayDate;
+      const startDateTimestamp = Date.parse(`${activeRoutine.start_date}T00:00:00Z`);
+      const todayDateTimestamp = Date.parse(`${todayDate}T00:00:00Z`);
+      const daysSinceStart = Number.isFinite(startDateTimestamp) && Number.isFinite(todayDateTimestamp)
+        ? Math.floor((todayDateTimestamp - startDateTimestamp) / MS_PER_DAY)
+        : Number.NaN;
+      const currentCycleStartOffset = Number.isFinite(daysSinceStart)
+        ? Math.floor(daysSinceStart / safeCycleLength) * safeCycleLength
+        : 0;
       const currentCycleStartDate = addDaysToDateString(activeRoutine.start_date, currentCycleStartOffset);
-      const todayDate = todayRoutineDayComputation.todayDate;
       const occurrenceDateByDayIndex = new Map<number, string>();
 
       for (const [index, day] of sortedActiveRoutineDays.entries()) {
@@ -391,6 +400,8 @@ export default async function RoutinesPage({
               activeRoutineId={activeRoutine?.id ?? null}
               activeRoutineName={activeRoutine?.name ?? null}
               activeRoutineSummary={cycleSummary ?? null}
+              activeRoutineTrainingDays={activeRoutine ? trainingDays : null}
+              activeRoutineRestDays={activeRoutine ? restDays : null}
               activeRoutineStartDate={activeRoutine?.start_date ?? null}
               activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
               newRoutineHref="/routines/new"

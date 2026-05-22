@@ -1,7 +1,7 @@
 import { isExerciseDisplayArtifact } from "@/lib/exercise-display";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { logDebugSummary } from "@/lib/observability";
-import type { FitnessDistanceUnit } from "@/types/db";
 
 const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
 

@@ -68,10 +68,6 @@ export function resolveDayCardBadgeText(status: DayCardStatus): string | undefin
     return "TODAY";
   }
 
-  if (status.isRest) {
-    return "REST DAY";
-  }
-
   return undefined;
 }
 

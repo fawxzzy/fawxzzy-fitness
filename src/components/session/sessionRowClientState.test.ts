@@ -75,3 +75,27 @@ test("reconcileSessionRowClientState preserves local set-count overrides until t
   assert.equal(caughtUpServer["row-a"]?.loggedSetCount, 2);
   assert.equal(caughtUpServer["row-a"]?.setCountOverrideActive, false);
 });
+
+test("reconcileSessionRowClientState preserves completed-row visibility intent and pending flags across stale refreshes", () => {
+  const current = {
+    "row-a": {
+      loggedSetCount: 3,
+      setCountOverrideActive: true,
+      isSkipped: false,
+      isQuickLogPending: true,
+      isSkipPending: false,
+      showWhenCompleted: true,
+    },
+  };
+
+  const reconciled = reconcileSessionRowClientState({
+    current,
+    rows: [{ id: "row-a", loggedSetCount: 2, isSkipped: false }],
+    mergedLoggedSetCount: { "row-a": 2 },
+  });
+
+  assert.equal(reconciled["row-a"]?.loggedSetCount, 3);
+  assert.equal(reconciled["row-a"]?.setCountOverrideActive, true);
+  assert.equal(reconciled["row-a"]?.isQuickLogPending, true);
+  assert.equal(reconciled["row-a"]?.showWhenCompleted, true);
+});

@@ -4,7 +4,7 @@ import {
   buildAccountWorkoutExportFilename,
   buildAccountWorkoutExportPayload,
   serializeAccountWorkoutExportCsv,
-  buildAccountWorkoutExportCsvRows,
+  buildAccountWorkoutExportCsvTables,
   buildAccountWorkoutExportWorkbookBuffer,
   getAccountWorkoutExportContentType,
   type AccountWorkoutExportFileType,
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     const filename = buildAccountWorkoutExportFilename(options);
 
     if (options.fileType === "csv") {
-      const body = serializeAccountWorkoutExportCsv(buildAccountWorkoutExportCsvRows(exportPayload));
+      const body = serializeAccountWorkoutExportCsv(buildAccountWorkoutExportCsvTables(exportPayload));
       return new NextResponse(body, {
         status: 200,
         headers: {

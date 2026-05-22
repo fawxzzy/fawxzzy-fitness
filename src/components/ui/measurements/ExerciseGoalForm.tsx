@@ -8,8 +8,8 @@ import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInlin
 import { getMeasurementToggleButtonClassName, getMeasurementToggleIntent } from "@/components/ui/measurements/measurementToggleButton";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
-import type { FitnessDistanceUnit } from "@/types/db";
 
 export type ExerciseGoalFormState = {
   sets: string;

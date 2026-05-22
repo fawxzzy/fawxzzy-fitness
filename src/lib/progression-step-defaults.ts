@@ -11,6 +11,6 @@ export const DEFAULT_PROGRESSION_STEP_OVERRIDES = {
 export const DEFAULT_SET_FLOW_STEPS = {
   loadStep: 5,
   repStep: 2,
-  durationSecondsStep: 30,
-  distanceStep: 0.5,
+  durationSecondsStep: 60,
+  distanceStep: 1,
 } as const;

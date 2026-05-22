@@ -4,10 +4,16 @@ function sanitizeRoutineName(value: string) {
 
 export const ROUTINE_CYCLE_LENGTH_MIN = 1;
 export const ROUTINE_CYCLE_LENGTH_MAX = 365;
+export const ROUTINE_SCHEDULE_MODE_VALUES = [
+  "weekday_anchored",
+  "rolling_n_day",
+] as const;
+export type RoutineDetailsScheduleMode = (typeof ROUTINE_SCHEDULE_MODE_VALUES)[number];
 
 export type RoutineDetailsDraft = {
   name: string;
   cycleLengthDays: number;
+  scheduleMode: RoutineDetailsScheduleMode;
   startDate: string;
   startWeekday: string;
   timezone: string;
@@ -30,6 +36,9 @@ export function normalizeRoutineDetailsDraft(raw: Partial<RoutineDetailsDraft>, 
   return {
     name: typeof raw.name === "string" ? sanitizeRoutineName(raw.name) : sanitizeRoutineName(defaults.name),
     cycleLengthDays: Number.isInteger(cycleLengthCandidate) ? cycleLengthCandidate : defaults.cycleLengthDays,
+    scheduleMode: ROUTINE_SCHEDULE_MODE_VALUES.includes(raw.scheduleMode as RoutineDetailsScheduleMode)
+      ? raw.scheduleMode as RoutineDetailsScheduleMode
+      : defaults.scheduleMode,
     startDate: isValidRoutineDateString(rawStartDate) ? rawStartDate : defaults.startDate,
     startWeekday: typeof raw.startWeekday === "string" ? raw.startWeekday : defaults.startWeekday,
     timezone: typeof raw.timezone === "string" ? raw.timezone : defaults.timezone,
@@ -87,6 +96,9 @@ export function validateRoutineDetailsDraft(
   ) {
     return { valid: false, error: "Cycle length must be between 1 and 365." };
   }
+  if (!ROUTINE_SCHEDULE_MODE_VALUES.includes(draft.scheduleMode)) {
+    return { valid: false, error: "Schedule mode must be week-based or day-based." };
+  }
   if (!isValidRoutineDateString(draft.startDate.trim())) return { valid: false, error: "Cycle start date is required." };
   if (!draft.timezone.trim()) return { valid: false, error: "Timezone is required." };
   if (draft.weightUnit !== "lbs" && draft.weightUnit !== "kg") return { valid: false, error: "Weight unit must be lbs or kg." };
@@ -98,6 +110,7 @@ export function buildRoutineDetailsSnapshot(draft: RoutineDetailsDraft): string 
   return JSON.stringify({
     name: sanitizeRoutineName(draft.name.trim()),
     cycleLengthDays: String(draft.cycleLengthDays),
+    scheduleMode: draft.scheduleMode,
     startDate: draft.startDate,
     startWeekday: draft.startWeekday,
     timezone: draft.timezone,

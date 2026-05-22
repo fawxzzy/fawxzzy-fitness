@@ -1,6 +1,7 @@
 import type { ExerciseStatsRow } from "@/lib/exercise-stats";
 import { formatCalories, formatDistance } from "@/lib/exercise-stats-formatting";
 import { formatDurationPreview } from "@/lib/duration";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { formatDateShort, formatWeight } from "@/lib/formatting";
 import {
   deriveProgressionPlaybookTarget,
@@ -8,7 +9,6 @@ import {
   validateProgressionPlaybookSelection,
   type ProgressionHistorySession,
 } from "@/lib/progression-playbooks";
-import type { FitnessDistanceUnit } from "@/types/db";
 
 export type SessionTargetHintMeasurementType = "reps" | "time" | "distance" | "time_distance" | "none";
 

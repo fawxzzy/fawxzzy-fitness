@@ -23,6 +23,7 @@ export default async function NewRoutinePage() {
         defaults={{
           name: "",
           cycleLengthDays: 7,
+          scheduleMode: "weekday_anchored",
           startDate: routineStartDateDefault,
           startWeekday: "monday",
           timezone: routineTimezoneDefault,

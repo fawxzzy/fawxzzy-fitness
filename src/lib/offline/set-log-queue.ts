@@ -1,5 +1,5 @@
 import { buildSetQueueDedupeKey, isQueueItemPendingSync } from "@/lib/offline/set-log-reconciliation";
-import type { FitnessDistanceUnit } from "@/types/db";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 
 export const SET_LOG_QUEUE_SCHEMA_VERSION = 4;
 

@@ -17,7 +17,7 @@ type PageProps = {
   searchParams?: { error?: string };
 };
 
-const ROUTINE_SELECT_LEGACY = "id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit";
+const ROUTINE_SELECT_LEGACY = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit";
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
@@ -55,6 +55,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         returnHref={returnHref}
         name={(routine as RoutineRow).name}
         cycleLengthDays={(routine as RoutineRow).cycle_length_days}
+        scheduleMode={(routine as RoutineRow).schedule_mode === "rolling_n_day" ? "rolling_n_day" : "weekday_anchored"}
         startDate={(routine as RoutineRow).start_date}
         startWeekday={startWeekdayDefault}
         timezone={routineTimezoneDefault}

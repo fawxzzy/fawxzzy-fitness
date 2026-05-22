@@ -28,13 +28,18 @@ type RoutineDayIdentity = {
   is_rest: boolean;
 };
 
+type TodayDisplayDaySource = "session" | "calendar" | "template";
+
 export function resolveTodayDisplayDay(args: {
   calendarDayIndex: number | null;
   todayRoutineDay: RoutineDayIdentity | null;
+  fallbackRoutineDay?: RoutineDayIdentity | null;
   routineDays: RoutineDayIdentity[];
   inProgressSession: SessionDaySnapshot | null;
 }) {
   const sessionDayIndex = args.inProgressSession?.routine_day_index ?? null;
+  const calendarRoutineDay = args.todayRoutineDay
+    ?? (args.calendarDayIndex === null ? null : args.routineDays.find((day) => day.day_index === args.calendarDayIndex) ?? null);
 
   if (sessionDayIndex !== null) {
     const matchedRoutineDay = args.routineDays.find((day) => day.day_index === sessionDayIndex) ?? null;
@@ -44,19 +49,32 @@ export function resolveTodayDisplayDay(args: {
       dayIndex: sessionDayIndex,
       routineDay: matchedRoutineDay,
       dayName: sessionDayName ?? matchedRoutineDay?.name ?? `Day ${sessionDayIndex}`,
-      source: "session" as const,
+      hasScheduledDayToday: Boolean(calendarRoutineDay),
+      source: "session" as TodayDisplayDaySource,
     };
   }
 
-  const fallbackDay = args.todayRoutineDay
-    ?? (args.calendarDayIndex === null ? null : args.routineDays.find((day) => day.day_index === args.calendarDayIndex) ?? null);
+  if (calendarRoutineDay) {
+    return {
+      dayIndex: calendarRoutineDay.day_index,
+      routineDay: calendarRoutineDay,
+      dayName: calendarRoutineDay.name ?? `Day ${calendarRoutineDay.day_index}`,
+      hasScheduledDayToday: true,
+      source: "calendar" as TodayDisplayDaySource,
+    };
+  }
+
+  const fallbackDay = args.fallbackRoutineDay
+    ?? args.routineDays[0]
+    ?? null;
   const fallbackDayIndex = fallbackDay?.day_index ?? args.calendarDayIndex;
 
   return {
     dayIndex: fallbackDayIndex,
     routineDay: fallbackDay,
     dayName: fallbackDay ? fallbackDay.name ?? `Day ${fallbackDay.day_index}` : null,
-    source: "calendar" as const,
+    hasScheduledDayToday: false,
+    source: (fallbackDay ? "template" : "calendar") as TodayDisplayDaySource,
   };
 }
 
@@ -184,13 +202,14 @@ export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
 
 export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
   days: TDay[];
-  selectedDayIndex: number;
-  currentDayIndex: number;
+  selectedDayIndex: number | null;
+  currentDayIndex: number | null;
   dayPickerOpen: boolean;
   inProgressSessionId?: string | null;
 }): TodayScreenMode<TDay> {
   const selectedDay = args.days.find((day) => day.dayIndex === args.selectedDayIndex)
     ?? args.days.find((day) => day.dayIndex === args.currentDayIndex)
+    ?? args.days[0]
     ?? null;
   const hasInProgressSession = Boolean(args.inProgressSessionId);
   const runnableSelection = selectedDay?.state === "runnable" || selectedDay?.state === "partial";

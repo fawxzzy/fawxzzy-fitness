@@ -6,6 +6,7 @@ import {
   formatRoutineDayStableDisplayName,
   getRoutineCycleOccurrence,
   getRoutineDayEditableName,
+  resolveRoutineScheduleForToday,
 } from "./routines.ts";
 
 test("getRoutineDayEditableName strips a stored weekday prefix from custom names", () => {
@@ -80,4 +81,69 @@ test("formatRoutineDayOccurrenceDisplayName preserves routine day name and appen
     }),
     "Push | Thu, May 14",
   );
+});
+
+test("resolveRoutineScheduleForToday does not fallback to Friday for a Monday-start 5-day routine on Sunday", () => {
+  const RealDate = Date;
+
+  class MockDate extends Date {
+    constructor(value?: string | number | Date) {
+      super(value ?? "2026-05-17T12:00:00.000Z");
+    }
+
+    static now() {
+      return new RealDate("2026-05-17T12:00:00.000Z").getTime();
+    }
+  }
+
+  // @ts-expect-error test-only global date override
+  globalThis.Date = MockDate;
+
+  try {
+    const result = resolveRoutineScheduleForToday({
+      cycleLengthDays: 5,
+      scheduleMode: "weekday_anchored",
+      startWeekday: "monday",
+      startDate: "2026-05-11",
+      profileTimeZone: "America/New_York",
+    });
+
+    assert.equal(result.todayDate, "2026-05-17");
+    assert.equal(result.dayIndex, null);
+    assert.equal(result.resolution.status, "unscheduled");
+  } finally {
+    globalThis.Date = RealDate;
+  }
+});
+
+test("resolveRoutineScheduleForToday honors rolling day-based mode", () => {
+  const RealDate = Date;
+
+  class MockDate extends Date {
+    constructor(value?: string | number | Date) {
+      super(value ?? "2026-05-16T12:00:00.000Z");
+    }
+
+    static now() {
+      return new RealDate("2026-05-16T12:00:00.000Z").getTime();
+    }
+  }
+
+  // @ts-expect-error test-only global date override
+  globalThis.Date = MockDate;
+
+  try {
+    const result = resolveRoutineScheduleForToday({
+      cycleLengthDays: 5,
+      scheduleMode: "rolling_n_day",
+      startDate: "2026-05-11",
+      profileTimeZone: "America/New_York",
+    });
+
+    assert.equal(result.dayIndex, 1);
+    assert.equal(result.resolution.status, "scheduled");
+    assert.equal(result.resolution.scheduleMode, "rolling_n_day");
+  } finally {
+    globalThis.Date = RealDate;
+  }
 });

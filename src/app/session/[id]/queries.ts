@@ -2,15 +2,21 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import type { ProgressionHistorySetRow } from "@/lib/progression-playbooks";
+import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { buildSessionTargetsFromRows } from "@/lib/session-targets";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
+type ProgressionHistorySetRowWithRoutineDayIndex = ProgressionHistorySetRow & {
+  routineDayIndex?: number | null;
+};
+
 type MeasurementType = "reps" | "time" | "distance" | "time_distance" | "none";
-type DistanceUnit = "mi" | "km" | "m";
+type DistanceUnit = FitnessDistanceUnit;
 type RoutineDayExerciseTargetRow = {
   id: string;
   exercise_id: string;
@@ -41,7 +47,7 @@ function resolveMeasurementType(value: unknown): MeasurementType | null {
 }
 
 function resolveDistanceUnit(value: unknown): DistanceUnit | null {
-  return value === "mi" || value === "km" || value === "m" ? value : null;
+  return isFitnessDistanceUnit(value) ? value : null;
 }
 
 export async function getSessionPageData(
@@ -135,31 +141,35 @@ export async function getSessionPageData(
         .eq("user_id", user.id)
     : { data: null };
 
-  const routineRows = (routineDayExercisesWithProgression ?? legacyRoutineDayExercises ?? []) as RoutineDayExerciseTargetRow[];
+  const routineRows = ((routineDayExercisesWithProgression ?? legacyRoutineDayExercises ?? []) as RoutineDayExerciseTargetRow[])
+    .map((row) => applyEffortScheduleToRoutineDayExercise({
+      exercise: row,
+      routineDayIndex: session.routine_day_index ?? null,
+    }));
   const routineRowsById = new Map(routineRows.map((row) => [row.id, row]));
 
   const sessionExercises = ((sessionExercisesData ?? []) as Array<SessionExerciseRow & {
     exercise?: {
       name?: string | null;
       measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none";
-      default_unit?: "mi" | "km" | "m" | null;
+      default_unit?: FitnessDistanceUnit | null;
     } | null | Array<{
       name?: string | null;
       measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none";
-      default_unit?: "mi" | "km" | "m" | null;
+      default_unit?: FitnessDistanceUnit | null;
     }>;
     routine_day_exercise?: {
       id: string;
       exercise_id: string;
       position: number;
       measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
-      default_unit: "mi" | "km" | "m" | null;
+      default_unit: FitnessDistanceUnit | null;
     } | null | Array<{
       id: string;
       exercise_id: string;
       position: number;
       measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
-      default_unit: "mi" | "km" | "m" | null;
+      default_unit: FitnessDistanceUnit | null;
     }>;
   }>).map((item) => {
     const exerciseRow = Array.isArray(item.exercise) ? (item.exercise[0] ?? null) : (item.exercise ?? null);
@@ -289,18 +299,18 @@ export async function getSessionPageData(
   const { data: progressionSessionExercisesData } = progressionExerciseIds.length
     ? await supabase
         .from("session_exercises")
-        .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status)")
+        .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status, routine_day_index)")
         .eq("user_id", user.id)
         .in("exercise_id", progressionExerciseIds)
         .eq("session.status", "completed")
     : { data: [] };
 
-  const progressionSessionExerciseMetaById = new Map<string, { exerciseId: string; routineDayExerciseId: string | null; performedAt: string }>();
+  const progressionSessionExerciseMetaById = new Map<string, { exerciseId: string; routineDayExerciseId: string | null; performedAt: string; routineDayIndex: number | null }>();
   for (const row of (progressionSessionExercisesData ?? []) as Array<{
     id: string;
     exercise_id: string;
     routine_day_exercise_id?: string | null;
-    session?: { performed_at?: string | null; status?: "completed" | "in_progress" } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress" }> | null;
+    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_day_index?: number | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_day_index?: number | null }> | null;
   }>) {
     const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
     if (!row.id || !row.exercise_id || !sessionRow?.performed_at || sessionRow.status !== "completed") {
@@ -311,6 +321,7 @@ export async function getSessionPageData(
       exerciseId: row.exercise_id,
       routineDayExerciseId: row.routine_day_exercise_id ?? null,
       performedAt: sessionRow.performed_at,
+      routineDayIndex: typeof sessionRow.routine_day_index === "number" ? sessionRow.routine_day_index : null,
     });
   }
 
@@ -324,8 +335,8 @@ export async function getSessionPageData(
         .order("set_index", { ascending: true })
     : { data: [] };
 
-  const progressionHistoryByExerciseId = new Map<string, ProgressionHistorySetRow[]>();
-  const progressionHistoryByRoutineDayExerciseId = new Map<string, ProgressionHistorySetRow[]>();
+  const progressionHistoryByExerciseId = new Map<string, ProgressionHistorySetRowWithRoutineDayIndex[]>();
+  const progressionHistoryByRoutineDayExerciseId = new Map<string, ProgressionHistorySetRowWithRoutineDayIndex[]>();
   for (const row of (progressionSetsData ?? []) as Array<{
     session_exercise_id: string;
     set_index: number;
@@ -334,7 +345,7 @@ export async function getSessionPageData(
     weight_unit: "lbs" | "kg" | null;
     duration_seconds: number | null;
     distance: number | null;
-    distance_unit: "mi" | "km" | "m" | null;
+    distance_unit: FitnessDistanceUnit | null;
     calories: number | null;
     is_warmup: boolean;
   }>) {
@@ -346,6 +357,7 @@ export async function getSessionPageData(
     const historyRow = {
       sessionId: row.session_exercise_id,
       performedAt: meta.performedAt,
+      routineDayIndex: meta.routineDayIndex,
       setIndex: row.set_index,
       weight: row.weight ?? null,
       reps: row.reps ?? null,

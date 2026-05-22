@@ -83,6 +83,22 @@ test("formatQuickLogPreviewLabel uses metric-based cardio summary when metrics e
   assert.equal(label, "12:00 s • 2 mi • 250 cal");
 });
 
+test("formatQuickLogPreviewLabel preserves steps distance units", () => {
+  const label = formatQuickLogPreviewLabel({
+    target: {
+      distance: 5000,
+      distanceUnit: "steps",
+      measurementType: "distance",
+    },
+    loggedSetCount: 0,
+    targetSetsMin: 1,
+    targetSetsMax: 1,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(label, "5000 steps");
+});
+
 test("measurement-optional quick log resolves without reps or time", () => {
   const result = resolveQuickLogFromTarget({ measurementType: "none" }, "lbs");
 
@@ -210,20 +226,4 @@ test("resolved quick log preview and payload use fallback target chain", () => {
     calories: null,
     weightUnit: "lbs",
   });
-});
-
-test("formatQuickLogPreviewLabel renders steps cleanly for cardio targets", () => {
-  const label = formatQuickLogPreviewLabel({
-    target: {
-      distance: 5000,
-      distanceUnit: "steps",
-      measurementType: "distance",
-    },
-    loggedSetCount: 0,
-    targetSetsMin: 1,
-    targetSetsMax: 1,
-    fallbackWeightUnit: "lbs",
-  });
-
-  assert.equal(label, "5000 steps");
 });

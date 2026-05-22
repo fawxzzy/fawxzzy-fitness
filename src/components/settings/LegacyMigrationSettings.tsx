@@ -8,6 +8,7 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 
@@ -271,9 +272,8 @@ export function LegacyMigrationSettings({
         </div>
         <div className={appTokens.settingsFieldStack}>
           <LabeledEditorField label="Legacy password">
-            <Input
+            <PasswordInput
               id="legacy-password"
-              type="password"
               autoComplete="current-password"
               value={legacyPassword}
               onChange={(event) => setLegacyPassword(event.target.value)}

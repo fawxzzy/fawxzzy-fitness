@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AuthenticatedRememberedLoginSync } from "@/components/auth/AuthenticatedRememberedLoginSync";
 import { InitialExperienceGate } from "@/components/auth/InitialExperienceGate";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
@@ -5,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
+import { resolveLocalDevAutoEntryHref } from "@/lib/local-dev-auto-entry";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfileForEntryBootstrap } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -40,6 +42,16 @@ export default async function EntryPage() {
     timeoutMs: 5000,
     collector: diagnostics,
   });
+  const supabase = supabaseServer();
+
+  const localDevAutoEntryHref = await resolveLocalDevAutoEntryHref({
+    supabase,
+    userEmail: user.email ?? null,
+    userId: user.id,
+  });
+  if (localDevAutoEntryHref) {
+    redirect(localDevAutoEntryHref);
+  }
 
   let hasExistingProgram = true;
   try {
@@ -53,7 +65,6 @@ export default async function EntryPage() {
 
   try {
     hasExistingProgram = await diagnostics.measure("entry.routine-hint.fetch", async () => {
-      const supabase = supabaseServer();
       const { count, error } = await supabase
         .from("routines")
         .select("id", { count: "exact", head: true })

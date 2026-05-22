@@ -1,12 +1,211 @@
 import { formatWeight } from "@/lib/formatting";
-import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import {
+  detectActiveMeasurementsFromTargets,
+  flattenPromotionMeasurementSequence,
+  getPromotionMeasurementKey,
+  normalizePromotionMeasurements,
+  normalizePromotionMeasurementOrderMap,
+  normalizePromotionMeasurementSequenceMap,
+  resolvePromotionMeasurementsFromOrderMap,
+  type ProgressionMeasurementKey,
+  type PromotionMeasurementOrderMap,
+  type PromotionMeasurementSequenceMap,
+  type PromotionMeasurementKey,
+} from "@/lib/progression-active-measurements";
+import {
+  buildDefaultPromotionSessionCountFieldMap,
+  normalizePromotionGroupedSessionCountMap,
+  normalizePromotionSessionCountMap,
+  serializePromotionSessionCountFieldMap,
+  type PromotionGroupedSessionCountMap,
+  type PromotionSessionCountMap,
+} from "@/lib/promotion-session-counts";
+import {
+  buildDefaultPromotionDirectionFieldMap,
+  normalizePromotionGroupedDirectionMap,
+  normalizePromotionDirectionMap,
+  type PromotionGroupedDirectionMap,
+  type PromotionDirectionMap,
+} from "@/lib/promotion-directions";
+import { resolveCardioVectorMode } from "@/lib/cardio-progression-vectors";
 import {
   inferProgressionStepPolicy,
   type ProgressionStepPolicy,
 } from "@/lib/progression-step-policy";
+import {
+  DEFAULT_PROGRESSION_PROMOTION_BASIS,
+  DEFAULT_REP_PROMOTION_THRESHOLD,
+  getRepPromotionTarget,
+  normalizeProgressionPromotionConfig,
+  normalizePromotionBasis,
+  normalizeRepPromotionThreshold,
+  type ProgressionPromotionBasis,
+  type RepPromotionThreshold,
+} from "@/lib/progression-promotion";
+import {
+  applyTargetMutation,
+  getDefaultTargetMutationForConfig,
+  normalizeTargetMutation,
+  type ProgressionTargetMutationId,
+} from "@/lib/progression-target-mutation";
+import {
+  normalizeQualificationWindow,
+  resolveQualificationWindowStatus,
+  type QualificationWindowConfig,
+  type QualificationWindowStatus,
+} from "@/lib/progression-qualification-window";
 import { applyProgressionVector } from "@/lib/progression-vector";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES, DEFAULT_SET_FLOW_STEPS } from "@/lib/progression-step-defaults";
-import type { FitnessDistanceUnit } from "@/types/db";
+import {
+  areSetFlowDirectionsStraight,
+  getSetFlowDirectionConfigForLegacySetFlow,
+  inferLegacySetFlowFromDirections,
+  normalizeSetFlowDirectionConfig,
+  type SetFlowDirection,
+  type SetFlowDirectionConfig,
+} from "@/lib/set-flow-directions";
+
+type SetFlowMeasurementKey = "time" | "distance" | "reps" | "weight";
+type SetFlowMeasurementSequence = SetFlowMeasurementKey[][];
+type SetFlowCountMap = Partial<Record<SetFlowMeasurementKey, number>>;
+type SetFlowGroupedCountMap = Record<string, number>;
+type SetFlowGroupedDirectionMap = Record<string, SetFlowDirection>;
+
+const SET_FLOW_MEASUREMENT_KEYS: SetFlowMeasurementKey[] = [
+  "time",
+  "distance",
+  "reps",
+  "weight",
+];
+
+function normalizeDirection(input: unknown): SetFlowDirection | null {
+  return input === "up" || input === "down" || input === "straight"
+    ? input
+    : null;
+}
+
+function parsePositiveIntegerString(input: unknown) {
+  if (typeof input !== "string") {
+    return null;
+  }
+
+  const trimmed = input.trim();
+  if (!/^\d+$/u.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed > 0 ? trimmed : null;
+}
+
+function buildDefaultSetFlowCountFieldMap(defaultValue: string) {
+  const fallback = parsePositiveIntegerString(defaultValue) ?? "3";
+  return {
+    time: fallback,
+    distance: fallback,
+    reps: fallback,
+    weight: fallback,
+  } as const;
+}
+
+function serializeSetFlowCountFieldMap(
+  input: Partial<Record<SetFlowMeasurementKey, string>>,
+): SetFlowCountMap | undefined {
+  const nextMap: SetFlowCountMap = {};
+  for (const key of SET_FLOW_MEASUREMENT_KEYS) {
+    const parsed = parsePositiveIntegerString(input[key]);
+    if (parsed) {
+      nextMap[key] = Number(parsed);
+    }
+  }
+
+  return Object.keys(nextMap).length > 0 ? nextMap : undefined;
+}
+
+function normalizeSetFlowCountMap(input: unknown): SetFlowCountMap | undefined {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+
+  const nextMap: SetFlowCountMap = {};
+  for (const key of SET_FLOW_MEASUREMENT_KEYS) {
+    const value = (input as Record<string, unknown>)[key];
+    if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+      nextMap[key] = value;
+    }
+  }
+
+  return Object.keys(nextMap).length > 0 ? nextMap : undefined;
+}
+
+function normalizeSetFlowGroupedCountMap(input: unknown): SetFlowGroupedCountMap | undefined {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+
+  const nextMap: SetFlowGroupedCountMap = {};
+  for (const [key, rawValue] of Object.entries(input as Record<string, unknown>)) {
+    if (typeof rawValue === "number" && Number.isInteger(rawValue) && rawValue > 0 && key.trim().length > 0) {
+      nextMap[key] = rawValue;
+    }
+  }
+
+  return Object.keys(nextMap).length > 0 ? nextMap : undefined;
+}
+
+function coerceSetFlowMeasurementKey(value: unknown): SetFlowMeasurementKey | null {
+  return typeof value === "string" && SET_FLOW_MEASUREMENT_KEYS.includes(value as SetFlowMeasurementKey)
+    ? value as SetFlowMeasurementKey
+    : null;
+}
+
+function normalizeSetFlowMeasurementSequence(input: unknown): SetFlowMeasurementSequence {
+  const normalizedGroups: SetFlowMeasurementSequence = [];
+  const seen = new Set<SetFlowMeasurementKey>();
+
+  for (const rawGroup of Array.isArray(input) ? input : []) {
+    const group: SetFlowMeasurementKey[] = [];
+    for (const rawMeasurement of Array.isArray(rawGroup) ? rawGroup : []) {
+      const measurement = coerceSetFlowMeasurementKey(rawMeasurement);
+      if (!measurement || seen.has(measurement)) {
+        continue;
+      }
+      seen.add(measurement);
+      group.push(measurement);
+    }
+    if (group.length > 0) {
+      normalizedGroups.push(group);
+    }
+  }
+
+  const missingMeasurements = SET_FLOW_MEASUREMENT_KEYS.filter((measurement) => !seen.has(measurement));
+  if (normalizedGroups.length === 0) {
+    return [[...SET_FLOW_MEASUREMENT_KEYS]];
+  }
+
+  for (const measurement of missingMeasurements) {
+    normalizedGroups.push([measurement]);
+  }
+
+  return normalizedGroups;
+}
+
+function normalizeSetFlowGroupedDirectionMap(input: unknown): SetFlowGroupedDirectionMap | undefined {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+
+  const nextMap: SetFlowGroupedDirectionMap = {};
+  for (const [key, rawValue] of Object.entries(input as Record<string, unknown>)) {
+    const parsed = normalizeDirection(rawValue);
+    if (parsed && key.trim().length > 0) {
+      nextMap[key] = parsed;
+    }
+  }
+
+  return Object.keys(nextMap).length > 0 ? nextMap : undefined;
+}
 
 export const PROGRESSION_PLAYBOOK_IDS = [
   "double_progression",
@@ -106,7 +305,7 @@ export const TRAINING_GOAL_DEFINITIONS: Record<TrainingGoalId, {
     id: "build_muscle",
     label: "Build Muscle",
     meaning: "Prioritizes muscle growth through repeatable volume and gradual progression.",
-    affects: "Seeds moderate rep ranges, Overloaded targets, and optional failure settings.",
+    affects: "Seeds moderate rep ranges, Auto progression targets, and optional failure settings.",
     example: "Build reps at the same load before increasing.",
     defaultModel: {
       progressionMethod: "double_progression",
@@ -120,7 +319,7 @@ export const TRAINING_GOAL_DEFINITIONS: Record<TrainingGoalId, {
     id: "build_strength",
     label: "Build Strength",
     meaning: "Prioritizes heavier targets and clear progression.",
-    affects: "Seeds Overloaded targets and makes Deload policy available.",
+    affects: "Seeds Auto progression targets and makes Deload policy available.",
     example: "Earn a load increase after hitting top reps across checked sets.",
     defaultModel: {
       progressionMethod: "double_progression",
@@ -191,7 +390,7 @@ export const PROGRESSION_INFO_TERM_DEFINITIONS: ProgressionInfoTermDefinition[] 
     term: "Max reps",
     meaning: "Top of the target range.",
     affects: "Promotion or review threshold.",
-    example: "In Overloaded mode, hitting 12 on all checked sets can earn promotion.",
+    example: "In Auto mode, hitting 12 on all checked sets can earn promotion.",
   },
   {
     term: "Load",
@@ -230,10 +429,28 @@ export const PROGRESSION_INFO_TERM_DEFINITIONS: ProgressionInfoTermDefinition[] 
     example: "Dumbbell step 5 lb per dumbbell; barbell step 10 lb total.",
   },
   {
-    term: "Sets flow",
-    meaning: "How targets change across sets inside today's workout.",
-    affects: "Whether sets are straight, ramped, descending, or another structure.",
-    example: "Ascending ramp builds toward heavier sets across the exercise.",
+    term: "Session Settings",
+    meaning: "How eligible measurements are ordered, grouped, counted, and directed across successful sessions.",
+    affects: "Progression sequence, active AND behavior, and the session-level progression example.",
+    example: "A grouped Time + Distance lane with session count 3 holds that active group for 3 successful sessions before the flow advances.",
+  },
+  {
+    term: "Session count",
+    meaning: "How many successful sessions a measurement or active AND group holds before progression advances.",
+    affects: "Qualification span, grouped session behavior, and progression example sequencing.",
+    example: "Session count 2 means the same active measurement or group must qualify twice before the next progression move.",
+  },
+  {
+    term: "Day Sync Session",
+    meaning: "Whether Day Settings mirror Session Settings or use separate day-step inputs.",
+    affects: "Whether day input boxes appear and whether day steps reuse Session Settings values.",
+    example: "Synced hides day inputs; Unsynced shows separate time, distance, rep, and load day steps.",
+  },
+  {
+    term: "Set Settings",
+    meaning: "How active measurements are ordered, grouped, counted, and directed across sets inside today's workout.",
+    affects: "The within-session example, Quick Log set suggestions, and next-set defaults.",
+    example: "A grouped Load + Reps set count of 3 holds that active set group for 3 sets before the flow advances.",
   },
   {
     term: "Stall",
@@ -302,39 +519,71 @@ export type SetFlowStepConfig = {
   distanceStep?: number;
 };
 
+export type ProgressionDayMode = "synced" | "unsynced";
+
+export type SetFlowConfigFields = {
+  setFlowSteps?: SetFlowStepConfig;
+  setFlow?: SetFlowId;
+  setFlowDirections?: SetFlowDirectionConfig;
+  setFlowMeasurementSequence?: SetFlowMeasurementSequence;
+  setFlowCountMap?: SetFlowCountMap;
+  setFlowGroupedCountMap?: SetFlowGroupedCountMap;
+  setFlowGroupedDirectionMap?: SetFlowGroupedDirectionMap;
+};
+
+export type ProgressionDayConfigFields = {
+  dayProgressionMode?: ProgressionDayMode;
+  dayProgressionSteps?: SetFlowStepConfig;
+  effortWaveDirections?: SetFlowDirection[];
+};
+
+export type ProgressionPromotionConfigFields = {
+  setsMin?: number | null;
+  setsMax?: number | null;
+  promotionDirectionMap?: PromotionDirectionMap;
+  promotionGroupedDirectionMap?: PromotionGroupedDirectionMap;
+  promotionBasis?: ProgressionPromotionBasis;
+  targetMutation?: ProgressionTargetMutationId;
+  qualificationWindow?: QualificationWindowConfig;
+  promotionMeasurementOrderMap?: PromotionMeasurementOrderMap;
+  promotionMeasurementSequenceMap?: PromotionMeasurementSequenceMap;
+  promotionSessionCountMap?: PromotionSessionCountMap;
+  promotionGroupedSessionCountMap?: PromotionGroupedSessionCountMap;
+  promotionRepRangePreview?: {
+    min?: number;
+    max?: number;
+  };
+  repPromotionThreshold?: RepPromotionThreshold;
+  customRepPromotionTarget?: number | null;
+};
+
 export type DoubleProgressionConfig = {
   version: 1;
   loadIncrement: number;
   stepOverrides?: ProgressionStepOverrideConfig;
-  setFlowSteps?: SetFlowStepConfig;
-  setFlow?: SetFlowId;
   stallPolicy?: ProgressionStallPolicy;
   stallThreshold?: number;
   deloadPercent?: number;
   autoUpdateRoutineGoals?: boolean;
-};
+} & ProgressionPromotionConfigFields & SetFlowConfigFields & ProgressionDayConfigFields;
 
 export type FixedLoadRepRangeProgressionConfig = {
   version: 1;
   loadIncrement: number;
   stepOverrides?: ProgressionStepOverrideConfig;
-  setFlowSteps?: SetFlowStepConfig;
-  setFlow?: SetFlowId;
   stallPolicy?: ProgressionStallPolicy;
   stallThreshold?: number;
   deloadPercent?: number;
   autoUpdateRoutineGoals?: boolean;
-};
+} & ProgressionPromotionConfigFields & SetFlowConfigFields & ProgressionDayConfigFields;
 
 export type DeloadAfterStallConfig = {
   version: 1;
   loadIncrement: number;
   stepOverrides?: ProgressionStepOverrideConfig;
-  setFlowSteps?: SetFlowStepConfig;
-  setFlow?: SetFlowId;
   stallThreshold: number;
   deloadPercent: number;
-};
+} & ProgressionPromotionConfigFields & SetFlowConfigFields & ProgressionDayConfigFields;
 
 export type ProgressionPlaybookConfig =
   | DoubleProgressionConfig
@@ -373,6 +622,7 @@ export type ProgressionTargetPlan = {
 
 export type ProgressionHistorySetRow = {
   sessionId: string;
+  sessionRecordId?: string | null;
   performedAt: string;
   setIndex: number;
   weight: number | null;
@@ -428,6 +678,8 @@ export type ProgressionReviewCandidate = {
   currentTarget: ProgressionTargetPlan | null;
   proposedTarget: ProgressionTargetPlan | null;
   reason: string;
+  qualificationWindowLine?: string | null;
+  qualificationWindowStatus?: QualificationWindowStatus | null;
   cycleWindow?: ProgressionReviewCycleWindow | null;
   sourceSession?: {
     sessionId: string;
@@ -610,7 +862,7 @@ function resolveProgressionStepForPlan(args: {
   return inferProgressionStepPolicy({
     measurementType: args.plan.measurementType,
     weightUnit: args.plan.weightUnit ?? args.fallbackWeightUnit,
-    distanceUnit: normalizeFitnessDistanceUnit(args.plan.distanceUnit, "mi"),
+    distanceUnit: args.plan.distanceUnit === "km" ? "km" : "mi",
     targetWeight: args.plan.weightMax ?? args.plan.weightMin ?? null,
     exerciseOverrideValue: args.configLoadIncrement,
   });
@@ -837,6 +1089,26 @@ function normalizeSetFlowSteps(value: unknown): SetFlowStepConfig | undefined {
   return Object.keys(entries).length > 0 ? entries : undefined;
 }
 
+function normalizeProgressionDayMode(value: unknown): ProgressionDayMode {
+  return value === "synced" ? "synced" : "unsynced";
+}
+
+function normalizeEffortWaveDirections(value: unknown): SetFlowDirection[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const parsed = value
+    .map((entry) => (entry === "up" || entry === "down" || entry === "straight" ? entry : null))
+    .filter((entry): entry is SetFlowDirection => entry !== null);
+
+  if (parsed.length === 0 || parsed.every((entry) => entry === "straight")) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 function parseProgressionStepOverridesFromFormData(formData: FormData): ProgressionStepOverrideConfig | undefined {
   const rawEntries: Record<keyof ProgressionStepOverrideConfig, FormDataEntryValue | null> = {
     barbellLoadIncrement: formData.get("progressionBarbellLoadIncrement"),
@@ -886,6 +1158,28 @@ function parseSetFlowStepsFromFormData(formData: FormData): SetFlowStepConfig | 
   return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
+function parseDayProgressionStepsFromFormData(formData: FormData): SetFlowStepConfig | undefined {
+  const loadStep = parseOptionalPositiveNumber(formData.get("progressionDayLoadStep"));
+  const repStep = parseOptionalPositiveNumber(formData.get("progressionDayRepStep"));
+  const durationSecondsStep = parseOptionalPositiveNumber(formData.get("progressionDayDurationStep"));
+  const distanceStep = parseOptionalPositiveNumber(formData.get("progressionDayDistanceStep"));
+  const parsed: SetFlowStepConfig = {};
+  if (loadStep !== null && !Number.isNaN(loadStep)) {
+    parsed.loadStep = loadStep;
+  }
+  if (repStep !== null && !Number.isNaN(repStep)) {
+    parsed.repStep = repStep;
+  }
+  if (durationSecondsStep !== null && !Number.isNaN(durationSecondsStep)) {
+    parsed.durationSecondsStep = durationSecondsStep;
+  }
+  if (distanceStep !== null && !Number.isNaN(distanceStep)) {
+    parsed.distanceStep = distanceStep;
+  }
+
+  return Object.keys(parsed).length > 0 ? parsed : undefined;
+}
+
 function attachProgressionStepOverrides<Config extends ProgressionPlaybookConfig>(
   config: Config,
   stepOverrides: ProgressionStepOverrideConfig | undefined,
@@ -914,14 +1208,44 @@ function attachSetFlowSteps<Config extends ProgressionPlaybookConfig>(
   };
 }
 
+function attachSetFlowDirections<Config extends ProgressionPlaybookConfig>(
+  config: Config,
+  setFlowDirections: SetFlowDirectionConfig | undefined,
+) {
+  if (!setFlowDirections) {
+    return config;
+  }
+
+  return {
+    ...config,
+    setFlowDirections,
+  };
+}
+
+function attachDayProgressionConfig<Config extends ProgressionPlaybookConfig>(
+  config: Config,
+  args: {
+    dayProgressionMode: ProgressionDayMode;
+    dayProgressionSteps?: SetFlowStepConfig;
+    effortWaveDirections?: SetFlowDirection[];
+  },
+) {
+  return {
+    ...config,
+    dayProgressionMode: args.dayProgressionMode,
+    ...(args.dayProgressionSteps ? { dayProgressionSteps: args.dayProgressionSteps } : {}),
+    ...(args.effortWaveDirections ? { effortWaveDirections: args.effortWaveDirections } : {}),
+  };
+}
+
 function buildBaseTargetPlan(args: {
   measurementType: ProgressionMeasurementType;
   setCount: number;
   targetReps?: number | null;
   minReps: number;
   maxReps: number;
-  weight: number;
-  weightUnit: "lbs" | "kg";
+  weight?: number | null;
+  weightUnit?: "lbs" | "kg" | null;
 }): ProgressionTargetPlan {
   return {
     measurementType: args.measurementType,
@@ -930,9 +1254,9 @@ function buildBaseTargetPlan(args: {
     repsTarget: args.targetReps ?? null,
     repsMin: args.minReps,
     repsMax: args.maxReps,
-    weightMin: args.weight,
-    weightMax: args.weight,
-    weightUnit: args.weightUnit,
+    weightMin: isFinitePositiveNumber(args.weight) ? args.weight : null,
+    weightMax: isFinitePositiveNumber(args.weight) ? args.weight : null,
+    weightUnit: args.weightUnit ?? null,
   };
 }
 
@@ -997,8 +1321,9 @@ function sessionCoversTargetLoad(session: ProgressionHistorySession, targetWeigh
 function resolveHighestQualifiedLoadResult(args: {
   rows: ProgressionHistorySetRow[] | null | undefined;
   targetSets: number;
-  topRep: number;
-  targetWeight: number;
+  topRep: number | null;
+  targetWeight: number | null;
+  promotionMeasurements: ProgressionMeasurementKey[];
 }) {
   const qualifiedCountBySessionAndLoad = new Map<string, {
     performedAt: string;
@@ -1006,12 +1331,20 @@ function resolveHighestQualifiedLoadResult(args: {
   }>();
 
   for (const row of args.rows ?? []) {
-    if (row.isWarmup || !isPositiveInteger(row.reps) || row.reps < args.topRep) {
+    if (row.isWarmup) {
       continue;
     }
 
-    if (!weightMeetsOrExceedsTarget(row.weight, args.targetWeight)) {
-      continue;
+    if (args.promotionMeasurements.includes("reps")) {
+      if (!isPositiveInteger(row.reps) || !isPositiveInteger(args.topRep) || row.reps < args.topRep) {
+        continue;
+      }
+    }
+
+    if (args.promotionMeasurements.includes("weight")) {
+      if (!isFinitePositiveNumber(args.targetWeight) || !weightMeetsOrExceedsTarget(row.weight, args.targetWeight)) {
+        continue;
+      }
     }
 
     const load = resolveLoadedSetWeight(row.weight);
@@ -1073,30 +1406,337 @@ function resolveLoadPromotionTarget(args: {
   };
 }
 
+function resolveTargetMutationForSelection(args: {
+  selection: ProgressionPlaybookSelection;
+  plan: ProgressionTargetPlan;
+}) {
+  return getDefaultTargetMutationForConfig({
+    config: args.selection.config,
+    plan: args.plan,
+  });
+}
+
+function didProgressionTargetChange(currentTarget: ProgressionTargetPlan, proposedTarget: ProgressionTargetPlan) {
+  return JSON.stringify(currentTarget) !== JSON.stringify(proposedTarget);
+}
+
+function describeTargetMutationReason(args: {
+  methodLabel: string;
+  targetMutation: ProgressionTargetMutationId;
+  wasCapped?: boolean;
+  measurementType: ProgressionMeasurementType;
+}) {
+  if (args.wasCapped) {
+    return `${args.methodLabel}: target surpassed - update capped for review.`;
+  }
+
+  switch (args.targetMutation) {
+  case "increase_load":
+  case "increase_load_reset_reps":
+    return `${args.methodLabel}: promotion threshold reached - increase load next cycle.`;
+  case "increase_reps":
+    return `${args.methodLabel}: promotion threshold reached - increase reps next cycle.`;
+  case "increase_load_and_reps":
+    return `${args.methodLabel}: promotion threshold reached - increase load and reps next cycle.`;
+  case "increase_duration":
+    return `${args.methodLabel}: time target complete - increase duration next cycle.`;
+  case "increase_distance":
+    return `${args.methodLabel}: distance target complete - increase distance next cycle.`;
+  case "increase_duration_and_distance":
+    return `${args.methodLabel}: target complete - increase duration and distance next cycle.`;
+  case "none":
+    return `${args.methodLabel}: readiness is complete but no target mutation is configured.`;
+  default:
+    return args.measurementType === "reps"
+      ? `${args.methodLabel}: promotion threshold reached.`
+      : `${args.methodLabel}: target complete.`;
+  }
+}
+
 function findBestTargetLoadSession(args: {
   history: ProgressionHistorySession[];
   targetWeight: number;
+  allowedSessionIds?: Set<string>;
 }) {
-  return args.history.find((session) => session.coveredTargetSets && sessionCoversTargetLoad(session, args.targetWeight)) ?? null;
+  return args.history.find((session) =>
+    (!args.allowedSessionIds || args.allowedSessionIds.has(session.sessionId))
+    && session.coveredTargetSets
+    && sessionCoversTargetLoad(session, args.targetWeight)) ?? null;
+}
+
+type PromotionQualificationArgs = {
+  promotionBasis: ProgressionPromotionBasis;
+  activeMeasurements: ProgressionMeasurementKey[];
+  promotionMeasurements: ProgressionMeasurementKey[];
+  promotionMeasurementKey: PromotionMeasurementKey;
+  repTarget: number | null;
+  targetSets: number;
+  targetWeight: number | null;
+  targetDurationSeconds: number | null;
+  targetDistance: number | null;
+  targetCalories: number | null;
+};
+
+function resolveLegacyPromotionMeasurements(args: {
+  plan: ProgressionTargetPlan;
+  promotionBasis: ProgressionPromotionBasis;
+}) {
+  switch (args.plan.measurementType) {
+  case "reps":
+    switch (args.promotionBasis) {
+    case "reps_only":
+      return ["reps"] satisfies ProgressionMeasurementKey[];
+    case "weight_only":
+      return ["weight"] satisfies ProgressionMeasurementKey[];
+    case "weight_and_reps":
+    default:
+      return ["reps", "weight"] satisfies ProgressionMeasurementKey[];
+    }
+  case "time":
+    return ["time"] satisfies ProgressionMeasurementKey[];
+  case "distance":
+    return ["distance"] satisfies ProgressionMeasurementKey[];
+  case "time_distance":
+    return ["time", "distance"] satisfies ProgressionMeasurementKey[];
+  case "none":
+  default:
+    return [] satisfies ProgressionMeasurementKey[];
+  }
+}
+
+function buildActiveMeasurementTargetInput(plan: ProgressionTargetPlan) {
+  return {
+    measurementType: plan.measurementType,
+    repsTarget: plan.repsTarget ?? null,
+    repsMin: plan.repsMin ?? null,
+    repsMax: plan.repsMax ?? null,
+    weightMin: plan.weightMin ?? null,
+    weightMax: plan.weightMax ?? null,
+    durationSeconds: plan.durationSeconds ?? null,
+    distance: plan.distance ?? null,
+    calories: plan.calories ?? null,
+  };
+}
+
+function includesPromotionMeasurement(
+  qualification: Pick<PromotionQualificationArgs, "promotionMeasurements">,
+  measurement: ProgressionMeasurementKey,
+) {
+  return qualification.promotionMeasurements.includes(measurement);
+}
+
+function getPromotionQualificationArgs(args: {
+  plan: ProgressionTargetPlan;
+  config: ProgressionPromotionConfigFields;
+  targetSets: number;
+  targetWeight: number | null;
+  minReps: number;
+  maxReps: number;
+}) {
+  const promotionBasis = normalizePromotionBasis(args.config.promotionBasis, DEFAULT_PROGRESSION_PROMOTION_BASIS);
+  const activeMeasurements = detectActiveMeasurementsFromTargets(buildActiveMeasurementTargetInput(args.plan));
+  const resolvedPromotionMeasurements = args.config.promotionMeasurementOrderMap
+    ? resolvePromotionMeasurementsFromOrderMap({
+      orderMap: args.config.promotionMeasurementOrderMap,
+      activeMeasurements,
+      measurementType: args.plan.measurementType,
+      cardioVectorMode: resolveCardioVectorMode({
+        measurementType: args.plan.measurementType,
+        durationSeconds: args.plan.durationSeconds ?? null,
+        distance: args.plan.distance ?? null,
+        calories: args.plan.calories ?? null,
+      }),
+    }).promotionMeasurements
+    : [];
+  const promotionMeasurements = resolvedPromotionMeasurements.length > 0
+    ? resolvedPromotionMeasurements
+    : normalizePromotionMeasurements({
+      measurements: resolveLegacyPromotionMeasurements({
+        plan: args.plan,
+        promotionBasis,
+      }),
+    });
+  return {
+    promotionBasis,
+    activeMeasurements,
+    promotionMeasurements,
+    promotionMeasurementKey: getPromotionMeasurementKey({
+      measurements: promotionMeasurements,
+      cardioVectorMode: resolveCardioVectorMode({
+        measurementType: args.plan.measurementType,
+        durationSeconds: args.plan.durationSeconds ?? null,
+        distance: args.plan.distance ?? null,
+        calories: args.plan.calories ?? null,
+      }),
+    }),
+    repTarget: includesPromotionMeasurement({ promotionMeasurements }, "reps")
+      ? getRepPromotionTarget({
+        minReps: args.minReps,
+        maxReps: args.maxReps,
+        thresholdType: args.config.repPromotionThreshold,
+        customTarget: args.config.customRepPromotionTarget,
+      })
+      : null,
+    targetSets: args.targetSets,
+    targetWeight: includesPromotionMeasurement({ promotionMeasurements }, "weight") && isFinitePositiveNumber(args.targetWeight)
+      ? args.targetWeight
+      : null,
+    targetDurationSeconds: includesPromotionMeasurement({ promotionMeasurements }, "time") && isPositiveInteger(args.plan.durationSeconds)
+      ? args.plan.durationSeconds
+      : null,
+    targetDistance: includesPromotionMeasurement({ promotionMeasurements }, "distance") && isFinitePositiveNumber(args.plan.distance)
+      ? args.plan.distance
+      : null,
+    targetCalories: includesPromotionMeasurement({ promotionMeasurements }, "calories") && isFinitePositiveNumber(args.plan.calories)
+      ? args.plan.calories
+      : null,
+  } satisfies PromotionQualificationArgs;
+}
+
+function resolveQualificationWindowConfig(input: unknown) {
+  return normalizeQualificationWindow(input);
+}
+
+function resolveQualificationWindowStatusForHistory(args: {
+  selection: ProgressionPlaybookSelection;
+  history: ProgressionHistorySession[];
+  qualification: PromotionQualificationArgs;
+  cycleWindow?: ProgressionReviewCycleWindow | null;
+  isQualifiedSession?: (session: ProgressionHistorySession) => boolean;
+}) {
+  const status = resolveQualificationWindowStatus({
+    config: args.selection.config.qualificationWindow,
+    evidence: args.history.map((session) => ({
+      sessionId: session.sessionId,
+      performedAt: session.performedAt,
+      qualified: args.isQualifiedSession ? args.isQualifiedSession(session) : sessionQualifiesForPromotion(session, args.qualification),
+    })),
+    cycleWindow: args.cycleWindow,
+  });
+
+  return {
+    status,
+    matchedSessionIds: new Set(status.matchedSessionIds),
+  };
+}
+
+function getQualificationWindowLine(selection: ProgressionPlaybookSelection, status: QualificationWindowStatus) {
+  return Object.prototype.hasOwnProperty.call(selection.config, "qualificationWindow")
+    ? status.statusLine
+    : null;
+}
+
+function buildQualificationWindowBlockedReason(args: {
+  methodLabel: string;
+  qualificationWindowLine: string | null;
+  unsupported: boolean;
+  fallbackReason: string;
+}) {
+  if (args.qualificationWindowLine) {
+    return args.unsupported
+      ? `${args.methodLabel}: ${args.qualificationWindowLine.toLowerCase()}.`
+      : `${args.methodLabel}: ${args.qualificationWindowLine}.`;
+  }
+
+  return args.fallbackReason;
+}
+
+function sessionMeetsRepPromotion(session: ProgressionHistorySession, targetSets: number, repTarget: number | null) {
+  if (!isPositiveInteger(repTarget) || !session.coveredTargetSets) {
+    return false;
+  }
+
+  return session.repsBySet.length >= targetSets
+    && session.repsBySet.slice(0, targetSets).every((reps) => reps >= repTarget);
+}
+
+function sessionQualifiesForPromotion(session: ProgressionHistorySession, args: PromotionQualificationArgs) {
+  if (!session.coveredTargetSets) {
+    return false;
+  }
+
+  if (includesPromotionMeasurement(args, "weight")) {
+    if (!isFinitePositiveNumber(args.targetWeight) || !sessionCoversTargetLoad(session, args.targetWeight)) {
+      return false;
+    }
+  }
+
+  if (includesPromotionMeasurement(args, "reps")) {
+    if (!sessionMeetsRepPromotion(session, args.targetSets, args.repTarget)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function rowMeetsPromotionMeasurements(args: {
+  row: ProgressionHistorySetRow;
+  qualification: PromotionQualificationArgs;
+}) {
+  if (args.row.isWarmup) {
+    return false;
+  }
+
+  if (includesPromotionMeasurement(args.qualification, "reps")) {
+    if (!isPositiveInteger(args.qualification.repTarget) || !isPositiveInteger(args.row.reps) || args.row.reps < args.qualification.repTarget) {
+      return false;
+    }
+  }
+
+  if (includesPromotionMeasurement(args.qualification, "weight")) {
+    if (!isFinitePositiveNumber(args.qualification.targetWeight) || !weightMeetsOrExceedsTarget(args.row.weight, args.qualification.targetWeight)) {
+      return false;
+    }
+  }
+
+  if (includesPromotionMeasurement(args.qualification, "time")) {
+    if (!isPositiveInteger(args.qualification.targetDurationSeconds) || !isPositiveInteger(args.row.durationSeconds) || args.row.durationSeconds < args.qualification.targetDurationSeconds) {
+      return false;
+    }
+  }
+
+  if (includesPromotionMeasurement(args.qualification, "distance")) {
+    if (!isFinitePositiveNumber(args.qualification.targetDistance) || !isFinitePositiveNumber(args.row.distance) || args.row.distance + 0.0001 < args.qualification.targetDistance) {
+      return false;
+    }
+  }
+
+  if (includesPromotionMeasurement(args.qualification, "calories")) {
+    if (!isFinitePositiveNumber(args.qualification.targetCalories) || !isFinitePositiveNumber(args.row.calories) || args.row.calories + 0.0001 < args.qualification.targetCalories) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function findBestPromotionQualifiedSession(args: {
+  history: ProgressionHistorySession[];
+  qualification: PromotionQualificationArgs;
+  allowedSessionIds?: Set<string>;
+}) {
+  return args.history.find((session) =>
+    (!args.allowedSessionIds || args.allowedSessionIds.has(session.sessionId))
+    && sessionQualifiesForPromotion(session, args.qualification)) ?? null;
 }
 
 function findBestTopRangeSession(args: {
   history: ProgressionHistorySession[];
   rows?: ProgressionHistorySetRow[] | null;
-  targetSets: number;
-  topRep: number;
-  targetWeight: number;
+  qualification: PromotionQualificationArgs;
+  allowedSessionIds?: Set<string>;
 }) {
   const qualifiedLoad = resolveHighestQualifiedLoadResult({
-    rows: args.rows,
-    targetSets: args.targetSets,
-    topRep: args.topRep,
-    targetWeight: args.targetWeight,
+    rows: (args.rows ?? []).filter((row) => !args.allowedSessionIds || args.allowedSessionIds.has(row.sessionId)),
+    targetSets: args.qualification.targetSets,
+    topRep: args.qualification.repTarget,
+    targetWeight: args.qualification.targetWeight,
+    promotionMeasurements: args.qualification.promotionMeasurements,
   });
   const qualifiedSessions = args.history.filter((session) =>
-    session.coveredTargetSets
-    && sessionCoversTargetLoad(session, args.targetWeight)
-    && session.allSetsAtOrAboveTopRep);
+    (!args.allowedSessionIds || args.allowedSessionIds.has(session.sessionId))
+    && sessionQualifiesForPromotion(session, args.qualification));
 
   if (qualifiedLoad) {
     const matchedSession = qualifiedSessions.find((session) => session.sessionId === qualifiedLoad.sessionId) ?? null;
@@ -1165,15 +1805,12 @@ function resolveDistanceStep(args: {
     return args.progressionStepPolicy.defaultValue;
   }
 
-  if (args.plan.distanceUnit === "steps") {
-    return 500;
-  }
-
   return args.plan.distanceUnit === "km" ? 0.25 : 0.1;
 }
 
 function hasCompletedCardioTargetExposure(args: {
   plan: ProgressionTargetPlan;
+  config: ProgressionPromotionConfigFields;
   rows: ProgressionHistorySetRow[] | null | undefined;
 }) {
   const workRows = (args.rows ?? []).filter((row) => !row.isWarmup);
@@ -1181,26 +1818,31 @@ function hasCompletedCardioTargetExposure(args: {
     return false;
   }
 
-  switch (args.plan.measurementType) {
-  case "time":
-    return isPositiveInteger(args.plan.durationSeconds)
-      && workRows.some((row) => isPositiveInteger(row.durationSeconds) && row.durationSeconds >= args.plan.durationSeconds!);
-  case "distance":
-    return isFinitePositiveNumber(args.plan.distance)
-      && workRows.some((row) => isFinitePositiveNumber(row.distance) && row.distance >= args.plan.distance!);
-  case "time_distance":
-    return isPositiveInteger(args.plan.durationSeconds)
-      && isFinitePositiveNumber(args.plan.distance)
-      && workRows.some((row) => (
-        isPositiveInteger(row.durationSeconds)
-        && row.durationSeconds >= args.plan.durationSeconds!
-        && isFinitePositiveNumber(row.distance)
-        && row.distance >= args.plan.distance!
-      ));
-  case "reps":
-  case "none":
+  const promotionQualification = getPromotionQualificationArgs({
+    plan: args.plan,
+    config: args.config,
+    targetSets: resolveSingleValue(args.plan.setsMin, args.plan.setsMax) ?? 0,
+    targetWeight: args.plan.weightMax ?? args.plan.weightMin ?? null,
+    minReps: args.plan.repsMin ?? args.plan.repsTarget ?? args.plan.repsMax ?? 0,
+    maxReps: args.plan.repsMax ?? args.plan.repsTarget ?? args.plan.repsMin ?? 0,
+  });
+
+  if (promotionQualification.promotionMeasurements.length === 0) {
     return false;
   }
+
+  if (
+    (includesPromotionMeasurement(promotionQualification, "time") && !isPositiveInteger(promotionQualification.targetDurationSeconds))
+    || (includesPromotionMeasurement(promotionQualification, "distance") && !isFinitePositiveNumber(promotionQualification.targetDistance))
+    || (includesPromotionMeasurement(promotionQualification, "calories") && !isFinitePositiveNumber(promotionQualification.targetCalories))
+  ) {
+    return false;
+  }
+
+  return workRows.some((row) => rowMeetsPromotionMeasurements({
+    row,
+    qualification: promotionQualification,
+  }));
 }
 
 function deriveCardioProgressionReviewCandidate(args: {
@@ -1246,9 +1888,14 @@ function deriveCardioProgressionReviewCandidate(args: {
       });
     }
 
-    const progression = applyProgressionVector({
-      vectorId: "duration",
+    const targetMutation = resolveTargetMutationForSelection({
+      selection: args.selection,
       plan: basePlan,
+    });
+    const progression = applyTargetMutation({
+      targetMutation,
+      plan: basePlan,
+      config: args.selection.config,
       progressionStepPolicy: args.progressionStepPolicy,
     });
     const proposedTarget = progression?.proposedTarget ?? {
@@ -1266,7 +1913,11 @@ function deriveCardioProgressionReviewCandidate(args: {
       label: args.methodLabel,
       currentTarget: basePlan,
       proposedTarget,
-      reason: `${args.methodLabel}: time target complete - increase duration next cycle.`,
+      reason: describeTargetMutationReason({
+        methodLabel: args.methodLabel,
+        targetMutation,
+        measurementType: args.plan.measurementType,
+      }),
       cycleWindow: args.cycleWindow ?? null,
     };
   }
@@ -1282,9 +1933,14 @@ function deriveCardioProgressionReviewCandidate(args: {
       });
     }
 
-    const progression = applyProgressionVector({
-      vectorId: "distance",
+    const targetMutation = resolveTargetMutationForSelection({
+      selection: args.selection,
       plan: basePlan,
+    });
+    const progression = applyTargetMutation({
+      targetMutation,
+      plan: basePlan,
+      config: args.selection.config,
       progressionStepPolicy: args.progressionStepPolicy,
     });
     const proposedTarget = progression?.proposedTarget ?? {
@@ -1302,7 +1958,11 @@ function deriveCardioProgressionReviewCandidate(args: {
       label: args.methodLabel,
       currentTarget: basePlan,
       proposedTarget,
-      reason: `${args.methodLabel}: distance target complete - increase distance next cycle.`,
+      reason: describeTargetMutationReason({
+        methodLabel: args.methodLabel,
+        targetMutation,
+        measurementType: args.plan.measurementType,
+      }),
       cycleWindow: args.cycleWindow ?? null,
     };
   }
@@ -1318,13 +1978,23 @@ function deriveCardioProgressionReviewCandidate(args: {
       });
     }
 
-    const progression = applyProgressionVector({
-      vectorId: "coupled_duration_distance",
+    const targetMutation = resolveTargetMutationForSelection({
+      selection: args.selection,
       plan: basePlan,
+    });
+    const progression = applyTargetMutation({
+      targetMutation,
+      plan: basePlan,
+      config: args.selection.config,
       progressionStepPolicy: args.progressionStepPolicy,
     });
     const proposedTarget = progression?.proposedTarget ?? {
       ...basePlan,
+      durationSeconds: args.plan.durationSeconds + resolveDurationStepSeconds({
+        plan: args.plan,
+        configLoadIncrement: args.selection.config.loadIncrement,
+        progressionStepPolicy: args.progressionStepPolicy,
+      }),
       distance: Number((args.plan.distance + resolveDistanceStep({
         plan: args.plan,
         configLoadIncrement: args.selection.config.loadIncrement,
@@ -1338,7 +2008,11 @@ function deriveCardioProgressionReviewCandidate(args: {
       label: args.methodLabel,
       currentTarget: basePlan,
       proposedTarget,
-      reason: `${args.methodLabel}: time + distance target complete - hold time and increase distance next cycle.`,
+      reason: describeTargetMutationReason({
+        methodLabel: args.methodLabel,
+        targetMutation,
+        measurementType: args.plan.measurementType,
+      }),
       cycleWindow: args.cycleWindow ?? null,
     };
   }
@@ -1354,17 +2028,22 @@ function deriveCardioProgressionReviewCandidate(args: {
 
 function countConsecutiveStalls(args: {
   history: ProgressionHistorySession[];
-  targetWeight: number;
-  topRep: number;
+  qualification: PromotionQualificationArgs;
 }) {
   let count = 0;
 
   for (const session of args.history) {
-    if (!session.coveredTargetSets || !weightsMatch(session.weight, args.targetWeight)) {
+    if (!session.coveredTargetSets) {
       break;
     }
 
-    if (session.allSetsAtOrAboveTopRep) {
+    if (includesPromotionMeasurement(args.qualification, "weight")) {
+      if (!isFinitePositiveNumber(args.qualification.targetWeight) || !weightsMatch(session.weight, args.qualification.targetWeight)) {
+        break;
+      }
+    }
+
+    if (sessionQualifiesForPromotion(session, args.qualification)) {
       break;
     }
 
@@ -1396,12 +2075,84 @@ export function getDefaultProgressionPlaybookConfig(id: ProgressionPlaybookId): 
 export function getDefaultProgressionPlaybookConfig(id: ProgressionPlaybookId): ProgressionPlaybookConfig {
   switch (id) {
   case "double_progression":
-    return { version: 1, loadIncrement: 5, stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES }, setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS } };
+    return {
+      version: 1,
+      loadIncrement: 5,
+      stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES },
+      setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS },
+      dayProgressionMode: "unsynced",
+      promotionBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+      repPromotionThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+    };
   case "fixed_load_rep_range_progression":
-    return { version: 1, loadIncrement: 5, stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES }, setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS } };
+    return {
+      version: 1,
+      loadIncrement: 5,
+      stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES },
+      setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS },
+      dayProgressionMode: "unsynced",
+      promotionBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+      repPromotionThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+    };
   case "deload_after_stall":
-    return { version: 1, loadIncrement: 5, stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES }, setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS }, stallThreshold: 2, deloadPercent: 10 };
+    return { version: 1, loadIncrement: 5, stepOverrides: { ...DEFAULT_PROGRESSION_STEP_OVERRIDES }, setFlowSteps: { ...DEFAULT_SET_FLOW_STEPS }, dayProgressionMode: "unsynced", stallThreshold: 2, deloadPercent: 10 };
   }
+}
+
+function resolveConfiguredPromotionMeasurementOrderMap(input: unknown) {
+  return normalizePromotionMeasurementOrderMap(input);
+}
+
+function resolveConfiguredPromotionMeasurementSequenceMap(input: unknown) {
+  return normalizePromotionMeasurementSequenceMap(input);
+}
+
+function resolveConfiguredPromotionSessionCountMap(input: unknown) {
+  return normalizePromotionSessionCountMap(input);
+}
+
+function resolveConfiguredPromotionDirectionMap(input: unknown) {
+  return normalizePromotionDirectionMap(input);
+}
+
+function resolveConfiguredPromotionGroupedDirectionMap(input: unknown) {
+  return normalizePromotionGroupedDirectionMap(input);
+}
+
+function resolveConfiguredPromotionGroupedSessionCountMap(input: unknown) {
+  return normalizePromotionGroupedSessionCountMap(input);
+}
+
+function resolveConfiguredSetFlowMeasurementSequence(input: unknown) {
+  return normalizeSetFlowMeasurementSequence(input);
+}
+
+function resolveConfiguredSetFlowCountMap(input: unknown) {
+  return normalizeSetFlowCountMap(input);
+}
+
+function resolveConfiguredSetFlowGroupedCountMap(input: unknown) {
+  return normalizeSetFlowGroupedCountMap(input);
+}
+
+function resolveConfiguredSetFlowGroupedDirectionMap(input: unknown) {
+  return normalizeSetFlowGroupedDirectionMap(input);
+}
+
+function resolveConfiguredPromotionRepRangePreview(input: unknown) {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+
+  const source = input as { min?: unknown; max?: unknown };
+  const min = isPositiveInteger(source.min) ? source.min : undefined;
+  const max = isPositiveInteger(source.max) ? source.max : undefined;
+
+  if (typeof min !== "number" || typeof max !== "number" || max < min) {
+    return undefined;
+  }
+
+  return { min, max };
 }
 
 export function validateProgressionPlaybookSelection(args: {
@@ -1423,6 +2174,78 @@ export function validateProgressionPlaybookSelection(args: {
   }
   const stepOverrides = normalizeProgressionStepOverrides(config.stepOverrides);
   const setFlowSteps = normalizeSetFlowSteps(config.setFlowSteps);
+  const dayProgressionSteps = normalizeSetFlowSteps(config.dayProgressionSteps);
+  const dayProgressionMode = normalizeProgressionDayMode(config.dayProgressionMode);
+  const effortWaveDirections = normalizeEffortWaveDirections(config.effortWaveDirections);
+  const normalizedSetFlow = normalizeSetFlowId(config.setFlow) ?? "straight_sets";
+  const hasSetFlowDirections = Object.prototype.hasOwnProperty.call(config, "setFlowDirections");
+  const setFlowDirections = hasSetFlowDirections
+    ? normalizeSetFlowDirectionConfig(
+      config.setFlowDirections,
+      getSetFlowDirectionConfigForLegacySetFlow(normalizedSetFlow),
+    )
+    : undefined;
+  const hasSetFlowMeasurementSequence = Object.prototype.hasOwnProperty.call(config, "setFlowMeasurementSequence");
+  const setFlowMeasurementSequence = hasSetFlowMeasurementSequence
+    ? resolveConfiguredSetFlowMeasurementSequence(config.setFlowMeasurementSequence)
+    : undefined;
+  const hasSetFlowCountMap = Object.prototype.hasOwnProperty.call(config, "setFlowCountMap");
+  const setFlowCountMap = hasSetFlowCountMap
+    ? resolveConfiguredSetFlowCountMap(config.setFlowCountMap)
+    : undefined;
+  const hasSetFlowGroupedCountMap = Object.prototype.hasOwnProperty.call(config, "setFlowGroupedCountMap");
+  const setFlowGroupedCountMap = hasSetFlowGroupedCountMap
+    ? resolveConfiguredSetFlowGroupedCountMap(config.setFlowGroupedCountMap)
+    : undefined;
+  const hasSetFlowGroupedDirectionMap = Object.prototype.hasOwnProperty.call(config, "setFlowGroupedDirectionMap");
+  const setFlowGroupedDirectionMap = hasSetFlowGroupedDirectionMap
+    ? resolveConfiguredSetFlowGroupedDirectionMap(config.setFlowGroupedDirectionMap)
+    : undefined;
+  const hasPromotionMeasurementOrderMap = Object.prototype.hasOwnProperty.call(config, "promotionMeasurementOrderMap");
+  const promotionMeasurementOrderMap = hasPromotionMeasurementOrderMap
+    ? resolveConfiguredPromotionMeasurementOrderMap(config.promotionMeasurementOrderMap)
+    : undefined;
+  const hasPromotionMeasurementSequenceMap = Object.prototype.hasOwnProperty.call(config, "promotionMeasurementSequenceMap");
+  const promotionMeasurementSequenceMap = hasPromotionMeasurementSequenceMap
+    ? resolveConfiguredPromotionMeasurementSequenceMap(config.promotionMeasurementSequenceMap)
+    : undefined;
+  const hasPromotionDirectionMap = Object.prototype.hasOwnProperty.call(config, "promotionDirectionMap");
+  const promotionDirectionMap = hasPromotionDirectionMap
+    ? resolveConfiguredPromotionDirectionMap(config.promotionDirectionMap)
+    : undefined;
+  const hasPromotionGroupedDirectionMap = Object.prototype.hasOwnProperty.call(config, "promotionGroupedDirectionMap");
+  const promotionGroupedDirectionMap = hasPromotionGroupedDirectionMap
+    ? resolveConfiguredPromotionGroupedDirectionMap(config.promotionGroupedDirectionMap)
+    : undefined;
+  const hasPromotionSessionCountMap = Object.prototype.hasOwnProperty.call(config, "promotionSessionCountMap");
+  const promotionSessionCountMap = hasPromotionSessionCountMap
+    ? resolveConfiguredPromotionSessionCountMap(config.promotionSessionCountMap)
+    : undefined;
+  const hasPromotionGroupedSessionCountMap = Object.prototype.hasOwnProperty.call(config, "promotionGroupedSessionCountMap");
+  const promotionGroupedSessionCountMap = hasPromotionGroupedSessionCountMap
+    ? resolveConfiguredPromotionGroupedSessionCountMap(config.promotionGroupedSessionCountMap)
+    : undefined;
+  const hasPromotionRepRangePreview = Object.prototype.hasOwnProperty.call(config, "promotionRepRangePreview");
+  const promotionRepRangePreview = hasPromotionRepRangePreview
+    ? resolveConfiguredPromotionRepRangePreview(config.promotionRepRangePreview)
+    : undefined;
+  const hasTargetMutation = Object.prototype.hasOwnProperty.call(config, "targetMutation");
+  const targetMutation = hasTargetMutation
+    ? normalizeTargetMutation(config.targetMutation, "none")
+    : undefined;
+  const hasQualificationWindow = Object.prototype.hasOwnProperty.call(config, "qualificationWindow");
+  const qualificationWindow = hasQualificationWindow
+    ? resolveQualificationWindowConfig(config.qualificationWindow)
+    : undefined;
+  const promotionConfig = normalizeProgressionPromotionConfig({
+    promotionBasis: config.promotionBasis,
+    repPromotionThreshold: config.repPromotionThreshold,
+    customRepPromotionTarget: config.customRepPromotionTarget,
+    fallbackBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    fallbackThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+  });
+  const targetSetsMin = isPositiveInteger(config.setsMin) ? config.setsMin : null;
+  const targetSetsMax = isPositiveInteger(config.setsMax) ? config.setsMax : null;
 
   if (id === "double_progression") {
     const stallPolicy = normalizeStallPolicy(config.stallPolicy);
@@ -1433,13 +2256,65 @@ export function validateProgressionPlaybookSelection(args: {
     const nextConfig: DoubleProgressionConfig = {
       version: 1,
       loadIncrement: config.loadIncrement,
+      setsMin: targetSetsMin,
+      setsMax: targetSetsMax,
       stepOverrides,
       setFlowSteps,
+      dayProgressionMode,
+      dayProgressionSteps,
+      effortWaveDirections,
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
       deloadPercent: stallPolicy === "deload_after_stall" ? config.deloadPercent as number : undefined,
       autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
+      promotionBasis: promotionConfig.promotionBasis,
+      repPromotionThreshold: promotionConfig.repPromotionThreshold,
     };
+    if (targetMutation) {
+      nextConfig.targetMutation = targetMutation;
+    }
+    if (qualificationWindow) {
+      nextConfig.qualificationWindow = qualificationWindow;
+    }
+    if (promotionConfig.customRepPromotionTarget !== null) {
+      nextConfig.customRepPromotionTarget = promotionConfig.customRepPromotionTarget;
+    }
+    if (promotionMeasurementOrderMap) {
+      nextConfig.promotionMeasurementOrderMap = promotionMeasurementOrderMap;
+    }
+    if (promotionMeasurementSequenceMap) {
+      nextConfig.promotionMeasurementSequenceMap = promotionMeasurementSequenceMap;
+    }
+    if (promotionDirectionMap) {
+      nextConfig.promotionDirectionMap = promotionDirectionMap;
+    }
+    if (promotionGroupedDirectionMap) {
+      nextConfig.promotionGroupedDirectionMap = promotionGroupedDirectionMap;
+    }
+    if (promotionSessionCountMap) {
+      nextConfig.promotionSessionCountMap = promotionSessionCountMap;
+    }
+    if (promotionGroupedSessionCountMap) {
+      nextConfig.promotionGroupedSessionCountMap = promotionGroupedSessionCountMap;
+    }
+    if (promotionRepRangePreview) {
+      nextConfig.promotionRepRangePreview = promotionRepRangePreview;
+    }
+    if (setFlowDirections) {
+      nextConfig.setFlowDirections = setFlowDirections;
+    }
+    if (setFlowMeasurementSequence) {
+      nextConfig.setFlowMeasurementSequence = setFlowMeasurementSequence;
+    }
+    if (setFlowCountMap) {
+      nextConfig.setFlowCountMap = setFlowCountMap;
+    }
+    if (setFlowGroupedCountMap) {
+      nextConfig.setFlowGroupedCountMap = setFlowGroupedCountMap;
+    }
+    if (setFlowGroupedDirectionMap) {
+      nextConfig.setFlowGroupedDirectionMap = setFlowGroupedDirectionMap;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;
@@ -1460,13 +2335,65 @@ export function validateProgressionPlaybookSelection(args: {
     const nextConfig: FixedLoadRepRangeProgressionConfig = {
       version: 1,
       loadIncrement: config.loadIncrement,
+      setsMin: targetSetsMin,
+      setsMax: targetSetsMax,
       stepOverrides,
       setFlowSteps,
+      dayProgressionMode,
+      dayProgressionSteps,
+      effortWaveDirections,
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
       deloadPercent: stallPolicy === "deload_after_stall" ? config.deloadPercent as number : undefined,
       autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
+      promotionBasis: promotionConfig.promotionBasis,
+      repPromotionThreshold: promotionConfig.repPromotionThreshold,
     };
+    if (targetMutation) {
+      nextConfig.targetMutation = targetMutation;
+    }
+    if (qualificationWindow) {
+      nextConfig.qualificationWindow = qualificationWindow;
+    }
+    if (promotionConfig.customRepPromotionTarget !== null) {
+      nextConfig.customRepPromotionTarget = promotionConfig.customRepPromotionTarget;
+    }
+    if (promotionMeasurementOrderMap) {
+      nextConfig.promotionMeasurementOrderMap = promotionMeasurementOrderMap;
+    }
+    if (promotionMeasurementSequenceMap) {
+      nextConfig.promotionMeasurementSequenceMap = promotionMeasurementSequenceMap;
+    }
+    if (promotionDirectionMap) {
+      nextConfig.promotionDirectionMap = promotionDirectionMap;
+    }
+    if (promotionGroupedDirectionMap) {
+      nextConfig.promotionGroupedDirectionMap = promotionGroupedDirectionMap;
+    }
+    if (promotionSessionCountMap) {
+      nextConfig.promotionSessionCountMap = promotionSessionCountMap;
+    }
+    if (promotionGroupedSessionCountMap) {
+      nextConfig.promotionGroupedSessionCountMap = promotionGroupedSessionCountMap;
+    }
+    if (promotionRepRangePreview) {
+      nextConfig.promotionRepRangePreview = promotionRepRangePreview;
+    }
+    if (setFlowDirections) {
+      nextConfig.setFlowDirections = setFlowDirections;
+    }
+    if (setFlowMeasurementSequence) {
+      nextConfig.setFlowMeasurementSequence = setFlowMeasurementSequence;
+    }
+    if (setFlowCountMap) {
+      nextConfig.setFlowCountMap = setFlowCountMap;
+    }
+    if (setFlowGroupedCountMap) {
+      nextConfig.setFlowGroupedCountMap = setFlowGroupedCountMap;
+    }
+    if (setFlowGroupedDirectionMap) {
+      nextConfig.setFlowGroupedDirectionMap = setFlowGroupedDirectionMap;
+    }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
       nextConfig.setFlow = setFlow;
@@ -1485,11 +2412,40 @@ export function validateProgressionPlaybookSelection(args: {
   const nextConfig: DeloadAfterStallConfig = {
     version: 1,
     loadIncrement: config.loadIncrement,
+    setsMin: targetSetsMin,
+    setsMax: targetSetsMax,
     stepOverrides,
     setFlowSteps,
+    dayProgressionMode,
+    dayProgressionSteps,
+    effortWaveDirections,
     stallThreshold: config.stallThreshold,
     deloadPercent: config.deloadPercent,
   };
+  if (targetMutation) {
+    nextConfig.targetMutation = targetMutation;
+  }
+  if (qualificationWindow) {
+    nextConfig.qualificationWindow = qualificationWindow;
+  }
+  if (promotionDirectionMap) {
+    nextConfig.promotionDirectionMap = promotionDirectionMap;
+  }
+  if (promotionGroupedDirectionMap) {
+    nextConfig.promotionGroupedDirectionMap = promotionGroupedDirectionMap;
+  }
+  if (setFlowMeasurementSequence) {
+    nextConfig.setFlowMeasurementSequence = setFlowMeasurementSequence;
+  }
+  if (setFlowCountMap) {
+    nextConfig.setFlowCountMap = setFlowCountMap;
+  }
+  if (setFlowGroupedCountMap) {
+    nextConfig.setFlowGroupedCountMap = setFlowGroupedCountMap;
+  }
+  if (setFlowGroupedDirectionMap) {
+    nextConfig.setFlowGroupedDirectionMap = setFlowGroupedDirectionMap;
+  }
   const setFlow = normalizeSetFlowId(config.setFlow);
   if (setFlow) {
     nextConfig.setFlow = setFlow;
@@ -1520,11 +2476,222 @@ export function parseProgressionPlaybookPayload(formData: FormData):
   const setFlow = normalizeSetFlowId(String(formData.get("progressionSetFlow") ?? "").trim());
   const stepOverrides = parseProgressionStepOverridesFromFormData(formData);
   const setFlowSteps = parseSetFlowStepsFromFormData(formData);
+  const dayProgressionSteps = parseDayProgressionStepsFromFormData(formData);
+  const dayProgressionMode = normalizeProgressionDayMode(String(formData.get("progressionDayMode") ?? "").trim());
+  const rawEffortWaveDirectionsJson = String(formData.get("progressionEffortWaveDirectionsJson") ?? "").trim();
+  const effortWaveDirections = rawEffortWaveDirectionsJson
+    ? (() => {
+      try {
+        return normalizeEffortWaveDirections(JSON.parse(rawEffortWaveDirectionsJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawSetFlowDirectionsJson = String(formData.get("progressionSetFlowDirectionsJson") ?? "").trim();
+  const parsedSetFlowDirections = rawSetFlowDirectionsJson
+    ? (() => {
+      try {
+        return normalizeSetFlowDirectionConfig(JSON.parse(rawSetFlowDirectionsJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const setFlowDirections = parsedSetFlowDirections && (
+    inferLegacySetFlowFromDirections(parsedSetFlowDirections) !== "straight_sets"
+    || !areSetFlowDirectionsStraight(parsedSetFlowDirections)
+  )
+    ? parsedSetFlowDirections
+    : undefined;
+  const rawSetFlowMeasurementSequenceJson = String(formData.get("progressionSetFlowMeasurementSequenceJson") ?? "").trim();
+  const setFlowMeasurementSequence = rawSetFlowMeasurementSequenceJson
+    ? (() => {
+      try {
+        return resolveConfiguredSetFlowMeasurementSequence(JSON.parse(rawSetFlowMeasurementSequenceJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawSetFlowCountMapJson = String(formData.get("progressionSetFlowCountMapJson") ?? "").trim();
+  const setFlowCountMap = rawSetFlowCountMapJson
+    ? (() => {
+      try {
+        return resolveConfiguredSetFlowCountMap(JSON.parse(rawSetFlowCountMapJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawSetFlowGroupedCountMapJson = String(formData.get("progressionSetFlowGroupedCountMapJson") ?? "").trim();
+  const setFlowGroupedCountMap = rawSetFlowGroupedCountMapJson
+    ? (() => {
+      try {
+        return resolveConfiguredSetFlowGroupedCountMap(JSON.parse(rawSetFlowGroupedCountMapJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawSetFlowGroupedDirectionMapJson = String(formData.get("progressionSetFlowGroupedDirectionMapJson") ?? "").trim();
+  const setFlowGroupedDirectionMap = rawSetFlowGroupedDirectionMapJson
+    ? (() => {
+      try {
+        return resolveConfiguredSetFlowGroupedDirectionMap(JSON.parse(rawSetFlowGroupedDirectionMapJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const setCount = parseOptionalPositiveInteger(formData.get("progressionSetCount")) ?? 3;
+  const defaultSetFlowCountMap = serializeSetFlowCountFieldMap(buildDefaultSetFlowCountFieldMap("3"));
+  const shouldSerializeSetFlowCountMap = JSON.stringify(setFlowCountMap ?? null)
+    !== JSON.stringify(defaultSetFlowCountMap ?? null);
+  const promotionConfig = normalizeProgressionPromotionConfig({
+    promotionBasis: normalizePromotionBasis(String(formData.get("progressionPromotionBasis") ?? "").trim(), DEFAULT_PROGRESSION_PROMOTION_BASIS),
+    repPromotionThreshold: normalizeRepPromotionThreshold(String(formData.get("progressionRepPromotionThreshold") ?? "").trim(), DEFAULT_REP_PROMOTION_THRESHOLD),
+    customRepPromotionTarget: parseOptionalPositiveInteger(formData.get("progressionCustomRepPromotionTarget")),
+    fallbackBasis: DEFAULT_PROGRESSION_PROMOTION_BASIS,
+    fallbackThreshold: DEFAULT_REP_PROMOTION_THRESHOLD,
+  });
+  const hasExplicitTargetMutation = formData.get("progressionHasExplicitTargetMutation") === "1";
+  const targetMutation = normalizeTargetMutation(
+    String(formData.get("progressionTargetMutation") ?? "").trim(),
+    "increase_load_reset_reps",
+  );
+  const hasExplicitQualificationWindow = formData.get("progressionHasExplicitQualificationWindow") === "1";
+  const qualificationWindow = normalizeQualificationWindow({
+    requiredQualifiedSessions: parseOptionalPositiveInteger(formData.get("progressionRequiredQualifiedSessions")),
+    mode: String(formData.get("progressionQualificationWindowMode") ?? "").trim(),
+    resetOnMiss: formData.get("progressionQualificationWindowResetOnMiss") === "1",
+  });
+  const shouldSerializeQualificationWindow =
+    hasExplicitQualificationWindow
+    || qualificationWindow.requiredQualifiedSessions !== 1
+    || qualificationWindow.mode !== "latest"
+    || qualificationWindow.resetOnMiss;
+  const rawPromotionMeasurementOrdersJson = String(formData.get("progressionPromotionMeasurementOrdersJson") ?? "").trim();
+  const promotionMeasurementOrderMap = rawPromotionMeasurementOrdersJson
+    ? (() => {
+      try {
+        return resolveConfiguredPromotionMeasurementOrderMap(JSON.parse(rawPromotionMeasurementOrdersJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawPromotionMeasurementSequenceJson = String(formData.get("progressionPromotionMeasurementSequenceJson") ?? "").trim();
+  const promotionMeasurementSequenceMap = rawPromotionMeasurementSequenceJson
+    ? (() => {
+      try {
+        return resolveConfiguredPromotionMeasurementSequenceMap(JSON.parse(rawPromotionMeasurementSequenceJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const normalizedPromotionMeasurementOrderMap = promotionMeasurementSequenceMap
+    ? resolveConfiguredPromotionMeasurementOrderMap(Object.fromEntries(
+      Object.entries(promotionMeasurementSequenceMap).map(([family, sequence]) => [family, flattenPromotionMeasurementSequence(sequence)]),
+    ))
+    : promotionMeasurementOrderMap;
+  const rawPromotionDirectionMapJson = String(formData.get("progressionPromotionDirectionMapJson") ?? "").trim();
+  const promotionDirectionMap = rawPromotionDirectionMapJson
+    ? (() => {
+      try {
+        return resolveConfiguredPromotionDirectionMap(JSON.parse(rawPromotionDirectionMapJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawPromotionGroupedDirectionMapJson = String(formData.get("progressionPromotionGroupedDirectionMapJson") ?? "").trim();
+  const promotionGroupedDirectionMap = rawPromotionGroupedDirectionMapJson
+    ? (() => {
+      try {
+        return resolveConfiguredPromotionGroupedDirectionMap(JSON.parse(rawPromotionGroupedDirectionMapJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawPromotionSessionCountMapJson = String(formData.get("progressionPromotionSessionCountMapJson") ?? "").trim();
+  const promotionSessionCountMap = rawPromotionSessionCountMapJson
+    ? (() => {
+      try {
+        return resolveConfiguredPromotionSessionCountMap(JSON.parse(rawPromotionSessionCountMapJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const rawPromotionGroupedSessionCountMapJson = String(formData.get("progressionPromotionGroupedSessionCountMapJson") ?? "").trim();
+  const promotionGroupedSessionCountMap = rawPromotionGroupedSessionCountMapJson
+    ? (() => {
+      try {
+        return resolveConfiguredPromotionGroupedSessionCountMap(JSON.parse(rawPromotionGroupedSessionCountMapJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const defaultPromotionSessionCountMap = serializePromotionSessionCountFieldMap(
+    buildDefaultPromotionSessionCountFieldMap(String(qualificationWindow.requiredQualifiedSessions)),
+  );
+  const legacyImplicitPromotionSessionCountMap = serializePromotionSessionCountFieldMap(
+    buildDefaultPromotionSessionCountFieldMap("1"),
+  );
+  const shouldSerializePromotionSessionCountMap = JSON.stringify(promotionSessionCountMap ?? null)
+    !== JSON.stringify(defaultPromotionSessionCountMap ?? null)
+    && JSON.stringify(promotionSessionCountMap ?? null)
+      !== JSON.stringify(legacyImplicitPromotionSessionCountMap ?? null);
+  const defaultPromotionDirectionMap = buildDefaultPromotionDirectionFieldMap();
+  const shouldSerializePromotionDirectionMap = JSON.stringify(promotionDirectionMap ?? null)
+    !== JSON.stringify(defaultPromotionDirectionMap ?? null);
+  const rawPromotionRepRangePreviewJson = String(formData.get("progressionPromotionRepRangePreviewJson") ?? "").trim();
+  const promotionRepRangePreview = rawPromotionRepRangePreviewJson
+    ? (() => {
+      try {
+        return resolveConfiguredPromotionRepRangePreview(JSON.parse(rawPromotionRepRangePreviewJson));
+      } catch {
+        return undefined;
+      }
+    })()
+    : undefined;
+  const shouldSerializePromotionRepRangePreview = Boolean(
+    promotionRepRangePreview
+    && (promotionRepRangePreview.min !== 8 || promotionRepRangePreview.max !== 12),
+  );
 
   if (stallPolicy === "none" && (playbookId === "double_progression" || playbookId === "fixed_load_rep_range_progression")) {
-    let config: ProgressionPlaybookConfig = { version: 1, loadIncrement, stallPolicy, autoUpdateRoutineGoals };
+    let config: ProgressionPlaybookConfig = {
+      version: 1,
+      loadIncrement,
+      ...(setCount !== 3 ? { setsMin: setCount, setsMax: setCount } : {}),
+      stallPolicy,
+      autoUpdateRoutineGoals,
+      promotionBasis: promotionConfig.promotionBasis,
+      ...(hasExplicitTargetMutation || targetMutation !== "increase_load_reset_reps" ? { targetMutation } : {}),
+      ...(shouldSerializeQualificationWindow ? { qualificationWindow } : {}),
+      ...(normalizedPromotionMeasurementOrderMap ? { promotionMeasurementOrderMap: normalizedPromotionMeasurementOrderMap } : {}),
+      ...(promotionMeasurementSequenceMap ? { promotionMeasurementSequenceMap } : {}),
+      ...(shouldSerializePromotionDirectionMap ? { promotionDirectionMap } : {}),
+      ...(promotionGroupedDirectionMap ? { promotionGroupedDirectionMap } : {}),
+      ...(shouldSerializePromotionSessionCountMap ? { promotionSessionCountMap } : {}),
+      ...(promotionGroupedSessionCountMap ? { promotionGroupedSessionCountMap } : {}),
+      ...(setFlowMeasurementSequence ? { setFlowMeasurementSequence } : {}),
+      ...(shouldSerializeSetFlowCountMap ? { setFlowCountMap } : {}),
+      ...(setFlowGroupedCountMap ? { setFlowGroupedCountMap } : {}),
+      ...(setFlowGroupedDirectionMap ? { setFlowGroupedDirectionMap } : {}),
+      ...(shouldSerializePromotionRepRangePreview ? { promotionRepRangePreview } : {}),
+      repPromotionThreshold: promotionConfig.repPromotionThreshold,
+      ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
+    };
     config = attachProgressionStepOverrides(config, stepOverrides);
     config = attachSetFlowSteps(config, setFlowSteps);
+    config = attachSetFlowDirections(config, setFlowDirections);
+    config = attachDayProgressionConfig(config, { dayProgressionMode, dayProgressionSteps, effortWaveDirections });
     if (setFlow) {
       config.setFlow = setFlow;
     }
@@ -1544,13 +2711,32 @@ export function parseProgressionPlaybookPayload(formData: FormData):
   let config: ProgressionPlaybookConfig = {
     version: 1,
     loadIncrement,
+    ...(setCount !== 3 ? { setsMin: setCount, setsMax: setCount } : {}),
     stallPolicy: "deload_after_stall",
     stallThreshold,
     deloadPercent,
     autoUpdateRoutineGoals,
+    promotionBasis: promotionConfig.promotionBasis,
+    ...(hasExplicitTargetMutation || targetMutation !== "increase_load_reset_reps" ? { targetMutation } : {}),
+    ...(shouldSerializeQualificationWindow ? { qualificationWindow } : {}),
+    ...(normalizedPromotionMeasurementOrderMap ? { promotionMeasurementOrderMap: normalizedPromotionMeasurementOrderMap } : {}),
+    ...(promotionMeasurementSequenceMap ? { promotionMeasurementSequenceMap } : {}),
+    ...(shouldSerializePromotionDirectionMap ? { promotionDirectionMap } : {}),
+    ...(promotionGroupedDirectionMap ? { promotionGroupedDirectionMap } : {}),
+    ...(shouldSerializePromotionSessionCountMap ? { promotionSessionCountMap } : {}),
+    ...(promotionGroupedSessionCountMap ? { promotionGroupedSessionCountMap } : {}),
+    ...(setFlowMeasurementSequence ? { setFlowMeasurementSequence } : {}),
+    ...(shouldSerializeSetFlowCountMap ? { setFlowCountMap } : {}),
+    ...(setFlowGroupedCountMap ? { setFlowGroupedCountMap } : {}),
+    ...(setFlowGroupedDirectionMap ? { setFlowGroupedDirectionMap } : {}),
+    ...(shouldSerializePromotionRepRangePreview ? { promotionRepRangePreview } : {}),
+    repPromotionThreshold: promotionConfig.repPromotionThreshold,
+    ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
   };
   config = attachProgressionStepOverrides(config, stepOverrides);
   config = attachSetFlowSteps(config, setFlowSteps);
+  config = attachSetFlowDirections(config, setFlowDirections);
+  config = attachDayProgressionConfig(config, { dayProgressionMode, dayProgressionSteps, effortWaveDirections });
   if (setFlow) {
     config.setFlow = setFlow;
   }
@@ -1674,10 +2860,33 @@ export function deriveProgressionPlaybookTarget(args: {
   const currentRepTarget = bottomRep && topRep ? resolveCurrentPhaseRepTarget(args.plan, bottomRep, topRep) : null;
   const targetWeight = args.plan.weightMax ?? args.plan.weightMin ?? null;
   const targetWeightUnit = args.plan.weightUnit ?? args.fallbackWeightUnit;
+  const promotionQualification = isPositiveInteger(targetSets) && isPositiveInteger(bottomRep) && isPositiveInteger(topRep)
+    ? getPromotionQualificationArgs({
+      plan: args.plan,
+      config: selection.config,
+      targetSets,
+      targetWeight,
+      minReps: bottomRep,
+      maxReps: topRep,
+    })
+    : null;
+  const currentRepQualification = promotionQualification && isPositiveInteger(currentRepTarget) && includesPromotionMeasurement(promotionQualification, "reps")
+    ? {
+      ...promotionQualification,
+      repTarget: currentRepTarget,
+    }
+    : promotionQualification;
 
-  if (!isPositiveInteger(targetSets) || !isPositiveInteger(bottomRep) || !isPositiveInteger(topRep) || !isPositiveInteger(currentRepTarget) || !isFinitePositiveNumber(targetWeight)) {
+  if (!isPositiveInteger(targetSets)
+    || !isPositiveInteger(bottomRep)
+    || !isPositiveInteger(topRep)
+    || !isPositiveInteger(currentRepTarget)
+    || !promotionQualification
+    || (includesPromotionMeasurement(promotionQualification, "weight") && !isFinitePositiveNumber(targetWeight))
+    || (includesPromotionMeasurement(promotionQualification, "reps") && !isPositiveInteger(promotionQualification.repTarget))) {
     return null;
   }
+  const resolvedCurrentRepQualification: PromotionQualificationArgs = currentRepQualification ?? promotionQualification;
 
   const history = args.history ?? [];
   if (history.length === 0) {
@@ -1709,14 +2918,51 @@ export function deriveProgressionPlaybookTarget(args: {
     fallbackWeightUnit: args.fallbackWeightUnit,
     progressionStepPolicy: args.progressionStepPolicy,
   });
+  const targetLoadQualification: PromotionQualificationArgs = {
+    ...promotionQualification,
+    repTarget: includesPromotionMeasurement(promotionQualification, "reps") ? currentRepTarget : null,
+  };
+  const targetLoadWindow = resolveQualificationWindowStatusForHistory({
+    selection,
+    history,
+    qualification: targetLoadQualification,
+    isQualifiedSession: includesPromotionMeasurement(promotionQualification, "weight") && isFinitePositiveNumber(targetWeight)
+      ? (session) => session.coveredTargetSets && sessionCoversTargetLoad(session, targetWeight)
+      : undefined,
+  });
+  const currentRepWindow = resolveQualificationWindowStatusForHistory({
+    selection,
+    history,
+    qualification: resolvedCurrentRepQualification,
+  });
+  const promotionWindow = resolveQualificationWindowStatusForHistory({
+    selection,
+    history,
+    qualification: promotionQualification,
+  });
 
-  const bestTargetLoadSession = findBestTargetLoadSession({ history, targetWeight });
+  const bestTargetLoadSession = targetLoadWindow.status.supported && targetLoadWindow.status.satisfied
+    ? (includesPromotionMeasurement(promotionQualification, "weight") && isFinitePositiveNumber(targetWeight)
+      ? findBestTargetLoadSession({ history, targetWeight, allowedSessionIds: targetLoadWindow.matchedSessionIds })
+      : findBestPromotionQualifiedSession({
+        history,
+        qualification: targetLoadQualification,
+        allowedSessionIds: targetLoadWindow.matchedSessionIds,
+      }))
+    : null;
   if (!bestTargetLoadSession) {
     const reason = methodId === "fixed_load_rep_range_progression"
       ? `${methodDefinition.label}: hold ${currentLoadLabel} and build clean reps.`
-      : !latestSession.coveredTargetSets
-        ? `${methodDefinition.label}: complete ${targetSets} work sets at ${currentLoadLabel} to evaluate next cycle.`
-        : `${methodDefinition.label}: no completed target-load session is ready for cycle review.`;
+      : !targetLoadWindow.status.supported || !targetLoadWindow.status.satisfied
+        ? buildQualificationWindowBlockedReason({
+          methodLabel: methodDefinition.label,
+          qualificationWindowLine: getQualificationWindowLine(selection, targetLoadWindow.status),
+          unsupported: !targetLoadWindow.status.supported,
+          fallbackReason: `${methodDefinition.label}: no completed ${includesPromotionMeasurement(promotionQualification, "weight") ? "target-load " : ""}session is ready for cycle review.`,
+        })
+        : !latestSession.coveredTargetSets
+        ? `${methodDefinition.label}: complete ${targetSets} work sets${includesPromotionMeasurement(promotionQualification, "weight") ? ` at ${currentLoadLabel}` : ""} to evaluate next cycle.`
+        : `${methodDefinition.label}: no completed ${includesPromotionMeasurement(promotionQualification, "weight") ? "target-load " : ""}session is ready for cycle review.`;
 
     return {
       playbookId: selection.id,
@@ -1727,11 +2973,10 @@ export function deriveProgressionPlaybookTarget(args: {
     };
   }
 
-  if (stallPolicy === "deload_after_stall" && deloadConfig) {
+  if (stallPolicy === "deload_after_stall" && deloadConfig && isFinitePositiveNumber(targetWeight)) {
     const stallCount = countConsecutiveStalls({
       history,
-      targetWeight,
-      topRep,
+      qualification: resolvedCurrentRepQualification,
     });
 
     if (stallCount >= deloadConfig.stallThreshold) {
@@ -1757,14 +3002,19 @@ export function deriveProgressionPlaybookTarget(args: {
   }
 
   if (methodId === "double_progression") {
-    const bestCurrentRepSession = findBestTopRangeSession({
+    const bestCurrentRepSession = currentRepWindow.status.supported
+      && currentRepWindow.status.satisfied
+      && currentRepQualification
+      && includesPromotionMeasurement(currentRepQualification, "reps")
+      && currentRepTarget < (promotionQualification.repTarget ?? topRep)
+      ? findBestTopRangeSession({
       history,
       rows: args.historyRows,
-      targetSets,
-      topRep: currentRepTarget,
-      targetWeight,
-    });
-    if (bestCurrentRepSession && currentRepTarget < topRep) {
+      qualification: currentRepQualification,
+      allowedSessionIds: currentRepWindow.matchedSessionIds,
+    })
+      : null;
+    if (bestCurrentRepSession && currentRepTarget < (promotionQualification.repTarget ?? topRep)) {
       const nextReps = Math.min(topRep, currentRepTarget + 1);
       return {
         playbookId: selection.id,
@@ -1778,29 +3028,48 @@ export function deriveProgressionPlaybookTarget(args: {
       };
     }
 
-    if (bestCurrentRepSession) {
-      const promotionTarget = resolveLoadPromotionTarget({
+    const bestPromotionSession = promotionWindow.status.supported && promotionWindow.status.satisfied
+      ? findBestTopRangeSession({
+        history,
+        rows: args.historyRows,
+        qualification: promotionQualification,
+        allowedSessionIds: promotionWindow.matchedSessionIds,
+      })
+      : null;
+
+    if (bestPromotionSession) {
+      const targetMutation = resolveTargetMutationForSelection({
+        selection,
         plan: basePlan,
-        targetWeight,
-        qualifiedLoad: bestCurrentRepSession.qualifiedLoad,
-        increment: resolvedLoadIncrement,
-        progressionStepPolicy: args.progressionStepPolicy,
       });
+      const mutation = applyTargetMutation({
+        targetMutation,
+        plan: basePlan,
+        config: selection.config,
+        progressionStepPolicy: args.progressionStepPolicy,
+        qualifiedValue: bestPromotionSession.qualifiedLoad,
+        loadStep: args.progressionStepPolicy?.kind === "load" ? null : resolvedLoadIncrement,
+      });
+      if (!mutation) {
+        return {
+          playbookId: selection.id,
+          label: methodDefinition.label,
+          plan: basePlan,
+          changed: false,
+          reason: `${methodDefinition.label}: promotion step is unavailable.`,
+        };
+      }
       return {
         playbookId: selection.id,
         label: methodDefinition.label,
-        plan: {
-          ...basePlan,
-          repsTarget: bottomRep,
-          repsMin: bottomRep,
-          repsMax: topRep,
-          weightMin: promotionTarget.nextWeight,
-          weightMax: promotionTarget.nextWeight,
-        },
-        changed: true,
-        reason: promotionTarget.wasCapped
-          ? `${methodDefinition.label}: target surpassed - update capped for review.`
-          : `${methodDefinition.label}: top range reached - increase load next cycle.`,
+        plan: mutation.proposedTarget,
+        changed: didProgressionTargetChange(basePlan, mutation.proposedTarget),
+        reason: describeTargetMutationReason({
+          methodLabel: methodDefinition.label,
+          targetMutation,
+          wasCapped: mutation.wasCapped,
+          measurementType: args.plan.measurementType,
+        }),
       };
     }
 
@@ -1809,18 +3078,24 @@ export function deriveProgressionPlaybookTarget(args: {
       label: methodDefinition.label,
       plan: basePlan,
       changed: false,
-      reason: `${methodDefinition.label}: range is not complete yet.`,
+      reason: buildQualificationWindowBlockedReason({
+        methodLabel: methodDefinition.label,
+        qualificationWindowLine: getQualificationWindowLine(selection, promotionWindow.status),
+        unsupported: !promotionWindow.status.supported,
+        fallbackReason: `${methodDefinition.label}: range is not complete yet.`,
+      }),
     };
   }
 
   if (methodId === "fixed_load_rep_range_progression") {
-    const bestTopRangeSession = findBestTopRangeSession({
-      history,
-      rows: args.historyRows,
-      targetSets,
-      topRep,
-      targetWeight,
-    });
+    const bestTopRangeSession = promotionWindow.status.supported && promotionWindow.status.satisfied
+      ? findBestTopRangeSession({
+        history,
+        rows: args.historyRows,
+        qualification: promotionQualification,
+        allowedSessionIds: promotionWindow.matchedSessionIds,
+      })
+      : null;
     if (bestTopRangeSession) {
       return {
         playbookId: selection.id,
@@ -1831,7 +3106,9 @@ export function deriveProgressionPlaybookTarget(args: {
       };
     }
 
-    const nextReps = Math.min(topRep, Math.max(bottomRep, (latestSession.minReps ?? bottomRep) + 1));
+    const nextReps = includesPromotionMeasurement(promotionQualification, "reps")
+      ? Math.min(promotionQualification.repTarget ?? topRep, Math.max(bottomRep, (latestSession.minReps ?? bottomRep) + 1))
+      : Math.max(bottomRep, currentRepTarget);
     return {
       playbookId: selection.id,
       label: methodDefinition.label,
@@ -1853,6 +3130,8 @@ function buildNoProgressionReviewCandidate(args: {
   label?: string | null;
   currentTarget?: ProgressionTargetPlan | null;
   reason: string;
+  qualificationWindowLine?: string | null;
+  qualificationWindowStatus?: QualificationWindowStatus | null;
   cycleWindow?: ProgressionReviewCycleWindow | null;
 }): ProgressionReviewCandidate {
   return {
@@ -1862,6 +3141,8 @@ function buildNoProgressionReviewCandidate(args: {
     currentTarget: args.currentTarget ?? null,
     proposedTarget: null,
     reason: args.reason,
+    qualificationWindowLine: args.qualificationWindowLine ?? null,
+    qualificationWindowStatus: args.qualificationWindowStatus ?? null,
     cycleWindow: args.cycleWindow ?? null,
   };
 }
@@ -1916,6 +3197,7 @@ export function deriveProgressionReviewCandidate(args: {
     const hasCompletedExposure = args.allowSimulatedCandidateWithoutHistory === true
       || hasCompletedCardioTargetExposure({
         plan: args.plan,
+        config: selection.config,
         rows: args.historyRows,
       });
 
@@ -1945,8 +3227,30 @@ export function deriveProgressionReviewCandidate(args: {
   const currentRepTarget = bottomRep && topRep ? resolveCurrentPhaseRepTarget(args.plan, bottomRep, topRep) : null;
   const targetWeight = args.plan.weightMax ?? args.plan.weightMin ?? null;
   const targetWeightUnit = args.plan.weightUnit ?? args.fallbackWeightUnit;
+  const promotionQualification = isPositiveInteger(targetSets) && isPositiveInteger(bottomRep) && isPositiveInteger(topRep)
+    ? getPromotionQualificationArgs({
+      plan: args.plan,
+      config: selection.config,
+      targetSets,
+      targetWeight,
+      minReps: bottomRep,
+      maxReps: topRep,
+    })
+    : null;
+  const currentRepQualification = promotionQualification && isPositiveInteger(currentRepTarget) && includesPromotionMeasurement(promotionQualification, "reps")
+    ? {
+      ...promotionQualification,
+      repTarget: currentRepTarget,
+    }
+    : promotionQualification;
 
-  if (!isPositiveInteger(targetSets) || !isPositiveInteger(bottomRep) || !isPositiveInteger(topRep) || !isPositiveInteger(currentRepTarget) || !isFinitePositiveNumber(targetWeight)) {
+  if (!isPositiveInteger(targetSets)
+    || !isPositiveInteger(bottomRep)
+    || !isPositiveInteger(topRep)
+    || !isPositiveInteger(currentRepTarget)
+    || !promotionQualification
+    || (includesPromotionMeasurement(promotionQualification, "weight") && !isFinitePositiveNumber(targetWeight))
+    || (includesPromotionMeasurement(promotionQualification, "reps") && !isPositiveInteger(promotionQualification.repTarget))) {
     return buildNoProgressionReviewCandidate({
       playbookId: selection.id,
       label: methodDefinition.label,
@@ -1955,6 +3259,7 @@ export function deriveProgressionReviewCandidate(args: {
       cycleWindow: args.cycleWindow,
     });
   }
+  const resolvedCurrentRepQualification: PromotionQualificationArgs = currentRepQualification ?? promotionQualification;
 
   const history = args.history ?? [];
   const latestSession = history[0] ?? null;
@@ -1973,6 +3278,31 @@ export function deriveProgressionReviewCandidate(args: {
     fallbackWeightUnit: args.fallbackWeightUnit,
     progressionStepPolicy: args.progressionStepPolicy,
   });
+  const targetLoadQualification: PromotionQualificationArgs = {
+    ...promotionQualification,
+    repTarget: includesPromotionMeasurement(promotionQualification, "reps") ? currentRepTarget : null,
+  };
+  const targetLoadWindow = resolveQualificationWindowStatusForHistory({
+    selection,
+    history,
+    qualification: targetLoadQualification,
+    cycleWindow: args.cycleWindow,
+    isQualifiedSession: includesPromotionMeasurement(promotionQualification, "weight") && isFinitePositiveNumber(targetWeight)
+      ? (session) => session.coveredTargetSets && sessionCoversTargetLoad(session, targetWeight)
+      : undefined,
+  });
+  const currentRepWindow = resolveQualificationWindowStatusForHistory({
+    selection,
+    history,
+    qualification: resolvedCurrentRepQualification,
+    cycleWindow: args.cycleWindow,
+  });
+  const promotionWindow = resolveQualificationWindowStatusForHistory({
+    selection,
+    history,
+    qualification: promotionQualification,
+    cycleWindow: args.cycleWindow,
+  });
 
   if (!latestSession) {
     return buildNoProgressionReviewCandidate({
@@ -1984,15 +3314,32 @@ export function deriveProgressionReviewCandidate(args: {
     });
   }
 
-  const bestTargetLoadSession = findBestTargetLoadSession({ history, targetWeight });
+  const bestTargetLoadSession = targetLoadWindow.status.supported && targetLoadWindow.status.satisfied
+    ? (includesPromotionMeasurement(promotionQualification, "weight") && isFinitePositiveNumber(targetWeight)
+      ? findBestTargetLoadSession({ history, targetWeight, allowedSessionIds: targetLoadWindow.matchedSessionIds })
+      : findBestPromotionQualifiedSession({
+        history,
+        qualification: targetLoadQualification,
+        allowedSessionIds: targetLoadWindow.matchedSessionIds,
+      }))
+    : null;
   if (!bestTargetLoadSession) {
     return buildNoProgressionReviewCandidate({
       playbookId: selection.id,
       label: methodDefinition.label,
       currentTarget: basePlan,
-      reason: !latestSession.coveredTargetSets
-        ? `${methodDefinition.label}: complete ${targetSets} work sets at ${formatWeightLabel(targetWeight, targetWeightUnit)} to evaluate next cycle.`
-        : `${methodDefinition.label}: no completed target-load session is ready for cycle review.`,
+      reason: !targetLoadWindow.status.supported || !targetLoadWindow.status.satisfied
+        ? buildQualificationWindowBlockedReason({
+          methodLabel: methodDefinition.label,
+          qualificationWindowLine: getQualificationWindowLine(selection, targetLoadWindow.status),
+          unsupported: !targetLoadWindow.status.supported,
+          fallbackReason: `${methodDefinition.label}: no completed ${includesPromotionMeasurement(promotionQualification, "weight") ? "target-load " : ""}session is ready for cycle review.`,
+        })
+        : !latestSession.coveredTargetSets
+          ? `${methodDefinition.label}: complete ${targetSets} work sets${includesPromotionMeasurement(promotionQualification, "weight") ? ` at ${formatWeightLabel(targetWeight, targetWeightUnit)}` : ""} to evaluate next cycle.`
+          : `${methodDefinition.label}: no completed ${includesPromotionMeasurement(promotionQualification, "weight") ? "target-load " : ""}session is ready for cycle review.`,
+      qualificationWindowLine: getQualificationWindowLine(selection, targetLoadWindow.status),
+      qualificationWindowStatus: targetLoadWindow.status,
       cycleWindow: args.cycleWindow,
     });
   }
@@ -2000,11 +3347,10 @@ export function deriveProgressionReviewCandidate(args: {
   const stallPolicy = resolveStallPolicyFromSelection(selection);
   const deloadConfig = resolveDeloadConfig(selection);
 
-  if (stallPolicy === "deload_after_stall" && deloadConfig) {
+  if (stallPolicy === "deload_after_stall" && deloadConfig && isFinitePositiveNumber(targetWeight)) {
     const stallCount = countConsecutiveStalls({
       history,
-      targetWeight,
-      topRep,
+      qualification: resolvedCurrentRepQualification,
     });
 
     if (stallCount >= deloadConfig.stallThreshold) {
@@ -2031,48 +3377,20 @@ export function deriveProgressionReviewCandidate(args: {
     }
   }
 
-  const bestTopRangeSession = findBestTopRangeSession({
-    history,
-    rows: args.historyRows,
-    targetSets,
-    topRep: currentRepTarget,
-    targetWeight,
-  });
-  if (!bestTopRangeSession) {
-    return buildNoProgressionReviewCandidate({
-      playbookId: selection.id,
-      label: methodDefinition.label,
-      currentTarget: basePlan,
-      reason: `${methodDefinition.label}: range is not complete yet.`,
-      cycleWindow: args.cycleWindow,
-    });
-  }
-
-  if (methodId === "double_progression") {
-    if (currentRepTarget < topRep) {
-      const nextReps = Math.min(topRep, currentRepTarget + 1);
-      return {
-        type: "promote",
-        playbookId: selection.id,
-        label: methodDefinition.label,
-        currentTarget: basePlan,
-        proposedTarget: {
-          ...basePlan,
-          repsTarget: nextReps,
-        },
-        reason: `${methodDefinition.label}: target reps complete - build reps at the same load.`,
-        cycleWindow: args.cycleWindow ?? null,
-        sourceSession: buildSourceSession(bestTopRangeSession.session, latestSession),
-      };
-    }
-
-    const promotionTarget = resolveLoadPromotionTarget({
-      plan: basePlan,
-      targetWeight,
-      qualifiedLoad: bestTopRangeSession.qualifiedLoad,
-      increment: resolvedLoadIncrement,
-      progressionStepPolicy: args.progressionStepPolicy,
-    });
+  const bestCurrentRepSession = currentRepWindow.status.supported
+    && currentRepWindow.status.satisfied
+    && currentRepQualification
+    && includesPromotionMeasurement(currentRepQualification, "reps")
+    && currentRepTarget < (promotionQualification.repTarget ?? topRep)
+    ? findBestTopRangeSession({
+      history,
+      rows: args.historyRows,
+      qualification: currentRepQualification,
+      allowedSessionIds: currentRepWindow.matchedSessionIds,
+    })
+    : null;
+  if (bestCurrentRepSession && currentRepTarget < (promotionQualification.repTarget ?? topRep)) {
+    const nextReps = Math.min(topRep, currentRepTarget + 1);
     return {
       type: "promote",
       playbookId: selection.id,
@@ -2080,17 +3398,79 @@ export function deriveProgressionReviewCandidate(args: {
       currentTarget: basePlan,
       proposedTarget: {
         ...basePlan,
-        repsTarget: bottomRep,
-        repsMin: bottomRep,
-        repsMax: topRep,
-        weightMin: promotionTarget.nextWeight,
-        weightMax: promotionTarget.nextWeight,
+        repsTarget: nextReps,
       },
-      reason: promotionTarget.wasCapped
-        ? `${methodDefinition.label}: target surpassed - update capped for review.`
-        : `${methodDefinition.label}: top range reached - increase load next cycle.`,
+      reason: `${methodDefinition.label}: target reps complete - build reps at the same load.`,
+      qualificationWindowLine: getQualificationWindowLine(selection, currentRepWindow.status),
+      qualificationWindowStatus: currentRepWindow.status,
       cycleWindow: args.cycleWindow ?? null,
-      sourceSession: buildSourceSession(bestTopRangeSession.session, latestSession),
+      sourceSession: buildSourceSession(bestCurrentRepSession.session, latestSession),
+    };
+  }
+
+  const bestPromotionSession = promotionWindow.status.supported && promotionWindow.status.satisfied
+    ? findBestTopRangeSession({
+      history,
+      rows: args.historyRows,
+      qualification: promotionQualification,
+      allowedSessionIds: promotionWindow.matchedSessionIds,
+    })
+    : null;
+  if (!bestPromotionSession) {
+    return buildNoProgressionReviewCandidate({
+      playbookId: selection.id,
+      label: methodDefinition.label,
+      currentTarget: basePlan,
+      reason: buildQualificationWindowBlockedReason({
+        methodLabel: methodDefinition.label,
+        qualificationWindowLine: getQualificationWindowLine(selection, promotionWindow.status),
+        unsupported: !promotionWindow.status.supported,
+        fallbackReason: `${methodDefinition.label}: range is not complete yet.`,
+      }),
+      qualificationWindowLine: getQualificationWindowLine(selection, promotionWindow.status),
+      qualificationWindowStatus: promotionWindow.status,
+      cycleWindow: args.cycleWindow,
+    });
+  }
+
+  if (methodId === "double_progression") {
+    const targetMutation = resolveTargetMutationForSelection({
+      selection,
+      plan: basePlan,
+    });
+    const mutation = applyTargetMutation({
+      targetMutation,
+      plan: basePlan,
+      config: selection.config,
+      progressionStepPolicy: args.progressionStepPolicy,
+      qualifiedValue: bestPromotionSession.qualifiedLoad,
+      loadStep: args.progressionStepPolicy?.kind === "load" ? null : resolvedLoadIncrement,
+    });
+    if (!mutation) {
+      return buildNoProgressionReviewCandidate({
+        playbookId: selection.id,
+        label: methodDefinition.label,
+        currentTarget: basePlan,
+        reason: `${methodDefinition.label}: promotion step is unavailable.`,
+        cycleWindow: args.cycleWindow,
+      });
+    }
+    return {
+      type: "promote",
+      playbookId: selection.id,
+      label: methodDefinition.label,
+      currentTarget: basePlan,
+      proposedTarget: mutation.proposedTarget,
+      reason: describeTargetMutationReason({
+        methodLabel: methodDefinition.label,
+        targetMutation,
+        wasCapped: mutation.wasCapped,
+        measurementType: args.plan.measurementType,
+      }),
+      qualificationWindowLine: getQualificationWindowLine(selection, promotionWindow.status),
+      qualificationWindowStatus: promotionWindow.status,
+      cycleWindow: args.cycleWindow ?? null,
+      sourceSession: buildSourceSession(bestPromotionSession.session, latestSession),
     };
   }
 
@@ -2102,8 +3482,10 @@ export function deriveProgressionReviewCandidate(args: {
       currentTarget: basePlan,
       proposedTarget: basePlan,
       reason: `${methodDefinition.label}: range complete - review before increasing.`,
+      qualificationWindowLine: getQualificationWindowLine(selection, promotionWindow.status),
+      qualificationWindowStatus: promotionWindow.status,
       cycleWindow: args.cycleWindow ?? null,
-      sourceSession: buildSourceSession(bestTopRangeSession.session, latestSession),
+      sourceSession: buildSourceSession(bestPromotionSession.session, latestSession),
     };
   }
 

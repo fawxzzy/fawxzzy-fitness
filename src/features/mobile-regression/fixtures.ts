@@ -8,6 +8,7 @@ export type MobileRouteKey =
   | "editRoutine"
   | "addExercise"
   | "historySessions"
+  | "historyProgression"
   | "historyExercises"
   | "historyDetail"
   | "settings"
@@ -23,6 +24,7 @@ export type MobileRegressionScreenKey =
   | "edit-routine"
   | "add-exercise"
   | "history-sessions"
+  | "history-progression"
   | "history-exercises"
   | "history-detail"
   | "settings"
@@ -106,7 +108,7 @@ export type ExerciseInfoLayoutFixture = {
   topSafePaddingRelaxed: boolean;
 };
 
-export type HistorySurfaceToken = "history-browser" | "history-detail";
+export type HistorySurfaceToken = "history-browser" | "history-detail" | "history-progression";
 
 export type MobileFixtureScenario = {
   id: string;
@@ -382,6 +384,19 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     todayHeaderMatchesSelectedDay: true,
     exerciseInfoHeaderPinned: true,
     detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
+  }),
+  buildWorkoutFixture({
+    id: "today-progression-status",
+    family: "Exercise cards",
+    name: "Today: progression status",
+    fixture: "progression-status",
+    fixtureState: "today-progression-status-v1",
+    lastInteractiveRowBottom: 688,
+    statusChips: ["in-progress"],
+    cardStates: [{ cardId: "today-progression-status", state: "selected", badgeText: "Today" }],
+    todayHeaderMatchesSelectedDay: true,
+    exerciseInfoHeaderPinned: true,
+    detailedMode: { extraMetricCount: 2, analyticsSlotsReady: true },
   }),
   buildWorkoutFixture({
     id: "today-rest",
@@ -732,6 +747,23 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
       { label: "Barbell", left: 184, right: 262 },
     ],
   }),
+  buildAddExerciseFixture({
+    id: "add-exercise-custom-taxonomy",
+    family: "Exercise cards",
+    name: "Add Exercise: custom taxonomy smoke",
+    fixture: "custom-taxonomy",
+    fixtureState: "add-exercise-custom-taxonomy-v1",
+    filterChipFrames: [
+      { label: "Recovery", left: 16, right: 102 },
+      { label: "Stretch", left: 110, right: 186 },
+      { label: "Bodyweight", left: 194, right: 294 },
+    ],
+    goalForm: {
+      heading: "Create custom exercise",
+      fieldLabels: ["Exercise Name", "Primary Muscle", "Equipment"],
+      helperCopy: ["Custom exercises stay user-owned and never mutate the shared catalog."],
+    },
+  }),
   buildSimpleFixture({
     id: "history-sessions-compact",
     route: "historySessions",
@@ -754,6 +786,32 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     cardStates: [{ cardId: "history-session-detailed", state: "selected", badgeText: "Latest" }],
     detailedMode: { extraMetricCount: 4, analyticsSlotsReady: true },
     historyHeaderOwnerCount: 1,
+  }),
+  buildSimpleFixture({
+    id: "history-progression-default",
+    route: "historyProgression",
+    screen: "history-progression",
+    family: "Session summaries",
+    name: "History progression: ledger view",
+    fixture: "default",
+    fixtureState: "history-progression-default-v1",
+    cardStates: [{ cardId: "history-progression-latest", state: "selected", badgeText: "Ledger" }],
+    detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-progression",
+  }),
+  buildSimpleFixture({
+    id: "history-progression-filtered",
+    route: "historyProgression",
+    screen: "history-progression",
+    family: "Session summaries",
+    name: "History progression: filtered ledger view",
+    fixture: "filtered",
+    fixtureState: "history-progression-filtered-v1",
+    cardStates: [{ cardId: "history-progression-filtered", state: "selected", badgeText: "Filtered" }],
+    detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-progression",
   }),
   buildSimpleFixture({
     id: "history-exercises-zero-results",
@@ -945,6 +1003,7 @@ const defaultScenarioIdByScreen = {
   "add-exercise": "add-exercise-default",
   history: "history-sessions-compact",
   "history-sessions": "history-sessions-compact",
+  "history-progression": "history-progression-default",
   "history-exercises": "history-exercises-detailed",
   "history-detail": "history-detail-broken-images",
   settings: "settings-default",

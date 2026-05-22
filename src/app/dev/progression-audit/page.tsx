@@ -35,8 +35,9 @@ import {
 } from "@/lib/progression-vector";
 import { canAccessQaLlelUi } from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { ExerciseRow, FitnessDistanceUnit, RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
+import type { ExerciseRow, RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 import { formatProgressionStatusDisplayItem } from "@/lib/progression-status-display";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 
 export const dynamic = "force-dynamic";
 
@@ -730,7 +731,7 @@ async function buildAuditRows() {
         movementPattern: exerciseMeta?.movement_pattern ?? null,
         defaultUnit: exercise.default_unit ?? exerciseMeta?.default_unit ?? null,
         weightUnit: plan.weightUnit ?? fallbackWeightUnit,
-        distanceUnit: plan.distanceUnit ?? null,
+        distanceUnit: plan.distanceUnit === "km" ? "km" : "mi",
         targetWeight: plan.weightMax ?? plan.weightMin ?? null,
         progressionMethod: selection ? normalizeProgressionMethodLayerId(selection.id) : "manual",
         exerciseOverrideValue: selection?.config.loadIncrement ?? null,

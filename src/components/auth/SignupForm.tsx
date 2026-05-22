@@ -6,16 +6,19 @@ import { signup } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthDock, AuthFooter, AuthFooterText, AuthForm, AuthFormFields, AuthIntro } from "@/components/auth/AuthShell";
+import { AUTH_PLAIN_CARD_CHROME_CLASS_NAME, AuthCard, AuthDock, AuthFooter, AuthFooterText, AuthForm, AuthFormFields } from "@/components/auth/AuthShell";
+import { FitContentInput } from "@/components/ui/FitContentInput";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 import { writeRememberedLoginState } from "@/lib/remembered-login";
 
 const SIGNUP_FORM_ID = "signup-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS = 8;
+const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -54,46 +57,53 @@ export function SignupForm({
 
   return (
     <>
-      <AuthCard className={appTokens.authInteractiveCard}>
-        <AuthIntro eyebrow="" title={copy.title} subtitle={copy.subtitle} />
+      <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
         <AuthForm id={SIGNUP_FORM_ID} action={signup} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="Username" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
-              <Input
+            <LabeledEditorField label="Username" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <FitContentInput
                 type="text"
                 name="username"
                 minLength={2}
                 maxLength={15}
                 autoComplete="username"
+                fitContent={false}
+                minVisibleCharacters={SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS}
+                wrapperClassName="w-full"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
               />
             </LabeledEditorField>
-            <LabeledEditorField label="Email" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
-              <Input
+            <LabeledEditorField label="Email" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <FitContentInput
                 type="email"
                 name="email"
                 required
                 autoComplete="email"
+                fitContent={false}
+                minVisibleCharacters={SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS}
+                wrapperClassName="w-full"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setEmail(event.target.value)}
               />
             </LabeledEditorField>
-            <LabeledEditorField label="Password" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
-              <Input
-                type="password"
+            <LabeledEditorField label="Password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <PasswordInput
                 name="password"
                 minLength={6}
                 required
                 autoComplete="new-password"
+                fitContent={false}
+                minVisibleCharacters={SIGNUP_FIELD_MIN_VISIBLE_CHARACTERS}
+                wrapperClassName="w-full"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setPassword(event.target.value)}
               />

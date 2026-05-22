@@ -49,7 +49,7 @@ export function EditRoutineDaysSection({
                 <RoutineEditorDayRow
                   title={`Day ${day.dayIndex} | ${day.title}`}
                   subtitle={subtitle}
-                  badgeText={day.isRest ? "Rest Day" : day.needsSetup ? "Needs Setup" : undefined}
+                  badgeText={day.needsSetup ? "Needs Setup" : undefined}
                   state={day.isRest || day.needsSetup ? "empty" : "default"}
                   href={day.href}
                   rightLabel={<AppBadge tone="default">Edit</AppBadge>}

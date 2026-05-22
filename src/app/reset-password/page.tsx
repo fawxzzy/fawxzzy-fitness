@@ -1,3 +1,4 @@
+import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridge";
 import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
 import { AuthCard, AuthDock, AuthIntro, AuthShell, AuthStatusText } from "@/components/auth/AuthShell";
@@ -17,14 +18,16 @@ type ResetPasswordPageProps = {
 };
 
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+  const copy = AUTH_MODE_COPY["reset-password"];
   const error = searchParams?.error;
   const isRecoveryAttempt = searchParams?.recovery === "1";
 
   if (isRecoveryAttempt) {
     return (
-      <AuthShell>
+      <AuthShell
+        header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}
+      >
         <AuthCard className={appTokens.authInteractiveCard}>
-          <AuthIntro eyebrow="" title="Reset password" subtitle="" />
           <RecoverySessionBridge initialError={error} />
         </AuthCard>
         <AuthDock>
@@ -43,10 +46,11 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
 
   if (!data.user) {
     return (
-      <AuthShell>
+      <AuthShell
+        header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}
+      >
         <ToastFeedbackBridge error={error ?? "Reset link expired."} />
         <AuthCard className={appTokens.authInteractiveCard}>
-          <AuthIntro eyebrow="" title="Reset password" subtitle="" />
           <AuthStatusText>{error ?? "Reset link expired."}</AuthStatusText>
         </AuthCard>
         <AuthDock>
@@ -61,7 +65,9 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
   }
 
   return (
-    <AuthShell>
+    <AuthShell
+      header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}
+    >
       <ResetPasswordForm error={error} />
     </AuthShell>
   );

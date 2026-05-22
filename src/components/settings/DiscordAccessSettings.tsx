@@ -40,7 +40,6 @@ export function DiscordAccessSettings() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState("Copy");
-  const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, startGenerateTransition] = useTransition();
   const toast = useToast();
 
@@ -65,12 +64,7 @@ export function DiscordAccessSettings() {
 
     return "Generate a one-time token to verify your Fitness account in Discord.";
   }, [expiryLabel, token]);
-
-  useEffect(() => {
-    if (token || errorMessage) {
-      setIsOpen(true);
-    }
-  }, [errorMessage, token]);
+  const cardStateKey = token ? `token:${token}:${expiresAt ?? "none"}` : errorMessage ? `error:${errorMessage}` : "idle";
 
   const generateToken = () => {
     startGenerateTransition(async () => {
@@ -129,10 +123,10 @@ export function DiscordAccessSettings() {
   return (
     <div className="border-t border-[rgb(var(--border-strong)/0.12)] pt-3">
       <CollapsibleCard
+        key={cardStateKey}
         title="Discord Connector"
         summary={connectorSummary}
-        open={isOpen}
-        onOpenChange={setIsOpen}
+        defaultOpen={Boolean(token || errorMessage)}
         bodyClassName="space-y-3"
       >
         <div className={appTokens.settingsBlockStack}>

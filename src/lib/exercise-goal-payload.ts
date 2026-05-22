@@ -1,9 +1,8 @@
 import "server-only";
 
-import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { getMissingGoalMeasurementMessage, inferMeasurementTypeFromGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
-import type { FitnessDistanceUnit } from "@/types/db";
 
 export type MeasurementSelection = "reps" | "weight" | "time" | "distance" | "calories";
 

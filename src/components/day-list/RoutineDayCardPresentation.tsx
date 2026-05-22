@@ -5,9 +5,9 @@ import { cn } from "@/lib/cn";
 import { formatRoutineDayStableDisplayName, getRoutineDayWeekdayLabel } from "@/lib/routines";
 
 export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "min-h-[4.3rem] py-2";
-export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "min-h-[2.9rem] py-1";
+export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "min-h-[1.45rem] py-0";
 export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "py-0.5";
-export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "py-0";
+export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "py-0 min-h-0";
 export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.22]";
 export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
 export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";

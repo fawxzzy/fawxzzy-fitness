@@ -11,6 +11,7 @@ import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } fr
 import { cn } from "@/lib/cn";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import { createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 
 type EditDayFixture = "default" | "reorder" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
 
@@ -73,27 +74,10 @@ export function EditDayRegressionSurface({
   const activeExercise = expandedId ? exercises.find((exercise) => exercise.id === expandedId) ?? null : null;
   const activeDraft: EditDayExerciseDraft | null = fixture === "edit-exercise" && activeExercise
     ? {
+      ...createProgressionPlaybookFormState(),
       goalState,
       manualOrder: "1",
       modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null, activeExercise.name),
-      progressionPlaybookId: "",
-      progressionStallPolicy: "none",
-      progressionLoadIncrement: "5",
-      progressionStallThreshold: "2",
-      progressionDeloadPercent: "10",
-      progressionAutoUpdateRoutineGoals: false,
-      progressionSetFlow: "straight_sets",
-      progressionBarbellLoadIncrement: "",
-      progressionDumbbellLoadIncrement: "",
-      progressionMachineLoadIncrement: "",
-      progressionCableLoadIncrement: "",
-      progressionBodyweightRepIncrement: "",
-      progressionDurationIncrementSeconds: "",
-      progressionDistanceIncrement: "",
-      progressionSetFlowLoadStep: "",
-      progressionSetFlowRepStep: "",
-      progressionSetFlowDurationStep: "",
-      progressionSetFlowDistanceStep: "",
     }
     : null;
 

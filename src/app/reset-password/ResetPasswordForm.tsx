@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import { updatePasswordAction } from "@/app/reset-password/actions";
 import {
+  AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
   AuthCard,
   AuthDock,
   AuthFooter,
@@ -11,17 +12,17 @@ import {
   AuthFooterText,
   AuthForm,
   AuthFormFields,
-  AuthIntro,
 } from "@/components/auth/AuthShell";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 
 const RESET_PASSWORD_FORM_ID = "reset-password-form";
+const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 export function ResetPasswordForm({ error }: { error?: string }) {
   const [password, setPassword] = useState("");
@@ -42,34 +43,37 @@ export function ResetPasswordForm({ error }: { error?: string }) {
 
   return (
     <>
-      <AuthCard className={appTokens.authInteractiveCard}>
-        <AuthIntro eyebrow="" title="" subtitle="" />
+      <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
         <AuthForm id={RESET_PASSWORD_FORM_ID} action={updatePasswordAction} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="New password">
-              <Input
-                type="password"
+            <LabeledEditorField label="New password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <PasswordInput
                 name="password"
                 minLength={6}
                 required
                 autoComplete="new-password"
+                fitContent={false}
+                minVisibleCharacters={12}
+                wrapperClassName="w-full"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setPassword(event.target.value)}
               />
             </LabeledEditorField>
-            <LabeledEditorField label="Confirm new password">
-              <Input
-                type="password"
+            <LabeledEditorField label="Confirm new password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <PasswordInput
                 name="confirmPassword"
                 minLength={6}
                 required
                 autoComplete="new-password"
+                fitContent={false}
+                minVisibleCharacters={20}
+                wrapperClassName="w-full"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setConfirmPassword(event.target.value)}
               />

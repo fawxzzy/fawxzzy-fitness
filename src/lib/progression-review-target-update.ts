@@ -1,5 +1,5 @@
 import type { ProgressionTargetPlan } from "@/lib/progression-playbooks";
-import type { FitnessDistanceUnit } from "@/types/db";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 
 export type ProgressionReviewTargetUpdate = {
   target_sets: number | null;

@@ -7,6 +7,12 @@ import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { PillButton } from "@/components/ui/Pill";
 import { cn } from "@/lib/cn";
+import {
+  clearGroupBySelection,
+  hasActiveGroupBySelection,
+  orderGroupByOptions,
+  toggleGroupBySelection,
+} from "@/lib/exercise-tag-filter-order";
 import { formatExerciseTagLabel } from "@/lib/exercise-curation";
 
 export type ExerciseTagGroup = {
@@ -75,9 +81,10 @@ export function ExerciseTagFilterControl({
   }, [groups, selectedTags]);
 
   const groupByOptions = useMemo(
-    () => groups.map((group) => ({ key: group.key, label: group.label })),
-    [groups],
+    () => orderGroupByOptions(groups.map((group) => ({ key: group.key, label: group.label })), selectedGroupKey),
+    [groups, selectedGroupKey],
   );
+  const showGroupByClearButton = hasActiveGroupBySelection(selectedGroupKey);
 
   const orderedGroups = useMemo(() => {
     if (!selectedGroupKey) {
@@ -168,6 +175,19 @@ export function ExerciseTagFilterControl({
               </p>
               <div className="hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1">
                 <div className={cn(compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1")}>
+                  {showGroupByClearButton ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupKey(clearGroupBySelection())}
+                      className={cn(
+                        appTokens.exercisePickerFilterClearButton,
+                        "shrink-0 whitespace-nowrap",
+                        compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+                      )}
+                    >
+                      Clear
+                    </button>
+                  ) : null}
                   {groupByOptions.map((option) => {
                     const isSelected = selectedGroupKey === option.key;
                     return (
@@ -180,7 +200,7 @@ export function ExerciseTagFilterControl({
                           compact ? "px-2 py-1 text-[10px]" : undefined,
                           isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                         )}
-                        onClick={() => setSelectedGroupKey((current) => (current === option.key ? null : option.key))}
+                        onClick={() => setSelectedGroupKey((current) => toggleGroupBySelection(current, option.key))}
                       >
                         {option.label}
                       </PillButton>

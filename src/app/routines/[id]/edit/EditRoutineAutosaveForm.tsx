@@ -11,7 +11,6 @@ import {
 } from "@/components/routines/RoutineDetailsExitGuard";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
-import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
@@ -38,6 +37,7 @@ type Props = {
   returnHref: string;
   name: string;
   cycleLengthDays: number;
+  scheduleMode: "weekday_anchored" | "rolling_n_day";
   startDate: string;
   startWeekday: string;
   timezone: string;
@@ -65,6 +65,7 @@ export function EditRoutineAutosaveForm(props: Props) {
   const [draft, setDraft] = useState<RoutineDetailsDraft>({
     name: props.name,
     cycleLengthDays: props.cycleLengthDays,
+    scheduleMode: props.scheduleMode,
     startDate: props.startDate,
     startWeekday: props.startWeekday,
     timezone: props.timezone,
@@ -76,16 +77,7 @@ export function EditRoutineAutosaveForm(props: Props) {
     config: props.defaultProgressionPlaybookConfig ?? null,
   }));
   const [selectedTrainingGoal, setSelectedTrainingGoal] = useState<TrainingGoalId | "">("");
-  const [pendingProgressionCascadeSave, setPendingProgressionCascadeSave] = useState<{
-    formData: FormData;
-    nextDraft: RoutineDetailsDraft;
-    progressionSnapshot: string;
-    title: string;
-  } | null>(null);
-  const [pendingProgressionSaveOptions, setPendingProgressionSaveOptions] = useState({
-    applyRoutineDefaultToExercises: true,
-    autoUpdateRoutineGoals: false,
-  });
+  const [autoApplyUpdatesToExercises, setAutoApplyUpdatesToExercises] = useState(true);
   const [cycleLengthInput, setCycleLengthInput] = useState(() => String(props.cycleLengthDays));
   const [isSaving, startTransition] = useTransition();
 
@@ -96,13 +88,14 @@ export function EditRoutineAutosaveForm(props: Props) {
       buildRoutineDetailsSnapshot({
         name: props.name,
         cycleLengthDays: props.cycleLengthDays,
+        scheduleMode: props.scheduleMode,
         startDate: props.startDate,
         startWeekday: props.startWeekday,
         timezone: props.timezone,
         weightUnit: props.weightUnit,
         distanceUnit,
       }),
-    [distanceUnit, props.cycleLengthDays, props.name, props.startDate, props.startWeekday, props.timezone, props.weightUnit],
+    [distanceUnit, props.cycleLengthDays, props.name, props.scheduleMode, props.startDate, props.startWeekday, props.timezone, props.weightUnit],
   );
   const initialProgressionSnapshot = useMemo(() => buildProgressionPlaybookFormSnapshot(createProgressionPlaybookFormState({
     playbookId: props.defaultProgressionPlaybookId ?? null,
@@ -222,6 +215,7 @@ export function EditRoutineAutosaveForm(props: Props) {
       formData.set("existingStartDate", props.existingStartDate);
       formData.set("name", nextDraft.name.trim());
       formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+      formData.set("scheduleMode", nextDraft.scheduleMode);
       formData.set("startDate", nextDraft.startDate);
       formData.set("startWeekday", nextDraft.startWeekday);
       formData.set("timezone", nextDraft.timezone);
@@ -230,21 +224,12 @@ export function EditRoutineAutosaveForm(props: Props) {
       appendProgressionPlaybookFormData(formData, progressionDraft);
       formData.set("returnTo", props.returnHref);
 
-      if (progressionChanged) {
-        setPendingProgressionCascadeSave({
-          formData,
-          nextDraft,
-          progressionSnapshot: currentProgressionSnapshot,
-          title: selectedTrainingGoal ? "Save goal defaults?" : "Save progression changes?",
-        });
-        setPendingProgressionSaveOptions({
-          applyRoutineDefaultToExercises: true,
-          autoUpdateRoutineGoals: false,
-        });
-        return;
-      }
-
-      submitChanges(formData, nextDraft, currentProgressionSnapshot, false);
+      submitChanges(
+        formData,
+        nextDraft,
+        currentProgressionSnapshot,
+        progressionChanged && autoApplyUpdatesToExercises,
+      );
     });
   };
 
@@ -257,9 +242,10 @@ export function EditRoutineAutosaveForm(props: Props) {
         <RoutineEditorPageBody>
           <div className="space-y-2 pt-4">
             <RoutineEditorFormFields
-              fields={["cycleLengthDays", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
               cycleLengthInputValue={cycleLengthInput}
               cycleLengthDefaultValue={draft.cycleLengthDays}
+              scheduleModeDefaultValue={draft.scheduleMode}
               startDateDefaultValue={draft.startDate}
               startWeekdayDefaultValue={draft.startWeekday}
               timezoneDefaultValue={draft.timezone}
@@ -281,6 +267,8 @@ export function EditRoutineAutosaveForm(props: Props) {
                 setProgressionDraft(nextValue);
               }}
               weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
+              distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
+              cycleLengthDays={draft.cycleLengthDays}
               context="routine-default"
               collapsible
               defaultExpanded={false}
@@ -291,6 +279,8 @@ export function EditRoutineAutosaveForm(props: Props) {
                 setSelectedTrainingGoal(goal);
                 setProgressionDraft(createProgressionPlaybookFormStateForTrainingGoal(goal));
               }}
+              autoApplyUpdatesToExercises={autoApplyUpdatesToExercises}
+              onAutoApplyUpdatesToExercisesChange={setAutoApplyUpdatesToExercises}
             />
           </div>
         </RoutineEditorPageBody>
@@ -308,58 +298,6 @@ export function EditRoutineAutosaveForm(props: Props) {
           )}
         />
       )}
-      <ConfirmDestructiveModal
-        open={Boolean(pendingProgressionCascadeSave)}
-        title={pendingProgressionCascadeSave?.title ?? "Save progression changes?"}
-        description="Choose how this routine progression change should be saved."
-        confirmLabel="Save"
-        confirmActionLabel="Save"
-        cancelLabel="Cancel"
-        confirmVariant="primary"
-        titleVariant="raw"
-        onCancel={() => {
-          setPendingProgressionCascadeSave(null);
-        }}
-        onConfirm={() => {
-          const pendingSave = pendingProgressionCascadeSave;
-          setPendingProgressionCascadeSave(null);
-          if (!pendingSave) return;
-          const nextProgressionDraft = {
-            ...progressionDraft,
-            progressionAutoUpdateRoutineGoals: false,
-          };
-          pendingSave.formData.delete("progressionAutoUpdateRoutineGoals");
-          setProgressionDraft(nextProgressionDraft);
-          submitChanges(
-            pendingSave.formData,
-            pendingSave.nextDraft,
-            buildProgressionPlaybookFormSnapshot(nextProgressionDraft),
-            pendingProgressionSaveOptions.applyRoutineDefaultToExercises,
-          );
-        }}
-      >
-        <div className="rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-2-rgb)/0.22)] p-2 text-left">
-          <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.76)]">
-            Save options
-          </p>
-          <div className="grid gap-1">
-            <label className="flex items-center gap-2 rounded-[0.7rem] px-2 py-1.5 text-[12px] font-semibold text-[rgb(var(--text)/0.9)]">
-              <input
-                type="checkbox"
-                checked={pendingProgressionSaveOptions.applyRoutineDefaultToExercises}
-                onChange={(event) => {
-                  setPendingProgressionSaveOptions((current) => ({
-                    ...current,
-                    applyRoutineDefaultToExercises: event.currentTarget.checked,
-                  }));
-                }}
-                className="h-4 w-4 accent-[rgb(var(--accent-divider-rgb))]"
-              />
-              <span>Apply these defaults to current exercises</span>
-            </label>
-          </div>
-        </div>
-      </ConfirmDestructiveModal>
     </>
   );
 }

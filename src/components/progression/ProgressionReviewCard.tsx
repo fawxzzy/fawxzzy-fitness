@@ -21,7 +21,6 @@ import {
   type ProgressionReviewLinkedTargetSnapshot,
   type ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
 import type { ProgressionTargetPlan } from "@/lib/progression-playbooks";
 import {
   buildProgressionAppliedPin,
@@ -73,7 +72,6 @@ function resolveTargetDisplayPair({
 
 export function ProgressionReviewCard({
   items,
-  statusItems = [],
   routineId,
   applyAction,
   revertAction,
@@ -84,7 +82,6 @@ export function ProgressionReviewCard({
   onScopedPendingPinsChange,
 }: {
   items: ProgressionReviewDisplayItem[];
-  statusItems?: ProgressionStatusDisplayItem[];
   routineId: string;
   applyAction: (payload: {
     routineId: string;
@@ -282,7 +279,6 @@ export function ProgressionReviewCard({
       id: string;
       dayName: string;
       items: ProgressionReviewDisplayItem[];
-      statusItems: ProgressionStatusDisplayItem[];
     }> = [];
     const groupIndexById = new Map<string, number>();
 
@@ -297,37 +293,16 @@ export function ProgressionReviewCard({
           id: groupId,
           dayName,
           items: [item],
-          statusItems: [],
         });
         continue;
       }
 
       groups[existingIndex]?.items.push(item);
     }
+    return groups.filter((group) => group.items.length > 0);
+  }, [visibleItems]);
 
-    for (const item of statusItems) {
-      const dayName = item.dayName?.trim() || "Routine day";
-      const groupId = item.dayGroupId?.trim() || dayName;
-      const existingIndex = groupIndexById.get(groupId);
-
-      if (existingIndex === undefined) {
-        groupIndexById.set(groupId, groups.length);
-        groups.push({
-          id: groupId,
-          dayName,
-          items: [],
-          statusItems: [item],
-        });
-        continue;
-      }
-
-      groups[existingIndex]?.statusItems.push(item);
-    }
-
-    return groups.filter((group) => group.items.length > 0 || group.statusItems.length > 0);
-  }, [statusItems, visibleItems]);
-
-  if (visibleItems.length === 0 && statusItems.length === 0) {
+  if (visibleItems.length === 0) {
     return null;
   }
 
@@ -618,39 +593,6 @@ export function ProgressionReviewCard({
                       </div>
                     ) : null}
 
-                    {group.statusItems.length > 0 ? (
-                      <div className="mt-3 space-y-1.5">
-                        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.78)]">
-                          Progress Status
-                        </p>
-                        <ul className="space-y-1.5">
-                          {group.statusItems.map((item) => (
-                            <li
-                              key={item.id}
-                              className="rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.10)] bg-[rgb(var(--surface-2-rgb)/0.18)] px-2.5 py-2"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 space-y-1">
-                                  <p className="min-w-0 text-[13px] font-semibold leading-tight text-[rgb(var(--text)/0.92)]">
-                                    {item.exerciseName}
-                                  </p>
-                                  <p className="text-[12px] font-semibold leading-snug text-[rgb(var(--accent-divider-rgb)/0.88)]">
-                                    {item.detailLine}
-                                  </p>
-                                  <div className={cn(appTokens.metaText, "space-y-0.5 text-[11.5px] leading-snug")}>
-                                    <p>{item.latestLine}</p>
-                                    <p>{item.targetLine}</p>
-                                  </div>
-                                </div>
-                                <span className="shrink-0 rounded-full border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--text-muted)/0.86)]">
-                                  {item.label}
-                                </span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
                   </DayCard>
                 ))}
               </DayList>

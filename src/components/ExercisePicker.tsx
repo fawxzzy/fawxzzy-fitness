@@ -18,7 +18,7 @@ import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/Ex
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
-import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
 import {
@@ -71,6 +71,12 @@ type ExercisePickerProps = {
   exercises: ExerciseOption[];
   name: string;
   initialSelectedId?: string;
+  initialCustomExerciseDraft?: {
+    name?: string;
+    primaryMuscle?: string | null;
+    movementPattern?: string | null;
+    equipment?: string | null;
+  };
   selectionSearchParam?: string;
   exerciseStats?: ExerciseStatsOption[];
   routineTargetConfig?: {
@@ -101,6 +107,10 @@ type ExercisePickerProps = {
     customExerciseError: string | null;
   }) => ReactNode;
 };
+
+function resolveExerciseDistanceUnit(defaultUnit: string | null | undefined, fallback: FitnessDistanceUnit = "mi") {
+  return normalizeFitnessDistanceUnit(defaultUnit, fallback);
+}
 
  type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
 
@@ -142,7 +152,7 @@ const pickerRowMobileDensityClassNames = {
 } as const;
 
 const thinPickerRowClassName = "appearance-none [box-shadow:none] flex w-full items-center justify-between gap-3 overflow-hidden rounded-none rounded-r-[var(--card-radius)] border-0 bg-[rgb(var(--surface-1-rgb)/0.86)] px-4 py-2.5 text-left shadow-none outline-none ring-0 transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
-const CUSTOM_EXERCISE_ID = "__custom_exercise__";
+export const EXERCISE_PICKER_CUSTOM_EXERCISE_ID = "__custom_exercise__";
 
 function normalizeTagValue(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? "";
@@ -346,7 +356,7 @@ function buildCustomExerciseDraftOption(
   const defaultUnit = bestMatch?.default_unit ?? (measurementType === "distance" || measurementType === "time_distance" ? "mi" : null);
 
   return {
-    id: CUSTOM_EXERCISE_ID,
+    id: EXERCISE_PICKER_CUSTOM_EXERCISE_ID,
     name: name.trim().replace(/\s+/g, " ") || "Custom Exercise",
     user_id: null,
     is_global: false,
@@ -710,6 +720,7 @@ export function ExercisePicker({
   exercises,
   name,
   initialSelectedId,
+  initialCustomExerciseDraft,
   selectionSearchParam,
   routineTargetConfig,
   exerciseStats = [],
@@ -720,13 +731,23 @@ export function ExercisePicker({
   customExerciseEnabled = false,
   renderFooter,
 }: ExercisePickerProps) {
+  const seededCustomExerciseName = initialCustomExerciseDraft?.name?.trim() ?? "";
+  const seededCustomExerciseMuscleValue = normalizeTagValue(initialCustomExerciseDraft?.primaryMuscle);
+  const seededCustomExerciseMovementValue = normalizeTagValue(initialCustomExerciseDraft?.movementPattern);
+  const seededCustomExerciseEquipmentValue = normalizeTagValue(initialCustomExerciseDraft?.equipment);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isExerciseInfoOpen, setIsExerciseInfoOpen] = useState(false);
-  const [customExerciseName, setCustomExerciseName] = useState("");
-  const [customExerciseMuscleTags, setCustomExerciseMuscleTags] = useState<string[]>([]);
-  const [customExerciseMovementTags, setCustomExerciseMovementTags] = useState<string[]>([]);
-  const [customExerciseEquipmentTags, setCustomExerciseEquipmentTags] = useState<string[]>([]);
+  const [customExerciseName, setCustomExerciseName] = useState(seededCustomExerciseName);
+  const [customExerciseMuscleTags, setCustomExerciseMuscleTags] = useState<string[]>(
+    seededCustomExerciseMuscleValue ? [`muscle:${seededCustomExerciseMuscleValue}`] : [],
+  );
+  const [customExerciseMovementTags, setCustomExerciseMovementTags] = useState<string[]>(
+    seededCustomExerciseMovementValue ? [`movement:${seededCustomExerciseMovementValue}`] : [],
+  );
+  const [customExerciseEquipmentTags, setCustomExerciseEquipmentTags] = useState<string[]>(
+    seededCustomExerciseEquipmentValue ? [`equipment:${seededCustomExerciseEquipmentValue}`] : [],
+  );
 
   const uniqueExercises = useMemo(() => {
     const seenNames = new Set<string>();
@@ -739,11 +760,24 @@ export function ExercisePicker({
   }, [exercises]);
 
   const statsByExerciseId = useMemo(() => new Map(exerciseStats.map((row) => [row.exerciseId, row])), [exerciseStats]);
-  const resolvedInitialSelectedId = initialSelectedId && uniqueExercises.some((exercise) => exercise.id === initialSelectedId)
-    ? initialSelectedId
-    : uniqueExercises[0]?.id ?? "";
+  const seededCustomExerciseDraftOption = useMemo(
+    () => buildCustomExerciseDraftOption(uniqueExercises, {
+      name: seededCustomExerciseName,
+      primaryMuscle: seededCustomExerciseMuscleValue || null,
+      movementPattern: seededCustomExerciseMovementValue || null,
+      equipment: seededCustomExerciseEquipmentValue || null,
+    }),
+    [seededCustomExerciseEquipmentValue, seededCustomExerciseMovementValue, seededCustomExerciseMuscleValue, seededCustomExerciseName, uniqueExercises],
+  );
+  const resolvedInitialSelectedId = customExerciseEnabled && initialSelectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID
+    ? EXERCISE_PICKER_CUSTOM_EXERCISE_ID
+    : initialSelectedId && uniqueExercises.some((exercise) => exercise.id === initialSelectedId)
+      ? initialSelectedId
+      : uniqueExercises[0]?.id ?? "";
   const [selectedId, setSelectedId] = useState(resolvedInitialSelectedId);
-  const initialSelectedExerciseForGoal = uniqueExercises.find((exercise) => exercise.id === resolvedInitialSelectedId);
+  const initialSelectedExerciseForGoal = resolvedInitialSelectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID
+    ? seededCustomExerciseDraftOption
+    : uniqueExercises.find((exercise) => exercise.id === resolvedInitialSelectedId);
   const [goalState, setGoalState] = useState<ExerciseGoalFormState>({
     sets: isStretchHubExercise(initialSelectedExerciseForGoal) ? "1" : "3",
     repsMin: "",
@@ -754,12 +788,12 @@ export function ExercisePicker({
     distance: "",
     calories: "",
     weightUnit: routineTargetConfig?.weightUnit ?? "lbs",
-    distanceUnit: "mi",
+    distanceUnit: resolveExerciseDistanceUnit(initialSelectedExerciseForGoal?.default_unit),
     measurements: [],
   });
   const [didApplyLast, setDidApplyLast] = useState(false);
   const previousExerciseIdRef = useRef(selectedId);
-  const isCustomExerciseSelected = customExerciseEnabled && selectedId === CUSTOM_EXERCISE_ID;
+  const isCustomExerciseSelected = customExerciseEnabled && selectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID;
   const {
     muscleGroups: customExerciseMuscleGroups,
     movementGroups: customExerciseMovementGroups,
@@ -906,7 +940,7 @@ export function ExercisePicker({
   }, [exerciseTagsById, search, selectedExercise, selectedTags, uniqueExercises]);
 
   useEffect(() => {
-    if (customExerciseEnabled && selectedId === CUSTOM_EXERCISE_ID) {
+    if (customExerciseEnabled && selectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID) {
       return;
     }
 
@@ -928,7 +962,7 @@ export function ExercisePicker({
 
     const url = new URL(window.location.href);
     const currentValue = url.searchParams.get(selectionSearchParam) ?? "";
-    const nextValue = customExerciseEnabled && selectedId === CUSTOM_EXERCISE_ID ? "" : (selectedId ?? "");
+    const nextValue = customExerciseEnabled && selectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID ? "" : (selectedId ?? "");
 
     if (!nextValue) {
       if (!currentValue) {
@@ -946,8 +980,8 @@ export function ExercisePicker({
   }, [customExerciseEnabled, selectedId, selectionSearchParam]);
 
   useEffect(() => {
-    onSelectedExerciseChange?.(selectedExercise ?? null);
-  }, [onSelectedExerciseChange, selectedExercise]);
+    onSelectedExerciseChange?.(activeSelectedExercise ?? null);
+  }, [activeSelectedExercise, onSelectedExerciseChange]);
   const exerciseMetadataById = useMemo(
     () => new Map(
       uniqueExercises.map((exercise) => [
@@ -988,7 +1022,7 @@ export function ExercisePicker({
       return;
     }
 
-    const nextSelectionKey = isCustomExerciseSelected ? CUSTOM_EXERCISE_ID : selectedExercise?.id;
+    const nextSelectionKey = isCustomExerciseSelected ? EXERCISE_PICKER_CUSTOM_EXERCISE_ID : selectedExercise?.id;
     if (!nextSelectionKey || previousExerciseIdRef.current === nextSelectionKey) {
       return;
     }
@@ -998,7 +1032,7 @@ export function ExercisePicker({
         ...current,
         measurements: getDefaultMeasurementsForGoalModality(inferredCustomGoalModality),
         failure: false,
-        distanceUnit: normalizeFitnessDistanceUnit(customExerciseDraftOption.default_unit, "mi"),
+        distanceUnit: resolveExerciseDistanceUnit(customExerciseDraftOption.default_unit),
       }));
       resetMeasurementFields("3");
       setDidApplyLast(false);
@@ -1010,7 +1044,7 @@ export function ExercisePicker({
       return;
     }
 
-    const nextDefaultUnit = normalizeFitnessDistanceUnit(selectedExercise.default_unit, "mi");
+    const nextDefaultUnit = resolveExerciseDistanceUnit(selectedExercise.default_unit);
     const selectedExerciseTags = normalizeExerciseTags(selectedExercise);
     const defaultModality = resolveGoalModality({
       measurementType: selectedExercise.measurement_type,
@@ -1064,7 +1098,7 @@ export function ExercisePicker({
       duration: nextMeasurements.includes("time") ? current.duration : "",
       distance: nextMeasurements.includes("distance") ? current.distance : "",
       calories: nextMeasurements.includes("calories") ? current.calories : "",
-      distanceUnit: normalizeFitnessDistanceUnit(customExerciseDraftOption.default_unit, "mi"),
+      distanceUnit: resolveExerciseDistanceUnit(customExerciseDraftOption.default_unit),
     }));
     previousCustomProfileKeyRef.current = nextProfileKey;
   }, [customExerciseDraftOption.default_unit, customExerciseDraftOption.equipment, customExerciseDraftOption.measurement_type, customExerciseDraftOption.movement_pattern, inferredCustomGoalModality, isCustomExerciseSelected]);
@@ -1472,7 +1506,7 @@ export function ExercisePicker({
           statusContent={customExerciseStatusNode}
           showStatusSeparator={customExerciseShowStatusSeparator}
           selectedTags={customExerciseDisplayTags}
-          onPress={() => setSelectedId(CUSTOM_EXERCISE_ID)}
+          onPress={() => setSelectedId(EXERCISE_PICKER_CUSTOM_EXERCISE_ID)}
         />
       ) : null}
       {filteredExercises.map((exercise) => (

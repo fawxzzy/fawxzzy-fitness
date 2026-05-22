@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { updateQaLlelVisibilityAction } from "@/app/settings/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -15,6 +15,34 @@ import type { ProfileRow } from "@/types/db";
 
 type ExportFileType = "csv" | "json" | "xlsx";
 type ExportScope = "all" | "completed_only" | "current_routine";
+type ExportPreview = {
+  fileType: ExportFileType;
+  scope: ExportScope;
+  scopeLabel: string;
+  dateRange: {
+    dateFrom: string | null;
+    dateTo: string | null;
+    label: string;
+  };
+  routineScopeLabel: string;
+  tables: Array<{
+    name: string;
+    rowCount: number;
+    empty: boolean;
+  }>;
+  includesProgressionEvents: boolean;
+  counts: {
+    sessions: number;
+    completedSessions: number;
+    sessionExercises: number;
+    sets: number;
+    routines: number;
+    routineDays: number;
+    routineDayExercises: number;
+    exercises: number;
+    progressionEvents: number;
+  };
+};
 
 const FILE_TYPE_OPTIONS: Array<{ value: ExportFileType; label: string; disabled?: boolean }> = [
   { value: "xlsx", label: "Excel (.xlsx)" },
@@ -30,6 +58,17 @@ const SCOPE_OPTIONS: Array<{ value: ExportScope; label: string }> = [
 
 function sanitizeExportNameInput(value: string) {
   return value.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function getExportFormatNote(fileType: ExportFileType) {
+  switch (fileType) {
+    case "json":
+      return "JSON keeps the full account payload shape with the same top-level keys used in the download.";
+    case "xlsx":
+      return "Excel keeps one sheet per export section, including Progression Events and Progression Summary.";
+    default:
+      return "CSV exports the workout log plus a dedicated progression_events table.";
+  }
 }
 
 export function DataSettingsSection({
@@ -58,7 +97,55 @@ export function DataSettingsSection({
   const [dateTo, setDateTo] = useState(initialExportDateTo);
   const [isSavingQaVisible, startQaVisibilitySave] = useTransition();
   const [isExporting, startExport] = useTransition();
+  const [exportPreview, setExportPreview] = useState<ExportPreview | null>(null);
+  const [exportPreviewError, setExportPreviewError] = useState<string | null>(null);
+  const [isLoadingExportPreview, setIsLoadingExportPreview] = useState(true);
   const toast = useToast();
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadExportPreview() {
+      setIsLoadingExportPreview(true);
+      setExportPreviewError(null);
+
+      try {
+        const response = await fetch("/api/account/export/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileType: exportType,
+            scope: exportScope,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
+          }),
+          signal: controller.signal,
+        });
+
+        const result = await response.json().catch(() => ({ ok: false, error: "Unable to load export preview." }));
+        if (!response.ok || !result?.ok || !result?.preview) {
+          throw new Error(typeof result?.error === "string" ? result.error : "Unable to load export preview.");
+        }
+
+        setExportPreview(result.preview as ExportPreview);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setExportPreview(null);
+        setExportPreviewError(error instanceof Error ? error.message : "Unable to load export preview.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingExportPreview(false);
+        }
+      }
+    }
+
+    void loadExportPreview();
+
+    return () => controller.abort();
+  }, [dateFrom, dateTo, exportScope, exportType]);
 
   const saveQaVisibility = (nextQaVisible: boolean) => {
     startQaVisibilitySave(async () => {
@@ -260,6 +347,60 @@ export function DataSettingsSection({
               </label>
             ))}
           </div>
+        </div>
+
+        <div className="space-y-3 rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.16)] p-4">
+          <div className="space-y-1 text-center">
+            <p className="text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">Export preview</p>
+            <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.88)]">{getExportFormatNote(exportType)}</p>
+          </div>
+
+          {isLoadingExportPreview ? (
+            <p className="text-center text-sm text-[rgb(var(--text-secondary)/0.88)]">Loading preview…</p>
+          ) : exportPreviewError ? (
+            <p className="text-center text-sm text-[rgb(var(--danger-text-rgb)/0.96)]">{exportPreviewError}</p>
+          ) : exportPreview ? (
+            <div className="space-y-3">
+              <div className="grid gap-2 text-center text-xs text-[rgb(var(--text-secondary)/0.88)] sm:grid-cols-3">
+                <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2">
+                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Scope</span>
+                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.scopeLabel}</span>
+                </div>
+                <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2">
+                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Date range</span>
+                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.dateRange.label}</span>
+                </div>
+                <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2">
+                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Routine scope</span>
+                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.routineScopeLabel}</span>
+                </div>
+              </div>
+
+              <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-3">
+                <p className="text-center text-xs leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+                  Includes exact export sections for <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.fileType.toUpperCase()}</span>, including
+                  {" "}
+                  <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">
+                    {exportPreview.includesProgressionEvents ? "progression events" : "the selected export tables"}
+                  </span>.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {exportPreview.tables.map((table) => (
+                  <div
+                    key={table.name}
+                    className="flex items-center justify-between rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2"
+                  >
+                    <span className="text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{table.name}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
+                      {table.rowCount} {table.rowCount === 1 ? "row" : "rows"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
       </div>

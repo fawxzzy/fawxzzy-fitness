@@ -21,7 +21,8 @@ import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { writeInstallEarnedMoment } from "@/lib/install/earned-install-prompt";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
-import type { FitnessDistanceUnit, SetRow } from "@/types/db";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
   sessionId: string;

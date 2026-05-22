@@ -7,10 +7,10 @@ import {
   setSessionCookies,
   shouldRefreshAuthSession,
 } from "@/lib/auth-session";
-import { resolveServerSessionTokens } from "@/lib/auth/server-session-core";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
+import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 
 function buildLoginRedirectResponse(request: NextRequest, errorCode?: string) {
   const responseUrl = new URL("/login", request.url);
@@ -37,18 +37,16 @@ export async function handleAuthSessionMiddleware(
   deps: AuthSessionMiddlewareDependencies = {},
 ) {
   const { pathname } = request.nextUrl;
+  const hostHeader = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "").trim().toLowerCase();
+  const hostname = hostHeader.split(":")[0] ?? "";
+  const shouldAttachLocalDevHeaders = isTrustedLocalDevHost(hostname);
 
   if (!shouldRefreshAuthSession(pathname)) {
     return NextResponse.next();
   }
 
-  const session = resolveServerSessionTokens({
-    cookieAccessToken: request.cookies.get(ACCESS_COOKIE_NAME)?.value,
-    cookieRefreshToken: request.cookies.get(REFRESH_COOKIE_NAME)?.value,
-    hostHeader: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
-  });
-  const accessToken = session.accessToken ?? "";
-  const refreshToken = session.refreshToken ?? "";
+  const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value?.trim() ?? "";
+  const refreshToken = request.cookies.get(REFRESH_COOKIE_NAME)?.value?.trim() ?? "";
 
   if (!refreshToken) {
     if (pathname === "/" && !accessToken) {
@@ -147,7 +145,7 @@ export async function handleAuthSessionMiddleware(
     refreshToken: recovery.session.refreshToken,
   }));
 
-  if (session.canTrustLocalDevHeaders) {
+  if (shouldAttachLocalDevHeaders) {
     requestHeaders.set("x-atlas-access-token", recovery.session.accessToken);
     requestHeaders.set("x-atlas-refresh-token", recovery.session.refreshToken);
   }

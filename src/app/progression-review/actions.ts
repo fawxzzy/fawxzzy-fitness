@@ -14,6 +14,11 @@ import {
   type ProgressionHistorySetRow,
   type ProgressionTargetPlan,
 } from "@/lib/progression-playbooks";
+import {
+  buildProgressionEventPayload,
+  extractProgressionSourceSessionId,
+  recordProgressionEvent,
+} from "@/lib/progression-events";
 import type {
   ProgressionReviewApplyResult,
   ProgressionReviewDisplayItem,
@@ -291,6 +296,10 @@ export async function applyProgressionReviewCandidateAction(payload: {
   }
 
   const linkedTargets: ProgressionReviewLinkedTargetSnapshot[] = [];
+  const sourceSessionId = extractProgressionSourceSessionId({
+    sourceSessionId: candidate.sourceSession?.sessionId,
+    historyRows,
+  });
   for (const linkedExercise of linkedExercises) {
     const linkedPreviousTarget = buildProgressionReviewTargetPlan(linkedExercise);
     const { error: updateError } = await supabase
@@ -302,6 +311,24 @@ export async function applyProgressionReviewCandidateAction(payload: {
     if (updateError) {
       return { ok: false, error: "Could not apply linked progression update." };
     }
+
+    await recordProgressionEvent({
+      supabase,
+      payload: buildProgressionEventPayload({
+        userId: user.id,
+        routineId: payload.routineId,
+        routineDayExerciseId: linkedExercise.id,
+        exerciseId: linkedExercise.exercise_id,
+        eventType: candidate.type === "deload" ? "deload_applied" : "promotion_applied",
+        fromTarget: linkedPreviousTarget,
+        toTarget: candidate.proposedTarget,
+        reason: candidate.reason,
+        playbookId: linkedExercise.progression_playbook_id,
+        config: linkedExercise.progression_playbook_config,
+        sourceSessionId,
+      }),
+      context: "progressionReview.applyProgressionReviewCandidateAction",
+    });
 
     linkedTargets.push({
       routineDayExerciseId: linkedExercise.id,
@@ -353,7 +380,11 @@ export async function revertProgressionReviewCandidateAction(payload: {
     return { ok: false, error: linkedExercisesResult.error };
   }
 
+  const linkedExercises = linkedExercisesResult.data ?? [];
+  const linkedExerciseById = new Map(linkedExercises.map((exercise) => [exercise.id, exercise]));
   for (const target of revertTargets) {
+    const linkedExercise = linkedExerciseById.get(target.routineDayExerciseId);
+    const currentTarget = linkedExercise ? buildProgressionReviewTargetPlan(linkedExercise) : null;
     const { error: updateError } = await supabase
       .from("routine_day_exercises")
       .update(buildProgressionReviewTargetUpdate(target.previousTarget))
@@ -362,6 +393,26 @@ export async function revertProgressionReviewCandidateAction(payload: {
 
     if (updateError) {
       return { ok: false, error: "Could not revert linked progression update." };
+    }
+
+    if (linkedExercise && currentTarget) {
+      await recordProgressionEvent({
+        supabase,
+        payload: buildProgressionEventPayload({
+          userId: user.id,
+          routineId: payload.routineId,
+          routineDayExerciseId: linkedExercise.id,
+          exerciseId: linkedExercise.exercise_id,
+          eventType: "promotion_reverted",
+          fromTarget: currentTarget,
+          toTarget: target.previousTarget,
+          reason: "Reverted an applied progression target.",
+          playbookId: linkedExercise.progression_playbook_id,
+          config: linkedExercise.progression_playbook_config,
+          sourceSessionId: null,
+        }),
+        context: "progressionReview.revertProgressionReviewCandidateAction",
+      });
     }
   }
 

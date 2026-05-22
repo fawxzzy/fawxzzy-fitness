@@ -3,9 +3,11 @@
 import { type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "@/app/auth/actions";
+import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
+  AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
   AuthCard,
   AuthDock,
   AuthFooter,
@@ -17,7 +19,7 @@ import {
   AuthShell,
 } from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
-import { Input } from "@/components/ui/Input";
+import { FitContentInput } from "@/components/ui/FitContentInput";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
@@ -27,6 +29,7 @@ const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 const RESET_FORM_ID = "reset-password-request-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
+const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 type ForgotPasswordFormClientProps = {
   errorMessage: string | null;
@@ -39,6 +42,7 @@ export default function ForgotPasswordFormClient({
   infoMessage,
   shouldStartCooldown,
 }: ForgotPasswordFormClientProps) {
+  const copy = AUTH_MODE_COPY["reset-password"];
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
@@ -92,20 +96,22 @@ export default function ForgotPasswordFormClient({
   const submitLabel = isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
 
   return (
-    <AuthShell>
-      <AuthCard className={appTokens.authInteractiveCard}>
-        <AuthIntro eyebrow="" title="" subtitle="" />
+    <AuthShell header={<AuthIntro eyebrow="" title={copy.title} subtitle="" />}>
+      <AuthCard className={cn(appTokens.authInteractiveCard, AUTH_PLAIN_CARD_CHROME_CLASS_NAME)}>
         <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
           <AuthFormFields>
-            <LabeledEditorField label="Email or username" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
-              <Input
+            <LabeledEditorField label="Email or username" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+              <FitContentInput
                 type="text"
                 name="email"
                 required
                 autoComplete="username"
+                fitContent={false}
+                minVisibleCharacters={17}
+                wrapperClassName="w-full"
                 className={cn(
                   labeledEditorFieldControlClassName,
-                  "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                  "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                 )}
                 onChange={(event) => setEmail(event.target.value)}
               />

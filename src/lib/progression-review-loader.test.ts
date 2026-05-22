@@ -5,7 +5,7 @@ import {
   collapseLinkedProgressionReadyUpdates,
   isUserFacingProgressionUpdatesExercise,
 } from "@/lib/progression-review-loader";
-import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
+import { formatProgressionReviewDisplayItem, type ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
 import type { RoutineDayExerciseRow } from "@/types/db";
 
@@ -253,4 +253,67 @@ test("does not collapse ready updates when the proposed target differs", () => {
   assert.equal(items.length, 2);
   assert.equal(items[0]?.linkedUpdate, undefined);
   assert.equal(items[1]?.linkedUpdate, undefined);
+});
+
+test("formatProgressionReviewDisplayItem can present effort-adjusted current and proposed targets", () => {
+  const item = formatProgressionReviewDisplayItem({
+    id: "routine-exercise-1",
+    exerciseName: "Bench Press",
+    dayName: "Day 2",
+    dayGroupId: "day-2",
+    candidate: {
+      type: "promote",
+      playbookId: "double_progression",
+      label: "Overloaded",
+      currentTarget: {
+        measurementType: "reps",
+        setsMin: 3,
+        setsMax: 3,
+        repsTarget: 8,
+        repsMin: 8,
+        repsMax: 10,
+        weightMin: 100,
+        weightMax: 100,
+        weightUnit: "lbs",
+      },
+      proposedTarget: {
+        measurementType: "reps",
+        setsMin: 3,
+        setsMax: 3,
+        repsTarget: 8,
+        repsMin: 8,
+        repsMax: 10,
+        weightMin: 105,
+        weightMax: 105,
+        weightUnit: "lbs",
+      },
+      reason: "Overloaded: increase load next cycle.",
+    },
+    currentTargetOverride: {
+      measurementType: "reps",
+      setsMin: 3,
+      setsMax: 3,
+      repsTarget: 9,
+      repsMin: 9,
+      repsMax: 11,
+      weightMin: 105,
+      weightMax: 105,
+      weightUnit: "lbs",
+    },
+    proposedTargetOverride: {
+      measurementType: "reps",
+      setsMin: 3,
+      setsMax: 3,
+      repsTarget: 9,
+      repsMin: 9,
+      repsMax: 11,
+      weightMin: 110,
+      weightMax: 110,
+      weightUnit: "lbs",
+    },
+  });
+
+  assert.ok(item);
+  assert.equal(item.summaryParts.currentTarget, "105 lbs x 9");
+  assert.equal(item.summaryParts.proposedTarget, "110 lbs x 9");
 });

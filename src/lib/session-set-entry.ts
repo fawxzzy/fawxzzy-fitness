@@ -1,7 +1,8 @@
 import { formatDurationPreview } from "./duration";
 import { formatWeight } from "./formatting";
 import { formatMeasurementSummaryText } from "./measurement-display";
-import type { FitnessDistanceUnit, SetRow } from "@/types/db";
+import type { FitnessDistanceUnit } from "./fitness-distance-units";
+import type { SetRow } from "@/types/db";
 
 export type SessionSetEntrySource = Pick<
   SetRow,

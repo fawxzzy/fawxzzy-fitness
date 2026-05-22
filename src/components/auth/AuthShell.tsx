@@ -3,19 +3,28 @@ import {
   ACTION_CHROME_RAIL_CLASS_NAME,
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
 } from "@/components/ui/actionChrome";
+import {
+  BOTTOM_ACTION_SHELL_CLASSNAME,
+  BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME,
+} from "@/components/layout/CanonicalBottomActions";
 import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
+export const AUTH_PLAIN_CARD_CHROME_CLASS_NAME =
+  "auth-card-plain !border-transparent !bg-transparent !shadow-none [backdrop-filter:none] [-webkit-backdrop-filter:none]";
+
 export function AuthShell({
   children,
   className,
   topAction,
+  header,
 }: {
   children: ReactNode;
   className?: string;
   topAction?: ReactNode;
+  header?: ReactNode;
 }) {
   return (
     <main
@@ -26,14 +35,17 @@ export function AuthShell({
         <div className={appTokens.authShellBackdropGrid} />
         <div className={appTokens.authShellBackdropGlowLeading} />
         <div className={appTokens.authShellBackdropGlowTrailing} />
-        <div className={appTokens.authShellBackdropRuleTop} />
-        <div className={appTokens.authShellBackdropRuleBottom} />
       </div>
 
       <div className={appTokens.authShellFrame}>
         {topAction ? (
           <div className={appTokens.authShellTopAction}>
             {topAction}
+          </div>
+        ) : null}
+        {header ? (
+          <div className="flex justify-center pt-4 text-center sm:pt-6">
+            {header}
           </div>
         ) : null}
         <div
@@ -214,8 +226,30 @@ export function AuthInlineLinkButton({
   );
 }
 
-export function AuthDock({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn(appTokens.authDock, className)}>{children}</div>;
+export function AuthDock({
+  children,
+  className,
+  anchored = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  anchored?: boolean;
+}) {
+  if (!anchored) {
+    return (
+      <div className={cn("mx-auto mt-6 w-full max-w-[23rem] px-4 sm:px-0", className)}>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-30", className)}>
+      <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto")}>
+        <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>{children}</div>
+      </div>
+    </div>
+  );
 }
 
 export function AuthStatusCard({

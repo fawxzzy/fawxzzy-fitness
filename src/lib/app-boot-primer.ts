@@ -11,6 +11,55 @@ import {
   AMBIENT_THEME_STORAGE_KEY,
 } from "@/lib/ambient/theme";
 
+export function buildLocalDevBrowserResetScript(buildId: string) {
+  const payload = JSON.stringify({
+    buildId,
+    markerKey: `fawxzzy:fitness:dev-browser-reset:${buildId}`,
+    freshParam: "__fresh",
+    sessionKeepaliveLaunchKey: "fawxzzy:fitness:session-keepalive:launch",
+  });
+
+  return `(()=>{const config=${payload};try{
+const host=window.location.hostname;
+const isLocalHost=host==="localhost"||host==="127.0.0.1"||host==="[::1]";
+if(!isLocalHost){return;}
+const url=new URL(window.location.href);
+const freshValue=url.searchParams.get(config.freshParam);
+if(freshValue===config.buildId){
+  url.searchParams.delete(config.freshParam);
+  window.history.replaceState(window.history.state,"",url.toString());
+  try{window.sessionStorage.setItem(config.markerKey,"1");}catch{}
+  return;
+}
+let hasResetMarker=false;
+try{hasResetMarker=window.sessionStorage.getItem(config.markerKey)==="1";}catch{}
+if(hasResetMarker){return;}
+try{
+  window.sessionStorage.setItem(config.markerKey,"1");
+  window.sessionStorage.removeItem(config.sessionKeepaliveLaunchKey);
+}catch{}
+Promise.resolve()
+  .then(async()=>{
+    if("serviceWorker" in navigator){
+      try{
+        const registrations=await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration)=>registration.unregister()));
+      }catch{}
+    }
+    if("caches" in window){
+      try{
+        const cacheKeys=await window.caches.keys();
+        await Promise.all(cacheKeys.map((cacheKey)=>window.caches.delete(cacheKey)));
+      }catch{}
+    }
+  })
+  .finally(()=>{
+    url.searchParams.set(config.freshParam,config.buildId);
+    window.location.replace(url.toString());
+  });
+}catch{}})();`;
+}
+
 export function buildPreHydrationAppBootPrimerScript() {
   const themeConfig = JSON.stringify(getAppThemePrimerConfig());
   const bootConfig = JSON.stringify({

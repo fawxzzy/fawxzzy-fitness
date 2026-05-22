@@ -15,12 +15,6 @@ const PUBLIC_AUTHLESS_PATH_PREFIXES = [
 ];
 const PUBLIC_AUTHLESS_PATHS = new Set([
   "/api/app-version",
-  "/api/discord/interactions",
-  "/api/discord/member-numbers/sync",
-  "/api/discord/verify",
-  "/api/spotify/oauth/callback",
-  "/api/spotify/oauth/start",
-  "/api/vercel/deployment-webhook",
 ]);
 
 type SessionCookieOptions = {

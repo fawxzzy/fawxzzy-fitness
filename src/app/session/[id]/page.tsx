@@ -22,7 +22,7 @@ import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionQuickLogTarget } from "@/lib/session-quick-log";
 import type { DisplayTarget } from "@/lib/session-targets";
 import { generateSetFlowTargets, type PlannedSetTarget } from "@/lib/set-flow-targets";
-import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import {
   addSetAction,
   removeExerciseAction,
@@ -34,7 +34,6 @@ import {
 } from "./actions";
 import { getSessionPageData } from "./queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
-import type { FitnessDistanceUnit } from "@/types/db";
 
 function buildSessionExerciseTarget(exercise: {
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
@@ -148,9 +147,10 @@ function toSetFlowQuickLogTarget(args: {
 }
 
 function resolveSessionExerciseDefaultDistanceUnit(defaultUnit: string | null | undefined): FitnessDistanceUnit | null {
-  if (defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m" || defaultUnit === "steps") {
+  if (isFitnessDistanceUnit(defaultUnit)) {
     return defaultUnit;
   }
+
   if (defaultUnit === "miles") {
     return "mi";
   }
@@ -302,7 +302,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   movementPattern: canonicalExercise?.movement_pattern ?? null,
                   defaultUnit: exercise.default_unit ?? canonicalExercise?.default_unit ?? null,
                   weightUnit: progressionPlan.weightUnit ?? unitLabel,
-                  distanceUnit: normalizeFitnessDistanceUnit(progressionPlan.distanceUnit, "mi"),
+                  distanceUnit: progressionPlan.distanceUnit === "km" ? "km" : "mi",
                   targetWeight: progressionPlan.weightMax ?? progressionPlan.weightMin ?? null,
                   exerciseOverrideValue: progressionSelection.config.loadIncrement,
                   stepOverrides: progressionSelection.config.stepOverrides ?? null,
@@ -320,6 +320,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             const setFlowQuickLogTargets = progressionSelection && progressionPlan
               ? generateSetFlowTargets({
                   setFlow: progressionSelection.config.setFlow,
+                  setFlowDirections: progressionSelection.config.setFlowDirections ?? null,
                   plan: progressionPlan,
                   progressionStepPolicy,
                   setFlowSteps: progressionSelection.config.setFlowSteps ?? null,

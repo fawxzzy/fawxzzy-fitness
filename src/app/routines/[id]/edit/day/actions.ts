@@ -4,12 +4,20 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import { validateExerciseEquipment, validateExerciseName, validateMovementPattern } from "@/lib/exercises";
+import { buildCustomExerciseInsertPayload } from "@/lib/custom-exercise-payload";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import { insertRoutineDayExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
+import { buildProgressionReviewTargetPlan } from "@/lib/progression-review-loader";
 import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
+import {
+  buildProgressionEventPayload,
+  recordProgressionEvent,
+  targetsDiffer,
+} from "@/lib/progression-events";
+import type { RoutineDayExerciseRow } from "@/types/db";
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
@@ -41,6 +49,8 @@ function parseRoutineExercisePayload(formData: FormData) {
 function selectedProgressionPlaybook(payload: Record<string, unknown>) {
   return typeof payload.progression_playbook_id === "string" && payload.progression_playbook_id.length > 0;
 }
+
+const ROUTINE_DAY_EXERCISE_PROGRESS_EVENT_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
 
 export async function updateRoutineDaySettingsAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
@@ -136,16 +146,15 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
 
     const { data: createdExercise, error: customExerciseError } = await supabase
       .from("exercises")
-      .insert({
+      .insert(buildCustomExerciseInsertPayload({
+        userId: user.id,
         name,
-        user_id: user.id,
-        is_global: false,
-        primary_muscle: primaryMuscle,
+        primaryMuscle,
         equipment,
-        movement_pattern: movementPattern,
-        measurement_type: parsedPayload.payload.measurement_type === "none" ? "reps" : parsedPayload.payload.measurement_type,
-        default_unit: parsedPayload.payload.default_unit,
-      })
+        movementPattern,
+        measurementType: parsedPayload.payload.measurement_type,
+        defaultUnit: parsedPayload.payload.default_unit,
+      }))
       .select("id")
       .single();
 
@@ -229,6 +238,26 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
     return { ok: false, error: parsedPayload.error };
   }
 
+  const { data: existingExerciseRow, error: existingExerciseError } = await supabase
+    .from("routine_day_exercises")
+    .select(ROUTINE_DAY_EXERCISE_PROGRESS_EVENT_SELECT)
+    .eq("id", exerciseRowId)
+    .eq("routine_day_id", routineDayId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingExerciseError || !existingExerciseRow) {
+    return { ok: false, error: existingExerciseError?.message ?? "Routine exercise not found" };
+  }
+
+  const existingExercise = existingExerciseRow as RoutineDayExerciseRow;
+  const previousTarget = buildProgressionReviewTargetPlan(existingExercise);
+  const updatedExercise = {
+    ...existingExercise,
+    ...parsedPayload.payload,
+  } as RoutineDayExerciseRow;
+  const nextTarget = buildProgressionReviewTargetPlan(updatedExercise);
+
   let { error } = await supabase
     .from("routine_day_exercises")
     .update(parsedPayload.payload)
@@ -258,6 +287,26 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  if (targetsDiffer(previousTarget, nextTarget)) {
+    await recordProgressionEvent({
+      supabase,
+      payload: buildProgressionEventPayload({
+        userId: user.id,
+        routineId,
+        routineDayExerciseId: existingExercise.id,
+        exerciseId: existingExercise.exercise_id,
+        eventType: "manual_target_change",
+        fromTarget: previousTarget,
+        toTarget: nextTarget,
+        reason: "Updated routine exercise target manually.",
+        playbookId: updatedExercise.progression_playbook_id,
+        config: updatedExercise.progression_playbook_config,
+        sourceSessionId: null,
+      }),
+      context: "routineDay.updateRoutineDayExerciseAction",
+    });
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);

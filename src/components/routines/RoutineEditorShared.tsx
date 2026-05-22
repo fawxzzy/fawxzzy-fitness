@@ -181,6 +181,8 @@ export function RoutineEditorTitleInput({
   maxLength,
   className,
   label = "Routine Title",
+  hideLabel = false,
+  plainShell = false,
 }: {
   name: string;
   value: string;
@@ -190,6 +192,8 @@ export function RoutineEditorTitleInput({
   maxLength?: number;
   className?: string;
   label?: string;
+  hideLabel?: boolean;
+  plainShell?: boolean;
 }) {
   const titleLength = Math.max((value.trim() || placeholder).length, label.length);
   const inputWidth = `${Math.min(Math.max(titleLength + 2, 14), 32)}ch`;
@@ -200,8 +204,10 @@ export function RoutineEditorTitleInput({
         label={label}
         className={cn(
           "mx-auto inline-block !w-fit min-w-[10rem] max-w-[min(26rem,calc(100vw-7rem))] align-middle normal-case tracking-normal",
+          plainShell ? "!border-transparent !bg-transparent !shadow-none" : "",
           className,
         )}
+        labelClassName={hideLabel ? "sr-only" : undefined}
       >
         <input
           name={name}
@@ -315,6 +321,7 @@ export function RoutineEditorListModeControlRow({
 export function RoutineEditorAddExerciseFlowShell({
   exercises,
   initialSelectedId,
+  initialCustomExerciseDraft,
   selectionSearchParam,
   weightUnit,
   exerciseStats,
@@ -328,6 +335,7 @@ export function RoutineEditorAddExerciseFlowShell({
 }: {
   exercises: EditorExerciseOption[];
   initialSelectedId?: string;
+  initialCustomExerciseDraft?: ComponentProps<typeof ExercisePicker>["initialCustomExerciseDraft"];
   selectionSearchParam?: ComponentProps<typeof ExercisePicker>["selectionSearchParam"];
   weightUnit?: "lbs" | "kg";
   exerciseStats?: ExerciseStatsOption[];
@@ -344,6 +352,7 @@ export function RoutineEditorAddExerciseFlowShell({
       exercises={exercises}
       name={name}
       initialSelectedId={initialSelectedId}
+      initialCustomExerciseDraft={initialCustomExerciseDraft}
       selectionSearchParam={selectionSearchParam}
       onSelectedExerciseChange={onSelectedExerciseChange}
       routineTargetConfig={weightUnit ? { weightUnit } : undefined}

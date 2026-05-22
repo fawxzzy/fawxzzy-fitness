@@ -34,7 +34,7 @@ import {
   getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
-import { formatRoutineDayStableDisplayName, getRoutineCycleOccurrence, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import { formatRoutineDayStableDisplayName, getRoutineCycleOccurrence, getTimeZoneDayWindow, resolveRoutineScheduleForToday } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import {
   buildProgressionHistorySessions,
@@ -53,10 +53,16 @@ import {
   type ProgressionReviewLinkedTargetSnapshot,
   type ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
+import type { ProgressionStatusDisplayItem, ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
+import {
+  buildProgressionEventPayload,
+  extractProgressionSourceSessionId,
+  recordProgressionEvent,
+} from "@/lib/progression-events";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
 import {
@@ -67,7 +73,6 @@ import { prepareTodayRecoveryShadowPlacement } from "@/lib/ecosystem/fitness-sha
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 import { loadTodayRecoveryShadowPlacementSafely } from "@/app/today/recovery-shadow-placement.server";
-import type { FitnessDistanceUnit } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -256,7 +261,7 @@ async function loadProgressionHistoryForExercise(args: {
 }) {
   const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
     .from("session_exercises")
-    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status, routine_id)")
+    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(id, performed_at, status, routine_id)")
     .eq("user_id", args.userId)
     .eq("exercise_id", args.exerciseId)
     .eq("session.status", "completed")
@@ -266,11 +271,11 @@ async function loadProgressionHistoryForExercise(args: {
     throw sessionExercisesError;
   }
 
-  const sessionExerciseMetaById = new Map<string, { performedAt: string; routineDayExerciseId: string | null }>();
+  const sessionExerciseMetaById = new Map<string, { performedAt: string; routineDayExerciseId: string | null; sessionRecordId: string | null }>();
   for (const row of (sessionExercisesData ?? []) as Array<{
     id: string;
     routine_day_exercise_id?: string | null;
-    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
+    session?: { id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
   }>) {
     const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
     if (!row.id || !sessionRow?.performed_at || sessionRow.status !== "completed" || sessionRow.routine_id !== args.routineId) {
@@ -280,6 +285,7 @@ async function loadProgressionHistoryForExercise(args: {
     sessionExerciseMetaById.set(row.id, {
       performedAt: sessionRow.performed_at,
       routineDayExerciseId: row.routine_day_exercise_id ?? null,
+      sessionRecordId: sessionRow.id ?? null,
     });
   }
 
@@ -317,6 +323,7 @@ async function loadProgressionHistoryForExercise(args: {
 
       return {
         sessionId: row.session_exercise_id,
+        sessionRecordId: meta.sessionRecordId,
         performedAt: meta.performedAt,
         setIndex: row.set_index,
         weight: row.weight ?? null,
@@ -530,6 +537,10 @@ async function applyProgressionReviewCandidateAction(payload: {
   }
 
   const linkedTargets: ProgressionReviewLinkedTargetSnapshot[] = [];
+  const sourceSessionId = extractProgressionSourceSessionId({
+    sourceSessionId: candidate.sourceSession?.sessionId,
+    historyRows,
+  });
   for (const linkedExercise of linkedExercises) {
     const linkedPreviousTarget = buildProgressionReviewTargetPlan(linkedExercise);
     const { error: updateError } = await supabase
@@ -541,6 +552,24 @@ async function applyProgressionReviewCandidateAction(payload: {
     if (updateError) {
       return { ok: false, error: "Could not apply linked progression update." };
     }
+
+    await recordProgressionEvent({
+      supabase,
+      payload: buildProgressionEventPayload({
+        userId: user.id,
+        routineId: payload.routineId,
+        routineDayExerciseId: linkedExercise.id,
+        exerciseId: linkedExercise.exercise_id,
+        eventType: candidate.type === "deload" ? "deload_applied" : "promotion_applied",
+        fromTarget: linkedPreviousTarget,
+        toTarget: candidate.proposedTarget,
+        reason: candidate.reason,
+        playbookId: linkedExercise.progression_playbook_id,
+        config: linkedExercise.progression_playbook_config,
+        sourceSessionId,
+      }),
+      context: "today.applyProgressionReviewCandidateAction",
+    });
 
     linkedTargets.push({
       routineDayExerciseId: linkedExercise.id,
@@ -597,7 +626,11 @@ async function revertProgressionReviewCandidateAction(payload: {
     return { ok: false, error: linkedExercisesResult.error };
   }
 
+  const linkedExercises = linkedExercisesResult.data ?? [];
+  const linkedExerciseById = new Map(linkedExercises.map((exercise) => [exercise.id, exercise]));
   for (const target of revertTargets) {
+    const linkedExercise = linkedExerciseById.get(target.routineDayExerciseId);
+    const currentTarget = linkedExercise ? buildProgressionReviewTargetPlan(linkedExercise) : null;
     const { error: updateError } = await supabase
       .from("routine_day_exercises")
       .update(buildProgressionReviewTargetUpdate(target.previousTarget))
@@ -606,6 +639,26 @@ async function revertProgressionReviewCandidateAction(payload: {
 
     if (updateError) {
       return { ok: false, error: "Could not revert linked progression update." };
+    }
+
+    if (linkedExercise && currentTarget) {
+      await recordProgressionEvent({
+        supabase,
+        payload: buildProgressionEventPayload({
+          userId: user.id,
+          routineId: payload.routineId,
+          routineDayExerciseId: linkedExercise.id,
+          exerciseId: linkedExercise.exercise_id,
+          eventType: "promotion_reverted",
+          fromTarget: currentTarget,
+          toTarget: target.previousTarget,
+          reason: "Reverted an applied progression target.",
+          playbookId: linkedExercise.progression_playbook_id,
+          config: linkedExercise.progression_playbook_config,
+          sourceSessionId: null,
+        }),
+        context: "today.revertProgressionReviewCandidateAction",
+      });
     }
   }
 
@@ -931,7 +984,7 @@ export default async function TodayPage({
       activeRoutine = await diagnostics.measure("today.active-routine.fetch", async () => {
         const { data: routine, error: routineError } = await supabase
           .from("routines")
-          .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+      .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at, weight_unit")
           .eq("id", profile.active_routine_id)
           .eq("user_id", user.id)
           .maybeSingle();
@@ -956,16 +1009,17 @@ export default async function TodayPage({
 
   if (activeRoutine) {
     try {
-      const { dayIndex } = getRoutineDayComputation({
-        cycleLengthDays: activeRoutine.cycle_length_days,
-        startDate: activeRoutine.start_date,
-        profileTimeZone: activeRoutine.timezone || profile.timezone,
-      });
+    const { dayIndex } = resolveRoutineScheduleForToday({
+      cycleLengthDays: activeRoutine.cycle_length_days,
+      scheduleMode: activeRoutine.schedule_mode,
+      startDate: activeRoutine.start_date,
+      profileTimeZone: activeRoutine.timezone || profile.timezone,
+    });
 
       todayDayIndex = dayIndex;
     } catch (error) {
       markBootstrapFailure("routine days fetch", error);
-      todayDayIndex = 1;
+      todayDayIndex = null;
     }
 
     try {
@@ -1195,10 +1249,14 @@ export default async function TodayPage({
       day.name?.trim() || `Day ${day.day_index}`,
     ] as const),
   );
+  const routineDayIndexById = new Map(
+    routineDays.map((day) => [day.id, day.day_index] as const),
+  );
   const progressionUpdatesEnabled = isFeatureEnabled("progressionUpdatesSurface");
   const earnedInstallPromptEnabled = isFeatureEnabled("earnedInstallPromptTiming");
   let progressionReviewItems: ProgressionReviewDisplayItem[] = [];
   let progressionStatusItems: ProgressionStatusDisplayItem[] = [];
+  let progressionStatusSurfaceItems: ProgressionStatusSurfaceItem[] = [];
   if (progressionUpdatesEnabled && activeRoutine && !inProgressSession && allDayExercises.length > 0) {
     try {
       const progressionUpdates = await diagnostics.measure("today.progression-review.fetch", () => loadProgressionUpdatesDisplayData({
@@ -1209,6 +1267,7 @@ export default async function TodayPage({
         exercises: allDayExercises,
         exerciseNameByRoutineExerciseId,
         routineDayNameById,
+        routineDayIndexById,
       }), {
         blockingReason: "Waiting for Today progression review candidates.",
         metadata: {
@@ -1220,6 +1279,7 @@ export default async function TodayPage({
       });
       progressionReviewItems = progressionUpdates.readyItems;
       progressionStatusItems = progressionUpdates.statusItems;
+      progressionStatusSurfaceItems = progressionUpdates.statusSurfaceItems;
     } catch (error) {
       logTodayBootstrapFailure({
         step: "progression review fetch",
@@ -1234,9 +1294,11 @@ export default async function TodayPage({
   // - Start from the default day, back out, and confirm Resume still targets that same day.
   // - Select a different day, start workout, back out, and confirm Resume restores that selected day instead of recalculating calendar today.
   // - Hard refresh Today with an active session and confirm the started day still resumes.
+  const fallbackTemplateDay = todayRoutineDay ?? routineDays[0] ?? null;
   const displayDay = resolveTodayDisplayDay({
     calendarDayIndex: todayDayIndex,
     todayRoutineDay,
+    fallbackRoutineDay: fallbackTemplateDay,
     routineDays,
     inProgressSession,
   });
@@ -1270,7 +1332,7 @@ export default async function TodayPage({
       invalidExerciseCount: 0,
     }),
     routineDayId: effectiveRoutineDay?.id ?? null,
-    fallbackDayIndex: todayDayIndex,
+    fallbackDayIndex: fallbackTemplateDay?.day_index ?? todayDayIndex,
   });
   const hasDetailedRoutineState = Boolean(
     routinePayloadState && normalizedDaySummaries.length > 0 && !detailedRoutineStateFailed,
@@ -1483,7 +1545,10 @@ export default async function TodayPage({
                   how_to_short: exercise.details?.how_to_short ?? null,
                 })),
               }))}
-              currentDayIndex={todayPayload.routine.dayIndex}
+              currentDayIndex={displayDay.hasScheduledDayToday ? todayPayload.routine.dayIndex : null}
+              noScheduledDayMessage={displayDay.hasScheduledDayToday || todayPayload.inProgressSessionId
+                ? null
+                : "This routine has no active day for today's date."}
               inProgressSessionId={todayPayload.inProgressSessionId}
               completedDayIndexes={completedDayIndexes}
               inSessionDayIndex={inProgressSession?.routine_day_index ?? null}
@@ -1496,6 +1561,7 @@ export default async function TodayPage({
               switchFloatingHeaderSlotId="today-routine-switch-floating-header-slot"
               progressionReviewItems={progressionReviewItems}
               progressionStatusItems={progressionStatusItems}
+              progressionStatusSurfaceItems={progressionStatusSurfaceItems}
               progressionRoutineId={todayPayload.routine.id}
               applyProgressionReviewCandidateAction={applyProgressionReviewCandidateAction}
               revertProgressionReviewCandidateAction={revertProgressionReviewCandidateAction}

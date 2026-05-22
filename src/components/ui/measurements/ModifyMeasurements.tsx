@@ -1,7 +1,6 @@
 "use client";
-
-import type { FitnessDistanceUnit } from "@/types/db";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 
 export type MeasurementMetrics = {
   reps: boolean;

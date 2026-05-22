@@ -36,6 +36,11 @@ import { formatDurationClock } from "@/lib/duration";
 import { getLiveSetInputOrder, type LiveSetMetricFlags } from "@/lib/live-set-input-order";
 import { formatMeasurementSummaryItems, formatSetPositionLabel } from "@/lib/measurement-display";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import {
+  addDeletedSetIdentityKeys,
+  filterDeletedDisplaySets,
+  removeDeletedSetIdentityKeys,
+} from "@/lib/session-deleted-set-identities";
 import { deriveRepeatLastSetDraft, deriveSimpleSessionPrToast } from "@/lib/session-set-entry";
 import { ProgressionNumberField, ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
@@ -54,7 +59,7 @@ import {
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
-import type { FitnessDistanceUnit } from "@/types/db";
+import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 
 type AddSetPayload = {
   sessionId: string;
@@ -115,12 +120,6 @@ type DisplaySet = SetRow & {
 };
 type AnimatedDisplaySet = DisplaySet & { isLeaving?: boolean };
 
-type StableSetIdentityLike = {
-  id: string;
-  client_log_id?: string | null;
-  stableId?: string;
-};
-
 function mergeDisplaySets(baseSets: DisplaySet[], incomingSets: DisplaySet[]) {
   return sortSetsByIndex(mergeByStableSetId(incomingSets, baseSets));
 }
@@ -130,34 +129,6 @@ function toDisplaySet(set: SetRow): DisplaySet {
     ...set,
     stableId: resolveStableSetId(set),
   };
-}
-
-function getDeletedSetIdentityKeys(set: StableSetIdentityLike) {
-  return [
-    set.stableId?.trim(),
-    set.client_log_id?.trim(),
-    set.id.trim(),
-  ].filter((value): value is string => Boolean(value && value.length > 0));
-}
-
-function filterDeletedDisplaySets<T extends StableSetIdentityLike>(sets: T[], deletedSetIdentityKeys: Set<string>) {
-  if (deletedSetIdentityKeys.size === 0) {
-    return sets;
-  }
-
-  return sets.filter((set) => !getDeletedSetIdentityKeys(set).some((key) => deletedSetIdentityKeys.has(key)));
-}
-
-function addDeletedSetIdentityKeys(target: Set<string>, set: StableSetIdentityLike) {
-  for (const key of getDeletedSetIdentityKeys(set)) {
-    target.add(key);
-  }
-}
-
-function removeDeletedSetIdentityKeys(target: Set<string>, set: StableSetIdentityLike) {
-  for (const key of getDeletedSetIdentityKeys(set)) {
-    target.delete(key);
-  }
 }
 
 function formatHistorySummary(summary: string | null, performedAtLabel: string | null) {
@@ -364,9 +335,6 @@ export function SetLoggerCard({
     weight?: number;
     reps?: number;
     durationSeconds?: number;
-    distance?: number;
-    distanceUnit?: FitnessDistanceUnit;
-    calories?: number;
     weightUnit?: "lbs" | "kg";
   };
   setFlowQuickLogTargets?: SessionQuickLogTarget[];
@@ -410,9 +378,9 @@ export function SetLoggerCard({
   const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
   const [reps, setReps] = useState(prefill?.reps !== undefined ? String(prefill.reps) : "");
   const [durationInput, setDurationInput] = useState(prefill?.durationSeconds !== undefined ? formatDurationClock(prefill.durationSeconds) : "");
-  const [distance, setDistance] = useState(prefill?.distance !== undefined ? String(prefill.distance) : "");
-  const [distanceUnit, setDistanceUnit] = useState<FitnessDistanceUnit>(prefill?.distanceUnit ?? (defaultDistanceUnit ?? "mi"));
-  const [calories, setCalories] = useState(prefill?.calories !== undefined ? String(prefill.calories) : "");
+  const [distance, setDistance] = useState("");
+  const [distanceUnit, setDistanceUnit] = useState<FitnessDistanceUnit>(normalizeFitnessDistanceUnit(defaultDistanceUnit, "mi"));
+  const [calories, setCalories] = useState("");
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
@@ -457,9 +425,6 @@ export function SetLoggerCard({
   const prefillWeight = prefill?.weight;
   const prefillReps = prefill?.reps;
   const prefillDurationSeconds = prefill?.durationSeconds;
-  const prefillDistance = prefill?.distance;
-  const prefillDistanceUnit = prefill?.distanceUnit;
-  const prefillCalories = prefill?.calories;
   const prefillWeightUnit = prefill?.weightUnit;
 
   const toast = useToast();
@@ -511,9 +476,9 @@ export function SetLoggerCard({
     setSelectedWeightUnit(prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
     setReps(prefillReps !== undefined ? String(prefillReps) : "");
     setDurationInput(prefillDurationSeconds !== undefined ? formatDurationClock(prefillDurationSeconds) : "");
-    setDistance(prefillDistance !== undefined ? String(prefillDistance) : "");
-    setDistanceUnit(prefillDistanceUnit ?? (defaultDistanceUnit ?? "mi"));
-    setCalories(prefillCalories !== undefined ? String(prefillCalories) : "");
+    setDistance("");
+    setDistanceUnit(normalizeFitnessDistanceUnit(defaultDistanceUnit, "mi"));
+    setCalories("");
     setRpe("");
     setWarmupValue(false);
     setIsFailure(false);
@@ -523,7 +488,7 @@ export function SetLoggerCard({
     setSets(nextDisplaySets);
     setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = nextDisplaySets.length;
-  }, [defaultDistanceUnit, prefillCalories, prefillDistance, prefillDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, sessionExerciseId, setWarmupValue, unitLabel]);
+  }, [defaultDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, sessionExerciseId, setWarmupValue, unitLabel]);
 
   useEffect(() => {
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
@@ -554,7 +519,7 @@ export function SetLoggerCard({
     try {
       const parsed = JSON.parse(raw) as {
         sets?: DisplaySet[];
-        form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: "mi" | "km" | "m"; calories?: string; rpe?: string; isWarmup?: boolean; isFailure?: boolean; selectedWeightUnit?: "lbs" | "kg" };
+  form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: FitnessDistanceUnit; calories?: string; rpe?: string; isWarmup?: boolean; isFailure?: boolean; selectedWeightUnit?: "lbs" | "kg" };
       };
 
       if (isOfflineSnapshotStale((parsed as { updatedAt?: number | string }).updatedAt)) {
@@ -592,7 +557,7 @@ export function SetLoggerCard({
         if (typeof sanitizedForm.reps === "string") setReps(sanitizedForm.reps);
         if (typeof sanitizedForm.duration === "string") setDurationInput(sanitizedForm.duration);
         if (typeof sanitizedForm.distance === "string") setDistance(sanitizedForm.distance);
-        if (parsed.form.distanceUnit === "mi" || parsed.form.distanceUnit === "km" || parsed.form.distanceUnit === "m") setDistanceUnit(parsed.form.distanceUnit);
+        if (isFitnessDistanceUnit(parsed.form.distanceUnit)) setDistanceUnit(parsed.form.distanceUnit);
         if (typeof sanitizedForm.calories === "string") setCalories(sanitizedForm.calories);
         if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
         if (typeof parsed.form.isWarmup === "boolean") setWarmupValue(parsed.form.isWarmup);
@@ -947,10 +912,10 @@ export function SetLoggerCard({
     setReps(nextReps !== undefined ? String(nextReps) : "");
     setDurationInput(target.durationSeconds !== undefined ? formatDurationClock(target.durationSeconds) : "");
     setDistance(target.distance !== undefined ? String(target.distance) : "");
-    if (target.distanceUnit === "mi" || target.distanceUnit === "km" || target.distanceUnit === "m" || target.distanceUnit === "steps") {
+    if (isFitnessDistanceUnit(target.distanceUnit)) {
       setDistanceUnit(target.distanceUnit);
     } else {
-      setDistanceUnit(defaultDistanceUnit ?? "mi");
+      setDistanceUnit(normalizeFitnessDistanceUnit(defaultDistanceUnit, "mi"));
     }
     setCalories(target.calories !== undefined ? String(target.calories) : "");
     if (target.weightUnit === "kg" || target.weightUnit === "lbs") {
@@ -1375,7 +1340,7 @@ export function SetLoggerCard({
     setReps(values.reps !== null ? String(values.reps) : "");
     setDurationInput(values.durationSeconds !== null ? formatDurationClock(values.durationSeconds) : "");
     setDistance(values.distance !== null ? String(values.distance) : "");
-    if (values.distanceUnit === "mi" || values.distanceUnit === "km" || values.distanceUnit === "m" || values.distanceUnit === "steps") {
+    if (isFitnessDistanceUnit(values.distanceUnit)) {
       setDistanceUnit(values.distanceUnit);
     }
     setCalories(values.calories !== null ? String(values.calories) : "");
@@ -1523,7 +1488,7 @@ export function SetLoggerCard({
   }, []);
   const progressionSettingsRow = progressionEditorGroups.length > 0 ? (
     <section className="px-1 pb-1.5 pt-1">
-      <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
+      <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
         <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1">
           {progressionEditorGroups.map((group, groupIndex) => (
             <div key={group.key} className="flex shrink-0 flex-nowrap items-stretch gap-2">
@@ -1573,6 +1538,7 @@ export function SetLoggerCard({
         setProgressionSaveError(null);
       }}
       weightUnit={unitLabel === "kg" ? "kg" : "lbs"}
+      distanceUnit={distanceUnit}
       title="Progression Settings"
       context="exercise"
       collapsible
@@ -1598,14 +1564,14 @@ export function SetLoggerCard({
     ACTION_CHROME_CONTROL_CLASS_NAME,
     appTokens.measurementField,
     appTokens.measurementFieldCompact,
-    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-[5.25rem] !min-w-[5.25rem] !flex-none !justify-center !rounded-[1rem] !border !px-2.5 !py-0 text-center shadow-none [touch-action:pan-x_pan-y]",
+    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-[5.25rem] !min-w-[5.25rem] !flex-none !justify-center !rounded-[1rem] !border !px-2.5 !py-0 text-center shadow-none",
     "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
   );
   const loggerUtilitySummaryButtonClassName = cn(
     ACTION_CHROME_CONTROL_CLASS_NAME,
     appTokens.measurementField,
     appTokens.measurementFieldCompact,
-    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-auto !min-w-0 !flex-none !justify-center !rounded-[1rem] !border !px-3 !py-0 text-center shadow-none [touch-action:pan-x_pan-y]",
+    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-auto !min-w-0 !flex-none !justify-center !rounded-[1rem] !border !px-3 !py-0 text-center shadow-none",
     "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
   );
   const loggerUtilityButtonsRow = (
@@ -1868,5 +1834,3 @@ export function SetLoggerCard({
     </div>
   );
 }
-
-

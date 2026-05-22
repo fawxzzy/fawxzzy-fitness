@@ -1,5 +1,4 @@
-export type FitnessDistanceUnit = "mi" | "km" | "m" | "steps";
-export type PreferredDistanceUnit = "mi" | "km";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 
 export type SessionRow = {
   id: string;
@@ -66,7 +65,7 @@ export type ProfileRow = {
   timezone: string;
   active_routine_id: string | null;
   preferred_weight_unit: "lbs" | "kg" | null;
-  preferred_distance_unit: PreferredDistanceUnit | null;
+  preferred_distance_unit: "mi" | "km" | null;
   show_qa_llel_data?: boolean | null;
   user_number: number | null;
   user_kind: "human" | "automation" | "unknown";
@@ -78,6 +77,7 @@ export type RoutineRow = {
   user_id: string;
   name: string;
   cycle_length_days: number;
+  schedule_mode?: "weekday_anchored" | "rolling_n_day" | null;
   start_date: string;
   timezone: string;
   updated_at: string;
@@ -119,6 +119,23 @@ export type RoutineDayExerciseRow = {
   notes: string | null;
 };
 
+export type ProgressionEventRow = {
+  id: string;
+  user_id: string;
+  routine_id: string;
+  routine_day_exercise_id: string;
+  exercise_id: string;
+  event_type: "promotion_applied" | "promotion_reverted" | "lock_in" | "deload_applied" | "review_acknowledged" | "manual_target_change";
+  from_target: Record<string, unknown>;
+  to_target: Record<string, unknown>;
+  method: string;
+  vector: string;
+  step: Record<string, unknown> | null;
+  reason: string;
+  source_session_id: string | null;
+  created_at: string;
+};
+
 
 export type ExerciseRow = {
   id: string;
@@ -142,21 +159,4 @@ export type ExerciseRow = {
   how_to_short: string | null;
   curation_tags?: Record<string, string[]> | null;
   created_at: string;
-};
-
-export type DiscordSpotifyConnectionRow = {
-  id: string;
-  discord_user_id: string;
-  spotify_user_id: string;
-  spotify_display_name: string | null;
-  spotify_product: "premium" | "free" | "open" | "unknown";
-  is_premium: boolean;
-  encrypted_refresh_token: string;
-  access_token_expires_at: string | null;
-  scopes: string[];
-  connected_at: string;
-  last_checked_at: string | null;
-  disconnected_at: string | null;
-  created_at: string;
-  updated_at: string;
 };

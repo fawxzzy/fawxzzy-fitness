@@ -9,19 +9,19 @@ import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
-import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import type { FitnessDistanceUnit, RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
+import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
 const ROUTINE_DAY_EXERCISE_SELECT_LEGACY = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes";
 const ROUTINE_DAY_EXERCISE_SELECT_WITH_PROGRESSION = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, progression_playbook_id, progression_playbook_config, measurement_type, default_unit, notes";
-const ROUTINE_SELECT_LEGACY = "id, user_id, name, weight_unit, start_date";
+const ROUTINE_SELECT_LEGACY = "id, user_id, name, weight_unit, start_date, cycle_length_days";
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 
 type PageProps = {
@@ -110,7 +110,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       categories: matchingExercise?.categories ?? null,
     });
     const defaultDistanceUnit: FitnessDistanceUnit = normalizeFitnessDistanceUnit(
-      exercise.default_unit ?? matchingExercise?.default_unit ?? "mi",
+      exercise.default_unit ?? matchingExercise?.default_unit,
       "mi",
     );
     const name = normalizeExerciseDisplayName({
@@ -209,6 +209,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <EditableRoutineDayExerciseList
           routineId={params.id}
           routineDayId={params.dayId}
+          cycleLengthDays={(routine as RoutineRow).cycle_length_days}
           weightUnit={(routine as RoutineRow).weight_unit}
           exercises={editableExercises}
           updateAction={updateRoutineDayExerciseAction}

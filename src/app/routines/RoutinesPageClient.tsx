@@ -40,12 +40,17 @@ import {
   RoutinesRouteHeaderCard,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
+import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { appTokens } from "@/components/ui/app/tokens";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import { cn } from "@/lib/cn";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
+import {
+  buildRoutineBrowseInfoRailItems,
+  buildRoutineTrainingRestInfoRailItems,
+} from "@/lib/header-info-rail";
 
 export type RoutineSwitcherItem = {
   id: string;
@@ -100,10 +105,6 @@ const ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonCl
   className: "translate-x-px !border-l-0 focus-visible:ring-[rgb(var(--accent)/0.24)]",
 });
 
-function formatRoutineCount(count: number) {
-  return `${count} ${count === 1 ? "routine" : "routines"} total`;
-}
-
 function resolveRoutineDayTagLabel(day: Pick<RoutineDayCardItem, "isToday" | "isRest" | "isCompleted" | "isSkipped" | "isInSession">) {
   if (day.isInSession) {
     return "IN SESSION";
@@ -117,10 +118,6 @@ function resolveRoutineDayTagLabel(day: Pick<RoutineDayCardItem, "isToday" | "is
     return "DONE";
   }
 
-  if (day.isRest) {
-    return "REST DAY";
-  }
-
   if (day.isSkipped) {
     return "SKIPPED";
   }
@@ -132,7 +129,6 @@ function renderRoutineHeaderSubtitle(summary: string | null | undefined) {
   const parts = splitRoutineSummaryParts(summary);
   return renderSignatureParts(parts, "justify-center text-center") ?? summary ?? undefined;
 }
-
 function renderRoutineListSubtitle(summary: string) {
   return renderSignatureParts(splitRoutineSummaryParts(summary)) ?? summary;
 }
@@ -161,6 +157,8 @@ export function RoutinesPageClient({
   activeRoutineId,
   activeRoutineName,
   activeRoutineSummary,
+  activeRoutineTrainingDays,
+  activeRoutineRestDays,
   activeRoutineStartDate,
   activeRoutineEditHref,
   newRoutineHref,
@@ -172,6 +170,8 @@ export function RoutinesPageClient({
   activeRoutineId: string | null;
   activeRoutineName: string | null;
   activeRoutineSummary: string | null;
+  activeRoutineTrainingDays?: number | null;
+  activeRoutineRestDays?: number | null;
   activeRoutineStartDate?: string | null;
   activeRoutineEditHref: string | null;
   newRoutineHref: string;
@@ -270,7 +270,6 @@ export function RoutinesPageClient({
     : activeRoutineId
       ? "selected-routine-days"
       : "summary";
-  const allRoutinesMeta = formatRoutineCount(routines.length);
 
   const actionsNode = useMemo(() => {
     const toggleButton = (
@@ -314,14 +313,28 @@ export function RoutinesPageClient({
   const floatingHeaderTitle = screenMode === "browse-routines"
     ? "All Routines"
     : (activeRoutineName ?? "Routine Selection");
-  const floatingHeaderSubtitle = screenMode === "browse-routines"
-    ? (activeRoutineName ? `${activeRoutineName} active \u2022 ${allRoutinesMeta}` : allRoutinesMeta)
-    : activeRoutineSummary;
+  const floatingHeaderInfoItems = screenMode === "browse-routines"
+    ? buildRoutineBrowseInfoRailItems({
+        activeRoutineName,
+        routineCount: routines.length,
+      })
+    : activeRoutineTrainingDays === null || activeRoutineTrainingDays === undefined || activeRoutineRestDays === null || activeRoutineRestDays === undefined
+      ? []
+      : buildRoutineTrainingRestInfoRailItems({
+          trainingDays: activeRoutineTrainingDays,
+          restDays: activeRoutineRestDays,
+        });
 
   const floatingHeader = (
     <RoutinesRouteHeaderCard
       title={floatingHeaderTitle}
-      subtitle={renderRoutineHeaderSubtitle(floatingHeaderSubtitle)}
+      subtitle={floatingHeaderInfoItems.length > 0 ? (
+        <HeaderInfoRail
+          items={floatingHeaderInfoItems}
+          ariaLabel={screenMode === "browse-routines" ? "Routine list summary" : "Routine cycle summary"}
+          className="justify-center text-center"
+        />
+      ) : renderRoutineHeaderSubtitle(activeRoutineSummary)}
     />
   );
 
@@ -401,7 +414,7 @@ export function RoutinesPageClient({
                       subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
                       contentVerticalAlign={displayIsRest ? "top" : undefined}
                       rightRailClassName="!items-end"
-                      trailingStackClassName="!items-end !pb-1"
+                      trailingStackClassName={displayIsRest ? "!items-center" : "!items-end !pb-1"}
                       onPress={() => handleToggleDayExpansion(day.id)}
                       wrapper={(card) => (
                         <div className="min-w-0">

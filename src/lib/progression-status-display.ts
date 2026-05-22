@@ -3,9 +3,20 @@ import { formatDurationClock } from "@/lib/duration";
 import { formatDateShort, formatWeight } from "@/lib/formatting";
 import type { ProgressionAuditHistorySource, ProgressionAuditRejectionReason } from "@/lib/progression-candidate-audit";
 import { getProgressionTargetFingerprint } from "@/lib/progression-history-scope";
+import {
+  describePromotionBasis,
+  formatPromotionBasisLabel,
+  formatRepPromotionThresholdLabel,
+  getRepPromotionTarget,
+  normalizeProgressionPromotionConfig,
+  usesRepsForPromotion,
+  type ProgressionPromotionBasis,
+  type RepPromotionThreshold,
+} from "@/lib/progression-promotion";
 import type {
   ProgressionHistorySetRow,
   ProgressionMeasurementType,
+  ProgressionPlaybookSelection,
   ProgressionReviewCandidate,
   ProgressionTargetPlan,
 } from "@/lib/progression-playbooks";
@@ -37,6 +48,31 @@ export type ProgressionStatusDisplayItem = {
   detailLine: string;
   targetLine: string;
   latestLine: string;
+  reason: string;
+  progress?: ProgressionProgressFill;
+};
+
+export type ProgressionStatusSurfaceState =
+  | "ready"
+  | "not_ready"
+  | "insufficient_evidence"
+  | "manual";
+
+export type ProgressionStatusSurfaceItem = {
+  id: string;
+  exerciseName: string;
+  dayName?: string | null;
+  dayGroupId?: string | null;
+  readinessState: ProgressionStatusSurfaceState;
+  readinessLabel: string;
+  currentTargetLine: string;
+  promotionBasisLabel: string | null;
+  promotionBasisDetail: string | null;
+  repTargetLine: string | null;
+  latestLine: string;
+  targetLine: string;
+  detailLine: string;
+  nextUpdateLine: string | null;
   reason: string;
   progress?: ProgressionProgressFill;
 };
@@ -313,6 +349,130 @@ function getTargetLine(plan: ProgressionTargetPlan) {
   return targetLabel ? `Target: ${targetLabel}` : "Target: incomplete";
 }
 
+function formatRepRangeLabel(plan: ProgressionTargetPlan) {
+  const min = typeof plan.repsMin === "number" && Number.isFinite(plan.repsMin) && plan.repsMin > 0 ? plan.repsMin : null;
+  const max = typeof plan.repsMax === "number" && Number.isFinite(plan.repsMax) && plan.repsMax > 0 ? plan.repsMax : null;
+  if (min === null && max === null) {
+    return null;
+  }
+
+  const resolvedMin = min ?? max;
+  const resolvedMax = max ?? min;
+  if (resolvedMin === null || resolvedMax === null) {
+    return null;
+  }
+
+  return resolvedMin === resolvedMax ? `${resolvedMax}` : `${resolvedMin}-${resolvedMax}`;
+}
+
+function resolveReadinessState(args: {
+  candidate: ProgressionReviewCandidate;
+  rejectionReason: ProgressionAuditRejectionReason | null;
+}) : ProgressionStatusSurfaceState {
+  if (args.candidate.type !== "none") {
+    return "ready";
+  }
+
+  if (args.rejectionReason === "manual_method") {
+    return "manual";
+  }
+
+  if (
+    args.rejectionReason === "no_completed_history"
+    || args.rejectionReason === "duplicate_catalog_exercise_requires_routine_day_exercise_id"
+    || args.rejectionReason === "outside_review_window"
+  ) {
+    return "insufficient_evidence";
+  }
+
+  return "not_ready";
+}
+
+function getReadinessLabel(args: {
+  readinessState: ProgressionStatusSurfaceState;
+  statusType?: ProgressionStatusType;
+}) {
+  switch (args.readinessState) {
+  case "ready":
+    return "Ready";
+  case "manual":
+    return "Manual";
+  case "insufficient_evidence":
+    return "Insufficient evidence";
+  case "not_ready":
+    return args.statusType ? getStatusLabel(args.statusType) : "Not ready";
+  }
+}
+
+function getPromotionConfig(selection: ProgressionPlaybookSelection | null): {
+  promotionBasis: ProgressionPromotionBasis;
+  repPromotionThreshold: RepPromotionThreshold;
+  customRepPromotionTarget: number | null;
+} | null {
+  if (!selection) {
+    return null;
+  }
+
+  return normalizeProgressionPromotionConfig({
+    promotionBasis: selection.config.promotionBasis,
+    repPromotionThreshold: selection.config.repPromotionThreshold,
+    customRepPromotionTarget: selection.config.customRepPromotionTarget,
+  });
+}
+
+function getRepTargetLine(args: {
+  selection: ProgressionPlaybookSelection | null;
+  plan: ProgressionTargetPlan;
+}) {
+  const promotionConfig = getPromotionConfig(args.selection);
+  if (!promotionConfig || !usesRepsForPromotion(promotionConfig.promotionBasis)) {
+    return null;
+  }
+
+  const repTarget = getRepPromotionTarget({
+    minReps: args.plan.repsMin,
+    maxReps: args.plan.repsMax,
+    thresholdType: promotionConfig.repPromotionThreshold,
+    customTarget: promotionConfig.customRepPromotionTarget,
+  });
+  if (!repTarget) {
+    return `Rep target for promotion: ${formatRepPromotionThresholdLabel(promotionConfig.repPromotionThreshold)}`;
+  }
+
+  const repRange = formatRepRangeLabel(args.plan);
+  const thresholdLabel = formatRepPromotionThresholdLabel(promotionConfig.repPromotionThreshold);
+  return repRange
+    ? `Rep target for promotion: ${thresholdLabel} · ${repRange} => ${repTarget}+ reps`
+    : `Rep target for promotion: ${thresholdLabel} · ${repTarget}+ reps`;
+}
+
+function resolveStatusProgress(args: {
+  plan: ProgressionTargetPlan;
+  historyRows: ProgressionHistorySetRow[];
+  rejectionReason: ProgressionAuditRejectionReason | null;
+}) {
+  if (args.rejectionReason === "manual_method") {
+    return { percent: 0, state: "manual_hidden", label: "Manual" } satisfies ProgressionProgressFill;
+  }
+
+  if (args.rejectionReason === "invalid_config") {
+    return { percent: 0, state: "unsupported", label: "Unsupported" } satisfies ProgressionProgressFill;
+  }
+
+  const rawProgress = deriveProgressionProgressPercent({
+    plan: args.plan,
+    historyRows: args.historyRows,
+  });
+
+  return rawProgress.percent >= 100 || rawProgress.state === "ready"
+    ? {
+        ...rawProgress,
+        percent: Math.min(rawProgress.percent, NON_READY_PROGRESS_PERCENT_CAP),
+        state: "partial" as const,
+      }
+    : rawProgress;
+}
+
 export function formatProgressionCalculationEvidence(args: {
   candidate: ProgressionReviewCandidate;
   rejectionReason: ProgressionAuditRejectionReason | null;
@@ -376,17 +536,11 @@ export function formatProgressionStatusDisplayItem(args: {
     historyRows: args.historyRows,
     plan: args.plan,
   });
-  const rawProgress = deriveProgressionProgressPercent({
+  const progress = resolveStatusProgress({
     plan: args.plan,
     historyRows: args.historyRows,
+    rejectionReason: args.rejectionReason,
   });
-  const progress = rawProgress.percent >= 100 || rawProgress.state === "ready"
-    ? {
-        ...rawProgress,
-        percent: Math.min(rawProgress.percent, NON_READY_PROGRESS_PERCENT_CAP),
-        state: "partial" as const,
-      }
-    : rawProgress;
 
   return {
     id: args.id,
@@ -395,9 +549,88 @@ export function formatProgressionStatusDisplayItem(args: {
     dayGroupId: args.dayGroupId ?? null,
     statusType,
     label: getStatusLabel(statusType),
-    detailLine: evidence.resultLine,
+    detailLine: args.candidate.qualificationWindowLine ?? evidence.resultLine,
     targetLine: evidence.needsLine,
     latestLine: evidence.usedLine,
+    reason: args.candidate.reason,
+    progress,
+  };
+}
+
+export function buildProgressionStatusSurfaceItem(args: {
+  id: string;
+  exerciseName: string;
+  dayName?: string | null;
+  dayGroupId?: string | null;
+  candidate: ProgressionReviewCandidate;
+  rejectionReason: ProgressionAuditRejectionReason | null;
+  historySource?: ProgressionAuditHistorySource | null;
+  linkedMatchCount?: number | null;
+  historyRows: ProgressionHistorySetRow[];
+  plan: ProgressionTargetPlan;
+  selection: ProgressionPlaybookSelection | null;
+}): ProgressionStatusSurfaceItem {
+  const statusItem = formatProgressionStatusDisplayItem({
+    id: args.id,
+    exerciseName: args.exerciseName,
+    dayName: args.dayName,
+    dayGroupId: args.dayGroupId,
+    candidate: args.candidate,
+    rejectionReason: args.rejectionReason,
+    historySource: args.historySource,
+    linkedMatchCount: args.linkedMatchCount,
+    historyRows: args.historyRows,
+    plan: args.plan,
+  });
+  const evidence = formatProgressionCalculationEvidence({
+    candidate: args.candidate,
+    rejectionReason: args.rejectionReason,
+    historySource: args.historySource,
+    linkedMatchCount: args.linkedMatchCount,
+    historyRows: args.historyRows,
+    plan: args.plan,
+  });
+  const readinessState = resolveReadinessState({
+    candidate: args.candidate,
+    rejectionReason: args.rejectionReason,
+  });
+  const currentTarget = formatProgressionReviewTargetLabel(args.plan);
+  const promotionConfig = getPromotionConfig(args.selection);
+  const statusType = statusItem?.statusType;
+  const progress = args.candidate.type === "none"
+    ? resolveStatusProgress({
+      plan: args.plan,
+      historyRows: args.historyRows,
+      rejectionReason: args.rejectionReason,
+    })
+    : deriveProgressionProgressPercent({
+        plan: args.plan,
+        historyRows: args.candidate.sourceSession
+          ? args.historyRows.filter((row) => row.sessionId === args.candidate.sourceSession?.sessionId)
+          : args.historyRows,
+        isReady: true,
+      });
+
+  return {
+    id: args.id,
+    exerciseName: args.exerciseName,
+    dayName: args.dayName ?? null,
+    dayGroupId: args.dayGroupId ?? null,
+    readinessState,
+    readinessLabel: getReadinessLabel({ readinessState, statusType }),
+    currentTargetLine: currentTarget ? `Current target: ${currentTarget}` : "Current target: incomplete",
+    promotionBasisLabel: promotionConfig ? formatPromotionBasisLabel(promotionConfig.promotionBasis) : null,
+    promotionBasisDetail: promotionConfig ? describePromotionBasis(promotionConfig.promotionBasis) : null,
+    repTargetLine: getRepTargetLine({
+      selection: args.selection,
+      plan: args.plan,
+    }),
+    latestLine: evidence.usedLine,
+    targetLine: evidence.needsLine,
+    detailLine: args.candidate.qualificationWindowLine ?? evidence.resultLine,
+    nextUpdateLine: args.candidate.type !== "none" && args.candidate.proposedTarget
+      ? `Next update: ${formatProgressionReviewTargetLabel(args.candidate.proposedTarget) ?? "Target change ready"}`
+      : null,
     reason: args.candidate.reason,
     progress,
   };

@@ -40,13 +40,12 @@ import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
 import { formatDistance, formatDurationShort as formatWorkoutDuration, formatPace } from "@/lib/exercise-stats-formatting";
 import { formatDateShort } from "@/lib/formatting";
-import { isFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryItems, formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { cn } from "@/lib/cn";
+import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
-import type { FitnessDistanceUnit } from "@/types/db";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {

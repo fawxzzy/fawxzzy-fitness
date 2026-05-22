@@ -209,15 +209,15 @@ test("default app theme keeps metric and outline accents aligned to the crisp gr
   assert.equal(DEFAULT_APP_THEME.metricAccentColor, "#20974e");
   assert.equal(DEFAULT_APP_THEME.successCompleteColor, "#20974e");
   assert.equal(DEFAULT_APP_THEME.selectionActiveColor, "#20974e");
-  assert.equal(DEFAULT_APP_THEME.cardOutlineColor, "#20974e");
+  assert.equal(DEFAULT_APP_THEME.cardOutlineColor, "#26b55e");
 
   const cssVariables = getAppThemeCssVariables(DEFAULT_APP_THEME);
   assert.equal(cssVariables["--accent-divider-rgb"], "32 151 78");
   assert.equal(cssVariables["--metric-accent-rgb"], "32 151 78");
   assert.equal(cssVariables["--success-rgb"], "32 151 78");
   assert.equal(cssVariables["--selection-rgb"], "32 151 78");
-  assert.equal(cssVariables["--stroke-soft"], "32 151 78");
-  assert.equal(cssVariables["--stroke-strong"], "32 151 78");
+  assert.equal(cssVariables["--stroke-soft"], "38 181 94");
+  assert.equal(cssVariables["--stroke-strong"], "38 181 94");
 });
 
 test("normalizeAppTheme falls back to the crisp green for metric accent and card outline", () => {
@@ -227,7 +227,7 @@ test("normalizeAppTheme falls back to the crisp green for metric accent and card
   });
 
   assert.equal(theme.metricAccentColor, "#20974e");
-  assert.equal(theme.cardOutlineColor, "#20974e");
+  assert.equal(theme.cardOutlineColor, "#26b55e");
 });
 
 test("root CSS defines the default metric and card stroke tokens for default theme mode", () => {
@@ -235,8 +235,8 @@ test("root CSS defines the default metric and card stroke tokens for default the
   const globalsCss = readFileSync(globalsPath, "utf8");
 
   assert.match(globalsCss, /--metric-accent-rgb:\s*32 151 78;/);
-  assert.match(globalsCss, /--stroke-soft:\s*32 151 78;/);
-  assert.match(globalsCss, /--stroke-strong:\s*32 151 78;/);
+  assert.match(globalsCss, /--stroke-soft:\s*38 181 94;/);
+  assert.match(globalsCss, /--stroke-strong:\s*38 181 94;/);
 });
 
 test("stored default theme clears the persisted harness state", () => {

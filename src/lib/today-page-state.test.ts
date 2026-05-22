@@ -44,6 +44,7 @@ test("resolveTodayDisplayDay falls back to the calendar day when no active sessi
     dayIndex: 2,
     routineDay: { id: "day-2", day_index: 2, name: "Push", is_rest: false },
     dayName: "Push",
+    hasScheduledDayToday: true,
     source: "calendar",
   });
 });
@@ -63,6 +64,7 @@ test("resolveTodayDisplayDay restores the manually selected session day instead 
     dayIndex: 4,
     routineDay: { id: "day-4", day_index: 4, name: "Legs", is_rest: false },
     dayName: "Legs",
+    hasScheduledDayToday: true,
     source: "session",
   });
 });
@@ -79,7 +81,29 @@ test("resolveTodayDisplayDay keeps the session snapshot label even if the routin
     dayIndex: 5,
     routineDay: null,
     dayName: "Travel Day",
+    hasScheduledDayToday: true,
     source: "session",
+  });
+});
+
+test("resolveTodayDisplayDay falls back to a template day when today is unscheduled", () => {
+  const result = resolveTodayDisplayDay({
+    calendarDayIndex: null,
+    todayRoutineDay: null,
+    fallbackRoutineDay: { id: "day-1", day_index: 1, name: "Push", is_rest: false },
+    routineDays: [
+      { id: "day-1", day_index: 1, name: "Push", is_rest: false },
+      { id: "day-2", day_index: 2, name: "Pull", is_rest: false },
+    ],
+    inProgressSession: null,
+  });
+
+  assert.deepEqual(result, {
+    dayIndex: 1,
+    routineDay: { id: "day-1", day_index: 1, name: "Push", is_rest: false },
+    dayName: "Push",
+    hasScheduledDayToday: false,
+    source: "template",
   });
 });
 
@@ -213,6 +237,27 @@ test("deriveTodayScreenMode keeps rest-day detail content visible when the picke
   assert.equal(mode.dayRowsVisible, false);
   assert.equal(mode.contentShellVisible, true);
   assert.equal(mode.cta.showPrimary, false);
+});
+
+test("deriveTodayScreenMode falls back to the first template day when no calendar day is scheduled", () => {
+  const mode = deriveTodayScreenMode({
+    days: [{
+      id: "day-4",
+      dayIndex: 4,
+      name: "Travel Reset",
+      isRest: false,
+      state: "runnable",
+      invalidExerciseCount: 0,
+      exercises: [{ id: "ex-1", name: "Carry" }],
+    }],
+    selectedDayIndex: null,
+    currentDayIndex: null,
+    dayPickerOpen: false,
+  });
+
+  assert.equal(mode.selectedDay?.dayIndex, 4);
+  assert.equal(mode.runnableSelection, true);
+  assert.equal(mode.cta.primaryLabel, "Start");
 });
 
 test("rest and invalid-empty summaries resolve from pure summary selectors", () => {

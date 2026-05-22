@@ -3,17 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { getExerciseIdsForSession } from "@/lib/exercise-stats";
+import { buildCustomExerciseInsertPayload } from "@/lib/custom-exercise-payload";
 import { validateExerciseEquipment, validateExerciseName, validateMovementPattern } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditPath, revalidateHistoryViews, revalidateRoutinesViews, revalidateSessionViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
-import { isFitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
 import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import type { ActionResult } from "@/lib/action-result";
-import type { FitnessDistanceUnit, SetRow } from "@/types/db";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { SetRow } from "@/types/db";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
@@ -163,8 +164,8 @@ export async function addSetAction(payload: {
     return { ok: false, error: "Distance must be 0 or greater" };
   }
 
-  if (distanceUnit !== null && !isFitnessDistanceUnit(distanceUnit)) {
-    return { ok: false, error: "Distance unit must be mi, km, m, or steps" };
+  if (distanceUnit !== null && distanceUnit !== "mi" && distanceUnit !== "km" && distanceUnit !== "m") {
+    return { ok: false, error: "Distance unit must be mi, km, or m" };
   }
 
   if (calories !== null && (!Number.isFinite(calories) || calories < 0)) {
@@ -288,7 +289,7 @@ export async function syncQueuedSetLogsAction(payload: {
       reps: number;
       durationSeconds: number | null;
       distance: number | null;
-      distanceUnit: FitnessDistanceUnit | null;
+  distanceUnit: FitnessDistanceUnit | null;
       calories: number | null;
       isWarmup: boolean;
       rpe: number | null;
@@ -558,16 +559,15 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
 
     const { data: createdExercise, error: customExerciseError } = await supabase
       .from("exercises")
-      .insert({
+      .insert(buildCustomExerciseInsertPayload({
+        userId: user.id,
         name,
-        user_id: user.id,
-        is_global: false,
-        primary_muscle: primaryMuscle,
+        primaryMuscle,
         equipment,
-        movement_pattern: movementPattern,
-        measurement_type: customMeasurementType,
-        default_unit: parsedPayload.payload.default_unit,
-      })
+        movementPattern,
+        measurementType: customMeasurementType,
+        defaultUnit: parsedPayload.payload.default_unit,
+      }))
       .select("id")
       .single();
 

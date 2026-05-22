@@ -13,7 +13,8 @@ import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
 import { DevSupabaseTargetBanner } from "@/components/dev/DevSupabaseTargetBanner";
-import { buildPreHydrationAppBootPrimerScript } from "@/lib/app-boot-primer";
+import { buildLocalDevBrowserResetScript, buildPreHydrationAppBootPrimerScript } from "@/lib/app-boot-primer";
+import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { APP_BOOT_PREFERENCES_COOKIE_KEY, readAppBootPreferencesCookieValue } from "@/lib/app-boot-preferences";
 import { getAppThemeCssVariables, getAppThemeSignature } from "@/lib/app-theme";
 import "./globals.css";
@@ -139,6 +140,9 @@ export default async function RootLayout({
       style={bootTheme ? getAppThemeCssVariables(bootTheme) as React.CSSProperties : undefined}
     >
       <head>
+        <Script id="local-dev-browser-reset" strategy="beforeInteractive">
+          {buildLocalDevBrowserResetScript(CURRENT_APP_BUILD_ID)}
+        </Script>
         <Script id="app-theme-primer" strategy="beforeInteractive">
           {buildPreHydrationAppBootPrimerScript()}
         </Script>

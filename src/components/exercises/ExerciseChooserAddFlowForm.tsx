@@ -5,16 +5,16 @@ import { useRouter } from "next/navigation";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
-import { ProgressionNumberField, ProgressionPlaybookEditor, type PromotionStepFieldId } from "@/components/routines/ProgressionPlaybookEditor";
+import { ProgressionNumberField, ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
-import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
-import { deriveGoalMeasurementSelections, type GoalModality } from "@/lib/exercise-goal-validation";
+import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
+import type { GoalModality } from "@/lib/exercise-goal-validation";
 import {
   buildProgressionPlaybookConfigFromFormState,
   createProgressionPlaybookFormState,
@@ -22,6 +22,13 @@ import {
   isTrainingGoalCustomized,
   type ProgressionPlaybookFormState,
 } from "@/lib/progression-playbook-form-state";
+import {
+  buildProgressionPromotionUiModel,
+  getVisiblePromotionStepFieldsForGoal,
+  getVisibleSetStepFieldsForGoal,
+  type PromotionStepFieldId,
+  type SetStepFieldId,
+} from "@/lib/progression-playbook-ui-options";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
 import {
   inferProgressionStepPolicy,
@@ -29,52 +36,16 @@ import {
 } from "@/lib/progression-step-policy";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 
-export type SetStepFieldId = "load" | "reps" | "duration" | "distance";
-
 export function hasTextValue(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-export function getVisibleSetStepFieldsForGoal({
-  goalState,
-  modality,
-  isCardioTarget,
-}: {
-  goalState: ExerciseGoalFormState;
-  modality: GoalModality;
-  isCardioTarget: boolean;
-}): SetStepFieldId[] {
-  const selectedMeasurements = new Set(goalState.measurements);
-  const hasRepsValue = !goalState.failure && (hasTextValue(goalState.repsMin) || hasTextValue(goalState.repsMax));
-  const hasWeightValue = hasTextValue(goalState.weight);
-  const hasDurationBase = selectedMeasurements.has("time")
-    || hasTextValue(goalState.duration)
-    || modality === "cardio_time"
-    || modality === "cardio_time_distance";
-  const hasDistanceBase = selectedMeasurements.has("distance")
-    || hasTextValue(goalState.distance)
-    || modality === "cardio_distance"
-    || modality === "cardio_time_distance";
-
-  if (isCardioTarget) {
-    return [
-      ...(hasDurationBase ? ["duration" as const] : []),
-      ...(hasDistanceBase ? ["distance" as const] : []),
-      ...(hasRepsValue ? ["reps" as const] : []),
-      ...(hasWeightValue ? ["load" as const] : []),
-    ];
-  }
-
-  return [
-    ...(hasWeightValue ? ["load" as const] : []),
-    ...(hasRepsValue ? ["reps" as const] : []),
-    ...(hasDurationBase && hasTextValue(goalState.duration) ? ["duration" as const] : []),
-    ...(hasDistanceBase && hasTextValue(goalState.distance) ? ["distance" as const] : []),
-  ];
-}
-
 export function formatStepNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function resolveExerciseDistanceUnit(defaultUnit: string | null | undefined) {
+  return normalizeFitnessDistanceUnit(defaultUnit, "mi");
 }
 
 export function getProgressionStepFieldLabel(policy: ReturnType<typeof inferProgressionStepPolicy>, weightUnit: "lbs" | "kg") {
@@ -113,69 +84,6 @@ export function applyProgressionStepSeed(
     ...state,
     progressionLoadIncrement: formatStepNumber(policy.defaultValue),
   };
-}
-
-export function getVisiblePromotionStepFieldsForAddExercise({
-  exercise,
-  goalState,
-  modality,
-  policy,
-}: {
-  exercise: EditorExerciseOption | null | undefined;
-  goalState: ExerciseGoalFormState;
-  modality: GoalModality;
-  policy: ProgressionStepPolicy;
-}): PromotionStepFieldId[] {
-  const selectedMetrics = new Set(deriveGoalMeasurementSelections(modality, {
-    repsMin: goalState.repsMin,
-    repsMax: goalState.repsMax,
-    failure: goalState.failure,
-    weight: goalState.weight,
-    duration: goalState.duration,
-    distance: goalState.distance,
-    calories: goalState.calories,
-  }));
-  const isCardioTarget = exercise?.measurement_type === "time"
-    || exercise?.measurement_type === "distance"
-    || exercise?.measurement_type === "time_distance"
-    || modality === "cardio_time"
-    || modality === "cardio_distance"
-    || modality === "cardio_time_distance";
-
-  if (isCardioTarget) {
-    const fields: PromotionStepFieldId[] = [];
-    if (selectedMetrics.has("time")) fields.push("duration");
-    if (selectedMetrics.has("distance")) fields.push("distance");
-    return fields;
-  }
-
-  if (policy.kind === "load" && selectedMetrics.has("weight")) {
-    switch (policy.equipmentFamily) {
-      case "barbell":
-        return ["barbellLoad"];
-      case "dumbbell":
-        return ["dumbbellLoad"];
-      case "machine":
-        return ["machineLoad"];
-      case "cable":
-        return ["cableLoad"];
-      default:
-        return ["genericLoad"];
-    }
-  }
-
-  if (selectedMetrics.has("reps")) {
-    return ["bodyweightReps"];
-  }
-
-  if (selectedMetrics.has("time") || selectedMetrics.has("distance")) {
-    const fields: PromotionStepFieldId[] = [];
-    if (selectedMetrics.has("time")) fields.push("duration");
-    if (selectedMetrics.has("distance")) fields.push("distance");
-    return fields;
-  }
-
-  return [];
 }
 
 export function ProgressionSettingsInputRow({
@@ -398,7 +306,7 @@ export function ProgressionSettingsInputRow({
   });
 
   return (
-    <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
+    <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
       <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1">
         {orderedFieldGroups.map((group, groupIndex) => (
           <div key={group.title} className="flex shrink-0 flex-nowrap items-stretch gap-2">
@@ -435,6 +343,7 @@ export function ExerciseChooserAddFlowForm({
   hiddenFields,
   exercises,
   initialSelectedId,
+  initialCustomExerciseDraft,
   weightUnit,
   defaultProgressionPlaybookId,
   defaultProgressionPlaybookConfig,
@@ -450,6 +359,12 @@ export function ExerciseChooserAddFlowForm({
   hiddenFields: Record<string, string>;
   exercises: EditorExerciseOption[];
   initialSelectedId?: string;
+  initialCustomExerciseDraft?: {
+    name?: string;
+    primaryMuscle?: string | null;
+    movementPattern?: string | null;
+    equipment?: string | null;
+  };
   weightUnit: "lbs" | "kg";
   defaultProgressionPlaybookId?: ProgressionPlaybookId | null;
   defaultProgressionPlaybookConfig?: Record<string, unknown> | null;
@@ -482,7 +397,7 @@ export function ExerciseChooserAddFlowForm({
     movementPattern: selectedExercise?.movement_pattern ?? null,
     defaultUnit: selectedExercise?.default_unit ?? null,
     weightUnit,
-    distanceUnit: normalizeFitnessDistanceUnit(selectedExercise?.default_unit, "mi"),
+    distanceUnit: resolveExerciseDistanceUnit(selectedExercise?.default_unit),
     routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
     stepOverrides: routineDefaultProgressionConfig?.stepOverrides ?? null,
   }), [
@@ -544,6 +459,7 @@ export function ExerciseChooserAddFlowForm({
           exercises={exercises}
           name="exerciseId"
           initialSelectedId={initialSelectedId ?? exercises[0]?.id}
+          initialCustomExerciseDraft={initialCustomExerciseDraft}
           selectionSearchParam="exerciseId"
           weightUnit={weightUnit}
           exerciseStats={exerciseStats}
@@ -591,7 +507,7 @@ export function ExerciseChooserAddFlowForm({
               movementPattern: activeExercise?.movement_pattern ?? selectedExercise?.movement_pattern ?? null,
               defaultUnit: activeExercise?.default_unit ?? selectedExercise?.default_unit ?? null,
               weightUnit,
-              distanceUnit: normalizeFitnessDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit, "mi"),
+              distanceUnit: resolveExerciseDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit),
               targetWeight: Number(goalState.weight),
               routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
               exerciseOverrideValue: Number(progressionDraft.progressionLoadIncrement),
@@ -600,23 +516,14 @@ export function ExerciseChooserAddFlowForm({
                 ?? null,
             });
             const activeProgressionStepLabel = getProgressionStepFieldLabel(activeProgressionStepPolicy, weightUnit);
-            const visiblePromotionStepFields = getVisiblePromotionStepFieldsForAddExercise({
-              exercise: activeExercise ?? selectedExercise,
-              goalState,
+            const visiblePromotionStepFields = getVisiblePromotionStepFieldsForGoal({
               modality: effectiveGoalModality,
+              values: goalState,
               policy: activeProgressionStepPolicy,
             });
-            const activeExerciseForSettings = activeExercise ?? selectedExercise;
-            const isCardioTarget = activeExerciseForSettings?.measurement_type === "time"
-              || activeExerciseForSettings?.measurement_type === "distance"
-              || activeExerciseForSettings?.measurement_type === "time_distance"
-              || effectiveGoalModality === "cardio_time"
-              || effectiveGoalModality === "cardio_distance"
-              || effectiveGoalModality === "cardio_time_distance";
             const visibleSetStepFields = getVisibleSetStepFieldsForGoal({
-              goalState,
               modality: effectiveGoalModality,
-              isCardioTarget,
+              values: goalState,
             });
 
             return (
@@ -640,7 +547,7 @@ export function ExerciseChooserAddFlowForm({
               movementPattern: activeExercise?.movement_pattern ?? selectedExercise?.movement_pattern ?? null,
               defaultUnit: activeExercise?.default_unit ?? selectedExercise?.default_unit ?? null,
               weightUnit,
-              distanceUnit: normalizeFitnessDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit, "mi"),
+              distanceUnit: resolveExerciseDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit),
               targetWeight: Number(goalState.weight),
               routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
               exerciseOverrideValue: Number(progressionDraft.progressionLoadIncrement),
@@ -649,12 +556,23 @@ export function ExerciseChooserAddFlowForm({
                 ?? null,
             });
             const activeProgressionStepLabel = getProgressionStepFieldLabel(activeProgressionStepPolicy, weightUnit);
-            const visiblePromotionStepFields = getVisiblePromotionStepFieldsForAddExercise({
-              exercise: activeExercise ?? selectedExercise,
-              goalState,
+            const visiblePromotionStepFields = getVisiblePromotionStepFieldsForGoal({
               modality: effectiveGoalModality,
+              values: goalState,
               policy: activeProgressionStepPolicy,
             });
+            const promotionUiModel = buildProgressionPromotionUiModel({
+              context: "exercise",
+              promotionBasis: progressionDraft.progressionPromotionBasis,
+              modality: effectiveGoalModality,
+              values: goalState,
+            });
+            const repRangeMin = hasTextValue(goalState.repsMin)
+              ? Number(goalState.repsMin)
+              : null;
+            const repRangeMax = hasTextValue(goalState.repsMax)
+              ? Number(goalState.repsMax)
+              : repRangeMin;
 
             return (
               <ProgressionPlaybookEditor
@@ -664,6 +582,7 @@ export function ExerciseChooserAddFlowForm({
                   setProgressionDraft(nextValue);
                 }}
                 weightUnit={weightUnit}
+              distanceUnit={resolveExerciseDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit)}
                 title="Progression Settings"
                 context="exercise"
                 routineDefaultValue={seededExerciseProgression}
@@ -678,7 +597,10 @@ export function ExerciseChooserAddFlowForm({
                 progressionStepLabel={activeProgressionStepLabel}
                 progressionStepPolicy={activeProgressionStepPolicy}
                 visiblePromotionStepFields={visiblePromotionStepFields}
+                promotionUiModel={promotionUiModel}
                 showProgressionSettingsRow={false}
+                repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
+                repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
                 trainingFocusValue={selectedTrainingFocus}
                 trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, progressionDraft)}
                 onTrainingFocusChange={(goal) => {

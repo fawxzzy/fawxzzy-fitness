@@ -145,14 +145,18 @@ export function formatProgressionReviewDisplayItem(args: {
   dayName?: string | null;
   dayGroupId?: string | null;
   candidate: ProgressionReviewCandidate;
+  currentTargetOverride?: ProgressionTargetPlan | null;
+  proposedTargetOverride?: ProgressionTargetPlan | null;
   debug?: Omit<NonNullable<ProgressionReviewDisplayItem["debug"]>, "candidateType" | "reason">;
 }): ProgressionReviewDisplayItem | null {
   if (args.candidate.type === "none") {
     return null;
   }
 
-  const currentTarget = formatProgressionReviewTargetLabel(args.candidate.currentTarget);
-  const proposedTarget = formatProgressionReviewTargetLabel(args.candidate.proposedTarget);
+  const displayCurrentTarget = args.currentTargetOverride ?? args.candidate.currentTarget;
+  const displayProposedTarget = args.proposedTargetOverride ?? args.candidate.proposedTarget;
+  const currentTarget = formatProgressionReviewTargetLabel(displayCurrentTarget);
+  const proposedTarget = formatProgressionReviewTargetLabel(displayProposedTarget);
   const hasTargetChange = Boolean(currentTarget && proposedTarget && currentTarget !== proposedTarget);
   const targetSummary = hasTargetChange
     ? `${currentTarget} -> ${proposedTarget}`
@@ -177,8 +181,8 @@ export function formatProgressionReviewDisplayItem(args: {
     },
     reason: args.candidate.reason,
     actionLabel: getActionLabel(args.candidate.type),
-    currentTarget: args.candidate.currentTarget,
-    proposedTarget: args.candidate.proposedTarget,
+    currentTarget: displayCurrentTarget,
+    proposedTarget: displayProposedTarget,
     sourceSession: args.candidate.sourceSession ?? null,
     debug: args.debug ? {
       ...args.debug,

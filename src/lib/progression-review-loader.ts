@@ -10,6 +10,7 @@ import {
   type ProgressionHistorySetRow,
   type ProgressionTargetPlan,
 } from "@/lib/progression-playbooks";
+import { applyEffortScheduleToProgressionTargetPlan, applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
 import {
   getProgressionEvaluationFingerprint,
@@ -19,12 +20,19 @@ import {
 import { formatProgressionReviewDisplayItem, type ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import { deriveProgressionProgressPercent } from "@/lib/progression-progress-percent";
 import {
+  buildProgressionStatusSurfaceItem,
   formatProgressionCalculationEvidence,
   formatProgressionStatusDisplayItem,
   type ProgressionStatusDisplayItem,
+  type ProgressionStatusSurfaceItem,
 } from "@/lib/progression-status-display";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { supabaseServer } from "@/lib/supabase/server";
-import type { FitnessDistanceUnit, RoutineDayExerciseRow } from "@/types/db";
+import type { RoutineDayExerciseRow } from "@/types/db";
+
+type ProgressionHistorySetRowWithRoutineDayIndex = ProgressionHistorySetRow & {
+  routineDayIndex?: number | null;
+};
 
 export function buildProgressionReviewTargetPlan(exercise: RoutineDayExerciseRow): ProgressionTargetPlan {
   return {
@@ -80,7 +88,7 @@ export async function loadProgressionHistoryForExercise(args: {
 }) {
   const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
     .from("session_exercises")
-    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status, routine_id)")
+    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(id, performed_at, status, routine_id, routine_day_index)")
     .eq("user_id", args.userId)
     .eq("exercise_id", args.exerciseId)
     .eq("session.status", "completed")
@@ -90,11 +98,11 @@ export async function loadProgressionHistoryForExercise(args: {
     throw sessionExercisesError;
   }
 
-  const sessionExerciseMetaById = new Map<string, { performedAt: string; routineDayExerciseId: string | null }>();
+  const sessionExerciseMetaById = new Map<string, { performedAt: string; routineDayExerciseId: string | null; sessionRecordId: string | null; routineDayIndex: number | null }>();
   for (const row of (sessionExercisesData ?? []) as Array<{
     id: string;
     routine_day_exercise_id?: string | null;
-    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
+    session?: { id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null; routine_day_index?: number | null } | Array<{ id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null; routine_day_index?: number | null }> | null;
   }>) {
     const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
     if (!row.id || !sessionRow?.performed_at || sessionRow.status !== "completed" || sessionRow.routine_id !== args.routineId) {
@@ -104,6 +112,8 @@ export async function loadProgressionHistoryForExercise(args: {
     sessionExerciseMetaById.set(row.id, {
       performedAt: sessionRow.performed_at,
       routineDayExerciseId: row.routine_day_exercise_id ?? null,
+      sessionRecordId: sessionRow.id ?? null,
+      routineDayIndex: typeof sessionRow.routine_day_index === "number" ? sessionRow.routine_day_index : null,
     });
   }
 
@@ -133,7 +143,7 @@ export async function loadProgressionHistoryForExercise(args: {
     calories: number | null;
     is_warmup: boolean;
   }>)
-    .map((row): ProgressionHistorySetRow | null => {
+    .map((row): ProgressionHistorySetRowWithRoutineDayIndex | null => {
       const meta = sessionExerciseMetaById.get(row.session_exercise_id);
       if (!meta) {
         return null;
@@ -141,7 +151,9 @@ export async function loadProgressionHistoryForExercise(args: {
 
       return {
         sessionId: row.session_exercise_id,
+        sessionRecordId: meta.sessionRecordId,
         performedAt: meta.performedAt,
+        routineDayIndex: meta.routineDayIndex,
         setIndex: row.set_index,
         weight: row.weight ?? null,
         reps: row.reps ?? null,
@@ -153,7 +165,7 @@ export async function loadProgressionHistoryForExercise(args: {
         isWarmup: row.is_warmup,
       };
     })
-    .filter((row): row is ProgressionHistorySetRow => row !== null);
+    .filter((row): row is ProgressionHistorySetRowWithRoutineDayIndex => row !== null);
 
   if (!args.routineDayExerciseId) {
     return rows;
@@ -210,6 +222,7 @@ export async function canUseCatalogHistoryFallbackForRoutineExercise(args: {
 export type ProgressionUpdatesDisplayData = {
   readyItems: ProgressionReviewDisplayItem[];
   statusItems: ProgressionStatusDisplayItem[];
+  statusSurfaceItems: ProgressionStatusSurfaceItem[];
   statusReport: ProgressionUpdatesStatusReport;
 };
 
@@ -461,6 +474,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
   exercises: RoutineDayExerciseRow[];
   exerciseNameByRoutineExerciseId: Map<string, string>;
   routineDayNameById: Map<string, string>;
+  routineDayIndexById?: Map<string, number>;
 }) {
   const progressionExercises = args.exercises.filter((exercise) => isUserFacingProgressionUpdatesExercise({
     ...exercise,
@@ -468,7 +482,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
   }));
   if (progressionExercises.length === 0) {
     const statusReport = buildProgressionUpdatesStatusReport({ readyItems: [], statusItems: [] });
-    return { readyItems: [], statusItems: [], statusReport } satisfies ProgressionUpdatesDisplayData;
+    return { readyItems: [], statusItems: [], statusSurfaceItems: [], statusReport } satisfies ProgressionUpdatesDisplayData;
   }
 
   const progressionExerciseIds = Array.from(new Set(
@@ -485,7 +499,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
 
   if (progressionExerciseIds.length === 0) {
     const statusReport = buildProgressionUpdatesStatusReport({ readyItems: [], statusItems: [] });
-    return { readyItems: [], statusItems: [], statusReport } satisfies ProgressionUpdatesDisplayData;
+    return { readyItems: [], statusItems: [], statusSurfaceItems: [], statusReport } satisfies ProgressionUpdatesDisplayData;
   }
 
   const { data: exerciseMetadataData } = await args.supabase
@@ -502,7 +516,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
 
   const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
     .from("session_exercises")
-    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status, routine_id)")
+    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(id, performed_at, status, routine_id, routine_day_index)")
     .eq("user_id", args.userId)
     .in("exercise_id", progressionExerciseIds)
     .eq("session.status", "completed");
@@ -511,12 +525,12 @@ export async function loadProgressionUpdatesDisplayData(args: {
     throw sessionExercisesError;
   }
 
-  const sessionExerciseMetaById = new Map<string, { exerciseId: string; routineDayExerciseId: string | null; performedAt: string; routineId: string | null }>();
+  const sessionExerciseMetaById = new Map<string, { exerciseId: string; routineDayExerciseId: string | null; performedAt: string; routineId: string | null; sessionRecordId: string | null; routineDayIndex: number | null }>();
   for (const row of (sessionExercisesData ?? []) as Array<{
     id: string;
     exercise_id: string;
     routine_day_exercise_id?: string | null;
-    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
+    session?: { id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null; routine_day_index?: number | null } | Array<{ id?: string | null; performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null; routine_day_index?: number | null }> | null;
   }>) {
     const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
     if (!row.id || !row.exercise_id || !sessionRow?.performed_at || sessionRow.status !== "completed") {
@@ -528,6 +542,8 @@ export async function loadProgressionUpdatesDisplayData(args: {
       routineDayExerciseId: row.routine_day_exercise_id ?? null,
       performedAt: sessionRow.performed_at,
       routineId: sessionRow.routine_id ?? null,
+      sessionRecordId: sessionRow.id ?? null,
+      routineDayIndex: typeof sessionRow.routine_day_index === "number" ? sessionRow.routine_day_index : null,
     });
   }
 
@@ -567,7 +583,9 @@ export async function loadProgressionUpdatesDisplayData(args: {
 
     const historyRow = {
       sessionId: row.session_exercise_id,
+      sessionRecordId: meta.sessionRecordId,
       performedAt: meta.performedAt,
+      routineDayIndex: meta.routineDayIndex,
       setIndex: row.set_index,
       weight: row.weight ?? null,
       reps: row.reps ?? null,
@@ -600,6 +618,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
 
   const readyItemEntries: ProgressionReadyUpdateCollapseEntry[] = [];
   const statusItems: ProgressionStatusDisplayItem[] = [];
+  const statusSurfaceItems: ProgressionStatusSurfaceItem[] = [];
   const targetFingerprintByRoutineExerciseId = new Map<string, string>();
   const routineExerciseIdsByFingerprint = new Map<string, string[]>();
   const routineDayIdByRoutineExerciseId = new Map<string, string>();
@@ -614,7 +633,13 @@ export async function loadProgressionUpdatesDisplayData(args: {
   }
 
   for (const exercise of progressionExercises) {
+    const routineDayIndex = args.routineDayIndexById?.get(exercise.routine_day_id) ?? null;
+    const effectiveExercise = applyEffortScheduleToRoutineDayExercise({
+      exercise,
+      routineDayIndex,
+    });
     const plan = buildProgressionReviewTargetPlan(exercise);
+    const effectivePlan = buildProgressionReviewTargetPlan(effectiveExercise);
     const directHistoryRows = historyRowsByRoutineDayExerciseId.get(exercise.id) ?? [];
     const allFallbackHistoryRows = fallbackHistoryRowsByExerciseId.get(exercise.exercise_id) ?? [];
     const canUseFallback = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1;
@@ -664,7 +689,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
           movementPattern: exerciseMetadata?.movementPattern ?? null,
           defaultUnit: exercise.default_unit,
           weightUnit: plan.weightUnit ?? args.fallbackWeightUnit,
-          distanceUnit: plan.distanceUnit ?? null,
+          distanceUnit: plan.distanceUnit === "km" ? "km" : "mi",
           targetWeight: plan.weightMax ?? plan.weightMin ?? null,
           exerciseOverrideValue: selection.config.loadIncrement,
           stepOverrides: selection.config.stepOverrides ?? null,
@@ -679,6 +704,14 @@ export async function loadProgressionUpdatesDisplayData(args: {
       fallbackWeightUnit: args.fallbackWeightUnit,
       progressionStepPolicy,
     });
+    const proposedDisplayTarget = applyEffortScheduleToProgressionTargetPlan({
+      playbookId: exercise.progression_playbook_id,
+      config: exercise.progression_playbook_config,
+      routineDayIndex,
+      plan: candidate.proposedTarget,
+    });
+    const displayTargetFingerprint = getProgressionTargetPlanKey(effectivePlan);
+    const displayProposedTargetFingerprint = getProgressionTargetPlanKey(proposedDisplayTarget);
     const exerciseName = args.exerciseNameByRoutineExerciseId.get(exercise.id) ?? "Exercise";
     const dayName = args.routineDayNameById.get(exercise.routine_day_id) ?? null;
     const readyItemBase = formatProgressionReviewDisplayItem({
@@ -687,6 +720,8 @@ export async function loadProgressionUpdatesDisplayData(args: {
       dayName,
       dayGroupId: exercise.routine_day_id,
       candidate,
+      currentTargetOverride: effectivePlan,
+      proposedTargetOverride: proposedDisplayTarget,
       debug: {
         historySource: auditHistorySource,
         historySetCount: candidateHistoryRows.length,
@@ -703,16 +738,43 @@ export async function loadProgressionUpdatesDisplayData(args: {
         historyRows: candidate.sourceSession
           ? candidateHistoryRows.filter((row) => row.sessionId === candidate.sourceSession?.sessionId)
           : candidateHistoryRows,
-        plan,
+        plan: effectivePlan,
       }),
       progress: deriveProgressionProgressPercent({
-        plan,
+        plan: effectivePlan,
         historyRows: candidate.sourceSession
           ? candidateHistoryRows.filter((row) => row.sessionId === candidate.sourceSession?.sessionId)
           : candidateHistoryRows,
         isReady: true,
       }),
     } : null;
+
+    const rejectionReason = readyItem
+      ? null
+      : inferProgressionAuditRejectionReason({
+          candidate,
+          hasConfiguredPlaybook: Boolean(exercise.progression_playbook_id),
+          hasValidSelection: selection !== null,
+          historySource: auditHistorySource,
+          completedSetCount: contextHistoryRows.length,
+          completedSessionCount: history.length,
+          measurementType: effectivePlan.measurementType,
+        });
+    statusSurfaceItems.push(buildProgressionStatusSurfaceItem({
+      id: exercise.id,
+      exerciseName,
+      dayName,
+      dayGroupId: exercise.routine_day_id,
+      candidate,
+      rejectionReason,
+      historySource: auditHistorySource,
+      linkedMatchCount: linkedRoutineExerciseIds.length + 1,
+      historyRows: readyItem && candidate.sourceSession
+        ? candidateHistoryRows.filter((row) => row.sessionId === candidate.sourceSession?.sessionId)
+        : contextHistoryRows,
+      plan: effectivePlan,
+      selection,
+    }));
 
     if (readyItem) {
       const linkedRoutineDayExerciseIds = [exercise.id, ...linkedRoutineExerciseIds];
@@ -726,22 +788,12 @@ export async function loadProgressionUpdatesDisplayData(args: {
       readyItemEntries.push({
         item: readyItem,
         exerciseId: exercise.exercise_id ?? null,
-        targetFingerprint,
-        proposedTargetFingerprint: getProgressionTargetPlanKey(candidate.proposedTarget),
+        targetFingerprint: displayTargetFingerprint,
+        proposedTargetFingerprint: displayProposedTargetFingerprint,
         linkedTargets,
       });
       continue;
     }
-
-    const rejectionReason = inferProgressionAuditRejectionReason({
-      candidate,
-      hasConfiguredPlaybook: Boolean(exercise.progression_playbook_id),
-      hasValidSelection: selection !== null,
-      historySource: auditHistorySource,
-      completedSetCount: contextHistoryRows.length,
-      completedSessionCount: history.length,
-      measurementType: plan.measurementType,
-    });
     const evaluationFingerprint = getProgressionEvaluationFingerprint({
       routineDayExerciseId: exercise.id,
       targetFingerprint,
@@ -762,7 +814,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
       historySource: auditHistorySource,
       linkedMatchCount: linkedRoutineExerciseIds.length + 1,
       historyRows: contextHistoryRows,
-      plan,
+      plan: effectivePlan,
     });
 
     if (statusItem) {
@@ -777,7 +829,7 @@ export async function loadProgressionUpdatesDisplayData(args: {
   );
   const visibleStatusItems = statusItems.filter((item) => !linkedReadyRoutineDayExerciseIds.has(item.id));
   const statusReport = buildProgressionUpdatesStatusReport({ readyItems, statusItems: visibleStatusItems });
-  return { readyItems, statusItems: visibleStatusItems, statusReport } satisfies ProgressionUpdatesDisplayData;
+  return { readyItems, statusItems: visibleStatusItems, statusSurfaceItems, statusReport } satisfies ProgressionUpdatesDisplayData;
 }
 
 export async function loadProgressionReviewItems(args: Parameters<typeof loadProgressionUpdatesDisplayData>[0]) {

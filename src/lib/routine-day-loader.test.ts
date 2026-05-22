@@ -106,12 +106,15 @@ test("loadCanonicalExerciseCatalog does not hard-require exercises.image_path", 
 async function buildSingleExerciseSummary(args: {
   exercise: ExerciseRow;
   missingColumns?: string[];
+  dayIndex?: number;
+  progression?: Pick<RoutineDayExerciseRow, "progression_playbook_id" | "progression_playbook_config">;
+  targetOverrides?: Partial<Pick<RoutineDayExerciseRow, "target_reps" | "target_reps_min" | "target_reps_max" | "target_weight" | "target_weight_unit" | "target_duration_seconds" | "target_distance" | "target_distance_unit" | "target_calories">>;
 }) {
   const routineDay: RoutineDayRow = {
     id: `day-${args.exercise.id}`,
     user_id: "user-1",
     routine_id: "routine-1",
-    day_index: 1,
+    day_index: args.dayIndex ?? 1,
     name: "Day 1",
     is_rest: false,
     notes: null,
@@ -135,6 +138,9 @@ async function buildSingleExerciseSummary(args: {
     target_calories: null,
     measurement_type: "reps" as const,
     default_unit: null,
+    progression_playbook_id: args.progression?.progression_playbook_id ?? null,
+    progression_playbook_config: args.progression?.progression_playbook_config ?? null,
+    ...args.targetOverrides,
   };
   const { buildCanonicalDaySummaries } = await import("./routine-day-loader");
   const { summaries } = await buildCanonicalDaySummaries({
@@ -149,6 +155,36 @@ async function buildSingleExerciseSummary(args: {
 
   return summary.runnableExercises[0];
 }
+
+test("buildCanonicalDaySummaries formats Today goal lines from effort-adjusted day targets", async () => {
+  const runnableExercise = await buildSingleExerciseSummary({
+    dayIndex: 2,
+    exercise: {
+      id: "f4444444-4444-4444-8444-444444444444",
+      name: "Bench Press",
+    },
+    progression: {
+      progression_playbook_id: "double_progression",
+      progression_playbook_config: {
+        version: 1,
+        loadIncrement: 5,
+        dayProgressionMode: "unsynced",
+        dayProgressionSteps: {
+          loadStep: 5,
+          repStep: 1,
+        },
+        effortWaveDirections: ["up", "up", "straight", "straight", "straight", "straight", "straight"],
+      },
+    },
+    targetOverrides: {
+      target_weight: 100,
+      target_weight_unit: "lbs",
+    },
+  });
+
+  assert.equal(runnableExercise.target_weight, 105);
+  assert.equal(runnableExercise.goalLine, "3 sets | 105 lbs");
+});
 
 function assertNullableImageValue(value: string | null | undefined) {
   assert.ok(value === null || typeof value === "string");

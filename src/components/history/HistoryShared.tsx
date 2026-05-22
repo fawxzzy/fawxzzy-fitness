@@ -183,12 +183,23 @@ export function HistoryTitleControlShell({
   );
 }
 
-export function HistoryTabs({ value, sessionsHref, exercisesHref }: { value: "sessions" | "exercises"; sessionsHref: string; exercisesHref: string }) {
+export function HistoryTabs({
+  value,
+  sessionsHref,
+  exercisesHref,
+  progressionHref,
+}: {
+  value: "sessions" | "exercises" | "progression";
+  sessionsHref: string;
+  exercisesHref: string;
+  progressionHref: string;
+}) {
   return (
     <SegmentedControl
       options={[
         { label: "Sessions", value: "sessions", href: sessionsHref },
         { label: "Exercises", value: "exercises", href: exercisesHref },
+        { label: "Progression", value: "progression", href: progressionHref },
       ]}
       value={value}
       size="sm"

@@ -4,6 +4,7 @@ import { getExerciseNameMap } from "@/lib/exercises";
 import { getRunnableDayState, normalizeRunnableDayExercises, type RunnableDayInvalidReason, type RunnableDayState } from "@/lib/runnable-day";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
+import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import type { ExerciseRow, RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -317,15 +318,19 @@ export async function buildCanonicalDaySummaries(args: {
       }),
       invalidExercises,
       runnableExercises: runnableExercises.map((exercise) => {
+        const effectiveExercise = applyEffortScheduleToRoutineDayExercise({
+          exercise,
+          routineDayIndex: day.day_index,
+        });
         const details = exerciseDetailsById.get(exercise.exercise_id) ?? null;
         return {
-          ...exercise,
+          ...effectiveExercise,
           displayName: normalizeExerciseDisplayName({
             exerciseId: exercise.exercise_id,
             name: details?.name,
             fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null,
           }),
-          goalLine: formatExerciseGoal(exercise),
+          goalLine: formatExerciseGoal(effectiveExercise),
           details: details
             ? {
                 id: details.id,

@@ -2,15 +2,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   areProgressionPlaybookFormStatesEqual,
+  appendProgressionPlaybookFormData,
   buildProgressionPlaybookConfigFromFormState,
+  buildProgressionPlaybookFormSnapshot,
   createProgressionPlaybookFormState,
   createProgressionPlaybookFormStateForTrainingGoal,
   isTrainingGoalCustomized,
+  type ProgressionPlaybookFormState,
 } from "@/lib/progression-playbook-form-state";
 import {
   getDefaultProgressionLayerModel,
   listTrainingGoalDefinitions,
 } from "@/lib/progression-playbooks";
+import {
+  cycleSetFlowDirection,
+  normalizeSetFlowDirectionForStepValue,
+  shouldShowEffortShiftLabel,
+} from "@/lib/set-flow-directions";
 
 const defaultStepOverrides = {
   barbellLoadIncrement: 10,
@@ -25,6 +33,11 @@ const defaultStepOverrides = {
 const defaultSetFlowSteps = {
   loadStep: 5,
   repStep: 2,
+};
+
+const defaultDayProgressionSteps = {
+  loadStep: 10,
+  repStep: 5,
   durationSecondsStep: 30,
   distanceStep: 0.5,
 };
@@ -72,11 +85,15 @@ test("legacy deload playbook id maps to double progression plus deload policy", 
     loadIncrement: 5,
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "deload_after_stall",
     stallThreshold: 2,
     deloadPercent: 10,
     autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
   });
 });
 
@@ -139,9 +156,13 @@ test("advanced step options persist in progression config", () => {
       durationSecondsStep: 45,
       distanceStep: 0.2,
     },
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
   });
 });
 
@@ -172,6 +193,302 @@ test("advanced step options restore from saved config", () => {
   assert.equal(state.progressionSetFlowRepStep, "2");
   assert.equal(state.progressionSetFlowDurationStep, "45");
   assert.equal(state.progressionSetFlowDistanceStep, "0.2");
+  assert.equal(state.progressionSetCount, "3");
+});
+
+test("set count restores from saved config", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      setsMin: 4,
+      setsMax: 4,
+    },
+  });
+
+  assert.equal(state.progressionSetCount, "4");
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    setsMin: 4,
+    setsMax: 4,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    setFlowCountMap: {
+      time: 4,
+      distance: 4,
+      reps: 4,
+      weight: 4,
+    },
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("promotion directions restore and round-trip through progression config serialization", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionDirectionMap: {
+        time: "straight",
+        distance: "down",
+        reps: "up",
+        weight: "down",
+      },
+    },
+  });
+
+  assert.equal(state.progressionPromotionDirectionMap.time, "straight");
+  assert.equal(state.progressionPromotionDirectionMap.distance, "down");
+  assert.equal(state.progressionPromotionDirectionMap.weight, "down");
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionDirectionMap: {
+      time: "straight",
+      distance: "down",
+      reps: "up",
+      weight: "down",
+    },
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("grouped promotion directions restore and round-trip through progression config serialization", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionGroupedDirectionMap: {
+        "time+distance": "down",
+        "weight+reps": "up",
+      },
+    },
+  });
+
+  assert.equal(state.progressionPromotionGroupedDirectionMap["time+distance"], "down");
+  assert.equal(state.progressionPromotionGroupedDirectionMap["weight+reps"], "up");
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    promotionGroupedDirectionMap: {
+      "time+distance": "down",
+      "weight+reps": "up",
+    },
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("day settings and effort schedule restore from saved config", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      dayProgressionMode: "synced",
+      dayProgressionSteps: {
+        loadStep: 7.5,
+        repStep: 3,
+        durationSecondsStep: 120,
+        distanceStep: 0.4,
+      },
+      effortWaveDirections: ["up", "straight", "down", "straight", "up", "down", "straight"],
+    },
+  });
+
+  assert.equal(state.progressionDayMode, "synced");
+  assert.equal(state.progressionDayLoadStep, "7.5");
+  assert.equal(state.progressionDayRepStep, "3");
+  assert.equal(state.progressionDayDurationStep, "120");
+  assert.equal(state.progressionDayDistanceStep, "0.4");
+  assert.deepEqual(state.progressionEffortWaveDirections, ["up", "straight", "down", "straight", "up", "down", "straight"]);
+});
+
+test("day and set progression settings round-trip through progression config serialization", () => {
+  const effortWaveDirections: ProgressionPlaybookFormState["progressionEffortWaveDirections"] = ["up", "straight", "down", "straight", "up", "straight", "down"];
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionSetFlowLoadStep: "6",
+    progressionSetFlowRepStep: "3",
+    progressionSetFlowDurationStep: "75",
+    progressionSetFlowDistanceStep: "0.3",
+    progressionDayMode: "synced" as const,
+    progressionDayLoadStep: "7.5",
+    progressionDayRepStep: "4",
+    progressionDayDurationStep: "90",
+    progressionDayDistanceStep: "0.4",
+    progressionEffortWaveDirections: effortWaveDirections,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: {
+      loadStep: 6,
+      repStep: 3,
+      durationSecondsStep: 75,
+      distanceStep: 0.3,
+    },
+    dayProgressionMode: "synced",
+    dayProgressionSteps: {
+      loadStep: 7.5,
+      repStep: 4,
+      durationSecondsStep: 90,
+      distanceStep: 0.4,
+    },
+    effortWaveDirections,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("progression form snapshot tracks restored day and set persistence fields", () => {
+  const changedEffortWaveDirections: ProgressionPlaybookFormState["progressionEffortWaveDirections"] = ["up", "straight", "down", "straight", "straight", "straight", "straight"];
+  const base = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+  });
+  const withDayChange = {
+    ...base,
+    progressionDayMode: "synced" as const,
+    progressionDayRepStep: "4",
+  };
+  const withSetChange = {
+    ...base,
+    progressionSetFlowDurationStep: "75",
+  };
+  const withEffortWaveChange = {
+    ...base,
+    progressionEffortWaveDirections: changedEffortWaveDirections,
+  };
+  const withGroupedDirectionChange = {
+    ...base,
+    progressionPromotionGroupedDirectionMap: {
+      "weight+reps": "down" as const,
+    },
+  };
+
+  assert.notEqual(buildProgressionPlaybookFormSnapshot(base), buildProgressionPlaybookFormSnapshot(withDayChange));
+  assert.notEqual(buildProgressionPlaybookFormSnapshot(base), buildProgressionPlaybookFormSnapshot(withSetChange));
+  assert.notEqual(buildProgressionPlaybookFormSnapshot(base), buildProgressionPlaybookFormSnapshot(withEffortWaveChange));
+  assert.notEqual(buildProgressionPlaybookFormSnapshot(base), buildProgressionPlaybookFormSnapshot(withGroupedDirectionChange));
+});
+
+test("set direction flips between ascending and descending once a step value exists", () => {
+  assert.equal(cycleSetFlowDirection({ current: "up", hasStepValue: true }), "down");
+  assert.equal(cycleSetFlowDirection({ current: "down", hasStepValue: true }), "up");
+  assert.equal(cycleSetFlowDirection({ current: "straight", hasStepValue: true }), "up");
+});
+
+test("set direction can cycle through straight only while the step value is empty", () => {
+  assert.equal(cycleSetFlowDirection({ current: "straight", hasStepValue: false }), "up");
+  assert.equal(cycleSetFlowDirection({ current: "up", hasStepValue: false }), "down");
+  assert.equal(cycleSetFlowDirection({ current: "down", hasStepValue: false }), "straight");
+});
+
+test("entering a set step value normalizes straight directions to ascending without touching non-straight values", () => {
+  assert.equal(normalizeSetFlowDirectionForStepValue({ current: "straight", nextValue: "5" }), "up");
+  assert.equal(normalizeSetFlowDirectionForStepValue({ current: "straight", nextValue: "" }), "straight");
+  assert.equal(normalizeSetFlowDirectionForStepValue({ current: "down", nextValue: "5" }), "down");
+  assert.equal(normalizeSetFlowDirectionForStepValue({ current: "down", nextValue: "" }), "straight");
+});
+
+test("straight effort days hide no-op shift labels in the example", () => {
+  assert.equal(shouldShowEffortShiftLabel("straight"), false);
+  assert.equal(shouldShowEffortShiftLabel("up"), true);
+  assert.equal(shouldShowEffortShiftLabel("down"), true);
+});
+
+test("form data export writes day mode effort schedule and set progression fields", () => {
+  const effortWaveDirections: ProgressionPlaybookFormState["progressionEffortWaveDirections"] = ["up", "straight", "down", "straight", "up", "straight", "down"];
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionSetFlowLoadStep: "6",
+    progressionSetFlowRepStep: "3",
+    progressionSetFlowDurationStep: "75",
+    progressionSetFlowDistanceStep: "0.3",
+    progressionDayMode: "synced" as const,
+    progressionDayLoadStep: "7.5",
+    progressionDayRepStep: "4",
+    progressionDayDurationStep: "90",
+    progressionDayDistanceStep: "0.4",
+    progressionEffortWaveDirections: effortWaveDirections,
+    progressionTargetMutation: "increase_load_and_reps" as const,
+    progressionHasExplicitTargetMutation: true,
+    progressionRequiredQualifiedSessions: "2",
+    progressionQualificationWindowMode: "consecutive" as const,
+    progressionQualificationWindowResetOnMiss: true,
+    progressionHasExplicitQualificationWindow: true,
+    progressionPromotionGroupedDirectionMap: {
+      "time+distance": "down" as const,
+      "weight+reps": "up" as const,
+    },
+  };
+  const formData = new FormData();
+
+  appendProgressionPlaybookFormData(formData, state);
+
+  assert.equal(formData.get("progressionSetFlowLoadStep"), "6");
+  assert.equal(formData.get("progressionSetFlowRepStep"), "3");
+  assert.equal(formData.get("progressionSetFlowDurationStep"), "75");
+  assert.equal(formData.get("progressionSetFlowDistanceStep"), "0.3");
+  assert.equal(formData.get("progressionDayMode"), "synced");
+  assert.equal(formData.get("progressionDayLoadStep"), "7.5");
+  assert.equal(formData.get("progressionDayRepStep"), "4");
+  assert.equal(formData.get("progressionDayDurationStep"), "90");
+  assert.equal(formData.get("progressionDayDistanceStep"), "0.4");
+  assert.equal(
+    formData.get("progressionEffortWaveDirectionsJson"),
+    JSON.stringify(effortWaveDirections),
+  );
+  assert.equal(formData.get("progressionTargetMutation"), "increase_load_and_reps");
+  assert.equal(formData.get("progressionHasExplicitTargetMutation"), "1");
+  assert.equal(formData.get("progressionRequiredQualifiedSessions"), "2");
+  assert.equal(formData.get("progressionQualificationWindowMode"), "consecutive");
+  assert.equal(formData.get("progressionQualificationWindowResetOnMiss"), "1");
+  assert.equal(formData.get("progressionHasExplicitQualificationWindow"), "1");
+  assert.equal(
+    formData.get("progressionPromotionGroupedDirectionMapJson"),
+    JSON.stringify({
+      "time+distance": "down",
+      "weight+reps": "up",
+    }),
+  );
 });
 
 test("apply routine default can copy normalized default form values", () => {
@@ -194,11 +511,276 @@ test("apply routine default can copy normalized default form values", () => {
     loadIncrement: 5,
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "deload_after_stall",
     stallThreshold: 3,
     deloadPercent: 12.5,
     autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("legacy progression configs restore canonical promotion defaults", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+  });
+
+  assert.equal(state.progressionPromotionBasis, "weight_and_reps");
+  assert.equal(state.progressionRepPromotionThreshold, "top_of_range");
+  assert.equal(state.progressionCustomRepPromotionTarget, "");
+  assert.equal(state.progressionTargetMutation, "increase_load_reset_reps");
+  assert.equal(state.progressionHasExplicitTargetMutation, false);
+  assert.equal(state.progressionRequiredQualifiedSessions, "1");
+  assert.equal(state.progressionQualificationWindowMode, "latest");
+  assert.equal(state.progressionQualificationWindowResetOnMiss, false);
+  assert.equal(state.progressionHasExplicitQualificationWindow, false);
+});
+
+test("promotion controls round-trip through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "fixed_load_rep_range_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionPromotionBasis: "reps_only" as const,
+    progressionRepPromotionThreshold: "custom" as const,
+    progressionCustomRepPromotionTarget: "11",
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "reps_only",
+    repPromotionThreshold: "custom",
+    customRepPromotionTarget: 11,
+  });
+});
+
+test("routine promotion measurement family order restores and round-trips through progression config serialization", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionMeasurementOrderMap: {
+        strength: ["time", "weight", "reps", "distance"],
+        bodyweight: ["distance", "reps", "time", "weight"],
+        cardio: ["distance", "time", "reps", "weight"],
+      },
+    },
+  });
+
+  assert.deepEqual(state.progressionStrengthPromotionMeasurements, ["time", "weight", "reps", "distance"]);
+  assert.deepEqual(state.progressionBodyweightPromotionMeasurements, ["distance", "reps", "time", "weight"]);
+  assert.deepEqual(state.progressionCardioPromotionMeasurements, ["distance", "time", "reps", "weight"]);
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    promotionMeasurementOrderMap: {
+      strength: ["time", "weight", "reps", "distance"],
+      bodyweight: ["distance", "reps", "time", "weight"],
+      cardio: ["distance", "time", "reps", "weight"],
+    },
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("target changes and required successful sessions round-trip through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionTargetMutation: "increase_load_and_reps" as const,
+    progressionHasExplicitTargetMutation: true,
+    progressionRequiredQualifiedSessions: "3",
+    progressionQualificationWindowMode: "consecutive" as const,
+    progressionQualificationWindowResetOnMiss: true,
+    progressionHasExplicitQualificationWindow: true,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    targetMutation: "increase_load_and_reps",
+    qualificationWindow: {
+      requiredQualifiedSessions: 3,
+      mode: "consecutive",
+      resetOnMiss: true,
+    },
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("promotion session count memory round-trips through progression config serialization", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionPromotionSessionCountMap: {
+      time: "3",
+      distance: "2",
+      reps: "4",
+      weight: "1",
+    },
+    progressionPromotionGroupedSessionCountMap: {
+      "time+distance": "2",
+      "reps+weight": "3",
+    },
+    progressionRequiredQualifiedSessions: "3",
+    progressionHasExplicitQualificationWindow: true,
+  };
+
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: defaultSetFlowSteps,
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    promotionSessionCountMap: {
+      time: 3,
+      distance: 2,
+      reps: 4,
+      weight: 1,
+    },
+    promotionGroupedSessionCountMap: {
+      "time+distance": 2,
+      "reps+weight": 3,
+    },
+    qualificationWindow: {
+      requiredQualifiedSessions: 3,
+      mode: "latest",
+      resetOnMiss: false,
+    },
+    repPromotionThreshold: "top_of_range",
+  });
+});
+
+test("explicit target mutation and qualification window restore from saved config", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      targetMutation: "increase_load_and_reps",
+      qualificationWindow: {
+        requiredQualifiedSessions: 2,
+        mode: "consecutive",
+        resetOnMiss: true,
+      },
+    },
+  });
+
+  assert.equal(state.progressionTargetMutation, "increase_load_and_reps");
+  assert.equal(state.progressionHasExplicitTargetMutation, true);
+  assert.equal(state.progressionRequiredQualifiedSessions, "2");
+  assert.equal(state.progressionQualificationWindowMode, "consecutive");
+  assert.equal(state.progressionQualificationWindowResetOnMiss, true);
+  assert.equal(state.progressionHasExplicitQualificationWindow, true);
+});
+
+test("set flow grouping restores blank time and distance defaults and round-trips grouped fields", () => {
+  const state = createProgressionPlaybookFormState({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      setFlowSteps: {
+        loadStep: 5,
+        repStep: 2,
+      },
+      setFlowMeasurementSequence: [
+        ["time", "distance"],
+        ["reps", "weight"],
+      ],
+      setFlowCountMap: {
+        time: 2,
+        distance: 2,
+        reps: 3,
+        weight: 3,
+      },
+      setFlowGroupedCountMap: {
+        "time+distance": 2,
+        "reps+weight": 3,
+      },
+      setFlowGroupedDirectionMap: {
+        "reps+weight": "down",
+      },
+    },
+  });
+
+  assert.equal(state.progressionSetFlowDurationStep, "");
+  assert.equal(state.progressionSetFlowDistanceStep, "");
+  assert.deepEqual(state.progressionSetFlowMeasurements, ["time", "distance", "reps", "weight"]);
+  assert.deepEqual(state.progressionSetFlowLinks, ["and", "then", "and"]);
+  assert.equal(state.progressionSetFlowGroupedCountMap["time+distance"], "2");
+  assert.equal(state.progressionSetFlowGroupedDirectionMap["reps+weight"], "down");
+  assert.deepEqual(buildProgressionPlaybookConfigFromFormState(state), {
+    version: 1,
+    loadIncrement: 5,
+    stepOverrides: defaultStepOverrides,
+    setFlowSteps: {
+      loadStep: 5,
+      repStep: 2,
+    },
+    dayProgressionMode: "unsynced",
+    dayProgressionSteps: defaultDayProgressionSteps,
+    setFlow: "straight_sets",
+    setFlowMeasurementSequence: [
+      ["time", "distance"],
+      ["reps", "weight"],
+    ],
+    setFlowCountMap: {
+      time: 2,
+      distance: 2,
+      reps: 3,
+      weight: 3,
+    },
+    setFlowGroupedCountMap: {
+      "time+distance": 2,
+      "reps+weight": 3,
+    },
+    setFlowGroupedDirectionMap: {
+      "reps+weight": "down",
+    },
+    stallPolicy: "none",
+    autoUpdateRoutineGoals: false,
+    promotionBasis: "weight_and_reps",
+    repPromotionThreshold: "top_of_range",
   });
 });
 

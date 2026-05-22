@@ -1,3 +1,5 @@
+import { resolveRoutineSchedule, type RoutineScheduleResolution } from "./routine-schedule-resolution";
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const ROUTINE_START_WEEKDAYS = [
@@ -11,6 +13,27 @@ export const ROUTINE_START_WEEKDAYS = [
 ] as const;
 
 export type RoutineStartWeekday = (typeof ROUTINE_START_WEEKDAYS)[number];
+
+function getRoutineScheduleAnchorWeekdayIndex(weekday: RoutineStartWeekday | null | undefined) {
+  switch (weekday) {
+  case "sunday":
+    return 0;
+  case "monday":
+    return 1;
+  case "tuesday":
+    return 2;
+  case "wednesday":
+    return 3;
+  case "thursday":
+    return 4;
+  case "friday":
+    return 5;
+  case "saturday":
+    return 6;
+  default:
+    return null;
+  }
+}
 
 function getDatePartsInTimeZone(date: Date, timeZone: string) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -34,6 +57,33 @@ export function getTodayDateInTimeZone(timeZone: string) {
   const day = String(parts.day).padStart(2, "0");
 
   return `${parts.year}-${month}-${day}`;
+}
+
+export function resolveRoutineScheduleForToday(params: {
+  cycleLengthDays: number;
+  scheduleMode?: "weekday_anchored" | "rolling_n_day" | null;
+  startDate: string;
+  startWeekday?: RoutineStartWeekday | null;
+  profileTimeZone: string;
+}): {
+  todayDate: string;
+  resolution: RoutineScheduleResolution;
+  dayIndex: number | null;
+} {
+  const todayDate = getTodayDateInTimeZone(params.profileTimeZone);
+  const resolution = resolveRoutineSchedule({
+    scheduleMode: params.scheduleMode,
+    cycleLengthDays: params.cycleLengthDays,
+    anchorWeekday: getRoutineScheduleAnchorWeekdayIndex(params.startWeekday),
+    anchorDate: params.startDate,
+    today: todayDate,
+  });
+
+  return {
+    todayDate,
+    resolution,
+    dayIndex: resolution.status === "scheduled" ? resolution.cycleDayNumber : null,
+  };
 }
 
 function getTimeZoneOffsetMs(date: Date, timeZone: string) {

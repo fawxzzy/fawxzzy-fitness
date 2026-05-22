@@ -30,11 +30,12 @@ import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { createStableSetId } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 import type { ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import type { PromotionStepFieldId } from "@/lib/session-progression-display";
-import type { FitnessDistanceUnit, SetRow } from "@/types/db";
+import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
   sessionId: string;
@@ -81,9 +82,6 @@ type SessionExercisePrefill = {
   weight?: number;
   reps?: number;
   durationSeconds?: number;
-  distance?: number;
-  distanceUnit?: FitnessDistanceUnit;
-  calories?: number;
   weightUnit?: "lbs" | "kg";
 };
 
@@ -107,13 +105,6 @@ function toPrefillFromQuickLogTarget(
   }
   if (target.durationSeconds !== undefined) {
     prefill.durationSeconds = target.durationSeconds;
-  }
-  if (target.distance !== undefined) {
-    prefill.distance = target.distance;
-    prefill.distanceUnit = target.distanceUnit ?? "mi";
-  }
-  if (target.calories !== undefined) {
-    prefill.calories = target.calories;
   }
 
   return Object.keys(prefill).length > 0 ? prefill : undefined;
@@ -546,7 +537,7 @@ export function SessionExerciseFocus({
             bestTarget: toQuickLogTargetFromSuggestedValues(resolvedTargetHint.recentBestSuggestedValues),
           });
           const setLoggerPrefill = toPrefillFromQuickLogTarget(
-            resolvedQuickLogTarget?.target ?? primaryQuickLogTarget,
+            primaryQuickLogTarget,
             unitLabel === "lbs" ? "lbs" : "kg",
           ) ?? exercise.prefill;
           const progressState = deriveSessionExerciseProgressState({

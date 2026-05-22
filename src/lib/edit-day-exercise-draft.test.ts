@@ -44,7 +44,27 @@ test("edit-day preview uses the live draft for the disclosure header summary and
   });
 
   assert.deepEqual(preview, {
-    summary: "4 sets \u2022 8\u201310 reps \u2022 70 lbs",
+    summary: "4 sets | 8\u201310 reps \u2022 70 lbs",
     orderNumber: 4,
   });
+});
+
+test("edit-day draft restores promotion control defaults from legacy progression config", () => {
+  const draft = createEditDayExerciseDraft({
+    defaults: {
+      progressionPlaybookId: "double_progression",
+      progressionPlaybookConfig: {
+        version: 1,
+        loadIncrement: 5,
+      },
+    },
+    distanceUnit: "mi",
+    weightUnit: "lbs",
+    orderNumber: 1,
+    modality: "strength",
+  });
+
+  assert.equal(draft.progressionPromotionBasis, "weight_and_reps");
+  assert.equal(draft.progressionRepPromotionThreshold, "top_of_range");
+  assert.equal(draft.progressionCustomRepPromotionTarget, "");
 });

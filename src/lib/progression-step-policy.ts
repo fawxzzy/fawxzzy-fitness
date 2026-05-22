@@ -1,3 +1,5 @@
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+
 import type {
   ProgressionMeasurementType,
   ProgressionMethodLayerId,
@@ -5,7 +7,6 @@ import type {
   TrainingGoalId,
 } from "@/lib/progression-playbooks";
 import { DEFAULT_PROGRESSION_STEP_OVERRIDES } from "@/lib/progression-step-defaults";
-import type { FitnessDistanceUnit } from "@/types/db";
 
 export type ProgressionStepKind =
   | "load"
@@ -161,7 +162,7 @@ export function inferProgressionStepPolicy(args: {
 }): ProgressionStepPolicy {
   const measurementType = args.measurementType ?? "reps";
   const weightUnit = args.weightUnit ?? "lbs";
-  const distanceUnit = args.distanceUnit ?? (args.defaultUnit === "km" ? "km" : args.defaultUnit === "steps" ? "steps" : "mi");
+  const distanceUnit = args.distanceUnit ?? (args.defaultUnit === "km" ? "km" : "mi");
   const equipmentFamily = inferProgressionStepEquipmentFamily({
     equipment: args.equipment,
     movementPattern: args.movementPattern,

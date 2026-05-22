@@ -9,7 +9,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
-import type { FitnessDistanceUnit, SetRow } from "@/types/db";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { SetRow } from "@/types/db";
 
 type ActionResult = {
   ok: boolean;

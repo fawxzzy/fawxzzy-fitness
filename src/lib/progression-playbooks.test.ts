@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  appendProgressionPlaybookFormData,
+  createProgressionPlaybookFormState,
+  type ProgressionPlaybookFormState,
+} from "@/lib/progression-playbook-form-state";
+import {
   buildProgressionHistorySessions,
   deriveProgressionReviewCandidate,
   deriveProgressionPlaybookTarget,
@@ -10,6 +15,7 @@ import {
   listProgressionMethodDefinitions,
   listSetFlowDefinitions,
   normalizeProgressionMethodLayerId,
+  parseProgressionPlaybookPayload,
   PROGRESSION_INFO_TERM_DEFINITIONS,
   validateProgressionPlaybookSelection,
   type ProgressionHistorySetRow,
@@ -205,6 +211,111 @@ test("progression review bumps load after the rep phase reaches the range top", 
   assert.equal(candidate.proposedTarget?.repsMin, 4);
   assert.equal(candidate.proposedTarget?.repsMax, 6);
   assert.match(candidate.reason, /increase load/i);
+});
+
+test("progression payload parsing preserves recovered day and set persistence fields", () => {
+  const effortWaveDirections: ProgressionPlaybookFormState["progressionEffortWaveDirections"] = ["up", "straight", "down", "straight", "up", "straight", "down"];
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+    }),
+    progressionSetFlowLoadStep: "6",
+    progressionSetFlowRepStep: "3",
+    progressionSetFlowDurationStep: "75",
+    progressionSetFlowDistanceStep: "0.3",
+    progressionSetFlowMeasurements: ["time", "distance", "reps", "weight"] as ProgressionPlaybookFormState["progressionSetFlowMeasurements"],
+    progressionSetFlowLinks: ["and", "then", "and"] as ProgressionPlaybookFormState["progressionSetFlowLinks"],
+    progressionSetFlowCountMap: {
+      time: "2",
+      distance: "2",
+      reps: "3",
+      weight: "3",
+    },
+    progressionSetFlowGroupedCountMap: {
+      "time+distance": "2",
+      "reps+weight": "3",
+    },
+    progressionSetFlowGroupedDirectionMap: {
+      "reps+weight": "down" as const,
+    },
+    progressionDayMode: "synced" as const,
+    progressionDayLoadStep: "7.5",
+    progressionDayRepStep: "4",
+    progressionDayDurationStep: "90",
+    progressionDayDistanceStep: "0.4",
+    progressionEffortWaveDirections: effortWaveDirections,
+    progressionTargetMutation: "increase_load_and_reps" as const,
+    progressionHasExplicitTargetMutation: true,
+    progressionRequiredQualifiedSessions: "2",
+    progressionQualificationWindowMode: "consecutive" as const,
+    progressionQualificationWindowResetOnMiss: true,
+    progressionHasExplicitQualificationWindow: true,
+    progressionPromotionGroupedDirectionMap: {
+      "time+distance": "down" as const,
+      "weight+reps": "up" as const,
+    },
+  };
+  const formData = new FormData();
+
+  appendProgressionPlaybookFormData(formData, state);
+
+  const parsed = parseProgressionPlaybookPayload(formData);
+
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) {
+    return;
+  }
+
+  assert.equal(parsed.playbookId, "double_progression");
+  assert.ok(parsed.config);
+  assert.equal(parsed.config.version, 1);
+  assert.equal(parsed.config.loadIncrement, 5);
+  assert.deepEqual(parsed.config.setFlowSteps, {
+    loadStep: 6,
+    repStep: 3,
+    durationSecondsStep: 75,
+    distanceStep: 0.3,
+  });
+  assert.deepEqual(parsed.config.setFlowMeasurementSequence, [
+    ["time", "distance"],
+    ["reps", "weight"],
+  ]);
+  assert.deepEqual(parsed.config.setFlowCountMap, {
+    time: 2,
+    distance: 2,
+    reps: 3,
+    weight: 3,
+  });
+  assert.deepEqual(parsed.config.setFlowGroupedCountMap, {
+    "time+distance": 2,
+    "reps+weight": 3,
+  });
+  assert.deepEqual(parsed.config.setFlowGroupedDirectionMap, {
+    "reps+weight": "down",
+  });
+  assert.equal(parsed.config.dayProgressionMode, "synced");
+  assert.deepEqual(parsed.config.dayProgressionSteps, {
+    loadStep: 7.5,
+    repStep: 4,
+    durationSecondsStep: 90,
+    distanceStep: 0.4,
+  });
+  assert.deepEqual(parsed.config.effortWaveDirections, effortWaveDirections);
+  assert.ok("stallPolicy" in parsed.config);
+  assert.equal(parsed.config.stallPolicy, "none");
+  assert.equal(parsed.config.promotionBasis, "weight_and_reps");
+  assert.equal(parsed.config.targetMutation, "increase_load_and_reps");
+  assert.deepEqual(parsed.config.promotionGroupedDirectionMap, {
+    "time+distance": "down",
+    "weight+reps": "up",
+  });
+  assert.deepEqual(parsed.config.qualificationWindow, {
+    requiredQualifiedSessions: 2,
+    mode: "consecutive",
+    resetOnMiss: true,
+  });
+  assert.equal(parsed.config.repPromotionThreshold, "top_of_range");
 });
 
 
@@ -618,6 +729,34 @@ test("progression review promotes time targets by duration step", () => {
   assert.match(candidate.reason, /increase duration/i);
 });
 
+test("time-only promotion ignores calories unless explicitly selected", () => {
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+    plan: {
+      measurementType: "time",
+      durationSeconds: 1200,
+      calories: 250,
+    },
+    history: [],
+    historyRows: buildCardioHistoryRows({ durationSeconds: 1200 }),
+    fallbackWeightUnit: "lbs",
+    progressionStepPolicy: {
+      kind: "duration",
+      equipmentFamily: "cardio",
+      label: "Duration step",
+      defaultValue: 60,
+      unit: "seconds",
+      description: "Time-based progression defaults to adding 60 seconds.",
+      source: "equipment_default",
+    },
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.currentTarget?.durationSeconds, 1200);
+  assert.equal(candidate.proposedTarget?.durationSeconds, 1260);
+});
+
 test("progression review promotes distance targets by distance step", () => {
   const candidate = deriveProgressionReviewCandidate({
     playbookId: "double_progression",
@@ -647,7 +786,7 @@ test("progression review promotes distance targets by distance step", () => {
   assert.match(candidate.reason, /increase distance/i);
 });
 
-test("progression review promotes time distance targets by holding time and increasing distance", () => {
+test("progression review promotes time distance targets by increasing duration and distance", () => {
   const candidate = deriveProgressionReviewCandidate({
     playbookId: "double_progression",
     config: { version: 1, loadIncrement: 5 },
@@ -672,9 +811,28 @@ test("progression review promotes time distance targets by holding time and incr
   });
 
   assert.equal(candidate.type, "promote");
-  assert.equal(candidate.proposedTarget?.durationSeconds, 1200);
+  assert.equal(candidate.proposedTarget?.durationSeconds, 1260);
   assert.equal(candidate.proposedTarget?.distance, 2.1);
-  assert.match(candidate.reason, /hold time and increase distance/i);
+  assert.match(candidate.reason, /increase duration and distance/i);
+});
+
+test("time-distance promotion does not fake readiness when distance evidence is missing", () => {
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+    plan: {
+      measurementType: "time_distance",
+      durationSeconds: 1200,
+      distance: 2,
+      distanceUnit: "mi",
+    },
+    history: [],
+    historyRows: buildCardioHistoryRows({ durationSeconds: 1200, distance: 1.5, distanceUnit: "mi" }),
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+  assert.match(candidate.reason, /no completed target history/i);
 });
 
 test("progression review creates Manual Review cardio review candidate without auto-promotion", () => {
@@ -1014,6 +1172,525 @@ test("invalid stored config is rejected", () => {
   });
 
   assert.equal(selection, null);
+});
+
+test("legacy double progression config resolves default promotion controls", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5 },
+  });
+
+  assert.ok(selection);
+  assert.equal(selection?.id, "double_progression");
+  if (selection.id === "double_progression") {
+    assert.equal(selection.config.promotionBasis, "weight_and_reps");
+    assert.equal(selection.config.repPromotionThreshold, "top_of_range");
+    assert.equal(selection.config.targetMutation, undefined);
+  }
+});
+
+test("double progression can explicitly increase load and reps together", () => {
+  const history = buildProgressionHistorySessions({
+    rows: buildHistoryRows({
+      sessionId: "session-1",
+      performedAt: "2026-05-04T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 135,
+    }),
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const target = deriveProgressionPlaybookTarget({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      targetMutation: "increase_load_and_reps",
+    },
+    plan: {
+      measurementType: "reps",
+      setsMin: 3,
+      setsMax: 3,
+      repsTarget: 12,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 135,
+      weightMax: 135,
+      weightUnit: "lbs",
+    },
+    history,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.ok(target);
+  assert.equal(target.playbookId, "double_progression");
+  assert.equal(target.plan.weightMin, 140);
+  assert.equal(target.plan.repsTarget, 13);
+  assert.equal(target.plan.repsMin, 9);
+  assert.equal(target.plan.repsMax, 13);
+  assert.match(target.reason, /increase load and reps/i);
+});
+
+test("progression review carries explicit target mutation through promote candidates", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+    weight: 135,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      targetMutation: "increase_load_and_reps",
+    },
+    plan: {
+      measurementType: "reps",
+      setsMin: 3,
+      setsMax: 3,
+      repsTarget: 12,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: 135,
+      weightMax: 135,
+      weightUnit: "lbs",
+    },
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 140);
+  assert.equal(candidate.proposedTarget?.repsTarget, 13);
+  assert.equal(candidate.proposedTarget?.repsMin, 9);
+  assert.equal(candidate.proposedTarget?.repsMax, 13);
+  assert.match(candidate.reason, /increase load and reps/i);
+});
+
+test("invalid custom promotion target falls back to top-of-range in normalized config", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      promotionBasis: "reps_only",
+      repPromotionThreshold: "custom",
+      customRepPromotionTarget: 0,
+    },
+  });
+
+  assert.ok(selection);
+  if (selection.id === "double_progression") {
+    assert.equal(selection.config.promotionBasis, "reps_only");
+    assert.equal(selection.config.repPromotionThreshold, "top_of_range");
+    assert.equal("customRepPromotionTarget" in selection.config, false);
+  }
+});
+
+test("progression review qualifies top-half rep threshold at the configured range midpoint", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [10, 10, 10],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 10,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "top_half_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 10 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 105);
+  assert.match(candidate.reason, /promotion threshold reached/i);
+});
+
+test("progression review does not qualify below the top-half rep threshold", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [9, 9, 9],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 9,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "top_half_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 10 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+});
+
+test("progression review uses a valid custom rep threshold for readiness", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [11, 11, 11],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 11,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "custom", customRepPromotionTarget: 11 },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 11 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+});
+
+test("progression review falls back safely when custom rep threshold is invalid", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [11, 11, 11],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 11,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, repPromotionThreshold: "custom", customRepPromotionTarget: 0 },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+});
+
+test("weight-only promotion ignores rep threshold when load proof is complete", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [6, 6, 6],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 6,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, promotionBasis: "weight_only", repPromotionThreshold: "top_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 8, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 105);
+});
+
+test("reps-only promotion ignores load gating and can qualify below target load", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+    weight: 80,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, promotionBasis: "reps_only", repPromotionThreshold: "top_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 100);
+  assert.equal(candidate.proposedTarget?.repsMin, 9);
+  assert.equal(candidate.proposedTarget?.repsMax, 13);
+});
+
+test("reps-only bodyweight progression does not require load to create a candidate", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+  }).map((row) => ({ ...row, weight: null, weightUnit: null }));
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: { version: 1, loadIncrement: 5, promotionBasis: "reps_only", repPromotionThreshold: "top_of_range" },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: null, weightMax: null, weightUnit: null }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.currentTarget?.weightMin ?? null, null);
+  assert.equal(candidate.proposedTarget?.weightMin ?? null, null);
+  assert.equal(candidate.proposedTarget?.repsMin, 9);
+});
+
+test("qualification window defaults are preserved in validated config when provided", () => {
+  const selection = validateProgressionPlaybookSelection({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: {
+        requiredQualifiedSessions: 2,
+        mode: "consecutive",
+        resetOnMiss: true,
+      },
+    },
+  });
+
+  assert.ok(selection);
+  assert.deepEqual(selection.config.qualificationWindow, {
+    requiredQualifiedSessions: 2,
+    mode: "consecutive",
+    resetOnMiss: true,
+  });
+});
+
+test("qualification window with required sessions blocks readiness until two independent sessions qualify", () => {
+  const rows = [
+    ...buildHistoryRows({
+      sessionId: "session-2",
+      performedAt: "2026-05-05T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+  ];
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: { requiredQualifiedSessions: 2, mode: "latest" },
+    },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+  assert.equal(candidate.qualificationWindowLine, "1 of 2 qualifying sessions complete");
+});
+
+test("qualification window with two independent qualifying sessions allows promotion", () => {
+  const rows = [
+    ...buildHistoryRows({
+      sessionId: "session-2",
+      performedAt: "2026-05-05T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+    ...buildHistoryRows({
+      sessionId: "session-1",
+      performedAt: "2026-05-04T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+  ];
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: { requiredQualifiedSessions: 2, mode: "latest" },
+    },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 105);
+});
+
+test("qualification window consecutive streak reset blocks older qualifying sessions when resetOnMiss is true", () => {
+  const rows = [
+    ...buildHistoryRows({
+      sessionId: "session-3",
+      performedAt: "2026-05-06T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+    ...buildHistoryRows({
+      sessionId: "session-2",
+      performedAt: "2026-05-05T10:00:00.000Z",
+      reps: [10, 9, 8],
+      weight: 100,
+    }),
+    ...buildHistoryRows({
+      sessionId: "session-1",
+      performedAt: "2026-05-04T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+  ];
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: { requiredQualifiedSessions: 2, mode: "consecutive", resetOnMiss: true },
+    },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+  assert.equal(candidate.qualificationWindowLine, "1 of 2 qualifying sessions complete · streak reset after miss");
+});
+
+test("qualification window within_cycle degrades safely when cycle dates are unavailable", () => {
+  const rows = buildHistoryRows({
+    sessionId: "session-1",
+    performedAt: "2026-05-04T10:00:00.000Z",
+    reps: [12, 12, 12],
+    weight: 100,
+  });
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: { requiredQualifiedSessions: 2, mode: "within_cycle" },
+    },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(candidate.type, "none");
+  assert.equal(candidate.qualificationWindowLine, "Qualification window needs cycle dates");
+});
+
+test("qualification window within_cycle counts only sessions inside the supplied cycle window", () => {
+  const rows = [
+    ...buildHistoryRows({
+      sessionId: "session-3",
+      performedAt: "2026-05-14T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+    ...buildHistoryRows({
+      sessionId: "session-2",
+      performedAt: "2026-05-11T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+    ...buildHistoryRows({
+      sessionId: "session-1",
+      performedAt: "2026-05-08T10:00:00.000Z",
+      reps: [12, 12, 12],
+      weight: 100,
+    }),
+  ];
+  const history = buildProgressionHistorySessions({
+    rows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      qualificationWindow: { requiredQualifiedSessions: 2, mode: "within_cycle" },
+    },
+    plan: buildPlan({ repsMin: 8, repsMax: 12, repsTarget: 12, weightMin: 100, weightMax: 100 }),
+    history,
+    historyRows: rows,
+    fallbackWeightUnit: "lbs",
+    cycleWindow: {
+      startDate: "2026-05-10",
+      endDate: "2026-05-14T23:59:59.999Z",
+    },
+  });
+
+  assert.equal(candidate.type, "promote");
+  assert.equal(candidate.proposedTarget?.weightMin, 105);
 });
 
 test("unit preservation keeps kg targets intact", () => {

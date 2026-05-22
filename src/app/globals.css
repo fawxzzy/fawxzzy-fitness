@@ -12,8 +12,8 @@
   --surface-2-rgb: 10 11 15;
   --surface-3-rgb: 40 40 44;
 
-  --stroke-soft: 32 151 78;
-  --stroke-strong: 32 151 78;
+  --stroke-soft: 38 181 94;
+  --stroke-strong: 38 181 94;
   --text-primary: 244 248 252;
   --text-secondary: 205 217 232;
   --text-muted: 144 164 188;
@@ -1335,6 +1335,40 @@ html[data-route-loading="true"] .app-edge-frame {
   }
 }
 
+html[data-mobile-regression="true"] .ambient-background,
+body[data-mobile-regression="true"] .ambient-background {
+  --ambient-parallax-multiplier: 0;
+  --ambient-motion-boost: 1;
+}
+
+body:has([data-mobile-regression-root="true"]) .ambient-background {
+  --ambient-parallax-multiplier: 0;
+  --ambient-motion-boost: 1;
+}
+
+html[data-mobile-regression="true"] .ambient-background__orb,
+html[data-mobile-regression="true"] .ambient-background__geometry-motion,
+html[data-mobile-regression="true"] .ambient-background__geometry-spin,
+body[data-mobile-regression="true"] .ambient-background__orb,
+body[data-mobile-regression="true"] .ambient-background__geometry-motion,
+body[data-mobile-regression="true"] .ambient-background__geometry-spin {
+  animation: none;
+  transform: none;
+}
+
+body:has([data-mobile-regression-root="true"]) .ambient-background__orb,
+body:has([data-mobile-regression-root="true"]) .ambient-background__geometry-motion,
+body:has([data-mobile-regression-root="true"]) .ambient-background__geometry-spin {
+  animation: none;
+  transform: none;
+}
+
+html[data-mobile-regression="true"] [data-dev-supabase-target-banner="true"],
+body[data-mobile-regression="true"] [data-dev-supabase-target-banner="true"],
+body:has([data-mobile-regression-root="true"]) [data-dev-supabase-target-banner="true"] {
+  display: none;
+}
+
 html {
   height: 100%;
   min-height: 100dvh;
@@ -1922,6 +1956,22 @@ a:focus-visible {
     border-radius: inherit;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
     opacity: 1;
+  }
+
+  .auth-card-plain {
+    border-color: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .auth-card-plain::before,
+  .auth-card-plain::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    box-shadow: none !important;
   }
 
   .glass-solid {

@@ -16,11 +16,11 @@ import { type ExerciseGoalFormState } from "@/components/ui/measurements/Exercis
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { ProgressionNumberField, ProgressionPlaybookEditor, type PromotionStepFieldId } from "@/components/routines/ProgressionPlaybookEditor";
+import { ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { deriveGoalMeasurementSelections, resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import {
   createEditDayExerciseDraft,
@@ -41,6 +41,11 @@ import {
   type ProgressionPlaybookFormState,
 } from "@/lib/progression-playbook-form-state";
 import {
+  buildProgressionPromotionUiModel,
+  getVisiblePromotionStepFieldsForGoal,
+  type PromotionStepFieldId,
+} from "@/lib/progression-playbook-ui-options";
+import {
   inferProgressionStepPolicy,
   type ProgressionStepPolicy,
 } from "@/lib/progression-step-policy";
@@ -51,50 +56,9 @@ import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
 import { publishEditDayCloseExpandedCard, publishScreenFocusMode, publishScreenMode, subscribeEditDayCloseExpandedCard } from "@/lib/screen-focus-mode";
 import type { TrainingGoalId } from "@/lib/progression-playbooks";
-import type { FitnessDistanceUnit } from "@/types/db";
-
-type SetStepFieldId = "load" | "reps" | "duration" | "distance";
 
 function hasTextValue(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function getVisibleSetStepFieldsForGoal({
-  goalState,
-  modality,
-  isCardioTarget,
-}: {
-  goalState: ExerciseGoalFormState;
-  modality: GoalModality;
-  isCardioTarget: boolean;
-}): SetStepFieldId[] {
-  const selectedMeasurements = new Set(goalState.measurements);
-  const hasRepsValue = !goalState.failure && (hasTextValue(goalState.repsMin) || hasTextValue(goalState.repsMax));
-  const hasWeightValue = hasTextValue(goalState.weight);
-  const hasDurationBase = selectedMeasurements.has("time")
-    || hasTextValue(goalState.duration)
-    || modality === "cardio_time"
-    || modality === "cardio_time_distance";
-  const hasDistanceBase = selectedMeasurements.has("distance")
-    || hasTextValue(goalState.distance)
-    || modality === "cardio_distance"
-    || modality === "cardio_time_distance";
-
-  if (isCardioTarget) {
-    return [
-      ...(hasDurationBase ? ["duration" as const] : []),
-      ...(hasDistanceBase ? ["distance" as const] : []),
-      ...(hasRepsValue ? ["reps" as const] : []),
-      ...(hasWeightValue ? ["load" as const] : []),
-    ];
-  }
-
-  return [
-    ...(hasWeightValue ? ["load" as const] : []),
-    ...(hasRepsValue ? ["reps" as const] : []),
-    ...(hasDurationBase && hasTextValue(goalState.duration) ? ["duration" as const] : []),
-    ...(hasDistanceBase && hasTextValue(goalState.distance) ? ["distance" as const] : []),
-  ];
 }
 
 type EditableRoutineDayExerciseItem = {
@@ -136,6 +100,7 @@ type EditableRoutineDayExerciseItem = {
 type Props = {
   routineId: string;
   routineDayId: string;
+  cycleLengthDays: number;
   weightUnit: "lbs" | "kg";
   exercises: EditableRoutineDayExerciseItem[];
   updateAction: (formData: FormData) => Promise<ActionResult>;
@@ -243,12 +208,16 @@ function ProgressionPlaybookInputs({
   draft,
   onDraftChange,
   weightUnit,
+  cycleLengthDays,
   title,
   routineDefaultValue,
   onApplyRoutineDefault,
   progressionStepLabel,
   progressionStepPolicy,
   visiblePromotionStepFields,
+  promotionUiModel,
+  repRangeMin,
+  repRangeMax,
   trainingFocusValue,
   trainingFocusCustomized,
   onTrainingFocusChange,
@@ -256,12 +225,16 @@ function ProgressionPlaybookInputs({
   draft: EditDayExerciseDraft;
   onDraftChange: (nextDraft: EditDayExerciseDraft) => void;
   weightUnit: "lbs" | "kg";
+  cycleLengthDays: number;
   title?: string;
   routineDefaultValue: ProgressionPlaybookFormState;
   onApplyRoutineDefault: () => void;
   progressionStepLabel?: string | null;
   progressionStepPolicy?: ProgressionStepPolicy | null;
   visiblePromotionStepFields?: PromotionStepFieldId[] | null;
+  promotionUiModel?: import("@/lib/progression-playbook-ui-options").ProgressionPromotionUiModel | null;
+  repRangeMin?: number | null;
+  repRangeMax?: number | null;
   trainingFocusValue: TrainingGoalId | "";
   trainingFocusCustomized: boolean;
   onTrainingFocusChange: (goal: TrainingGoalId) => void;
@@ -278,10 +251,14 @@ function ProgressionPlaybookInputs({
       showDefaultState
       collapsible
       defaultExpanded={false}
+      separateInfoBox
+      cycleLengthDays={cycleLengthDays}
       progressionStepLabel={progressionStepLabel}
       progressionStepPolicy={progressionStepPolicy}
       visiblePromotionStepFields={visiblePromotionStepFields}
-      showProgressionSettingsRow={false}
+      promotionUiModel={promotionUiModel}
+      repRangeMin={repRangeMin}
+      repRangeMax={repRangeMax}
       trainingFocusValue={trainingFocusValue}
       trainingFocusCustomized={trainingFocusCustomized}
       onTrainingFocusChange={onTrainingFocusChange}
@@ -331,328 +308,6 @@ function applyProgressionStepSeed(
   };
 }
 
-function getLivePromotionStepFieldsForExercise({
-  exercise,
-  modality,
-  goalState,
-  policy,
-}: {
-  exercise: EditableRoutineDayExerciseItem;
-  modality: GoalModality;
-  goalState: ExerciseGoalFormState;
-  policy: ProgressionStepPolicy;
-}): PromotionStepFieldId[] {
-  const selectedMetrics = new Set(deriveGoalMeasurementSelections(modality, {
-    repsMin: goalState.repsMin,
-    repsMax: goalState.repsMax,
-    failure: goalState.failure,
-    weight: goalState.weight,
-    duration: goalState.duration,
-    distance: goalState.distance,
-    calories: goalState.calories,
-  }));
-  const isCardioTarget = exercise.isCardio
-    || exercise.measurementType === "time"
-    || exercise.measurementType === "distance"
-    || exercise.measurementType === "time_distance"
-    || modality === "cardio_time"
-    || modality === "cardio_distance"
-    || modality === "cardio_time_distance";
-
-  if (isCardioTarget) {
-    const fields: PromotionStepFieldId[] = [];
-    if (selectedMetrics.has("time")) fields.push("duration");
-    if (selectedMetrics.has("distance")) fields.push("distance");
-    return fields;
-  }
-
-  if (policy.kind === "load" && selectedMetrics.has("weight")) {
-    switch (policy.equipmentFamily) {
-      case "barbell":
-        return ["barbellLoad"];
-      case "dumbbell":
-        return ["dumbbellLoad"];
-      case "machine":
-        return ["machineLoad"];
-      case "cable":
-        return ["cableLoad"];
-      default:
-        return ["genericLoad"];
-    }
-  }
-
-  if (selectedMetrics.has("reps")) {
-    return ["bodyweightReps"];
-  }
-
-  if (selectedMetrics.has("time") || selectedMetrics.has("distance")) {
-    const fields: PromotionStepFieldId[] = [];
-    if (selectedMetrics.has("time")) fields.push("duration");
-    if (selectedMetrics.has("distance")) fields.push("distance");
-    return fields;
-  }
-
-  return [];
-}
-
-function ProgressionSettingsInputRow({
-  draft,
-  onDraftChange,
-  weightUnit,
-  progressionStepLabel,
-  visiblePromotionStepFields,
-}: {
-  draft: EditDayExerciseDraft;
-  onDraftChange: (nextDraft: EditDayExerciseDraft) => void;
-  weightUnit: "lbs" | "kg";
-  progressionStepLabel?: string | null;
-  visiblePromotionStepFields: PromotionStepFieldId[];
-}) {
-  const isCardioTarget = draft.modality === "cardio_time"
-    || draft.modality === "cardio_distance"
-    || draft.modality === "cardio_time_distance";
-  const visibleSetStepFields = getVisibleSetStepFieldsForGoal({
-    goalState: draft.goalState,
-    modality: draft.modality,
-    isCardioTarget,
-  });
-  const renderPromotionStepField = (fieldId: PromotionStepFieldId) => {
-    switch (fieldId) {
-      case "barbellLoad":
-        return (
-          <ProgressionNumberField
-            label={`BARBELL (${weightUnit})`}
-            name="progressionBarbellLoadIncrement"
-            inputMode="decimal"
-            value={draft.progressionBarbellLoadIncrement}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionBarbellLoadIncrement: nextValue })}
-          />
-        );
-      case "dumbbellLoad":
-        return (
-          <ProgressionNumberField
-            label={`DUMBBELL (${weightUnit})`}
-            name="progressionDumbbellLoadIncrement"
-            inputMode="decimal"
-            value={draft.progressionDumbbellLoadIncrement}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionDumbbellLoadIncrement: nextValue })}
-          />
-        );
-      case "machineLoad":
-        return (
-          <ProgressionNumberField
-            label={`MACHINE (${weightUnit})`}
-            name="progressionMachineLoadIncrement"
-            inputMode="decimal"
-            value={draft.progressionMachineLoadIncrement}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionMachineLoadIncrement: nextValue })}
-          />
-        );
-      case "cableLoad":
-        return (
-          <ProgressionNumberField
-            label={`CABLE (${weightUnit})`}
-            name="progressionCableLoadIncrement"
-            inputMode="decimal"
-            value={draft.progressionCableLoadIncrement}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionCableLoadIncrement: nextValue })}
-          />
-        );
-      case "genericLoad":
-        return (
-          <ProgressionNumberField
-            label={progressionStepLabel ?? `STEP (${weightUnit})`}
-            name="progressionLoadIncrement"
-            inputMode="decimal"
-            value={draft.progressionLoadIncrement}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionLoadIncrement: nextValue })}
-          />
-        );
-      case "bodyweightReps":
-        return (
-          <ProgressionNumberField
-            label="BODYWEIGHT REPS"
-            name="progressionBodyweightRepIncrement"
-            inputMode="numeric"
-            value={draft.progressionBodyweightRepIncrement}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionBodyweightRepIncrement: nextValue })}
-          />
-        );
-      case "duration":
-        return (
-          <ProgressionNumberField
-            label="DURATION (S)"
-            name="progressionDurationIncrementSeconds"
-            inputMode="numeric"
-            value={draft.progressionDurationIncrementSeconds}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionDurationIncrementSeconds: nextValue })}
-          />
-        );
-      case "distance":
-        return (
-          <ProgressionNumberField
-            label="DISTANCE"
-            name="progressionDistanceIncrement"
-            inputMode="decimal"
-            value={draft.progressionDistanceIncrement}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionDistanceIncrement: nextValue })}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-  const renderSetStepField = (fieldId: SetStepFieldId) => {
-    switch (fieldId) {
-      case "load":
-        return (
-          <ProgressionNumberField
-            label={`SET LOAD (${weightUnit})`}
-            name="progressionSetFlowLoadStep"
-            inputMode="decimal"
-            value={draft.progressionSetFlowLoadStep}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionSetFlowLoadStep: nextValue })}
-          />
-        );
-      case "reps":
-        return (
-          <ProgressionNumberField
-            label="SET REPS"
-            name="progressionSetFlowRepStep"
-            inputMode="numeric"
-            value={draft.progressionSetFlowRepStep}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionSetFlowRepStep: nextValue })}
-          />
-        );
-      case "duration":
-        return (
-          <ProgressionNumberField
-            label="SET TIME (S)"
-            name="progressionSetFlowDurationStep"
-            inputMode="numeric"
-            value={draft.progressionSetFlowDurationStep}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionSetFlowDurationStep: nextValue })}
-          />
-        );
-      case "distance":
-        return (
-          <ProgressionNumberField
-            label="SET DISTANCE"
-            name="progressionSetFlowDistanceStep"
-            inputMode="decimal"
-            value={draft.progressionSetFlowDistanceStep}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionSetFlowDistanceStep: nextValue })}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-  const fieldGroups: Array<{ title: string; tone: "primary" | "secondary"; fields: ReactNode[] }> = [];
-
-  if (draft.progressionPlaybookId) {
-    const promotionFields = visiblePromotionStepFields.map((fieldId) => (
-        <div key={`promotion-${fieldId}`} className="w-[8.25rem] shrink-0">
-          {renderPromotionStepField(fieldId)}
-        </div>
-    ));
-    if (promotionFields.length > 0) {
-      fieldGroups.push({
-        title: "Promotion Step Settings",
-        tone: "primary",
-        fields: promotionFields,
-      });
-    }
-
-    if (draft.progressionSetFlow !== "straight_sets") {
-      const setStepFields = visibleSetStepFields.map((fieldId) => (
-        <div key={`set-${fieldId}`} className="w-[8.25rem] shrink-0">
-          {renderSetStepField(fieldId)}
-        </div>
-      ));
-      if (setStepFields.length > 0) {
-      fieldGroups.push({
-        title: "Set Step Settings",
-        tone: "primary",
-        fields: setStepFields,
-      });
-      }
-    }
-
-    if (draft.progressionStallPolicy === "deload_after_stall") {
-      fieldGroups.push({
-        title: "Deload Settings",
-        tone: "secondary",
-        fields: [
-        <div key="deload-stall" className="w-[8.25rem] shrink-0">
-          <ProgressionNumberField
-            label="MISS COUNT"
-            name="progressionStallThreshold"
-            inputMode="numeric"
-            value={draft.progressionStallThreshold}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionStallThreshold: nextValue })}
-          />
-        </div>,
-        <div key="deload-percent" className="w-[8.25rem] shrink-0">
-          <ProgressionNumberField
-            label="DELOAD %"
-            name="progressionDeloadPercent"
-            inputMode="decimal"
-            value={draft.progressionDeloadPercent}
-            onChange={(nextValue) => onDraftChange({ ...draft, progressionDeloadPercent: nextValue })}
-          />
-        </div>,
-        ],
-      });
-    }
-  }
-
-  if (fieldGroups.length === 0) {
-    return null;
-  }
-
-  const orderedFieldGroups = fieldGroups.sort((left, right) => {
-    const order: Record<string, number> = {
-      "Promotion Step Settings": 0,
-      "Set Step Settings": 1,
-      "Deload Settings": 2,
-    };
-    return (order[left.title] ?? 99) - (order[right.title] ?? 99);
-  });
-
-  return (
-    <div className="hide-scrollbar overflow-x-auto overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-      <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1">
-        {orderedFieldGroups.map((group, groupIndex) => (
-          <div key={group.title} className="flex shrink-0 flex-nowrap items-stretch gap-2">
-            {groupIndex > 0 ? (
-              <span className="mx-1.5 flex shrink-0 self-stretch items-center" aria-hidden="true">
-                <span className="block h-[3.7rem] w-px rounded-full bg-[rgb(var(--accent-divider-rgb)/0.52)]" />
-              </span>
-            ) : null}
-            <div className="shrink-0 space-y-1.5">
-              <div className="mx-auto w-fit max-w-full space-y-1 text-center">
-                <p className={cn(
-                  "text-[9.5px] font-semibold uppercase tracking-[0.15em]",
-                  group.tone === "secondary"
-                    ? "text-[rgb(var(--secondary-action-rgb)/0.9)]"
-                    : "text-[rgb(var(--accent-divider-rgb)/0.88)]",
-                )}>
-                  {group.title}
-                </p>
-                <MetricAccentBar variant="thin" className="w-full opacity-85" />
-              </div>
-              <div className="flex flex-nowrap items-center justify-center gap-1.5">
-                {group.fields}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 const INLINE_VIEW_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
   intent: "toggleInactive",
 });
@@ -664,6 +319,7 @@ const INLINE_DELETE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassN
 export function EditableRoutineDayExerciseList({
   routineId,
   routineDayId,
+  cycleLengthDays,
   weightUnit,
   exercises,
   updateAction,
@@ -904,6 +560,25 @@ export function EditableRoutineDayExerciseList({
       "progressionSetFlowRepStep",
       "progressionSetFlowDurationStep",
       "progressionSetFlowDistanceStep",
+      "progressionDayMode",
+      "progressionDayLoadStep",
+      "progressionDayRepStep",
+      "progressionDayDurationStep",
+      "progressionDayDistanceStep",
+      "progressionSetFlowDirectionsJson",
+      "progressionEffortWaveDirectionsJson",
+      "progressionPromotionBasis",
+      "progressionPromotionMeasurementOrdersJson",
+      "progressionPromotionMeasurementSequenceJson",
+      "progressionPromotionRepRangePreviewJson",
+      "progressionRepPromotionThreshold",
+      "progressionCustomRepPromotionTarget",
+      "progressionTargetMutation",
+      "progressionHasExplicitTargetMutation",
+      "progressionRequiredQualifiedSessions",
+      "progressionQualificationWindowMode",
+      "progressionQualificationWindowResetOnMiss",
+      "progressionHasExplicitQualificationWindow",
     ];
     const snapshotPayload = {
       fields: Object.fromEntries(trackedKeys.map((key) => [key, String(formData.get(key) ?? "").trim()])),
@@ -1184,13 +859,24 @@ export function EditableRoutineDayExerciseList({
                 exerciseOverrideValue: Number(draft.progressionLoadIncrement),
                 stepOverrides: draftProgressionConfig?.stepOverrides ?? routineDefaultProgressionConfig?.stepOverrides ?? null,
               });
-              const visiblePromotionStepFields = getLivePromotionStepFieldsForExercise({
-                exercise,
+              const visiblePromotionStepFields = getVisiblePromotionStepFieldsForGoal({
                 modality,
-                goalState: draft.goalState,
+                values: draft.goalState,
                 policy: progressionStepPolicy,
               });
+              const promotionUiModel = buildProgressionPromotionUiModel({
+                context: "exercise",
+                promotionBasis: draft.progressionPromotionBasis,
+                modality,
+                values: draft.goalState,
+              });
               const progressionStepLabel = getProgressionStepFieldLabel(progressionStepPolicy, weightUnit);
+              const repRangeMin = hasTextValue(draft.goalState.repsMin)
+                ? Number(draft.goalState.repsMin)
+                : null;
+              const repRangeMax = hasTextValue(draft.goalState.repsMax)
+                ? Number(draft.goalState.repsMax)
+                : repRangeMin;
               const selectedTrainingFocus = trainingFocusById[exercise.id] ?? "";
               return (
                 <div className={appTokens.routineEditorCompactStack}>
@@ -1307,19 +993,11 @@ export function EditableRoutineDayExerciseList({
                       <HiddenRoutineTargetInputs state={draft.goalState} modality={modality} />
                     )}
                     {showProgressionInputs ? (
-                      <ProgressionSettingsInputRow
-                        draft={draft}
-                        onDraftChange={(nextDraft) => updateExerciseDraft(exercise, () => nextDraft)}
-                        weightUnit={weightUnit}
-                        progressionStepLabel={progressionStepLabel}
-                        visiblePromotionStepFields={visiblePromotionStepFields}
-                      />
-                    ) : null}
-                    {showProgressionInputs ? (
                       <ProgressionPlaybookInputs
                         draft={draft}
                         onDraftChange={(nextDraft) => updateExerciseDraft(exercise, () => nextDraft)}
                         weightUnit={weightUnit}
+                        cycleLengthDays={cycleLengthDays}
                         title="Progression Settings"
                         routineDefaultValue={routineDefaultProgression}
                         onApplyRoutineDefault={() => {
@@ -1331,6 +1009,9 @@ export function EditableRoutineDayExerciseList({
                         progressionStepLabel={progressionStepLabel}
                         progressionStepPolicy={progressionStepPolicy}
                         visiblePromotionStepFields={visiblePromotionStepFields}
+                        promotionUiModel={promotionUiModel}
+                        repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
+                        repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
                         trainingFocusValue={selectedTrainingFocus}
                         trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, draft)}
                         onTrainingFocusChange={(goal) => {

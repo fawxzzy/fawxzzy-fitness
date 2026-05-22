@@ -7,6 +7,7 @@ import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { TodayOverviewHeader, TodayOverviewScaffold, TodayRoutineSwitchHeader } from "@/components/today/TodayScreenFamily";
+import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import {
   DayCard,
@@ -25,7 +26,6 @@ import {
   ROUTINE_REST_DAY_CARD_CLASS_NAME,
   ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME,
   RoutineDayCardTitle,
-  renderSignatureParts,
   renderRoutineDayRightRail,
   renderRoutineDaySubtitle,
 } from "@/components/day-list/RoutineDayCardPresentation";
@@ -39,8 +39,11 @@ import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { ProgressionStatusSection } from "@/components/progression/ProgressionStatusSection";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
+import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
+import { buildRoutineTrainingRestInfoRailItems } from "@/lib/header-info-rail";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
@@ -52,7 +55,7 @@ import type {
   ProgressionReviewDisplayItem,
   ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
+import type { ProgressionStatusDisplayItem, ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import {
   buildProgressionAppliedPin,
   getPendingProgressionAppliedPinsForRoutineDay,
@@ -107,6 +110,7 @@ type TodayDay = {
 export function TodayDayPicker({
   days,
   currentDayIndex,
+  noScheduledDayMessage = null,
   inProgressSessionId,
   completedDayIndexes,
   inSessionDayIndex,
@@ -118,12 +122,14 @@ export function TodayDayPicker({
   exerciseDensity = "compact",
   progressionReviewItems = [],
   progressionStatusItems = [],
+  progressionStatusSurfaceItems = [],
   progressionRoutineId,
   applyProgressionReviewCandidateAction,
   revertProgressionReviewCandidateAction,
 }: {
   days: TodayDay[];
-  currentDayIndex: number;
+  currentDayIndex: number | null;
+  noScheduledDayMessage?: string | null;
   inProgressSessionId?: string | null;
   completedDayIndexes?: number[];
   inSessionDayIndex?: number | null;
@@ -135,6 +141,7 @@ export function TodayDayPicker({
   exerciseDensity?: "compact" | "detailed";
   progressionReviewItems?: ProgressionReviewDisplayItem[];
   progressionStatusItems?: ProgressionStatusDisplayItem[];
+  progressionStatusSurfaceItems?: ProgressionStatusSurfaceItem[];
   progressionRoutineId?: string | null;
   applyProgressionReviewCandidateAction?: (payload: {
     routineId: string;
@@ -149,7 +156,7 @@ export function TodayDayPicker({
     linkedPreviousTargets?: ProgressionReviewRevertTargetSnapshot[];
   }) => Promise<ActionResult>;
 }) {
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => currentDayIndex ?? days[0]?.dayIndex ?? 1);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedDayAppliedPins, setSelectedDayAppliedPins] = useState<ProgressionAppliedPin[]>([]);
@@ -180,6 +187,16 @@ export function TodayDayPicker({
       window.removeEventListener(ACTIVE_SESSION_EVENT, syncActiveSession as EventListener);
     };
   }, [inProgressSessionId, router]);
+
+  useEffect(() => {
+    setSelectedDayIndex((current) => {
+      if (days.some((day) => day.dayIndex === current)) {
+        return current;
+      }
+
+      return currentDayIndex ?? days[0]?.dayIndex ?? current;
+    });
+  }, [currentDayIndex, days]);
 
 
   const [floatingHeaderTarget, setFloatingHeaderTarget] = useState<HTMLElement | null>(null);
@@ -267,6 +284,14 @@ export function TodayDayPicker({
       }];
     });
   }, [progressionReviewItems, selectedDay]);
+
+  const selectedDayProgressionStatusSurfaceItems = useMemo(() => {
+    if (!selectedDay) {
+      return [];
+    }
+
+    return progressionStatusSurfaceItems.filter((item) => item.dayGroupId === selectedDay.id);
+  }, [progressionStatusSurfaceItems, selectedDay]);
 
   const selectedDayProgressFillByExerciseId = useMemo(() => {
     const progressById = new Map<string, ProgressionStatusDisplayItem["progress"]>();
@@ -521,10 +546,10 @@ export function TodayDayPicker({
         isRest: selectedDay.isRest,
       }).countsSummary
     : null;
-  const routineHeaderSubtitle = useMemo(() => {
+  const routineHeaderInfoItems = useMemo(() => {
     const restDays = days.filter((day) => day.isRest).length;
     const trainingDays = Math.max(days.length - restDays, 0);
-    return renderSignatureParts([`${trainingDays} training`, `${restDays} rest`], "justify-center text-center");
+    return buildRoutineTrainingRestInfoRailItems({ trainingDays, restDays });
   }, [days]);
   const selectedDayStateCard = useMemo(() => {
     if (!selectedDay || mode.dayPickerOpen) {
@@ -543,6 +568,19 @@ export function TodayDayPicker({
 
     return null;
   }, [mode.dayPickerOpen, selectedDay]);
+  const noScheduledDayNotice = useMemo(() => {
+    if (mode.dayPickerOpen || !noScheduledDayMessage?.trim()) {
+      return null;
+    }
+
+    return (
+      <DayDetailStateCard
+        tone="neutral"
+        title="No scheduled workout today."
+        body={noScheduledDayMessage}
+      />
+    );
+  }, [mode.dayPickerOpen, noScheduledDayMessage]);
   const selectedDaySummaryNode = useMemo(() => {
     if (selectedDayStateCard) {
       return selectedDayStateCard;
@@ -589,7 +627,13 @@ export function TodayDayPicker({
     ? (
       <TodayRoutineSwitchHeader
         title={routineName.trim() || "Routine"}
-        subtitle={routineHeaderSubtitle}
+        subtitle={(
+          <HeaderInfoRail
+            items={routineHeaderInfoItems}
+            ariaLabel="Routine cycle summary"
+            className="justify-center text-center"
+          />
+        )}
         align="center"
       />
     )
@@ -715,6 +759,8 @@ export function TodayDayPicker({
                   </div>
                 ) : null}
 
+                {noScheduledDayNotice ? noScheduledDayNotice : null}
+
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
                   <ul className="flex flex-col gap-[0.375rem]">
                     {selectedDay.exercises.map((exercise) => {
@@ -727,6 +773,10 @@ export function TodayDayPicker({
                         || cardPendingItemId === cardAppliedPin?.routineDayExerciseId
                       );
                       const cardProgressionAction = cardAppliedPin || canShowCardPromote;
+                      const cardProgressFill = deriveExerciseCardProgressFill({
+                        progressFill: selectedDayProgressFillByExerciseId.get(exercise.id) ?? null,
+                        candidateType: cardReadyItem?.type ?? null,
+                      });
                       const cardPromoteTargetPair = cardReadyItem?.summaryParts.currentTarget && cardReadyItem.summaryParts.proposedTarget
                         ? {
                             current: cardReadyItem.summaryParts.currentTarget,
@@ -773,7 +823,7 @@ export function TodayDayPicker({
                             showLeadingVisual={policy.showMedia}
                             showAccentRail={!isStretchHub}
                             hideEmptySummary={isStretchHub}
-                            progressFill={selectedDayProgressFillByExerciseId.get(exercise.id) ?? null}
+                            progressFill={cardProgressFill.fill}
                             rightIcon={<ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />}
                             shellClassName={cardProgressionAction ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
                             shellStyle={cardProgressionAction ? ({
@@ -844,6 +894,10 @@ export function TodayDayPicker({
                       );
                     })}
                   </ul>
+                ) : null}
+
+                {mode.dayRowsVisible && selectedDayProgressionStatusSurfaceItems.length > 0 ? (
+                  <ProgressionStatusSection items={selectedDayProgressionStatusSurfaceItems} />
                 ) : null}
               </div>
             ) : null}
