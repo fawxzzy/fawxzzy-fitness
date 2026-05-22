@@ -8,6 +8,7 @@ import {
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
   normalizeDiscordMessageCommandContent,
+  resolveDiscordMessageCommandPollIntervalMs,
   resolveDiscordMessageCommandPollUrl,
 } from "./discord-feedback-gateway-worker.mjs";
 
@@ -165,6 +166,13 @@ test("feedback gateway worker resolves the production poll URL safely", () => {
     resolveDiscordMessageCommandPollUrl({ DISCORD_MESSAGE_COMMAND_POLL_URL: "https://worker.example.com/poll" }),
     "https://worker.example.com/poll",
   );
+});
+
+test("feedback gateway worker bounds the fallback poll interval", () => {
+  assert.equal(resolveDiscordMessageCommandPollIntervalMs({}), 15_000);
+  assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "1000" }), 5_000);
+  assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "30000" }), 30_000);
+  assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "999999" }), 120_000);
 });
 
 test("feedback gateway worker calls the secured poll endpoint", async () => {
