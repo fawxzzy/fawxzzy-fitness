@@ -20,6 +20,12 @@ export type DiscordChannelMessage = {
     bot?: boolean;
   };
   content?: string;
+  embeds?: Array<{
+    title?: string;
+    footer?: {
+      text?: string;
+    };
+  }>;
   components?: unknown[];
   member?: {
     roles?: string[];

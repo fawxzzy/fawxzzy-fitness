@@ -80,8 +80,26 @@ export function messageRequestsComputaLive(message, mainChannelId) {
   return normalizedContent === "live" || normalizedContent.startsWith("computa live");
 }
 
+export function messageRequestsComputaMenu(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  return normalizeDiscordMessageCommandContent(message.content) === "computa";
+}
+
 export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
-  return messageRequestsFeedbackSetup(message, mainChannelId) || messageRequestsComputaLive(message, mainChannelId);
+  return messageRequestsComputaMenu(message, mainChannelId)
+    || messageRequestsFeedbackSetup(message, mainChannelId)
+    || messageRequestsComputaLive(message, mainChannelId);
 }
 
 export function resolveDiscordMessageCommandPollUrl(env = process.env) {

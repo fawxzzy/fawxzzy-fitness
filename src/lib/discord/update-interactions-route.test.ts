@@ -251,6 +251,7 @@ test("Discord interactions route publishes curated updates into DISCORD_UPDATES_
     assert.equal(observedDiscordBodies[0]?.content ?? "", "");
     assert.equal(observedDiscordBodies[0]?.flags, undefined);
     assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Better feedback tools are live");
+    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.color, 0x22c55e);
     assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /A new update is live\./);
     assert.match(observedDiscordBodies[0]?.embeds?.[0]?.description ?? "", /Open Fitness:\n<https:\/\/fawxzzy-fitness-local\.vercel\.app\/login>/);
     assert.deepEqual(observedDiscordBodies[0]?.allowed_mentions, {
