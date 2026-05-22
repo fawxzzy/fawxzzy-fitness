@@ -51,6 +51,7 @@ import {
   buildDiscordFeedbackManageCardResponse,
   buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
+  DISCORD_COMPUTA_OWNER_TOOLS_BUTTON_CUSTOM_ID,
   buildDiscordEphemeralMessageResponseWithComponents,
   buildDiscordSpotifyQueueSearchModalResponse,
   buildDiscordSpotifyQueueSuggestModalResponse,
@@ -214,6 +215,7 @@ import {
   createDiscordForumThreadWithMessage,
   createDiscordInteractionFollowupMessage,
   createDiscordMessageReaction,
+  deleteDiscordOwnMessageReaction,
   deleteDiscordChannelMessage,
   deleteDiscordChannel,
   deferDiscordInteractionEphemeral,
@@ -331,6 +333,11 @@ const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
   "computa feedback setup",
   "computa setup feedback",
 ];
+const DISCORD_MESSAGE_COMMAND_FEEDBACK_REACTION_SYNC_TRIGGERS = [
+  "computa sync feedback reactions",
+  "computa feedback sync reactions",
+  "computa sync checked cards",
+];
 const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
 const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";
 const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy";
@@ -342,6 +349,7 @@ const DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID = "1507384094424694785";
 const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID}`;
 const DISCORD_MESSAGE_COMMAND_WARNING_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID}`;
 const DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID}`;
+const DISCORD_FEEDBACK_RESOLVED_TAG_NAMES = ["Fixed", "Closed"];
 const DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS = new Set([
   DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
@@ -412,6 +420,11 @@ type DiscordMessageCommand = {
 type DiscordComputaLiveCommand = {
   provider: "twitch" | "tiktok" | "custom" | "generic";
   url: string | null;
+};
+
+type DiscordComputaUpdateCommand = {
+  title: string;
+  description: string;
 };
 
 function jsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
@@ -2615,6 +2628,11 @@ function discordMessageRequestsArchiveCheckedCards(message: DiscordMessageComman
   ].some((trigger) => normalizedContent.includes(trigger));
 }
 
+function discordMessageRequestsFeedbackReactionSync(message: DiscordMessageCommand): boolean {
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return DISCORD_MESSAGE_COMMAND_FEEDBACK_REACTION_SYNC_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
+}
+
 function discordMessageRequestsComputaMenu(message: DiscordMessageCommand): boolean {
   return normalizeDiscordMessageCommandContent(message.content) === "computa";
 }
@@ -2707,10 +2725,64 @@ function discordMessageRequestsComputaLive(message: DiscordMessageCommand): bool
   return normalizedContent.startsWith("computa post live");
 }
 
+function parseDiscordComputaUpdateMessageCommand(message: DiscordMessageCommand): DiscordComputaUpdateCommand | null {
+  if (typeof message.content !== "string") {
+    return null;
+  }
+
+  const commandMatch = message.content.trim().match(/^computa\s+post\s+update(?:\s+([\s\S]+))?$/i);
+  const rawArgument = commandMatch?.[1]?.trim() ?? "";
+  if (!commandMatch || !rawArgument) {
+    return null;
+  }
+
+  const bracketMatch = rawArgument.match(/^\[([\s\S]*)]$/);
+  const argument = (bracketMatch ? bracketMatch[1] : rawArgument).trim();
+  if (!argument) {
+    return null;
+  }
+
+  const pipeIndex = argument.indexOf("|");
+  if (pipeIndex > 0) {
+    const title = argument.slice(0, pipeIndex).trim();
+    const description = argument.slice(pipeIndex + 1).trim();
+    if (title && description) {
+      return {
+        title: title.slice(0, 120),
+        description: description.slice(0, 1200),
+      };
+    }
+  }
+
+  const lines = argument.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length > 1 && lines[0].length <= 120) {
+    return {
+      title: lines[0],
+      description: lines.slice(1).join("\n").slice(0, 1200),
+    };
+  }
+
+  return {
+    title: "Fawx Security update",
+    description: argument.slice(0, 1200),
+  };
+}
+
+function discordMessageRequestsComputaUpdate(message: DiscordMessageCommand): boolean {
+  if (typeof message.content !== "string") {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return normalizedContent.startsWith("computa post update");
+}
+
 function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): boolean {
   return discordMessageRequestsComputaMenu(message)
     || discordMessageRequestsFeedbackSetup(message)
     || discordMessageRequestsArchiveCheckedCards(message)
+    || discordMessageRequestsFeedbackReactionSync(message)
+    || discordMessageRequestsComputaUpdate(message)
     || discordMessageRequestsComputaLive(message);
 }
 
@@ -2728,6 +2800,22 @@ function buildDiscordComputaLiveUpdateContent(command: DiscordComputaLiveCommand
   }
 
   return "@everyone\n\nGoing live\n\nPull up";
+}
+
+function buildDiscordComputaFormattedUpdatePayload(command: DiscordComputaUpdateCommand): Record<string, unknown> {
+  return {
+    content: "",
+    allowed_mentions: {
+      parse: [],
+    },
+    embeds: [
+      {
+        title: command.title,
+        description: command.description,
+        color: DISCORD_EMBED_COLOR_SUCCESS,
+      },
+    ],
+  };
 }
 
 function discordMessageHasComputaCommandMenu(message: unknown): boolean {
@@ -2765,13 +2853,26 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
     },
     embeds: [
       {
-        title: "Computa Commands",
+        title: "Computa",
         description: [
           "`computa` - Show this command card.",
           "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
         ].join("\n"),
         color: DISCORD_EMBED_COLOR_SUCCESS,
+      },
+    ],
+    components: [
+      {
+        type: 1,
+        components: [
+          {
+            type: 2,
+            style: 2,
+            custom_id: DISCORD_COMPUTA_OWNER_TOOLS_BUTTON_CUSTOM_ID,
+            label: "Owner Tools",
+          },
+        ],
       },
     ],
   };
@@ -2783,8 +2884,19 @@ function buildDiscordComputaOwnerCommandSummary(): string {
     "- `computa post live twitch` - Post the saved Twitch live announcement.",
     "- `computa post live tiktok` - Post the saved TikTok live announcement.",
     "- `computa post live [https://example.com/live]` - Post a custom live link.",
+    "- `computa post update [Title | body]` - Post a formatted green update card.",
     "- `computa archive checked cards` - Archive active feedback forum cards that already have the success reaction.",
+    "- `computa sync feedback reactions` - Sync success reactions from resolved feedback tags.",
   ].join("\n");
+}
+
+function handleDiscordComputaOwnerToolsButton(interaction: DiscordInteraction) {
+  const user = resolveDiscordInteractionUser(interaction);
+  if (user.id !== resolveDiscordComputaOwnerUserId()) {
+    return buildDiscordEphemeralMessageResponse("Owner tools are only available to the configured Fawxzzy owner account.");
+  }
+
+  return buildDiscordEphemeralMessageResponse(buildDiscordComputaOwnerCommandSummary());
 }
 
 function discordMessageHasProcessedCommandReaction(message: DiscordMessageCommand): boolean {
@@ -3230,6 +3342,102 @@ async function archiveDiscordCheckedFeedbackThreads() {
   };
 }
 
+function resolveDiscordForumTagIdsByNames(channel: { available_tags?: unknown }, tagNames: string[]): string[] {
+  const tags = Array.isArray(channel.available_tags) ? channel.available_tags : [];
+  const wantedNames = new Set(tagNames.map((tagName) => tagName.toLowerCase()));
+  return tags
+    .filter((tag): tag is { id: string; name: string } => {
+      if (!tag || typeof tag !== "object") {
+        return false;
+      }
+      const candidate = tag as { id?: unknown; name?: unknown };
+      return typeof candidate.id === "string"
+        && typeof candidate.name === "string"
+        && wantedNames.has(candidate.name.toLowerCase());
+    })
+    .map((tag) => tag.id);
+}
+
+async function syncDiscordFeedbackResolvedReactions() {
+  const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
+  if (!forumChannelId) {
+    return { ok: false as const, code: "DISCORD_FEEDBACK_FORUM_NOT_CONFIGURED" };
+  }
+
+  const forumResult = await fetchDiscordChannel({ channelId: forumChannelId });
+  if (!forumResult.ok) {
+    return forumResult;
+  }
+
+  const resolvedTagIds = new Set(resolveDiscordForumTagIdsByNames(forumResult.channel, DISCORD_FEEDBACK_RESOLVED_TAG_NAMES));
+  if (resolvedTagIds.size === 0) {
+    return { ok: false as const, code: "DISCORD_FEEDBACK_RESOLVED_TAGS_NOT_FOUND" };
+  }
+
+  const activeThreadsResult = await fetchDiscordGuildActiveThreads({ guildId: DISCORD_GUILD_ID() });
+  if (!activeThreadsResult.ok) {
+    return activeThreadsResult;
+  }
+
+  const feedbackThreads = activeThreadsResult.threads
+    .filter((thread) => thread.parent_id === forumChannelId && thread.archived !== true)
+    .slice(0, 50);
+
+  let addedCount = 0;
+  let removedCount = 0;
+  let skippedCount = 0;
+
+  for (const thread of feedbackThreads) {
+    const starterResult = await fetchDiscordChannelMessage({
+      channelId: thread.id,
+      messageId: thread.id,
+    });
+    if (!starterResult.ok) {
+      skippedCount += 1;
+      continue;
+    }
+
+    const appliedTagIds = Array.isArray(thread.applied_tags)
+      ? thread.applied_tags.filter((tagId): tagId is string => typeof tagId === "string")
+      : [];
+    const shouldHaveReaction = appliedTagIds.some((tagId) => resolvedTagIds.has(tagId));
+    const hasReaction = discordMessageHasCheckedReaction(starterResult.message as DiscordMessageCommand);
+
+    if (shouldHaveReaction && !hasReaction) {
+      const reactionResult = await createDiscordMessageReaction({
+        channelId: thread.id,
+        messageId: thread.id,
+        emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+      });
+      if (!reactionResult.ok) {
+        return reactionResult;
+      }
+      addedCount += 1;
+      continue;
+    }
+
+    if (!shouldHaveReaction && hasReaction) {
+      const deleteResult = await deleteDiscordOwnMessageReaction({
+        channelId: thread.id,
+        messageId: thread.id,
+        emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+      });
+      if (!deleteResult.ok) {
+        return deleteResult;
+      }
+      removedCount += 1;
+    }
+  }
+
+  return {
+    ok: true as const,
+    scannedCount: feedbackThreads.length,
+    addedCount,
+    removedCount,
+    skippedCount,
+  };
+}
+
 async function processDiscordArchiveCheckedCardsMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
@@ -3263,6 +3471,105 @@ async function processDiscordArchiveCheckedCardsMessageCommand(args: {
     emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   });
   return { ok: true as const, action: "archived", archivedCount: archiveResult.archivedCount };
+}
+
+async function processDiscordFeedbackReactionSyncMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  if (!authorization.ok) {
+    return authorization;
+  }
+
+  const syncResult = await syncDiscordFeedbackResolvedReactions();
+  if (!syncResult.ok) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId: authorization.messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return syncResult;
+  }
+
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId: authorization.messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return {
+    ok: true as const,
+    action: "synced",
+    addedCount: syncResult.addedCount,
+    removedCount: syncResult.removedCount,
+  };
+}
+
+async function processDiscordComputaUpdateMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  const authorId = typeof args.message.author?.id === "string" ? args.message.author.id : null;
+  if (!messageId || !authorId) {
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  const command = parseDiscordComputaUpdateMessageCommand(args.message);
+  if (!command) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_COMPUTA_UPDATE_INVALID_COMMAND" };
+  }
+
+  if (authorId !== resolveDiscordComputaOwnerUserId()) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_COMPUTA_UPDATE_FORBIDDEN" };
+  }
+
+  const updatesChannelId = DISCORD_UPDATES_CHANNEL_ID();
+  if (!updatesChannelId) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_UPDATES_CHANNEL_NOT_CONFIGURED" };
+  }
+
+  const createResult = await createDiscordChannelMessage({
+    channelId: updatesChannelId,
+    body: buildDiscordComputaFormattedUpdatePayload(command),
+  });
+
+  if (!createResult.ok) {
+    console.error("[discord-message-command] computa post update failed", {
+      requestId: randomUUID(),
+      code: createResult.code,
+      status: createResult.status,
+      message: createResult.message,
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return createResult;
+  }
+
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return { ok: true as const, action: "posted" };
 }
 
 async function processDiscordComputaLiveMessageCommand(args: {
@@ -3421,7 +3728,9 @@ async function pollDiscordMessageCommands() {
     let result:
       | Awaited<ReturnType<typeof processDiscordComputaMenuMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaLiveMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordComputaUpdateMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordArchiveCheckedCardsMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordFeedbackReactionSyncMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordFeedbackSetupMessageCommand>>;
 
     if (discordMessageRequestsComputaMenu(candidate)) {
@@ -3431,6 +3740,16 @@ async function pollDiscordMessageCommands() {
       });
     } else if (discordMessageRequestsArchiveCheckedCards(candidate)) {
       result = await processDiscordArchiveCheckedCardsMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else if (discordMessageRequestsFeedbackReactionSync(candidate)) {
+      result = await processDiscordFeedbackReactionSyncMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else if (discordMessageRequestsComputaUpdate(candidate)) {
+      result = await processDiscordComputaUpdateMessageCommand({
         channelId,
         message: candidate,
       });
@@ -6723,6 +7042,13 @@ export async function POST(request: Request) {
       && interaction.data?.custom_id === FITNESS_VERIFY_BUTTON_CUSTOM_ID
     ) {
       return jsonResponse(buildDiscordVerifyModalResponse());
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && interaction.data?.custom_id === DISCORD_COMPUTA_OWNER_TOOLS_BUTTON_CUSTOM_ID
+    ) {
+      return jsonResponse(handleDiscordComputaOwnerToolsButton(interaction));
     }
 
     if (

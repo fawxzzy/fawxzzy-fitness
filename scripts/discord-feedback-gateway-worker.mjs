@@ -81,6 +81,23 @@ export function messageRequestsComputaLive(message, mainChannelId) {
   return normalizedContent.startsWith("computa post live");
 }
 
+export function messageRequestsComputaUpdate(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return normalizedContent.startsWith("computa post update");
+}
+
 export function messageRequestsComputaMenu(message, mainChannelId) {
   if (!message || typeof message !== "object") {
     return false;
@@ -119,10 +136,33 @@ export function messageRequestsComputaArchiveCheckedCards(message, mainChannelId
   ].some((trigger) => normalizedContent.includes(trigger));
 }
 
+export function messageRequestsComputaFeedbackReactionSync(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return [
+    "computa sync feedback reactions",
+    "computa feedback sync reactions",
+    "computa sync checked cards",
+  ].some((trigger) => normalizedContent.includes(trigger));
+}
+
 export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
   return messageRequestsComputaMenu(message, mainChannelId)
     || messageRequestsFeedbackSetup(message, mainChannelId)
     || messageRequestsComputaArchiveCheckedCards(message, mainChannelId)
+    || messageRequestsComputaFeedbackReactionSync(message, mainChannelId)
+    || messageRequestsComputaUpdate(message, mainChannelId)
     || messageRequestsComputaLive(message, mainChannelId);
 }
 

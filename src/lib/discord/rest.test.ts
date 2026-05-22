@@ -9,6 +9,7 @@ import {
   createDiscordMessageReaction,
   createDiscordThreadMessage,
   deleteDiscordChannel,
+  deleteDiscordOwnMessageReaction,
   deferDiscordInteractionEphemeral,
   DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
   editDiscordOriginalInteractionResponse,
@@ -92,6 +93,39 @@ test("createDiscordMessageReaction PUTs a resolved checkmark reaction using an e
     assert.deepEqual(observedRequest, {
       url: "https://discord.com/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me",
       method: "PUT",
+      body: null,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("deleteDiscordOwnMessageReaction DELETEs a custom emoji reaction using an encoded emoji path", async () => {
+  process.env.DISCORD_BOT_TOKEN = "test-bot-token";
+  const originalFetch = globalThis.fetch;
+  let observedRequest = null;
+
+  globalThis.fetch = async (input, init) => {
+    observedRequest = {
+      url: String(input),
+      method: String(init?.method ?? "GET"),
+      body: typeof init?.body === "string" ? init.body : null,
+    };
+
+    return new Response(null, { status: 204 });
+  };
+
+  try {
+    const result = await deleteDiscordOwnMessageReaction({
+      channelId: "1504673475489562745",
+      messageId: "1504673475489562746",
+      emoji: "fawxzzy:1507384062166302851",
+    });
+
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(observedRequest, {
+      url: "https://discord.com/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me",
+      method: "DELETE",
       body: null,
     });
   } finally {
