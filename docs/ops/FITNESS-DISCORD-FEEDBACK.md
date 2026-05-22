@@ -36,6 +36,8 @@ Product rules:
   - polls only `DISCORD_MAIN_CHANNEL_ID`
   - posts or refreshes the launcher in the channel where the trigger message was sent
   - removes older launcher messages from previous feedback setup channels after successful setup
+  - marks the trigger message with a public reaction
+  - sends setup/permission/failure details to the triggering user by DM instead of posting bot replies in main chat
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
 - `/setup-verify`
   - admin-only

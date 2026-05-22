@@ -1281,15 +1281,7 @@ test("Discord message command poll lets a manager bootstrap the commander role a
 
     if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
       const body = parseJsonBody(init?.body);
-      if (body?.message_reference?.message_id) {
-        assert.match(body?.content ?? "", /Feedback launcher created/);
-        assert.equal(body?.message_reference?.message_id, "main-message-1");
-        assert.deepEqual(body?.allowed_mentions, { parse: [], replied_user: false });
-        return new Response(JSON.stringify({ id: "reply-message-1" }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
+      assert.equal(body?.message_reference, undefined);
       assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
       return new Response(JSON.stringify({ id: "feedback-panel-message-1" }), {
         status: 200,
@@ -1330,6 +1322,25 @@ test("Discord message command poll lets a manager bootstrap the commander role a
       return new Response(null, { status: 204 });
     }
 
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.recipient_id, "123456789012345678");
+      return new Response(JSON.stringify({ id: "dm-feedback-command" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-feedback-command/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.match(body?.content ?? "", /Feedback launcher created in <#1504668396338413671>/);
+      assert.deepEqual(body?.allowed_mentions, { parse: [] });
+      return new Response(JSON.stringify({ id: "dm-message-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-1/reactions/%E2%9C%85/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
@@ -1357,6 +1368,7 @@ test("Discord message command poll lets a manager bootstrap the commander role a
     });
     assert.equal(calls.some((call) => call.method === "POST" && call.pathname.endsWith("/roles")), true);
     assert.equal(calls.some((call) => call.method === "PUT" && call.pathname.includes("/roles/commander-role")), true);
+    assert.equal(calls.some((call) => call.body?.message_reference?.message_id === "main-message-1"), false);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
@@ -1408,11 +1420,20 @@ test("Discord message command poll requires the commander role after bootstrap",
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.recipient_id, "123456789012345678");
+      return new Response(JSON.stringify({ id: "dm-feedback-command-forbidden" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-feedback-command-forbidden/messages" && method === "POST") {
       const body = parseJsonBody(init?.body);
       assert.match(body?.content ?? "", /Fawxzzy Commander/);
-      assert.equal(body?.message_reference?.message_id, "main-message-2");
-      return new Response(JSON.stringify({ id: "reply-message-2" }), {
+      assert.equal(body?.message_reference, undefined);
+      return new Response(JSON.stringify({ id: "dm-message-2" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

@@ -208,6 +208,7 @@ import {
 } from "@/lib/discord/moderation";
 import {
   addDiscordGuildMemberRole,
+  createDiscordDirectMessageChannel,
   createDiscordRole,
   createDiscordGuildChannel,
   createDiscordChannelMessage,
@@ -2704,28 +2705,44 @@ function discordRolePermissionsAllowSetup(permissions: bigint): boolean {
     || (permissions & DISCORD_PERMISSION_MANAGE_GUILD) === DISCORD_PERMISSION_MANAGE_GUILD;
 }
 
-async function replyToDiscordMessageCommand(args: {
-  channelId: string;
-  guildId: string;
-  messageId: string;
+async function sendDiscordMessageCommandPrivateNotice(args: {
+  userId: string;
   content: string;
 }) {
-  return createDiscordChannelMessage({
-    channelId: args.channelId,
+  const dmChannelResult = await createDiscordDirectMessageChannel({
+    recipientUserId: args.userId,
+  });
+
+  if (!dmChannelResult.ok) {
+    console.warn("[discord-message-command] private notice dm channel failed", {
+      requestId: randomUUID(),
+      code: dmChannelResult.code,
+      status: dmChannelResult.status,
+      message: dmChannelResult.message,
+    });
+    return dmChannelResult;
+  }
+
+  const messageResult = await createDiscordChannelMessage({
+    channelId: dmChannelResult.channel.id,
     body: {
       content: args.content,
-      message_reference: {
-        message_id: args.messageId,
-        channel_id: args.channelId,
-        guild_id: args.guildId,
-        fail_if_not_exists: false,
-      },
       allowed_mentions: {
         parse: [],
-        replied_user: false,
       },
     },
   });
+
+  if (!messageResult.ok) {
+    console.warn("[discord-message-command] private notice send failed", {
+      requestId: randomUUID(),
+      code: messageResult.code,
+      status: messageResult.status,
+      message: messageResult.message,
+    });
+  }
+
+  return messageResult;
 }
 
 async function markDiscordMessageCommandProcessed(args: {
@@ -2847,10 +2864,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
   });
 
   if (!commanderRoleResult.ok) {
-    await replyToDiscordMessageCommand({
-      channelId: args.channelId,
-      guildId,
-      messageId,
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
       content: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
     });
     await markDiscordMessageCommandProcessed({
@@ -2872,10 +2887,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
   }
 
   if (!hasCommanderRole) {
-    await replyToDiscordMessageCommand({
-      channelId: args.channelId,
-      guildId,
-      messageId,
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
       content: commanderRoleResult.roleCreated
         ? `${DISCORD_COMMANDER_ROLE_NAME} was created. Assign it to yourself or another operator, then retry.`
         : `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
@@ -2899,10 +2912,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
       status: "status" in upsertResult ? upsertResult.status : undefined,
       message: upsertResult.message,
     });
-    await replyToDiscordMessageCommand({
-      channelId: args.channelId,
-      guildId,
-      messageId,
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
       content: "Feedback setup failed. Check bot permissions and configured feedback channels.",
     });
     await markDiscordMessageCommandProcessed({
@@ -2913,10 +2924,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
     return upsertResult;
   }
 
-  await replyToDiscordMessageCommand({
-    channelId: args.channelId,
-    guildId,
-    messageId,
+  await sendDiscordMessageCommandPrivateNotice({
+    userId: authorId,
     content: upsertResult.action === "updated"
       ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
       : `Feedback launcher created in ${upsertResult.channelLabel}.`,
