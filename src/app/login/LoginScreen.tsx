@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { login, requestPasswordResetInline } from "@/app/auth/actions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   getLoginScreenViewState,
@@ -12,6 +12,7 @@ import {
 } from "@/app/login/loginScreenState";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import {
+  AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
   AuthCard,
   AuthDock,
   AuthFooter,
@@ -23,9 +24,10 @@ import {
   AuthShell,
   AuthStack,
 } from "@/components/auth/AuthShell";
+import { FitContentInput } from "@/components/ui/FitContentInput";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
@@ -47,6 +49,7 @@ const RESET_COOLDOWN_SECONDS = 60;
 const RESET_NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 const LOGIN_PENDING_TIMEOUT_MS = 12000;
 const LOGIN_PENDING_TIMEOUT_MESSAGE = "Login took too long. Check your password or try again.";
+const AUTH_FIELD_WIDTH_CLASS_NAME = "w-[15rem] max-w-full";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -299,11 +302,40 @@ export function LoginScreen({
     }
   }
 
+  const loginHeader = (
+    <AuthStack size="lg" className="mx-auto w-full max-w-sm text-center">
+      <AuthStack>
+        <div className="flex min-h-8 items-center justify-center">
+          <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
+        </div>
+        <AuthStack size="sm" className="text-center">
+          <h1 className={appTokens.authIntroTitle}>{copy.title}</h1>
+          {rememberedDisplayName ? (
+            <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
+          ) : null}
+          {helperText && !showRememberedAccountChoice ? (
+            <p
+              aria-live="polite"
+              className={cn(
+                appTokens.authHelperText,
+                showRememberedAccountCard ? appTokens.authHelperTextCentered : "",
+              )}
+            >
+              {helperText}
+            </p>
+          ) : null}
+        </AuthStack>
+        {!showRememberedAccountCard && copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
+      </AuthStack>
+    </AuthStack>
+  );
+
   return (
-    <AuthShell>
+    <AuthShell header={loginHeader}>
       <AuthCard
         className={cn(
           appTokens.authInteractiveCard,
+          AUTH_PLAIN_CARD_CHROME_CLASS_NAME,
           highlightInteractiveCard ? appTokens.authInteractiveCardEmailValid : "",
           readyInteractiveCard ? appTokens.authInteractiveCardReady : "",
           isSubmitting ? appTokens.authInteractiveCardPending : "",
@@ -313,33 +345,6 @@ export function LoginScreen({
           {showRememberedAccountCard && effectiveRememberedEmail ? (
             <input type="hidden" name="email" value={effectiveRememberedEmail} />
           ) : null}
-          <AuthStack size="lg">
-            <AuthStack>
-              <div className="flex min-h-8 items-center justify-center">
-                <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
-              </div>
-              <AuthStack size="sm" className="text-center">
-                <h1 className={appTokens.authIntroTitle}>{copy.title}</h1>
-                {rememberedDisplayName ? (
-                  <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
-                ) : null}
-                {helperText && !showRememberedAccountChoice ? (
-                  <p
-                    aria-live="polite"
-                    className={cn(
-                      appTokens.authHelperText,
-                      showRememberedAccountCard ? appTokens.authHelperTextCentered : "",
-                    )}
-                  >
-                    {helperText}
-                  </p>
-                ) : null}
-              </AuthStack>
-              {!showRememberedAccountCard && copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
-            </AuthStack>
-
-          </AuthStack>
-
           <AuthFormFields
             key={formSeed}
             aria-hidden={!showManualAuth}
@@ -351,18 +356,21 @@ export function LoginScreen({
             )}
           >
             {showEmailField ? (
-              <LabeledEditorField label="Email or username" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
-                <Input
+              <LabeledEditorField label="Email or username" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+                <FitContentInput
                   id={EMAIL_INPUT_ID}
                   type="text"
                   name="email"
                   required
                   autoComplete="username"
                   defaultValue={email || rememberedEmail || undefined}
+                  fitContent={false}
+                  minVisibleCharacters={17}
+                  wrapperClassName="w-full"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
-                    "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     emailValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => {
@@ -373,18 +381,20 @@ export function LoginScreen({
             ) : null}
 
             <AuthStack size="sm">
-              <LabeledEditorField label="Password" className="border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none">
-                <Input
+              <LabeledEditorField label="Password" className={cn("mx-auto border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none", AUTH_FIELD_WIDTH_CLASS_NAME)}>
+                <PasswordInput
                   id={PASSWORD_INPUT_ID}
-                  type="password"
                   name="password"
                   minLength={6}
                   required
                   autoComplete="current-password"
+                  fitContent={false}
+                  minVisibleCharacters={17}
+                  wrapperClassName="w-full"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     labeledEditorFieldControlClassName,
-                    "auth-input-plain h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                    "auth-input-plain h-12 w-full min-w-0 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     passwordValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => {
@@ -405,14 +415,6 @@ export function LoginScreen({
               <AuthFooterSeparator />
               <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
                 {isSendingReset ? "Sending..." : resetPasswordLabel}
-              </AuthInlineLinkButton>
-            </AuthFooterText>
-          </AuthFooter>
-        ) : showRememberedAccountChoice ? (
-          <AuthFooter>
-            <AuthFooterText>
-              <AuthInlineLinkButton onClick={handleSwitchAccount}>
-                Log Out
               </AuthInlineLinkButton>
             </AuthFooterText>
           </AuthFooter>
@@ -437,16 +439,28 @@ export function LoginScreen({
         </AuthDock>
       ) : showRememberedAccountChoice && rememberedAccountPrompt ? (
         <AuthDock>
-          <BottomActionSingle>
-            <BottomDockButton
-              type="button"
-              intent="positive"
-              disabled={isSubmitting}
-              onClick={handleRevealCredentialStep}
-            >
-              {rememberedAccountPrompt.label}
-            </BottomDockButton>
-          </BottomActionSingle>
+          <BottomActionSplit
+            secondary={(
+              <BottomDockButton
+                type="button"
+                intent="danger"
+                disabled={isSubmitting}
+                onClick={handleSwitchAccount}
+              >
+                Log Out
+              </BottomDockButton>
+            )}
+            primary={(
+              <BottomDockButton
+                type="button"
+                intent="positive"
+                disabled={isSubmitting}
+                onClick={handleRevealCredentialStep}
+              >
+                {rememberedAccountPrompt.label}
+              </BottomDockButton>
+            )}
+          />
         </AuthDock>
       ) : null}
     </AuthShell>
