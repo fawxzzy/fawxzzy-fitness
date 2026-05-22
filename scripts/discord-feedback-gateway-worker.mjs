@@ -14,6 +14,7 @@ const DISCORD_GATEWAY_OPCODE = {
 };
 const DISCORD_GATEWAY_INTENT_GUILD_MESSAGES = 1 << 9;
 const DISCORD_GATEWAY_INTENT_MESSAGE_CONTENT = 1 << 15;
+const DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS = 15_000;
 const FEEDBACK_SETUP_TRIGGERS = [
   "computa feedback setup",
   "computa setup feedback",
@@ -119,6 +120,16 @@ export function resolveDiscordMessageCommandPollSecret(env = process.env) {
   return readEnv("DISCORD_MESSAGE_COMMAND_POLL_SECRET", env) ?? readEnv("CRON_SECRET", env);
 }
 
+export function resolveDiscordMessageCommandPollIntervalMs(env = process.env) {
+  const rawValue = readEnv("DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS", env);
+  const intervalMs = Number(rawValue);
+  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+    return DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS;
+  }
+
+  return Math.max(5_000, Math.min(Math.floor(intervalMs), 120_000));
+}
+
 export async function callDiscordMessageCommandPoll({
   fetchImpl = globalThis.fetch,
   pollUrl,
@@ -172,6 +183,7 @@ export class DiscordFeedbackGatewayWorker {
     WebSocketImpl = globalThis.WebSocket,
     fetchImpl = globalThis.fetch,
     logger = console,
+    pollIntervalMs = DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS,
   }) {
     this.token = token;
     this.mainChannelId = mainChannelId;
@@ -180,9 +192,11 @@ export class DiscordFeedbackGatewayWorker {
     this.WebSocketImpl = WebSocketImpl;
     this.fetchImpl = fetchImpl;
     this.logger = logger;
+    this.pollIntervalMs = pollIntervalMs;
     this.socket = null;
     this.sequence = null;
     this.heartbeatTimer = null;
+    this.pollTimer = null;
     this.reconnectAttempt = 0;
     this.stopped = false;
     this.seenMessageIds = new Set();
@@ -208,14 +222,33 @@ export class DiscordFeedbackGatewayWorker {
 
     this.stopped = false;
     this.connect();
+    this.startPeriodicPoll();
   }
 
   stop() {
     this.stopped = true;
     this.clearHeartbeat();
+    this.clearPeriodicPoll();
     if (this.socket) {
       this.socket.close(1000, "worker stopped");
       this.socket = null;
+    }
+  }
+
+  startPeriodicPoll() {
+    this.clearPeriodicPoll();
+    this.pollTimer = setInterval(() => {
+      void this.runMessageCommandPoll({
+        reason: "interval",
+        messageId: null,
+      });
+    }, this.pollIntervalMs);
+  }
+
+  clearPeriodicPoll() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
   }
 
@@ -356,8 +389,15 @@ export class DiscordFeedbackGatewayWorker {
       }
     }
 
+    await this.runMessageCommandPoll({
+      reason: "message-create",
+      messageId,
+    });
+  }
+
+  async runMessageCommandPoll({ reason, messageId }) {
     if (this.pollInFlight) {
-      this.logger.info("[discord-feedback-worker] poll already in flight", { messageId });
+      this.logger.info("[discord-feedback-worker] poll already in flight", { reason, messageId });
       return;
     }
 
@@ -370,6 +410,7 @@ export class DiscordFeedbackGatewayWorker {
       });
       if (!result.ok) {
         this.logger.error("[discord-feedback-worker] feedback setup poll failed", {
+          reason,
           messageId,
           status: result.status,
           body: result.body ?? result.bodyText,
@@ -378,11 +419,13 @@ export class DiscordFeedbackGatewayWorker {
       }
 
       this.logger.info("[discord-feedback-worker] feedback setup poll completed", {
+        reason,
         messageId,
         processed: result.body?.processed ?? null,
       });
     } catch (error) {
       this.logger.error("[discord-feedback-worker] feedback setup poll threw", {
+        reason,
         messageId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -398,6 +441,7 @@ export function buildDiscordFeedbackGatewayWorkerFromEnv(env = process.env) {
     mainChannelId: readEnv("DISCORD_MAIN_CHANNEL_ID", env),
     pollUrl: resolveDiscordMessageCommandPollUrl(env),
     pollSecret: resolveDiscordMessageCommandPollSecret(env),
+    pollIntervalMs: resolveDiscordMessageCommandPollIntervalMs(env),
   });
 }
 
