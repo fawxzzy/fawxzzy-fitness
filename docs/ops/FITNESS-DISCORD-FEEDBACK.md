@@ -10,7 +10,7 @@ Product rules:
 - Historical `fix` rows may remain readable and exportable.
 - The Feedback forum is a display surface; Supabase is the source of truth.
 - Normal users should use persistent buttons and modals, not admin-style slash command choices.
-- The primary user entry should be a dedicated text channel such as `submit-feedback`, not a control post inside the forum itself.
+- The primary user entry is a launcher panel placed in the channel where staff runs `/setup-feedback` or the approved message trigger.
 - Feedback modal launchers must return the modal immediately.
 - The primary submit modal should use conservative Discord modal components: action rows with text inputs only.
 - Do not put string selects, file-upload components, or label-wrapped components in the first submit modal unless live Discord compatibility has been reverified.
@@ -27,13 +27,18 @@ Product rules:
 - `/setup-feedback`
   - admin-only
   - posts or refreshes the persistent `Submit Feedback Here` launcher
-  - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
-  - otherwise finds or creates `submit-feedback` above the Feedback forum
+  - uses the channel where the command is run when Discord provides a source channel
+  - removes older launcher messages from the previous configured or legacy `submit-feedback` channel after successful source-channel setup
+  - falls back to `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` only when no source channel is available
+  - does not create a dedicated `submit-feedback` channel
 - main-channel message triggers: `bot feedback setup` and `bot setup feedback`
   - requires the `Fawxzzy Commander` role after bootstrap
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`
-  - calls the same idempotent setup path as `/setup-feedback`
+  - posts or refreshes the launcher in the channel where the trigger message was sent
+  - removes older launcher messages from previous feedback setup channels after successful setup
+  - marks the trigger message with a public reaction
+  - sends setup/permission/failure details to the triggering user by DM instead of posting bot replies in main chat
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
 - `/setup-verify`
   - admin-only
@@ -123,8 +128,8 @@ Rule:
 - Feedback audit comments tell a card's history.
 
 ## User flow
-1. An admin runs `/setup-feedback`.
-2. Fitness creates or updates a dedicated launcher message in `submit-feedback`.
+1. An admin runs `/setup-feedback` in the intended channel, or an approved commander says `bot setup feedback` in main chat.
+2. Fitness creates or updates a dedicated launcher message in that channel.
 3. A user clicks `Submit`.
 4. Fitness opens one general modal.
 5. The modal collects `Feedback type` inside the flow.
@@ -133,7 +138,7 @@ Rule:
 8. Fitness edits the original ephemeral response with the final success or failure result.
 
 Pattern:
-- dedicated submit-feedback launcher
+- source-channel feedback launcher
 - general submit button
 - modal with text-only type field
 - deferred response
@@ -218,20 +223,20 @@ Stored attachment metadata should stay bounded to:
 - Discord URL fields when present
 
 ## Launcher placement
-- Preferred env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
-- Fallback env: `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
+- Preferred behavior: place the launcher in the channel where `/setup-feedback` or the main-chat trigger is used.
+- Fallback env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
 
-`/setup-feedback` is idempotent:
-- if an existing bot-authored feedback launcher is found, edit it
-- if a configured launcher channel exists, reuse it
-- otherwise, create or reuse `submit-feedback` as a normal text channel above the Feedback forum
-- if the launcher message is missing or deleted, create a new one
+`/setup-feedback` and the main-chat trigger are idempotent:
+- if an existing bot-authored feedback launcher is found in the source channel, edit it
+- if the launcher message is missing or deleted, create a new one in the source channel
+- after successful source-channel setup, remove older launcher messages from the previous configured or legacy `submit-feedback` channel
+- if Discord does not provide a source channel, reuse `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
+- do not create or reuse a dedicated `submit-feedback` channel
 
 If panel creation fails with Discord `50013 Missing Permissions`, the admin response should mention:
 - `View Channel`
 - `Read Message History`
 - `Send Messages`
-- `Manage Channels` when auto-creating `submit-feedback`
 - `Embed Links` optional
 - `Use External Emojis` optional
 
@@ -462,8 +467,8 @@ After verify-copy changes, rerun:
 ## Operator checklist
 1. Make sure the Feedback forum has the required tags.
 2. Register commands with `npm run discord:commands:register`.
-3. Set the forum and optional panel env vars.
-4. Run `/setup-feedback`.
+3. Set the forum and optional fallback panel env vars.
+4. Run `/setup-feedback` in the channel where the launcher should live, or say `bot setup feedback` in main chat.
 5. Pin the panel if needed.
 6. Run `npm run discord:emoji:bootstrap -- --apply --write-env-template` if bot-owned emoji should be available.
 7. Test `Submit Feedback` with both `Bug` and `Feature`.

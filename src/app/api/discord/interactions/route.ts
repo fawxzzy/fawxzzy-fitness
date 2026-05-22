@@ -208,8 +208,8 @@ import {
 } from "@/lib/discord/moderation";
 import {
   addDiscordGuildMemberRole,
+  createDiscordDirectMessageChannel,
   createDiscordRole,
-  createDiscordGuildChannel,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
   createDiscordInteractionFollowupMessage,
@@ -229,7 +229,6 @@ import {
   patchDiscordChannelMessage,
   resolveDiscordForumTagIdsByName,
   removeDiscordGuildMemberRole,
-  updateDiscordChannel,
   updateDiscordChannelPermissionOverwrite,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
@@ -326,7 +325,6 @@ const DISCORD_FEEDBACK_ALLOWED_ATTACHMENT_CONTENT_TYPES = new Set([
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_COUNT = 3;
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
-const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC = "Start here to submit or manage Fawxzzy Fitness feedback cards.";
 const DISCORD_COMMANDER_ROLE_NAME = "Fawxzzy Commander";
 const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
   "bot feedback setup",
@@ -350,6 +348,7 @@ type DiscordInteraction = {
   token?: unknown;
   type?: unknown;
   guild_id?: unknown;
+  channel_id?: unknown;
   message?: {
     id?: unknown;
     flags?: unknown;
@@ -1522,7 +1521,7 @@ function isDiscordMissingPermissionsFailure(result: { status?: number; message?:
 
 function buildDiscordPanelPermissionFailureResponse() {
   return buildDiscordEphemeralMessageResponse(
-    "Discord could not create the feedback launcher. The bot needs View Channel, Read Message History, and Send Messages. Manage Channels may also be required when auto-creating submit-feedback. Embed Links and Use External Emojis are optional.",
+    "Discord could not create the feedback launcher. The bot needs View Channel, Read Message History, and Send Messages in the channel where setup is used. Embed Links and Use External Emojis are optional.",
   );
 }
 
@@ -1562,7 +1561,20 @@ function truncateDiscordSelectText(value: string, maxLength: number) {
   return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
-async function ensureFeedbackPanelChannel() {
+async function ensureFeedbackPanelChannel(args: { targetChannelId?: string | null } = {}) {
+  if (args.targetChannelId) {
+    const channelResult = await fetchDiscordChannel({ channelId: args.targetChannelId });
+    if (!channelResult.ok) {
+      return channelResult;
+    }
+
+    return {
+      ok: true as const,
+      channelId: args.targetChannelId,
+      channelLabel: `<#${args.targetChannelId}>`,
+    };
+  }
+
   const configuredChannelId = DISCORD_FEEDBACK_PANEL_CHANNEL_ID();
   if (configuredChannelId) {
     return {
@@ -1572,82 +1584,10 @@ async function ensureFeedbackPanelChannel() {
     };
   }
 
-  const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
-  if (!forumChannelId) {
-    return {
-      ok: false as const,
-      code: "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED",
-      message: "Missing feedback panel channel and feedback forum channel.",
-    };
-  }
-
-  const forumResult = await fetchDiscordChannel({ channelId: forumChannelId });
-  if (!forumResult.ok) {
-    return forumResult;
-  }
-
-  const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
-  if (!guildChannelsResult.ok) {
-    return guildChannelsResult;
-  }
-
-  const existingChannel = guildChannelsResult.channels.find((channel) => (
-    channel.type === 0
-    && channel.name === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
-    && channel.parent_id === forumResult.channel.parent_id
-  ));
-
-  const targetPosition = typeof forumResult.channel.position === "number"
-    ? Math.max(0, forumResult.channel.position)
-    : undefined;
-
-  if (existingChannel?.id) {
-    const shouldRetunePlacement =
-      existingChannel.topic !== DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC
-      || existingChannel.parent_id !== forumResult.channel.parent_id
-      || (
-        typeof targetPosition === "number"
-        && typeof existingChannel.position === "number"
-        && existingChannel.position !== targetPosition
-      );
-
-    if (shouldRetunePlacement) {
-      const updateResult = await updateDiscordChannel({
-        channelId: existingChannel.id,
-        topic: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC,
-        parentId: forumResult.channel.parent_id ?? null,
-        position: targetPosition,
-      });
-
-      if (!updateResult.ok) {
-        return updateResult;
-      }
-    }
-
-    return {
-      ok: true as const,
-      channelId: existingChannel.id,
-      channelLabel: `#${DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME}`,
-    };
-  }
-
-  const createResult = await createDiscordGuildChannel({
-    guildId: DISCORD_GUILD_ID(),
-    name: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME,
-    type: 0,
-    topic: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC,
-    parentId: forumResult.channel.parent_id ?? null,
-    position: targetPosition,
-  });
-
-  if (!createResult.ok) {
-    return createResult;
-  }
-
   return {
-    ok: true as const,
-    channelId: createResult.channel.id,
-    channelLabel: `#${DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME}`,
+    ok: false as const,
+    code: "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED",
+    message: "Discord did not provide a setup source channel and no fallback feedback panel channel is configured.",
   };
 }
 
@@ -2154,8 +2094,105 @@ async function postFeedbackAuditComment(args: {
   return { ok: true, messageId: result.messageId };
 }
 
-async function upsertDiscordFeedbackPanel() {
-  const panelChannelResult = await ensureFeedbackPanelChannel();
+async function collectLegacyDiscordFeedbackPanelChannelIds(targetChannelId: string) {
+  const channelIds = new Set<string>();
+  const configuredChannelId = DISCORD_FEEDBACK_PANEL_CHANNEL_ID();
+  if (configuredChannelId && configuredChannelId !== targetChannelId) {
+    channelIds.add(configuredChannelId);
+  }
+
+  const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
+  if (!guildChannelsResult.ok) {
+    console.warn("[discord-feedback-panel] legacy channel lookup failed", {
+      code: guildChannelsResult.code,
+      status: guildChannelsResult.status,
+      message: guildChannelsResult.message,
+    });
+    return Array.from(channelIds);
+  }
+
+  for (const channel of guildChannelsResult.channels) {
+    if (
+      channel.id
+      && channel.id !== targetChannelId
+      && channel.type === 0
+      && channel.name === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
+    ) {
+      channelIds.add(channel.id);
+    }
+  }
+
+  return Array.from(channelIds);
+}
+
+async function deleteDiscordFeedbackPanelMessagesInChannel(args: {
+  channelId: string;
+  keepMessageIds?: string[];
+}) {
+  const messagesResult = await fetchDiscordChannelMessages({
+    channelId: args.channelId,
+    limit: 50,
+  });
+
+  if (!messagesResult.ok) {
+    console.warn("[discord-feedback-panel] stale panel scan failed", {
+      channelId: args.channelId,
+      code: messagesResult.code,
+      status: messagesResult.status,
+      message: messagesResult.message,
+    });
+    return;
+  }
+
+  const keepMessageIds = new Set(args.keepMessageIds ?? []);
+  const stalePanelMessages = messagesResult.messages.filter((message) => (
+    message.id
+    && !keepMessageIds.has(message.id)
+    && discordMessageHasFeedbackPanel(message)
+  ));
+
+  for (const message of stalePanelMessages) {
+    const deleteResult = await deleteDiscordChannelMessage({
+      channelId: args.channelId,
+      messageId: message.id,
+    });
+    if (!deleteResult.ok && deleteResult.code !== "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
+      console.warn("[discord-feedback-panel] stale panel delete failed", {
+        channelId: args.channelId,
+        messageId: message.id,
+        code: deleteResult.code,
+        status: deleteResult.status,
+        message: deleteResult.message,
+      });
+    }
+  }
+}
+
+async function cleanupLegacyDiscordFeedbackPanels(args: {
+  targetChannelId: string;
+  keepMessageIds?: string[];
+  includeLegacyChannels: boolean;
+}) {
+  await deleteDiscordFeedbackPanelMessagesInChannel({
+    channelId: args.targetChannelId,
+    keepMessageIds: args.keepMessageIds,
+  });
+
+  if (!args.includeLegacyChannels) {
+    return;
+  }
+
+  const legacyChannelIds = await collectLegacyDiscordFeedbackPanelChannelIds(args.targetChannelId);
+  for (const channelId of legacyChannelIds) {
+    await deleteDiscordFeedbackPanelMessagesInChannel({ channelId });
+  }
+}
+
+async function upsertDiscordFeedbackPanel(args: {
+  targetChannelId?: string | null;
+  cleanupLegacyPanels?: boolean;
+} = {}) {
+  const panelChannelResult = await ensureFeedbackPanelChannel({ targetChannelId: args.targetChannelId });
   if (!panelChannelResult.ok) {
     return panelChannelResult;
   }
@@ -2235,9 +2272,19 @@ async function upsertDiscordFeedbackPanel() {
       body: payload,
     });
 
-    return createResult.ok
-      ? { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel }
-      : { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
+    if (!createResult.ok) {
+      return { ok: false as const, code: createResult.code, status: createResult.status, message: createResult.message };
+    }
+
+    if (args.cleanupLegacyPanels === true) {
+      await cleanupLegacyDiscordFeedbackPanels({
+        targetChannelId: channelId,
+        keepMessageIds: createResult.messageId ? [createResult.messageId] : [],
+        includeLegacyChannels: true,
+      });
+    }
+
+    return { ok: true as const, action: "created" as const, channelLabel: panelChannelResult.channelLabel };
   };
 
   const messagesResult = await fetchDiscordChannelMessages({
@@ -2268,6 +2315,14 @@ async function upsertDiscordFeedbackPanel() {
   });
 
   if (patchResult.ok) {
+    if (args.cleanupLegacyPanels === true) {
+      await cleanupLegacyDiscordFeedbackPanels({
+        targetChannelId: channelId,
+        keepMessageIds: [existingMessage.id],
+        includeLegacyChannels: true,
+      });
+    }
+
     return { ok: true as const, action: "updated" as const, channelLabel: panelChannelResult.channelLabel };
   }
 
@@ -2575,28 +2630,44 @@ function discordRolePermissionsAllowSetup(permissions: bigint): boolean {
     || (permissions & DISCORD_PERMISSION_MANAGE_GUILD) === DISCORD_PERMISSION_MANAGE_GUILD;
 }
 
-async function replyToDiscordMessageCommand(args: {
-  channelId: string;
-  guildId: string;
-  messageId: string;
+async function sendDiscordMessageCommandPrivateNotice(args: {
+  userId: string;
   content: string;
 }) {
-  return createDiscordChannelMessage({
-    channelId: args.channelId,
+  const dmChannelResult = await createDiscordDirectMessageChannel({
+    recipientUserId: args.userId,
+  });
+
+  if (!dmChannelResult.ok) {
+    console.warn("[discord-message-command] private notice dm channel failed", {
+      requestId: randomUUID(),
+      code: dmChannelResult.code,
+      status: dmChannelResult.status,
+      message: dmChannelResult.message,
+    });
+    return dmChannelResult;
+  }
+
+  const messageResult = await createDiscordChannelMessage({
+    channelId: dmChannelResult.channel.id,
     body: {
       content: args.content,
-      message_reference: {
-        message_id: args.messageId,
-        channel_id: args.channelId,
-        guild_id: args.guildId,
-        fail_if_not_exists: false,
-      },
       allowed_mentions: {
         parse: [],
-        replied_user: false,
       },
     },
   });
+
+  if (!messageResult.ok) {
+    console.warn("[discord-message-command] private notice send failed", {
+      requestId: randomUUID(),
+      code: messageResult.code,
+      status: messageResult.status,
+      message: messageResult.message,
+    });
+  }
+
+  return messageResult;
 }
 
 async function markDiscordMessageCommandProcessed(args: {
@@ -2718,10 +2789,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
   });
 
   if (!commanderRoleResult.ok) {
-    await replyToDiscordMessageCommand({
-      channelId: args.channelId,
-      guildId,
-      messageId,
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
       content: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
     });
     await markDiscordMessageCommandProcessed({
@@ -2743,10 +2812,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
   }
 
   if (!hasCommanderRole) {
-    await replyToDiscordMessageCommand({
-      channelId: args.channelId,
-      guildId,
-      messageId,
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
       content: commanderRoleResult.roleCreated
         ? `${DISCORD_COMMANDER_ROLE_NAME} was created. Assign it to yourself or another operator, then retry.`
         : `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
@@ -2759,7 +2826,10 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
     return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN" };
   }
 
-  const upsertResult = await upsertDiscordFeedbackPanel();
+  const upsertResult = await upsertDiscordFeedbackPanel({
+    targetChannelId: args.channelId,
+    cleanupLegacyPanels: true,
+  });
   if (!upsertResult.ok) {
     console.error("[discord-message-command] feedback setup failed", {
       requestId: randomUUID(),
@@ -2767,10 +2837,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
       status: "status" in upsertResult ? upsertResult.status : undefined,
       message: upsertResult.message,
     });
-    await replyToDiscordMessageCommand({
-      channelId: args.channelId,
-      guildId,
-      messageId,
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorId,
       content: "Feedback setup failed. Check bot permissions and configured feedback channels.",
     });
     await markDiscordMessageCommandProcessed({
@@ -2781,10 +2849,8 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
     return upsertResult;
   }
 
-  await replyToDiscordMessageCommand({
-    channelId: args.channelId,
-    guildId,
-    messageId,
+  await sendDiscordMessageCommandPrivateNotice({
+    userId: authorId,
     content: upsertResult.action === "updated"
       ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
       : `Feedback launcher created in ${upsertResult.channelLabel}.`,
@@ -3174,7 +3240,11 @@ async function handleSetupFeedbackInteraction(interaction: DiscordInteraction) {
     return buildDiscordEphemeralMessageResponse("You do not have permission to set up feedback.");
   }
 
-  const upsertResult = await upsertDiscordFeedbackPanel();
+  const sourceChannelId = typeof interaction.channel_id === "string" ? interaction.channel_id : null;
+  const upsertResult = await upsertDiscordFeedbackPanel({
+    targetChannelId: sourceChannelId,
+    cleanupLegacyPanels: Boolean(sourceChannelId),
+  });
   if (!upsertResult.ok) {
     console.error("[discord-interactions] setup-feedback failed", {
       requestId: randomUUID(),
