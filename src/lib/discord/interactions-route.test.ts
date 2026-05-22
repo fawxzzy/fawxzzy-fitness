@@ -1380,6 +1380,192 @@ test("Discord message command poll replaces one owner computa command menu per c
   }
 });
 
+test("Discord message command poll posts release ledger check summary for commanders", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+
+  const originalFetch = globalThis.fetch;
+  const postedBodies = [];
+  let deletedOldCheck = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      if (url.searchParams.get("limit") === "25") {
+        return new Response(JSON.stringify([
+          {
+            id: "main-message-release-check",
+            content: "computa release check",
+            author: { id: "123456789012345678", bot: false },
+            member: { roles: ["commander-role"] },
+            reactions: [],
+          },
+        ]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      assert.equal(url.searchParams.get("limit"), "50");
+      return new Response(JSON.stringify([
+        {
+          id: "old-release-check",
+          content: "",
+          author: { id: "1504700208251146371", bot: true },
+          embeds: [
+            {
+              title: "Computa Release Check",
+              footer: { text: "fawx-computa-release-check:v1" },
+            },
+          ],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "fixed-tag", name: "Fixed" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/threads/active" && method === "GET") {
+      return new Response(JSON.stringify({
+        threads: [
+          {
+            id: "thread-fixed-missing",
+            parent_id: "1504673475489562744",
+            archived: false,
+            applied_tags: ["fixed-tag"],
+          },
+          {
+            id: "thread-open-with-success",
+            parent_id: "1504673475489562744",
+            archived: false,
+            applied_tags: [],
+          },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/threads/archived/public" && method === "GET") {
+      return new Response(JSON.stringify({ threads: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/threads/archived/private" && method === "GET") {
+      return new Response(JSON.stringify({ threads: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/thread-fixed-missing/messages/thread-fixed-missing" && method === "GET") {
+      return new Response(JSON.stringify({ id: "thread-fixed-missing", reactions: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/thread-open-with-success/messages/thread-open-with-success" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "thread-open-with-success",
+        reactions: [{ emoji: { id: "1507384062166302851", name: "fawxzzy" } }],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/old-release-check" && method === "DELETE") {
+      deletedOldCheck = true;
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      postedBodies.push(body);
+      assert.equal(body?.embeds?.[0]?.title, "Computa Release Check");
+      assert.equal(body?.embeds?.[0]?.color, 0xf59e0b);
+      assert.equal(body?.embeds?.[0]?.footer?.text, "fawx-computa-release-check:v1");
+      assert.match(body?.embeds?.[0]?.description ?? "", /Missing success reaction: 1/);
+      assert.match(body?.embeds?.[0]?.description ?? "", /Unresolved cards with success reaction: 1/);
+      return new Response(JSON.stringify({ id: "new-release-check" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-release-check/reactions/fawxzzy%3A1507384094424694785/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-release-check",
+          ok: true,
+          code: null,
+          action: "checked",
+        },
+      ],
+    });
+    assert.equal(deletedOldCheck, true);
+    assert.equal(postedBodies.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  }
+});
+
 test("Discord message command poll repairs the public computa command card for commanders", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";

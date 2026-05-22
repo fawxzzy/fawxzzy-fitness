@@ -62,6 +62,13 @@ Product rules:
   - removes the configured success reaction when the starter no longer has a resolved tag
   - aliases: `computa feedback sync reactions`, `computa sync checked cards`
   - marks the trigger with the configured success/failure reaction
+- `computa release check`
+  - main-channel message trigger
+  - commander-only
+  - replaces one `Computa Release Check` card in the channel where it was used
+  - scans Feedback forum cards for resolved tags, configured success reactions, stale success reactions, and legacy white-checkmark reactions
+  - uses a green card when clean and an amber card when attention is needed
+  - aliases: `computa check release`, `computa ledger check`, `computa check ledger`
 - `/setup-feedback`
   - admin-only
   - deletes the old post and reposts the persistent `Submit Feedback Here` launcher
