@@ -1265,6 +1265,189 @@ test("Discord message command poll replaces one computa command menu per channel
   }
 });
 
+test("Discord message command poll replaces one owner computa command menu per channel", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user";
+
+  const originalFetch = globalThis.fetch;
+  const postedBodies = [];
+  let deletedOldMenu = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      if (url.searchParams.get("limit") === "25") {
+        return new Response(JSON.stringify([
+          {
+            id: "main-message-computa-owner-menu",
+            content: "computa owner",
+            author: { id: "owner-user", bot: false },
+            reactions: [],
+          },
+        ]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      assert.equal(url.searchParams.get("limit"), "50");
+      return new Response(JSON.stringify([
+        {
+          id: "old-computa-owner-menu",
+          content: "",
+          author: { id: "1504700208251146371", bot: true },
+          embeds: [
+            {
+              title: "Computa Owner",
+              footer: { text: "fawx-computa-owner-command-menu:v1" },
+            },
+          ],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/old-computa-owner-menu" && method === "DELETE") {
+      deletedOldMenu = true;
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      postedBodies.push(body);
+      assert.equal(body?.content, "");
+      assert.equal(body?.embeds?.[0]?.title, "Computa Owner");
+      assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
+      assert.equal(body?.embeds?.[0]?.footer?.text, "fawx-computa-owner-command-menu:v1");
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa owner` - Show this owner command card\./);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa archive checked cards`/);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa post live twitch`/);
+      assert.equal(body?.components, undefined);
+      assert.deepEqual(body?.allowed_mentions, { parse: [] });
+      return new Response(JSON.stringify({ id: "new-computa-owner-menu" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-owner-menu/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-computa-owner-menu",
+          ok: true,
+          code: null,
+          action: "posted",
+        },
+      ],
+    });
+    assert.equal(deletedOldMenu, true);
+    assert.equal(postedBodies.length, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
+  }
+});
+
+test("Discord message command poll rejects owner computa menu for non-owner users", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user";
+
+  const originalFetch = globalThis.fetch;
+  let postedMenu = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-computa-owner-forbidden",
+          content: "computa owner",
+          author: { id: "normal-user", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-owner-forbidden/reactions/fawxzzy%3A1507384094424694785/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      postedMenu = true;
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-computa-owner-forbidden",
+          ok: false,
+          code: "DISCORD_COMPUTA_OWNER_MENU_FORBIDDEN",
+          action: null,
+        },
+      ],
+    });
+    assert.equal(postedMenu, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
+  }
+});
+
 test("Discord message command poll rejects computa menu for users without commander role", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -2196,6 +2379,24 @@ test("Discord message command poll syncs feedback resolved reactions for command
       });
     }
 
+    if (url.pathname === "/api/v10/channels/1504673475489562744/threads/archived/public" && method === "GET") {
+      return new Response(JSON.stringify({
+        threads: [
+          { id: "thread-archived-legacy", parent_id: "1504673475489562744", archived: true, applied_tags: ["tag-closed"] },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/threads/archived/private" && method === "GET") {
+      return new Response(JSON.stringify({ threads: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.pathname === "/api/v10/channels/thread-needs-add/messages/thread-needs-add" && method === "GET") {
       return new Response(JSON.stringify({ id: "thread-needs-add", reactions: [] }), {
         status: 200,
@@ -2233,6 +2434,16 @@ test("Discord message command poll syncs feedback resolved reactions for command
       });
     }
 
+    if (url.pathname === "/api/v10/channels/thread-archived-legacy/messages/thread-archived-legacy" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "thread-archived-legacy",
+        reactions: [{ emoji: { name: "\u2705" } }],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (
       (
         url.pathname === "/api/v10/channels/thread-needs-add/messages/thread-needs-add/reactions/fawxzzy%3A1507384062166302851/@me"
@@ -2248,6 +2459,14 @@ test("Discord message command poll syncs feedback resolved reactions for command
       )
       || (
         url.pathname === "/api/v10/channels/thread-legacy-migrate/messages/thread-legacy-migrate/reactions/%E2%9C%85/@me"
+        && method === "DELETE"
+      )
+      || (
+        url.pathname === "/api/v10/channels/thread-archived-legacy/messages/thread-archived-legacy/reactions/fawxzzy%3A1507384062166302851/@me"
+        && method === "PUT"
+      )
+      || (
+        url.pathname === "/api/v10/channels/thread-archived-legacy/messages/thread-archived-legacy/reactions/%E2%9C%85/@me"
         && method === "DELETE"
       )
     ) {
@@ -2280,7 +2499,7 @@ test("Discord message command poll syncs feedback resolved reactions for command
         },
       ],
     });
-    assert.deepEqual(reactionCalls.map((call) => call.method).sort(), ["DELETE", "DELETE", "PUT", "PUT"]);
+    assert.deepEqual(reactionCalls.map((call) => call.method).sort(), ["DELETE", "DELETE", "DELETE", "PUT", "PUT", "PUT"]);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;

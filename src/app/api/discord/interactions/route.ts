@@ -341,6 +341,7 @@ const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
 const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";
 const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy";
 const DISCORD_COMPUTA_COMMAND_MENU_MARKER = "fawx-computa-command-menu:v1";
+const DISCORD_COMPUTA_OWNER_COMMAND_MENU_MARKER = "fawx-computa-owner-command-menu:v1";
 const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
 const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
 const DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID = "1507384062166302851";
@@ -425,6 +426,16 @@ type DiscordComputaLiveCommand = {
 type DiscordComputaUpdateCommand = {
   title: string;
   description: string;
+};
+
+type DiscordFeedbackThreadSyncSource = "active" | "archived-public" | "archived-private";
+
+type DiscordFeedbackThreadForSync = {
+  id: string;
+  parent_id?: string;
+  archived?: boolean;
+  applied_tags?: string[];
+  syncSource: DiscordFeedbackThreadSyncSource;
 };
 
 function jsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
@@ -2637,6 +2648,10 @@ function discordMessageRequestsComputaMenu(message: DiscordMessageCommand): bool
   return normalizeDiscordMessageCommandContent(message.content) === "computa";
 }
 
+function discordMessageRequestsComputaOwnerMenu(message: DiscordMessageCommand): boolean {
+  return normalizeDiscordMessageCommandContent(message.content) === "computa owner";
+}
+
 function resolveDiscordComputaOwnerUserId(): string {
   return optionalEnv("DISCORD_COMPUTA_OWNER_USER_ID") ?? DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT;
 }
@@ -2779,6 +2794,7 @@ function discordMessageRequestsComputaUpdate(message: DiscordMessageCommand): bo
 
 function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): boolean {
   return discordMessageRequestsComputaMenu(message)
+    || discordMessageRequestsComputaOwnerMenu(message)
     || discordMessageRequestsFeedbackSetup(message)
     || discordMessageRequestsArchiveCheckedCards(message)
     || discordMessageRequestsFeedbackReactionSync(message)
@@ -2845,6 +2861,30 @@ function discordMessageHasComputaCommandMenu(message: unknown): boolean {
   });
 }
 
+function discordMessageHasComputaOwnerCommandMenu(message: unknown): boolean {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  const embeds = "embeds" in message ? (message as { embeds?: unknown }).embeds : undefined;
+  if (!Array.isArray(embeds)) {
+    return false;
+  }
+
+  return embeds.some((embed) => {
+    if (!embed || typeof embed !== "object") {
+      return false;
+    }
+
+    const footer = "footer" in embed ? (embed as { footer?: unknown }).footer : undefined;
+    if (footer && typeof footer === "object" && "text" in footer) {
+      return (footer as { text?: unknown }).text === DISCORD_COMPUTA_OWNER_COMMAND_MENU_MARKER;
+    }
+
+    return "title" in embed && (embed as { title?: unknown }).title === "Computa Owner";
+  });
+}
+
 function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
   return {
     content: "",
@@ -2860,6 +2900,36 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
         ].join("\n"),
         color: DISCORD_EMBED_COLOR_SUCCESS,
+      },
+    ],
+  };
+}
+
+function buildDiscordComputaOwnerCommandMenuPayload(): Record<string, unknown> {
+  return {
+    content: "",
+    allowed_mentions: {
+      parse: [],
+    },
+    embeds: [
+      {
+        title: "Computa Owner",
+        description: [
+          "`computa` - Show the public command card.",
+          "`computa owner` - Show this owner command card.",
+          "`computa feedback setup` - Refresh feedback buttons in this channel.",
+          "`computa setup feedback` - Refresh feedback buttons in this channel.",
+          "`computa archive checked cards` - Archive resolved feedback cards with the success reaction.",
+          "`computa sync feedback reactions` - Sync resolved feedback cards to the success reaction.",
+          "`computa post update [Title | body]` - Post a formatted update.",
+          "`computa post live twitch` - Post the saved Twitch live announcement.",
+          "`computa post live tiktok` - Post the saved TikTok live announcement.",
+          "`computa post live [link]` - Post a custom live announcement.",
+        ].join("\n"),
+        color: DISCORD_EMBED_COLOR_SUCCESS,
+        footer: {
+          text: DISCORD_COMPUTA_OWNER_COMMAND_MENU_MARKER,
+        },
       },
     ],
   };
@@ -3228,6 +3298,56 @@ async function processDiscordComputaMenuMessageCommand(args: {
   return { ok: true as const, action: postResult.action, deletedCount: postResult.deletedCount };
 }
 
+async function processDiscordComputaOwnerMenuMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  const authorId = typeof args.message.author?.id === "string" ? args.message.author.id : null;
+  if (!messageId || !authorId) {
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  if (authorId !== resolveDiscordComputaOwnerUserId()) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_COMPUTA_OWNER_MENU_FORBIDDEN" };
+  }
+
+  const postResult = await replaceDiscordSingleBotChannelPost({
+    channelId: args.channelId,
+    body: buildDiscordComputaOwnerCommandMenuPayload(),
+    matchesMessage: discordMessageHasComputaOwnerCommandMenu,
+    logLabel: "computa-owner-command-menu",
+  });
+
+  if (!postResult.ok) {
+    console.error("[discord-message-command] computa owner command menu failed", {
+      requestId: randomUUID(),
+      code: postResult.code,
+      status: "status" in postResult ? postResult.status : undefined,
+      message: postResult.message,
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return postResult;
+  }
+
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+
+  return { ok: true as const, action: postResult.action, deletedCount: postResult.deletedCount };
+}
+
 async function processDiscordFeedbackSetupMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
@@ -3340,6 +3460,84 @@ function resolveDiscordForumTagIdsByNames(channel: { available_tags?: unknown },
     .map((tag) => tag.id);
 }
 
+async function listDiscordFeedbackThreadsForReactionSync(forumChannelId: string): Promise<
+  | { ok: true; threads: DiscordFeedbackThreadForSync[]; skippedArchivedPublic: boolean; skippedArchivedPrivate: boolean }
+  | { ok: false; code: string; status?: number; message?: string | null }
+> {
+  const activeThreadsResult = await fetchDiscordGuildActiveThreads({ guildId: DISCORD_GUILD_ID() });
+  if (!activeThreadsResult.ok) {
+    return activeThreadsResult;
+  }
+
+  const threadMap = new Map<string, DiscordFeedbackThreadForSync>();
+  const addThread = (thread: {
+    id?: unknown;
+    parent_id?: unknown;
+    archived?: unknown;
+    applied_tags?: unknown;
+  }, syncSource: DiscordFeedbackThreadSyncSource) => {
+    if (typeof thread.id !== "string") {
+      return;
+    }
+    if (syncSource === "active" && thread.parent_id !== forumChannelId) {
+      return;
+    }
+    const appliedTags = Array.isArray(thread.applied_tags)
+      ? thread.applied_tags.filter((tagId): tagId is string => typeof tagId === "string")
+      : [];
+    threadMap.set(thread.id, {
+      id: thread.id,
+      parent_id: typeof thread.parent_id === "string" ? thread.parent_id : forumChannelId,
+      archived: thread.archived === true,
+      applied_tags: appliedTags,
+      syncSource,
+    });
+  };
+
+  for (const thread of activeThreadsResult.threads) {
+    addThread(thread, "active");
+  }
+
+  let skippedArchivedPublic = false;
+  const archivedPublicResult = await fetchDiscordChannelArchivedPublicThreads({ channelId: forumChannelId });
+  if (archivedPublicResult.ok) {
+    for (const thread of archivedPublicResult.threads) {
+      addThread(thread, "archived-public");
+    }
+  } else {
+    skippedArchivedPublic = true;
+    console.warn("[discord-message-command] feedback archived public scan skipped", {
+      requestId: randomUUID(),
+      code: archivedPublicResult.code,
+      status: archivedPublicResult.status,
+      message: archivedPublicResult.message,
+    });
+  }
+
+  let skippedArchivedPrivate = false;
+  const archivedPrivateResult = await fetchDiscordChannelArchivedPrivateThreads({ channelId: forumChannelId });
+  if (archivedPrivateResult.ok) {
+    for (const thread of archivedPrivateResult.threads) {
+      addThread(thread, "archived-private");
+    }
+  } else {
+    skippedArchivedPrivate = true;
+    console.warn("[discord-message-command] feedback archived private scan skipped", {
+      requestId: randomUUID(),
+      code: archivedPrivateResult.code,
+      status: archivedPrivateResult.status,
+      message: archivedPrivateResult.message,
+    });
+  }
+
+  return {
+    ok: true,
+    threads: Array.from(threadMap.values()).slice(0, 100),
+    skippedArchivedPublic,
+    skippedArchivedPrivate,
+  };
+}
+
 async function syncDiscordFeedbackResolvedReactions() {
   const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
   if (!forumChannelId) {
@@ -3356,20 +3554,17 @@ async function syncDiscordFeedbackResolvedReactions() {
     return { ok: false as const, code: "DISCORD_FEEDBACK_RESOLVED_TAGS_NOT_FOUND" };
   }
 
-  const activeThreadsResult = await fetchDiscordGuildActiveThreads({ guildId: DISCORD_GUILD_ID() });
-  if (!activeThreadsResult.ok) {
-    return activeThreadsResult;
+  const threadsResult = await listDiscordFeedbackThreadsForReactionSync(forumChannelId);
+  if (!threadsResult.ok) {
+    return threadsResult;
   }
-
-  const feedbackThreads = activeThreadsResult.threads
-    .filter((thread) => thread.parent_id === forumChannelId && thread.archived !== true)
-    .slice(0, 50);
 
   let addedCount = 0;
   let removedCount = 0;
   let skippedCount = 0;
+  let legacyRemovedCount = 0;
 
-  for (const thread of feedbackThreads) {
+  for (const thread of threadsResult.threads) {
     const starterResult = await fetchDiscordChannelMessage({
       channelId: thread.id,
       messageId: thread.id,
@@ -3379,9 +3574,7 @@ async function syncDiscordFeedbackResolvedReactions() {
       continue;
     }
 
-    const appliedTagIds = Array.isArray(thread.applied_tags)
-      ? thread.applied_tags.filter((tagId): tagId is string => typeof tagId === "string")
-      : [];
+    const appliedTagIds = Array.isArray(thread.applied_tags) ? thread.applied_tags : [];
     const shouldHaveReaction = appliedTagIds.some((tagId) => resolvedTagIds.has(tagId));
     const hasCustomReaction = discordMessageHasCustomSuccessReaction(starterResult.message as DiscordMessageCommand);
     const hasLegacyReaction = discordMessageHasLegacySuccessReaction(starterResult.message as DiscordMessageCommand);
@@ -3399,11 +3592,14 @@ async function syncDiscordFeedbackResolvedReactions() {
     }
 
     if (hasLegacyReaction) {
-      await deleteDiscordOwnMessageReaction({
+      const deleteLegacyResult = await deleteDiscordOwnMessageReaction({
         channelId: thread.id,
         messageId: thread.id,
         emoji: DISCORD_LEGACY_SUCCESS_REACTION,
       });
+      if (deleteLegacyResult.ok) {
+        legacyRemovedCount += 1;
+      }
     }
 
     if (!shouldHaveReaction && hasCustomReaction) {
@@ -3421,10 +3617,13 @@ async function syncDiscordFeedbackResolvedReactions() {
 
   return {
     ok: true as const,
-    scannedCount: feedbackThreads.length,
+    scannedCount: threadsResult.threads.length,
     addedCount,
     removedCount,
+    legacyRemovedCount,
     skippedCount,
+    skippedArchivedPublic: threadsResult.skippedArchivedPublic,
+    skippedArchivedPrivate: threadsResult.skippedArchivedPrivate,
   };
 }
 
@@ -3717,6 +3916,7 @@ async function pollDiscordMessageCommands() {
     const candidate = message as DiscordMessageCommand;
     let result:
       | Awaited<ReturnType<typeof processDiscordComputaMenuMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordComputaOwnerMenuMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaLiveMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaUpdateMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordArchiveCheckedCardsMessageCommand>>
@@ -3725,6 +3925,11 @@ async function pollDiscordMessageCommands() {
 
     if (discordMessageRequestsComputaMenu(candidate)) {
       result = await processDiscordComputaMenuMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else if (discordMessageRequestsComputaOwnerMenu(candidate)) {
+      result = await processDiscordComputaOwnerMenuMessageCommand({
         channelId,
         message: candidate,
       });

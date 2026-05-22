@@ -7,6 +7,7 @@ import {
   messageRequestsComputaFeedbackReactionSync,
   messageRequestsComputaLive,
   messageRequestsComputaMenu,
+  messageRequestsComputaOwnerMenu,
   messageRequestsComputaUpdate,
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
@@ -185,6 +186,49 @@ test("feedback gateway worker detects exact computa menu messages", () => {
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects exact computa owner menu messages", () => {
+  assert.equal(
+    messageRequestsComputaOwnerMenu({
+      channel_id: "main-channel",
+      content: "  ComPuTa owner  ",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaOwnerMenu({
+      channel_id: "main-channel",
+      content: "computa",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaOwnerMenu({
+      channel_id: "other-channel",
+      content: "computa owner",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsComputaOwnerMenu({
+      channel_id: "main-channel",
+      content: "computa owner",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa owner",
       author: { bot: false },
     }, "main-channel"),
     true,
