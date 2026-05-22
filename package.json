@@ -34,6 +34,7 @@
     "discord:testing-board:setup": "node scripts/setup-discord-testing-board.mjs",
     "discord:feedback:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:feedback:prune": "node scripts/prune-discord-bug-reports.mjs",
+    "discord:feedback:worker": "node scripts/discord-feedback-gateway-worker.mjs",
     "discord:bugs:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
     "feedback:board:export": "node scripts/export-feedback-board.mjs",
