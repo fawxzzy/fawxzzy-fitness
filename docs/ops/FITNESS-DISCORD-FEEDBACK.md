@@ -20,16 +20,22 @@ Product rules:
 - Optional Discord decoration must fail soft.
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
 - `Backlog` is a planning tag for public reviewed cards that are not started yet.
-- Fixed or completed public cards should also show a visible `✅` reaction on the starter post.
-- A public phase card is not fully done until the starter post shows `✅`.
+- Fixed or completed public cards should also show the configured success reaction on the starter post.
+- A public phase card is not fully done until the starter post shows the configured success reaction.
 
 ## Command surface
 - `computa`
   - main-channel message trigger
   - posts the user-facing Computa command card in the channel where it was used
   - shows normal command discovery only; owner-only live commands stay hidden from the public card
+  - sends the owner-only command list by DM when the configured owner runs it
   - deletes the previous Computa command card in that channel before reposting
   - marks the trigger message with a public reaction
+- `computa archive checked cards`
+  - main-channel message trigger
+  - commander-only
+  - archives active Feedback forum cards whose starter post already has the configured success reaction
+  - sends the archive count by DM and marks the trigger with the configured success/failure reaction
 - `/setup-feedback`
   - admin-only
   - deletes the old post and reposts the persistent `Submit Feedback Here` launcher
@@ -48,7 +54,6 @@ Product rules:
   - sends setup/permission/failure details to the triggering user by DM instead of posting bot replies in main chat
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
 - owner-only main-channel live triggers:
-  - `live`
   - `computa post live`
   - `computa post live twitch`
   - `computa post live tiktok`
@@ -107,13 +112,13 @@ Workflow:
 8. `/feedback-status` marks the card `Fixed` or `Completed`.
 9. Public non-testing Fitness app cards marked `Fixed` or `Completed` enter Completion Review.
 10. Update Bot may publish a curated release post only when the change is user-facing.
-11. Do not advance to the next phase until the previous public phase card is fixed/completed, completion-review approved, and visibly reacted with `✅`.
+11. Do not advance to the next phase until the previous public phase card is fixed/completed, completion-review approved, and visibly reacted with the configured success reaction.
 
 Rules:
 - Feedback card updates do not automatically post to the updates channel.
 - Forum card mutations should stay in the thread as compact audit comments.
 - Completion Review is required after Fitness app work is marked done.
-- Completion review approval should backfill `✅` if the starter post is missing it.
+- Completion review approval should backfill the configured success reaction if the starter post is missing it.
 - Ready for Fawxzzy Review remains optional before implementation starts.
 - `Backlog` may coexist with `Confirmed` or `Ready for Fawxzzy Review`, but it is not a stored status.
 - Exports are review input, not automatic truth.
@@ -166,6 +171,8 @@ Pattern:
 ## Main-chat setup trigger
 `computa` posts the compact command card in the channel where it is used. Only one Computa command card is kept per channel; rerunning the command removes the previous card and posts the current one.
 
+If the configured Computa owner runs `computa`, the public card stays normal-user-facing and owner-only commands are sent by DM.
+
 `computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
 Rules:
@@ -176,7 +183,10 @@ Rules:
 - A member with the `Fawxzzy Commander` role may run the trigger.
 - If the role does not exist, a member with Manage Server or Administrator may bootstrap it; the bot creates `Fawxzzy Commander`, assigns it to that member when allowed, and runs setup.
 - The poll endpoint requires `Authorization: Bearer <DISCORD_MESSAGE_COMMAND_POLL_SECRET>` or `Authorization: Bearer <CRON_SECRET>`.
-- Successful processing sends a DM notice to the triggering user and marks the source message processed.
+- Successful processing sends a DM notice to the triggering user when details are needed and marks the source message processed.
+- Public command reactions use the configured success/failure custom emoji:
+  - success: `fawxzzy:1507384062166302851`
+  - failure: `fawxzzy:1507384094424694785`
 - Vercel Hobby cannot run this poll frequently enough by itself; use an external scheduler or `npm run discord:feedback:worker` for near-real-time behavior.
 
 Gateway worker:
@@ -197,7 +207,6 @@ This is not a broad chat-command framework. Future phrase commands must stay rol
 The live trigger is a narrow owner-only convenience for posting a live notice to `#updates`.
 
 Accepted messages in `DISCORD_MAIN_CHANNEL_ID`:
-- `live`
 - `computa post live`
 - `computa post live twitch`
 - `computa post live tiktok`
@@ -243,6 +252,35 @@ Rules:
 - Success/failure details are sent by DM to avoid bot clutter in main chat.
 - Non-owner attempts are rejected and marked with the forbidden reaction.
 
+## Computa Command Router Foundation
+The next Discord OS update-post batch starts with the Computa Command Router foundation.
+
+Implemented scope:
+- shared main-channel message-command detection through the Gateway worker plus secured poll route
+- fallback interval polling so missed Gateway events still get processed
+- role-gated operator commands using `Fawxzzy Commander`
+- owner-only live announcement lane
+- one-per-channel canonical post replacement for `computa` and feedback setup
+- custom success/failure reactions for command outcomes
+- DM notices for user-specific details because message-created commands cannot use true Discord ephemeral replies
+- phrase aliases for feedback setup and archive checked cards
+
+New command:
+- `computa archive checked cards`
+- aliases: `computa archive checked`, `computa archive resolved cards`, `computa feedback archive checked cards`
+
+Planned but not implemented in this foundation:
+- AI-backed Feedback Intake Assistant
+- reasoning-based Live Incident Triage
+- smart contextual reply hints
+- release ledger guard automation
+- broader moderation cleanup helpers
+- Music Sesh command role and command tree
+
+Rule:
+- Automate repetitive deterministic Discord work first. Anything that requires reasoning should stay behind explicit confirmation or a future AI-backed lane.
+- Normal message commands cannot create dismissible in-channel ephemeral replies. Keep message-command details private by DM, or move the flow to a slash/button interaction when true ephemeral responses are required.
+
 ## Forum organization
 The public Feedback forum is a readable visual board, not the canonical planning sorter.
 
@@ -256,7 +294,7 @@ Visual rules:
 Planning rules:
 - `feedback:board:export` and reviewed task packets are the real sorted planning order
 - `Backlog` means reviewed and real, but not actively started
-- `✅` on fixed or completed public cards makes historical closure visible without changing the export contract
+- the configured success reaction on fixed or completed public cards makes historical closure visible without changing the export contract
 
 ## Submit modal
 The submit flow should ask for type inside the modal, not in the slash command picker.
@@ -297,7 +335,7 @@ Stored attachment metadata should stay bounded to:
 - Fallback env: `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
 
 `/setup-feedback` and the main-chat trigger are idempotent:
-- if an existing bot-authored feedback launcher is found in the source channel, edit it
+- if an existing bot-authored feedback launcher is found in the source channel, delete/repost it so the live buttons and copy stay fresh
 - if the launcher message is missing or deleted, create a new one in the source channel
 - after successful source-channel setup, remove older launcher messages from previous feedback setup channels
 - after successful source-channel setup, delete the legacy `submit-feedback` text channel if it exists
@@ -317,8 +355,8 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `DISCORD_GUILD_ID`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DISCORD_MEMBER_SYNC_SECRET`
-- `DISCORD_MAIN_CHANNEL_ID` optional for `computa feedback setup`
-- `DISCORD_UPDATES_CHANNEL_ID` required for `live` / `computa post live`
+- `DISCORD_MAIN_CHANNEL_ID` optional for `computa` message commands
+- `DISCORD_UPDATES_CHANNEL_ID` required for `computa post live`
 - `DISCORD_MESSAGE_COMMAND_POLL_SECRET` optional; falls back to `CRON_SECRET`
 - `DISCORD_COMPUTA_OWNER_USER_ID` optional; defaults to the Fawxzzy owner account
 - `DISCORD_COMPUTA_LIVE_TWITCH_URL` optional
@@ -481,7 +519,7 @@ It should:
 - patch the forum starter post so the visible status and type-aware formatting stay current
 - post a compact status reply
 - mention the reporter only for `Needs Info`, `Fixed`, or `Closed`
-- add a `✅` reaction when status becomes `Fixed` or `Closed`
+- add the configured success reaction when status becomes `Fixed` or `Closed`
 
 Display rule:
 - bug cards show stored `fixed` as `Fixed`
@@ -576,7 +614,7 @@ Resolved reaction sync:
 - `npm run feedback:sync-resolved-reactions -- --dry-run`
 - `npm run feedback:sync-resolved-reactions -- --apply`
 - defaults to public fixed or completed cards
-- uses `✅` on the starter post to make completed public cards visually obvious
+- uses the configured success reaction on the starter post to make completed public cards visually obvious
 - excludes private `feedback-testing` canaries by default unless `--include-testing` is passed
 
 ## Community doctor

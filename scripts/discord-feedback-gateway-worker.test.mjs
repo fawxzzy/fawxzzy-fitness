@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   calculateDiscordGatewayReconnectDelayMs,
   callDiscordMessageCommandPoll,
+  messageRequestsComputaArchiveCheckedCards,
   messageRequestsComputaLive,
   messageRequestsComputaMenu,
   messageRequestsDiscordMessageCommand,
@@ -58,7 +59,7 @@ test("feedback gateway worker detects owner live message command shapes", () => 
       content: "live",
       author: { bot: false },
     }, "main-channel"),
-    true,
+    false,
   );
   assert.equal(
     messageRequestsComputaLive({
@@ -147,6 +148,41 @@ test("feedback gateway worker detects exact computa menu messages", () => {
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects archive checked card command aliases", () => {
+  assert.equal(
+    messageRequestsComputaArchiveCheckedCards({
+      channel_id: "main-channel",
+      content: "computa archive checked cards",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaArchiveCheckedCards({
+      channel_id: "main-channel",
+      content: "please computa archive resolved cards",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsComputaArchiveCheckedCards({
+      channel_id: "main-channel",
+      content: "computa archive checked cards",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa archive checked cards",
       author: { bot: false },
     }, "main-channel"),
     true,

@@ -220,6 +220,7 @@ import {
   deferDiscordInteractionEphemeral,
   editDiscordOriginalInteractionResponse,
   fetchDiscordChannel,
+  fetchDiscordChannelMessage,
   fetchDiscordChannelArchivedPrivateThreads,
   fetchDiscordChannelArchivedPublicThreads,
   fetchDiscordGuildChannels,
@@ -337,13 +338,18 @@ const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy
 const DISCORD_COMPUTA_COMMAND_MENU_MARKER = "fawx-computa-command-menu:v1";
 const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
 const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
-const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = "\u2705";
-const DISCORD_MESSAGE_COMMAND_WARNING_REACTION = "\u26a0\ufe0f";
-const DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION = "\ud83d\udeab";
+const DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID = "1507384062166302851";
+const DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID = "1507384094424694785";
+const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID}`;
+const DISCORD_MESSAGE_COMMAND_WARNING_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID}`;
+const DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION = `fawxzzy:${DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID}`;
 const DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS = new Set([
   DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
   DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+  "\u2705",
+  "\u26a0\ufe0f",
+  "\ud83d\udeab",
 ]);
 const SPOTIFY_START_QUEUE_URI_LIMIT = 50;
 
@@ -2600,6 +2606,16 @@ function discordMessageRequestsFeedbackSetup(message: DiscordMessageCommand): bo
   return DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
+function discordMessageRequestsArchiveCheckedCards(message: DiscordMessageCommand): boolean {
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return [
+    "computa archive checked cards",
+    "computa archive checked",
+    "computa archive resolved cards",
+    "computa feedback archive checked cards",
+  ].some((trigger) => normalizedContent.includes(trigger));
+}
+
 function discordMessageRequestsComputaMenu(message: DiscordMessageCommand): boolean {
   return normalizeDiscordMessageCommandContent(message.content) === "computa";
 }
@@ -2639,14 +2655,6 @@ function parseDiscordComputaLiveMessageCommand(message: DiscordMessageCommand): 
   }
 
   const rawContent = message.content.trim();
-  const normalizedContent = normalizeDiscordMessageCommandContent(rawContent);
-  if (normalizedContent === "live") {
-    return {
-      provider: "generic",
-      url: null,
-    };
-  }
-
   const commandMatch = rawContent.match(/^computa\s+post\s+live(?:\s+(.+))?$/i);
   if (!commandMatch) {
     return null;
@@ -2697,12 +2705,13 @@ function discordMessageRequestsComputaLive(message: DiscordMessageCommand): bool
   }
 
   const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
-  return normalizedContent === "live" || normalizedContent.startsWith("computa post live");
+  return normalizedContent.startsWith("computa post live");
 }
 
 function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): boolean {
   return discordMessageRequestsComputaMenu(message)
     || discordMessageRequestsFeedbackSetup(message)
+    || discordMessageRequestsArchiveCheckedCards(message)
     || discordMessageRequestsComputaLive(message);
 }
 
@@ -2769,6 +2778,16 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
   };
 }
 
+function buildDiscordComputaOwnerCommandSummary(): string {
+  return [
+    "Owner-only Computa commands:",
+    "- `computa post live twitch` - Post the saved Twitch live announcement.",
+    "- `computa post live tiktok` - Post the saved TikTok live announcement.",
+    "- `computa post live [https://example.com/live]` - Post a custom live link.",
+    "- `computa archive checked cards` - Archive active feedback forum cards that already have the success reaction.",
+  ].join("\n");
+}
+
 function discordMessageHasProcessedCommandReaction(message: DiscordMessageCommand): boolean {
   const reactions = Array.isArray(message.reactions) ? message.reactions : [];
   return reactions.some((reaction) => {
@@ -2779,12 +2798,38 @@ function discordMessageHasProcessedCommandReaction(message: DiscordMessageComman
     const candidate = reaction as {
       me?: unknown;
       emoji?: {
+        id?: unknown;
         name?: unknown;
       };
     };
-    return candidate.me === true
-      && typeof candidate.emoji?.name === "string"
+    if (candidate.me !== true) {
+      return false;
+    }
+
+    if (candidate.emoji?.id === DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID || candidate.emoji?.id === DISCORD_MESSAGE_COMMAND_FAILURE_EMOJI_ID) {
+      return true;
+    }
+
+    return typeof candidate.emoji?.name === "string"
       && DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS.has(candidate.emoji.name);
+  });
+}
+
+function discordMessageHasCheckedReaction(message: DiscordMessageCommand): boolean {
+  const reactions = Array.isArray(message.reactions) ? message.reactions : [];
+  return reactions.some((reaction) => {
+    if (!reaction || typeof reaction !== "object") {
+      return false;
+    }
+
+    const candidate = reaction as {
+      emoji?: {
+        id?: unknown;
+        name?: unknown;
+      };
+    };
+    return candidate.emoji?.id === DISCORD_MESSAGE_COMMAND_SUCCESS_EMOJI_ID
+      || candidate.emoji?.name === "\u2705";
   });
 }
 
@@ -2981,53 +3026,17 @@ async function ensureDiscordCommanderRole(args: {
   };
 }
 
-async function processDiscordComputaMenuMessageCommand(args: {
+async function authorizeDiscordCommanderMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
-}) {
-  const messageId = typeof args.message.id === "string" ? args.message.id : null;
-  if (!messageId) {
-    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
-  }
-
-  const postResult = await replaceDiscordSingleBotChannelPost({
-    channelId: args.channelId,
-    body: buildDiscordComputaCommandMenuPayload(),
-    matchesMessage: discordMessageHasComputaCommandMenu,
-    logLabel: "computa-command-menu",
-  });
-
-  if (!postResult.ok) {
-    console.error("[discord-message-command] computa command menu failed", {
-      requestId: randomUUID(),
-      code: postResult.code,
-      status: "status" in postResult ? postResult.status : undefined,
-      message: postResult.message,
-    });
-    await markDiscordMessageCommandProcessed({
-      channelId: args.channelId,
-      messageId,
-      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
-    });
-    return postResult;
-  }
-
-  await markDiscordMessageCommandProcessed({
-    channelId: args.channelId,
-    messageId,
-    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
-  });
-  return { ok: true as const, action: postResult.action, deletedCount: postResult.deletedCount };
-}
-
-async function processDiscordFeedbackSetupMessageCommand(args: {
-  channelId: string;
-  message: DiscordMessageCommand;
-}) {
+}): Promise<
+  | { ok: true; authorId: string; messageId: string }
+  | { ok: false; code: string; status?: number; message?: string | null }
+> {
   const messageId = typeof args.message.id === "string" ? args.message.id : null;
   const authorId = typeof args.message.author?.id === "string" ? args.message.author.id : null;
   if (!messageId || !authorId) {
-    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+    return { ok: false, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
   }
 
   const guildId = DISCORD_GUILD_ID();
@@ -3101,7 +3110,66 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
       messageId,
       emoji: DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
     });
-    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN" };
+    return { ok: false, code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN" };
+  }
+
+  return { ok: true, authorId, messageId };
+}
+
+async function processDiscordComputaMenuMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  if (!messageId) {
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  const postResult = await replaceDiscordSingleBotChannelPost({
+    channelId: args.channelId,
+    body: buildDiscordComputaCommandMenuPayload(),
+    matchesMessage: discordMessageHasComputaCommandMenu,
+    logLabel: "computa-command-menu",
+  });
+
+  if (!postResult.ok) {
+    console.error("[discord-message-command] computa command menu failed", {
+      requestId: randomUUID(),
+      code: postResult.code,
+      status: "status" in postResult ? postResult.status : undefined,
+      message: postResult.message,
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return postResult;
+  }
+
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+
+  if (args.message.author?.id === resolveDiscordComputaOwnerUserId()) {
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: args.message.author.id,
+      content: buildDiscordComputaOwnerCommandSummary(),
+    });
+  }
+
+  return { ok: true as const, action: postResult.action, deletedCount: postResult.deletedCount };
+}
+
+async function processDiscordFeedbackSetupMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  if (!authorization.ok) {
+    return authorization;
   }
 
   const upsertResult = await upsertDiscordFeedbackPanel({
@@ -3116,29 +3184,114 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
       message: upsertResult.message,
     });
     await sendDiscordMessageCommandPrivateNotice({
-      userId: authorId,
+      userId: authorization.authorId,
       content: "Feedback setup failed. Check bot permissions and configured feedback channels.",
     });
     await markDiscordMessageCommandProcessed({
       channelId: args.channelId,
-      messageId,
+      messageId: authorization.messageId,
       emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
     });
     return upsertResult;
   }
 
   await sendDiscordMessageCommandPrivateNotice({
-    userId: authorId,
+    userId: authorization.authorId,
     content: upsertResult.action === "updated" || upsertResult.action === "reposted"
       ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
       : `Feedback launcher created in ${upsertResult.channelLabel}.`,
   });
   await markDiscordMessageCommandProcessed({
     channelId: args.channelId,
-    messageId,
+    messageId: authorization.messageId,
     emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   });
   return { ok: true as const, action: upsertResult.action };
+}
+
+async function archiveDiscordCheckedFeedbackThreads() {
+  const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
+  if (!forumChannelId) {
+    return { ok: false as const, code: "DISCORD_FEEDBACK_FORUM_NOT_CONFIGURED" };
+  }
+
+  const activeThreadsResult = await fetchDiscordGuildActiveThreads({ guildId: DISCORD_GUILD_ID() });
+  if (!activeThreadsResult.ok) {
+    return activeThreadsResult;
+  }
+
+  const feedbackThreads = activeThreadsResult.threads
+    .filter((thread) => thread.parent_id === forumChannelId && thread.archived !== true)
+    .slice(0, 50);
+
+  let checkedCount = 0;
+  let archivedCount = 0;
+
+  for (const thread of feedbackThreads) {
+    const starterResult = await fetchDiscordChannelMessage({
+      channelId: thread.id,
+      messageId: thread.id,
+    });
+    if (!starterResult.ok) {
+      continue;
+    }
+    if (!discordMessageHasCheckedReaction(starterResult.message as DiscordMessageCommand)) {
+      continue;
+    }
+
+    checkedCount += 1;
+    const archiveResult = await updateDiscordForumThreadArchiveState({
+      threadId: thread.id,
+      archived: true,
+      locked: true,
+    });
+    if (!archiveResult.ok) {
+      return archiveResult;
+    }
+    archivedCount += 1;
+  }
+
+  return {
+    ok: true as const,
+    scannedCount: feedbackThreads.length,
+    checkedCount,
+    archivedCount,
+  };
+}
+
+async function processDiscordArchiveCheckedCardsMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  if (!authorization.ok) {
+    return authorization;
+  }
+
+  const archiveResult = await archiveDiscordCheckedFeedbackThreads();
+  if (!archiveResult.ok) {
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorization.authorId,
+      content: "Archive checked cards failed. Check feedback forum configuration and bot permissions.",
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId: authorization.messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return archiveResult;
+  }
+
+  await sendDiscordMessageCommandPrivateNotice({
+    userId: authorization.authorId,
+    content: `Archived ${archiveResult.archivedCount}/${archiveResult.checkedCount} checked feedback card(s). Scanned ${archiveResult.scannedCount} active card(s).`,
+  });
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId: authorization.messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return { ok: true as const, action: "archived", archivedCount: archiveResult.archivedCount };
 }
 
 async function processDiscordComputaLiveMessageCommand(args: {
@@ -3155,7 +3308,7 @@ async function processDiscordComputaLiveMessageCommand(args: {
   if (!command) {
     await sendDiscordMessageCommandPrivateNotice({
       userId: authorId,
-      content: "Use `computa post live twitch`, `computa post live tiktok`, `computa post live [link]`, or `live`.",
+      content: "Use `computa post live twitch`, `computa post live tiktok`, or `computa post live [link]`.",
     });
     await markDiscordMessageCommandProcessed({
       channelId: args.channelId,
@@ -3297,10 +3450,16 @@ async function pollDiscordMessageCommands() {
     let result:
       | Awaited<ReturnType<typeof processDiscordComputaMenuMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaLiveMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordArchiveCheckedCardsMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordFeedbackSetupMessageCommand>>;
 
     if (discordMessageRequestsComputaMenu(candidate)) {
       result = await processDiscordComputaMenuMessageCommand({
+        channelId,
+        message: candidate,
+      });
+    } else if (discordMessageRequestsArchiveCheckedCards(candidate)) {
+      result = await processDiscordArchiveCheckedCardsMessageCommand({
         channelId,
         message: candidate,
       });

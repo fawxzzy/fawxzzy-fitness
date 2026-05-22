@@ -33,6 +33,7 @@ export type DiscordChannelMessage = {
   reactions?: Array<{
     me?: boolean;
     emoji?: {
+      id?: string | null;
       name?: string;
     };
   }>;
@@ -486,6 +487,27 @@ export async function fetchDiscordChannelMessages(args: {
   return {
     ok: false,
     code: "DISCORD_FETCH_MESSAGES_FAILED",
+    status: result.status,
+    message: result.errorMessage,
+  };
+}
+
+export async function fetchDiscordChannelMessage(args: {
+  channelId: string;
+  messageId: string;
+}): Promise<{ ok: true; message: DiscordChannelMessage } | { ok: false; code: string; status: number; message: string | null }> {
+  const result = await discordRequest<DiscordChannelMessage>(
+    `/channels/${args.channelId}/messages/${args.messageId}`,
+    { method: "GET" },
+  );
+
+  if (result.ok && result.data && typeof result.data.id === "string") {
+    return { ok: true, message: result.data };
+  }
+
+  return {
+    ok: false,
+    code: "DISCORD_FETCH_MESSAGE_FAILED",
     status: result.status,
     message: result.errorMessage,
   };
