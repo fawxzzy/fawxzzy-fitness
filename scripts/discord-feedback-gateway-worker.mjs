@@ -15,6 +15,14 @@ const DISCORD_GATEWAY_OPCODE = {
 const DISCORD_GATEWAY_INTENT_GUILD_MESSAGES = 1 << 9;
 const DISCORD_GATEWAY_INTENT_MESSAGE_CONTENT = 1 << 15;
 const DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS = 15_000;
+const DEFAULT_EPIC_REACTION_EMOJI = "epic:1507434865505603757";
+const DEFAULT_BOT_MESSAGE_REACTION_RULES = [
+  {
+    key: "epic",
+    emoji: DEFAULT_EPIC_REACTION_EMOJI,
+    pattern: /(^|[^a-z0-9])epic([^a-z0-9]|$)/i,
+  },
+];
 const FEEDBACK_SETUP_TRIGGERS = [
   "computa feedback setup",
   "computa setup feedback",
@@ -45,6 +53,29 @@ export function normalizeDiscordMessageCommandContent(content) {
   return typeof content === "string"
     ? content.toLowerCase().replace(/\s+/g, " ").trim()
     : "";
+}
+
+export function getRequestedBotMessageReactions(message, rules = DEFAULT_BOT_MESSAGE_REACTION_RULES) {
+  if (!message || typeof message !== "object") {
+    return [];
+  }
+
+  if (message.author?.bot === true) {
+    return [];
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return rules
+    .filter((rule) => rule?.pattern instanceof RegExp && rule.pattern.test(normalizedContent))
+    .map((rule) => ({
+      key: String(rule.key ?? "unknown"),
+      emoji: String(rule.emoji ?? ""),
+    }))
+    .filter((rule) => rule.emoji.length > 0);
+}
+
+export function messageRequestsBotReaction(message, rules = DEFAULT_BOT_MESSAGE_REACTION_RULES) {
+  return getRequestedBotMessageReactions(message, rules).length > 0;
 }
 
 export function messageRequestsFeedbackSetup(message, mainChannelId) {
@@ -312,6 +343,43 @@ export async function callDiscordMessageCommandPoll({
   };
 }
 
+export async function createDiscordGatewayMessageReaction({
+  fetchImpl = globalThis.fetch,
+  token,
+  channelId,
+  messageId,
+  emoji,
+}) {
+  if (typeof fetchImpl !== "function") {
+    throw new Error("Global fetch is not available.");
+  }
+
+  if (!token) {
+    throw new Error("Missing DISCORD_BOT_TOKEN.");
+  }
+
+  if (!channelId || !messageId || !emoji) {
+    throw new Error("Missing Discord reaction target.");
+  }
+
+  const response = await fetchImpl(
+    `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/@me`,
+    {
+      method: "PUT",
+      headers: {
+        authorization: `Bot ${token}`,
+      },
+    },
+  );
+
+  const bodyText = await response.text();
+  return {
+    ok: response.ok,
+    status: response.status,
+    bodyText,
+  };
+}
+
 export function calculateDiscordGatewayReconnectDelayMs(attempt) {
   const boundedAttempt = Math.max(0, Math.min(Number(attempt) || 0, 6));
   return Math.min(30_000, 1_000 * (2 ** boundedAttempt));
@@ -327,6 +395,7 @@ export class DiscordFeedbackGatewayWorker {
     fetchImpl = globalThis.fetch,
     logger = console,
     pollIntervalMs = DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS,
+    botMessageReactionRules = DEFAULT_BOT_MESSAGE_REACTION_RULES,
   }) {
     this.token = token;
     this.mainChannelId = mainChannelId;
@@ -344,6 +413,7 @@ export class DiscordFeedbackGatewayWorker {
     this.stopped = false;
     this.seenMessageIds = new Set();
     this.pollInFlight = false;
+    this.botMessageReactionRules = botMessageReactionRules;
   }
 
   start() {
@@ -516,10 +586,6 @@ export class DiscordFeedbackGatewayWorker {
   }
 
   async handleMessageCreate(message) {
-    if (!messageRequestsDiscordMessageCommand(message, this.mainChannelId)) {
-      return;
-    }
-
     const messageId = typeof message.id === "string" ? message.id : null;
     if (messageId) {
       if (this.seenMessageIds.has(messageId)) {
@@ -532,10 +598,53 @@ export class DiscordFeedbackGatewayWorker {
       }
     }
 
-    await this.runMessageCommandPoll({
-      reason: "message-create",
-      messageId,
-    });
+    const botReactions = getRequestedBotMessageReactions(message, this.botMessageReactionRules);
+    if (botReactions.length > 0) {
+      await this.reactToBotMessage(message, botReactions);
+    }
+
+    if (messageRequestsDiscordMessageCommand(message, this.mainChannelId)) {
+      await this.runMessageCommandPoll({
+        reason: "message-create",
+        messageId,
+      });
+    }
+  }
+
+  async reactToBotMessage(message, reactions) {
+    const channelId = typeof message.channel_id === "string" ? message.channel_id : null;
+    const messageId = typeof message.id === "string" ? message.id : null;
+    if (!channelId || !messageId) {
+      return;
+    }
+
+    for (const reaction of reactions) {
+      try {
+        const result = await createDiscordGatewayMessageReaction({
+          fetchImpl: this.fetchImpl,
+          token: this.token,
+          channelId,
+          messageId,
+          emoji: reaction.emoji,
+        });
+        if (!result.ok) {
+          this.logger.warn("[discord-feedback-worker] bot reaction failed", {
+            channelId,
+            messageId,
+            reactionKey: reaction.key,
+            status: result.status,
+            body: result.bodyText,
+          });
+        }
+      } catch (error) {
+        this.logger.warn("[discord-feedback-worker] bot reaction threw", {
+          channelId,
+          messageId,
+          reactionKey: reaction.key,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 
   async runMessageCommandPoll({ reason, messageId }) {
@@ -585,6 +694,13 @@ export function buildDiscordFeedbackGatewayWorkerFromEnv(env = process.env) {
     pollUrl: resolveDiscordMessageCommandPollUrl(env),
     pollSecret: resolveDiscordMessageCommandPollSecret(env),
     pollIntervalMs: resolveDiscordMessageCommandPollIntervalMs(env),
+    botMessageReactionRules: [
+      {
+        key: "epic",
+        emoji: readEnv("DISCORD_EPIC_REACTION_EMOJI", env) ?? DEFAULT_EPIC_REACTION_EMOJI,
+        pattern: /(^|[^a-z0-9])epic([^a-z0-9]|$)/i,
+      },
+    ],
   });
 }
 
