@@ -64,20 +64,19 @@ test("buildDiscordVerifyModalResponse returns the expected modal payload", () =>
 test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by feedback type", () => {
   const bug = buildDiscordFeedbackReportModalResponse("bug");
   const feature = buildDiscordFeedbackReportModalResponse("feature");
-  const bugOptions = (bug.data.components[0]?.component as { options?: Array<{ default?: boolean }> } | undefined)?.options;
-  const featureOptions = (feature.data.components[0]?.component as { options?: Array<{ default?: boolean }> } | undefined)?.options;
 
   assert.equal(bug.data.custom_id, "fitness_feedback_report_modal:bug");
   assert.equal(bug.data.title, "Report a bug");
-  assert.equal(bug.data.components[0]?.component?.custom_id, "feedback_type");
-  assert.equal(bug.data.components[1]?.label, "Title");
-  assert.equal(bug.data.components[3]?.label, "Description");
-  assert.equal(bugOptions?.[0]?.default, true);
+  assert.equal(bug.data.components[0]?.components[0]?.custom_id, "feedback_type");
+  assert.equal(bug.data.components[0]?.components[0]?.value, "Bug");
+  assert.equal(bug.data.components[1]?.components[0]?.label, "Title");
+  assert.equal(bug.data.components[3]?.components[0]?.label, "Description");
   assert.equal(feature.data.custom_id, "fitness_feedback_report_modal:feature");
   assert.equal(feature.data.title, "Suggest a feature");
-  assert.equal(feature.data.components[1]?.label, "Title");
-  assert.equal(feature.data.components[3]?.label, "Description");
-  assert.equal(featureOptions?.[1]?.default, true);
+  assert.equal(feature.data.components[0]?.components[0]?.custom_id, "feedback_type");
+  assert.equal(feature.data.components[0]?.components[0]?.value, "Feature");
+  assert.equal(feature.data.components[1]?.components[0]?.label, "Title");
+  assert.equal(feature.data.components[3]?.components[0]?.label, "Description");
 });
 
 test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel buttons", () => {
@@ -343,12 +342,11 @@ test("feedback panel button modals expose submit and manage flows", () => {
   });
 
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
-  assert.equal(submit.data.components[0]?.component?.custom_id, "feedback_type");
-  assert.equal(submit.data.components[1]?.label, "Title");
-  assert.equal(submit.data.components[3]?.label, "Details");
-  assert.equal(submit.data.components[4]?.label, "Attachment");
-  assert.equal(submit.data.components[4]?.component?.custom_id, "feedback_attachment");
-  assert.equal(submit.data.components[4]?.component?.max_values, 3);
+  assert.equal(submit.data.components[0]?.components[0]?.custom_id, "feedback_type");
+  assert.equal(submit.data.components[0]?.components[0]?.type, 4);
+  assert.equal(submit.data.components[1]?.components[0]?.label, "Title");
+  assert.equal(submit.data.components[3]?.components[0]?.label, "Details");
+  assert.equal(submit.data.components.length, 4);
   assert.equal(updatePicker.data.flags, 64);
   assert.equal(updatePicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_manage_recent:11111111-1111-4111-8111-111111111111");
   assert.equal(updatePicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_update_pick_report");
@@ -366,7 +364,7 @@ test("feedback panel button modals expose submit and manage flows", () => {
   assert.equal(withdraw.data.components[0]?.component?.custom_id, "feedback_withdraw_note");
 });
 
-test("feedback submit modal keeps panel buttons text-only while select options use validated emoji payloads", () => {
+test("feedback submit modal keeps panel buttons and modal inputs text-only even when emoji payloads are available", () => {
   const emojis = {
     Bug: { id: "1505007702924066916", name: "Bug" },
     Feature: { id: "1505007651308703877", name: "Feature" },
@@ -374,18 +372,14 @@ test("feedback submit modal keeps panel buttons text-only while select options u
 
   const panelPayload = buildDiscordFeedbackPanelMessagePayload({ emojis });
   const submitModal = buildDiscordFeedbackPanelSubmitModalResponse({ emojis });
-  const options = (submitModal.data.components[0]?.component as { options?: Array<{ emoji?: { id: string; name: string } }> } | undefined)?.options;
   const firstPanelButton = panelPayload.components[0]?.components[0] as { emoji?: { id: string; name: string } } | undefined;
 
   assert.equal(firstPanelButton?.emoji, undefined);
-  assert.deepEqual(options?.[0]?.emoji, {
-    id: "1505007702924066916",
-    name: "Bug",
-  });
-  assert.deepEqual(options?.[1]?.emoji, {
-    id: "1505007651308703877",
-    name: "Feature",
-  });
+  assert.equal(submitModal.data.components[0]?.components[0]?.custom_id, "feedback_type");
+  assert.equal(submitModal.data.components[0]?.components[0]?.type, 4);
+  assert.equal(JSON.stringify(submitModal.data).includes("\"emoji\""), false);
+  assert.equal(JSON.stringify(submitModal.data).includes("\"type\":3"), false);
+  assert.equal(JSON.stringify(submitModal.data).includes("\"type\":19"), false);
 });
 
 test("update publish modal shape includes the draft id in the modal custom id", () => {
@@ -511,6 +505,10 @@ test("buildDiscordGuildCommandsDefinition keeps Spotify Club slash commands staf
   const warnSeverityOption = warn?.options?.[1] as { choices?: Array<{ name: string; value: string }> } | undefined;
 
   assert.equal(commands.length, 23);
+  assert.equal(
+    commands.every((command) => typeof command.default_member_permissions === "string"),
+    true,
+  );
   assert.ok(setupVerify);
   assert.equal(setupVerify?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(verifyCleanup);

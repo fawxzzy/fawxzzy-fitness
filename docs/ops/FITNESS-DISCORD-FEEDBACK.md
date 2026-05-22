@@ -11,9 +11,12 @@ Product rules:
 - The Feedback forum is a display surface; Supabase is the source of truth.
 - Normal users should use persistent buttons and modals, not admin-style slash command choices.
 - The primary user entry should be a dedicated text channel such as `submit-feedback`, not a control post inside the forum itself.
+- Feedback modal launchers must return the modal immediately.
+- The primary submit modal should use conservative Discord modal components: action rows with text inputs only.
+- Do not put string selects, file-upload components, or label-wrapped components in the first submit modal unless live Discord compatibility has been reverified.
 - Feedback submit should defer the interaction before heavy Discord or DB work.
 - Feedback intake success depends on the bounded report row first and the forum thread second.
-- Discord hosts screenshot evidence; Supabase stores bounded attachment metadata only.
+- Discord-hosted screenshot evidence can be added by links or follow-up thread replies; Supabase stores bounded metadata only.
 - Optional Discord decoration must fail soft.
 - Feedback card mutations stay inside the Feedback forum thread as audit comments, not release posts.
 - `Backlog` is a planning tag for public reviewed cards that are not started yet.
@@ -26,6 +29,12 @@ Product rules:
   - posts or refreshes the persistent `Submit Feedback Here` launcher
   - reuses `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` when configured
   - otherwise finds or creates `submit-feedback` above the Feedback forum
+- main-channel message trigger: `bot feedback setup`
+  - requires the `Fawxzzy Commander` role after bootstrap
+  - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
+  - polls only `DISCORD_MAIN_CHANNEL_ID`
+  - calls the same idempotent setup path as `/setup-feedback`
+  - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
 - `/setup-verify`
   - admin-only
   - posts or refreshes the verification panel
@@ -50,6 +59,8 @@ Feedback-facing commands should remain:
 - `feedback`
 - `feedback-status`
 - `feedback-withdraw`
+
+Message-content triggers are intentionally rare. Any future main-chat phrase command should use the same `Fawxzzy Commander` role gate, main-channel-only polling, processed-message marker, and secret-protected cron route.
 
 Separate production-update staff commands may also exist:
 - `update-latest`
@@ -119,10 +130,25 @@ Rule:
 Pattern:
 - dedicated submit-feedback launcher
 - general submit button
-- modal with type choice
+- modal with text-only type field
 - deferred response
 - bounded row
 - forum thread and tags
+
+## Main-chat setup trigger
+`bot feedback setup` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
+
+Rules:
+- The trigger is case-insensitive.
+- Bot-authored messages are ignored.
+- Messages already marked with the bot's processed reaction are ignored.
+- Only `DISCORD_MAIN_CHANNEL_ID` is polled.
+- A member with the `Fawxzzy Commander` role may run the trigger.
+- If the role does not exist, a member with Manage Server or Administrator may bootstrap it; the bot creates `Fawxzzy Commander`, assigns it to that member when allowed, and runs setup.
+- The poll endpoint requires `Authorization: Bearer <DISCORD_MESSAGE_COMMAND_POLL_SECRET>` or `Authorization: Bearer <CRON_SECRET>`.
+- Successful processing replies compactly to the source message and marks it processed.
+
+This is not a broad chat-command framework. Future phrase commands must stay role-gated, low-noise, idempotent, and documented before release.
 
 ## Forum organization
 The public Feedback forum is a readable visual board, not the canonical planning sorter.
@@ -146,7 +172,7 @@ Current user-facing types:
 - `Bug`
 - `Feature`
 
-If Discord modal select or radio components are not used, the text field should accept only:
+The submit modal intentionally uses text inputs only for Discord compatibility. The type field should accept only:
 - `Bug`
 - `Feature`
 
@@ -156,13 +182,9 @@ Invalid values should respond with:
 Choose Bug or Feature for the feedback type.
 ```
 
-The submit modal also supports optional image evidence:
-- up to 3 files
-- `image/png`
-- `image/jpeg`
-- `image/webp`
-- `image/gif`
-- max 8 MB each
+The first submit modal should not depend on Discord file-upload components. Users can add optional image evidence by:
+- pasting a screenshot or evidence URL into the details field
+- replying in the created feedback thread after submit
 
 Attachment guardrails:
 - Discord remains the file host
@@ -201,6 +223,8 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `DISCORD_GUILD_ID`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DISCORD_MEMBER_SYNC_SECRET`
+- `DISCORD_MAIN_CHANNEL_ID` optional for `bot feedback setup`
+- `DISCORD_MESSAGE_COMMAND_POLL_SECRET` optional; falls back to `CRON_SECRET`
 - `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` optional
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
 - `DISCORD_FEEDBACK_BUG_EMOJI_ID` optional
@@ -264,10 +288,10 @@ Do not use custom emoji in the forum thread title. Keep titles text-only and sea
 - If validation fails, the flow must fall back to text-only surfaces without blocking intake.
 
 Attachment handling:
-- accepted images may be referenced in the forum body so staff can review them in Discord
-- the forum starter post should include a visible `Attachments` section with file links when uploads are present
-- attachment links from the modal resolution path should be treated as Discord-hosted evidence, not durable app storage
-- v1 uses Discord attachment URLs as visible evidence links and does not re-upload files into the forum thread as a persistence layer
+- accepted evidence links may be referenced in the forum body so staff can review them in Discord
+- if a future modal upload path is re-enabled, the forum starter post should include a visible `Attachments` section with file links when uploads are present
+- attachment links from Discord should be treated as Discord-hosted evidence, not durable app storage
+- v1 uses Discord URLs as visible evidence links and does not re-upload files into the forum thread as a persistence layer
 - withdraw should clear or minimize stored attachment metadata and mark the report as attachment-pruned
 
 Allowed mentions:
@@ -429,7 +453,7 @@ After verify-copy changes, rerun:
 9. Test `Update Feedback`.
 10. Test `/feedback-status`.
 11. Test `Withdraw Feedback`.
-12. Test image upload with a small PNG or JPG.
+12. Test evidence links or a follow-up screenshot reply in the created thread.
 13. Confirm the user receives one final success message after the deferred response completes.
 
 ## Forum starter sync
@@ -485,9 +509,11 @@ Rule: feedback reports are bounded input signals, not repo truth.
 
 Rule: admin setup commands are not normal-user UX.
 
-Rule: feedback attachments are Discord-hosted evidence, not app database blobs.
+Rule: feedback evidence is Discord-hosted or URL-hosted evidence, not app database blobs.
 
 Rule: feedback submit should defer first and edit the original ephemeral response after processing.
+
+Rule: feedback modal launch should not touch network, Supabase, Discord REST, emoji validation, or forum tags before returning the modal.
 
 Rule: optional Discord decoration must not break core feedback intake.
 

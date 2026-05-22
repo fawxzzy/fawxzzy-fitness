@@ -4,6 +4,7 @@ import {
   DISCORD_BUG_REPORT_FORUM_CHANNEL_ID,
   DISCORD_FEEDBACK_PANEL_CHANNEL_ID,
   DISCORD_GUILD_ID,
+  DISCORD_MAIN_CHANNEL_ID,
   DISCORD_SPOTIFY_CLUB_CHANNEL_ID,
   DISCORD_SPOTIFY_CLUB_TEST_CHANNEL_ID,
   DISCORD_UPDATES_CHANNEL_ID,
@@ -12,6 +13,7 @@ import {
   DISCORD_VERIFY_MESSAGE_BODY,
   DISCORD_VERIFY_MESSAGE_TITLE,
   DISCORD_VERIFIED_ROLE_ID,
+  optionalEnv,
 } from "@/lib/env";
 import { verifyDiscordInteractionSignature } from "@/lib/discord/interaction-signature";
 import {
@@ -63,8 +65,10 @@ import {
   buildDiscordVerifyModalResponse,
   DISCORD_MESSAGE_FLAG_EPHEMERAL,
   DISCORD_PERMISSION_ADD_REACTIONS,
+  DISCORD_PERMISSION_ADMINISTRATOR,
   DISCORD_PERMISSION_CREATE_PRIVATE_THREADS,
   DISCORD_PERMISSION_CREATE_PUBLIC_THREADS,
+  DISCORD_PERMISSION_MANAGE_GUILD,
   DISCORD_PERMISSION_READ_MESSAGE_HISTORY,
   DISCORD_PERMISSION_SEND_MESSAGES,
   DISCORD_PERMISSION_SEND_MESSAGES_IN_THREADS,
@@ -204,6 +208,7 @@ import {
 } from "@/lib/discord/moderation";
 import {
   addDiscordGuildMemberRole,
+  createDiscordRole,
   createDiscordGuildChannel,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
@@ -322,6 +327,18 @@ const DISCORD_FEEDBACK_MAX_ATTACHMENT_COUNT = 3;
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_TOPIC = "Start here to submit or manage Fawxzzy Fitness feedback cards.";
+const DISCORD_COMMANDER_ROLE_NAME = "Fawxzzy Commander";
+const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGER = "bot feedback setup";
+const DISCORD_MESSAGE_COMMAND_POLL_LIMIT = 25;
+const DISCORD_MESSAGE_COMMAND_MAX_PER_RUN = 3;
+const DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION = "\u2705";
+const DISCORD_MESSAGE_COMMAND_WARNING_REACTION = "\u26a0\ufe0f";
+const DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION = "\ud83d\udeab";
+const DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS = new Set([
+  DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+  DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+]);
 const SPOTIFY_START_QUEUE_URI_LIMIT = 50;
 
 type DiscordInteraction = {
@@ -365,6 +382,19 @@ type DiscordInteraction = {
       }>;
     } | null;
   } | null;
+};
+
+type DiscordMessageCommand = {
+  id?: unknown;
+  content?: unknown;
+  author?: {
+    id?: unknown;
+    bot?: unknown;
+  };
+  member?: {
+    roles?: unknown;
+  };
+  reactions?: unknown;
 };
 
 function jsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
@@ -1239,7 +1269,6 @@ async function handleSpotifyInteraction(interaction: DiscordInteraction) {
   return buildDiscordEphemeralMessageResponse("That Spotify subcommand is not available in this phase yet.");
 }
 
-const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
 const DISCORD_PERMISSION_MANAGE_ROLES = BigInt(1) << BigInt(28);
 
 function parseDiscordPermissionBitfield(value: string | null | undefined): bigint | null {
@@ -2485,6 +2514,362 @@ async function syncDiscordSpotifyClubPanelFromState() {
   }
 
   return { ok: false as const, code: patchResult.code, status: patchResult.status, message: patchResult.message };
+}
+
+function normalizeDiscordMessageCommandContent(value: unknown): string {
+  return typeof value === "string"
+    ? value.toLowerCase().replace(/\s+/g, " ").trim()
+    : "";
+}
+
+function discordMessageRequestsFeedbackSetup(message: DiscordMessageCommand): boolean {
+  return normalizeDiscordMessageCommandContent(message.content)
+    .includes(DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGER);
+}
+
+function discordMessageHasProcessedCommandReaction(message: DiscordMessageCommand): boolean {
+  const reactions = Array.isArray(message.reactions) ? message.reactions : [];
+  return reactions.some((reaction) => {
+    if (!reaction || typeof reaction !== "object") {
+      return false;
+    }
+
+    const candidate = reaction as {
+      me?: unknown;
+      emoji?: {
+        name?: unknown;
+      };
+    };
+    return candidate.me === true
+      && typeof candidate.emoji?.name === "string"
+      && DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS.has(candidate.emoji.name);
+  });
+}
+
+function combineDiscordRolePermissions(args: {
+  roleIds: string[];
+  roles: Array<{ id?: string; permissions?: string }>;
+}): bigint {
+  let combined = BigInt(0);
+  for (const roleId of args.roleIds) {
+    const role = args.roles.find((candidate) => candidate.id === roleId);
+    if (!role?.permissions) {
+      continue;
+    }
+
+    try {
+      combined |= BigInt(role.permissions);
+    } catch {
+      // Ignore malformed role permission values from Discord.
+    }
+  }
+
+  return combined;
+}
+
+function discordRolePermissionsAllowSetup(permissions: bigint): boolean {
+  return (permissions & DISCORD_PERMISSION_ADMINISTRATOR) === DISCORD_PERMISSION_ADMINISTRATOR
+    || (permissions & DISCORD_PERMISSION_MANAGE_GUILD) === DISCORD_PERMISSION_MANAGE_GUILD;
+}
+
+async function replyToDiscordMessageCommand(args: {
+  channelId: string;
+  guildId: string;
+  messageId: string;
+  content: string;
+}) {
+  return createDiscordChannelMessage({
+    channelId: args.channelId,
+    body: {
+      content: args.content,
+      message_reference: {
+        message_id: args.messageId,
+        channel_id: args.channelId,
+        guild_id: args.guildId,
+        fail_if_not_exists: false,
+      },
+      allowed_mentions: {
+        parse: [],
+        replied_user: false,
+      },
+    },
+  });
+}
+
+async function markDiscordMessageCommandProcessed(args: {
+  channelId: string;
+  messageId: string;
+  emoji: string;
+}) {
+  const result = await createDiscordMessageReaction({
+    channelId: args.channelId,
+    messageId: args.messageId,
+    emoji: args.emoji,
+  });
+
+  if (!result.ok) {
+    console.warn("[discord-message-command] processed reaction failed", {
+      requestId: randomUUID(),
+      code: result.code,
+      status: result.status,
+      message: result.message,
+    });
+  }
+}
+
+async function ensureDiscordCommanderRole(args: {
+  guildId: string;
+  authorId: string;
+  memberRoleIds: string[];
+  guildRoles: Array<{ id?: string; name?: string; permissions?: string }>;
+}) {
+  const existingRole = args.guildRoles.find((role) => role.name === DISCORD_COMMANDER_ROLE_NAME);
+  const authorPermissions = combineDiscordRolePermissions({
+    roleIds: args.memberRoleIds,
+    roles: args.guildRoles,
+  });
+  const authorCanBootstrap = discordRolePermissionsAllowSetup(authorPermissions);
+
+  if (existingRole?.id) {
+    return {
+      ok: true as const,
+      roleId: existingRole.id,
+      roleCreated: false,
+      authorCanBootstrap,
+    };
+  }
+
+  if (!authorCanBootstrap) {
+    return {
+      ok: false as const,
+      code: "DISCORD_COMMANDER_ROLE_MISSING",
+      message: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
+    };
+  }
+
+  const createResult = await createDiscordRole({
+    guildId: args.guildId,
+    name: DISCORD_COMMANDER_ROLE_NAME,
+  });
+
+  if (!createResult.ok || !createResult.role.id) {
+    return {
+      ok: false as const,
+      code: createResult.ok ? "DISCORD_COMMANDER_ROLE_CREATE_FAILED" : createResult.code,
+      message: createResult.ok ? "Could not create the commander role." : createResult.message,
+    };
+  }
+
+  return {
+    ok: true as const,
+    roleId: createResult.role.id,
+    roleCreated: true,
+    authorCanBootstrap,
+  };
+}
+
+async function processDiscordFeedbackSetupMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  const authorId = typeof args.message.author?.id === "string" ? args.message.author.id : null;
+  if (!messageId || !authorId) {
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  const guildId = DISCORD_GUILD_ID();
+  const rolesResult = await fetchDiscordGuildRoles({ guildId });
+  if (!rolesResult.ok) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return rolesResult;
+  }
+
+  const messageMemberRoleIds = Array.isArray(args.message.member?.roles)
+    ? args.message.member.roles.filter((roleId): roleId is string => typeof roleId === "string")
+    : null;
+  const memberResult = messageMemberRoleIds
+    ? { ok: true as const, member: { roles: messageMemberRoleIds } }
+    : await fetchDiscordGuildMember({ guildId, userId: authorId });
+  if (!memberResult.ok) {
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return memberResult;
+  }
+
+  const memberRoleIds = Array.isArray(memberResult.member.roles)
+    ? memberResult.member.roles.filter((roleId): roleId is string => typeof roleId === "string")
+    : [];
+  const commanderRoleResult = await ensureDiscordCommanderRole({
+    guildId,
+    authorId,
+    memberRoleIds,
+    guildRoles: rolesResult.roles,
+  });
+
+  if (!commanderRoleResult.ok) {
+    await replyToDiscordMessageCommand({
+      channelId: args.channelId,
+      guildId,
+      messageId,
+      content: `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+    });
+    return commanderRoleResult;
+  }
+
+  let hasCommanderRole = memberRoleIds.includes(commanderRoleResult.roleId);
+  if (!hasCommanderRole && commanderRoleResult.authorCanBootstrap) {
+    const addRoleResult = await addDiscordGuildMemberRole({
+      guildId,
+      userId: authorId,
+      roleId: commanderRoleResult.roleId,
+    });
+    hasCommanderRole = addRoleResult.ok;
+  }
+
+  if (!hasCommanderRole) {
+    await replyToDiscordMessageCommand({
+      channelId: args.channelId,
+      guildId,
+      messageId,
+      content: commanderRoleResult.roleCreated
+        ? `${DISCORD_COMMANDER_ROLE_NAME} was created. Assign it to yourself or another operator, then retry.`
+        : `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use bot message commands.`,
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+    });
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN" };
+  }
+
+  const upsertResult = await upsertDiscordFeedbackPanel();
+  if (!upsertResult.ok) {
+    console.error("[discord-message-command] feedback setup failed", {
+      requestId: randomUUID(),
+      code: upsertResult.code,
+      status: "status" in upsertResult ? upsertResult.status : undefined,
+      message: upsertResult.message,
+    });
+    await replyToDiscordMessageCommand({
+      channelId: args.channelId,
+      guildId,
+      messageId,
+      content: "Feedback setup failed. Check bot permissions and configured feedback channels.",
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return upsertResult;
+  }
+
+  await replyToDiscordMessageCommand({
+    channelId: args.channelId,
+    guildId,
+    messageId,
+    content: upsertResult.action === "updated"
+      ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
+      : `Feedback launcher created in ${upsertResult.channelLabel}.`,
+  });
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return { ok: true as const, action: upsertResult.action };
+}
+
+function validateDiscordMessageCommandPollRequest(request: Request):
+  | { ok: true }
+  | { ok: false; status: number; message: string } {
+  const secret = optionalEnv("DISCORD_MESSAGE_COMMAND_POLL_SECRET") ?? optionalEnv("CRON_SECRET");
+  if (!secret) {
+    return {
+      ok: false,
+      status: 503,
+      message: "Discord message command polling is not configured.",
+    };
+  }
+
+  const authorization = request.headers.get("authorization");
+  if (authorization !== `Bearer ${secret}`) {
+    return {
+      ok: false,
+      status: 401,
+      message: "Unauthorized.",
+    };
+  }
+
+  return { ok: true };
+}
+
+async function pollDiscordMessageCommands() {
+  const channelId = DISCORD_MAIN_CHANNEL_ID();
+  if (!channelId) {
+    return {
+      ok: false as const,
+      code: "DISCORD_MAIN_CHANNEL_NOT_CONFIGURED",
+      processed: [],
+    };
+  }
+
+  const messagesResult = await fetchDiscordChannelMessages({
+    channelId,
+    limit: DISCORD_MESSAGE_COMMAND_POLL_LIMIT,
+  });
+  if (!messagesResult.ok) {
+    return {
+      ok: false as const,
+      code: messagesResult.code,
+      status: messagesResult.status,
+      message: messagesResult.message,
+      processed: [],
+    };
+  }
+
+  const candidates = [...messagesResult.messages]
+    .reverse()
+    .filter((message) => {
+      const candidate = message as DiscordMessageCommand;
+      return candidate.author?.bot !== true
+        && discordMessageRequestsFeedbackSetup(candidate)
+        && !discordMessageHasProcessedCommandReaction(candidate);
+    })
+    .slice(0, DISCORD_MESSAGE_COMMAND_MAX_PER_RUN);
+
+  const processed = [];
+  for (const message of candidates) {
+    const result = await processDiscordFeedbackSetupMessageCommand({
+      channelId,
+      message: message as DiscordMessageCommand,
+    });
+    processed.push({
+      messageId: message.id,
+      ok: result.ok,
+      code: "code" in result ? result.code : null,
+      action: "action" in result ? result.action : null,
+    });
+  }
+
+  return {
+    ok: true as const,
+    processed,
+  };
 }
 
 async function upsertDiscordVerifyMessage(): Promise<
@@ -4402,59 +4787,13 @@ async function handleDeferredFeedbackCreateModalSubmit(
   interaction: DiscordInteraction,
   reportTypeOverride?: "bug" | "feature" | null,
 ) {
-  const interactionId = typeof interaction.id === "string" ? interaction.id : null;
-  const applicationId = typeof interaction.application_id === "string" ? interaction.application_id : null;
-  const interactionToken = typeof interaction.token === "string" ? interaction.token : null;
-
-  if (!interactionId || !applicationId || !interactionToken) {
-    return jsonResponse(await handleFeedbackCreateModalSubmit(interaction, reportTypeOverride));
-  }
-
-  const deferResult = await deferDiscordInteractionEphemeral({
-    interactionId,
-    interactionToken,
+  return buildDeferredDiscordEphemeralInteractionResponse({
+    interaction,
+    actionLabel: "feedback-submit",
+    fallback: async () => handleFeedbackCreateModalSubmit(interaction, reportTypeOverride),
+    genericFailureContent: "Could not save that feedback report right now. Try again in a moment.",
+    process: async () => processFeedbackCreateModalSubmit(interaction, reportTypeOverride),
   });
-
-  if (!deferResult.ok) {
-    console.warn("[discord-interactions] feedback defer failed", {
-      requestId: randomUUID(),
-      interactionId,
-      code: deferResult.code,
-      status: deferResult.status,
-      message: deferResult.message,
-    });
-    return jsonResponse(await handleFeedbackCreateModalSubmit(interaction, reportTypeOverride));
-  }
-
-  let content = "Could not save that feedback report right now. Try again in a moment.";
-
-  try {
-    content = await processFeedbackCreateModalSubmit(interaction, reportTypeOverride);
-  } catch (error) {
-    console.error("[discord-interactions] deferred feedback submit failed", {
-      requestId: randomUUID(),
-      interactionId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-
-  const editResult = await editDiscordOriginalInteractionResponse({
-    applicationId,
-    interactionToken,
-    content,
-  });
-
-  if (!editResult.ok) {
-    console.error("[discord-interactions] edit original feedback interaction failed", {
-      requestId: randomUUID(),
-      interactionId,
-      code: editResult.code,
-      status: editResult.status,
-      message: editResult.message,
-    });
-  }
-
-  return buildNoContentResponse();
 }
 
 async function handleBugStatusInteraction(interaction: DiscordInteraction) {
@@ -5576,6 +5915,19 @@ async function handleUpdateSkipInteraction(interaction: DiscordInteraction) {
   return buildDiscordEphemeralMessageResponse("Update draft skipped.");
 }
 
+export async function GET(request: Request) {
+  const authorization = validateDiscordMessageCommandPollRequest(request);
+  if (!authorization.ok) {
+    return jsonResponse(
+      { ok: false, message: authorization.message },
+      { status: authorization.status },
+    );
+  }
+
+  const result = await pollDiscordMessageCommands();
+  return jsonResponse(result, { status: result.ok ? 200 : 500 });
+}
+
 export async function POST(request: Request) {
   const requestId = randomUUID();
   let rawBody = "";
@@ -5617,9 +5969,7 @@ export async function POST(request: Request) {
       interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
       && interaction.data?.name === FITNESS_FEEDBACK_COMMAND_NAME
     ) {
-      return jsonResponse(buildDiscordFeedbackPanelSubmitModalResponse({
-        emojis: await validateDiscordFeedbackEmojis(),
-      }));
+      return jsonResponse(buildDiscordFeedbackPanelSubmitModalResponse());
     }
 
     if (
@@ -5804,9 +6154,7 @@ export async function POST(request: Request) {
       interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
       && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID
     ) {
-      return jsonResponse(buildDiscordFeedbackPanelSubmitModalResponse({
-        emojis: await validateDiscordFeedbackEmojis(),
-      }));
+      return jsonResponse(buildDiscordFeedbackPanelSubmitModalResponse());
     }
 
     if (
