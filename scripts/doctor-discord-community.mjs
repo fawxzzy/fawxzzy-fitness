@@ -14,7 +14,6 @@ const fileEnv = parseDotenvFile(envPath);
 const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
 const discordApiBaseUrl = "https://discord.com/api/v10";
 const discordApiUserAgent = "fawxzzy-fitness-discord-community-doctor/1.0";
-const suppressEmbedsFlag = 1 << 2;
 const expectedFeedbackPanelTitle = "Feedback Actions";
 const legacyFeedbackPanelTitle = "Fawxzzy Feedback";
 const expectedFeedbackPanelButtons = ["Submit", "Add Update", "Withdraw"];
@@ -859,26 +858,29 @@ async function checkUpdatesChannel(botToken, updatesChannelId, applicationId) {
 
   const latestBotUpdate = messagesResult.data.find((message) => {
     const authorId = typeof message?.author?.id === "string" ? message.author.id : null;
-    return authorId === applicationId && typeof message?.content === "string" && message.content.includes("## ");
+    return authorId === applicationId
+      && Array.isArray(message?.embeds)
+      && message.embeds.some((embed) => typeof embed?.title === "string" && embed.title.trim().length > 0);
   });
 
-  const hasEveryone = typeof latestBotUpdate?.content === "string" && latestBotUpdate.content.trim().startsWith("@everyone");
-  const hasSuppressedEmbeds = typeof latestBotUpdate?.flags === "number"
-    ? (latestBotUpdate.flags & suppressEmbedsFlag) === suppressEmbedsFlag
-    : false;
+  const primaryEmbed = Array.isArray(latestBotUpdate?.embeds) ? latestBotUpdate.embeds[0] : null;
+  const hasEmbedTitle = typeof primaryEmbed?.title === "string" && primaryEmbed.title.trim().length > 0;
+  const hasEmbedDescription = typeof primaryEmbed?.description === "string" && primaryEmbed.description.trim().length > 0;
+  const hasGreenStrip = typeof primaryEmbed?.color === "number" && primaryEmbed.color === 0x22c55e;
 
   return buildCheck(
     "updates-channel",
-    !latestBotUpdate ? "warn" : hasEveryone && hasSuppressedEmbeds ? "pass" : "warn",
+    !latestBotUpdate ? "warn" : hasEmbedTitle && hasEmbedDescription && hasGreenStrip ? "pass" : "warn",
     !latestBotUpdate
       ? "Updates channel is reachable, but no recent bot-authored curated update post was found"
-      : hasEveryone && hasSuppressedEmbeds
-        ? "Updates channel is reachable and the latest curated update matches the @everyone + suppress-embeds standard"
-        : "Updates channel is reachable, but the latest curated update is missing @everyone or suppress-embeds",
+      : hasEmbedTitle && hasEmbedDescription && hasGreenStrip
+        ? "Updates channel is reachable and the latest curated update matches the green-strip embed-card standard"
+        : "Updates channel is reachable, but the latest curated update is missing the expected embed-card formatting",
     {
       latestBotMessageId: typeof latestBotUpdate?.id === "string" ? latestBotUpdate.id : null,
-      latestBotPostHasEveryone: hasEveryone,
-      latestBotPostSuppressesEmbeds: hasSuppressedEmbeds,
+      latestBotPostHasEmbedTitle: hasEmbedTitle,
+      latestBotPostHasEmbedDescription: hasEmbedDescription,
+      latestBotPostHasGreenStrip: hasGreenStrip,
     },
   );
 }

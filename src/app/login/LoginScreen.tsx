@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, type FormEvent, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { login, requestPasswordResetInline } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -23,7 +22,6 @@ import {
   AuthInlineLinkButton,
   AuthShell,
   AuthStack,
-  AuthStatusCard,
 } from "@/components/auth/AuthShell";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -39,7 +37,6 @@ import {
   writeRememberedLoginState,
   type RememberedLoginState,
 } from "@/lib/remembered-login";
-import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const EMAIL_INPUT_ID = "login-email";
 const PASSWORD_INPUT_ID = "login-password";
@@ -68,8 +65,6 @@ export function LoginScreen({
   previewRememberedLogin?: RememberedLoginState | null;
   previewShowCredentialStep?: boolean;
 }) {
-  const router = useRouter();
-  const sessionProbeStartedRef = useRef(false);
   const loginPendingTimeoutRef = useRef<number | null>(null);
   const copy = AUTH_MODE_COPY["password-login"];
   const resolvedError = error;
@@ -85,7 +80,6 @@ export function LoginScreen({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetCooldownRemaining, setResetCooldownRemaining] = useState(0);
-  const [isRedirectingAuthenticatedUser, setIsRedirectingAuthenticatedUser] = useState(false);
   const [showCredentialStep, setShowCredentialStep] = useState(shouldStartCredentialStepOpen);
   const [forceFullCredentialForm, setForceFullCredentialForm] = useState(false);
   const toast = useToast();
@@ -115,41 +109,6 @@ export function LoginScreen({
       setFormSeed((current) => current + 1);
     }
   }, [resolvedError, resolvedInfo]);
-
-  useEffect(() => {
-    if (previewRememberedLogin || previewShowCredentialStep || sessionProbeStartedRef.current) {
-      return;
-    }
-
-    let cancelled = false;
-    sessionProbeStartedRef.current = true;
-
-    const probeSession = async () => {
-      try {
-        const supabase = createBrowserSupabase();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user || cancelled) {
-          return;
-        }
-
-        setIsRedirectingAuthenticatedUser(true);
-        startTransition(() => {
-          router.replace("/entry");
-        });
-      } catch {
-        // If auth probing fails, keep the login screen usable.
-      }
-    };
-
-    void probeSession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [previewRememberedLogin, previewShowCredentialStep, router]);
 
   useEffect(() => {
     const storedLogin = previewRememberedLogin ?? readRememberedLoginState();
@@ -338,18 +297,6 @@ export function LoginScreen({
     } finally {
       setIsSendingReset(false);
     }
-  }
-
-  if (isRedirectingAuthenticatedUser) {
-    return (
-      <AuthShell>
-        <AuthStatusCard
-          title="Resuming your session"
-          description="Taking you back into the app without reopening login."
-          testId="login-session-redirect"
-        />
-      </AuthShell>
-    );
   }
 
   return (

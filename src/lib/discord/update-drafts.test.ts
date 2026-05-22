@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildDiscordUpdatePublishBody,
   buildDiscordUpdateLatestSummary,
   findDiscordUpdateDraftByIdOrPrefix,
   formatDiscordUpdatePublishMessage,
@@ -455,11 +456,13 @@ test("publish posts to DISCORD_UPDATES_CHANNEL_ID with curated copy only", async
   }
 
   assert.equal(observedMessages[0]?.channelId, "1504671871512346695");
-  assert.match(observedMessages[0]?.body?.content ?? "", /## Better feedback tools are live/);
-  assert.doesNotMatch(observedMessages[0]?.body?.content ?? "", /\*\*Better feedback tools are live\*\*/);
-  assert.equal(observedMessages[0]?.body?.flags, 4);
-  assert.doesNotMatch(observedMessages[0]?.body?.content ?? "", /abcdef1234567890/);
-  assert.doesNotMatch(observedMessages[0]?.body?.content ?? "", /internal raw message/);
+  assert.equal(observedMessages[0]?.body?.content ?? "", "");
+  assert.equal(observedMessages[0]?.body?.embeds?.[0]?.title, "Better feedback tools are live");
+  assert.match(observedMessages[0]?.body?.embeds?.[0]?.description ?? "", /\*\*What changed\*\*/);
+  assert.match(observedMessages[0]?.body?.embeds?.[0]?.description ?? "", /Open Fitness:/);
+  assert.equal(observedMessages[0]?.body?.embeds?.[0]?.color, 0x22c55e);
+  assert.doesNotMatch(observedMessages[0]?.body?.embeds?.[0]?.description ?? "", /abcdef1234567890/);
+  assert.doesNotMatch(observedMessages[0]?.body?.embeds?.[0]?.description ?? "", /internal raw message/);
   assert.equal(state.rows[0]?.status, "published");
   assert.equal(state.rows[0]?.discord_message_id, "1505000000000000001");
 });
@@ -518,8 +521,9 @@ test("formatDiscordUpdatePublishMessage keeps the public post user-facing", () =
     whyItMatters: "You can submit and track feedback from Discord without command hunting.",
   });
 
-  assert.match(message, /^@everyone\n\n## Faster feedback flow/m);
-  assert.match(message, /^## Faster feedback flow/m);
+  assert.doesNotMatch(message, /@everyone/);
+  assert.doesNotMatch(message, /## Faster feedback flow/);
+  assert.match(message, /^A new update is live\./m);
   assert.match(message, /\*\*What changed\*\*/);
   assert.match(message, /\*\*Why it matters\*\*/);
   assert.match(message, /Open Fitness:\n<https:\/\/fawxzzy-fitness-local\.vercel\.app\/login>/);
@@ -527,28 +531,27 @@ test("formatDiscordUpdatePublishMessage keeps the public post user-facing", () =
   assert.doesNotMatch(message, /migration/);
 });
 
-test("formatDiscordUpdatePublishMessage does not duplicate the default title", () => {
-  const message = formatDiscordUpdatePublishMessage({
+test("buildDiscordUpdatePublishBody keeps the title in the embed card only", () => {
+  const body = buildDiscordUpdatePublishBody({
     title: "Fitness App Update",
     whatChanged: "Improved the Discord feedback flow.\nAdded a cleaner Feedback forum board.",
     whyItMatters: "Updates should be easier to read and focused on what changed for users.",
   });
 
-  assert.equal((message.match(/Fitness App Update/g) ?? []).length, 1);
-  assert.match(message, /^@everyone/m);
-  assert.match(message, /^## Fitness App Update/m);
-  assert.match(message, /\n- Improved the Discord feedback flow\.\n- Added a cleaner Feedback forum board\./);
+  assert.equal(body.content, "");
+  assert.equal(body.embeds?.[0]?.title, "Fitness App Update");
+  assert.equal((String(body.embeds?.[0]?.description ?? "").match(/Fitness App Update/g) ?? []).length, 0);
+  assert.match(String(body.embeds?.[0]?.description ?? ""), /\n- Improved the Discord feedback flow\.\n- Added a cleaner Feedback forum board\./);
 });
 
-test("formatDiscordUpdatePublishMessage defaults a blank title and avoids double bullets", () => {
-  const message = formatDiscordUpdatePublishMessage({
+test("buildDiscordUpdatePublishBody defaults a blank title and avoids double bullets", () => {
+  const body = buildDiscordUpdatePublishBody({
     title: "   ",
     whatChanged: "- Improved the feedback post format.\n* Cleaned up update announcements.\n3. Reduced link preview clutter.",
     whyItMatters: "Updates should be easier to read and focused on what changed for users.",
   });
 
-  assert.match(message, /^@everyone/m);
-  assert.match(message, /^## Fitness App Update/m);
-  assert.match(message, /\n- Improved the feedback post format\.\n- Cleaned up update announcements\.\n- Reduced link preview clutter\./);
-  assert.doesNotMatch(message, /\n- - /);
+  assert.equal(body.embeds?.[0]?.title, "Fitness App Update");
+  assert.match(String(body.embeds?.[0]?.description ?? ""), /\n- Improved the feedback post format\.\n- Cleaned up update announcements\.\n- Reduced link preview clutter\./);
+  assert.doesNotMatch(String(body.embeds?.[0]?.description ?? ""), /\n- - /);
 });

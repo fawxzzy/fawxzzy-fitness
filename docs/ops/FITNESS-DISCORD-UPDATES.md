@@ -7,6 +7,7 @@ Product rules:
 - only Fitness production deployments should create update drafts
 - deployment metadata is input, not release copy
 - public Discord updates must stay user-facing and curated
+- bot-authored public updates should use the embed card format with the green left strip instead of raw plain-message posts
 - broad release-summary updates should start with `@everyone`
 - do not dump raw commit logs, migration names, PR diffs, stack traces, or infra-only noise
 - do not mix routine sharing, workout sharing, import flows, or copy-to-app work into this lane
@@ -123,13 +124,18 @@ Existing commands still remain:
 - `feedback-withdraw`
 
 ## Public post format
-Broad release-summary updates should follow:
+Bot-authored updates should be published as a Discord embed card with the green left strip. Use raw plain-message posts only for manual emergency cleanup, not the normal workflow.
+
+Low-noise checkpoint and shipped-update posts should follow this embed shape:
 
 ```txt
-@everyone
+Embed title:
+Fitness App Update
 
-## Fitness App Update
+Embed color:
+green left strip
 
+Embed description:
 A new update is live.
 
 **What changed**
@@ -144,11 +150,12 @@ Open Fitness:
 ```
 
 Formatting rules:
-- one heading only
-- start the public post with `@everyone`
+- title belongs in the embed title, not as a repeated markdown heading in message content
+- use the green left-strip embed card for bot-authored public updates
 - if the curated title is `Fitness App Update`, do not repeat it in the body
 - normalize each non-empty `What changed` line into a single bullet
-- suppress Discord link previews for the app URL so the post stays compact
+- keep the raw message content empty for low-noise posts unless an explicit loud ping is approved
+- if a broad release-summary really needs `@everyone`, put the mention in the message content above the embed card only when explicitly approved
 
 Good copy:
 - `Better feedback tools are live`
@@ -215,7 +222,9 @@ Rule: Discord update posts must stay safe for users of any age and background.
 
 Rule: Discord is the community surface; ATLAS remains internal operator truth.
 
-Rule: public release posts should use `@everyone` and suppress embeds while staying curated and user-facing.
+Rule: bot-authored public release posts should use the green-strip embed card format by default.
+
+Rule: `@everyone` is opt-in for broad release-summary announcements, not the default for every published update draft.
 
 ## Feedback Card Promotion Format
 When a specific feedback card is shipped and promoted into `#updates`, use this format instead of the broad `@everyone` release-summary template:

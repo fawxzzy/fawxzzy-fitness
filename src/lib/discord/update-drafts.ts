@@ -2,13 +2,13 @@ import "server-only";
 
 import {
   createDiscordChannelMessage,
-  DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
 } from "@/lib/discord/rest";
 import { DISCORD_UPDATES_CHANNEL_ID, VERCEL_PROJECT_ID } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const FITNESS_LOGIN_URL = "https://fawxzzy-fitness-local.vercel.app/login";
 const FITNESS_PROJECT_NAME = "fawxzzy-fitness";
+const DISCORD_UPDATE_EMBED_COLOR = 0x22c55e;
 const UPDATE_DRAFT_ID_PREFIX_MIN_LENGTH = 6;
 const UPDATE_DRAFT_TITLE_MAX_LENGTH = 120;
 const UPDATE_DRAFT_CHANGES_MAX_LENGTH = 1500;
@@ -536,15 +536,10 @@ export function formatDiscordUpdatePublishMessage(args: {
   whatChanged: string;
   whyItMatters: string;
 }): string {
-  const title = normalizeUpdateHeadingTitle(args.title);
   const whatChangedLines = normalizeChangesLines(args.whatChanged);
   const whyItMatters = neutralizeDiscordMentions(args.whyItMatters.trim());
 
   return [
-    "@everyone",
-    "",
-    `## ${title}`,
-    "",
     "A new update is live.",
     "",
     "**What changed**",
@@ -556,6 +551,27 @@ export function formatDiscordUpdatePublishMessage(args: {
     "Open Fitness:",
     `<${FITNESS_LOGIN_URL}>`,
   ].join("\n");
+}
+
+export function buildDiscordUpdatePublishBody(args: {
+  title: string;
+  whatChanged: string;
+  whyItMatters: string;
+}): Record<string, unknown> {
+  return {
+    content: "",
+    allowed_mentions: {
+      parse: [],
+      replied_user: false,
+    },
+    embeds: [
+      {
+        title: normalizeUpdateHeadingTitle(args.title),
+        description: formatDiscordUpdatePublishMessage(args),
+        color: DISCORD_UPDATE_EMBED_COLOR,
+      },
+    ],
+  };
 }
 
 function validatePublishFields(args: {
@@ -759,18 +775,16 @@ export async function publishDiscordUpdateDraft(args: {
     whatChanged: curatedFields.storedChanges,
     whyItMatters: curatedFields.whyItMatters,
   });
+  const messageBody = buildDiscordUpdatePublishBody({
+    title: curatedFields.title,
+    whatChanged: curatedFields.storedChanges,
+    whyItMatters: curatedFields.whyItMatters,
+  });
 
   const createMessage = args.dependencies?.createMessage ?? createDiscordChannelMessage;
   const postResult = await createMessage({
     channelId,
-    body: {
-      content: messageContent,
-      flags: DISCORD_MESSAGE_FLAG_SUPPRESS_EMBEDS,
-      allowed_mentions: {
-        parse: ["everyone"],
-        replied_user: false,
-      },
-    },
+    body: messageBody,
   });
 
   if (!postResult.ok) {
