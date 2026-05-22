@@ -1135,6 +1135,7 @@ test("Discord message command poll replaces one computa command menu per channel
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
   process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
 
   const originalFetch = globalThis.fetch;
@@ -1158,6 +1159,7 @@ test("Discord message command poll replaces one computa command menu per channel
             id: "main-message-computa-menu",
             content: "computa",
             author: { id: "123456789012345678", bot: false },
+            member: { roles: ["commander-role"] },
             reactions: [],
           },
         ]), {
@@ -1183,6 +1185,7 @@ test("Discord message command poll replaces one computa command menu per channel
           id: "main-message-computa-menu",
           content: "computa",
           author: { id: "123456789012345678", bot: false },
+          member: { roles: ["commander-role"] },
           reactions: [],
         },
       ]), {
@@ -1207,10 +1210,18 @@ test("Discord message command poll replaces one computa command menu per channel
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa feedback setup`/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /live/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /Owner-only/);
-      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "computa_owner_tools");
-      assert.equal(body?.components?.[0]?.components?.[0]?.label, "Owner Tools");
+      assert.equal(body?.components, undefined);
       assert.deepEqual(body?.allowed_mentions, { parse: [] });
       return new Response(JSON.stringify({ id: "new-computa-menu" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -1249,36 +1260,88 @@ test("Discord message command poll replaces one computa command menu per channel
     delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
     delete process.env.DISCORD_BOT_TOKEN;
     delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
     delete process.env.DISCORD_APPLICATION_ID;
   }
 });
 
-test("Discord interactions route shows owner Computa tools ephemerally from the command card", async () => {
-  const keyPair = nacl.sign.keyPair();
-  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user";
+test("Discord message command poll rejects computa menu for users without commander role", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+
+  const originalFetch = globalThis.fetch;
+  let postedMenu = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-computa-forbidden",
+          content: "computa",
+          author: { id: "normal-user", bot: false },
+          member: { roles: [] },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-computa-forbidden/reactions/fawxzzy%3A1507384094424694785/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      postedMenu = true;
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
 
   try {
-    const response = await POST(createSignedRequest(JSON.stringify({
-      type: 3,
-      data: {
-        custom_id: "computa_owner_tools",
-      },
-      member: {
-        user: { id: "owner-user", username: "fawxzzy" },
-      },
-    }), keyPair));
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
 
     assert.equal(response.status, 200);
-    const payload = await response.json();
-    assert.equal(payload.type, 4);
-    assert.equal(payload.data.flags, 64);
-    assert.match(payload.data.content, /Owner-only Computa commands:/);
-    assert.match(payload.data.content, /computa post live twitch/);
-    assert.match(payload.data.content, /computa sync feedback reactions/);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-computa-forbidden",
+          ok: false,
+          code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN",
+          action: null,
+        },
+      ],
+    });
+    assert.equal(postedMenu, false);
   } finally {
-    delete process.env.DISCORD_PUBLIC_KEY;
-    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
   }
 });
 
@@ -2111,6 +2174,7 @@ test("Discord message command poll syncs feedback resolved reactions for command
         available_tags: [
           { id: "tag-fixed", name: "Fixed" },
           { id: "tag-closed", name: "Closed" },
+          { id: "tag-done", name: "Done" },
         ],
       }), {
         status: 200,
@@ -2124,6 +2188,7 @@ test("Discord message command poll syncs feedback resolved reactions for command
           { id: "thread-needs-add", parent_id: "1504673475489562744", archived: false, applied_tags: ["tag-fixed"] },
           { id: "thread-needs-remove", parent_id: "1504673475489562744", archived: false, applied_tags: [] },
           { id: "thread-unchanged", parent_id: "1504673475489562744", archived: false, applied_tags: ["tag-closed"] },
+          { id: "thread-legacy-migrate", parent_id: "1504673475489562744", archived: false, applied_tags: ["tag-done"] },
         ],
       }), {
         status: 200,
@@ -2158,6 +2223,16 @@ test("Discord message command poll syncs feedback resolved reactions for command
       });
     }
 
+    if (url.pathname === "/api/v10/channels/thread-legacy-migrate/messages/thread-legacy-migrate" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "thread-legacy-migrate",
+        reactions: [{ emoji: { name: "\u2705" } }],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (
       (
         url.pathname === "/api/v10/channels/thread-needs-add/messages/thread-needs-add/reactions/fawxzzy%3A1507384062166302851/@me"
@@ -2165,6 +2240,14 @@ test("Discord message command poll syncs feedback resolved reactions for command
       )
       || (
         url.pathname === "/api/v10/channels/thread-needs-remove/messages/thread-needs-remove/reactions/fawxzzy%3A1507384062166302851/@me"
+        && method === "DELETE"
+      )
+      || (
+        url.pathname === "/api/v10/channels/thread-legacy-migrate/messages/thread-legacy-migrate/reactions/fawxzzy%3A1507384062166302851/@me"
+        && method === "PUT"
+      )
+      || (
+        url.pathname === "/api/v10/channels/thread-legacy-migrate/messages/thread-legacy-migrate/reactions/%E2%9C%85/@me"
         && method === "DELETE"
       )
     ) {
@@ -2197,7 +2280,7 @@ test("Discord message command poll syncs feedback resolved reactions for command
         },
       ],
     });
-    assert.deepEqual(reactionCalls.map((call) => call.method).sort(), ["DELETE", "PUT"]);
+    assert.deepEqual(reactionCalls.map((call) => call.method).sort(), ["DELETE", "DELETE", "PUT", "PUT"]);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
@@ -4338,7 +4421,7 @@ test("Discord interactions route adds a resolved checkmark to the starter messag
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me") {
       observedDiscordBodies.push({ path: url.pathname, method: "PUT", body: null });
       return new Response(null, { status: 204 });
     }
@@ -4382,7 +4465,7 @@ test("Discord interactions route adds a resolved checkmark to the starter messag
     assert.match(auditReply?.body?.content ?? "", /Status: Confirmed -> Completed/);
     assert.match(auditReply?.body?.content ?? "", /Completion Review: Pending Fawxzzy review\./);
     assert.equal(
-      observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/%E2%9C%85/@me") && entry.method === "PUT"),
+      observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me") && entry.method === "PUT"),
       true,
     );
   } finally {
@@ -4476,7 +4559,7 @@ test("Discord interactions route keeps fixed status updates successful when the 
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/discord-message-fixed-fallback/reactions/%E2%9C%85/@me") {
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/discord-message-fixed-fallback/reactions/fawxzzy%3A1507384062166302851/@me") {
       return new Response(JSON.stringify({ message: "Missing Permissions" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
@@ -4612,7 +4695,7 @@ test("Discord interactions route does not require completion review for testing 
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me") {
       return new Response(null, { status: 204 });
     }
 
@@ -4698,7 +4781,7 @@ test("Discord interactions route approves completion review for finished feedbac
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me") {
       observedDiscordBodies.push({ path: url.pathname, method: "PUT", body: null });
       return new Response(null, { status: 204 });
     }
@@ -4739,7 +4822,7 @@ test("Discord interactions route approves completion review for finished feedbac
     const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
     assert.match(auditReply?.body?.content ?? "", /Completion Review approved by Fawx Security\./);
     assert.equal(
-      observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/%E2%9C%85/@me") && entry.method === "PUT"),
+      observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me") && entry.method === "PUT"),
       true,
     );
   } finally {
@@ -4792,7 +4875,7 @@ test("Discord interactions route keeps completion review approval successful whe
       });
     }
 
-    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/%E2%9C%85/@me") {
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504673475489562745/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me") {
       return new Response(JSON.stringify({ message: "Missing Permissions" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
