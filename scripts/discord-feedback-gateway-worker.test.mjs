@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   calculateDiscordGatewayReconnectDelayMs,
   callDiscordMessageCommandPoll,
+  createDiscordGatewayMessageReaction,
+  getRequestedBotMessageReactions,
   messageRequestsComputaArchiveCheckedCards,
   messageRequestsComputaCommandCardRepair,
   messageRequestsComputaFeedbackReactionSync,
@@ -12,6 +14,7 @@ import {
   messageRequestsComputaOwnerMenu,
   messageRequestsComputaReleaseCheck,
   messageRequestsComputaUpdate,
+  messageRequestsBotReaction,
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
   normalizeDiscordMessageCommandContent,
@@ -384,6 +387,61 @@ test("feedback gateway worker detects release ledger check command aliases", () 
     }, "main-channel"),
     true,
   );
+});
+
+test("feedback gateway worker detects passive bot reaction rules in any channel", () => {
+  const message = {
+    id: "message-epic",
+    channel_id: "any-channel",
+    content: "that was EPIC.",
+    author: { bot: false },
+  };
+
+  assert.equal(messageRequestsBotReaction(message), true);
+  assert.deepEqual(getRequestedBotMessageReactions(message), [
+    { key: "epic", emoji: "epic:1507434865505603757" },
+  ]);
+  assert.equal(
+    messageRequestsBotReaction({
+      id: "message-bot",
+      channel_id: "any-channel",
+      content: "epic",
+      author: { bot: true },
+    }),
+    false,
+  );
+  assert.equal(
+    messageRequestsBotReaction({
+      id: "message-not-word",
+      channel_id: "any-channel",
+      content: "this is an epicenter",
+      author: { bot: false },
+    }),
+    false,
+  );
+});
+
+test("feedback gateway worker creates passive bot reactions through Discord REST", async () => {
+  const requests = [];
+  const result = await createDiscordGatewayMessageReaction({
+    token: "bot-token",
+    channelId: "channel-1",
+    messageId: "message-1",
+    emoji: "epic:1507434865505603757",
+    fetchImpl: async (url, init) => {
+      requests.push({ url: String(url), init });
+      return new Response(null, { status: 204 });
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.status, 204);
+  assert.equal(
+    requests[0].url,
+    "https://discord.com/api/v10/channels/channel-1/messages/message-1/reactions/epic%3A1507434865505603757/@me",
+  );
+  assert.equal(requests[0].init.method, "PUT");
+  assert.equal(requests[0].init.headers.authorization, "Bot bot-token");
 });
 
 test("feedback gateway worker resolves the production poll URL safely", () => {
