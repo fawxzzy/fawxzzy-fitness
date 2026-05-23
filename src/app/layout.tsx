@@ -21,7 +21,7 @@ import "./globals.css";
 
 const APP_NAME = "FawxzzyFitness";
 const APP_DESCRIPTION = "Track sessions and progress with a focused training workflow.";
-const APP_PREVIEW_IMAGE = "/app/previews/today.png";
+const APP_PREVIEW_IMAGE = "/brand/atlas-sigil-master.png";
 const DEFAULT_APP_SHELL_COLOR = "#07111b";
 // iOS home-screen PWAs misplace bottom-anchored UI when black-translucent is
 // combined with viewport-fit=cover, so keep the status bar in default mode.
@@ -49,7 +49,7 @@ function resolveMetadataBase() {
     process.env.APP_URL,
     process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    "https://fawxzzy-fitness-local.vercel.app",
+    "https://fawxzzy-fitness.vercel.app",
   ];
 
   for (const candidate of candidates) {
@@ -84,9 +84,9 @@ export const metadata: Metadata = {
     images: [
       {
         url: APP_PREVIEW_IMAGE,
-        width: 430,
-        height: 932,
-        alt: "FawxzzyFitness Today screen preview",
+        width: 1280,
+        height: 1280,
+        alt: "FawxzzyFitness sigil and barbell brand art",
       },
     ],
   },
@@ -98,11 +98,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", rel: "icon" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/app/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/app/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/app/icon-512.png", sizes: "512x512", type: "image/png" }],
-    shortcut: [{ url: "/app/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
   other: {
     "mobile-web-app-capable": "yes",
