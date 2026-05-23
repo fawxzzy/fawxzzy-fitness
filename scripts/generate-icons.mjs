@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const iconSourcePath = path.join(rootDir, "public", "brand", "atlas-sigil-master.png");
-const canonicalSourceSha256 = "32462E18D69D0A347A893B0924A5680C275A8E366C0E37C998CD390E2FE8545A";
+const canonicalSourceSha256 = "E20A9FE2E42585ED1EC818D13EC80AA8CED89F15F82A35C51269C1B794F07F51";
 const defaultIconBackground = "#07111b";
 
 const outputs = [
