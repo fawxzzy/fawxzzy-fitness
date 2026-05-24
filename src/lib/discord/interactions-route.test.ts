@@ -2011,6 +2011,193 @@ test("Discord message command poll lets a manager bootstrap the commander role a
   }
 });
 
+test("Discord message command poll reposts the Music Sesh panel when computa setup music sesh reruns", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([buildSpotifyClubLobbyRow({
+        panel_channel_id: "1504668396338413671",
+        panel_message_id: "existing-music-sesh-panel",
+      })]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "PATCH") {
+      return new Response(JSON.stringify(buildSpotifyClubLobbyRow({
+        panel_channel_id: "1504668396338413671",
+        panel_message_id: body?.panel_message_id ?? "replacement-music-sesh-panel",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_room_members") && method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "Content-Range": "0-0/0" },
+      });
+    }
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      if (url.searchParams.get("limit") === "25" || url.searchParams.get("limit") === "50") {
+        return new Response(JSON.stringify([
+          {
+            id: "main-message-music-sesh-setup",
+            content: "computa setup music sesh",
+            author: { id: "123456789012345678", bot: false },
+            member: { roles: ["commander-role"] },
+            reactions: [],
+          },
+          {
+            id: "existing-music-sesh-panel",
+            author: { id: "1504700208251146371", bot: true },
+            embeds: [{ title: "Music Sesh" }],
+            components: [
+              {
+                type: 1,
+                components: [
+                  { type: 2, custom_id: "spotify_controls_open", label: "Open Music Sesh Controls" },
+                ],
+              },
+            ],
+          },
+        ]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504668396338413671", type: 0, name: "main" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/existing-music-sesh-panel" && method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      if (body?.recipient_id === "123456789012345678") {
+        return new Response(JSON.stringify({ id: "dm-music-sesh-setup" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      assert.equal(body?.components?.[0]?.components?.[0]?.label, "Open Music Sesh Controls");
+      return new Response(JSON.stringify({ id: "replacement-music-sesh-panel" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "1504668396338413671", type: 0, name: "main" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/dm-music-sesh-setup/messages" && method === "POST") {
+      assert.match(body?.content ?? "", /Music Sesh panel updated in <#1504668396338413671>/);
+      assert.deepEqual(body?.allowed_mentions, { parse: [] });
+      return new Response(JSON.stringify({ id: "dm-music-sesh-setup-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-music-sesh-setup/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
+      assert.equal(body?.recipient_id, "123456789012345678");
+      return new Response(JSON.stringify({ id: "dm-music-sesh-setup" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-music-sesh-setup",
+          ok: true,
+          code: null,
+          action: "reposted",
+        },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_APPLICATION_ID;
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  }
+});
+
 test("Discord message command poll requires the commander role after bootstrap", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -6213,6 +6400,145 @@ test("Discord interactions route posts setup-music-sesh in the invoking channel 
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_SPOTIFY_CLUB_CHANNEL_ID;
+  }
+});
+
+test("Discord interactions route reposts setup-music-sesh in the invoking channel when the panel already exists there", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+    calls.push({ method, pathname: url.pathname, body });
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([buildSpotifyClubLobbyRow({
+        panel_channel_id: "1504668396338413671",
+        panel_message_id: "existing-music-sesh-panel",
+      })]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "PATCH") {
+      return new Response(JSON.stringify(buildSpotifyClubLobbyRow({
+        panel_channel_id: "1504668396338413671",
+        panel_message_id: body?.panel_message_id ?? "replacement-music-sesh-panel",
+      })), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_queue_items") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_room_members") && method === "HEAD") {
+      return new Response(null, {
+        status: 200,
+        headers: { "Content-Range": "0-0/0" },
+      });
+    }
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504668396338413671", type: 0, name: "main" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([{
+        id: "existing-music-sesh-panel",
+        author: { id: "1504700208251146371" },
+        embeds: [{ title: "Music Sesh" }],
+        components: [
+          {
+            type: 1,
+            components: [
+              { type: 2, custom_id: "spotify_controls_open", label: "Open Music Sesh Controls" },
+            ],
+          },
+        ],
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/existing-music-sesh-panel" && method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      assert.equal(body?.components?.[0]?.components?.[0]?.label, "Open Music Sesh Controls");
+      return new Response(JSON.stringify({ id: "replacement-music-sesh-panel" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "1504668396338413671", type: 0, name: "main" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      channel_id: "1504668396338413671",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "setup-music-sesh",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Music Sesh panel updated in <#1504668396338413671>.",
+        flags: 64,
+      },
+    });
+    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504668396338413671/messages/existing-music-sesh-panel"), true);
+    assert.equal(calls.some((call) => call.method === "POST" && call.pathname === "/api/v10/channels/1504668396338413671/messages"), true);
+    assert.equal(calls.some((call) => call.method === "PATCH" && call.pathname === "/api/v10/channels/1504668396338413671/messages/existing-music-sesh-panel"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });
 

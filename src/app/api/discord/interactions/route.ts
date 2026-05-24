@@ -2560,6 +2560,7 @@ async function upsertDiscordFeedbackPanel(args: {
 async function upsertDiscordSpotifyClubPanel(args: {
   targetChannelId?: string | null;
   cleanupLegacyPanels?: boolean;
+  forceRepost?: boolean;
 } = {}) {
   const panelChannelResult = await ensureSpotifyClubPanelChannel({ targetChannelId: args.targetChannelId });
   if (!panelChannelResult.ok) {
@@ -2593,7 +2594,10 @@ async function upsertDiscordSpotifyClubPanel(args: {
     };
   }
 
-  const createPanelMessage = async (staleMessageIds: string[] = []) => {
+  const createPanelMessage = async (
+    staleMessageIds: string[] = [],
+    action: "created" | "reposted" = "created",
+  ) => {
     const createResult = await createDiscordChannelMessage({
       channelId: panelChannelResult.channelId,
       body: payload,
@@ -2632,7 +2636,7 @@ async function upsertDiscordSpotifyClubPanel(args: {
 
     return {
       ok: true as const,
-      action: "created" as const,
+      action,
       channelLabel: panelChannelResult.channelLabel,
       messageId: createResult.messageId,
       duplicateCount,
@@ -2665,18 +2669,31 @@ async function upsertDiscordSpotifyClubPanel(args: {
     return createPanelMessage();
   }
 
-  const patchResult = await patchDiscordChannelMessage({
-    channelId: panelChannelResult.channelId,
-    messageId: existingMessage.id,
-    body: payload,
-  });
-
   const duplicateMessages = messagesResult.messages.filter((message) => (
     message.id !== existingMessage.id
     && message.author?.id === DISCORD_APPLICATION_ID()
     && discordMessageHasSpotifyClubPanel(message)
   ));
   const duplicateMessageIds = duplicateMessages.map((message) => message.id);
+
+  if (args.forceRepost === true) {
+    const deleteResult = await deleteDiscordChannelMessage({
+      channelId: panelChannelResult.channelId,
+      messageId: existingMessage.id,
+    });
+
+    if (!deleteResult.ok && deleteResult.code !== "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
+      return { ok: false as const, code: deleteResult.code, status: deleteResult.status, message: deleteResult.message };
+    }
+
+    return createPanelMessage(duplicateMessageIds, "reposted");
+  }
+
+  const patchResult = await patchDiscordChannelMessage({
+    channelId: panelChannelResult.channelId,
+    messageId: existingMessage.id,
+    body: payload,
+  });
 
   if (
     !patchResult.ok
@@ -3708,6 +3725,7 @@ async function processDiscordMusicSeshSetupMessageCommand(args: {
   const upsertResult = await upsertDiscordSpotifyClubPanel({
     targetChannelId: args.channelId,
     cleanupLegacyPanels: true,
+    forceRepost: true,
   });
   if (!upsertResult.ok) {
     console.error("[discord-message-command] music sesh setup failed", {
@@ -3730,7 +3748,7 @@ async function processDiscordMusicSeshSetupMessageCommand(args: {
 
   await sendDiscordMessageCommandPrivateNotice({
     userId: authorization.authorId,
-    content: upsertResult.action === "updated"
+    content: upsertResult.action === "updated" || upsertResult.action === "reposted"
       ? `Music Sesh panel updated in ${upsertResult.channelLabel}.`
       : `Music Sesh panel created in ${upsertResult.channelLabel}.`,
   });
@@ -4962,6 +4980,7 @@ async function handleSetupSpotifyClubInteraction(interaction: DiscordInteraction
   const upsertResult = await upsertDiscordSpotifyClubPanel({
     targetChannelId: sourceChannelId,
     cleanupLegacyPanels: Boolean(sourceChannelId),
+    forceRepost: true,
   });
   if (!upsertResult.ok) {
     console.error("[discord-interactions] setup-spotify-club failed", {
@@ -4987,7 +5006,7 @@ async function handleSetupSpotifyClubInteraction(interaction: DiscordInteraction
     : "";
 
   return buildDiscordEphemeralMessageResponse(
-    upsertResult.action === "updated"
+    upsertResult.action === "updated" || upsertResult.action === "reposted"
       ? `Music Sesh panel updated in ${upsertResult.channelLabel}.${duplicateSuffix}`
       : `Music Sesh panel created in ${upsertResult.channelLabel}.${duplicateSuffix}`,
   );
