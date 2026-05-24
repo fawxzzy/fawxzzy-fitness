@@ -338,6 +338,12 @@ const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
   "computa feedback setup",
   "computa setup feedback",
 ];
+const DISCORD_MESSAGE_COMMAND_MUSIC_SESH_SETUP_TRIGGERS = [
+  "computa setup music sesh",
+  "computa music sesh setup",
+  "computa setup spotify club",
+  "computa spotify club setup",
+];
 const DISCORD_MESSAGE_COMMAND_FEEDBACK_REACTION_SYNC_TRIGGERS = [
   "computa sync feedback reactions",
   "computa feedback sync reactions",
@@ -405,6 +411,7 @@ const DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS = new Set([
   "\u26a0\ufe0f",
   "\ud83d\udeab",
 ]);
+const LEGACY_SPOTIFY_CLUB_SETUP_COMMAND_NAME = "setup-spotify-club";
 const SPOTIFY_START_QUEUE_URI_LIMIT = 50;
 
 type DiscordInteraction = {
@@ -561,7 +568,7 @@ function buildSpotifyConnectActionBody(discordUserId: string, args?: {
   return {
     content: (args?.copy ?? [
       "After authorizing, return here and press Refresh Spotify Status.",
-      "If Discord has not updated yet, open Spotify Club Controls again.",
+      "If Discord has not updated yet, open Music Sesh Controls again.",
     ]).join("\n"),
     components: [
       {
@@ -749,7 +756,7 @@ async function buildSpotifyStartQueueResponse(discordUserId: string): Promise<st
 
   const openLobby = await getCurrentDiscordSpotifyLobbyForQueue();
   if (!openLobby) {
-    return "Spotify Club lobby is Closed. Open a lobby before starting playback.";
+    return "Music Sesh lobby is Closed. Open a lobby before starting playback.";
   }
 
   const queueSummary = await getDiscordSpotifyQueueSummary({
@@ -1011,7 +1018,7 @@ function buildSpotifyControlHubMessageBody(args: {
     : "Recent: none";
 
   return [
-    "**Spotify Club Controls**",
+    "**Music Sesh Controls**",
     ...(args.notice?.trim() ? [args.notice.trim(), ""] : []),
     `Room: **${roomName}** (${roomVisibility})`,
     `Status: **${formatDiscordSpotifyLobbyStatusLabel(args.state.lobby)}**${args.state.openLobby?.host_discord_user_id ? ` / Host: <@${args.state.openLobby.host_discord_user_id}>` : ""}`,
@@ -1073,7 +1080,7 @@ function buildSpotifyControlHubComponents(args: {
         type: 2 as const,
         style: 1 as const,
         custom_id: FITNESS_SPOTIFY_JOIN_BUTTON_CUSTOM_ID,
-        label: "Join Spotify Club",
+        label: "Join Music Sesh",
       });
     }
     row.push({
@@ -1319,7 +1326,7 @@ function isEphemeralSpotifyControlHubInteraction(interaction: DiscordInteraction
 
 async function handleSpotifyInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
-    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+    return buildDiscordEphemeralMessageResponse("This Music Sesh flow is only available in the configured server.");
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
@@ -1327,7 +1334,7 @@ async function handleSpotifyInteraction(interaction: DiscordInteraction) {
   const subcommand = extractDiscordCommandSubcommand(interaction.data?.options);
 
   if (!discordUserId || !subcommand?.name) {
-    return buildDiscordEphemeralMessageResponse("Spotify Club could not read that command. Try again.");
+    return buildDiscordEphemeralMessageResponse("Music Sesh could not read that command. Try again.");
   }
 
   if (subcommand.name === FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME) {
@@ -1612,12 +1619,12 @@ function buildDiscordPanelPermissionFailureResponse() {
 
 function buildSpotifyClubPanelPermissionFailureResponse() {
   return buildDiscordEphemeralMessageResponse(
-    "Discord could not create the Spotify Club panel. The bot needs View Channel, Read Message History, and Send Messages in the configured Spotify Club channel.",
+    "Discord could not create the Music Sesh panel. The bot needs View Channel, Read Message History, and Send Messages in the configured Music Sesh channel.",
   );
 }
 
 function buildSpotifyClubOutdatedPanelResponse() {
-  return buildDiscordEphemeralMessageResponse("This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.");
+  return buildDiscordEphemeralMessageResponse("This Music Sesh panel is outdated. Ask staff to run /setup-music-sesh.");
 }
 
 function buildDiscordFeedbackLookupFailureResponse(code: string) {
@@ -1682,7 +1689,7 @@ function ensureSpotifyClubPanelChannel() {
     return {
       ok: false as const,
       code: "DISCORD_SPOTIFY_CLUB_CHANNEL_NOT_CONFIGURED",
-      message: "Spotify Club channel is not configured yet.",
+      message: "Music Sesh channel is not configured yet.",
     };
   }
 
@@ -2452,7 +2459,7 @@ async function upsertDiscordSpotifyClubPanel() {
       ok: false as const,
       code: "DISCORD_SPOTIFY_CLUB_PANEL_UNSUPPORTED_CHANNEL_TYPE",
       status: 400,
-      message: "Spotify Club panel requires a standard text channel.",
+      message: "Music Sesh panel requires a standard text channel.",
     };
   }
 
@@ -2464,7 +2471,7 @@ async function upsertDiscordSpotifyClubPanel() {
 
     if (!createResult.ok || !createResult.messageId) {
       return createResult.ok
-        ? { ok: false as const, code: "DISCORD_SPOTIFY_CLUB_PANEL_MISSING_MESSAGE_ID", status: 500, message: "Spotify Club panel message id was missing." }
+        ? { ok: false as const, code: "DISCORD_SPOTIFY_CLUB_PANEL_MISSING_MESSAGE_ID", status: 500, message: "Music Sesh panel message id was missing." }
         : createResult;
     }
 
@@ -2593,7 +2600,7 @@ async function recreateDiscordSpotifyClubPanelFromState(args: {
 
   if (!createResult.ok || !createResult.messageId) {
     return createResult.ok
-      ? { ok: false as const, code: "DISCORD_SPOTIFY_CLUB_PANEL_MISSING_MESSAGE_ID", status: 500, message: "Spotify Club panel message id was missing." }
+      ? { ok: false as const, code: "DISCORD_SPOTIFY_CLUB_PANEL_MISSING_MESSAGE_ID", status: 500, message: "Music Sesh panel message id was missing." }
       : createResult;
   }
 
@@ -2673,6 +2680,11 @@ function normalizeDiscordMessageCommandContent(value: unknown): string {
 function discordMessageRequestsFeedbackSetup(message: DiscordMessageCommand): boolean {
   const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
   return DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
+}
+
+function discordMessageRequestsMusicSeshSetup(message: DiscordMessageCommand): boolean {
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return DISCORD_MESSAGE_COMMAND_MUSIC_SESH_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
 function discordMessageRequestsArchiveCheckedCards(message: DiscordMessageCommand): boolean {
@@ -2871,6 +2883,7 @@ function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): b
     || discordMessageRequestsComputaFeedbackLauncherRepair(message)
     || discordMessageRequestsComputaReleaseCheck(message)
     || discordMessageRequestsFeedbackSetup(message)
+    || discordMessageRequestsMusicSeshSetup(message)
     || discordMessageRequestsArchiveCheckedCards(message)
     || discordMessageRequestsFeedbackReactionSync(message)
     || discordMessageRequestsComputaUpdate(message)
@@ -2891,7 +2904,8 @@ type DiscordMessageCommandKind =
   | "computa-live"
   | "grand-rising"
   | "goodnight"
-  | "feedback-setup";
+  | "feedback-setup"
+  | "music-sesh-setup";
 
 function resolveDiscordMessageCommandKind(message: DiscordMessageCommand): DiscordMessageCommandKind | null {
   if (discordMessageRequestsComputaMenu(message)) {
@@ -2929,6 +2943,9 @@ function resolveDiscordMessageCommandKind(message: DiscordMessageCommand): Disco
   }
   if (discordMessageRequestsFeedbackSetup(message)) {
     return "feedback-setup";
+  }
+  if (discordMessageRequestsMusicSeshSetup(message)) {
+    return "music-sesh-setup";
   }
 
   return null;
@@ -3040,6 +3057,7 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
           "`computa` - Show this command card.",
           "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
+          "`computa setup music sesh` - Refresh the Music Sesh panel.",
         ].join("\n"),
         color: DISCORD_EMBED_COLOR_SUCCESS,
       },
@@ -3061,6 +3079,7 @@ function buildDiscordComputaOwnerCommandMenuPayload(): Record<string, unknown> {
           "`computa owner` - Show this owner command card.",
           "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
+          "`computa setup music sesh` - Refresh the Music Sesh panel.",
           "`computa release check` - Check Feedback release ledger reactions.",
           "`computa archive checked cards` - Archive resolved feedback cards with the success reaction.",
           "`computa post update [Title | body]` - Post a formatted update.",
@@ -3524,6 +3543,49 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
     content: upsertResult.action === "updated" || upsertResult.action === "reposted"
       ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
       : `Feedback launcher created in ${upsertResult.channelLabel}.`,
+  });
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId: authorization.messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return { ok: true as const, action: upsertResult.action };
+}
+
+async function processDiscordMusicSeshSetupMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+}) {
+  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  if (!authorization.ok) {
+    return authorization;
+  }
+
+  const upsertResult = await upsertDiscordSpotifyClubPanel();
+  if (!upsertResult.ok) {
+    console.error("[discord-message-command] music sesh setup failed", {
+      requestId: randomUUID(),
+      code: upsertResult.code,
+      status: "status" in upsertResult ? upsertResult.status : undefined,
+      message: upsertResult.message,
+    });
+    await sendDiscordMessageCommandPrivateNotice({
+      userId: authorization.authorId,
+      content: "Music Sesh setup failed. Check bot permissions and configured Music Sesh channel settings.",
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId: authorization.messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return upsertResult;
+  }
+
+  await sendDiscordMessageCommandPrivateNotice({
+    userId: authorization.authorId,
+    content: upsertResult.action === "updated"
+      ? `Music Sesh panel updated in ${upsertResult.channelLabel}.`
+      : `Music Sesh panel created in ${upsertResult.channelLabel}.`,
   });
   await markDiscordMessageCommandProcessed({
     channelId: args.channelId,
@@ -4305,7 +4367,8 @@ async function pollDiscordMessageCommands() {
       | Awaited<ReturnType<typeof processDiscordReleaseLedgerCheckMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordArchiveCheckedCardsMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordFeedbackReactionSyncMessageCommand>>
-      | Awaited<ReturnType<typeof processDiscordFeedbackSetupMessageCommand>>;
+      | Awaited<ReturnType<typeof processDiscordFeedbackSetupMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordMusicSeshSetupMessageCommand>>;
 
     if (commandKind === "computa-menu") {
       result = await processDiscordComputaMenuMessageCommand({
@@ -4363,6 +4426,11 @@ async function pollDiscordMessageCommands() {
         channelId,
         message: candidate,
         kind: "goodnight",
+      });
+    } else if (commandKind === "music-sesh-setup") {
+      result = await processDiscordMusicSeshSetupMessageCommand({
+        channelId,
+        message: candidate,
       });
     } else {
       result = await processDiscordFeedbackSetupMessageCommand({
@@ -4740,7 +4808,7 @@ async function handleSetupSpotifyClubInteraction(interaction: DiscordInteraction
 
   const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
   if (!discordMemberHasSetupPermission(permissions)) {
-    return buildDiscordEphemeralMessageResponse("You do not have permission to set up Spotify Club.");
+    return buildDiscordEphemeralMessageResponse("You do not have permission to set up Music Sesh.");
   }
 
   const upsertResult = await upsertDiscordSpotifyClubPanel();
@@ -4757,10 +4825,10 @@ async function handleSetupSpotifyClubInteraction(interaction: DiscordInteraction
     }
 
     if (upsertResult.code === "DISCORD_SPOTIFY_CLUB_CHANNEL_NOT_CONFIGURED") {
-      return buildDiscordEphemeralMessageResponse("Spotify Club channel is not configured yet.");
+      return buildDiscordEphemeralMessageResponse("Music Sesh channel is not configured yet.");
     }
 
-    return buildDiscordEphemeralMessageResponse("Discord could not update the Spotify Club panel right now.");
+    return buildDiscordEphemeralMessageResponse("Discord could not update the Music Sesh panel right now.");
   }
 
   const duplicateSuffix = upsertResult.duplicateCount > 0
@@ -4769,26 +4837,26 @@ async function handleSetupSpotifyClubInteraction(interaction: DiscordInteraction
 
   return buildDiscordEphemeralMessageResponse(
     upsertResult.action === "updated"
-      ? `Spotify Club panel updated in ${upsertResult.channelLabel}.${duplicateSuffix}`
-      : `Spotify Club panel created in ${upsertResult.channelLabel}.${duplicateSuffix}`,
+      ? `Music Sesh panel updated in ${upsertResult.channelLabel}.${duplicateSuffix}`
+      : `Music Sesh panel created in ${upsertResult.channelLabel}.${duplicateSuffix}`,
   );
 }
 
 async function handleJamLobbyInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
-    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+    return buildDiscordEphemeralMessageResponse("This Music Sesh flow is only available in the configured server.");
   }
 
   const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
   if (!discordMemberHasModerationPermission(permissions)) {
-    return buildDiscordEphemeralMessageResponse("You do not have permission to manage the Spotify Club lobby.");
+    return buildDiscordEphemeralMessageResponse("You do not have permission to manage the Music Sesh lobby.");
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
   const subcommand = extractDiscordCommandSubcommand(interaction.data?.options);
 
   if (!subcommand?.name) {
-    return buildDiscordEphemeralMessageResponse("Spotify Club could not read that lobby command. Try again.");
+    return buildDiscordEphemeralMessageResponse("Music Sesh could not read that lobby command. Try again.");
   }
 
   if (subcommand.name === FITNESS_JAM_LOBBY_STATUS_SUBCOMMAND_NAME) {
@@ -4799,7 +4867,7 @@ async function handleJamLobbyInteraction(interaction: DiscordInteraction) {
 
   if (subcommand.name === FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME) {
     if (!discordUser.id) {
-      return buildDiscordEphemeralMessageResponse("Spotify Club could not identify the lobby host. Try again.");
+      return buildDiscordEphemeralMessageResponse("Music Sesh could not identify the lobby host. Try again.");
     }
 
     const hostConnection = await getDiscordSpotifyConnection(discordUser.id);
@@ -4817,10 +4885,10 @@ async function handleJamLobbyInteraction(interaction: DiscordInteraction) {
         status: syncResult.status,
         message: syncResult.message,
       });
-      return buildDiscordEphemeralMessageResponse("Spotify Club lobby is Open, but the panel could not be refreshed right now.");
+      return buildDiscordEphemeralMessageResponse("Music Sesh lobby is Open, but the panel could not be refreshed right now.");
     }
 
-    return buildDiscordEphemeralMessageResponse("Spotify Club lobby is now Open.");
+    return buildDiscordEphemeralMessageResponse("Music Sesh lobby is now Open.");
   }
 
   if (subcommand.name === FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME) {
@@ -4834,10 +4902,10 @@ async function handleJamLobbyInteraction(interaction: DiscordInteraction) {
         status: syncResult.status,
         message: syncResult.message,
       });
-      return buildDiscordEphemeralMessageResponse("Spotify Club lobby is Closed, but the panel could not be refreshed right now.");
+      return buildDiscordEphemeralMessageResponse("Music Sesh lobby is Closed, but the panel could not be refreshed right now.");
     }
 
-    return buildDiscordEphemeralMessageResponse("Spotify Club lobby is now Closed.");
+    return buildDiscordEphemeralMessageResponse("Music Sesh lobby is now Closed.");
   }
 
   return buildDiscordEphemeralMessageResponse("That jam-lobby command is not available in this phase yet.");
@@ -4853,7 +4921,7 @@ function spotifyQueueManagementAllowed(args: {
 }
 
 function buildSpotifyQueueLobbyClosedResponse() {
-  return buildDiscordEphemeralMessageResponse("Spotify Club lobby is Closed. Open a lobby before using the queue.");
+  return buildDiscordEphemeralMessageResponse("Music Sesh lobby is Closed. Open a lobby before using the queue.");
 }
 
 async function postSpotifyClubQueueAuditMessage(args: {
@@ -4919,13 +4987,13 @@ async function handleSpotifyQueueSuggestion(args: {
 }) {
   const connection = await getDiscordSpotifyConnection(args.discordUserId);
   if (args.approvalMode === "host_only" && !args.canManageQueue) {
-    throw new Error("This Spotify Club room is host-only right now.");
+    throw new Error("This Music Sesh room is host-only right now.");
   }
   if (!connection) {
-    throw new Error("Connect Spotify before adding tracks to Spotify Club.");
+    throw new Error("Connect Spotify before adding tracks to Music Sesh.");
   }
   if (!connection.is_premium) {
-    throw new Error("Spotify Club queue adds require a Premium account to be Jam Ready.");
+    throw new Error("Music Sesh queue adds require a Premium account to be Jam Ready.");
   }
 
   const item = await suggestDiscordSpotifyQueueItem({
@@ -4947,7 +5015,7 @@ async function handleSpotifyQueueSuggestion(args: {
   });
 
   const successMessage = item.approval_state === "approved"
-    ? "Track added to the Spotify Club queue."
+    ? "Track added to the Music Sesh queue."
     : "Suggestion added to the queue for host review.";
 
   if (!syncResult.ok) {
@@ -4963,7 +5031,7 @@ async function requireJoinedSpotifyRoom(args: {
 }) {
   const membership = await getCurrentDiscordSpotifyRoomMembership(args);
   if (!membership) {
-    throw new Error("Join Spotify Club first.");
+    throw new Error("Join Music Sesh first.");
   }
 
   return membership;
@@ -4971,7 +5039,7 @@ async function requireJoinedSpotifyRoom(args: {
 
 async function handleJamQueueInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
-    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+    return buildDiscordEphemeralMessageResponse("This Music Sesh flow is only available in the configured server.");
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
@@ -4979,7 +5047,7 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
   const latestLobby = await getCurrentDiscordSpotifyLobbyForQueue();
 
   if (!discordUser.id || !subcommand?.name) {
-    return buildDiscordEphemeralMessageResponse("Spotify Club could not read that queue command. Try again.");
+    return buildDiscordEphemeralMessageResponse("Music Sesh could not read that queue command. Try again.");
   }
 
   if (!latestLobby) {
@@ -5010,7 +5078,7 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
       });
     } catch (error) {
       return buildDiscordEphemeralMessageResponse(
-        error instanceof Error ? error.message : "Spotify Club could not save that suggestion right now.",
+        error instanceof Error ? error.message : "Music Sesh could not save that suggestion right now.",
       );
     }
   }
@@ -5024,7 +5092,7 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
     discordUserId: discordUser.id,
     lobbyHostDiscordUserId: latestLobby.host_discord_user_id,
   })) {
-    return buildDiscordEphemeralMessageResponse("You do not have permission to manage the Spotify Club queue.");
+    return buildDiscordEphemeralMessageResponse("You do not have permission to manage the Music Sesh queue.");
   }
 
   const itemIdOrPrefix = extractDiscordCommandStringOption(subcommand.options, FITNESS_JAM_QUEUE_ITEM_OPTION_NAME);
@@ -5102,7 +5170,7 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
     }
   } catch (error) {
     return buildDiscordEphemeralMessageResponse(
-      error instanceof Error ? error.message : "Spotify Club could not update that queue item right now.",
+      error instanceof Error ? error.message : "Music Sesh could not update that queue item right now.",
     );
   }
 
@@ -5111,7 +5179,7 @@ async function handleJamQueueInteraction(interaction: DiscordInteraction) {
 
 async function handleSpotifyQueueSuggestModalSubmit(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
-    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+    return buildDiscordEphemeralMessageResponse("This Music Sesh flow is only available in the configured server.");
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
@@ -5147,14 +5215,14 @@ async function handleSpotifyQueueSuggestModalSubmit(interaction: DiscordInteract
     });
   } catch (error) {
     return buildDiscordEphemeralMessageResponse(
-      error instanceof Error ? error.message : "Spotify Club could not save that suggestion right now.",
+      error instanceof Error ? error.message : "Music Sesh could not save that suggestion right now.",
     );
   }
 }
 
 async function handleSpotifyQueueSearchModalSubmit(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
-    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+    return buildDiscordEphemeralMessageResponse("This Music Sesh flow is only available in the configured server.");
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
@@ -5211,7 +5279,7 @@ async function handleSpotifyQueueSearchModalSubmit(interaction: DiscordInteracti
 
 async function handleSpotifyClubButtonInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
-    return buildDiscordEphemeralMessageResponse("This Spotify Club flow is only available in the configured server.");
+    return buildDiscordEphemeralMessageResponse("This Music Sesh flow is only available in the configured server.");
   }
 
   const discordUser = resolveDiscordInteractionUser(interaction);
@@ -5245,7 +5313,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club could not save that track right now. Try again in a moment.",
+        notice: "Music Sesh could not save that track right now. Try again in a moment.",
       }),
       process: async () => {
         const openLobby = await loadOpenLobby();
@@ -5253,7 +5321,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before using the queue.",
+            notice: "Music Sesh lobby is Closed. Open a room before using the queue.",
           });
         }
 
@@ -5291,17 +5359,17 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
             permissions,
             notice: typeof response.data?.content === "string"
               ? response.data.content
-              : "Track added to Spotify Club.",
+              : "Track added to Music Sesh.",
           });
         } catch (error) {
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: error instanceof Error ? error.message : "Spotify Club could not save that suggestion right now.",
+            notice: error instanceof Error ? error.message : "Music Sesh could not save that suggestion right now.",
           });
         }
       },
-      genericFailureContent: "Spotify Club could not save that track right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh could not save that track right now. Try again in a moment.",
     });
   }
 
@@ -5320,11 +5388,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club controls could not be opened right now. Try again in a moment.",
+        notice: "Music Sesh controls could not be opened right now. Try again in a moment.",
       }),
       process: async () => {
         if (!await validateCanonicalPanelInteraction()) {
-          return "This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.";
+          return "This Music Sesh panel is outdated. Ask staff to run /setup-music-sesh.";
         }
 
         return buildSpotifyControlHubEditBodyForUser({
@@ -5332,7 +5400,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           permissions,
         });
       },
-      genericFailureContent: "Spotify Club controls could not be opened right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh controls could not be opened right now. Try again in a moment.",
     });
   }
 
@@ -5347,7 +5415,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club could not update your room membership right now. Try again in a moment.",
+        notice: "Music Sesh could not update your room membership right now. Try again in a moment.",
       }),
       process: async () => {
         const openLobby = await loadOpenLobby();
@@ -5355,7 +5423,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before joining.",
+            notice: "Music Sesh lobby is Closed. Open a room before joining.",
           });
         }
 
@@ -5364,7 +5432,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Connect Spotify first, then join Spotify Club.",
+            notice: "Connect Spotify first, then join Music Sesh.",
           });
         }
 
@@ -5378,11 +5446,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           discordUserId,
           permissions,
           notice: syncResult.ok
-            ? `You joined ${openLobby.room_name || "Spotify Club"}.`
-            : `You joined ${openLobby.room_name || "Spotify Club"}, but the public panel could not be refreshed right now.`,
+            ? `You joined ${openLobby.room_name || "Music Sesh"}.`
+            : `You joined ${openLobby.room_name || "Music Sesh"}, but the public panel could not be refreshed right now.`,
         });
       },
-      genericFailureContent: "Spotify Club could not update your room membership right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh could not update your room membership right now. Try again in a moment.",
     });
   }
 
@@ -5393,7 +5461,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club could not update your room membership right now. Try again in a moment.",
+        notice: "Music Sesh could not update your room membership right now. Try again in a moment.",
       }),
       process: async () => {
         const openLobby = await loadOpenLobby();
@@ -5401,7 +5469,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. There is no active room to leave right now.",
+            notice: "Music Sesh lobby is Closed. There is no active room to leave right now.",
           });
         }
 
@@ -5413,7 +5481,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "You are not in Spotify Club right now.",
+            notice: "You are not in Music Sesh right now.",
           });
         }
 
@@ -5426,11 +5494,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           discordUserId,
           permissions,
           notice: syncResult.ok
-            ? `You left ${openLobby.room_name || "Spotify Club"}.`
-            : `You left ${openLobby.room_name || "Spotify Club"}, but the public panel could not be refreshed right now.`,
+            ? `You left ${openLobby.room_name || "Music Sesh"}.`
+            : `You left ${openLobby.room_name || "Music Sesh"}, but the public panel could not be refreshed right now.`,
         });
       },
-      genericFailureContent: "Spotify Club could not update your room membership right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh could not update your room membership right now. Try again in a moment.",
     });
   }
 
@@ -5511,7 +5579,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before using the queue.",
+            notice: "Music Sesh lobby is Closed. Open a room before using the queue.",
           });
         }
 
@@ -5523,7 +5591,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Join Spotify Club first.",
+            notice: "Join Music Sesh first.",
           });
         }
 
@@ -5534,7 +5602,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           notice: await buildSpotifyQueueDetailText(openLobby.id, discordUserId),
         });
       },
-      genericFailureContent: "Spotify Club queue could not be loaded right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh queue could not be loaded right now. Try again in a moment.",
     });
   }
 
@@ -5553,7 +5621,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before checking playback readiness.",
+            notice: "Music Sesh lobby is Closed. Open a room before checking playback readiness.",
           });
         }
 
@@ -5565,7 +5633,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Join Spotify Club first.",
+            notice: "Join Music Sesh first.",
           });
         }
 
@@ -5595,7 +5663,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before starting playback.",
+            notice: "Music Sesh lobby is Closed. Open a room before starting playback.",
           });
         }
 
@@ -5607,7 +5675,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Join Spotify Club first.",
+            notice: "Join Music Sesh first.",
           });
         }
 
@@ -5628,7 +5696,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club could not open the room right now. Try again in a moment.",
+        notice: "Music Sesh could not open the room right now. Try again in a moment.",
       }),
       process: async () => {
         const latestLobby = await loadLatestLobby();
@@ -5640,7 +5708,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "You do not have permission to manage the Spotify Club room.",
+            notice: "You do not have permission to manage the Music Sesh room.",
           });
         }
 
@@ -5655,11 +5723,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           discordUserId,
           permissions,
           notice: syncResult.ok
-            ? "Spotify Club room is now Open."
-            : "Spotify Club room is now Open, but the public panel could not be refreshed right now.",
+            ? "Music Sesh room is now Open."
+            : "Music Sesh room is now Open, but the public panel could not be refreshed right now.",
         });
       },
-      genericFailureContent: "Spotify Club could not open the room right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh could not open the room right now. Try again in a moment.",
     });
   }
 
@@ -5670,7 +5738,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club could not close the room right now. Try again in a moment.",
+        notice: "Music Sesh could not close the room right now. Try again in a moment.",
       }),
       process: async () => {
         const openLobby = await loadOpenLobby();
@@ -5682,7 +5750,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "You do not have permission to manage the Spotify Club room.",
+            notice: "You do not have permission to manage the Music Sesh room.",
           });
         }
 
@@ -5692,11 +5760,11 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           discordUserId,
           permissions,
           notice: syncResult.ok
-            ? "Spotify Club room is now Closed."
-            : "Spotify Club room is now Closed, but the public panel could not be refreshed right now.",
+            ? "Music Sesh room is now Closed."
+            : "Music Sesh room is now Closed, but the public panel could not be refreshed right now.",
         });
       },
-      genericFailureContent: "Spotify Club could not close the room right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh could not close the room right now. Try again in a moment.",
     });
   }
 
@@ -5707,7 +5775,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club approval mode could not be updated right now. Try again in a moment.",
+        notice: "Music Sesh approval mode could not be updated right now. Try again in a moment.",
       }),
       process: async () => {
         const lobby = await getLatestDiscordSpotifyLobby();
@@ -5715,7 +5783,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club room settings are not available yet.",
+            notice: "Music Sesh room settings are not available yet.",
           });
         }
 
@@ -5727,7 +5795,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "You do not have permission to manage the Spotify Club room.",
+            notice: "You do not have permission to manage the Music Sesh room.",
           });
         }
 
@@ -5752,7 +5820,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
               : "Approval mode is now Host Only. Only the host or staff can add tracks.",
         });
       },
-      genericFailureContent: "Spotify Club approval mode could not be updated right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh approval mode could not be updated right now. Try again in a moment.",
     });
   }
 
@@ -5771,7 +5839,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before using live queue mirror.",
+            notice: "Music Sesh lobby is Closed. Open a room before using live queue mirror.",
           });
         }
 
@@ -5783,7 +5851,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "You do not have permission to manage the Spotify Club room.",
+            notice: "You do not have permission to manage the Music Sesh room.",
           });
         }
 
@@ -5818,7 +5886,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club pending suggestion could not be updated right now. Try again in a moment.",
+        notice: "Music Sesh pending suggestion could not be updated right now. Try again in a moment.",
       }),
       process: async () => {
         const lobby = await getCurrentDiscordSpotifyLobbyForQueue();
@@ -5826,7 +5894,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before reviewing pending suggestions.",
+            notice: "Music Sesh lobby is Closed. Open a room before reviewing pending suggestions.",
           });
         }
 
@@ -5838,7 +5906,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "You do not have permission to manage the Spotify Club queue.",
+            notice: "You do not have permission to manage the Music Sesh queue.",
           });
         }
 
@@ -5862,7 +5930,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
             queueItemIdOrPrefix: nextPending.id,
             lobbyId: lobby.id,
             rejectedByDiscordUserId: discordUserId,
-            reason: "Rejected from Spotify Club controls.",
+            reason: "Rejected from Music Sesh controls.",
           });
         await syncDiscordSpotifyClubPanelFromState().catch(() => ({ ok: false as const }));
 
@@ -5876,7 +5944,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           }),
         });
       },
-      genericFailureContent: "Spotify Club pending suggestion could not be updated right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh pending suggestion could not be updated right now. Try again in a moment.",
     });
   }
 
@@ -5887,7 +5955,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
       fallback: async () => buildSpotifyControlHubResponseForUser({
         discordUserId,
         permissions,
-        notice: "Spotify Club pending suggestions could not be loaded right now. Try again in a moment.",
+        notice: "Music Sesh pending suggestions could not be loaded right now. Try again in a moment.",
       }),
       process: async () => {
         const openLobby = await loadOpenLobby();
@@ -5895,7 +5963,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "Spotify Club lobby is Closed. Open a room before reviewing pending suggestions.",
+            notice: "Music Sesh lobby is Closed. Open a room before reviewing pending suggestions.",
           });
         }
 
@@ -5907,7 +5975,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           return buildSpotifyControlHubEditBodyForUser({
             discordUserId,
             permissions,
-            notice: "You do not have permission to manage the Spotify Club queue.",
+            notice: "You do not have permission to manage the Music Sesh queue.",
           });
         }
 
@@ -5920,7 +5988,7 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
           ),
         });
       },
-      genericFailureContent: "Spotify Club pending suggestions could not be loaded right now. Try again in a moment.",
+      genericFailureContent: "Music Sesh pending suggestions could not be loaded right now. Try again in a moment.",
     });
   }
 
@@ -7530,7 +7598,10 @@ export async function POST(request: Request) {
 
     if (
       interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME
+      && (
+        interaction.data?.name === FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME
+        || interaction.data?.name === LEGACY_SPOTIFY_CLUB_SETUP_COMMAND_NAME
+      )
     ) {
       return jsonResponse(await handleSetupSpotifyClubInteraction(interaction));
     }

@@ -152,7 +152,7 @@ export function reconcileSpotifyMirrorSnapshot(args: {
 
 export async function syncSpotifyMirrorForLobby(lobby: DiscordSpotifyLobbyRow): Promise<SpotifyMirrorSyncResult> {
   if (lobby.status !== "open") {
-    return { ok: false, reason: "closed", message: "Spotify Club room is closed." };
+    return { ok: false, reason: "closed", message: "Music Sesh room is closed." };
   }
 
   if (!lobby.spotify_mirror_enabled) {

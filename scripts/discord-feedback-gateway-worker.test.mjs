@@ -21,6 +21,7 @@ import {
   messageRequestsBotReaction,
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
+  messageRequestsMusicSeshSetup,
   messageRequestsGoodnight,
   messageRequestsGrandRising,
   normalizeDiscordMessageCommandContent,
@@ -64,6 +65,38 @@ test("feedback gateway worker detects only main-channel human trigger messages",
     messageRequestsFeedbackSetup({
       channel_id: "main-channel",
       content: "computa feedback setup",
+      author: { bot: true },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsMusicSeshSetup({
+      channel_id: "main-channel",
+      content: "please computa setup music sesh",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsMusicSeshSetup({
+      channel_id: "main-channel",
+      content: "please computa music sesh setup",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsMusicSeshSetup({
+      channel_id: "other-channel",
+      content: "computa setup music sesh",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsMusicSeshSetup({
+      channel_id: "main-channel",
+      content: "computa setup music sesh",
       author: { bot: true },
     }, "main-channel"),
     false,
@@ -123,6 +156,14 @@ test("feedback gateway worker detects owner live message command shapes", () => 
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa setup feedback",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "computa setup music sesh",
       author: { bot: false },
     }, "main-channel"),
     true,

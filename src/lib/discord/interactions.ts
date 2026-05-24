@@ -31,7 +31,7 @@ export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
 export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
 export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";
-export const FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME = "setup-spotify-club";
+export const FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME = "setup-music-sesh";
 export const FITNESS_SPOTIFY_COMMAND_NAME = "spotify";
 export const FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME = "connect";
 export const FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME = "status";
@@ -177,7 +177,7 @@ export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
   "",
   "Your feedback card appears in the Feedback forum after submit. Do not include passwords, tokens, or private info.",
 ] as const;
-export const DEFAULT_SPOTIFY_CLUB_PANEL_TITLE = "Spotify Club";
+export const DEFAULT_SPOTIFY_CLUB_PANEL_TITLE = "Music Sesh";
 export const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
 export const DISCORD_PERMISSION_MANAGE_CHANNELS = BigInt(1) << BigInt(4);
 export const DISCORD_PERMISSION_MANAGE_GUILD = BigInt(1) << BigInt(5);
@@ -636,7 +636,7 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
             type: 2,
             style: 1,
             custom_id: FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID,
-            label: "Open Spotify Club Controls",
+            label: "Open Music Sesh Controls",
           },
         ],
       },
@@ -867,56 +867,56 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
     },
     {
       name: FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME,
-      description: "Post or refresh the Spotify Club panel.",
+      description: "Post or refresh the Music Sesh panel.",
       default_member_permissions: setupDefaultPermissions,
     },
     {
       name: FITNESS_SPOTIFY_COMMAND_NAME,
-      description: "Connect Spotify for Spotify Club eligibility.",
+      description: "Connect Spotify for Music Sesh eligibility.",
       default_member_permissions: moderationDefaultPermissions,
       options: [
         {
           type: 1,
           name: FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
-          description: "Connect Spotify to become Jam Ready for Spotify Club.",
+          description: "Connect Spotify to become Jam Ready for Music Sesh.",
         },
         {
           type: 1,
           name: FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME,
-          description: "Show your Spotify Club connection and Premium status.",
+          description: "Show your Music Sesh connection and Premium status.",
         },
         {
           type: 1,
           name: FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
-          description: "Disconnect your Spotify account from Spotify Club.",
+          description: "Disconnect your Spotify account from Music Sesh.",
         },
       ],
     },
     {
       name: FITNESS_JAM_LOBBY_COMMAND_NAME,
-      description: "Open, close, or inspect the Spotify Club lobby shell.",
+      description: "Open, close, or inspect the Music Sesh room shell.",
       default_member_permissions: moderationDefaultPermissions,
       options: [
         {
           type: 1,
           name: FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME,
-          description: "Open the Spotify Club lobby state.",
+          description: "Open the Music Sesh room state.",
         },
         {
           type: 1,
           name: FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME,
-          description: "Close the Spotify Club lobby state.",
+          description: "Close the Music Sesh room state.",
         },
         {
           type: 1,
           name: FITNESS_JAM_LOBBY_STATUS_SUBCOMMAND_NAME,
-          description: "Show the Spotify Club lobby state.",
+          description: "Show the Music Sesh room state.",
         },
       ],
     },
     {
       name: FITNESS_JAM_QUEUE_COMMAND_NAME,
-      description: "Suggest tracks or manage the Spotify Club queue.",
+      description: "Suggest tracks or manage the Music Sesh queue.",
       default_member_permissions: moderationDefaultPermissions,
       options: [
         {

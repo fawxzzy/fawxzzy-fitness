@@ -1,6 +1,6 @@
-# Fitness Discord Spotify Club
+# Fitness Discord Music Sesh
 
-Spotify Club lives in the Fitness-hosted Fawx Security stack so Discord interactions, Spotify OAuth, panel setup, and secure token storage stay inside the existing production path.
+Music Sesh lives in the Fitness-hosted Fawx Security stack so Discord interactions, Spotify OAuth, panel setup, and secure token storage stay inside the existing production path.
 
 ## Scope
 
@@ -15,11 +15,11 @@ Phase 1 shipped:
 
 Phase 2 shipped:
 
-- `/setup-spotify-club`
+- `/setup-music-sesh`
 - `/jam-lobby open`
 - `/jam-lobby close`
 - `/jam-lobby status`
-- one public Spotify Club panel
+- one public Music Sesh panel
 - Connect Spotify, Check Jam Ready Status, and Disconnect Spotify buttons
 - basic Open / Closed lobby state
 
@@ -34,7 +34,7 @@ Phase 3 adds:
 - `View Queue` panel button
 - Discord-side queue suggestions
 - host/staff approval, rejection, and removal workflow
-- queue preview lines in the Spotify Club panel
+- queue preview lines in the Music Sesh panel
 
 Phase 4 adds:
 
@@ -46,8 +46,8 @@ Phase 4 adds:
 
 Phase 5 adds:
 
-- room-aware Spotify Club state anchored to the default public room `main`
-- explicit `Join Spotify Club` and `Leave Jam` flows
+- room-aware Music Sesh state anchored to the default public room `main`
+- explicit `Join Music Sesh` and `Leave Jam` flows
 - separate `Disconnect Spotify Auth` behavior
 - Discord-side Spotify track search
 - a personalized ephemeral control hub for connect, room, queue, and playback steps
@@ -58,10 +58,10 @@ Phase 7 adds:
 - best-effort playback reconciliation so played, skipped, and cleared tracks leave the active Room Queue
 - recently played queue history for context and future replay affordances
 - live Spotify mirror enabled by default for active rooms when the host has the required scopes
-- a compact public Spotify Club panel, with detailed Room Queue, Spotify Up Next, Recent, approval, and auth state kept in the ephemeral hub
+- a compact public Music Sesh panel, with detailed Room Queue, Spotify Up Next, Recent, approval, and auth state kept in the ephemeral hub
 - a hard UI and data split between Room Queue, Spotify Up Next, and Recent history
 
-Spotify Club still does not include:
+Music Sesh still does not include:
 
 - Discord voice or audio behavior
 - perfect-sync promises
@@ -79,7 +79,7 @@ Phase 7 patterns:
 - Room Queue contains Discord-owned tracks from search, pasted Spotify links, and explicit future requeues. It controls Start Queue ordering and active queue counts.
 - Spotify Up Next contains `spotify_mirror` rows only. It previews Spotify's native queue best-effort and does not own room ordering or active room counts.
 - Active queue and playback history are separate. Played/skipped tracks leave the active Room Queue but remain available for context or future replay.
-- The public Spotify Club panel is a compact status surface. Detailed state belongs in the ephemeral hub.
+- The public Music Sesh panel is a compact status surface. Detailed state belongs in the ephemeral hub.
 
 Phase 7 failure modes:
 
@@ -91,18 +91,18 @@ Phase 7 failure modes:
 
 Feedback cards:
 
-- `f31e1150` — Spotify Club Phase 1 - Connect + Premium Check
-- `1e185453` — Spotify Club Phase 2 - Public Jam Panel + Lobby State
-- `b3483cf2` — Spotify Club Phase 3 - Queue Suggestions + Host Approval
+- `f31e1150` — Music Sesh Phase 1 - Connect + Premium Check
+- `1e185453` — Music Sesh Phase 2 - Public Jam Panel + Lobby State
+- `b3483cf2` — Music Sesh Phase 3 - Queue Suggestions + Host Approval
 
 ## Product UX Rule
 
-Phase 1 uses slash commands as a proof slice. Final Spotify Club UX should not depend on normal users memorizing slash commands.
+Phase 1 uses slash commands as a proof slice. Final Music Sesh UX should not depend on normal users memorizing slash commands.
 
 Rules:
 
 - admin and setup commands stay hidden from normal users
-- public user actions should be exposed through a Spotify Club panel with buttons and modals
+- public user actions should be exposed through a Music Sesh panel with buttons and modals
 - the public panel should stay status-only and low-noise
 - personalized user actions should open from one ephemeral control hub
 - future Jam actions should surface from the panel, not from command memorization
@@ -110,9 +110,9 @@ Rules:
 
 Target split:
 
-- admin/staff: `/setup-spotify-club`, `/jam-lobby`, `/jam-queue`, `/spotify`, future `/jam-admin ...`
-- public panel: `Open Spotify Club Controls`
-- users in the control hub: `Connect Spotify`, `Join Spotify Club`, `Leave Jam`, `Search Track`, `Paste Spotify Link`, `View Queue`, `Start Queue on Spotify`, `Refresh Spotify Status`, `Disconnect Spotify Auth`
+- admin/staff: `/setup-music-sesh`, `/jam-lobby`, `/jam-queue`, `/spotify`, future `/jam-admin ...`
+- public panel: `Open Music Sesh Controls`
+- users in the control hub: `Connect Spotify`, `Join Music Sesh`, `Leave Jam`, `Search Track`, `Paste Spotify Link`, `View Queue`, `Start Queue on Spotify`, `Refresh Spotify Status`, `Disconnect Spotify Auth`
 - host/staff tools: room open/close, approval mode controls, and Spotify Up Next diagnostics
 
 Reserved future panel actions:
@@ -122,7 +122,7 @@ Reserved future panel actions:
 
 ## OAuth Setup
 
-Spotify Club uses Spotify Authorization Code with PKCE for Discord account linking.
+Music Sesh uses Spotify Authorization Code with PKCE for Discord account linking.
 
 Required Spotify redirect URI:
 
@@ -173,7 +173,7 @@ Phase 1 proof commands:
 
 Phase 2 setup and staff commands:
 
-- `/setup-spotify-club`
+- `/setup-music-sesh`
 - `/jam-lobby open`
 - `/jam-lobby close`
 - `/jam-lobby status`
@@ -191,7 +191,7 @@ Command behavior:
 - `connect`: returns an OAuth link and the Phase 1 Jam Ready explanation.
 - `status`: returns one of not connected, not Premium, missing playback permissions, no active device, or Playback Ready.
 - `disconnect`: tombstones the stored connection and removes live token material.
-- `setup-spotify-club`: posts or refreshes the canonical Spotify Club panel in `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`.
+- `setup-music-sesh`: posts or refreshes the canonical Music Sesh panel in `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`.
 - `jam-lobby`: opens, closes, or reports lobby shell state only. No playback or queue behavior is allowed in this phase.
 - `jam-queue suggest`: stores a pending queue suggestion for the active lobby.
 - `jam-queue list`: shows the current approved queue and pending suggestion count.
@@ -199,9 +199,9 @@ Command behavior:
 
 Visibility rule:
 
-- `/setup-spotify-club`, `/jam-lobby`, `/jam-queue`, and `/spotify` are staff-facing commands
-- normal users should not need slash commands for Spotify Club flows once the panel is live
-- the public Spotify Club product should keep normal-user flows on the panel rather than command memorization
+- `/setup-music-sesh`, `/jam-lobby`, `/jam-queue`, and `/spotify` are staff-facing commands
+- normal users should not need slash commands for Music Sesh flows once the panel is live
+- the public Music Sesh product should keep normal-user flows on the panel rather than command memorization
 
 ## Phase 5 Room Model
 
@@ -227,17 +227,17 @@ Current model:
 
 Rules:
 
-- the canonical Spotify Club panel is the visible source of lobby and queue state
+- the canonical Music Sesh panel is the visible source of lobby and queue state
 - `Suggest Track`, `View Queue`, `Approve`, `Reject`, `Remove`, and lobby open/close confirmations stay ephemeral
 - public queue state changes should appear through panel refreshes, not scrolling audit spam
 - if `DISCORD_SPOTIFY_CLUB_TEST_CHANNEL_ID` is configured, proof or regression logs may go there instead of the public channel
-- testing and canary chatter belongs in a private Spotify Club testing lane, not the public community surface
+- testing and canary chatter belongs in a private Music Sesh testing lane, not the public community surface
 
 Operational cleanup:
 
 - `npm run spotify:club:cleanup` runs a dry-run against `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`
 - `npm run spotify:club:cleanup -- --apply` deletes known bot-authored Spotify queue rollout chatter while preserving the canonical panel
-- the cleanup tool only targets the configured public Spotify Club channel
+- the cleanup tool only targets the configured public Music Sesh channel
 
 ## Phase 3 Queue Rule
 
@@ -253,9 +253,9 @@ Rules:
 - Phase 3 must not request playback-control scopes
 - Phase 3 must not call Spotify player endpoints or push items into the real Spotify queue
 
-## Spotify Club Panel And Controls
+## Music Sesh Panel And Controls
 
-The public Spotify Club panel now shows:
+The public Music Sesh panel now shows:
 
 - room name and visibility
 - lobby status: `Open` or `Closed`
@@ -265,7 +265,7 @@ The public Spotify Club panel now shows:
 - Room Queue count
 - pending suggestion count
 - one public action:
-  - `Open Spotify Club Controls`
+  - `Open Music Sesh Controls`
 
 The public panel does not expose per-user action buttons directly. It is the shared compact room-status surface only.
 
@@ -275,7 +275,7 @@ The personalized ephemeral control hub shows state-aware actions:
   - `Connect Spotify`
   - `Refresh Spotify Status`
 - connected, not joined:
-  - `Join Spotify Club`
+  - `Join Music Sesh`
   - `Disconnect Spotify Auth`
 - joined:
   - `Search Track`
@@ -331,16 +331,16 @@ Playback handoff rule:
 - Spotify Up Next can be used for handoff only when Room Queue is empty and the copy labels it as mirror playback
 - playback begins only after a user explicitly clicks `Start Queue on Spotify`
 - playback stays inside Spotify on the user's own active device
-- Spotify Club must not call rapid mixed player/add-to-queue sequences to simulate exact queue control
-- Spotify Club must not promise exact sync
+- Music Sesh must not call rapid mixed player/add-to-queue sequences to simulate exact queue control
+- Music Sesh must not promise exact sync
 
 Interaction reliability rule:
 
 - panel buttons must either respond immediately or defer ephemerally first
-- stale or unknown Spotify Club panel buttons should answer:
-  - `This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.`
-- `/setup-spotify-club` remains the recovery path for refreshing the canonical panel and pruning stale duplicates
-- `/setup-spotify-club` should replace older multi-button Spotify panels with the new status-first single-button panel
+- stale or unknown Music Sesh panel buttons should answer:
+  - `This Music Sesh panel is outdated. Ask staff to run /setup-music-sesh.`
+- `/setup-music-sesh` remains the recovery path for refreshing the canonical panel and pruning stale duplicates
+- `/setup-music-sesh` should replace older multi-button Spotify panels with the new status-first single-button panel
 - panel refresh failures on aged Discord messages should recreate the canonical panel instead of leaving the public state stale
 
 Still reserved or parked:
@@ -371,7 +371,7 @@ Rules:
 
 ## Hard Boundary
 
-Spotify Club coordinates Spotify-native listening flows later. It does not stream, rebroadcast, record, or pipe Spotify audio through Discord.
+Music Sesh coordinates Spotify-native listening flows later. It does not stream, rebroadcast, record, or pipe Spotify audio through Discord.
 
 ## Future Phases
 
@@ -380,4 +380,4 @@ Spotify Club coordinates Spotify-native listening flows later. It does not strea
 
 ## Release Note Rule
 
-Only post Spotify Club `#updates` messages for shipped user-facing phases. Queue-only or board-only hygiene changes do not get update posts.
+Only post Music Sesh `#updates` messages for shipped user-facing phases. Queue-only or board-only hygiene changes do not get update posts.

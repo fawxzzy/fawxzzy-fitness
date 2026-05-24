@@ -220,11 +220,11 @@ export function formatDiscordSpotifyLobbyStatusLabel(lobby: DiscordSpotifyLobbyR
 
 export function buildDiscordSpotifyLobbyStatusSummary(lobby: DiscordSpotifyLobbyRow | null): string {
   if (!lobby || lobby.status === "closed") {
-    return "Spotify Club lobby is Closed.";
+    return "Music Sesh lobby is Closed.";
   }
 
   const hostLine = lobby.host_discord_user_id ? `\nHost: <@${lobby.host_discord_user_id}>` : "";
-  return `Spotify Club lobby is Open.${hostLine}`;
+  return `Music Sesh lobby is Open.${hostLine}`;
 }
 
 export async function getLatestDiscordSpotifyLobby(

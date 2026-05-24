@@ -48,6 +48,11 @@ Product rules:
   - commander-only, with configured owner bypass
   - reposts the feedback launcher in the channel where it was used
   - aliases: `computa repair feedback setup`
+- `computa setup music sesh`
+  - main-channel message trigger
+  - commander-only, with configured owner bypass
+  - refreshes the canonical Music Sesh panel in the configured Music Sesh channel
+  - aliases: `computa music sesh setup`, `computa setup spotify club`, `computa spotify club setup`
 - `computa archive checked cards`
   - main-channel message trigger
   - commander-only
@@ -77,7 +82,7 @@ Product rules:
   - deletes the legacy `submit-feedback` channel after moving setup to a source channel
   - falls back to `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` only when no source channel is available
   - does not create a dedicated `submit-feedback` channel
-- main-channel message triggers: `computa feedback setup` and `computa setup feedback`
+- main-channel message triggers: `computa feedback setup`, `computa setup feedback`, and `computa setup music sesh`
   - requires the `Fawxzzy Commander` role after bootstrap
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`

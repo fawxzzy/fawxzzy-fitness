@@ -115,7 +115,7 @@ test("buildDiscordSpotifyClubPanelMessagePayload exposes a single control-hub la
     hasApprovedQueue: true,
   });
 
-  assert.equal(payload.embeds[0]?.title, "Spotify Club");
+  assert.equal(payload.embeds[0]?.title, "Music Sesh");
   assert.match(payload.embeds[0]?.description ?? "", /Room: \*\*Main Room\*\* \(Public\)/);
   assert.match(payload.embeds[0]?.description ?? "", /Status: \*\*Open\*\*/);
   assert.match(payload.embeds[0]?.description ?? "", /<@123456789012345678>/);
@@ -475,7 +475,7 @@ test("discordMemberHasModerationPermission accepts administrator, manage guild, 
   assert.equal(discordMemberHasModerationPermission("0"), false);
 });
 
-test("buildDiscordGuildCommandsDefinition keeps Spotify Club slash commands staff-facing while the panel remains the public UX", () => {
+test("buildDiscordGuildCommandsDefinition keeps Music Sesh slash commands staff-facing while the panel remains the public UX", () => {
   const commands = buildDiscordGuildCommandsDefinition();
   const feedback = commands.find((command) => command.name === "feedback");
   const feedbackStatus = commands.find((command) => command.name === "feedback-status");
@@ -488,7 +488,7 @@ test("buildDiscordGuildCommandsDefinition keeps Spotify Club slash commands staf
   const updateLatest = commands.find((command) => command.name === "update-latest");
   const updatePublish = commands.find((command) => command.name === "update-publish");
   const updateSkip = commands.find((command) => command.name === "update-skip");
-  const setupSpotifyClub = commands.find((command) => command.name === "setup-spotify-club");
+  const setupMusicSesh = commands.find((command) => command.name === "setup-music-sesh");
   const spotify = commands.find((command) => command.name === "spotify");
   const jamLobby = commands.find((command) => command.name === "jam-lobby");
   const jamQueue = commands.find((command) => command.name === "jam-queue");
@@ -544,8 +544,8 @@ test("buildDiscordGuildCommandsDefinition keeps Spotify Club slash commands staf
   assert.equal(updatePublish?.options?.[0]?.name, "draft_id");
   assert.ok(updateSkip);
   assert.equal(updateSkip?.options?.[1]?.name, "reason");
-  assert.ok(setupSpotifyClub);
-  assert.equal(setupSpotifyClub?.default_member_permissions, String(BigInt(1) << BigInt(5)));
+  assert.ok(setupMusicSesh);
+  assert.equal(setupMusicSesh?.default_member_permissions, String(BigInt(1) << BigInt(5)));
   assert.ok(spotify);
   assert.equal(
     spotify?.default_member_permissions,

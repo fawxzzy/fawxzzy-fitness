@@ -11,7 +11,7 @@ import {
 
 test("Spotify lobby status helpers describe closed and open states", () => {
   assert.equal(formatDiscordSpotifyLobbyStatusLabel(null), "Closed");
-  assert.equal(buildDiscordSpotifyLobbyStatusSummary(null), "Spotify Club lobby is Closed.");
+  assert.equal(buildDiscordSpotifyLobbyStatusSummary(null), "Music Sesh lobby is Closed.");
 
   assert.equal(formatDiscordSpotifyLobbyStatusLabel({
     id: "lobby-1",
@@ -60,7 +60,7 @@ test("Spotify lobby status helpers describe closed and open states", () => {
       created_at: "2026-05-18T00:00:00.000Z",
       updated_at: "2026-05-18T00:00:00.000Z",
     }),
-    "Spotify Club lobby is Open.\nHost: <@123456789012345678>",
+    "Music Sesh lobby is Open.\nHost: <@123456789012345678>",
   );
 });
 

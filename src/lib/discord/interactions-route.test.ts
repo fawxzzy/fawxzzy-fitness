@@ -1208,6 +1208,7 @@ test("Discord message command poll replaces one computa command menu per channel
       assert.equal(body?.embeds?.[0]?.footer, undefined);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa` - Show this command card\./);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa feedback setup`/);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa setup music sesh`/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /live/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /Owner-only/);
       assert.equal(body?.components, undefined);
@@ -6047,7 +6048,7 @@ test("Discord interactions route treats verification as successful when the memb
   }
 });
 
-test("Discord interactions route rejects setup-spotify-club for users without setup permissions", async () => {
+test("Discord interactions route rejects setup-music-sesh for users without setup permissions", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -6063,7 +6064,7 @@ test("Discord interactions route rejects setup-spotify-club for users without se
       },
     },
     data: {
-      name: "setup-spotify-club",
+      name: "setup-music-sesh",
     },
   }), keyPair));
 
@@ -6071,7 +6072,7 @@ test("Discord interactions route rejects setup-spotify-club for users without se
   assert.deepEqual(await response.json(), {
     type: 4,
     data: {
-      content: "You do not have permission to set up Spotify Club.",
+      content: "You do not have permission to set up Music Sesh.",
       flags: 64,
     },
   });
@@ -6161,7 +6162,7 @@ test("Discord interactions route defers the Spotify control hub opener and shows
 
     assert.equal(response.status, 202);
     assert.equal(observedDiscordCalls[0]?.body?.type, 5);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Music Sesh Controls\*\*/);
     assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
       "spotify_connect_open",
       "spotify_status_check",
@@ -6638,7 +6639,7 @@ test("Discord interactions route defers Spotify controls before loading lobby st
 
     if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-controls-slow-token/messages/@original") {
       callOrder.push("discord-edit");
-      assert.match(body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
+      assert.match(body?.content ?? "", /\*\*Music Sesh Controls\*\*/);
       return new Response(JSON.stringify({ id: "@original" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -6734,8 +6735,8 @@ test("Discord interactions route defers Spotify room open before loading lobby s
 
     if (url.hostname === "discord.com" && method === "PATCH" && url.pathname === "/api/v10/webhooks/1504700208251146371/spotify-room-open-slow-token/messages/@original") {
       callOrder.push("discord-edit");
-      assert.match(body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
-      assert.match(body?.content ?? "", /You do not have permission to manage the Spotify Club room/);
+      assert.match(body?.content ?? "", /\*\*Music Sesh Controls\*\*/);
+      assert.match(body?.content ?? "", /You do not have permission to manage the Music Sesh room/);
       return new Response(JSON.stringify({ id: "@original" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -6943,7 +6944,7 @@ test("Discord interactions route refreshes connected Spotify status back to the 
 
     assert.equal(response.status, 202);
     assert.equal(observedDiscordCalls[0]?.body?.type, 5);
-    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Spotify Club Controls\*\*/);
+    assert.match(observedDiscordCalls[1]?.body?.content ?? "", /\*\*Music Sesh Controls\*\*/);
     assert.match(observedDiscordCalls[1]?.body?.content ?? "", /Spotify: Connected \/ Not Premium/);
     assert.doesNotMatch(observedDiscordCalls[1]?.body?.content ?? "", /use \/spotify connect/i);
     assert.deepEqual(listDiscordMessageComponentCustomIds(observedDiscordCalls[1]?.body), [
@@ -7253,7 +7254,7 @@ test("Discord interactions route disconnect button tombstones the Spotify connec
   }
 });
 
-test("Discord interactions route returns an outdated-panel fallback for stale Spotify Club buttons", async () => {
+test("Discord interactions route returns an outdated-panel fallback for stale Music Sesh buttons", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -7310,7 +7311,7 @@ test("Discord interactions route returns an outdated-panel fallback for stale Sp
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.",
+        content: "This Music Sesh panel is outdated. Ask staff to run /setup-music-sesh.",
         flags: 64,
       },
     });
@@ -7319,7 +7320,7 @@ test("Discord interactions route returns an outdated-panel fallback for stale Sp
   }
 });
 
-test("Discord interactions route returns an outdated-panel fallback for unknown Spotify Club panel buttons", async () => {
+test("Discord interactions route returns an outdated-panel fallback for unknown Music Sesh panel buttons", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -7376,7 +7377,7 @@ test("Discord interactions route returns an outdated-panel fallback for unknown 
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "This Spotify Club panel is outdated. Ask staff to run /setup-spotify-club.",
+        content: "This Music Sesh panel is outdated. Ask staff to run /setup-music-sesh.",
         flags: 64,
       },
     });
@@ -8502,7 +8503,7 @@ test("Discord interactions route stores an auto-approved Spotify queue suggestio
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Track added to the Spotify Club queue.",
+        content: "Track added to the Music Sesh queue.",
         flags: 64,
       },
     });
@@ -8601,7 +8602,7 @@ test("Discord interactions route blocks normal queue adds in host-only approval 
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "This Spotify Club room is host-only right now.",
+        content: "This Music Sesh room is host-only right now.",
         flags: 64,
       },
     });
@@ -8828,7 +8829,7 @@ test("Discord interactions route blocks queue approval for non-host non-staff me
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "You do not have permission to manage the Spotify Club queue.",
+        content: "You do not have permission to manage the Music Sesh queue.",
         flags: 64,
       },
     });
@@ -8837,7 +8838,7 @@ test("Discord interactions route blocks queue approval for non-host non-staff me
   }
 });
 
-test("Discord interactions route opens the jam lobby and refreshes the Spotify Club panel", async () => {
+test("Discord interactions route opens the jam lobby and refreshes the Music Sesh panel", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -8939,7 +8940,7 @@ test("Discord interactions route opens the jam lobby and refreshes the Spotify C
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Spotify Club lobby is now Open.",
+        content: "Music Sesh lobby is now Open.",
         flags: 64,
       },
     });
@@ -8951,7 +8952,7 @@ test("Discord interactions route opens the jam lobby and refreshes the Spotify C
   }
 });
 
-test("Discord interactions route recreates the Spotify Club panel when Discord blocks edits on an aged message", async () => {
+test("Discord interactions route recreates the Music Sesh panel when Discord blocks edits on an aged message", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
@@ -9111,7 +9112,7 @@ test("Discord interactions route recreates the Spotify Club panel when Discord b
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Spotify Club lobby is now Closed.",
+        content: "Music Sesh lobby is now Closed.",
         flags: 64,
       },
     });

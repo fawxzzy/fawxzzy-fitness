@@ -8,9 +8,9 @@ import {
   runSpotifyClubCleanup,
 } from "./cleanup-spotify-club-channel.mjs";
 
-test("discordMessageHasSpotifyClubPanel detects the canonical Spotify Club panel", () => {
+test("discordMessageHasSpotifyClubPanel detects the canonical Music Sesh panel", () => {
   assert.equal(discordMessageHasSpotifyClubPanel({
-    embeds: [{ title: "Spotify Club" }],
+    embeds: [{ title: "Music Sesh" }],
     components: [
       {
         components: [
@@ -21,7 +21,7 @@ test("discordMessageHasSpotifyClubPanel detects the canonical Spotify Club panel
   }), true);
 
   assert.equal(discordMessageHasSpotifyClubPanel({
-    embeds: [{ title: "Spotify Club" }],
+    embeds: [{ title: "Music Sesh" }],
     components: [],
   }), false);
 });
@@ -38,7 +38,7 @@ test("isSpotifyClubCleanupCandidate matches only known bot-authored Spotify queu
     id: "panel-1",
     author: { id: "app-1" },
     content: "",
-    embeds: [{ title: "Spotify Club" }],
+    embeds: [{ title: "Music Sesh" }],
     components: [{ components: [{ custom_id: "spotify_connect_open" }] }],
   }, "app-1"), false);
 
@@ -58,7 +58,7 @@ test("buildCleanupPlan preserves the panel and identifies only stale rollout mes
         id: "panel-1",
         author: { id: "app-1" },
         content: "",
-        embeds: [{ title: "Spotify Club" }],
+        embeds: [{ title: "Music Sesh" }],
         components: [{ components: [{ custom_id: "spotify_connect_open" }] }],
       },
       {
@@ -83,7 +83,7 @@ test("buildCleanupPlan preserves the panel and identifies only stale rollout mes
   ]);
 });
 
-test("runSpotifyClubCleanup dry-run does not mutate and targets only the configured Spotify Club channel", async () => {
+test("runSpotifyClubCleanup dry-run does not mutate and targets only the configured Music Sesh channel", async () => {
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_SPOTIFY_CLUB_CHANNEL_ID = "spotify-club-channel";
   process.env.DISCORD_APPLICATION_ID = "app-1";
@@ -104,7 +104,7 @@ test("runSpotifyClubCleanup dry-run does not mutate and targets only the configu
           id: "panel-1",
           author: { id: "app-1" },
           content: "",
-          embeds: [{ title: "Spotify Club" }],
+          embeds: [{ title: "Music Sesh" }],
           components: [{ components: [{ custom_id: "spotify_connect_open" }] }],
         },
         {
@@ -134,7 +134,7 @@ test("runSpotifyClubCleanup dry-run does not mutate and targets only the configu
   }
 });
 
-test("runSpotifyClubCleanup apply deletes only matched Spotify Club rollout messages", async () => {
+test("runSpotifyClubCleanup apply deletes only matched Music Sesh rollout messages", async () => {
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_SPOTIFY_CLUB_CHANNEL_ID = "spotify-club-channel";
   process.env.DISCORD_APPLICATION_ID = "app-1";
@@ -152,7 +152,7 @@ test("runSpotifyClubCleanup apply deletes only matched Spotify Club rollout mess
           id: "panel-1",
           author: { id: "app-1" },
           content: "",
-          embeds: [{ title: "Spotify Club" }],
+          embeds: [{ title: "Music Sesh" }],
           components: [{ components: [{ custom_id: "spotify_connect_open" }] }],
         },
         {
@@ -211,7 +211,7 @@ test("runSpotifyClubCleanup retries message deletes after Discord rate limits", 
           id: "panel-1",
           author: { id: "app-1" },
           content: "",
-          embeds: [{ title: "Spotify Club" }],
+          embeds: [{ title: "Music Sesh" }],
           components: [{ components: [{ custom_id: "spotify_connect_open" }] }],
         },
         {

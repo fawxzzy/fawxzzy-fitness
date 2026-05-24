@@ -15,7 +15,7 @@ for (const [key, value] of Object.entries(fileEnv)) {
 
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10";
 const DISCORD_API_USER_AGENT = "fawxzzy-fitness-spotify-club-cleanup/1.0";
-const SPOTIFY_PANEL_TITLE = "Spotify Club";
+const MUSIC_SESH_PANEL_TITLES = new Set(["Music Sesh", "Spotify Club"]);
 const SPOTIFY_ACTION_MESSAGE_PATTERNS = [
   /^Queue suggestion pending:/i,
   /^Queue approved:/i,
@@ -100,7 +100,7 @@ async function fetchChannelMessagesPage({ channelId, limit, before }) {
 
   const result = await discordRequest(`/channels/${channelId}/messages?${search.toString()}`);
   if (!result.ok || !Array.isArray(result.data)) {
-    throw new Error(`Failed to fetch Spotify Club messages (${result.status}): ${result.message}`);
+    throw new Error(`Failed to fetch Music Sesh messages (${result.status}): ${result.message}`);
   }
 
   return result.data;
@@ -129,7 +129,7 @@ async function fetchRecentChannelMessages({ channelId, limit = 100 }) {
 
 export function discordMessageHasSpotifyClubPanel(message) {
   const embedTitle = message?.embeds?.[0]?.title;
-  if (embedTitle !== SPOTIFY_PANEL_TITLE) {
+  if (!MUSIC_SESH_PANEL_TITLES.has(embedTitle)) {
     return false;
   }
 
@@ -195,7 +195,7 @@ async function deleteChannelMessage({ channelId, messageId }) {
       continue;
     }
 
-    throw new Error(`Failed to delete Spotify Club message ${messageId} (${result.status}): ${result.message}`);
+    throw new Error(`Failed to delete Music Sesh message ${messageId} (${result.status}): ${result.message}`);
   }
 }
 
@@ -231,7 +231,7 @@ const entryFilePath = fileURLToPath(import.meta.url);
 
 async function main() {
   const result = await runSpotifyClubCleanup(parseArgs());
-  console.log(`Spotify Club cleanup mode: ${result.apply ? "apply" : "dry-run"}`);
+  console.log(`Music Sesh cleanup mode: ${result.apply ? "apply" : "dry-run"}`);
   console.log(`- channel: ${result.channelId}`);
   console.log(`- inspected messages: ${result.inspectedMessageCount}`);
   console.log(`- preserved panel ids: ${result.preservedPanelIds.length > 0 ? result.preservedPanelIds.join(", ") : "none"}`);

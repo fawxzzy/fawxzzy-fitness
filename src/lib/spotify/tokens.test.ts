@@ -49,7 +49,7 @@ test("Spotify status copy covers Premium, free, unknown, and disconnected states
       created_at: "2026-05-18T00:00:00.000Z",
       updated_at: "2026-05-18T00:00:00.000Z",
     }),
-    "Spotify connected, but this account is not Premium. You can view Spotify Club, but Jam Ready features require Premium.",
+    "Spotify connected, but this account is not Premium. You can view Music Sesh, but Jam Ready features require Premium.",
   );
   assert.equal(
     buildSpotifyStatusCopy({

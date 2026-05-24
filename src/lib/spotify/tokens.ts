@@ -136,7 +136,7 @@ export function buildSpotifyStatusCopy(connection: DiscordSpotifyConnectionRow |
   }
 
   if (connection.spotify_product === "free" || connection.spotify_product === "open") {
-    return "Spotify connected, but this account is not Premium. You can view Spotify Club, but Jam Ready features require Premium.";
+    return "Spotify connected, but this account is not Premium. You can view Music Sesh, but Jam Ready features require Premium.";
   }
 
   return "Spotify connected, but Premium status could not be confirmed. Try reconnecting later.";

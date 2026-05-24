@@ -31,6 +31,12 @@ const FEEDBACK_SETUP_TRIGGERS = [
   "computa feedback setup",
   "computa setup feedback",
 ];
+const MUSIC_SESH_SETUP_TRIGGERS = [
+  "computa setup music sesh",
+  "computa music sesh setup",
+  "computa setup spotify club",
+  "computa spotify club setup",
+];
 const GRAND_RISING_MESSAGE_TRIGGERS = [
   "good morning computa",
   "goodmorning computa",
@@ -177,6 +183,23 @@ export function messageRequestsFeedbackSetup(message, mainChannelId) {
 
   const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
   return FEEDBACK_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
+}
+
+export function messageRequestsMusicSeshSetup(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  const normalizedContent = normalizeDiscordMessageCommandContent(message.content);
+  return MUSIC_SESH_SETUP_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
 export function messageRequestsComputaLive(message, mainChannelId) {
@@ -387,6 +410,7 @@ export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
     || messageRequestsComputaFeedbackLauncherRepair(message, mainChannelId)
     || messageRequestsComputaReleaseCheck(message, mainChannelId)
     || messageRequestsFeedbackSetup(message, mainChannelId)
+    || messageRequestsMusicSeshSetup(message, mainChannelId)
     || messageRequestsComputaArchiveCheckedCards(message, mainChannelId)
     || messageRequestsComputaFeedbackReactionSync(message, mainChannelId)
     || messageRequestsComputaUpdate(message, mainChannelId)
