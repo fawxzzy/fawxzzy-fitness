@@ -6,6 +6,25 @@ Repo-local agent guidance lives in `AGENT.md`. Treat it as the product-specific 
 
 Canonical roadmap planning lives in `docs/ROADMAP.md`.
 
+## Fitness deploy authority
+
+Fitness repo-local commands can verify, build, version, and prepare release artifacts, but they do not authorize preview or production deployment by themselves.
+
+Approved deploy authority:
+
+- `_stack` owns Fitness preview and production deploy orchestration
+- run preview and production deploys from `C:\ATLAS\repos\_stack`
+- use `_stack` `fitness:deploy:*` commands as the only approved operator path
+
+Non-authority surfaces in this repo:
+
+- `npm run release:patch`
+- `npm run release:minor`
+- `npm run release:major`
+- repo-local `vercel` or `vercel --prod`
+
+Those surfaces can support release preparation, recovery, or local investigation, but they are not the approved default production release path.
+
 ## Playbook runtime command path (canonical)
 
 This repository uses the top-level npm commands backed by `scripts/playbook-runtime.mjs`, which resolves the runtime through the canonical official fallback path or an explicitly enabled package install. Treat those top-level npm commands as the only supported operator path for Playbook in this repo.

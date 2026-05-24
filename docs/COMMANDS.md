@@ -52,6 +52,12 @@ npm run
 
 | Script | What |
 | --- | --- |
-| `npm run release:patch` | Cut a patch release. |
-| `npm run release:minor` | Cut a minor release. |
-| `npm run release:major` | Cut a major release. |
+| `npm run release:patch` | Prepare a patch release version and release metadata. Does not deploy. |
+| `npm run release:minor` | Prepare a minor release version and release metadata. Does not deploy. |
+| `npm run release:major` | Prepare a major release version and release metadata. Does not deploy. |
+
+Release-authority note:
+
+- repo-local release helpers in this table are release-preparation surfaces, not deploy authority
+- preview and production deploy authority lives in `_stack` through `pnpm run fitness:deploy:*`
+- direct repo-local `vercel` or `vercel --prod` usage is not an approved default production deploy path

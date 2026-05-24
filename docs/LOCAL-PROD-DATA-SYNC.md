@@ -9,8 +9,11 @@ This app has two separate sync surfaces:
 
 Do not treat local-against-production-data as the default mode.
 
+- `_stack` owns the approved Fitness preview and production deploy authority.
+- Repo-local release helpers may prepare versioning or release notes, but they do not authorize deployment by themselves.
 - Production deploys must come from the canonical `fawxzzy/fawxzzy-fitness` repo, not from an ATLAS-linked workspace or any other mirror.
 - A dirty Vercel CLI deployment is a recovery event, not a normal release source.
+- Direct repo-local `vercel` or `vercel --prod` use is a recovery-only exception, not the default release workflow.
 - Before any new production deploy, the current Vercel production SHA must exist in Git or be explicitly superseded by a verified recovery branch.
 
 - Keep `.env.local` for the normal local project you use during development.
