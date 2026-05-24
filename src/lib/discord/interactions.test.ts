@@ -87,6 +87,7 @@ test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel butt
   const payload = buildDiscordFeedbackPanelMessagePayload();
 
   assert.equal(payload.embeds[0]?.title, "Submit Feedback Here");
+  assert.equal(payload.embeds[0]?.color, 0x22c55e);
   assert.match(payload.embeds[0]?.description ?? "", /choose bug or feature, then create a card/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => ("custom_id" in component ? component.custom_id : null)),
@@ -379,6 +380,22 @@ test("feedback panel button modals expose submit and manage flows", () => {
   assert.equal(update.data.components[3]?.component?.custom_id, "feedback_section_overrides");
   assert.equal(withdraw.data.custom_id, "fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111");
   assert.equal(withdraw.data.components[0]?.component?.custom_id, "feedback_withdraw_note");
+});
+
+test("buildDiscordSpotifyClubPanelMessagePayload keeps the public panel green when the room is closed", () => {
+  const payload = buildDiscordSpotifyClubPanelMessagePayload({
+    roomName: "Main Room",
+    roomVisibility: "public",
+    lobbyStatusLabel: "Closed",
+    memberCount: 0,
+    queuePreviewLines: [],
+    activeQueueCount: 0,
+    pendingSuggestionCount: 0,
+    hasApprovedQueue: false,
+  });
+
+  assert.equal(payload.embeds[0]?.color, 0x22c55e);
+  assert.match(payload.embeds[0]?.description ?? "", /Status: \*\*Closed\*\*/);
 });
 
 test("feedback submit modal keeps panel buttons and modal inputs text-only even when emoji payloads are available", () => {

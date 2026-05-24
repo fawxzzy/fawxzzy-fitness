@@ -540,6 +540,7 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
       {
         title: DEFAULT_FEEDBACK_PANEL_TITLE,
         description: DEFAULT_FEEDBACK_PANEL_BODY_LINES.join("\n"),
+        color: DISCORD_EMBED_COLOR_SUCCESS,
       },
     ],
     components: [
@@ -597,7 +598,7 @@ export function buildDiscordSpotifyClubPanelMessagePayload(args: {
     embeds: [
       {
         title: DEFAULT_SPOTIFY_CLUB_PANEL_TITLE,
-        color: args.lobbyStatusLabel === "Open" ? DISCORD_EMBED_COLOR_SUCCESS : DISCORD_EMBED_COLOR_INFO,
+        color: DISCORD_EMBED_COLOR_SUCCESS,
         description: [
           `Room: **${roomName}** (${roomVisibilityLabel})`,
           `Status: **${args.lobbyStatusLabel}**`,
