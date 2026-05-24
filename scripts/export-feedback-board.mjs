@@ -299,7 +299,7 @@ function formatStatusLabel(status) {
 
 export function formatDisplayStatusLabel(reportType, status) {
   if (reportType === "feature" && status === "fixed") {
-    return "Completed";
+    return "Resolved";
   }
 
   return formatStatusLabel(status);

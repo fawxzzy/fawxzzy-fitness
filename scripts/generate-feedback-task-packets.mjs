@@ -700,7 +700,7 @@ function buildCompletionReviewPacket(record) {
     area: record.area,
     title: record.title,
     status: record.status,
-    statusLabel: record.reportType === "feature" && record.status === "fixed" ? "Completed" : safeTitleCase(record.status.replace(/_/g, " ")),
+    statusLabel: record.reportType === "feature" && record.status === "fixed" ? "Resolved" : safeTitleCase(record.status.replace(/_/g, " ")),
     completionReviewStatus: record.completionReviewStatus,
     completionReviewStatusLabel: safeTitleCase(record.completionReviewStatus.replace(/_/g, " ")),
     forumThreadLink: record.forumThreadLink,

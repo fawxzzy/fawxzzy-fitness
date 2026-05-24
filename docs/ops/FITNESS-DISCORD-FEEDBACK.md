@@ -141,7 +141,7 @@ Product rules:
   - status sync only
 - `/feedback-completion-review`
   - staff-only
-  - post-completion review for public Fitness app cards already marked `Fixed` or `Completed`
+- post-completion review for public Fitness app cards already marked `Fixed` or `Resolved`
 - `/feedback-withdraw`
   - hidden from normal users
   - reporter or staff fallback
@@ -175,8 +175,8 @@ Workflow:
 5. Verta Core / Playbook reviews the export.
 6. Codex work begins only from reviewed prompts or tasks.
 7. Work ships.
-8. `/feedback-status` marks the card `Fixed` or `Completed`.
-9. Public non-testing Fitness app cards marked `Fixed` or `Completed` enter Completion Review.
+8. `/feedback-status` marks the card `Fixed` or `Resolved`.
+9. Public non-testing Fitness app cards marked `Fixed` or `Resolved` enter Completion Review.
 10. Update Bot may publish a curated release post only when the change is user-facing.
 11. Do not advance to the next phase until the previous public phase card is fixed/completed, completion-review approved, and visibly reacted with the configured success reaction.
 
@@ -498,7 +498,7 @@ Starter post formatting:
 - Feature cards show `Title`, `User Story`, `Description`, `Acceptance Criteria`, and `Evidence`
 - Feature cards do not show `Severity`
 - Feature cards do not show bug-only sections such as `Actual behavior` or `Steps to reproduce`
-- Feature cards display `Completed` when the stored status is `fixed`
+- Feature cards display `Resolved` when the stored status is `fixed`
 - Acceptance Criteria on the Discord card are concise and user-facing
 - Acceptance Criteria are generated deterministically by default when the submit or edit flow does not collect custom criteria text yet
 - Reviewed task packets may expand on the visible card criteria with implementation and verification detail
@@ -622,7 +622,7 @@ It should:
 
 Display rule:
 - bug cards show stored `fixed` as `Fixed`
-- feature cards show stored `fixed` as `Completed`
+- feature cards show stored `fixed` as `Resolved`
 
 Resolved reaction behavior:
 - required target: the forum starter message

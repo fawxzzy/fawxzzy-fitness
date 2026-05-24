@@ -95,8 +95,8 @@ function createMockClient(rows) {
   };
 }
 
-test("feature fixed displays Completed while bug fixed stays Fixed", () => {
-  assert.equal(formatDisplayStatusLabel("feature", "fixed"), "Completed");
+test("feature fixed displays Resolved while bug fixed stays Fixed", () => {
+  assert.equal(formatDisplayStatusLabel("feature", "fixed"), "Resolved");
   assert.equal(formatDisplayStatusLabel("bug", "fixed"), "Fixed");
 });
 
@@ -184,7 +184,7 @@ test("board markdown groups cards by status and separates bugs from features", (
   assert.match(markdown, /Points: 3/);
   assert.match(markdown, /\[11111111\] Account — Copy button does not work/);
   assert.match(markdown, /## Features/);
-  assert.match(markdown, /### Completed/);
+  assert.match(markdown, /### Resolved/);
   assert.match(markdown, /\[22222222\] Feedback — Add reaction option/);
 });
 

@@ -456,7 +456,7 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
     [
       "**Feature Request**",
       "Type: Feature",
-      "Status: Completed",
+      "Status: Resolved",
       "Points: 3",
       "Area: Settings",
       "Reporter: <@123456789012345678> / Member #4",
@@ -715,7 +715,7 @@ test("buildDiscordBugStatusThreadReply only pings the reporter when explicitly r
       reporterDiscordUserId: "123456789012345678",
       includeReporterMention: false,
     }),
-    "Marked resolved by Fawx Security.\nStatus: In Progress -> Completed",
+    "Marked resolved by Fawx Security.\nStatus: In Progress -> Resolved",
   );
 
   assert.equal(

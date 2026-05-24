@@ -4977,7 +4977,7 @@ test("Discord interactions route adds the resolved success reaction to the start
     assert.equal(observedSupabaseWrites[1]?.completion_review_status, "pending");
     const auditReply = observedDiscordBodies.find((entry) => entry.path === "/api/v10/channels/1504673475489562745/messages");
     assert.match(auditReply?.body?.content ?? "", /Marked resolved by Fawx Security\./);
-    assert.match(auditReply?.body?.content ?? "", /Status: Confirmed -> Completed/);
+    assert.match(auditReply?.body?.content ?? "", /Status: Confirmed -> Resolved/);
     assert.match(auditReply?.body?.content ?? "", /Completion Review: Pending Fawxzzy review\./);
     assert.equal(
       observedDiscordBodies.some((entry) => entry.path.endsWith("/messages/1504673475489562746/reactions/fawxzzy%3A1507384062166302851/@me") && entry.method === "PUT"),

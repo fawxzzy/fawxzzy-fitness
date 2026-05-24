@@ -1124,7 +1124,7 @@ export function formatDiscordFeedbackDisplayStatusLabel(args: {
   status: DiscordBugReportStatus;
 }): string {
   if (args.reportType === "feature" && args.status === "fixed") {
-    return "Completed";
+    return "Resolved";
   }
 
   return formatDiscordBugReportStatusLabel(args.status);

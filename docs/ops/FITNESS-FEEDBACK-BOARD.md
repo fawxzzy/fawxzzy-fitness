@@ -36,12 +36,12 @@ Visual board rule:
 Recommended visible shape:
 - active first: `In Progress`, `Ready for Fawxzzy Review`, `Confirmed`, `New`
 - reviewed but not started: `Confirmed` or `Ready for Fawxzzy Review` plus `Backlog`
-- less visible historical states: `Fixed`, `Completed`, `Closed`, `Duplicate`, `Withdrawn`, `Spam`
+- less visible historical states: `Fixed`, `Resolved`, `Closed`, `Duplicate`, `Withdrawn`, `Spam`
 
 Planning tag rule:
 - `Backlog` is a planning tag, not a stored status
 - apply it to public reviewed cards that are real and not started yet
-- remove it when a card becomes `In Progress`, `Fixed` or `Completed`, `Closed`, `Duplicate`, `Withdrawn`, or `Spam`
+- remove it when a card becomes `In Progress`, `Fixed` or `Resolved`, `Closed`, `Duplicate`, `Withdrawn`, or `Spam`
 - do not apply it to private `feedback-testing` canaries by default
 
 Canary rule:
@@ -155,7 +155,7 @@ User-facing board meaning:
 - `Confirmed`: Valid and ready for planning.
 - `In Progress`: Actively being worked.
 - `Fixed`: Bug resolved.
-- `Completed`: Feature completed. This is the display label for feature cards when stored status is `fixed`.
+- `Resolved`: Feature completed. This is the display label for feature cards when stored status is `fixed`.
 - `Closed`: Done, obsolete, or intentionally not pursuing.
 - `Duplicate`: Folded into another card.
 - `Withdrawn`: Reporter withdrew details.
@@ -163,11 +163,11 @@ User-facing board meaning:
 
 Lifecycle:
 - Bug: `New -> Confirmed -> In Progress -> Fixed/Closed`
-- Feature: `New -> Confirmed -> In Progress -> Completed/Closed`
+- Feature: `New -> Confirmed -> In Progress -> Resolved/Closed`
 
 Completion review:
 - `Ready for Fawxzzy Review` is an optional pre-work scope gate.
-- Completion Review is a required post-completion queue for public Fitness app cards marked `Fixed` or `Completed`.
+- Completion Review is a required post-completion queue for public Fitness app cards marked `Fixed` or `Resolved`.
 - Private `feedback-testing` canaries do not require Completion Review by default.
 - Completion review approval should backfill the configured success reaction if it is missing.
 
