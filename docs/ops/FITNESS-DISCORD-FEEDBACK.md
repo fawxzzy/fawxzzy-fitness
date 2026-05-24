@@ -244,6 +244,8 @@ Gateway worker:
 - Optional `DISCORD_MESSAGE_COMMAND_POLL_URL` overrides the default production endpoint.
 - The worker listens only for Discord Gateway `MESSAGE_CREATE` events in `DISCORD_MAIN_CHANNEL_ID`.
 - The worker does not perform setup directly; it wakes the secured app endpoint, which owns role checks, setup, replies, and processed reactions.
+- The worker triggers the secured poll immediately on matching new-message events and also keeps the interval poll as fallback.
+- The worker now persists recent handled message ids plus the last seen message timestamp/id per channel in `runtime/state/discord-feedback-worker-state.json` so restarts do not blindly re-read the same qualifying messages.
 - Discord Developer Portal must have Message Content Intent enabled for this trigger to work.
 
 This is not a broad chat-command framework. Future phrase commands must stay role-gated, low-noise, idempotent, and documented before release.

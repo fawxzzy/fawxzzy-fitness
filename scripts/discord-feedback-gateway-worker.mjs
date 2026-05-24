@@ -381,6 +381,94 @@ export function resolveDiscordWorkerStatePath(env = process.env) {
   return path.resolve(REPO_ROOT, "..", "..", "runtime", "state", "discord-feedback-worker-state.json");
 }
 
+export function trimDiscordWorkerRecentMessageIds(messageIds, limit = 500) {
+  if (!Array.isArray(messageIds)) {
+    return [];
+  }
+
+  const normalized = messageIds
+    .filter((value) => typeof value === "string" && value.trim().length > 0)
+    .map((value) => value.trim());
+
+  if (normalized.length <= limit) {
+    return normalized;
+  }
+
+  return normalized.slice(normalized.length - limit);
+}
+
+export function normalizeDiscordWorkerMessageActivityState(state) {
+  const root = state && typeof state === "object" ? state : {};
+  const messageActivity = root.messageActivity && typeof root.messageActivity === "object"
+    ? root.messageActivity
+    : {};
+  const lastSeenByChannelInput = messageActivity.lastSeenByChannel && typeof messageActivity.lastSeenByChannel === "object"
+    ? messageActivity.lastSeenByChannel
+    : {};
+  const lastSeenByChannel = {};
+
+  for (const [channelId, checkpoint] of Object.entries(lastSeenByChannelInput)) {
+    if (typeof channelId !== "string" || channelId.trim().length === 0 || !checkpoint || typeof checkpoint !== "object") {
+      continue;
+    }
+
+    const messageId = typeof checkpoint.messageId === "string" && checkpoint.messageId.trim().length > 0
+      ? checkpoint.messageId.trim()
+      : null;
+    const timestamp = typeof checkpoint.timestamp === "string" && Number.isFinite(Date.parse(checkpoint.timestamp))
+      ? checkpoint.timestamp
+      : null;
+
+    if (!messageId && !timestamp) {
+      continue;
+    }
+
+    lastSeenByChannel[channelId.trim()] = {
+      ...(messageId ? { messageId } : {}),
+      ...(timestamp ? { timestamp } : {}),
+    };
+  }
+
+  return {
+    recentMessageIds: trimDiscordWorkerRecentMessageIds(messageActivity.recentMessageIds),
+    lastSeenByChannel,
+  };
+}
+
+export function isDiscordMessageAtOrBeforeCheckpoint(message, checkpoint) {
+  if (!checkpoint || typeof checkpoint !== "object") {
+    return false;
+  }
+
+  const messageId = typeof message?.id === "string" ? message.id : null;
+  const checkpointMessageId = typeof checkpoint.messageId === "string" ? checkpoint.messageId : null;
+  if (messageId && checkpointMessageId && messageId === checkpointMessageId) {
+    return true;
+  }
+
+  const messageTimestampRaw = typeof message?.timestamp === "string" ? message.timestamp : null;
+  const checkpointTimestampRaw = typeof checkpoint.timestamp === "string" ? checkpoint.timestamp : null;
+  if (!messageTimestampRaw || !checkpointTimestampRaw) {
+    return false;
+  }
+
+  const messageTimestamp = Date.parse(messageTimestampRaw);
+  const checkpointTimestamp = Date.parse(checkpointTimestampRaw);
+  if (!Number.isFinite(messageTimestamp) || !Number.isFinite(checkpointTimestamp)) {
+    return false;
+  }
+
+  if (messageTimestamp < checkpointTimestamp) {
+    return true;
+  }
+
+  if (messageTimestamp > checkpointTimestamp) {
+    return false;
+  }
+
+  return Boolean(messageId && checkpointMessageId && messageId === checkpointMessageId);
+}
+
 export async function readDiscordWorkerState(statePath) {
   try {
     const body = await fs.readFile(statePath, "utf8");
@@ -556,6 +644,8 @@ export class DiscordFeedbackGatewayWorker {
     this.stopped = false;
     this.seenMessageIds = new Set();
     this.pollInFlight = false;
+    this.workerState = {};
+    this.workerStateReady = null;
     this.botMessageReactionRules = botMessageReactionRules;
     this.scheduledPostRules = scheduledPostRules;
     this.scheduledPostIntervalMs = scheduledPostIntervalMs;
@@ -583,6 +673,7 @@ export class DiscordFeedbackGatewayWorker {
     }
 
     this.stopped = false;
+    this.workerStateReady = this.loadWorkerState();
     this.connect();
     this.startPeriodicPoll();
     this.startScheduledBotPosts();
@@ -633,6 +724,60 @@ export class DiscordFeedbackGatewayWorker {
       clearInterval(this.scheduledPostTimer);
       this.scheduledPostTimer = null;
     }
+  }
+
+  async loadWorkerState() {
+    const state = await readDiscordWorkerState(this.scheduledPostStatePath);
+    this.workerState = state && typeof state === "object" ? state : {};
+
+    const messageActivity = normalizeDiscordWorkerMessageActivityState(this.workerState);
+    this.seenMessageIds = new Set(messageActivity.recentMessageIds);
+  }
+
+  async ensureWorkerStateReady() {
+    if (this.workerStateReady) {
+      await this.workerStateReady;
+      this.workerStateReady = null;
+    }
+  }
+
+  getPersistedMessageCheckpoint(channelId) {
+    const messageActivity = normalizeDiscordWorkerMessageActivityState(this.workerState);
+    return channelId ? (messageActivity.lastSeenByChannel[channelId] ?? null) : null;
+  }
+
+  async persistMessageActivity(message) {
+    const channelId = typeof message?.channel_id === "string" ? message.channel_id : null;
+    const messageId = typeof message?.id === "string" ? message.id : null;
+    const timestamp = typeof message?.timestamp === "string" && Number.isFinite(Date.parse(message.timestamp))
+      ? message.timestamp
+      : null;
+    if (!channelId || !messageId) {
+      return;
+    }
+
+    const normalized = normalizeDiscordWorkerMessageActivityState(this.workerState);
+    const recentMessageIds = trimDiscordWorkerRecentMessageIds([
+      ...normalized.recentMessageIds,
+      messageId,
+    ]);
+    const lastSeenByChannel = {
+      ...normalized.lastSeenByChannel,
+      [channelId]: {
+        messageId,
+        ...(timestamp ? { timestamp } : {}),
+      },
+    };
+
+    this.workerState = {
+      ...this.workerState,
+      messageActivity: {
+        recentMessageIds,
+        lastSeenByChannel,
+      },
+    };
+
+    await writeDiscordWorkerState(this.scheduledPostStatePath, this.workerState);
   }
 
   connect() {
@@ -756,6 +901,16 @@ export class DiscordFeedbackGatewayWorker {
   }
 
   async handleMessageCreate(message) {
+    await this.ensureWorkerStateReady();
+
+    const channelId = typeof message.channel_id === "string" ? message.channel_id : null;
+    if (channelId) {
+      const checkpoint = this.getPersistedMessageCheckpoint(channelId);
+      if (checkpoint && isDiscordMessageAtOrBeforeCheckpoint(message, checkpoint)) {
+        return;
+      }
+    }
+
     const messageId = typeof message.id === "string" ? message.id : null;
     if (messageId) {
       if (this.seenMessageIds.has(messageId)) {
@@ -773,11 +928,16 @@ export class DiscordFeedbackGatewayWorker {
       await this.reactToBotMessage(message, botReactions);
     }
 
-    if (messageRequestsDiscordMessageCommand(message, this.mainChannelId)) {
+    const requestedMessageCommand = messageRequestsDiscordMessageCommand(message, this.mainChannelId);
+    if (requestedMessageCommand) {
       await this.runMessageCommandPoll({
         reason: "message-create",
         messageId,
       });
+    }
+
+    if (botReactions.length > 0 || requestedMessageCommand) {
+      await this.persistMessageActivity(message);
     }
   }
 

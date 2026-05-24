@@ -7,6 +7,7 @@ import {
   createDiscordGatewayMessageReaction,
   getTimeZoneDateKey,
   getRequestedBotMessageReactions,
+  isDiscordMessageAtOrBeforeCheckpoint,
   isScheduledBotPostDue,
   messageRequestsComputaArchiveCheckedCards,
   messageRequestsComputaCommandCardRepair,
@@ -21,9 +22,11 @@ import {
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
   normalizeDiscordMessageCommandContent,
+  normalizeDiscordWorkerMessageActivityState,
   resolveDiscordMessageCommandPollIntervalMs,
   resolveDiscordMessageCommandPollUrl,
   resolveScheduledPostIntervalMs,
+  trimDiscordWorkerRecentMessageIds,
 } from "./discord-feedback-gateway-worker.mjs";
 
 test("feedback gateway worker normalizes trigger text", () => {
@@ -523,6 +526,86 @@ test("feedback gateway worker bounds the fallback poll interval", () => {
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "999999" }), 120_000);
   assert.equal(resolveScheduledPostIntervalMs({}), 60_000);
   assert.equal(resolveScheduledPostIntervalMs({ DISCORD_SCHEDULED_POST_INTERVAL_MS: "1000" }), 30_000);
+});
+
+test("feedback gateway worker normalizes persisted message activity state", () => {
+  assert.deepEqual(
+    normalizeDiscordWorkerMessageActivityState({
+      messageActivity: {
+        recentMessageIds: ["  a  ", null, "b", "", "c"],
+        lastSeenByChannel: {
+          " main-channel ": {
+            messageId: " 123 ",
+            timestamp: "2026-05-24T08:00:00.000Z",
+          },
+          bad: {
+            messageId: "",
+            timestamp: "not-a-date",
+          },
+        },
+      },
+    }),
+    {
+      recentMessageIds: ["a", "b", "c"],
+      lastSeenByChannel: {
+        "main-channel": {
+          messageId: "123",
+          timestamp: "2026-05-24T08:00:00.000Z",
+        },
+      },
+    },
+  );
+});
+
+test("feedback gateway worker trims recent message ids to the newest entries", () => {
+  assert.deepEqual(
+    trimDiscordWorkerRecentMessageIds(["1", "2", "3", "4"], 2),
+    ["3", "4"],
+  );
+});
+
+test("feedback gateway worker compares message checkpoints safely", () => {
+  assert.equal(
+    isDiscordMessageAtOrBeforeCheckpoint(
+      {
+        id: "message-2",
+        timestamp: "2026-05-24T08:10:00.000Z",
+      },
+      {
+        messageId: "message-2",
+        timestamp: "2026-05-24T08:10:00.000Z",
+      },
+    ),
+    true,
+  );
+
+  assert.equal(
+    isDiscordMessageAtOrBeforeCheckpoint(
+      {
+        id: "message-1",
+        timestamp: "2026-05-24T08:09:59.000Z",
+      },
+      {
+        messageId: "message-2",
+        timestamp: "2026-05-24T08:10:00.000Z",
+      },
+    ),
+    true,
+  );
+
+  assert.equal(
+    isDiscordMessageAtOrBeforeCheckpoint(
+      {
+        id: "message-3",
+        timestamp: "2026-05-24T08:10:01.000Z",
+      },
+      {
+        messageId: "message-2",
+        timestamp: "2026-05-24T08:10:00.000Z",
+      },
+    ),
+    false,
+  );
 });
 
 test("feedback gateway worker calls the secured poll endpoint", async () => {
