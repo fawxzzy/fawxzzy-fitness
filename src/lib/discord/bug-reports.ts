@@ -929,14 +929,6 @@ function formatForumSeverityLabel(severity: DiscordBugReportSeverity): string {
   return formatTitleCase(severity);
 }
 
-function lowerCaseFirstCharacter(value: string): string {
-  if (!value) {
-    return value;
-  }
-
-  return value.charAt(0).toLowerCase() + value.slice(1);
-}
-
 function buildGenericBugExpectedBehavior(report: DiscordBugReportRow): string {
   const areaLabel = formatForumAreaLabel(report.area);
   return `The ${areaLabel} flow should complete without the reported issue and give the user a clear result.`;
@@ -945,7 +937,7 @@ function buildGenericBugExpectedBehavior(report: DiscordBugReportRow): string {
 function buildGenericFeatureUserStory(report: DiscordBugReportRow): string {
   const summary = formatForumSummary(report.summary);
   const areaLabel = formatForumAreaLabel(report.area);
-  return `As a user, I want ${lowerCaseFirstCharacter(summary)}, so that the ${areaLabel} flow better matches the requested outcome.`;
+  return `As a user, I want ${summary}, so that the ${areaLabel} flow better matches the requested outcome.`;
 }
 
 function normalizeForumBodySectionValue(value: string | null | undefined): string | null {

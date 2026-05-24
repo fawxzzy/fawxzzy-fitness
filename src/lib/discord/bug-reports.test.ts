@@ -467,7 +467,7 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
       "Token copy button failed",
       "",
       "**User Story**",
-      "As a user, I want token copy button failed, so that the Settings flow better matches the requested outcome.",
+      "As a user, I want Token copy button failed, so that the Settings flow better matches the requested outcome.",
       "",
       "**Description**",
       "I tapped Copy and nothing happened.",
@@ -491,6 +491,19 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
       reporterLabel: "Member #4",
     }),
     /Severity:|What happened|^\*\*Steps\*\*$|^\*\*Actual behavior\*\*$/m,
+  );
+});
+
+test("buildDiscordBugForumThreadBody preserves proper-name casing in feature user stories", () => {
+  assert.match(
+    buildDiscordBugForumThreadBody({
+      report: buildStoredRow({
+        report_type: "feature",
+        summary: "Music Sesh Phase 8 - Room System + Private Room Keys",
+      }),
+      reporterLabel: "Member #4",
+    }),
+    /\*\*User Story\*\*\nAs a user, I want Music Sesh Phase 8 - Room System \+ Private Room Keys, so that the Settings flow better matches the requested outcome\./,
   );
 });
 
