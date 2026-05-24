@@ -449,6 +449,7 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
         status: "fixed",
         id: "abc12345-ffff-ffff-ffff-ffffffffffff",
         screenshot_url: "https://example.com/shot.png",
+        steps_to_reproduce: null,
       }),
       reporterLabel: "Member #4",
     }),
@@ -491,6 +492,49 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
     }),
     /Severity:|What happened|^\*\*Steps\*\*$|^\*\*Actual behavior\*\*$/m,
   );
+});
+
+test("buildDiscordBugForumThreadBody uses stored feature acceptance criteria when provided", () => {
+  assert.match(
+    buildDiscordBugForumThreadBody({
+      report: buildStoredRow({
+        report_type: "feature",
+        summary: "Play Wine or Cheese from the main channel",
+        details: "Run Wine or Cheese as a main-channel narrator game backed by a Vercel service.",
+        steps_to_reproduce: [
+          "- Typing computa let's play wine or cheese starts the game in the same channel.",
+          "- Only the player who started the game can choose.",
+          "- No dedicated gameplay thread is created.",
+        ].join("\n"),
+      }),
+      reporterLabel: "Member #4",
+    }),
+    /\*\*Acceptance Criteria\*\*\n- Typing computa let's play wine or cheese starts the game in the same channel\.\n- Only the player who started the game can choose\.\n- No dedicated gameplay thread is created\./m,
+  );
+});
+
+test("buildDiscordBugForumThreadBody preserves feature acceptance criteria when description is long", () => {
+  const body = buildDiscordBugForumThreadBody({
+    report: buildStoredRow({
+      report_type: "feature",
+      summary: "Play Wine or Cheese from the main channel",
+      details: Array.from({ length: 24 }, (_, index) => `Scoped main-channel narrator detail ${index + 1}.`).join(" "),
+      steps_to_reproduce: [
+        "Typing computa let's play wine or cheese starts the game in the same channel.",
+        "Only the player who started the game can choose.",
+        "No dedicated gameplay thread is created.",
+        "Vercel owns story logic and no Supabase is required for MVP.",
+      ].join("\n"),
+      screenshot_url: null,
+      attachment_metadata: null,
+      attachment_count: 0,
+    }),
+    reporterLabel: "Member #4",
+  });
+
+  assert.match(body, /\*\*Description\*\*\nScoped main-channel narrator detail 1\./m);
+  assert.match(body, /\*\*Acceptance Criteria\*\*\n- Typing computa let's play wine or cheese starts the game in the same channel\./m);
+  assert.match(body, /\*\*Evidence\*\*\nNot provided/m);
 });
 
 test("buildDiscordBugForumThreadBody keeps bug fixed copy as Fixed", () => {

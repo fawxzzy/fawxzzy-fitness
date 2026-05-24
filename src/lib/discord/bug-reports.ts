@@ -265,6 +265,8 @@ const DUPLICATE_TOKEN_SYNONYMS: Record<string, string> = {
   unable: "fail",
 };
 
+const FEATURE_FORUM_DESCRIPTION_PLACEHOLDER = "__FEATURE_DESCRIPTION__";
+
 const DISCORD_FEEDBACK_COMPLEXITY_SIGNAL = /\b(auth|account|verification|verify|discord|forum|thread|role|permission|release|deploy|preview|brand|favicon|manifest|pwa|sync|worker|automation|queue|supabase|migration|database|import|export|mirror|payment|subscription|mobile|ios|android)\b/i;
 const DISCORD_FEEDBACK_BROAD_SCOPE_SIGNAL = /\b(all|every|across|multiple|entire|global|systemwide|system-wide|whole app|whole flow|end to end|end-to-end)\b/i;
 
@@ -950,6 +952,26 @@ function normalizeForumBodySectionValue(value: string | null | undefined): strin
   return normalizeTextInput(value, DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH);
 }
 
+function normalizeCriteriaLine(value: string): string | null {
+  const normalized = value
+    .replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "")
+    .trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function parseFeatureAcceptanceCriteriaOverride(value: string | null | undefined): string[] {
+  const normalized = normalizeTextInput(value, DISCORD_BUG_REPORT_STEPS_MAX_LENGTH);
+  if (!normalized) {
+    return [];
+  }
+
+  return normalized
+    .split(/\r?\n/)
+    .map((line) => normalizeCriteriaLine(line))
+    .filter((line): line is string => Boolean(line))
+    .slice(0, 10);
+}
+
 export function buildBugAcceptanceCriteria(report: Pick<
   DiscordBugReportRow,
   "area" | "summary"
@@ -966,8 +988,13 @@ export function buildBugAcceptanceCriteria(report: Pick<
 
 export function buildFeatureAcceptanceCriteria(report: Pick<
   DiscordBugReportRow,
-  "area" | "summary"
+  "area" | "summary" | "steps_to_reproduce"
 >): string[] {
+  const overrideCriteria = parseFeatureAcceptanceCriteriaOverride(report.steps_to_reproduce);
+  if (overrideCriteria.length > 0) {
+    return overrideCriteria;
+  }
+
   const areaLabel = formatForumAreaLabel(report.area);
 
   return [
@@ -1016,11 +1043,13 @@ export function buildDiscordFeedbackEvidence(report: Pick<
 
 export function buildDiscordFeedbackCardSections(report: DiscordBugReportRow): DiscordFeedbackCardSections {
   const title = renderForumBodyValue(report.summary, "Not provided");
-  const details = renderForumBodyDisplayValue({
-    value: report.details,
-    fallback: "Not provided",
-    maxLength: report.report_type === "feature" ? 540 : 420,
-  });
+  const details = report.report_type === "feature"
+    ? normalizeForumBodySectionValue(report.details)
+    : renderForumBodyDisplayValue({
+      value: report.details,
+      fallback: "Not provided",
+      maxLength: 420,
+    });
   const steps = renderForumBodyDisplayValue({
     value: report.steps_to_reproduce,
     fallback: "Not provided",
@@ -1269,6 +1298,41 @@ function trimDiscordForumBodyLength(body: string): string {
   return `${body.slice(0, Math.max(0, DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH - 3)).trimEnd()}...`;
 }
 
+function buildFeatureForumDescription(args: {
+  sharedLines: string[];
+  userStory: string;
+  description: string;
+  acceptanceCriteriaLines: string[];
+  evidenceLines: string[];
+}): string {
+  const bodyTemplate = [
+    ...args.sharedLines,
+    "**User Story**",
+    args.userStory,
+    "",
+    "**Description**",
+    FEATURE_FORUM_DESCRIPTION_PLACEHOLDER,
+    "",
+    "**Acceptance Criteria**",
+    ...args.acceptanceCriteriaLines,
+    "",
+    "**Evidence**",
+    ...args.evidenceLines,
+  ].join("\n");
+
+  const reservedLength = bodyTemplate.length - FEATURE_FORUM_DESCRIPTION_PLACEHOLDER.length;
+  const remainingDescriptionBudget = Math.max(
+    "Not provided".length,
+    DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH - reservedLength,
+  );
+
+  const description = truncateForumDisplayValue(args.description, remainingDescriptionBudget) || "Not provided";
+
+  return trimDiscordForumBodyLength(
+    bodyTemplate.replace(FEATURE_FORUM_DESCRIPTION_PLACEHOLDER, description),
+  );
+}
+
 function buildDiscordBugForumThreadBodyHeader(args: {
   reportType: DiscordBugReportReportType;
 }): string {
@@ -1325,20 +1389,13 @@ export function buildDiscordBugForumThreadBody(args: {
   const evidenceLines = sections.evidence.map((item) => item.value);
 
   if (args.report.report_type === "feature") {
-    return trimDiscordForumBodyLength([
-      ...sharedLines,
-      "**User Story**",
-      renderForumBodyValue(sections.userStory, "Not provided"),
-      "",
-      "**Description**",
-      renderForumBodyValue(sections.description, "Not provided"),
-      "",
-      "**Acceptance Criteria**",
-      ...acceptanceCriteriaLines,
-      "",
-      "**Evidence**",
-      ...evidenceLines,
-    ].join("\n"));
+    return buildFeatureForumDescription({
+      sharedLines,
+      userStory: renderForumBodyValue(sections.userStory, "Not provided"),
+      description: renderForumBodyValue(sections.description, "Not provided"),
+      acceptanceCriteriaLines,
+      evidenceLines,
+    });
   }
 
   if (args.report.report_type === "bug") {

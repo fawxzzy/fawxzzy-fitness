@@ -68,6 +68,12 @@ Feature cards should surface:
 - Acceptance Criteria
 - Evidence
 
+Feature-card detail rule:
+- if a feature card has explicit acceptance-criteria lines stored in the bounded row, the visible forum card and exports should use those stored criteria instead of the generic fallback list
+- this keeps scoped feature cards consistent across Discord, board exports, and reviewed task packets
+- the visible feature description should use the full forum-body budget after metadata, acceptance criteria, and evidence are preserved
+- do not silently flatten scoped feature cards into a short generic summary when the bounded row already carries the richer approved scope
+
 Rule:
 - feedback cards should be professional and structured, but still user-facing
 
