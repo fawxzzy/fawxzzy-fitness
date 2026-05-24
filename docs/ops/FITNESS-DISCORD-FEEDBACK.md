@@ -258,7 +258,7 @@ Rules:
 - Public command reactions use the configured success/failure custom emoji:
   - success: `fawxzzy:1507384062166302851`
   - failure: `fawxzzy:1507384094424694785`
-- Vercel Hobby cannot run this poll frequently enough by itself; use an external scheduler or `npm run discord:feedback:worker` for near-real-time behavior.
+- Vercel Hobby cannot run this poll frequently enough by itself; use `npm run discord:feedback:worker` for near-real-time behavior.
 
 Owner card:
 - `computa owner` is exact-match and owner-only.
@@ -276,8 +276,10 @@ Gateway worker:
 - Optional `DISCORD_MESSAGE_COMMAND_POLL_URL` overrides the default production endpoint.
 - The worker listens only for Discord Gateway `MESSAGE_CREATE` events in `DISCORD_MAIN_CHANNEL_ID`.
 - The worker does not perform setup directly; it wakes the secured app endpoint, which owns role checks, setup, replies, and processed reactions.
-- The worker triggers the secured poll immediately on matching new-message events and also keeps the interval poll as fallback.
-- The default fallback poll interval is `5s` unless `DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS` overrides it.
+- The worker runs one startup catch-up poll, then relies on Discord Gateway `MESSAGE_CREATE` events while the gateway session is healthy.
+- The interval poll is fallback-only and should be enabled only when the gateway never becomes ready or disconnects.
+- The default fallback poll interval is `30s` unless `DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS` overrides it.
+- If the gateway does not report `READY` within the grace window, the worker enables fallback polling until a healthy gateway session returns.
 - The worker can also post scheduled greeting messages with:
   - `DISCORD_GRAND_RISING_*` defaults at `10:00 AM` Eastern
   - `DISCORD_GOODNIGHT_*` defaults at `10:00 PM` Eastern

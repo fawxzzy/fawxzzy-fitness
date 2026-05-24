@@ -5,6 +5,7 @@ import {
   callDiscordMessageCommandPoll,
   createDiscordGatewayChannelMessage,
   createDiscordGatewayMessageReaction,
+  DiscordFeedbackGatewayWorker,
   getTimeZoneDateKey,
   getRequestedBotMessageReactions,
   isDiscordMessageAtOrBeforeCheckpoint,
@@ -666,7 +667,7 @@ test("feedback gateway worker resolves the production poll URL safely", () => {
 });
 
 test("feedback gateway worker bounds the fallback poll interval", () => {
-  assert.equal(resolveDiscordMessageCommandPollIntervalMs({}), 5_000);
+  assert.equal(resolveDiscordMessageCommandPollIntervalMs({}), 30_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "1000" }), 5_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "30000" }), 30_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "999999" }), 120_000);
@@ -779,4 +780,115 @@ test("feedback gateway worker backs off reconnects", () => {
   assert.equal(calculateDiscordGatewayReconnectDelayMs(0), 1000);
   assert.equal(calculateDiscordGatewayReconnectDelayMs(3), 8000);
   assert.equal(calculateDiscordGatewayReconnectDelayMs(99), 30000);
+});
+
+test("feedback gateway worker startup polls once without enabling steady-state fallback polling", async () => {
+  const reasons = [];
+  let scheduledPostsStarted = false;
+
+  const worker = new DiscordFeedbackGatewayWorker({
+    token: "bot-token",
+    mainChannelId: "main-channel",
+    pollUrl: "https://fitness.example.com/api/discord/interactions",
+    pollSecret: "secret-value",
+    WebSocketImpl: class FakeWebSocket {
+      constructor() {}
+      addEventListener() {}
+    },
+  });
+
+  worker.loadWorkerState = async () => {};
+  worker.connect = () => {};
+  worker.startScheduledBotPosts = () => {
+    scheduledPostsStarted = true;
+  };
+  worker.startPeriodicPoll = () => {
+    throw new Error("steady-state fallback poll should not start during startup");
+  };
+  worker.runMessageCommandPoll = async ({ reason }) => {
+    reasons.push(reason);
+  };
+
+  worker.start();
+  await Promise.resolve();
+
+  assert.deepEqual(reasons, ["startup"]);
+  assert.equal(worker.pollTimer, null);
+  assert.equal(scheduledPostsStarted, true);
+});
+
+test("feedback gateway worker READY event clears fallback polling and runs one catch-up poll", async () => {
+  const reasons = [];
+  const worker = new DiscordFeedbackGatewayWorker({
+    token: "bot-token",
+    mainChannelId: "main-channel",
+    pollUrl: "https://fitness.example.com/api/discord/interactions",
+    pollSecret: "secret-value",
+    WebSocketImpl: class FakeWebSocket {
+      constructor() {}
+      addEventListener() {}
+    },
+  });
+
+  worker.runMessageCommandPoll = async ({ reason }) => {
+    reasons.push(reason);
+  };
+  worker.gatewayReadyWatchdogTimer = setTimeout(() => {}, 60_000);
+  worker.pollTimer = setInterval(() => {}, 60_000);
+
+  await worker.handleSocketMessage(JSON.stringify({
+    op: 0,
+    t: "READY",
+    d: { session_id: "session-1" },
+  }));
+
+  assert.equal(worker.gatewayReady, true);
+  assert.equal(worker.pollTimer, null);
+  assert.equal(worker.gatewayReadyWatchdogTimer, null);
+  assert.deepEqual(reasons, ["gateway-ready"]);
+});
+
+test("feedback gateway worker enables fallback polling when the gateway disconnects", () => {
+  class FakeWebSocket {
+    static OPEN = 1;
+
+    constructor() {
+      this.listeners = new Map();
+      this.readyState = FakeWebSocket.OPEN;
+    }
+
+    addEventListener(eventName, handler) {
+      this.listeners.set(eventName, handler);
+    }
+
+    emit(eventName, payload) {
+      const handler = this.listeners.get(eventName);
+      if (handler) {
+        handler(payload);
+      }
+    }
+
+    close() {}
+  }
+
+  const reasons = [];
+  const worker = new DiscordFeedbackGatewayWorker({
+    token: "bot-token",
+    mainChannelId: "main-channel",
+    pollUrl: "https://fitness.example.com/api/discord/interactions",
+    pollSecret: "secret-value",
+    WebSocketImpl: FakeWebSocket,
+  });
+
+  worker.scheduleReconnect = () => {};
+  worker.startPeriodicPoll = (reason) => {
+    reasons.push(reason);
+  };
+
+  worker.connect();
+  worker.socket.emit("close", { code: 4000, reason: "test disconnect" });
+
+  assert.equal(worker.gatewayReady, false);
+  assert.equal(worker.socket, null);
+  assert.deepEqual(reasons, ["gateway-disconnected"]);
 });

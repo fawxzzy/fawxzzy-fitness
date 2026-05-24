@@ -15,7 +15,8 @@ const DISCORD_GATEWAY_OPCODE = {
 };
 const DISCORD_GATEWAY_INTENT_GUILD_MESSAGES = 1 << 9;
 const DISCORD_GATEWAY_INTENT_MESSAGE_CONTENT = 1 << 15;
-const DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS = 5_000;
+const DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS = 30_000;
+const DEFAULT_GATEWAY_READY_POLL_GRACE_MS = 15_000;
 const DEFAULT_EPIC_REACTION_EMOJI = "epic:1507434865505603757";
 const DEFAULT_GRAND_RISING_EMOJI = "GM:1507443437916524675";
 const DEFAULT_GOODNIGHT_EMOJI = "goodnight:1507597897343041700";
@@ -708,6 +709,7 @@ export class DiscordFeedbackGatewayWorker {
     scheduledPostRules = [],
     scheduledPostIntervalMs = DEFAULT_SCHEDULED_POST_INTERVAL_MS,
     scheduledPostStatePath = resolveDiscordWorkerStatePath(),
+    gatewayReadyPollGraceMs = DEFAULT_GATEWAY_READY_POLL_GRACE_MS,
     now = () => new Date(),
   }) {
     this.token = token;
@@ -732,9 +734,12 @@ export class DiscordFeedbackGatewayWorker {
     this.scheduledPostRules = scheduledPostRules;
     this.scheduledPostIntervalMs = scheduledPostIntervalMs;
     this.scheduledPostStatePath = scheduledPostStatePath;
+    this.gatewayReadyPollGraceMs = gatewayReadyPollGraceMs;
     this.now = now;
     this.scheduledPostTimer = null;
     this.scheduledPostInFlight = false;
+    this.gatewayReady = false;
+    this.gatewayReadyWatchdogTimer = null;
   }
 
   start() {
@@ -755,9 +760,13 @@ export class DiscordFeedbackGatewayWorker {
     }
 
     this.stopped = false;
+    this.gatewayReady = false;
     this.workerStateReady = this.loadWorkerState();
     this.connect();
-    this.startPeriodicPoll();
+    void this.runMessageCommandPoll({
+      reason: "startup",
+      messageId: null,
+    });
     this.startScheduledBotPosts();
   }
 
@@ -765,6 +774,7 @@ export class DiscordFeedbackGatewayWorker {
     this.stopped = true;
     this.clearHeartbeat();
     this.clearPeriodicPoll();
+    this.clearGatewayReadyWatchdog();
     this.clearScheduledBotPosts();
     if (this.socket) {
       this.socket.close(1000, "worker stopped");
@@ -772,11 +782,11 @@ export class DiscordFeedbackGatewayWorker {
     }
   }
 
-  startPeriodicPoll() {
+  startPeriodicPoll(reason = "interval-fallback") {
     this.clearPeriodicPoll();
     this.pollTimer = setInterval(() => {
       void this.runMessageCommandPoll({
-        reason: "interval",
+        reason,
         messageId: null,
       });
     }, this.pollIntervalMs);
@@ -805,6 +815,27 @@ export class DiscordFeedbackGatewayWorker {
     if (this.scheduledPostTimer) {
       clearInterval(this.scheduledPostTimer);
       this.scheduledPostTimer = null;
+    }
+  }
+
+  startGatewayReadyWatchdog() {
+    this.clearGatewayReadyWatchdog();
+    this.gatewayReadyWatchdogTimer = setTimeout(() => {
+      if (this.stopped || this.gatewayReady) {
+        return;
+      }
+
+      this.logger.warn("[discord-feedback-worker] gateway not ready; enabling poll fallback", {
+        delayMs: this.gatewayReadyPollGraceMs,
+      });
+      this.startPeriodicPoll("gateway-not-ready");
+    }, this.gatewayReadyPollGraceMs);
+  }
+
+  clearGatewayReadyWatchdog() {
+    if (this.gatewayReadyWatchdogTimer) {
+      clearTimeout(this.gatewayReadyWatchdogTimer);
+      this.gatewayReadyWatchdogTimer = null;
     }
   }
 
@@ -863,6 +894,8 @@ export class DiscordFeedbackGatewayWorker {
   }
 
   connect() {
+    this.gatewayReady = false;
+    this.startGatewayReadyWatchdog();
     this.socket = new this.WebSocketImpl(DISCORD_GATEWAY_URL);
     this.socket.addEventListener("open", () => {
       this.logger.info("[discord-feedback-worker] gateway socket open");
@@ -875,9 +908,12 @@ export class DiscordFeedbackGatewayWorker {
         code: event.code,
         reason: event.reason,
       });
+      this.gatewayReady = false;
       this.clearHeartbeat();
+      this.clearGatewayReadyWatchdog();
       this.socket = null;
       if (!this.stopped) {
+        this.startPeriodicPoll("gateway-disconnected");
         this.scheduleReconnect();
       }
     });
@@ -970,8 +1006,15 @@ export class DiscordFeedbackGatewayWorker {
     if (payload.op === DISCORD_GATEWAY_OPCODE.DISPATCH) {
       this.reconnectAttempt = 0;
       if (payload.t === "READY") {
+        this.gatewayReady = true;
+        this.clearGatewayReadyWatchdog();
+        this.clearPeriodicPoll();
         this.logger.info("[discord-feedback-worker] gateway ready", {
           sessionId: payload.d?.session_id ?? null,
+        });
+        await this.runMessageCommandPoll({
+          reason: "gateway-ready",
+          messageId: null,
         });
         return;
       }
