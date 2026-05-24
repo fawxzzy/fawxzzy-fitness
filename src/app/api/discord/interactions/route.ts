@@ -370,6 +370,12 @@ const DISCORD_MESSAGE_COMMAND_GOODNIGHT_TRIGGERS = [
   "goodnight computa",
   "good night",
   "goodnight",
+  "night computa",
+  "night",
+  "nite computa",
+  "nite",
+  "gn computa",
+  "gn",
 ];
 const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
 const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";

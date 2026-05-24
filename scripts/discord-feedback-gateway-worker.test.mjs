@@ -219,7 +219,23 @@ test("feedback gateway worker detects goodnight aliases in the main channel", ()
   assert.equal(
     messageRequestsGoodnight({
       channel_id: "main-channel",
-      content: "night",
+      content: "gn",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsGoodnight({
+      channel_id: "main-channel",
+      content: "night computa",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsGoodnight({
+      channel_id: "main-channel",
+      content: "nighty",
       author: { bot: false },
     }, "main-channel"),
     false,

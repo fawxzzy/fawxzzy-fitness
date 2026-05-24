@@ -48,6 +48,12 @@ const GOODNIGHT_MESSAGE_TRIGGERS = [
   "goodnight computa",
   "good night",
   "goodnight",
+  "night computa",
+  "night",
+  "nite computa",
+  "nite",
+  "gn computa",
+  "gn",
 ];
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 

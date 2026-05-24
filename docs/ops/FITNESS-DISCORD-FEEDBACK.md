@@ -103,6 +103,12 @@ Product rules:
     - `goodnight`
     - `good night computa`
     - `goodnight computa`
+    - `night`
+    - `night computa`
+    - `nite`
+    - `nite computa`
+    - `gn`
+    - `gn computa`
   - posts the configured greeting message back into `DISCORD_MAIN_CHANNEL_ID`
   - does not mention everyone or roles
   - marks the trigger message with the configured success or failure reaction
