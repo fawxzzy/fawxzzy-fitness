@@ -335,7 +335,6 @@ const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
 const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
 const DISCORD_COMMANDER_ROLE_NAME = "Fawxzzy Commander";
 const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
-  "computa feedback setup",
   "computa setup feedback",
 ];
 const DISCORD_MESSAGE_COMMAND_MUSIC_SESH_SETUP_TRIGGERS = [
@@ -3202,7 +3201,6 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
         title: "Computa",
         description: [
           "`computa` - Show this command card.",
-          "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
           "`computa setup music sesh` - Refresh the Music Sesh panel.",
         ].join("\n"),
@@ -3224,7 +3222,6 @@ function buildDiscordComputaOwnerCommandMenuPayload(): Record<string, unknown> {
         description: [
           "`computa` - Show the public command card.",
           "`computa owner` - Show this owner command card.",
-          "`computa feedback setup` - Refresh feedback buttons in this channel.",
           "`computa setup feedback` - Refresh feedback buttons in this channel.",
           "`computa setup music sesh` - Refresh the Music Sesh panel.",
           "`computa release check` - Check Feedback release ledger reactions.",

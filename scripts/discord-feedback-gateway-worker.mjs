@@ -28,7 +28,6 @@ const DEFAULT_BOT_MESSAGE_REACTION_RULES = [
   },
 ];
 const FEEDBACK_SETUP_TRIGGERS = [
-  "computa feedback setup",
   "computa setup feedback",
 ];
 const MUSIC_SESH_SETUP_TRIGGERS = [

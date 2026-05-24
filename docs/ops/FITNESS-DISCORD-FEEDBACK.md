@@ -82,7 +82,7 @@ Product rules:
   - deletes the legacy `submit-feedback` channel after moving setup to a source channel
   - falls back to `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` only when no source channel is available
   - does not create a dedicated `submit-feedback` channel
-- main-channel message triggers: `computa feedback setup`, `computa setup feedback`, and `computa setup music sesh`
+- main-channel message triggers: `computa setup feedback` and `computa setup music sesh`
   - requires the `Fawxzzy Commander` role after bootstrap
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`
@@ -164,7 +164,7 @@ Message-content triggers are intentionally rare. Any future main-chat phrase com
 Runtime note:
 - The Vercel Hobby plan only allows daily cron schedules.
 - Near-real-time message-content triggers require either an external scheduler that calls the secret poll route or the persistent Discord Gateway worker.
-- Do not claim `computa feedback setup` is live as an automatic main-chat trigger unless one of those runners is active.
+- Do not claim `computa setup feedback` is live as an automatic main-chat trigger unless one of those runners is active.
 
 Separate production-update staff commands may also exist:
 - `update-latest`
@@ -244,7 +244,7 @@ Pattern:
 
 If the configured Computa owner runs `computa`, the public card still stays normal-user-facing and owner-only commands must not be exposed on that card. The owner can run `computa owner` to post a separate owner command card in the current channel when needed.
 
-`computa feedback setup` or `computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
+`computa setup feedback` can appear anywhere in a main-channel message when `DISCORD_MAIN_CHANNEL_ID` is configured and the polling route is enabled.
 
 Rules:
 - The trigger is case-insensitive.

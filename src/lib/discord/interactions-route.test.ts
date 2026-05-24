@@ -1207,7 +1207,7 @@ test("Discord message command poll replaces one computa command menu per channel
       assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
       assert.equal(body?.embeds?.[0]?.footer, undefined);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa` - Show this command card\./);
-      assert.match(body?.embeds?.[0]?.description ?? "", /`computa feedback setup`/);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa setup feedback`/);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa setup music sesh`/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /live/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /Owner-only/);
@@ -2031,7 +2031,7 @@ test("Discord message command poll requires the commander role after bootstrap",
       return new Response(JSON.stringify([
         {
           id: "main-message-2",
-          content: "computa feedback setup",
+          content: "computa setup feedback",
           author: { id: "123456789012345678", bot: false },
           member: { roles: [] },
           reactions: [],
@@ -2824,7 +2824,7 @@ test("Discord message command poll skips messages already marked processed", asy
       return new Response(JSON.stringify([
         {
           id: "main-message-3",
-          content: "computa feedback setup",
+          content: "computa setup feedback",
           author: { id: "123456789012345678", bot: false },
           reactions: [{ me: true, emoji: { id: "1507384062166302851", name: "fawxzzy" } }],
         },
