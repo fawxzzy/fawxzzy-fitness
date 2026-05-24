@@ -2853,6 +2853,74 @@ test("Discord message command poll skips messages already marked processed", asy
   }
 });
 
+test("Discord message command poll skips a greeting command that was already claimed by another worker", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.NODE_ENV = "production";
+
+  const originalFetch = globalThis.fetch;
+  let greetingPostAttempted = false;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-grand-rising",
+          content: "good morning computa",
+          channel_id: "1504668396338413671",
+          author: { id: "123456789012345678", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_message_command_claims") && method === "POST") {
+      return new Response(JSON.stringify({
+        code: "23505",
+        message: "duplicate key value violates unique constraint",
+      }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname === "discord.com" && url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      greetingPostAttempted = true;
+      throw new Error("Greeting message should not post after a duplicate claim.");
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true, processed: [] });
+    assert.equal(greetingPostAttempted, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.NODE_ENV;
+  }
+});
+
 test("Discord interactions route opens the feedback panel submit modal without pre-response fetches", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

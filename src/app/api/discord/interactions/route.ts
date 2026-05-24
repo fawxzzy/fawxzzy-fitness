@@ -46,6 +46,10 @@ import {
 } from "@/lib/discord/bug-reports";
 import type { DiscordBugReportRow } from "@/lib/discord/bug-reports";
 import {
+  claimDiscordMessageCommand,
+  finalizeDiscordMessageCommandClaim,
+} from "@/lib/discord/message-command-claims";
+import {
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
   buildDiscordFeedbackManageCardResponse,
@@ -2875,6 +2879,61 @@ function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): b
     || discordMessageRequestsGoodnight(message);
 }
 
+type DiscordMessageCommandKind =
+  | "computa-menu"
+  | "computa-owner-menu"
+  | "computa-command-card-repair"
+  | "computa-feedback-launcher-repair"
+  | "computa-release-check"
+  | "archive-checked-cards"
+  | "feedback-reaction-sync"
+  | "computa-update"
+  | "computa-live"
+  | "grand-rising"
+  | "goodnight"
+  | "feedback-setup";
+
+function resolveDiscordMessageCommandKind(message: DiscordMessageCommand): DiscordMessageCommandKind | null {
+  if (discordMessageRequestsComputaMenu(message)) {
+    return "computa-menu";
+  }
+  if (discordMessageRequestsComputaOwnerMenu(message)) {
+    return "computa-owner-menu";
+  }
+  if (discordMessageRequestsComputaCommandCardRepair(message)) {
+    return "computa-command-card-repair";
+  }
+  if (discordMessageRequestsComputaFeedbackLauncherRepair(message)) {
+    return "computa-feedback-launcher-repair";
+  }
+  if (discordMessageRequestsComputaReleaseCheck(message)) {
+    return "computa-release-check";
+  }
+  if (discordMessageRequestsArchiveCheckedCards(message)) {
+    return "archive-checked-cards";
+  }
+  if (discordMessageRequestsFeedbackReactionSync(message)) {
+    return "feedback-reaction-sync";
+  }
+  if (discordMessageRequestsComputaUpdate(message)) {
+    return "computa-update";
+  }
+  if (discordMessageRequestsComputaLive(message)) {
+    return "computa-live";
+  }
+  if (discordMessageRequestsGrandRising(message)) {
+    return "grand-rising";
+  }
+  if (discordMessageRequestsGoodnight(message)) {
+    return "goodnight";
+  }
+  if (discordMessageRequestsFeedbackSetup(message)) {
+    return "feedback-setup";
+  }
+
+  return null;
+}
+
 function buildDiscordGrandRisingContent(): string {
   return optionalEnv("DISCORD_GRAND_RISING_CONTENT")
     ?? `<:${optionalEnv("DISCORD_GRAND_RISING_EMOJI") ?? DISCORD_GRAND_RISING_EMOJI_DEFAULT}> Grand Rising`;
@@ -4204,6 +4263,39 @@ async function pollDiscordMessageCommands() {
   const processed = [];
   for (const message of candidates) {
     const candidate = message as DiscordMessageCommand;
+    const commandKind = resolveDiscordMessageCommandKind(candidate);
+    const messageId = typeof candidate.id === "string" ? candidate.id : null;
+    if (!commandKind || !messageId) {
+      continue;
+    }
+
+    const claimResult = await claimDiscordMessageCommand({
+      channelId,
+      messageId,
+      commandKind,
+    });
+    if (!claimResult.ok) {
+      console.error("[discord-message-command] claim failed", {
+        requestId: randomUUID(),
+        channelId,
+        messageId,
+        commandKind,
+        code: claimResult.code,
+        message: claimResult.message,
+      });
+      processed.push({
+        messageId,
+        ok: false,
+        code: claimResult.code,
+        action: null,
+      });
+      continue;
+    }
+
+    if (!claimResult.claimed) {
+      continue;
+    }
+
     let result:
       | Awaited<ReturnType<typeof processDiscordComputaMenuMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaOwnerMenuMessageCommand>>
@@ -4215,58 +4307,58 @@ async function pollDiscordMessageCommands() {
       | Awaited<ReturnType<typeof processDiscordFeedbackReactionSyncMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordFeedbackSetupMessageCommand>>;
 
-    if (discordMessageRequestsComputaMenu(candidate)) {
+    if (commandKind === "computa-menu") {
       result = await processDiscordComputaMenuMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsComputaOwnerMenu(candidate)) {
+    } else if (commandKind === "computa-owner-menu") {
       result = await processDiscordComputaOwnerMenuMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsComputaCommandCardRepair(candidate)) {
+    } else if (commandKind === "computa-command-card-repair") {
       result = await processDiscordComputaMenuMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsComputaFeedbackLauncherRepair(candidate)) {
+    } else if (commandKind === "computa-feedback-launcher-repair") {
       result = await processDiscordFeedbackSetupMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsComputaReleaseCheck(candidate)) {
+    } else if (commandKind === "computa-release-check") {
       result = await processDiscordReleaseLedgerCheckMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsArchiveCheckedCards(candidate)) {
+    } else if (commandKind === "archive-checked-cards") {
       result = await processDiscordArchiveCheckedCardsMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsFeedbackReactionSync(candidate)) {
+    } else if (commandKind === "feedback-reaction-sync") {
       result = await processDiscordFeedbackReactionSyncMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsComputaUpdate(candidate)) {
+    } else if (commandKind === "computa-update") {
       result = await processDiscordComputaUpdateMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsComputaLive(candidate)) {
+    } else if (commandKind === "computa-live") {
       result = await processDiscordComputaLiveMessageCommand({
         channelId,
         message: candidate,
       });
-    } else if (discordMessageRequestsGrandRising(candidate)) {
+    } else if (commandKind === "grand-rising") {
       result = await processDiscordGreetingMessageCommand({
         channelId,
         message: candidate,
         kind: "grand-rising",
       });
-    } else if (discordMessageRequestsGoodnight(candidate)) {
+    } else if (commandKind === "goodnight") {
       result = await processDiscordGreetingMessageCommand({
         channelId,
         message: candidate,
@@ -4278,8 +4370,27 @@ async function pollDiscordMessageCommands() {
         message: candidate,
       });
     }
+
+    const finalizeResult = await finalizeDiscordMessageCommandClaim({
+      channelId,
+      messageId,
+      claimStatus: result.ok ? "completed" : "failed",
+      resultCode: "code" in result ? result.code : null,
+      responseAction: "action" in result ? result.action : null,
+    });
+    if (!finalizeResult.ok) {
+      console.error("[discord-message-command] claim finalize failed", {
+        requestId: randomUUID(),
+        channelId,
+        messageId,
+        commandKind,
+        code: finalizeResult.code,
+        message: finalizeResult.message,
+      });
+    }
+
     processed.push({
-      messageId: message.id,
+      messageId,
       ok: result.ok,
       code: "code" in result ? result.code : null,
       action: "action" in result ? result.action : null,
