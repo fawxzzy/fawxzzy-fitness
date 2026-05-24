@@ -21,6 +21,8 @@ import {
   messageRequestsBotReaction,
   messageRequestsDiscordMessageCommand,
   messageRequestsFeedbackSetup,
+  messageRequestsGoodnight,
+  messageRequestsGrandRising,
   normalizeDiscordMessageCommandContent,
   normalizeDiscordWorkerMessageActivityState,
   resolveDiscordMessageCommandPollIntervalMs,
@@ -156,6 +158,76 @@ test("feedback gateway worker detects owner formatted update command shapes", ()
     messageRequestsDiscordMessageCommand({
       channel_id: "main-channel",
       content: "computa post update [Title | Body copy]",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects grand rising aliases in the main channel", () => {
+  assert.equal(
+    messageRequestsGrandRising({
+      channel_id: "main-channel",
+      content: "good morning",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsGrandRising({
+      channel_id: "main-channel",
+      content: "grand rising computa",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsGrandRising({
+      channel_id: "main-channel",
+      content: "gm",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "morning computa",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+});
+
+test("feedback gateway worker detects goodnight aliases in the main channel", () => {
+  assert.equal(
+    messageRequestsGoodnight({
+      channel_id: "main-channel",
+      content: "goodnight",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsGoodnight({
+      channel_id: "main-channel",
+      content: "good night computa",
+      author: { bot: false },
+    }, "main-channel"),
+    true,
+  );
+  assert.equal(
+    messageRequestsGoodnight({
+      channel_id: "main-channel",
+      content: "night",
+      author: { bot: false },
+    }, "main-channel"),
+    false,
+  );
+  assert.equal(
+    messageRequestsDiscordMessageCommand({
+      channel_id: "main-channel",
+      content: "goodnight computa",
       author: { bot: false },
     }, "main-channel"),
     true,
@@ -469,6 +541,31 @@ test("feedback gateway worker identifies scheduled Grand Rising window in Easter
   assert.equal(
     isScheduledBotPostDue({
       now: new Date("2026-05-22T14:30:00.000Z"),
+      rule,
+      lastPostedDateKey: null,
+    }),
+    false,
+  );
+});
+
+test("feedback gateway worker identifies scheduled Goodnight window in Eastern time", () => {
+  const rule = {
+    key: "goodnight",
+    enabled: true,
+    timeZone: "America/New_York",
+    hour: 22,
+    minuteStart: 0,
+    minuteWindow: 15,
+  };
+  const now = new Date("2026-05-23T02:05:00.000Z");
+  const dateKey = getTimeZoneDateKey(now, "America/New_York");
+
+  assert.equal(dateKey, "2026-05-22");
+  assert.equal(isScheduledBotPostDue({ now, rule, lastPostedDateKey: null }), true);
+  assert.equal(isScheduledBotPostDue({ now, rule, lastPostedDateKey: "2026-05-22" }), false);
+  assert.equal(
+    isScheduledBotPostDue({
+      now: new Date("2026-05-23T02:30:00.000Z"),
       rule,
       lastPostedDateKey: null,
     }),

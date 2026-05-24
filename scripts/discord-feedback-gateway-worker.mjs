@@ -18,6 +18,7 @@ const DISCORD_GATEWAY_INTENT_MESSAGE_CONTENT = 1 << 15;
 const DEFAULT_MESSAGE_COMMAND_POLL_INTERVAL_MS = 5_000;
 const DEFAULT_EPIC_REACTION_EMOJI = "epic:1507434865505603757";
 const DEFAULT_GRAND_RISING_EMOJI = "GM:1507443437916524675";
+const DEFAULT_GOODNIGHT_EMOJI = "goodnight:1507597897343041700";
 const DEFAULT_SCHEDULED_POST_INTERVAL_MS = 60_000;
 const DEFAULT_BOT_MESSAGE_REACTION_RULES = [
   {
@@ -29,6 +30,24 @@ const DEFAULT_BOT_MESSAGE_REACTION_RULES = [
 const FEEDBACK_SETUP_TRIGGERS = [
   "computa feedback setup",
   "computa setup feedback",
+];
+const GRAND_RISING_MESSAGE_TRIGGERS = [
+  "good morning computa",
+  "goodmorning computa",
+  "morning computa",
+  "grand rising computa",
+  "grandrising computa",
+  "good morning",
+  "goodmorning",
+  "morning",
+  "grand rising",
+  "grandrising",
+];
+const GOODNIGHT_MESSAGE_TRIGGERS = [
+  "good night computa",
+  "goodnight computa",
+  "good night",
+  "goodnight",
 ];
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -323,6 +342,38 @@ export function messageRequestsComputaFeedbackReactionSync(message, mainChannelI
   ].some((trigger) => normalizedContent.includes(trigger));
 }
 
+export function messageRequestsGrandRising(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  return GRAND_RISING_MESSAGE_TRIGGERS.includes(normalizeDiscordMessageCommandContent(message.content));
+}
+
+export function messageRequestsGoodnight(message, mainChannelId) {
+  if (!message || typeof message !== "object") {
+    return false;
+  }
+
+  if (message.channel_id !== mainChannelId) {
+    return false;
+  }
+
+  if (message.author?.bot === true) {
+    return false;
+  }
+
+  return GOODNIGHT_MESSAGE_TRIGGERS.includes(normalizeDiscordMessageCommandContent(message.content));
+}
+
 export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
   return messageRequestsComputaMenu(message, mainChannelId)
     || messageRequestsComputaOwnerMenu(message, mainChannelId)
@@ -333,7 +384,9 @@ export function messageRequestsDiscordMessageCommand(message, mainChannelId) {
     || messageRequestsComputaArchiveCheckedCards(message, mainChannelId)
     || messageRequestsComputaFeedbackReactionSync(message, mainChannelId)
     || messageRequestsComputaUpdate(message, mainChannelId)
-    || messageRequestsComputaLive(message, mainChannelId);
+    || messageRequestsComputaLive(message, mainChannelId)
+    || messageRequestsGrandRising(message, mainChannelId)
+    || messageRequestsGoodnight(message, mainChannelId);
 }
 
 export function resolveDiscordMessageCommandPollUrl(env = process.env) {
@@ -1111,7 +1164,19 @@ export function buildDiscordFeedbackGatewayWorkerFromEnv(env = process.env) {
         hour: readNumberEnv("DISCORD_GRAND_RISING_HOUR", env) ?? 10,
         minuteStart: readNumberEnv("DISCORD_GRAND_RISING_MINUTE_START", env) ?? 0,
         minuteWindow: readNumberEnv("DISCORD_GRAND_RISING_MINUTE_WINDOW", env) ?? 15,
-        content: `<:${readEnv("DISCORD_GRAND_RISING_EMOJI", env) ?? DEFAULT_GRAND_RISING_EMOJI}> Grand Rising`,
+        content: readEnv("DISCORD_GRAND_RISING_CONTENT", env)
+          ?? `<:${readEnv("DISCORD_GRAND_RISING_EMOJI", env) ?? DEFAULT_GRAND_RISING_EMOJI}> Grand Rising`,
+      },
+      {
+        key: "goodnight",
+        enabled: readEnv("DISCORD_GOODNIGHT_ENABLED", env) !== "false",
+        channelId: readEnv("DISCORD_GOODNIGHT_CHANNEL_ID", env) ?? readEnv("DISCORD_MAIN_CHANNEL_ID", env),
+        timeZone: readEnv("DISCORD_GOODNIGHT_TIME_ZONE", env) ?? "America/New_York",
+        hour: readNumberEnv("DISCORD_GOODNIGHT_HOUR", env) ?? 22,
+        minuteStart: readNumberEnv("DISCORD_GOODNIGHT_MINUTE_START", env) ?? 0,
+        minuteWindow: readNumberEnv("DISCORD_GOODNIGHT_MINUTE_WINDOW", env) ?? 15,
+        content: readEnv("DISCORD_GOODNIGHT_CONTENT", env)
+          ?? `<:${readEnv("DISCORD_GOODNIGHT_EMOJI", env) ?? DEFAULT_GOODNIGHT_EMOJI}> Goodnight`,
       },
     ],
     scheduledPostIntervalMs: resolveScheduledPostIntervalMs(env),

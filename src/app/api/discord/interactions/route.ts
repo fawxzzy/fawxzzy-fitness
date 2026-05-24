@@ -353,9 +353,29 @@ const DISCORD_MESSAGE_COMMAND_RELEASE_CHECK_TRIGGERS = [
   "computa ledger check",
   "computa check ledger",
 ];
+const DISCORD_MESSAGE_COMMAND_GRAND_RISING_TRIGGERS = [
+  "good morning computa",
+  "goodmorning computa",
+  "morning computa",
+  "grand rising computa",
+  "grandrising computa",
+  "good morning",
+  "goodmorning",
+  "morning",
+  "grand rising",
+  "grandrising",
+];
+const DISCORD_MESSAGE_COMMAND_GOODNIGHT_TRIGGERS = [
+  "good night computa",
+  "goodnight computa",
+  "good night",
+  "goodnight",
+];
 const DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT = "552278941159784460";
 const DISCORD_COMPUTA_LIVE_TWITCH_URL_DEFAULT = "https://www.twitch.tv/fawxzzy";
 const DISCORD_COMPUTA_LIVE_TIKTOK_URL_DEFAULT = "https://www.tiktok.com/@fawxzzy";
+const DISCORD_GRAND_RISING_EMOJI_DEFAULT = "GM:1507443437916524675";
+const DISCORD_GOODNIGHT_EMOJI_DEFAULT = "goodnight:1507597897343041700";
 const DISCORD_COMPUTA_COMMAND_MENU_MARKER = "fawx-computa-command-menu:v1";
 const DISCORD_COMPUTA_OWNER_COMMAND_MENU_MARKER = "fawx-computa-owner-command-menu:v1";
 const DISCORD_COMPUTA_RELEASE_CHECK_MARKER = "fawx-computa-release-check:v1";
@@ -2682,6 +2702,18 @@ function discordMessageRequestsComputaReleaseCheck(message: DiscordMessageComman
   return DISCORD_MESSAGE_COMMAND_RELEASE_CHECK_TRIGGERS.some((trigger) => normalizedContent.includes(trigger));
 }
 
+function discordMessageRequestsGrandRising(message: DiscordMessageCommand): boolean {
+  return DISCORD_MESSAGE_COMMAND_GRAND_RISING_TRIGGERS.includes(
+    normalizeDiscordMessageCommandContent(message.content),
+  );
+}
+
+function discordMessageRequestsGoodnight(message: DiscordMessageCommand): boolean {
+  return DISCORD_MESSAGE_COMMAND_GOODNIGHT_TRIGGERS.includes(
+    normalizeDiscordMessageCommandContent(message.content),
+  );
+}
+
 function resolveDiscordComputaOwnerUserId(): string {
   return optionalEnv("DISCORD_COMPUTA_OWNER_USER_ID") ?? DISCORD_COMPUTA_OWNER_USER_ID_DEFAULT;
 }
@@ -2832,7 +2864,19 @@ function discordMessageRequestsMessageCommand(message: DiscordMessageCommand): b
     || discordMessageRequestsArchiveCheckedCards(message)
     || discordMessageRequestsFeedbackReactionSync(message)
     || discordMessageRequestsComputaUpdate(message)
-    || discordMessageRequestsComputaLive(message);
+    || discordMessageRequestsComputaLive(message)
+    || discordMessageRequestsGrandRising(message)
+    || discordMessageRequestsGoodnight(message);
+}
+
+function buildDiscordGrandRisingContent(): string {
+  return optionalEnv("DISCORD_GRAND_RISING_CONTENT")
+    ?? `<:${optionalEnv("DISCORD_GRAND_RISING_EMOJI") ?? DISCORD_GRAND_RISING_EMOJI_DEFAULT}> Grand Rising`;
+}
+
+function buildDiscordGoodnightContent(): string {
+  return optionalEnv("DISCORD_GOODNIGHT_CONTENT")
+    ?? `<:${optionalEnv("DISCORD_GOODNIGHT_EMOJI") ?? DISCORD_GOODNIGHT_EMOJI_DEFAULT}> Goodnight`;
 }
 
 function buildDiscordComputaLiveUpdateContent(command: DiscordComputaLiveCommand): string {
@@ -4049,6 +4093,50 @@ async function processDiscordComputaLiveMessageCommand(args: {
   return { ok: true as const, action: "posted", provider: command.provider };
 }
 
+async function processDiscordGreetingMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+  kind: "grand-rising" | "goodnight";
+}) {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  if (!messageId) {
+    return { ok: false as const, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  const createResult = await createDiscordChannelMessage({
+    channelId: args.channelId,
+    body: {
+      content: args.kind === "grand-rising" ? buildDiscordGrandRisingContent() : buildDiscordGoodnightContent(),
+      allowed_mentions: {
+        parse: [],
+      },
+    },
+  });
+
+  if (!createResult.ok) {
+    console.error("[discord-message-command] greeting post failed", {
+      requestId: randomUUID(),
+      kind: args.kind,
+      code: createResult.code,
+      status: createResult.status,
+      message: createResult.message,
+    });
+    await markDiscordMessageCommandProcessed({
+      channelId: args.channelId,
+      messageId,
+      emoji: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    });
+    return createResult;
+  }
+
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  });
+  return { ok: true as const, action: "posted", kind: args.kind };
+}
+
 function validateDiscordMessageCommandPollRequest(request: Request):
   | { ok: true }
   | { ok: false; status: number; message: string } {
@@ -4115,6 +4203,7 @@ async function pollDiscordMessageCommands() {
       | Awaited<ReturnType<typeof processDiscordComputaOwnerMenuMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaLiveMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordComputaUpdateMessageCommand>>
+      | Awaited<ReturnType<typeof processDiscordGreetingMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordReleaseLedgerCheckMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordArchiveCheckedCardsMessageCommand>>
       | Awaited<ReturnType<typeof processDiscordFeedbackReactionSyncMessageCommand>>
@@ -4164,6 +4253,18 @@ async function pollDiscordMessageCommands() {
       result = await processDiscordComputaLiveMessageCommand({
         channelId,
         message: candidate,
+      });
+    } else if (discordMessageRequestsGrandRising(candidate)) {
+      result = await processDiscordGreetingMessageCommand({
+        channelId,
+        message: candidate,
+        kind: "grand-rising",
+      });
+    } else if (discordMessageRequestsGoodnight(candidate)) {
+      result = await processDiscordGreetingMessageCommand({
+        channelId,
+        message: candidate,
+        kind: "goodnight",
       });
     } else {
       result = await processDiscordFeedbackSetupMessageCommand({

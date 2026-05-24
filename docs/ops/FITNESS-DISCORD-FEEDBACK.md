@@ -86,6 +86,27 @@ Product rules:
   - marks the trigger message with a public reaction
   - marks setup/permission/failure outcomes with reactions; detailed private output should use interaction ephemerals where possible
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
+- main-channel greeting triggers:
+  - exact-message aliases for morning:
+    - `good morning`
+    - `goodmorning`
+    - `morning`
+    - `grand rising`
+    - `grandrising`
+    - `good morning computa`
+    - `goodmorning computa`
+    - `morning computa`
+    - `grand rising computa`
+    - `grandrising computa`
+  - exact-message aliases for night:
+    - `good night`
+    - `goodnight`
+    - `good night computa`
+    - `goodnight computa`
+  - posts the configured greeting message back into `DISCORD_MAIN_CHANNEL_ID`
+  - does not mention everyone or roles
+  - marks the trigger message with the configured success or failure reaction
+  - uses `DISCORD_GRAND_RISING_CONTENT` / `DISCORD_GOODNIGHT_CONTENT` when configured, otherwise uses the configured emoji plus `Grand Rising` or `Goodnight`
 - owner-only main-channel live triggers:
   - `computa post live`
   - `computa post live twitch`
@@ -246,6 +267,9 @@ Gateway worker:
 - The worker does not perform setup directly; it wakes the secured app endpoint, which owns role checks, setup, replies, and processed reactions.
 - The worker triggers the secured poll immediately on matching new-message events and also keeps the interval poll as fallback.
 - The default fallback poll interval is `5s` unless `DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS` overrides it.
+- The worker can also post scheduled greeting messages with:
+  - `DISCORD_GRAND_RISING_*` defaults at `10:00 AM` Eastern
+  - `DISCORD_GOODNIGHT_*` defaults at `10:00 PM` Eastern
 - The worker now persists recent handled message ids plus the last seen message timestamp/id per channel in `runtime/state/discord-feedback-worker-state.json` so restarts do not blindly re-read the same qualifying messages.
 - Discord Developer Portal must have Message Content Intent enabled for this trigger to work.
 
