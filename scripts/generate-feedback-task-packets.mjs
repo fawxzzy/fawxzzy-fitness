@@ -35,6 +35,7 @@ export const VALID_TYPES = new Set(["bug", "feature"]);
 export const VALID_DECISIONS = new Set(["approve", "defer", "reject", "needs_info"]);
 export const DEFAULT_LIMIT = 25;
 export const MAX_LIMIT = 100;
+const EFFORT_POINT_VALUES = [1, 2, 3, 5, 8, 13, 21, 34, 55];
 
 const TOKEN_STOPWORDS = new Set([
   "a",
@@ -208,6 +209,20 @@ function clipped(value, maxLength) {
   return normalized.length <= maxLength ? normalized : `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
+function normalizeEffortPoints(value) {
+  return Number.isInteger(value) && EFFORT_POINT_VALUES.includes(value) ? value : null;
+}
+
+function snapEffortPoints(value) {
+  for (const points of EFFORT_POINT_VALUES) {
+    if (value <= points) {
+      return points;
+    }
+  }
+
+  return EFFORT_POINT_VALUES[EFFORT_POINT_VALUES.length - 1];
+}
+
 export function parseArgs(argv = process.argv.slice(2)) {
   const args = {
     from: path.join(repoRoot, DEFAULT_FROM),
@@ -322,6 +337,7 @@ function normalizeBoardRecord(input, index) {
   const description = clipped(input.description ?? input.details ?? "", 320);
   const duplicateCount = Math.max(1, Number(input.duplicate_count ?? 1));
   const attachmentCount = Math.max(0, Number(input.attachment_count ?? 0));
+  const effortPoints = normalizeEffortPoints(input.effort_points);
   const forumThreadLink = typeof input.forum_thread_link === "string" ? input.forum_thread_link.trim() : null;
   const tokens = tokenizeTopic(`${title} ${description ?? ""}`);
   const completionReviewStatus = typeof input.completion_review_status === "string"
@@ -367,6 +383,7 @@ function normalizeBoardRecord(input, index) {
     description,
     duplicateCount,
     attachmentCount,
+    effortPoints,
     forumThreadLink: forumThreadLink || null,
     lastSeenAt: typeof input.last_seen_at === "string" ? input.last_seen_at : null,
     completionReviewStatus,
@@ -566,6 +583,17 @@ function buildEvidenceSummary(packet) {
   return lines;
 }
 
+function summarizePacketEffortPoints(packet) {
+  const points = packet.records
+    .map((record) => record.effortPoints)
+    .filter((value) => typeof value === "number");
+  if (points.length === 0) {
+    return null;
+  }
+
+  return snapEffortPoints(points.reduce((sum, value) => sum + value, 0));
+}
+
 function inferFilesAndDocs(packet) {
   const files = new Set(["src/app/api/discord/interactions/route.ts"]);
   const docs = new Set();
@@ -702,6 +730,7 @@ export function finalizePacket(packet, args, decisionMap = new Map()) {
     packetId,
     feedbackReportIds: ids,
     feedbackShortIds: sortedRecords.map((record) => record.shortId),
+    effortPoints: summarizePacketEffortPoints(packet),
     reportType: packet.reportType,
     area: packet.area,
     title: commonTopicTitle(packet),
@@ -876,6 +905,9 @@ export function renderPacketMarkdown(result) {
       lines.push(`- Area: ${packet.area}`);
       lines.push(`- Type: ${packet.reportType}`);
       lines.push(`- Priority: ${packet.suggestedPriority}`);
+      if (packet.effortPoints) {
+        lines.push(`- Points: ${packet.effortPoints}`);
+      }
       lines.push(`- Reviewer decision: ${packet.reviewerDecision}`);
       lines.push(`- Feedback IDs: ${packet.feedbackShortIds.map((id) => `\`${id}\``).join(", ")}`);
       lines.push(`- Attachment count: ${packet.attachmentsCount}`);
@@ -1027,6 +1059,9 @@ export function renderCodexPrompts(result) {
       lines.push(`- Feedback report IDs: ${packet.feedbackShortIds.map((id) => `\`${id}\``).join(", ")}`);
       lines.push(`- Reviewer decision: ${packet.reviewerDecision}`);
       lines.push(`- Suggested priority: ${packet.suggestedPriority}`);
+      if (packet.effortPoints) {
+        lines.push(`- Points: ${packet.effortPoints}`);
+      }
       lines.push("");
       lines.push("Feedback evidence");
       lines.push("");

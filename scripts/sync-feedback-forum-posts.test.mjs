@@ -13,6 +13,7 @@ function buildRow(overrides = {}) {
     report_type: "feature",
     status: "new",
     severity: "medium",
+    effort_points: 3,
     area: "Routines",
     summary: "Let me share a routine",
     details: "Add a community share flow.",
@@ -246,7 +247,7 @@ test("sync forum apply mode updates tags titles starter messages and audit comme
       type: "audit",
       args: {
         threadId: "1504673475489562745",
-        content: "audit:sync_format:Fawx Security:Applied Feedback Card Structure v2.",
+        content: "audit:sync_format:Fawx Security:Applied Feedback Card Structure v3.",
       },
     },
   ]);

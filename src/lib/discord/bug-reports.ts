@@ -48,12 +48,14 @@ export const DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS = {
   approved: "Approved",
   needs_followup: "Needs Follow-Up",
 } as const;
+export const DISCORD_FEEDBACK_EFFORT_POINT_VALUES = [1, 2, 3, 5, 8, 13, 21, 34, 55] as const;
 
 export type DiscordBugReportSeverity = "low" | "medium" | "high" | "blocker";
 export type DiscordBugReportStatus = keyof typeof DISCORD_BUG_REPORT_STATUS_TAG_LABELS;
 export type DiscordBugReportReportType = keyof typeof DISCORD_BUG_REPORT_TYPE_TAG_LABELS;
 export type DiscordBugReportReporterUserKind = "human" | "automation" | "unknown";
 export type DiscordFeedbackCompletionReviewStatus = keyof typeof DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS;
+export type DiscordFeedbackEffortPoints = typeof DISCORD_FEEDBACK_EFFORT_POINT_VALUES[number];
 
 export type DiscordBugReportModalFields = {
   summary: string | null;
@@ -99,6 +101,7 @@ export type DiscordBugReportRow = {
   report_type: DiscordBugReportReportType;
   status: DiscordBugReportStatus;
   severity: DiscordBugReportSeverity;
+  effort_points: DiscordFeedbackEffortPoints;
   area: string | null;
   summary: string;
   details: string | null;
@@ -262,12 +265,16 @@ const DUPLICATE_TOKEN_SYNONYMS: Record<string, string> = {
   unable: "fail",
 };
 
+const DISCORD_FEEDBACK_COMPLEXITY_SIGNAL = /\b(auth|account|verification|verify|discord|forum|thread|role|permission|release|deploy|preview|brand|favicon|manifest|pwa|sync|worker|automation|queue|supabase|migration|database|import|export|mirror|payment|subscription|mobile|ios|android)\b/i;
+const DISCORD_FEEDBACK_BROAD_SCOPE_SIGNAL = /\b(all|every|across|multiple|entire|global|systemwide|system-wide|whole app|whole flow|end to end|end-to-end)\b/i;
+
 const DISCORD_BUG_REPORT_SELECT_COLUMNS = [
   "id",
   "source",
   "report_type",
   "status",
   "severity",
+  "effort_points",
   "area",
   "summary",
   "details",
@@ -688,6 +695,88 @@ function coerceBugReportSeverity(value: unknown): DiscordBugReportSeverity | nul
     : null;
 }
 
+export function normalizeDiscordFeedbackEffortPoints(value: unknown): DiscordFeedbackEffortPoints | null {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    return null;
+  }
+
+  return DISCORD_FEEDBACK_EFFORT_POINT_VALUES.includes(value as DiscordFeedbackEffortPoints)
+    ? value as DiscordFeedbackEffortPoints
+    : null;
+}
+
+function snapDiscordFeedbackEffortPoints(value: number): DiscordFeedbackEffortPoints {
+  for (const points of DISCORD_FEEDBACK_EFFORT_POINT_VALUES) {
+    if (value <= points) {
+      return points;
+    }
+  }
+
+  return DISCORD_FEEDBACK_EFFORT_POINT_VALUES[DISCORD_FEEDBACK_EFFORT_POINT_VALUES.length - 1];
+}
+
+export function estimateDiscordFeedbackEffortPoints(report: Pick<
+  DiscordBugReportRow,
+  "report_type" | "severity" | "area" | "summary" | "details" | "steps_to_reproduce" | "attachment_count" | "duplicate_count"
+>): DiscordFeedbackEffortPoints {
+  let complexityScore = report.report_type === "feature" ? 2 : 1;
+  const detailsLength = String(report.details ?? "").trim().length;
+  const stepsLength = String(report.steps_to_reproduce ?? "").trim().length;
+  const duplicateCount = Math.max(1, Number(report.duplicate_count ?? 1));
+  const attachmentCount = Math.max(0, Number(report.attachment_count ?? 0));
+  const combinedText = [
+    report.area ?? "",
+    report.summary ?? "",
+    report.details ?? "",
+    report.steps_to_reproduce ?? "",
+  ].join(" ");
+
+  if (report.report_type !== "feature") {
+    switch (report.severity) {
+      case "medium":
+        complexityScore += 1;
+        break;
+      case "high":
+        complexityScore += 2;
+        break;
+      case "blocker":
+        complexityScore += 4;
+        break;
+      default:
+        break;
+    }
+  } else if (/\b(add|support|allow|create|new|share|export|import|sync)\b/i.test(combinedText)) {
+    complexityScore += 1;
+  }
+
+  if (detailsLength > 180) {
+    complexityScore += 1;
+  }
+  if (detailsLength > 480) {
+    complexityScore += 1;
+  }
+  if (stepsLength > 140) {
+    complexityScore += 1;
+  }
+  if (attachmentCount > 0) {
+    complexityScore += 1;
+  }
+  if (duplicateCount >= 2) {
+    complexityScore += 1;
+  }
+  if (duplicateCount >= 5) {
+    complexityScore += 1;
+  }
+  if (DISCORD_FEEDBACK_COMPLEXITY_SIGNAL.test(combinedText)) {
+    complexityScore += 2;
+  }
+  if (DISCORD_FEEDBACK_BROAD_SCOPE_SIGNAL.test(combinedText)) {
+    complexityScore += 2;
+  }
+
+  return snapDiscordFeedbackEffortPoints(Math.max(report.report_type === "feature" ? 2 : 1, complexityScore));
+}
+
 function coerceBugReportRow(data: Record<string, unknown> | null | undefined): DiscordBugReportRow | null {
   if (!data || typeof data.id !== "string") {
     return null;
@@ -696,6 +785,7 @@ function coerceBugReportRow(data: Record<string, unknown> | null | undefined): D
   const reportType = coerceBugReportReportType(data.report_type);
   const status = coerceBugReportStatus(data.status);
   const severity = coerceBugReportSeverity(data.severity);
+  const effortPoints = normalizeDiscordFeedbackEffortPoints(data.effort_points);
   const completionReviewStatus = coerceCompletionReviewStatus(data.completion_review_status) ?? "not_required";
   if (!reportType || !status || !severity || typeof data.summary !== "string" || typeof data.reporter_discord_user_id !== "string") {
     return null;
@@ -707,6 +797,16 @@ function coerceBugReportRow(data: Record<string, unknown> | null | undefined): D
     report_type: reportType,
     status,
     severity,
+    effort_points: effortPoints ?? estimateDiscordFeedbackEffortPoints({
+      report_type: reportType,
+      severity,
+      area: typeof data.area === "string" ? data.area : null,
+      summary: data.summary,
+      details: typeof data.details === "string" ? data.details : null,
+      steps_to_reproduce: typeof data.steps_to_reproduce === "string" ? data.steps_to_reproduce : null,
+      attachment_count: typeof data.attachment_count === "number" ? data.attachment_count : 0,
+      duplicate_count: typeof data.duplicate_count === "number" ? data.duplicate_count : 1,
+    }),
     area: typeof data.area === "string" ? data.area : null,
     summary: data.summary,
     details: typeof data.details === "string" ? data.details : null,
@@ -1013,6 +1113,10 @@ export function formatDiscordBugReportTypeLabel(reportType: DiscordBugReportRepo
   return DISCORD_BUG_REPORT_TYPE_TAG_LABELS[reportType];
 }
 
+export function formatDiscordFeedbackEffortPoints(value: DiscordFeedbackEffortPoints | null | undefined): string {
+  return typeof value === "number" ? String(value) : "Unscored";
+}
+
 export function normalizeDiscordFeedbackReportType(value: string | null | undefined): DiscordBugReportReportType | null {
   const normalized = normalizeTextInput(value, 20)?.toLowerCase();
   if (normalized === "bug") {
@@ -1200,6 +1304,7 @@ export function buildDiscordBugForumThreadBody(args: {
       reportType: args.report.report_type,
       status: args.report.status,
     })}`,
+    `Points: ${formatDiscordFeedbackEffortPoints(args.report.effort_points)}`,
   ];
 
   if (args.report.report_type !== "feature") {
@@ -1418,7 +1523,7 @@ export function buildFeedbackCardAuditComment(args: {
     case "sync_format": {
       const actorLabel = args.actorLabel?.trim() || "Fawx Security";
       lines.push(`Card formatting synced by ${actorLabel}.`);
-      lines.push(`Reason: ${noteSummary ?? "Applied Feedback Card Structure v2."}`);
+      lines.push(`Reason: ${noteSummary ?? "Applied Feedback Card Structure v3."}`);
       break;
     }
     default:
@@ -1664,10 +1769,15 @@ async function updateDuplicateDiscordBugReport(args: {
   interactionId: string | null;
   nowIso: string;
 }): Promise<DiscordBugReportRow> {
+  const duplicateCount = Math.max(1, Number(args.existingReport.duplicate_count ?? 1)) + 1;
   const { data, error } = await args.admin
     .from("discord_feedback_reports")
     .update({
-      duplicate_count: Math.max(1, Number(args.existingReport.duplicate_count ?? 1)) + 1,
+      duplicate_count: duplicateCount,
+      effort_points: estimateDiscordFeedbackEffortPoints({
+        ...args.existingReport,
+        duplicate_count: duplicateCount,
+      }),
       last_seen_at: args.nowIso,
       updated_at: args.nowIso,
       reporter_discord_username: args.existingReport.reporter_discord_username ?? normalizeTextInput(args.reporterDiscordUsername, 80),
@@ -1799,6 +1909,16 @@ export async function createDiscordBugReport(args: {
       report_type: normalizedInput.reportType,
       status: "new",
       severity: normalizedInput.severity,
+      effort_points: estimateDiscordFeedbackEffortPoints({
+        report_type: normalizedInput.reportType,
+        severity: normalizedInput.severity,
+        area: normalizedInput.area,
+        summary: normalizedInput.summary,
+        details: normalizedInput.details,
+        steps_to_reproduce: normalizedInput.stepsToReproduce,
+        attachment_count: Math.max(0, Math.min(args.attachments?.length ?? 0, DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT)),
+        duplicate_count: 1,
+      }),
       area: normalizedInput.area,
       summary: normalizedInput.summary,
       details: normalizedInput.details,
@@ -1953,12 +2073,23 @@ export async function updateDiscordFeedbackReportContent(args: {
   const admin = args.adminClient ?? (supabaseAdmin() as unknown as DiscordBugReportsAdminClient);
 
   try {
+    const existingLookup = await findDiscordBugReportByFullId(admin, args.reportId);
+    if (!existingLookup) {
+      return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
+    }
+
     const { data, error } = await admin
       .from("discord_feedback_reports")
       .update({
         summary: normalizedSummary,
         area: normalizedArea,
         details: normalizedDetails,
+        effort_points: estimateDiscordFeedbackEffortPoints({
+          ...existingLookup,
+          area: normalizedArea,
+          summary: normalizedSummary,
+          details: normalizedDetails,
+        }),
         last_seen_at: nowIso,
         updated_at: nowIso,
       })

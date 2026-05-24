@@ -33,6 +33,7 @@ const DISCORD_FORUM_SYNC_SELECT_COLUMNS = [
   "report_type",
   "status",
   "severity",
+  "effort_points",
   "area",
   "summary",
   "details",
@@ -476,7 +477,7 @@ export async function runSyncFeedbackForumPosts({
           action: "sync_format",
           actorLabel: "Fawx Security",
           reportType: row.report_type,
-          note: "Applied Feedback Card Structure v2.",
+          note: "Applied Feedback Card Structure v3.",
           reportId: row.id,
         }),
       });

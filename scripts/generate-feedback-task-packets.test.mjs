@@ -26,6 +26,7 @@ function buildRecord(overrides = {}) {
     id: "11111111-1111-4111-8111-111111111111",
     report_type: "bug",
     status: "confirmed",
+    effort_points: 3,
     area: "Security",
     title: "Verification controls fail on repeated attempts",
     description: "Repeated verification attempts should surface staff-visible context and controlled failure handling.",
@@ -254,6 +255,7 @@ test("task packet generation groups related records into a single packet", () =>
   assert.equal(result.packets.length, 1);
   assert.deepEqual(result.packets[0].feedbackShortIds, ["11111111", "22222222"]);
   assert.equal(result.packets[0].duplicateCount, 3);
+  assert.equal(result.packets[0].effortPoints, 8);
 });
 
 test("task packet outputs mask discord ids and attachment bytes by default", async () => {

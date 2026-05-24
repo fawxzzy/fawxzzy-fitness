@@ -51,6 +51,7 @@ Canary rule:
 Feedback cards should read like lightweight story cards, not raw engineering tickets.
 
 Bug cards should surface:
+- Points
 - Title
 - Problem
 - Expected behavior
@@ -60,6 +61,7 @@ Bug cards should surface:
 - Evidence
 
 Feature cards should surface:
+- Points
 - Title
 - User Story
 - Description
@@ -75,6 +77,11 @@ Pattern:
 Failure mode:
 - unstructured cards slow triage
 - overly technical cards make the public board feel unfriendly
+
+Effort-points rule:
+- feedback cards should show a Fibonacci effort estimate near the top metadata
+- allowed values are `1, 2, 3, 5, 8, 13, 21, 34, 55`
+- the initial estimate is deterministic and should improve over time as more implementation history is reviewed
 
 ## Canonical workflow
 Canonical workflow:
@@ -186,7 +193,7 @@ Card structure sync:
   - `--include-testing`
 - apply mode updates the starter post and leaves the thread audit comment:
   - `Card formatting synced by Fawx Security.`
-  - `Reason: Applied Feedback Card Structure v2.`
+  - `Reason: Applied Feedback Card Structure v3.`
 
 Resolved reaction sync:
 - `npm run feedback:sync-resolved-reactions -- --dry-run`

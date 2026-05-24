@@ -21,6 +21,7 @@ function buildRow(overrides = {}) {
     id: "11111111-1111-4111-8111-111111111111",
     report_type: "bug",
     status: "new",
+    effort_points: 3,
     area: "Account",
     summary: "Copy button does not work",
     details: "Tapping Copy did not copy the token.",
@@ -155,6 +156,7 @@ test("board export includes structured card sections and acceptance criteria", (
   }));
 
   assert.equal(record.card_sections.problem, "Verification says Discord could not assign the role.");
+  assert.equal(record.effort_points, 3);
   assert.equal(record.card_sections.steps_to_reproduce, "1. Generate token\\n2. Verify account");
   assert.equal(record.card_sections.acceptance_criteria.length > 0, true);
   assert.match(record.card_sections.evidence_summary, /Evidence included:/);
@@ -179,6 +181,7 @@ test("board markdown groups cards by status and separates bugs from features", (
 
   assert.match(markdown, /## Bugs/);
   assert.match(markdown, /### Confirmed/);
+  assert.match(markdown, /Points: 3/);
   assert.match(markdown, /\[11111111\] Account — Copy button does not work/);
   assert.match(markdown, /## Features/);
   assert.match(markdown, /### Completed/);

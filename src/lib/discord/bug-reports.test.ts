@@ -18,11 +18,13 @@ import {
   DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH,
   DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH,
   extractDiscordBugReportModalFields,
+  estimateDiscordFeedbackEffortPoints,
   findDiscordBugReportByIdOrPrefix,
   formatDiscordBugReportShortId,
   normalizeDiscordBugReportInput,
   normalizeDiscordBugReportStatus,
   normalizeDiscordBugSeverity,
+  normalizeDiscordFeedbackEffortPoints,
   normalizeDiscordFeedbackReportType,
   recordDiscordBugReportForumState,
   recordDiscordBugReportForumThread,
@@ -41,6 +43,7 @@ function buildStoredRow(overrides = {}) {
     report_type: "bug",
     status: "new",
     severity: "medium",
+    effort_points: 3,
     area: "Settings",
     summary: "Token copy button failed",
     details: "I tapped Copy and nothing happened.",
@@ -351,6 +354,18 @@ test("normalizeDiscordBugSeverity maps synonyms and defaults safely", () => {
   assert.equal(normalizeDiscordBugSeverity("not sure"), "medium");
 });
 
+test("feedback effort points stay fibonacci-bound and deterministic", () => {
+  assert.equal(normalizeDiscordFeedbackEffortPoints(5), 5);
+  assert.equal(normalizeDiscordFeedbackEffortPoints(4), null);
+  assert.equal(estimateDiscordFeedbackEffortPoints(buildStoredRow({
+    report_type: "bug",
+    severity: "high",
+    details: "Verification fails across every Discord role sync path and blocks the whole flow from completing.",
+    steps_to_reproduce: "1. Open verification\n2. Verify once\n3. Verify again\n4. Watch the forum and role sync fail",
+    duplicate_count: 4,
+  })), 13);
+});
+
 test("buildDiscordBugForumThreadTitle formats bug and feature forum titles while keeping historical fix readable", () => {
   assert.equal(
     buildDiscordBugForumThreadTitle({
@@ -391,6 +406,7 @@ test("buildDiscordBugForumThreadBody formats bug forum cards with bug-specific l
       "**Bug Report**",
       "Type: Bug",
       "Status: New",
+      "Points: 3",
       "Severity: Medium",
       "Area: Settings",
       "Reporter: <@123456789012345678> / Member #4",
@@ -440,6 +456,7 @@ test("buildDiscordBugForumThreadBody formats feature forum cards without bug-onl
       "**Feature Request**",
       "Type: Feature",
       "Status: Completed",
+      "Points: 3",
       "Area: Settings",
       "Reporter: <@123456789012345678> / Member #4",
       "Report ID: `abc12345`",

@@ -381,6 +381,7 @@ export function toBoardRecord(row, debug = false) {
     report_type_label: reportType === "feature" ? "Feature" : "Bug",
     status,
     status_label: formatDisplayStatusLabel(reportType, status),
+    effort_points: typeof row.effort_points === "number" ? row.effort_points : null,
     completion_review_status: completionReviewStatus,
     completion_review_status_label: feedbackHelpers.formatDiscordCompletionReviewStatusLabel(completionReviewStatus),
     completion_review_required: feedbackHelpers.requiresDiscordFeedbackCompletionReview({
@@ -471,6 +472,7 @@ function renderBoardListItem(record, debug = false) {
   const parts = [`- [${record.short_id}] ${record.area} — ${record.title}`];
   const metadata = [
     `Status: ${record.status_label}`,
+    record.effort_points ? `Points: ${record.effort_points}` : null,
     `Duplicates: ${record.duplicate_count}`,
     `Attachments: ${record.attachment_count}`,
     record.last_seen_at ? `Last seen: ${record.last_seen_at}` : null,
@@ -564,6 +566,9 @@ export function renderBoardMarkdown(records, args = {}) {
     for (const record of completionReviewQueue) {
       lines.push(`- [${record.short_id}] ${record.report_type_label} | ${record.area} | ${record.title}`);
       lines.push(`  Status: ${record.status_label} | Completion Review: ${record.completion_review_status_label}`);
+      if (record.effort_points) {
+        lines.push(`  Points: ${record.effort_points}`);
+      }
       if (Array.isArray(record.card_sections?.acceptance_criteria) && record.card_sections.acceptance_criteria.length > 0) {
         lines.push("  Acceptance criteria:");
         for (const criterion of record.card_sections.acceptance_criteria) {
@@ -678,6 +683,7 @@ async function loadRows(client, args) {
       "report_type",
       "status",
       "severity",
+      "effort_points",
       "area",
       "summary",
       "details",
