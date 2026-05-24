@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { NextRequest } from "next/server.js";
-import { handleAuthSessionMiddleware } from "@/middleware";
+import { config, handleAuthSessionMiddleware } from "@/middleware";
 
 test("middleware recovers when only the refresh cookie is present", async () => {
   const request = new NextRequest("https://example.com/today", {
@@ -54,4 +54,12 @@ test("middleware clears cookies and redirects to login when refresh recovery fai
   const setCookie = response.headers.get("set-cookie") ?? "";
   assert.match(setCookie, /sb-access-token=;/);
   assert.match(setCookie, /sb-refresh-token=;/);
+});
+
+test("middleware matcher excludes the web manifest route from auth-session interception", () => {
+  const matcher = config.matcher[0];
+
+  assert.equal(typeof matcher, "string");
+  assert.match(matcher, /manifest\\\.webmanifest/);
+  assert.match(matcher, /webmanifest/);
 });
