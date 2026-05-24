@@ -6,6 +6,7 @@ import {
   buildDiscordFeedbackManageLookupModalResponse,
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackPanelSubmitModalResponse,
+  buildDiscordFeedbackSubmitPickerResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
   buildDiscordSpotifyQueueSearchModalResponse,
   buildDiscordSpotifyQueueSuggestModalResponse,
@@ -29,6 +30,7 @@ import {
   extractDiscordCommandUserOption,
   extractDiscordFeedbackManageEditReportId,
   extractDiscordFeedbackManageWithdrawReportId,
+  extractDiscordFeedbackSubmitCreateReportType,
   extractDiscordFeedbackUpdatePickerReportId,
   extractDiscordFeedbackUpdateReportIdFromModalCustomId,
   extractDiscordFeedbackWithdrawSelectedReportId,
@@ -67,23 +69,25 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
 
   assert.equal(bug.data.custom_id, "fitness_feedback_report_modal:bug");
   assert.equal(bug.data.title, "Report a bug");
-  assert.equal(bug.data.components[0]?.components[0]?.custom_id, "feedback_type");
-  assert.equal(bug.data.components[0]?.components[0]?.value, "Bug");
-  assert.equal(bug.data.components[1]?.components[0]?.label, "Title");
-  assert.equal(bug.data.components[3]?.components[0]?.label, "Description");
+  assert.equal(bug.data.components[0]?.component?.custom_id, "bug_summary");
+  assert.equal(bug.data.components[1]?.component?.custom_id, "bug_area");
+  assert.equal(bug.data.components[2]?.label, "Problem");
+  assert.equal(bug.data.components[2]?.component?.custom_id, "bug_details");
+  assert.equal(bug.data.components[3]?.component?.custom_id, "feedback_section_overrides");
   assert.equal(feature.data.custom_id, "fitness_feedback_report_modal:feature");
   assert.equal(feature.data.title, "Suggest a feature");
-  assert.equal(feature.data.components[0]?.components[0]?.custom_id, "feedback_type");
-  assert.equal(feature.data.components[0]?.components[0]?.value, "Feature");
-  assert.equal(feature.data.components[1]?.components[0]?.label, "Title");
-  assert.equal(feature.data.components[3]?.components[0]?.label, "Description");
+  assert.equal(feature.data.components[0]?.component?.custom_id, "bug_summary");
+  assert.equal(feature.data.components[1]?.component?.custom_id, "bug_area");
+  assert.equal(feature.data.components[2]?.label, "Description");
+  assert.equal(feature.data.components[2]?.component?.custom_id, "bug_details");
+  assert.equal(feature.data.components[3]?.component?.custom_id, "feedback_section_overrides");
 });
 
 test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel buttons", () => {
   const payload = buildDiscordFeedbackPanelMessagePayload();
 
   assert.equal(payload.embeds[0]?.title, "Submit Feedback Here");
-  assert.match(payload.embeds[0]?.description ?? "", /send a new bug or feature request/i);
+  assert.match(payload.embeds[0]?.description ?? "", /choose bug or feature, then create a card/i);
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => ("custom_id" in component ? component.custom_id : null)),
     [
@@ -93,8 +97,19 @@ test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel butt
   );
   assert.deepEqual(
     payload.components[0]?.components?.map((component) => ("label" in component ? component.label : null)),
-    ["Submit Feedback", "Edit My Feedback"],
+    ["Submit", "Edit"],
   );
+});
+
+test("buildDiscordFeedbackSubmitPickerResponse switches the create button by selected type", () => {
+  const bugPicker = buildDiscordFeedbackSubmitPickerResponse();
+  const featurePicker = buildDiscordFeedbackSubmitPickerResponse({ selectedReportType: "feature" });
+
+  assert.equal(bugPicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
+  assert.equal(bugPicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_submit_create:bug");
+  assert.equal(bugPicker.data.components[1]?.components[0]?.label, "Create Bug");
+  assert.equal(featurePicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_submit_create:feature");
+  assert.equal(featurePicker.data.components[1]?.components[0]?.label, "Create Feature");
 });
 
 test("discordMessageHasFeedbackPanel detects the feedback panel action row", () => {
@@ -308,6 +323,7 @@ test("buildDiscordVerifyMessagePayload uses the Fawxzzy Server Access title", ()
 
 test("feedback panel button modals expose submit and manage flows", () => {
   const submit = buildDiscordFeedbackPanelSubmitModalResponse();
+  const submitPicker = buildDiscordFeedbackSubmitPickerResponse();
   const updatePicker = buildDiscordFeedbackUpdatePickerResponse({
     recentReports: [
       {
@@ -331,6 +347,7 @@ test("feedback panel button modals expose submit and manage flows", () => {
   });
   const lookupModal = buildDiscordFeedbackManageLookupModalResponse();
   const update = buildDiscordFeedbackUpdateModalResponse({
+    reportType: "bug",
     reportId: "11111111-1111-4111-8111-111111111111",
     summary: "Token copy button failed",
     area: "Settings",
@@ -342,11 +359,10 @@ test("feedback panel button modals expose submit and manage flows", () => {
   });
 
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
-  assert.equal(submit.data.components[0]?.components[0]?.custom_id, "feedback_type");
-  assert.equal(submit.data.components[0]?.components[0]?.type, 4);
-  assert.equal(submit.data.components[1]?.components[0]?.label, "Title");
-  assert.equal(submit.data.components[3]?.components[0]?.label, "Details");
+  assert.equal(submit.data.components[0]?.component?.custom_id, "bug_summary");
+  assert.equal(submit.data.components[3]?.component?.custom_id, "feedback_section_overrides");
   assert.equal(submit.data.components.length, 4);
+  assert.equal(submitPicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
   assert.equal(updatePicker.data.flags, 64);
   assert.equal(updatePicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_manage_recent:11111111-1111-4111-8111-111111111111");
   assert.equal(updatePicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_update_pick_report");
@@ -360,6 +376,7 @@ test("feedback panel button modals expose submit and manage flows", () => {
   assert.equal(update.data.components[0]?.component?.value, "Token copy button failed");
   assert.equal(update.data.components[1]?.component?.custom_id, "bug_area");
   assert.equal(update.data.components[2]?.component?.custom_id, "bug_details");
+  assert.equal(update.data.components[3]?.component?.custom_id, "feedback_section_overrides");
   assert.equal(withdraw.data.custom_id, "fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111");
   assert.equal(withdraw.data.components[0]?.component?.custom_id, "feedback_withdraw_note");
 });
@@ -375,10 +392,8 @@ test("feedback submit modal keeps panel buttons and modal inputs text-only even 
   const firstPanelButton = panelPayload.components[0]?.components[0] as { emoji?: { id: string; name: string } } | undefined;
 
   assert.equal(firstPanelButton?.emoji, undefined);
-  assert.equal(submitModal.data.components[0]?.components[0]?.custom_id, "feedback_type");
-  assert.equal(submitModal.data.components[0]?.components[0]?.type, 4);
+  assert.equal(submitModal.data.components[0]?.component?.custom_id, "bug_summary");
   assert.equal(JSON.stringify(submitModal.data).includes("\"emoji\""), false);
-  assert.equal(JSON.stringify(submitModal.data).includes("\"type\":3"), false);
   assert.equal(JSON.stringify(submitModal.data).includes("\"type\":19"), false);
 });
 
@@ -434,6 +449,15 @@ test("feedback manage custom id helpers parse selection, edit, and withdraw ids 
     ),
     "11111111-1111-4111-8111-111111111111",
   );
+  assert.equal(
+    extractDiscordFeedbackSubmitCreateReportType("fitness_feedback_submit_create:bug"),
+    "bug",
+  );
+  assert.equal(
+    extractDiscordFeedbackSubmitCreateReportType("fitness_feedback_submit_create:feature"),
+    "feature",
+  );
+  assert.equal(extractDiscordFeedbackSubmitCreateReportType("fitness_feedback_submit_create:nope"), null);
   assert.equal(
     extractDiscordFeedbackWithdrawSelectedReportId(
       "fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111",

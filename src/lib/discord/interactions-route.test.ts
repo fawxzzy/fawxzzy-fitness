@@ -891,7 +891,7 @@ test("Discord interactions route does not auto-create a submit-feedback launcher
   }
 });
 
-test("Discord interactions route opens the submit feedback panel modal", async () => {
+test("Discord interactions route opens the submit feedback picker", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
 
@@ -904,8 +904,10 @@ test("Discord interactions route opens the submit feedback panel modal", async (
 
   assert.equal(response.status, 200);
   const payload = await response.json();
-  assert.equal(payload.type, 9);
-  assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
+  assert.equal(payload.type, 4);
+  assert.equal(payload.data.flags, 64);
+  assert.equal(payload.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
+  assert.equal(payload.data.components[1]?.components[0]?.custom_id, "fitness_feedback_submit_create:bug");
 });
 
 test("Discord interactions route opens the update feedback picker for recent editable cards", async () => {
@@ -1104,16 +1106,10 @@ test("Discord interactions route opens the general feedback modal for /feedback"
 
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.type, 9);
-    assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
-    assert.equal(payload.data.title, "Submit Feedback");
-    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "feedback_type");
-    assert.equal(payload.data.components[0]?.components[0]?.type, 4);
-    assert.equal(payload.data.components[0]?.components[0]?.placeholder, "Bug or Feature");
-    assert.equal(payload.data.components[3]?.components[0]?.custom_id, "bug_details");
-    assert.equal(payload.data.components.some((row) => row?.type === 18), false);
-    assert.equal(JSON.stringify(payload.data).includes("\"type\":19"), false);
-    assert.equal(JSON.stringify(payload.data).includes("\"type\":3"), false);
+    assert.equal(payload.type, 4);
+    assert.equal(payload.data.flags, 64);
+    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
+    assert.equal(payload.data.components[1]?.components[0]?.custom_id, "fitness_feedback_submit_create:bug");
     assert.equal(fetchCallCount, 0);
   } finally {
     globalThis.fetch = originalFetch;
@@ -3109,7 +3105,7 @@ test("Discord message command poll skips a greeting command that was already cla
   }
 });
 
-test("Discord interactions route opens the feedback panel submit modal without pre-response fetches", async () => {
+test("Discord interactions route opens the feedback submit picker without pre-response fetches", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   const originalFetch = globalThis.fetch;
@@ -3130,15 +3126,10 @@ test("Discord interactions route opens the feedback panel submit modal without p
 
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.type, 9);
-    assert.equal(payload.data.custom_id, "fitness_feedback_submit_modal");
-    assert.equal(payload.data.title, "Submit Feedback");
-    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "feedback_type");
-    assert.equal(payload.data.components[0]?.components[0]?.type, 4);
-    assert.equal(payload.data.components[3]?.components[0]?.custom_id, "bug_details");
-    assert.equal(payload.data.components.some((row) => row?.type === 18), false);
-    assert.equal(JSON.stringify(payload.data).includes("\"type\":19"), false);
-    assert.equal(JSON.stringify(payload.data).includes("\"type\":3"), false);
+    assert.equal(payload.type, 4);
+    assert.equal(payload.data.flags, 64);
+    assert.equal(payload.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
+    assert.equal(payload.data.components[1]?.components[0]?.custom_id, "fitness_feedback_submit_create:bug");
     assert.equal(fetchCallCount, 0);
   } finally {
     globalThis.fetch = originalFetch;

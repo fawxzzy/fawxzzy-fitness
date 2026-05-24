@@ -22,6 +22,7 @@ import {
   buildDiscordBugForumThreadBody,
   buildDiscordBugForumThreadTitle,
   buildDiscordBugReporterLabel,
+  buildDiscordFeedbackSectionOverrideDraft,
   createDiscordBugReport,
   DISCORD_BUG_REPORT_STATUS_TAG_LABELS,
   DISCORD_BUG_REPORT_TYPE_TAG_LABELS,
@@ -51,9 +52,10 @@ import {
 } from "@/lib/discord/message-command-claims";
 import {
   buildDiscordFeedbackPanelMessagePayload,
-  buildDiscordFeedbackPanelSubmitModalResponse,
   buildDiscordFeedbackManageCardResponse,
   buildDiscordFeedbackManageLookupModalResponse,
+  buildDiscordFeedbackReportModalResponse,
+  buildDiscordFeedbackSubmitPickerResponse,
   buildDiscordSpotifyClubPanelMessagePayload,
   buildDiscordEphemeralMessageResponseWithComponents,
   buildDiscordSpotifyQueueSearchModalResponse,
@@ -88,6 +90,8 @@ import {
   FITNESS_FEEDBACK_COMMAND_NAME,
   FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
   FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
+  FITNESS_FEEDBACK_SUBMIT_PICKER_SELECT_CUSTOM_ID,
+  FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX,
   FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID,
   FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
   FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
@@ -180,6 +184,7 @@ import {
   FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID,
   extractDiscordFeedbackManageEditReportId,
   extractDiscordFeedbackManageWithdrawReportId,
+  extractDiscordFeedbackSubmitCreateReportType,
   extractDiscordFeedbackUpdatePickerReportId,
   extractDiscordFeedbackUpdateReportIdFromModalCustomId,
   extractDiscordFeedbackWithdrawSelectedReportId,
@@ -6797,6 +6802,9 @@ function summarizeFeedbackContentChanges(args: {
   if ((args.before.details ?? "") !== (args.after.details ?? "")) {
     changedFields.push("Description");
   }
+  if ((args.before.steps_to_reproduce ?? "") !== (args.after.steps_to_reproduce ?? "")) {
+    changedFields.push("Card Sections");
+  }
 
   return changedFields.length > 0 ? `Edited fields: ${changedFields.join(", ")}.` : "Card content refreshed.";
 }
@@ -6817,6 +6825,33 @@ async function buildFeedbackUpdatePickerOpenResponse(interaction: DiscordInterac
   return buildDiscordFeedbackUpdatePickerResponse({
     recentReports,
   });
+}
+
+function resolveSubmitPickerReportType(interaction: DiscordInteraction): "bug" | "feature" {
+  const componentValues = (interaction.data as { values?: unknown } | null | undefined)?.values;
+  const selectedType = Array.isArray(componentValues) && typeof componentValues[0] === "string"
+    ? normalizeDiscordFeedbackReportType(componentValues[0])
+    : null;
+
+  return selectedType === "feature" ? "feature" : "bug";
+}
+
+async function handleFeedbackSubmitPickerSelection(interaction: DiscordInteraction) {
+  return buildDiscordFeedbackSubmitPickerResponse({
+    selectedReportType: resolveSubmitPickerReportType(interaction),
+  });
+}
+
+async function handleFeedbackSubmitCreateButton(interaction: DiscordInteraction) {
+  const reportType = extractDiscordFeedbackSubmitCreateReportType(
+    typeof interaction.data?.custom_id === "string" ? interaction.data.custom_id : null,
+  );
+
+  if (!reportType) {
+    return buildDiscordEphemeralMessageResponse("Choose Bug or Feature first.");
+  }
+
+  return buildDiscordFeedbackReportModalResponse(reportType);
 }
 
 async function buildFeedbackManageCardSelectionResponse(args: {
@@ -6928,10 +6963,12 @@ async function handleFeedbackManageEditButton(interaction: DiscordInteraction) {
   }
 
   return buildDiscordFeedbackUpdateModalResponse({
+    reportType: lookupResult.report.report_type === "feature" ? "feature" : "bug",
     reportId: lookupResult.report.id,
     summary: lookupResult.report.summary,
     area: lookupResult.report.area,
     details: lookupResult.report.details ?? "",
+    sectionOverrides: buildDiscordFeedbackSectionOverrideDraft(lookupResult.report),
   });
 }
 
@@ -6988,16 +7025,9 @@ async function processFeedbackUpdateModalSubmit(interaction: DiscordInteraction)
     interaction.data?.components,
     FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
   );
-  const area = extractDiscordModalTextInputValue(
-    interaction.data?.components,
-    FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
-  );
-  const details = extractDiscordModalTextInputValue(
-    interaction.data?.components,
-    FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
-  );
+  const modalFields = extractDiscordBugReportModalFields(interaction.data?.components, extractDiscordModalTextInputValue);
 
-  if (!requester.id || !reportId || !summary || !details) {
+  if (!requester.id || !reportId || !summary || !modalFields.details) {
     return "Could not update that feedback.";
   }
 
@@ -7026,9 +7056,7 @@ async function processFeedbackUpdateModalSubmit(interaction: DiscordInteraction)
 
   const updateResult = await updateDiscordFeedbackReportContent({
     reportId: lookupResult.report.id,
-    summary,
-    area,
-    details,
+    modalFields,
     updatedByDiscordUserId: requester.id,
   });
 
@@ -7742,7 +7770,7 @@ export async function POST(request: Request) {
       interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
       && interaction.data?.name === FITNESS_FEEDBACK_COMMAND_NAME
     ) {
-      return jsonResponse(buildDiscordFeedbackPanelSubmitModalResponse());
+      return jsonResponse(buildDiscordFeedbackSubmitPickerResponse());
     }
 
     if (
@@ -7930,7 +7958,22 @@ export async function POST(request: Request) {
       interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
       && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID
     ) {
-      return jsonResponse(buildDiscordFeedbackPanelSubmitModalResponse());
+      return jsonResponse(buildDiscordFeedbackSubmitPickerResponse());
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && interaction.data?.custom_id === FITNESS_FEEDBACK_SUBMIT_PICKER_SELECT_CUSTOM_ID
+    ) {
+      return jsonResponse(await handleFeedbackSubmitPickerSelection(interaction));
+    }
+
+    if (
+      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
+      && typeof interaction.data?.custom_id === "string"
+      && interaction.data.custom_id.startsWith(`${FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX}:`)
+    ) {
+      return jsonResponse(await handleFeedbackSubmitCreateButton(interaction));
     }
 
     if (
@@ -7997,16 +8040,19 @@ export async function POST(request: Request) {
       interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
       && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID
     ) {
-      const reportType = normalizeDiscordFeedbackReportType(
-        extractDiscordModalStringSelectValue(interaction.data?.components, FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID)
-        ?? extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID),
-      );
+      const rawReportType = extractDiscordModalStringSelectValue(interaction.data?.components, FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID)
+        ?? extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID);
+      const reportType = normalizeDiscordFeedbackReportType(rawReportType);
 
-      if (reportType !== "bug" && reportType !== "feature") {
+      if (reportType === "bug" || reportType === "feature") {
+        return handleDeferredFeedbackCreateModalSubmit(interaction, reportType);
+      }
+
+      if (rawReportType) {
         return jsonResponse(buildDiscordEphemeralMessageResponse("Choose Bug or Feature for the feedback type."), { status: 400 });
       }
 
-      return handleDeferredFeedbackCreateModalSubmit(interaction, reportType);
+      return handleDeferredFeedbackCreateModalSubmit(interaction, "bug");
     }
 
     if (

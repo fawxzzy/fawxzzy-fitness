@@ -61,6 +61,19 @@ export type DiscordBugReportModalFields = {
   summary: string | null;
   area: string | null;
   details: string | null;
+  sectionOverrides: string | null;
+};
+
+type DiscordFeatureSectionOverrides = {
+  userStory: string | null;
+  acceptanceCriteria: string[];
+};
+
+type DiscordBugSectionOverrides = {
+  expectedBehavior: string | null;
+  actualBehavior: string | null;
+  stepsToReproduce: string | null;
+  acceptanceCriteria: string[];
 };
 
 export type DiscordFeedbackAttachmentMetadata = {
@@ -198,6 +211,7 @@ type NormalizedDiscordBugReportInput = {
 };
 
 const DISCORD_BUG_REPORT_DUPLICATE_CANDIDATE_LIMIT = 25;
+const DISCORD_FEEDBACK_SECTION_OVERRIDES_PREFIX = "FFB_SECTIONS_V1::";
 const DUPLICATE_TOKEN_STOPWORDS = new Set([
   "a",
   "an",
@@ -951,7 +965,7 @@ function normalizeCriteriaLine(value: string): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function parseFeatureAcceptanceCriteriaOverride(value: string | null | undefined): string[] {
+function parseCriteriaLines(value: string | null | undefined): string[] {
   const normalized = normalizeTextInput(value, DISCORD_BUG_REPORT_STEPS_MAX_LENGTH);
   if (!normalized) {
     return [];
@@ -964,10 +978,188 @@ function parseFeatureAcceptanceCriteriaOverride(value: string | null | undefined
     .slice(0, 10);
 }
 
+function parseFeedbackSectionBlocks(value: string | null | undefined): Map<string, string> {
+  const normalized = normalizeTextInput(value, DISCORD_BUG_REPORT_STEPS_MAX_LENGTH);
+  const sections = new Map<string, string>();
+  if (!normalized) {
+    return sections;
+  }
+
+  let currentKey: string | null = null;
+  const buffers = new Map<string, string[]>();
+
+  for (const rawLine of normalized.split(/\r?\n/)) {
+    const headerMatch = rawLine.match(/^\s*(User Story|Expected behavior|Actual behavior|Steps to reproduce|Acceptance Criteria)\s*:\s*(.*)$/i);
+    if (headerMatch) {
+      currentKey = headerMatch[1].trim().toLowerCase();
+      buffers.set(currentKey, headerMatch[2].trim() ? [headerMatch[2].trim()] : []);
+      continue;
+    }
+
+    if (!currentKey) {
+      continue;
+    }
+
+    const buffer = buffers.get(currentKey) ?? [];
+    buffer.push(rawLine);
+    buffers.set(currentKey, buffer);
+  }
+
+  for (const [key, lines] of buffers.entries()) {
+    const joined = normalizeTextInput(lines.join("\n"), DISCORD_BUG_REPORT_STEPS_MAX_LENGTH);
+    if (joined) {
+      sections.set(key, joined);
+    }
+  }
+
+  return sections;
+}
+
+function serializeDiscordFeedbackSectionOverrides(value: unknown): string | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  try {
+    return `${DISCORD_FEEDBACK_SECTION_OVERRIDES_PREFIX}${JSON.stringify(value)}`;
+  } catch {
+    return null;
+  }
+}
+
+function parseSerializedDiscordFeedbackSectionOverrides(value: string | null | undefined): Record<string, unknown> | null {
+  const normalized = normalizeTextInput(value, DISCORD_BUG_REPORT_STEPS_MAX_LENGTH);
+  if (!normalized?.startsWith(DISCORD_FEEDBACK_SECTION_OVERRIDES_PREFIX)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(normalized.slice(DISCORD_FEEDBACK_SECTION_OVERRIDES_PREFIX.length));
+    return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseFeatureSectionOverrides(value: string | null | undefined): DiscordFeatureSectionOverrides {
+  const serialized = parseSerializedDiscordFeedbackSectionOverrides(value);
+  if (serialized) {
+    return {
+      userStory: normalizeForumBodySectionValue(typeof serialized.userStory === "string" ? serialized.userStory : null),
+      acceptanceCriteria: Array.isArray(serialized.acceptanceCriteria)
+        ? serialized.acceptanceCriteria
+          .map((item) => typeof item === "string" ? normalizeCriteriaLine(item) : null)
+          .filter((item): item is string => Boolean(item))
+          .slice(0, 10)
+        : [],
+    };
+  }
+
+  const sections = parseFeedbackSectionBlocks(value);
+  return {
+    userStory: normalizeForumBodySectionValue(sections.get("user story") ?? null),
+    acceptanceCriteria: sections.has("acceptance criteria")
+      ? parseCriteriaLines(sections.get("acceptance criteria") ?? null)
+      : parseCriteriaLines(value),
+  };
+}
+
+function parseBugSectionOverrides(value: string | null | undefined): DiscordBugSectionOverrides {
+  const serialized = parseSerializedDiscordFeedbackSectionOverrides(value);
+  if (serialized) {
+    return {
+      expectedBehavior: normalizeForumBodySectionValue(typeof serialized.expectedBehavior === "string" ? serialized.expectedBehavior : null),
+      actualBehavior: normalizeForumBodySectionValue(typeof serialized.actualBehavior === "string" ? serialized.actualBehavior : null),
+      stepsToReproduce: normalizeForumBodySectionValue(typeof serialized.stepsToReproduce === "string" ? serialized.stepsToReproduce : null),
+      acceptanceCriteria: Array.isArray(serialized.acceptanceCriteria)
+        ? serialized.acceptanceCriteria
+          .map((item) => typeof item === "string" ? normalizeCriteriaLine(item) : null)
+          .filter((item): item is string => Boolean(item))
+          .slice(0, 10)
+        : [],
+    };
+  }
+
+  const sections = parseFeedbackSectionBlocks(value);
+  return {
+    expectedBehavior: normalizeForumBodySectionValue(sections.get("expected behavior") ?? null),
+    actualBehavior: normalizeForumBodySectionValue(sections.get("actual behavior") ?? null),
+    stepsToReproduce: normalizeForumBodySectionValue(sections.get("steps to reproduce") ?? normalizeTextInput(value, DISCORD_BUG_REPORT_STEPS_MAX_LENGTH)),
+    acceptanceCriteria: sections.has("acceptance criteria")
+      ? parseCriteriaLines(sections.get("acceptance criteria") ?? null)
+      : [],
+  };
+}
+
+function buildFeatureSectionOverrideStorage(value: string | null | undefined): string | null {
+  const overrides = parseFeatureSectionOverrides(value);
+  if (!overrides.userStory && overrides.acceptanceCriteria.length === 0) {
+    return null;
+  }
+
+  return serializeDiscordFeedbackSectionOverrides(overrides);
+}
+
+function buildBugSectionOverrideStorage(value: string | null | undefined): string | null {
+  const overrides = parseBugSectionOverrides(value);
+  if (
+    !overrides.expectedBehavior
+    && !overrides.actualBehavior
+    && !overrides.stepsToReproduce
+    && overrides.acceptanceCriteria.length === 0
+  ) {
+    return null;
+  }
+
+  return serializeDiscordFeedbackSectionOverrides(overrides);
+}
+
+function formatCriteriaLinesForModal(criteria: string[]): string | null {
+  return criteria.length > 0 ? criteria.map((criterion) => `- ${criterion}`).join("\n") : null;
+}
+
+export function buildDiscordFeedbackSectionOverrideDraft(report: Pick<
+  DiscordBugReportRow,
+  "report_type" | "steps_to_reproduce"
+>): string | null {
+  if (report.report_type === "feature") {
+    const overrides = parseFeatureSectionOverrides(report.steps_to_reproduce);
+    const lines = [
+      overrides.userStory ? `User Story:\n${overrides.userStory}` : null,
+      overrides.acceptanceCriteria.length > 0
+        ? `Acceptance Criteria:\n${formatCriteriaLinesForModal(overrides.acceptanceCriteria)}`
+        : null,
+    ].filter((value): value is string => Boolean(value));
+
+    return lines.length > 0 ? lines.join("\n\n") : null;
+  }
+
+  if (report.report_type === "bug") {
+    const overrides = parseBugSectionOverrides(report.steps_to_reproduce);
+    const lines = [
+      overrides.expectedBehavior ? `Expected behavior:\n${overrides.expectedBehavior}` : null,
+      overrides.actualBehavior ? `Actual behavior:\n${overrides.actualBehavior}` : null,
+      overrides.stepsToReproduce ? `Steps to reproduce:\n${overrides.stepsToReproduce}` : null,
+      overrides.acceptanceCriteria.length > 0
+        ? `Acceptance Criteria:\n${formatCriteriaLinesForModal(overrides.acceptanceCriteria)}`
+        : null,
+    ].filter((value): value is string => Boolean(value));
+
+    return lines.length > 0 ? lines.join("\n\n") : null;
+  }
+
+  return null;
+}
+
 export function buildBugAcceptanceCriteria(report: Pick<
   DiscordBugReportRow,
-  "area" | "summary"
+  "area" | "summary" | "steps_to_reproduce"
 >): string[] {
+  const overrideCriteria = parseBugSectionOverrides(report.steps_to_reproduce).acceptanceCriteria;
+  if (overrideCriteria.length > 0) {
+    return overrideCriteria;
+  }
+
   const areaLabel = formatForumAreaLabel(report.area);
 
   return [
@@ -982,7 +1174,7 @@ export function buildFeatureAcceptanceCriteria(report: Pick<
   DiscordBugReportRow,
   "area" | "summary" | "steps_to_reproduce"
 >): string[] {
-  const overrideCriteria = parseFeatureAcceptanceCriteriaOverride(report.steps_to_reproduce);
+  const overrideCriteria = parseFeatureSectionOverrides(report.steps_to_reproduce).acceptanceCriteria;
   if (overrideCriteria.length > 0) {
     return overrideCriteria;
   }
@@ -1042,7 +1234,7 @@ export function buildDiscordFeedbackCardSections(report: DiscordBugReportRow): D
       fallback: "Not provided",
       maxLength: 420,
     });
-  const steps = renderForumBodyDisplayValue({
+  const legacySteps = renderForumBodyDisplayValue({
     value: report.steps_to_reproduce,
     fallback: "Not provided",
     maxLength: 240,
@@ -1050,6 +1242,7 @@ export function buildDiscordFeedbackCardSections(report: DiscordBugReportRow): D
   const evidence = buildDiscordFeedbackEvidence(report);
 
   if (report.report_type === "feature") {
+    const featureOverrides = parseFeatureSectionOverrides(report.steps_to_reproduce);
     return {
       reportType: report.report_type,
       headerLabel: "Feature Request",
@@ -1058,7 +1251,7 @@ export function buildDiscordFeedbackCardSections(report: DiscordBugReportRow): D
       expectedBehavior: null,
       actualBehavior: null,
       stepsToReproduce: null,
-      userStory: buildGenericFeatureUserStory(report),
+      userStory: featureOverrides.userStory ?? buildGenericFeatureUserStory(report),
       description: details,
       acceptanceCriteria: buildFeatureAcceptanceCriteria(report),
       evidence,
@@ -1066,14 +1259,21 @@ export function buildDiscordFeedbackCardSections(report: DiscordBugReportRow): D
   }
 
   if (report.report_type === "bug") {
+    const bugOverrides = parseBugSectionOverrides(report.steps_to_reproduce);
     return {
       reportType: report.report_type,
       headerLabel: "Bug Report",
       title,
       problem: details,
-      expectedBehavior: buildGenericBugExpectedBehavior(report),
-      actualBehavior: details,
-      stepsToReproduce: steps,
+      expectedBehavior: bugOverrides.expectedBehavior ?? buildGenericBugExpectedBehavior(report),
+      actualBehavior: bugOverrides.actualBehavior ?? details,
+      stepsToReproduce: bugOverrides.stepsToReproduce
+        ? renderForumBodyDisplayValue({
+          value: bugOverrides.stepsToReproduce,
+          fallback: "Not provided",
+          maxLength: 240,
+        })
+        : legacySteps,
       userStory: null,
       description: null,
       acceptanceCriteria: buildBugAcceptanceCriteria(report),
@@ -1088,7 +1288,7 @@ export function buildDiscordFeedbackCardSections(report: DiscordBugReportRow): D
     problem: details,
     expectedBehavior: null,
     actualBehavior: details,
-    stepsToReproduce: steps,
+    stepsToReproduce: legacySteps,
     userStory: null,
     description: details,
     acceptanceCriteria: buildBugAcceptanceCriteria(report),
@@ -1622,6 +1822,7 @@ export function extractDiscordBugReportModalFields(
     summary: readField(components, "bug_summary"),
     area: readField(components, "bug_area"),
     details: readField(components, "bug_details"),
+    sectionOverrides: readField(components, "feedback_section_overrides"),
   };
 }
 
@@ -1717,7 +1918,11 @@ export function normalizeDiscordBugReportInput(
     severity: "medium",
     summary,
     details,
-    stepsToReproduce: null,
+    stepsToReproduce: reportType === "feature"
+      ? buildFeatureSectionOverrideStorage(modalFields.sectionOverrides)
+      : reportType === "bug"
+        ? buildBugSectionOverrideStorage(modalFields.sectionOverrides)
+        : null,
     screenshotUrl: null,
     duplicateFingerprint: duplicateSignal.fingerprint,
     duplicateAreaKey: duplicateSignal.areaKey,
@@ -2102,9 +2307,7 @@ export async function listRecentDiscordFeedbackReports(args: {
 
 export async function updateDiscordFeedbackReportContent(args: {
   reportId: string;
-  summary: string;
-  area: string | null;
-  details: string;
+  modalFields: DiscordBugReportModalFields;
   updatedByDiscordUserId: string;
   adminClient?: DiscordBugReportsAdminClient;
   now?: Date;
@@ -2113,14 +2316,6 @@ export async function updateDiscordFeedbackReportContent(args: {
   | { ok: false; code: "DISCORD_BUG_REPORT_UPDATE_FAILED" | "DISCORD_BUG_REPORT_INVALID_INPUT" }
 > {
   if (!isDiscordSnowflake(args.updatedByDiscordUserId)) {
-    return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
-  }
-
-  const normalizedSummary = normalizeTextInput(args.summary, DISCORD_BUG_REPORT_SUMMARY_MAX_LENGTH);
-  const normalizedArea = normalizeTextInput(args.area, DISCORD_BUG_REPORT_AREA_MAX_LENGTH);
-  const normalizedDetails = normalizeTextInput(args.details, DISCORD_BUG_REPORT_DETAILS_MAX_LENGTH);
-
-  if (!normalizedSummary || !normalizedDetails) {
     return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
   }
 
@@ -2133,17 +2328,24 @@ export async function updateDiscordFeedbackReportContent(args: {
       return { ok: false, code: "DISCORD_BUG_REPORT_UPDATE_FAILED" };
     }
 
+    const normalizedInput = normalizeDiscordBugReportInput(args.modalFields, existingLookup.report_type);
+    if (!normalizedInput) {
+      return { ok: false, code: "DISCORD_BUG_REPORT_INVALID_INPUT" };
+    }
+
     const { data, error } = await admin
       .from("discord_feedback_reports")
       .update({
-        summary: normalizedSummary,
-        area: normalizedArea,
-        details: normalizedDetails,
+        summary: normalizedInput.summary,
+        area: normalizedInput.area,
+        details: normalizedInput.details,
+        steps_to_reproduce: normalizedInput.stepsToReproduce,
         effort_points: estimateDiscordFeedbackEffortPoints({
           ...existingLookup,
-          area: normalizedArea,
-          summary: normalizedSummary,
-          details: normalizedDetails,
+          area: normalizedInput.area,
+          summary: normalizedInput.summary,
+          details: normalizedInput.details,
+          steps_to_reproduce: normalizedInput.stepsToReproduce,
         }),
         last_seen_at: nowIso,
         updated_at: nowIso,

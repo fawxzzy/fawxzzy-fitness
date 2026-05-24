@@ -336,6 +336,7 @@ test("extractDiscordBugReportModalFields maps Discord modal rows into named feed
     summary: "Copy button failed",
     area: "Settings",
     details: "I tapped Copy and nothing happened.",
+    sectionOverrides: null,
   });
 });
 
@@ -524,6 +525,58 @@ test("buildDiscordBugForumThreadBody uses stored feature acceptance criteria whe
     }),
     /\*\*Acceptance Criteria\*\*\n- Typing computa let's play wine or cheese starts the game in the same channel\.\n- Only the player who started the game can choose\.\n- No dedicated gameplay thread is created\./m,
   );
+});
+
+test("buildDiscordBugForumThreadBody uses labeled feature section overrides when provided", () => {
+  assert.match(
+    buildDiscordBugForumThreadBody({
+      report: buildStoredRow({
+        report_type: "feature",
+        summary: "Make feedback cards easier to submit",
+        details: "Shorter launcher flow with a submit picker.",
+        steps_to_reproduce: [
+          "User Story:",
+          "As a member, I want a guided submit flow, so that I can open the right card shape without guessing.",
+          "",
+          "Acceptance Criteria:",
+          "- Submit opens a type picker first.",
+          "- Feature cards keep the stored user story.",
+        ].join("\n"),
+      }),
+      reporterLabel: "Member #4",
+    }),
+    /\*\*User Story\*\*\nAs a member, I want a guided submit flow, so that I can open the right card shape without guessing\./m,
+  );
+});
+
+test("buildDiscordBugForumThreadBody uses labeled bug section overrides when provided", () => {
+  const body = buildDiscordBugForumThreadBody({
+    report: buildStoredRow({
+      report_type: "bug",
+      summary: "Feedback submit opens the wrong surface",
+      details: "Submit opens a modal instead of a picker.",
+      steps_to_reproduce: [
+        "Expected behavior:",
+        "Submit should open a type picker first.",
+        "",
+        "Actual behavior:",
+        "Submit opens the legacy modal directly.",
+        "",
+        "Steps to reproduce:",
+        "1. Open the feedback panel.",
+        "2. Press Submit.",
+        "",
+        "Acceptance Criteria:",
+        "- Submit opens the type picker first.",
+      ].join("\n"),
+    }),
+    reporterLabel: "Member #4",
+  });
+
+  assert.match(body, /\*\*Expected behavior\*\*\nSubmit should open a type picker first\./m);
+  assert.match(body, /\*\*Actual behavior\*\*\nSubmit opens the legacy modal directly\./m);
+  assert.match(body, /\*\*Steps to reproduce\*\*\n1\. Open the feedback panel\./m);
+  assert.match(body, /\*\*Acceptance Criteria\*\*\n- Submit opens the type picker first\./m);
 });
 
 test("buildDiscordBugForumThreadBody preserves feature acceptance criteria when description is long", () => {

@@ -77,6 +77,9 @@ export const FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID = "fitness_feedback_submit_open";
 export const FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID = "fitness_feedback_update_open";
 export const FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID = "fitness_feedback_submit_modal";
+export const FITNESS_FEEDBACK_SUBMIT_PICKER_SELECT_CUSTOM_ID = "fitness_feedback_submit_pick_type";
+export const FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX = "fitness_feedback_submit_create";
+export const FITNESS_FEEDBACK_SECTION_OVERRIDES_INPUT_CUSTOM_ID = "feedback_section_overrides";
 export const FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID = "fitness_feedback_withdraw_modal";
 export const FITNESS_FEEDBACK_UPDATE_PICKER_SELECT_CUSTOM_ID = "fitness_feedback_update_pick_report";
 export const FITNESS_FEEDBACK_UPDATE_EDIT_MODAL_CUSTOM_ID_PREFIX = "fitness_feedback_update_edit_modal";
@@ -169,13 +172,12 @@ export const DEFAULT_VERIFY_MESSAGE_BODY = [
 ].join("\n");
 export const DEFAULT_FEEDBACK_PANEL_TITLE = "Submit Feedback Here";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
-  "Use this panel to send a new bug or feature request from wherever staff places it.",
+  "Use this panel to send new feedback or manage a card you already opened.",
   "",
-  "- Submit: create a new feedback card.",
-  "- Edit: manage one of your existing cards, including withdraw.",
-  "- Resolved cards are marked with a checkmark and archived when complete.",
+  "- Submit: choose Bug or Feature, then create a card.",
+  "- Edit: update or withdraw one of your cards.",
   "",
-  "Your feedback card appears in the Feedback forum after submit. Do not include passwords, tokens, or private info.",
+  "Do not include passwords, tokens, or private info.",
 ] as const;
 export const DEFAULT_SPOTIFY_CLUB_PANEL_TITLE = "Music Sesh";
 export const DISCORD_PERMISSION_ADMINISTRATOR = BigInt(1) << BigInt(3);
@@ -393,69 +395,6 @@ function buildDiscordModalLabelTextInput(args: {
   };
 }
 
-function buildDiscordModalActionRowTextInput(args: {
-  label: string;
-  customId: string;
-  style: 1 | 2;
-  placeholder?: string;
-  value?: string;
-  required?: boolean;
-  maxLength?: number;
-}) {
-  return {
-    type: 1,
-    components: [
-      {
-        type: 4,
-        custom_id: args.customId,
-        label: args.label,
-        style: args.style,
-        ...(args.placeholder ? { placeholder: args.placeholder } : {}),
-        ...(typeof args.value === "string" ? { value: args.value } : {}),
-        required: args.required ?? true,
-        ...(typeof args.maxLength === "number" ? { max_length: args.maxLength } : {}),
-      },
-    ],
-  };
-}
-
-function buildDiscordFeedbackTypeSelectComponent(args?: {
-  defaultReportType?: "bug" | "feature" | null;
-  emojis?: DiscordFeedbackEmojiMap | null;
-}): DiscordModalLabelComponent {
-  const defaultReportType = args?.defaultReportType ?? null;
-  const bugEmoji = args?.emojis?.Bug;
-  const featureEmoji = args?.emojis?.Feature;
-
-  return {
-    type: 18,
-    label: "Feedback type",
-    description: "Choose Bug or Feature.",
-    component: {
-      type: 3,
-      custom_id: FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
-      required: true,
-      placeholder: defaultReportType === "feature" ? "Feature" : "Bug",
-      options: [
-        {
-          label: "Bug",
-          value: "bug",
-          description: "Report something broken or not working right.",
-          ...(bugEmoji ? { emoji: bugEmoji } : {}),
-          default: defaultReportType === "bug",
-        },
-        {
-          label: "Feature",
-          value: "feature",
-          description: "Suggest an improvement or new capability.",
-          ...(featureEmoji ? { emoji: featureEmoji } : {}),
-          default: defaultReportType === "feature",
-        },
-      ],
-    },
-  };
-}
-
 function buildDiscordFeedbackReportSelectComponent(args: {
   label: string;
   description: string;
@@ -497,53 +436,96 @@ function buildDiscordFeedbackAttachmentComponent(): DiscordModalLabelComponent {
   };
 }
 
-function buildDiscordFeedbackSubmitModalData(args?: {
+function buildDiscordFeedbackSectionOverridePlaceholder(reportType: "bug" | "feature") {
+  if (reportType === "feature") {
+    return [
+      "User Story:",
+      "As a user, I want ...",
+      "",
+      "Acceptance Criteria:",
+      "- ...",
+      "- ...",
+    ].join("\n");
+  }
+
+  return [
+    "Expected behavior:",
+    "...",
+    "",
+    "Actual behavior:",
+    "...",
+    "",
+    "Steps to reproduce:",
+    "1. ...",
+    "",
+    "Acceptance Criteria:",
+    "- ...",
+  ].join("\n");
+}
+
+function buildDiscordFeedbackSubmitModalData(args: {
+  reportType: "bug" | "feature";
   customId?: string;
   title?: string;
-  defaultReportType?: "bug" | "feature" | null;
+  summary?: string;
+  area?: string | null;
+  details?: string | null;
+  sectionOverrides?: string | null;
   emojis?: DiscordFeedbackEmojiMap | null;
 }) {
-  const defaultReportType = args?.defaultReportType ?? null;
+  const reportType = args.reportType;
+  const detailsLabel = reportType === "feature" ? "Description" : "Problem";
+  const detailsPlaceholder = reportType === "feature"
+    ? "Describe the feature, flow, or requested outcome."
+    : "Describe the issue or broken behavior.";
+  const sectionOverrideLabel = reportType === "feature"
+    ? "User Story / Acceptance Criteria"
+    : "Expected / Actual / Steps / Criteria";
+  const sectionOverrideDescription = reportType === "feature"
+    ? "Optional. Use the labeled sections below to fully control the Feature card."
+    : "Optional. Use the labeled sections below to fully control the Bug card.";
 
   return {
-    custom_id: args?.customId ?? FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
-    title: args?.title ?? "Submit Feedback",
+    custom_id: args.customId ?? FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
+    title: args.title ?? "Submit Feedback",
     components: [
-      buildDiscordModalActionRowTextInput({
-        label: "Type",
-        customId: FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
-        style: 1,
-        placeholder: "Bug or Feature",
-        value: defaultReportType === "feature" ? "Feature" : defaultReportType === "bug" ? "Bug" : undefined,
-        required: true,
-        maxLength: 16,
-      }),
-      buildDiscordModalActionRowTextInput({
+      buildDiscordModalLabelTextInput({
         label: "Title",
         customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
         style: 1,
-        placeholder: defaultReportType === "feature"
+        placeholder: reportType === "feature"
           ? "Example: Add a weekly goal dashboard"
           : "Example: Recovery screen closes after save",
+        value: args.summary ?? undefined,
         required: true,
         maxLength: 120,
       }),
-      buildDiscordModalActionRowTextInput({
+      buildDiscordModalLabelTextInput({
         label: "Area / screen",
         customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
         style: 1,
         placeholder: "Settings, Recovery, Discord Feedback...",
+        value: args.area ?? undefined,
         required: false,
         maxLength: 80,
       }),
-      buildDiscordModalActionRowTextInput({
-        label: defaultReportType === "feature" || defaultReportType === "bug"
-          ? "Description"
-          : "Details",
+      buildDiscordModalLabelTextInput({
+        label: detailsLabel,
         customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
         style: 2,
-        placeholder: "Describe the issue or idea. Include steps, context, or expected behavior if helpful.",
+        placeholder: detailsPlaceholder,
+        value: args.details ?? undefined,
         required: true,
+        maxLength: 1200,
+      }),
+      buildDiscordModalLabelTextInput({
+        label: sectionOverrideLabel,
+        description: sectionOverrideDescription,
+        customId: FITNESS_FEEDBACK_SECTION_OVERRIDES_INPUT_CUSTOM_ID,
+        style: 2,
+        placeholder: buildDiscordFeedbackSectionOverridePlaceholder(reportType),
+        value: args.sectionOverrides ?? undefined,
+        required: false,
         maxLength: 1200,
       }),
     ],
@@ -568,13 +550,13 @@ export function buildDiscordFeedbackPanelMessagePayload(args?: {
             type: 2,
             style: 1,
             custom_id: FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
-            label: "Submit Feedback",
+            label: "Submit",
           },
           {
             type: 2,
             style: 2,
             custom_id: FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
-            label: "Edit My Feedback",
+            label: "Edit",
           },
         ],
       },
@@ -1212,8 +1194,82 @@ export function buildDiscordFeedbackPanelSubmitModalResponse(args?: {
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
     data: buildDiscordFeedbackSubmitModalData({
+      reportType: "bug",
       emojis: args?.emojis,
     }),
+  };
+}
+
+function buildDiscordFeedbackSubmitCreateButtonCustomId(reportType: "bug" | "feature") {
+  return `${FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX}:${reportType}`;
+}
+
+export function extractDiscordFeedbackSubmitCreateReportType(customId: string | null | undefined): "bug" | "feature" | null {
+  if (!customId?.startsWith(`${FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX}:`)) {
+    return null;
+  }
+
+  const reportType = customId.slice(FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX.length + 1).trim();
+  return reportType === "bug" || reportType === "feature" ? reportType : null;
+}
+
+export function buildDiscordFeedbackSubmitPickerResponse(args?: {
+  selectedReportType?: "bug" | "feature";
+}) {
+  const selectedReportType = args?.selectedReportType ?? "bug";
+  const selectedLabel = selectedReportType === "feature" ? "Feature" : "Bug";
+
+  return {
+    type: DISCORD_INTERACTION_RESPONSE_TYPE.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      content: "Choose a feedback type, then create the card.",
+      flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 3,
+              custom_id: FITNESS_FEEDBACK_SUBMIT_PICKER_SELECT_CUSTOM_ID,
+              placeholder: "Choose Bug or Feature",
+              min_values: 1,
+              max_values: 1,
+              options: [
+                {
+                  label: "Bug",
+                  value: "bug",
+                  description: "Report something broken or unexpected.",
+                  ...(selectedReportType === "bug" ? { default: true } : {}),
+                },
+                {
+                  label: "Feature",
+                  value: "feature",
+                  description: "Request a new capability or workflow.",
+                  ...(selectedReportType === "feature" ? { default: true } : {}),
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              custom_id: buildDiscordFeedbackSubmitCreateButtonCustomId(selectedReportType),
+              label: `Create ${selectedLabel}`,
+            },
+            {
+              type: 2,
+              style: 2,
+              custom_id: FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID,
+              label: "Cancel",
+            },
+          ],
+        },
+      ],
+    },
   };
 }
 
@@ -1302,44 +1358,25 @@ export function extractDiscordFeedbackUpdateReportIdFromModalCustomId(customId: 
 }
 
 export function buildDiscordFeedbackUpdateModalResponse(args: {
+  reportType: "bug" | "feature";
   reportId: string;
   summary: string;
   area?: string | null;
   details: string;
+  sectionOverrides?: string | null;
 }) {
+  const reportType = args.reportType;
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
-    data: {
-      custom_id: buildDiscordFeedbackUpdateModalCustomId(args.reportId),
+    data: buildDiscordFeedbackSubmitModalData({
+      reportType,
+      customId: buildDiscordFeedbackUpdateModalCustomId(args.reportId),
       title: "Edit Feedback Card",
-      components: [
-        buildDiscordModalLabelTextInput({
-          label: "Title",
-          customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
-          style: 1,
-          value: args.summary,
-          required: true,
-          maxLength: 120,
-        }),
-        buildDiscordModalLabelTextInput({
-          label: "Area",
-          customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
-          style: 1,
-          value: args.area ?? "",
-          required: false,
-          maxLength: 80,
-        }),
-        buildDiscordModalLabelTextInput({
-          label: "Description / what happened",
-          description: "Edit the main card text. Saving updates the live forum post.",
-          customId: FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
-          style: 2,
-          value: args.details,
-          required: true,
-          maxLength: 1200,
-        }),
-      ],
-    },
+      summary: args.summary,
+      area: args.area ?? "",
+      details: args.details,
+      sectionOverrides: args.sectionOverrides ?? "",
+    }),
   };
 }
 
@@ -1583,9 +1620,9 @@ export function buildDiscordFeedbackReportModalResponse(reportType: "bug" | "fea
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.MODAL,
     data: buildDiscordFeedbackSubmitModalData({
+      reportType,
       customId: buildDiscordFeedbackModalCustomId(reportType),
       title,
-      defaultReportType: reportType,
     }),
   };
 }
