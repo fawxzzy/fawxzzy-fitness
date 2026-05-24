@@ -520,7 +520,7 @@ test("feedback gateway worker resolves the production poll URL safely", () => {
 });
 
 test("feedback gateway worker bounds the fallback poll interval", () => {
-  assert.equal(resolveDiscordMessageCommandPollIntervalMs({}), 15_000);
+  assert.equal(resolveDiscordMessageCommandPollIntervalMs({}), 5_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "1000" }), 5_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "30000" }), 30_000);
   assert.equal(resolveDiscordMessageCommandPollIntervalMs({ DISCORD_MESSAGE_COMMAND_POLL_INTERVAL_MS: "999999" }), 120_000);
