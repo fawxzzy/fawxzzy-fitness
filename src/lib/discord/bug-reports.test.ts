@@ -652,6 +652,12 @@ test("buildDiscordBugForumTagNames applies severity only to bug cards", () => {
     status: "withdrawn",
     severity: "high",
   }), ["Feature", "Withdrawn"]);
+
+  assert.deepEqual(buildDiscordBugForumTagNames({
+    reportType: "feature",
+    status: "fixed",
+    severity: "medium",
+  }), ["Feature", "Resolved"]);
 });
 
 test("buildDiscordBugForumTagNames can include Backlog alongside planning statuses", () => {

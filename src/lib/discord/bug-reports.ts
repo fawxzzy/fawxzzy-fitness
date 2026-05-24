@@ -1203,9 +1203,15 @@ export function buildDiscordBugForumTagNames(args: {
   severity: DiscordBugReportSeverity;
   includeBacklog?: boolean;
 }): string[] {
+  const statusLabel = args.reportType === "feature"
+    ? formatDiscordFeedbackDisplayStatusLabel({
+      reportType: args.reportType,
+      status: args.status,
+    })
+    : formatDiscordBugReportStatusLabel(args.status);
   const names = [
     formatDiscordBugReportTypeLabel(args.reportType),
-    formatDiscordBugReportStatusLabel(args.status),
+    statusLabel,
   ];
 
   if (args.reportType !== "feature" && args.status !== "spam") {
