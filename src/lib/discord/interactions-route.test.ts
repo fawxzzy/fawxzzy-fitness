@@ -6078,6 +6078,144 @@ test("Discord interactions route rejects setup-music-sesh for users without setu
   });
 });
 
+test("Discord interactions route posts setup-music-sesh in the invoking channel and removes the old launcher channel", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_SPOTIFY_CLUB_CHANNEL_ID = "1506131171208200302";
+
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
+    calls.push({ method, pathname: url.pathname, body });
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_spotify_lobbies") && method === "POST") {
+      return new Response(JSON.stringify(buildSpotifyClubLobbyRow({
+        panel_channel_id: "1504668396338413671",
+        panel_message_id: "new-music-sesh-panel",
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504668396338413671", type: 0, name: "main" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+      assert.equal(body?.components?.[0]?.components?.[0]?.label, "Open Music Sesh Controls");
+      return new Response(JSON.stringify({ id: "new-music-sesh-panel" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "1504668396338413671", type: 0, name: "main" },
+        { id: "1506131171208200302", type: 0, name: "music-sesh" },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1506131171208200302/messages" && method === "GET") {
+      return new Response(JSON.stringify([{
+        id: "old-music-sesh-panel",
+        author: { id: "1504700208251146371" },
+        components: [
+          {
+            type: 1,
+            components: [
+              { type: 2, custom_id: "spotify_controls_open", label: "Open Music Sesh Controls" },
+            ],
+          },
+        ],
+      }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1506131171208200302/messages/old-music-sesh-panel" && method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname === "/api/v10/channels/1506131171208200302" && method === "DELETE") {
+      return new Response(JSON.stringify({ id: "1506131171208200302", name: "music-sesh" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      type: 2,
+      guild_id: "1504668396338413670",
+      channel_id: "1504668396338413671",
+      member: {
+        permissions: String(BigInt(1) << BigInt(5)),
+        user: {
+          id: "222222222222222222",
+          username: "staffer",
+        },
+      },
+      data: {
+        name: "setup-music-sesh",
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      type: 4,
+      data: {
+        content: "Music Sesh panel created in <#1504668396338413671>.",
+        flags: 64,
+      },
+    });
+    assert.equal(calls.some((call) => call.method === "POST" && call.pathname === "/api/v10/channels/1504668396338413671/messages"), true);
+    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1506131171208200302/messages/old-music-sesh-panel"), true);
+    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1506131171208200302"), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_SPOTIFY_CLUB_CHANNEL_ID;
+  }
+});
+
 test("Discord interactions route defers the Spotify control hub opener and shows Connect plus refresh for disconnected non-managers", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);

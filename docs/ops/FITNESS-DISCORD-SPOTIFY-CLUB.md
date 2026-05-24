@@ -155,7 +155,7 @@ Configure these in local env and Vercel before deploy:
 - `SPOTIFY_REDIRECT_URI`
 - `SPOTIFY_TOKEN_ENCRYPTION_KEY`
 - `SPOTIFY_OAUTH_STATE_SECRET`
-- `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`
+- `DISCORD_SPOTIFY_CLUB_CHANNEL_ID` optional fallback only when no invoking channel is available
 
 Optional:
 
@@ -191,7 +191,8 @@ Command behavior:
 - `connect`: returns an OAuth link and the Phase 1 Jam Ready explanation.
 - `status`: returns one of not connected, not Premium, missing playback permissions, no active device, or Playback Ready.
 - `disconnect`: tombstones the stored connection and removes live token material.
-- `setup-music-sesh`: posts or refreshes the canonical Music Sesh panel in `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`.
+- `setup-music-sesh`: posts or refreshes the canonical Music Sesh panel in the invoking channel.
+- If no invoking channel is available, `DISCORD_SPOTIFY_CLUB_CHANNEL_ID` can act as a fallback.
 - `jam-lobby`: opens, closes, or reports lobby shell state only. No playback or queue behavior is allowed in this phase.
 - `jam-queue suggest`: stores a pending queue suggestion for the active lobby.
 - `jam-queue list`: shows the current approved queue and pending suggestion count.
@@ -235,7 +236,7 @@ Rules:
 
 Operational cleanup:
 
-- `npm run spotify:club:cleanup` runs a dry-run against `DISCORD_SPOTIFY_CLUB_CHANNEL_ID`
+- `npm run spotify:club:cleanup` runs a dry-run against the configured fallback Music Sesh channel when that fallback is still in use
 - `npm run spotify:club:cleanup -- --apply` deletes known bot-authored Spotify queue rollout chatter while preserving the canonical panel
 - the cleanup tool only targets the configured public Music Sesh channel
 

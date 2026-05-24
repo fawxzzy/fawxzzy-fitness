@@ -1683,7 +1683,17 @@ async function ensureFeedbackPanelChannel(args: { targetChannelId?: string | nul
   };
 }
 
-function ensureSpotifyClubPanelChannel() {
+const LEGACY_SPOTIFY_CLUB_LAUNCHER_CHANNEL_NAMES = new Set(["spotify-club", "music-sesh"]);
+
+async function ensureSpotifyClubPanelChannel(args: { targetChannelId?: string | null } = {}) {
+  if (args.targetChannelId) {
+    return {
+      ok: true as const,
+      channelId: args.targetChannelId,
+      channelLabel: `<#${args.targetChannelId}>`,
+    };
+  }
+
   const channelId = DISCORD_SPOTIFY_CLUB_CHANNEL_ID();
   if (!channelId) {
     return {
@@ -1698,6 +1708,124 @@ function ensureSpotifyClubPanelChannel() {
     channelId,
     channelLabel: `<#${channelId}>`,
   };
+}
+
+async function collectLegacyDiscordSpotifyClubPanelChannelIds(targetChannelId: string) {
+  const channels = new Map<string, { id: string; name?: string | null }>();
+  const configuredChannelId = DISCORD_SPOTIFY_CLUB_CHANNEL_ID();
+  if (configuredChannelId && configuredChannelId !== targetChannelId) {
+    channels.set(configuredChannelId, { id: configuredChannelId });
+  }
+
+  const latestLobby = await getLatestDiscordSpotifyLobby();
+  if (latestLobby?.panel_channel_id && latestLobby.panel_channel_id !== targetChannelId) {
+    channels.set(latestLobby.panel_channel_id, { id: latestLobby.panel_channel_id });
+  }
+
+  const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
+  if (!guildChannelsResult.ok) {
+    console.warn("[discord-spotify-panel] legacy channel lookup failed", {
+      code: guildChannelsResult.code,
+      status: guildChannelsResult.status,
+      message: guildChannelsResult.message,
+    });
+    return Array.from(channels.values());
+  }
+
+  for (const channel of guildChannelsResult.channels) {
+    if (channel.id && channels.has(channel.id)) {
+      channels.set(channel.id, { id: channel.id, name: channel.name ?? null });
+    }
+
+    if (
+      channel.id
+      && channel.id !== targetChannelId
+      && channel.type === 0
+      && channel.name
+      && LEGACY_SPOTIFY_CLUB_LAUNCHER_CHANNEL_NAMES.has(channel.name)
+    ) {
+      channels.set(channel.id, { id: channel.id, name: channel.name });
+    }
+  }
+
+  return Array.from(channels.values());
+}
+
+async function deleteDiscordSpotifyClubPanelMessagesInChannel(args: {
+  channelId: string;
+  keepMessageIds?: string[];
+}) {
+  const messagesResult = await fetchDiscordChannelMessages({
+    channelId: args.channelId,
+    limit: 50,
+  });
+
+  if (!messagesResult.ok) {
+    console.warn("[discord-spotify-panel] stale panel scan failed", {
+      channelId: args.channelId,
+      code: messagesResult.code,
+      status: messagesResult.status,
+      message: messagesResult.message,
+    });
+    return;
+  }
+
+  const keepMessageIds = new Set(args.keepMessageIds ?? []);
+  const stalePanelMessages = messagesResult.messages.filter((message) => (
+    message.id
+    && !keepMessageIds.has(message.id)
+    && discordMessageHasSpotifyClubPanel(message)
+  ));
+
+  for (const message of stalePanelMessages) {
+    const deleteResult = await deleteDiscordChannelMessage({
+      channelId: args.channelId,
+      messageId: message.id,
+    });
+    if (!deleteResult.ok && deleteResult.code !== "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
+      console.warn("[discord-spotify-panel] stale panel delete failed", {
+        channelId: args.channelId,
+        messageId: message.id,
+        code: deleteResult.code,
+        status: deleteResult.status,
+        message: deleteResult.message,
+      });
+    }
+  }
+}
+
+async function cleanupLegacyDiscordSpotifyClubPanels(args: {
+  targetChannelId: string;
+  keepMessageIds?: string[];
+  includeLegacyChannels: boolean;
+}) {
+  await deleteDiscordSpotifyClubPanelMessagesInChannel({
+    channelId: args.targetChannelId,
+    keepMessageIds: args.keepMessageIds,
+  });
+
+  if (!args.includeLegacyChannels) {
+    return;
+  }
+
+  const legacyChannels = await collectLegacyDiscordSpotifyClubPanelChannelIds(args.targetChannelId);
+  for (const channel of legacyChannels) {
+    await deleteDiscordSpotifyClubPanelMessagesInChannel({ channelId: channel.id });
+
+    if (!channel.name || !LEGACY_SPOTIFY_CLUB_LAUNCHER_CHANNEL_NAMES.has(channel.name)) {
+      continue;
+    }
+
+    const deleteChannelResult = await deleteDiscordChannel({ channelId: channel.id });
+    if (!deleteChannelResult.ok) {
+      console.warn("[discord-spotify-panel] legacy launcher channel delete failed", {
+        channelId: channel.id,
+        code: deleteChannelResult.code,
+        status: deleteChannelResult.status,
+        message: deleteChannelResult.message,
+      });
+    }
+  }
 }
 
 async function loadRecentFeedbackReportOptions(args: {
@@ -2430,8 +2558,11 @@ async function upsertDiscordFeedbackPanel(args: {
   return { ok: false as const, code: deleteResult.code, status: deleteResult.status, message: deleteResult.message };
 }
 
-async function upsertDiscordSpotifyClubPanel() {
-  const panelChannelResult = ensureSpotifyClubPanelChannel();
+async function upsertDiscordSpotifyClubPanel(args: {
+  targetChannelId?: string | null;
+  cleanupLegacyPanels?: boolean;
+} = {}) {
+  const panelChannelResult = await ensureSpotifyClubPanelChannel({ targetChannelId: args.targetChannelId });
   if (!panelChannelResult.ok) {
     return panelChannelResult;
   }
@@ -2490,6 +2621,14 @@ async function upsertDiscordSpotifyClubPanel() {
       if (deleteResult.ok || deleteResult.code === "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
         duplicateCount += 1;
       }
+    }
+
+    if (args.cleanupLegacyPanels === true) {
+      await cleanupLegacyDiscordSpotifyClubPanels({
+        targetChannelId: panelChannelResult.channelId,
+        keepMessageIds: createResult.messageId ? [createResult.messageId] : [],
+        includeLegacyChannels: true,
+      });
     }
 
     return {
@@ -2570,6 +2709,14 @@ async function upsertDiscordSpotifyClubPanel() {
     if (deleteResult.ok || deleteResult.code === "DISCORD_DELETE_MESSAGE_NOT_FOUND") {
       duplicateCount += 1;
     }
+  }
+
+  if (args.cleanupLegacyPanels === true) {
+    await cleanupLegacyDiscordSpotifyClubPanels({
+      targetChannelId: panelChannelResult.channelId,
+      keepMessageIds: existingMessage.id ? [existingMessage.id] : [],
+      includeLegacyChannels: true,
+    });
   }
 
   return {
@@ -3561,7 +3708,10 @@ async function processDiscordMusicSeshSetupMessageCommand(args: {
     return authorization;
   }
 
-  const upsertResult = await upsertDiscordSpotifyClubPanel();
+  const upsertResult = await upsertDiscordSpotifyClubPanel({
+    targetChannelId: args.channelId,
+    cleanupLegacyPanels: true,
+  });
   if (!upsertResult.ok) {
     console.error("[discord-message-command] music sesh setup failed", {
       requestId: randomUUID(),
@@ -4811,7 +4961,11 @@ async function handleSetupSpotifyClubInteraction(interaction: DiscordInteraction
     return buildDiscordEphemeralMessageResponse("You do not have permission to set up Music Sesh.");
   }
 
-  const upsertResult = await upsertDiscordSpotifyClubPanel();
+  const sourceChannelId = typeof interaction.channel_id === "string" ? interaction.channel_id : null;
+  const upsertResult = await upsertDiscordSpotifyClubPanel({
+    targetChannelId: sourceChannelId,
+    cleanupLegacyPanels: Boolean(sourceChannelId),
+  });
   if (!upsertResult.ok) {
     console.error("[discord-interactions] setup-spotify-club failed", {
       requestId: randomUUID(),

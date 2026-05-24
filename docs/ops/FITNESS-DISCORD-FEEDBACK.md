@@ -51,7 +51,7 @@ Product rules:
 - `computa setup music sesh`
   - main-channel message trigger
   - commander-only, with configured owner bypass
-  - refreshes the canonical Music Sesh panel in the configured Music Sesh channel
+  - refreshes the canonical Music Sesh panel in the channel where the trigger was used
   - aliases: `computa music sesh setup`, `computa setup spotify club`, `computa spotify club setup`
 - `computa archive checked cards`
   - main-channel message trigger
@@ -87,7 +87,7 @@ Product rules:
   - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
   - polls only `DISCORD_MAIN_CHANNEL_ID`
   - deletes the old launcher and reposts the launcher in the channel where the trigger message was sent
-  - removes older launcher messages from previous feedback setup channels after successful setup
+  - removes older launcher messages from previous feedback or Music Sesh setup channels after successful setup
   - marks the trigger message with a public reaction
   - marks setup/permission/failure outcomes with reactions; detailed private output should use interaction ephemerals where possible
   - is protected by `DISCORD_MESSAGE_COMMAND_POLL_SECRET` or `CRON_SECRET`
