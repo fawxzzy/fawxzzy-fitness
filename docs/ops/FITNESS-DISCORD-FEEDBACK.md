@@ -732,6 +732,15 @@ Resolved reaction sync:
 - uses the configured success reaction on the starter post to make completed public cards visually obvious
 - excludes private `feedback-testing` canaries by default unless `--include-testing` is passed
 
+Board state repair:
+- `npm run feedback:repair-board-state -- --dry-run`
+- `npm run feedback:repair-board-state -- --apply`
+- re-syncs public feedback thread titles, tags, and starter-post state reactions across both linked source cards and completed-board copies
+- add `--sync-body` when the full row payload is available and starter-post body content also needs to be rewritten
+- unresolved/non-completed cards receive the configured failure reaction on the starter post
+- fixed/closed cards receive the configured success reaction on the starter post
+- removes stale opposite reactions and legacy white-checkmark reactions
+
 ## Community doctor
 Run:
 

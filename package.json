@@ -43,6 +43,7 @@
     "feedback:phase:check": "node scripts/check-feedback-phase-readiness.mjs",
     "feedback:sync-forum-posts": "node scripts/sync-feedback-forum-posts.mjs",
     "feedback:sync-resolved-reactions": "node scripts/sync-feedback-resolved-reactions.mjs",
+    "feedback:repair-board-state": "node scripts/repair-feedback-board-state.mjs",
     "spotify:club:cleanup": "node scripts/cleanup-spotify-club-channel.mjs",
     "moderation:purgatory:release-expired": "node scripts/release-expired-purgatory-cases.mjs",
     "prebuild": "npm run build:guard -- --stop-dev && npm run build:prepare",
