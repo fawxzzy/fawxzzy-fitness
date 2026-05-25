@@ -286,6 +286,23 @@ import { dispatchSpotifyInteraction } from "@/lib/discord/runtime/domains/spotif
 import { dispatchUpdatesInteraction } from "@/lib/discord/runtime/domains/updates";
 import { dispatchVerificationInteraction } from "@/lib/discord/runtime/domains/verification";
 import { dispatchDiscordDomainResponses } from "@/lib/discord/runtime/helpers";
+import {
+  appendDiscordFeedbackWarning,
+  canAccessAnyFeedbackReport,
+  isResolvedFeedbackStatus,
+  resolveDiscordFeedbackLookupFailureMessage,
+  resolveFirstDiscordComponentValue,
+  resolveSubmitPickerReportTypeFromValues,
+  shouldArchiveFeedbackThread,
+  summarizeFeedbackContentChanges,
+} from "@/lib/discord/runtime/feedback/helpers";
+import {
+  ensureDiscordResolvedFeedbackReaction as ensureDiscordResolvedFeedbackReactionBoundary,
+  logDiscordFeedbackSoftFailure,
+  postFeedbackAuditComment as postFeedbackAuditCommentBoundary,
+  syncDiscordFeedbackForumThread as syncDiscordFeedbackForumThreadBoundary,
+  syncDiscordFeedbackStarterMessage as syncDiscordFeedbackStarterMessageBoundary,
+} from "@/lib/discord/runtime/feedback/forum";
 import type { DiscordInteraction } from "@/lib/discord/runtime/types";
 import { consumeDiscordVerificationTokenForDiscordUser } from "@/lib/discord/verification-server";
 
@@ -1478,14 +1495,6 @@ async function diagnoseVerifiedRoleAssignmentFailure(args: {
   };
 }
 
-function shouldArchiveFeedbackThread(status: string): boolean {
-  return status === "duplicate" || status === "withdrawn";
-}
-
-function isResolvedFeedbackStatus(status: string): boolean {
-  return status === "fixed" || status === "closed";
-}
-
 function deriveCompletionReviewUpdate(args: {
   previousReport: DiscordBugReportRow;
   nextStatus: DiscordBugReportRow["status"];
@@ -1526,10 +1535,6 @@ function deriveCompletionReviewUpdate(args: {
   return null;
 }
 
-function canAccessAnyFeedbackReport(permissions: string | null) {
-  return discordMemberHasBugStatusPermission(permissions);
-}
-
 function isDiscordForumLikeChannel(type: unknown): boolean {
   return type === 15 || type === 16;
 }
@@ -1552,14 +1557,6 @@ function buildSpotifyClubPanelPermissionFailureResponse() {
 
 function buildSpotifyClubOutdatedPanelResponse() {
   return buildDiscordEphemeralMessageResponse("This Music Sesh panel is outdated. Ask staff to run /setup-music-sesh.");
-}
-
-function buildDiscordFeedbackLookupFailureResponse(code: string) {
-  if (code === "DISCORD_BUG_REPORT_AMBIGUOUS_ID") {
-    return buildDiscordEphemeralMessageResponse("That report id matched multiple feedback reports. Copy the full Report ID from the forum post.");
-  }
-
-  return buildDiscordEphemeralMessageResponse("Could not find that feedback report. Copy the Report ID from the forum post and try again.");
 }
 
 function buildNoContentResponse(status = 202) {
@@ -1796,12 +1793,6 @@ function resolveSelectedFeedbackReportId(args: {
     ?? extractDiscordModalTextInputValue(args.components, args.textInputCustomId);
 }
 
-function extractDiscordComponentSelectValue(values: unknown): string | null {
-  return Array.isArray(values) && typeof values[0] === "string"
-    ? values[0]
-    : null;
-}
-
 type DeferredDiscordEphemeralInteractionResult =
   | string
   | {
@@ -1825,42 +1816,12 @@ function normalizeDeferredDiscordEphemeralInteractionResult(
 async function syncDiscordFeedbackStarterMessage(args: {
   report: DiscordBugReportRow;
 }) {
-  if (!args.report.discord_forum_thread_id || !args.report.discord_forum_message_id) {
-    return { ok: true as const };
-  }
-
-  const reporterLabel = buildDiscordBugReporterLabel({
-    reporterDiscordUsername: args.report.reporter_discord_username,
-    reporterMemberNumber: args.report.reporter_member_number,
+  return syncDiscordFeedbackStarterMessageBoundary({
+    report: args.report,
+    buildReporterLabel: buildDiscordBugReporterLabel,
+    buildForumThreadBody: buildDiscordBugForumThreadBody,
+    patchDiscordChannelMessage,
   });
-  const patchStarterMessageResult = await patchDiscordChannelMessage({
-    channelId: args.report.discord_forum_thread_id,
-    messageId: args.report.discord_forum_message_id,
-    body: {
-      content: buildDiscordBugForumThreadBody({
-        report: args.report,
-        reporterLabel,
-      }),
-      allowed_mentions: buildDiscordAllowedMentions({
-        reporterDiscordUserId: args.report.reporter_discord_user_id,
-        includeReporter: false,
-      }),
-    },
-  });
-
-  if (patchStarterMessageResult.ok) {
-    return { ok: true as const };
-  }
-
-  console.error("[discord-interactions] feedback forum starter message patch failed", {
-    requestId: randomUUID(),
-    reportId: args.report.id,
-    code: patchStarterMessageResult.code,
-    status: patchStarterMessageResult.status,
-    message: patchStarterMessageResult.message,
-  });
-
-  return { ok: false as const };
 }
 
 async function buildDeferredDiscordEphemeralInteractionResponse(args: {
@@ -2018,72 +1979,15 @@ function extractValidatedFeedbackAttachments(interaction: DiscordInteraction): {
   return { ok: true, attachments };
 }
 
-function logDiscordFeedbackSoftFailure(args: {
-  stage: string;
-  reportId: string;
-  code?: string | null;
-  status?: number | null;
-  message?: string | null;
-  error?: unknown;
-}) {
-  console.warn("[discord-interactions] feedback optional step failed", {
-    requestId: randomUUID(),
-    reportId: args.reportId,
-    stage: args.stage,
-    code: args.code ?? null,
-    status: args.status ?? null,
-    message: args.message ?? null,
-    error: args.error instanceof Error ? args.error.message : args.error ? String(args.error) : null,
-  });
-}
-
-function appendDiscordFeedbackWarning(baseMessage: string, warning: string | null) {
-  if (!warning) {
-    return baseMessage;
-  }
-
-  return `${baseMessage} Warning: ${warning}`;
-}
-
 async function ensureDiscordResolvedFeedbackReaction(args: {
   report: DiscordBugReportRow;
 }): Promise<{ warning: string | null }> {
-  if (!isResolvedFeedbackStatus(args.report.status) || !requiresDiscordFeedbackCompletionReview(args.report)) {
-    return { warning: null };
-  }
-
-  if (!args.report.discord_forum_thread_id || !args.report.discord_forum_message_id) {
-    logDiscordFeedbackSoftFailure({
-      stage: "resolved-reaction-missing-starter",
-      reportId: args.report.id,
-      message: "Missing forum thread id or starter message id for resolved reaction sync.",
-    });
-    return {
-      warning: "Discord could not verify the resolved success reaction because the public starter post id is missing.",
-    };
-  }
-
-  const reactionResult = await createDiscordMessageReaction({
-    channelId: args.report.discord_forum_thread_id,
-    messageId: args.report.discord_forum_message_id,
-    emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+  return ensureDiscordResolvedFeedbackReactionBoundary({
+    report: args.report,
+    requiresCompletionReview: requiresDiscordFeedbackCompletionReview,
+    createDiscordMessageReaction,
+    successReaction: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   });
-
-  if (reactionResult.ok) {
-    return { warning: null };
-  }
-
-  logDiscordFeedbackSoftFailure({
-    stage: "resolved-reaction",
-    reportId: args.report.id,
-    code: reactionResult.code,
-    status: reactionResult.status,
-    message: reactionResult.message,
-  });
-
-  return {
-    warning: "Discord could not apply the resolved success reaction on the public starter post.",
-  };
 }
 
 function buildDiscordUpdateDraftLookupFailureResponse(code: string) {
@@ -2097,103 +2001,19 @@ function buildDiscordUpdateDraftLookupFailureResponse(code: string) {
 async function syncDiscordFeedbackForumThread(args: {
   report: DiscordBugReportRow;
 }): Promise<{ forumSyncFailed: boolean }> {
-  await validateDiscordFeedbackEmojis();
   const forumChannelId = args.report.discord_forum_channel_id ?? DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
-  const forumTitle = buildDiscordBugForumThreadTitle({
-    reportType: args.report.report_type,
-    area: args.report.area,
-    summary: args.report.summary,
+  return syncDiscordFeedbackForumThreadBoundary({
+    report: args.report,
+    forumChannelId,
+    validateDiscordFeedbackEmojis,
+    buildForumThreadTitle: buildDiscordBugForumThreadTitle,
+    resolveDiscordForumTagIdsByName,
+    buildForumTagNames: buildDiscordBugForumTagNames,
+    shouldApplyBacklogTag: shouldApplyDiscordFeedbackBacklogTag,
+    updateDiscordForumThreadTitle,
+    updateDiscordForumThreadTags,
+    recordDiscordBugReportForumState,
   });
-
-  let forumSyncFailed = false;
-  if (!args.report.discord_forum_thread_id || !forumChannelId) {
-    return {
-      forumSyncFailed: false,
-    };
-  }
-
-  let matchedTagIds: string[] | null = null;
-  const tagResolutionResult = await resolveDiscordForumTagIdsByName({
-    channelId: forumChannelId,
-    tagNames: buildDiscordBugForumTagNames({
-      reportType: args.report.report_type,
-      status: args.report.status,
-      severity: args.report.severity,
-      includeBacklog: shouldApplyDiscordFeedbackBacklogTag(args.report),
-    }),
-  });
-
-  if (tagResolutionResult.ok) {
-    matchedTagIds = tagResolutionResult.matchedTagIds;
-    if (tagResolutionResult.missingTagNames.length > 0) {
-      console.warn("[discord-interactions] feedback forum tags missing", {
-        requestId: randomUUID(),
-        reportId: args.report.id,
-        missingTagNames: tagResolutionResult.missingTagNames,
-      });
-    }
-  } else {
-    forumSyncFailed = true;
-    console.warn("[discord-interactions] feedback forum tag resolution failed", {
-      requestId: randomUUID(),
-      reportId: args.report.id,
-      code: tagResolutionResult.code,
-      status: tagResolutionResult.status,
-      message: tagResolutionResult.message,
-    });
-  }
-
-  const titleUpdateResult = await updateDiscordForumThreadTitle({
-    threadId: args.report.discord_forum_thread_id,
-    title: forumTitle,
-  });
-
-  if (!titleUpdateResult.ok) {
-    forumSyncFailed = true;
-    console.error("[discord-interactions] feedback forum title update failed", {
-      requestId: randomUUID(),
-      reportId: args.report.id,
-      code: titleUpdateResult.code,
-      status: titleUpdateResult.status,
-      message: titleUpdateResult.message,
-    });
-  }
-
-  if (matchedTagIds) {
-    const tagUpdateResult = await updateDiscordForumThreadTags({
-      threadId: args.report.discord_forum_thread_id,
-      appliedTagIds: matchedTagIds,
-    });
-
-    if (!tagUpdateResult.ok) {
-      forumSyncFailed = true;
-      console.error("[discord-interactions] feedback forum tag update failed", {
-        requestId: randomUUID(),
-        reportId: args.report.id,
-        code: tagUpdateResult.code,
-        status: tagUpdateResult.status,
-        message: tagUpdateResult.message,
-      });
-    }
-  }
-
-  const recordStateResult = await recordDiscordBugReportForumState({
-    reportId: args.report.id,
-    forumTitle,
-    forumAppliedTagIds: matchedTagIds,
-  });
-
-  if (!recordStateResult.ok) {
-    forumSyncFailed = true;
-    console.error("[discord-interactions] feedback forum state update failed", {
-      requestId: randomUUID(),
-      reportId: args.report.id,
-    });
-  }
-
-  return {
-    forumSyncFailed,
-  };
 }
 
 async function postFeedbackAuditComment(args: {
@@ -2207,38 +2027,10 @@ async function postFeedbackAuditComment(args: {
   note?: string | null;
   duplicateCount?: number | null;
 }): Promise<{ ok: boolean; messageId: string | null }> {
-  if (!args.report.discord_forum_thread_id) {
-    return { ok: true, messageId: null };
-  }
-
-  const result = await postFeedbackCardAuditComment({
-    threadId: args.report.discord_forum_thread_id,
-    action: args.action,
-    actorLabel: args.actorLabel,
-    reportType: args.report.report_type,
-    reporterDiscordUserId: args.report.reporter_discord_user_id,
-    includeReporterMention: args.includeReporterMention ?? false,
-    statusBefore: args.statusBefore ?? null,
-    statusAfter: args.statusAfter ?? null,
-    completionReviewStatus: args.completionReviewStatus ?? null,
-    note: args.note ?? null,
-    reportId: args.report.id,
-    duplicateCount: args.duplicateCount ?? null,
+  return postFeedbackAuditCommentBoundary({
+    ...args,
+    postFeedbackCardAuditComment,
   });
-
-  if (!result.ok) {
-    logDiscordFeedbackSoftFailure({
-      stage: `audit-comment:${args.action}`,
-      reportId: args.report.id,
-      code: result.code,
-      status: result.status,
-      message: result.message,
-    });
-
-    return { ok: false, messageId: null };
-  }
-
-  return { ok: true, messageId: result.messageId };
 }
 
 async function collectLegacyDiscordFeedbackPanelChannelIds(targetChannelId: string) {
@@ -5429,7 +5221,9 @@ async function handleSpotifyClubButtonInteraction(interaction: DiscordInteractio
             discordUserId,
           });
 
-          const spotifyUri = extractDiscordComponentSelectValue(interaction.data?.values);
+          const spotifyUri = Array.isArray(interaction.data?.values) && typeof interaction.data.values[0] === "string"
+            ? interaction.data.values[0]
+            : null;
           if (!spotifyUri) {
             return buildSpotifyControlHubEditBodyForUser({
               discordUserId,
@@ -6711,27 +6505,6 @@ async function handleFeedbackCompletionReviewInteraction(interaction: DiscordInt
   ));
 }
 
-function summarizeFeedbackContentChanges(args: {
-  before: DiscordBugReportRow;
-  after: DiscordBugReportRow;
-}) {
-  const changedFields: string[] = [];
-  if ((args.before.summary ?? "") !== (args.after.summary ?? "")) {
-    changedFields.push("Title");
-  }
-  if ((args.before.area ?? "") !== (args.after.area ?? "")) {
-    changedFields.push("Area");
-  }
-  if ((args.before.details ?? "") !== (args.after.details ?? "")) {
-    changedFields.push("Description");
-  }
-  if ((args.before.steps_to_reproduce ?? "") !== (args.after.steps_to_reproduce ?? "")) {
-    changedFields.push("Card Sections");
-  }
-
-  return changedFields.length > 0 ? `Edited fields: ${changedFields.join(", ")}.` : "Card content refreshed.";
-}
-
 async function buildFeedbackUpdatePickerOpenResponse(interaction: DiscordInteraction) {
   const requester = resolveDiscordInteractionUser(interaction);
   const permissions = typeof interaction.member?.permissions === "string" ? interaction.member.permissions : null;
@@ -6750,18 +6523,11 @@ async function buildFeedbackUpdatePickerOpenResponse(interaction: DiscordInterac
   });
 }
 
-function resolveSubmitPickerReportType(interaction: DiscordInteraction): "bug" | "feature" {
-  const componentValues = (interaction.data as { values?: unknown } | null | undefined)?.values;
-  const selectedType = Array.isArray(componentValues) && typeof componentValues[0] === "string"
-    ? normalizeDiscordFeedbackReportType(componentValues[0])
-    : null;
-
-  return selectedType === "feature" ? "feature" : "bug";
-}
-
 async function handleFeedbackSubmitPickerSelection(interaction: DiscordInteraction) {
   return buildDiscordFeedbackSubmitPickerResponse({
-    selectedReportType: resolveSubmitPickerReportType(interaction),
+    selectedReportType: resolveSubmitPickerReportTypeFromValues(
+      (interaction.data as { values?: unknown } | null | undefined)?.values,
+    ),
   });
 }
 
@@ -6795,7 +6561,7 @@ async function buildFeedbackManageCardSelectionResponse(args: {
 
   const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: args.reportIdOrPrefix });
   if (!lookupResult.ok) {
-    return buildDiscordFeedbackLookupFailureResponse(lookupResult.code);
+    return buildDiscordEphemeralMessageResponse(resolveDiscordFeedbackLookupFailureMessage(lookupResult.code));
   }
 
   const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
@@ -6821,10 +6587,9 @@ async function buildFeedbackManageCardSelectionResponse(args: {
 }
 
 async function handleFeedbackUpdatePickerSelection(interaction: DiscordInteraction) {
-  const componentValues = (interaction.data as { values?: unknown } | null | undefined)?.values;
-  const reportId = Array.isArray(componentValues) && typeof componentValues[0] === "string"
-    ? componentValues[0]
-    : null;
+  const reportId = resolveFirstDiscordComponentValue(
+    (interaction.data as { values?: unknown } | null | undefined)?.values,
+  );
 
   return buildFeedbackManageCardSelectionResponse({
     interaction,
@@ -6869,7 +6634,7 @@ async function handleFeedbackManageEditButton(interaction: DiscordInteraction) {
 
   const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: reportId });
   if (!lookupResult.ok) {
-    return buildDiscordFeedbackLookupFailureResponse(lookupResult.code);
+    return buildDiscordEphemeralMessageResponse(resolveDiscordFeedbackLookupFailureMessage(lookupResult.code));
   }
 
   const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
@@ -6913,7 +6678,7 @@ async function handleFeedbackManageWithdrawButton(interaction: DiscordInteractio
 
   const lookupResult = await findDiscordBugReportByIdOrPrefix({ reportIdOrPrefix: reportId });
   if (!lookupResult.ok) {
-    return buildDiscordFeedbackLookupFailureResponse(lookupResult.code);
+    return buildDiscordEphemeralMessageResponse(resolveDiscordFeedbackLookupFailureMessage(lookupResult.code));
   }
 
   const isReporter = lookupResult.report.reporter_discord_user_id === requester.id;
