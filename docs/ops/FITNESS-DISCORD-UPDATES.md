@@ -154,6 +154,7 @@ Formatting rules:
 - use the green left-strip embed card for bot-authored public updates
 - if the curated title is `Fitness App Update`, do not repeat it in the body
 - normalize each non-empty `What changed` line into a single bullet
+- when owner-triggered update posts use top-level section headers such as `What changed:`, `Current markers:`, `Why it matters:`, `The post now includes:`, or `Report ID:`, preserve them as embed fields instead of collapsing everything into one paragraph
 - keep the raw message content empty for low-noise posts unless an explicit loud ping is approved
 - if a broad release-summary really needs `@everyone`, put the mention in the message content above the embed card only when explicitly approved
 

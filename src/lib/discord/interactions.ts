@@ -309,11 +309,18 @@ type DiscordFeedbackReportSelectOption = {
   default?: boolean;
 };
 
-type DiscordModalLabelComponent = {
-  type: 18;
-  label: string;
-  description?: string;
-  component: Record<string, unknown>;
+type DiscordModalTextInputRow = {
+  type: 1;
+  components: [{
+    type: 4;
+    custom_id: string;
+    style: 1 | 2;
+    label: string;
+    placeholder?: string;
+    value?: string;
+    required?: boolean;
+    max_length?: number;
+  }];
 };
 
 function coerceMultilineValue(value: string): string {
@@ -380,78 +387,43 @@ function buildDiscordModalLabelTextInput(args: {
   value?: string;
   required?: boolean;
   maxLength?: number;
-}): DiscordModalLabelComponent {
+}): DiscordModalTextInputRow {
+  const placeholder = args.placeholder?.trim()
+    || args.description?.trim()
+    || null;
+
   return {
-    type: 18,
-    label: args.label,
-    ...(args.description ? { description: args.description } : {}),
-    component: {
+    type: 1,
+    components: [{
       type: 4,
       custom_id: args.customId,
       style: args.style,
-      ...(args.placeholder ? { placeholder: args.placeholder } : {}),
+      label: args.label,
+      ...(placeholder ? { placeholder: truncateComponentLabel(placeholder, 100) } : {}),
       ...(typeof args.value === "string" ? { value: args.value } : {}),
       required: args.required ?? true,
       ...(typeof args.maxLength === "number" ? { max_length: args.maxLength } : {}),
-    },
-  };
-}
-
-function buildDiscordFeedbackReportSelectComponent(args: {
-  label: string;
-  description: string;
-  customId: string;
-  placeholder: string;
-  options: DiscordFeedbackReportSelectOption[];
-}): DiscordModalLabelComponent {
-  return {
-    type: 18,
-    label: args.label,
-    description: args.description,
-    component: {
-      type: 3,
-      custom_id: args.customId,
-      required: false,
-      placeholder: args.placeholder,
-      options: args.options.map((option) => ({
-        label: option.label,
-        value: option.value,
-        ...(option.description ? { description: option.description } : {}),
-        ...(option.default ? { default: true } : {}),
-      })),
-    },
-  };
-}
-
-function buildDiscordFeedbackAttachmentComponent(): DiscordModalLabelComponent {
-  return {
-    type: 18,
-    label: "Attachment",
-    description: "Optional. Upload up to 3 PNG, JPG, WEBP, or GIF images.",
-    component: {
-      type: 19,
-      custom_id: FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID,
-      required: false,
-      min_values: 0,
-      max_values: 3,
-    },
+    }],
   };
 }
 
 function buildDiscordFeedbackSectionOverridePlaceholder(reportType: "bug" | "feature") {
   if (reportType === "feature") {
     return [
-      "User Story:",
-      "As a member, I want feedback submission to stay easy to find and low-noise, so sharing ideas feels simple.",
-      "",
       "Acceptance Criteria:",
       "- Members can submit without using main-chat commands by default.",
       "- The public card clearly shows the expected outcome.",
-      "- The flow stays easy to understand.",
+      "",
+      "User Story:",
+      "As a member, I want feedback submission to stay easy to find and low-noise, so sharing ideas feels simple.",
     ].join("\n");
   }
 
   return [
+    "Acceptance Criteria:",
+    "- The fix is obvious from the card.",
+    "- Members can submit without cluttering main chat.",
+    "",
     "Expected behavior:",
     "Feedback opens from the dedicated submission flow.",
     "",
@@ -462,10 +434,6 @@ function buildDiscordFeedbackSectionOverridePlaceholder(reportType: "bug" | "fea
     "1. Open the current feedback flow.",
     "2. Try to submit the report.",
     "3. Notice what feels broken, unclear, or noisy.",
-    "",
-    "Acceptance Criteria:",
-    "- The fix is obvious from the card.",
-    "- Members can submit without cluttering main chat.",
   ].join("\n");
 }
 
@@ -1465,7 +1433,10 @@ export function buildDiscordFeedbackWithdrawModalResponse(args?: {
   recentReports?: DiscordFeedbackReportSelectOption[] | null;
 }) {
   const recentReports = Array.isArray(args?.recentReports) && args.recentReports.length > 0
-    ? args.recentReports.slice(0, 25)
+    ? args.recentReports.slice(0, 3)
+    : null;
+  const recentCardHints = recentReports
+    ? recentReports.map((report) => `- ${report.label}`).join("\n")
     : null;
 
   return {
@@ -1474,22 +1445,15 @@ export function buildDiscordFeedbackWithdrawModalResponse(args?: {
       custom_id: FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID,
       title: "Withdraw Feedback",
       components: [
-        ...(recentReports
-          ? [buildDiscordFeedbackReportSelectComponent({
-            label: "Recent cards",
-            description: "Pick one of your recent cards or paste a report id below.",
-            customId: FITNESS_FEEDBACK_WITHDRAW_REPORT_SELECT_CUSTOM_ID,
-            placeholder: "Select a recent card",
-            options: recentReports,
-          })]
-          : []),
         buildDiscordModalLabelTextInput({
           label: "Report ID or forum link",
-          description: recentReports ? "Optional if you choose a recent card above." : undefined,
+          description: recentCardHints
+            ? `Paste a recent card id or link. Recent cards:\n${recentCardHints}`
+            : "Paste a short id, full id, thread id, or forum link.",
           customId: FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
           style: 1,
           placeholder: "Short ID, UUID, thread ID, or forum URL",
-          required: !recentReports,
+          required: true,
           maxLength: 200,
         }),
         buildDiscordModalLabelTextInput({

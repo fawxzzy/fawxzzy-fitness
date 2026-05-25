@@ -14,6 +14,7 @@ Product rules:
 - Feedback modal launchers must return the modal immediately.
 - The primary submit modal should use conservative Discord modal components: action rows with text inputs only.
 - Do not put string selects, file-upload components, or label-wrapped components in the first submit modal unless live Discord compatibility has been reverified.
+- Manage/edit/withdraw feedback modals should also stay on stable action-row plus text-input shapes unless a newer Discord component surface is reverified live first.
 - Feedback submit should defer the interaction before heavy Discord or DB work.
 - Feedback intake success depends on the bounded report row first and the forum thread second.
 - Discord-hosted screenshot evidence can be added by links or follow-up thread replies; Supabase stores bounded metadata only.
@@ -401,6 +402,11 @@ User-facing flow:
 Legacy modal safety:
 - if an older client or stored test still submits `fitness_feedback_submit_modal` with a `Type` field, Fitness still accepts `Bug` or `Feature`
 - invalid legacy values still respond with `Choose Bug or Feature for the feedback type.`
+
+Modal compatibility rule:
+- feedback buttons should never depend on experimental Discord modal wrappers to remain clickable
+- keep the feedback modal family on conservative row/input payloads first
+- only widen the component surface after live Discord interaction proof, not local TypeScript tests alone
 
 The first submit modal should not depend on Discord file-upload components. Users can add optional image evidence by:
 - pasting a screenshot or evidence URL into the details field

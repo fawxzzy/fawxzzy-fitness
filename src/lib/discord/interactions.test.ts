@@ -78,18 +78,18 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
 
   assert.equal(bug.data.custom_id, "fitness_feedback_report_modal:bug");
   assert.equal(bug.data.title, "Report a bug");
-  assert.equal(bug.data.components[0]?.component?.custom_id, "bug_summary");
-  assert.equal(bug.data.components[1]?.component?.custom_id, "bug_area");
-  assert.equal(bug.data.components[2]?.label, "Problem");
-  assert.equal(bug.data.components[2]?.component?.custom_id, "bug_details");
-  assert.equal(bug.data.components[3]?.component?.custom_id, "feedback_section_overrides");
+  assert.equal(bug.data.components[0]?.components?.[0]?.custom_id, "bug_summary");
+  assert.equal(bug.data.components[1]?.components?.[0]?.custom_id, "bug_area");
+  assert.equal(bug.data.components[2]?.components?.[0]?.label, "Problem");
+  assert.equal(bug.data.components[2]?.components?.[0]?.custom_id, "bug_details");
+  assert.equal(bug.data.components[3]?.components?.[0]?.custom_id, "feedback_section_overrides");
   assert.equal(feature.data.custom_id, "fitness_feedback_report_modal:feature");
   assert.equal(feature.data.title, "Suggest a feature");
-  assert.equal(feature.data.components[0]?.component?.custom_id, "bug_summary");
-  assert.equal(feature.data.components[1]?.component?.custom_id, "bug_area");
-  assert.equal(feature.data.components[2]?.label, "Description");
-  assert.equal(feature.data.components[2]?.component?.custom_id, "bug_details");
-  assert.equal(feature.data.components[3]?.component?.custom_id, "feedback_section_overrides");
+  assert.equal(feature.data.components[0]?.components?.[0]?.custom_id, "bug_summary");
+  assert.equal(feature.data.components[1]?.components?.[0]?.custom_id, "bug_area");
+  assert.equal(feature.data.components[2]?.components?.[0]?.label, "Description");
+  assert.equal(feature.data.components[2]?.components?.[0]?.custom_id, "bug_details");
+  assert.equal(feature.data.components[3]?.components?.[0]?.custom_id, "feedback_section_overrides");
 });
 
 test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel buttons", () => {
@@ -171,7 +171,7 @@ test("buildDiscordSpotifyQueueSuggestModalResponse opens the queue suggestion mo
 
   assert.equal(response.type, 9);
   assert.equal(response.data.custom_id, "spotify_queue_suggest_modal");
-  assert.equal(response.data.components[0]?.component?.custom_id, "spotify_track");
+  assert.equal(response.data.components[0]?.components?.[0]?.custom_id, "spotify_track");
 });
 
 test("buildDiscordSpotifyQueueSearchModalResponse opens the track search modal", () => {
@@ -179,7 +179,7 @@ test("buildDiscordSpotifyQueueSearchModalResponse opens the track search modal",
 
   assert.equal(response.type, 9);
   assert.equal(response.data.custom_id, "spotify_queue_search_modal");
-  assert.equal(response.data.components[0]?.component?.custom_id, "spotify_search_query");
+  assert.equal(response.data.components[0]?.components?.[0]?.custom_id, "spotify_search_query");
 });
 
 test("resolveDiscordFeedbackReportTypeFromModalCustomId supports feedback modals only", () => {
@@ -371,9 +371,9 @@ test("feedback panel button modals expose submit and manage flows", () => {
   });
 
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
-  assert.equal(submit.data.components[0]?.component?.custom_id, "bug_summary");
-  assert.equal(submit.data.components[3]?.component?.custom_id, "feedback_section_overrides");
-  assert.match(submit.data.components[3]?.description ?? "", /Acceptance Criteria.*(plain-language checklist|fix result you expect)/i);
+  assert.equal(submit.data.components[0]?.components?.[0]?.custom_id, "bug_summary");
+  assert.equal(submit.data.components[3]?.components?.[0]?.custom_id, "feedback_section_overrides");
+  assert.match(submit.data.components[3]?.components?.[0]?.placeholder ?? "", /Acceptance Criteria/i);
   assert.equal(submit.data.components.length, 4);
   assert.equal(submitPicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
   assert.match(submitPicker.data.content ?? "", /Choose Bug or Feature, then create your feedback card\./);
@@ -384,15 +384,15 @@ test("feedback panel button modals expose submit and manage flows", () => {
   assert.equal(manageCard.data.components[0]?.components[0]?.custom_id, "fitness_feedback_manage_action_edit:11111111-1111-4111-8111-111111111111");
   assert.equal(manageCard.data.components[0]?.components[1]?.custom_id, "fitness_feedback_manage_action_withdraw:11111111-1111-4111-8111-111111111111");
   assert.equal(lookupModal.data.custom_id, "fitness_feedback_manage_lookup_modal");
-  assert.equal(lookupModal.data.components[0]?.component?.custom_id, "feedback_manage_lookup");
+  assert.equal(lookupModal.data.components[0]?.components?.[0]?.custom_id, "feedback_manage_lookup");
   assert.equal(update.data.custom_id, "fitness_feedback_update_edit_modal:11111111-1111-4111-8111-111111111111");
-  assert.equal(update.data.components[0]?.component?.custom_id, "bug_summary");
-  assert.equal(update.data.components[0]?.component?.value, "Token copy button failed");
-  assert.equal(update.data.components[1]?.component?.custom_id, "bug_area");
-  assert.equal(update.data.components[2]?.component?.custom_id, "bug_details");
-  assert.equal(update.data.components[3]?.component?.custom_id, "feedback_section_overrides");
+  assert.equal(update.data.components[0]?.components?.[0]?.custom_id, "bug_summary");
+  assert.equal(update.data.components[0]?.components?.[0]?.value, "Token copy button failed");
+  assert.equal(update.data.components[1]?.components?.[0]?.custom_id, "bug_area");
+  assert.equal(update.data.components[2]?.components?.[0]?.custom_id, "bug_details");
+  assert.equal(update.data.components[3]?.components?.[0]?.custom_id, "feedback_section_overrides");
   assert.equal(withdraw.data.custom_id, "fitness_feedback_withdraw_selected_modal:11111111-1111-4111-8111-111111111111");
-  assert.equal(withdraw.data.components[0]?.component?.custom_id, "feedback_withdraw_note");
+  assert.equal(withdraw.data.components[0]?.components?.[0]?.custom_id, "feedback_withdraw_note");
 });
 
 test("buildDiscordSpotifyClubPanelMessagePayload keeps the public panel green when the room is closed", () => {
@@ -422,8 +422,9 @@ test("feedback submit modal keeps panel buttons and modal inputs text-only even 
   const firstPanelButton = panelPayload.components[0]?.components[0] as { emoji?: { id: string; name: string } } | undefined;
 
   assert.equal(firstPanelButton?.emoji, undefined);
-  assert.equal(submitModal.data.components[0]?.component?.custom_id, "bug_summary");
+  assert.equal(submitModal.data.components[0]?.components?.[0]?.custom_id, "bug_summary");
   assert.equal(JSON.stringify(submitModal.data).includes("\"emoji\""), false);
+  assert.equal(JSON.stringify(submitModal.data).includes("\"type\":18"), false);
   assert.equal(JSON.stringify(submitModal.data).includes("\"type\":19"), false);
 });
 

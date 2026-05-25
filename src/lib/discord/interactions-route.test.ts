@@ -1095,6 +1095,7 @@ test("Discord interactions route opens the manage lookup modal", async () => {
   const payload = await response.json();
   assert.equal(payload.type, 9);
   assert.equal(payload.data.custom_id, "fitness_feedback_manage_lookup_modal");
+  assert.equal(payload.data.components[0]?.components?.[0]?.custom_id, "feedback_manage_lookup");
 });
 
 test("Discord interactions route opens the edit modal after clicking the manage edit button", async () => {
@@ -1144,7 +1145,7 @@ test("Discord interactions route opens the edit modal after clicking the manage 
     const payload = await response.json();
     assert.equal(payload.type, 9);
     assert.equal(payload.data.custom_id, "fitness_feedback_update_edit_modal:11111111-1111-4111-8111-111111111111");
-    assert.equal(payload.data.components[0]?.component?.value, "Emoji bootstrap canary");
+    assert.equal(payload.data.components[0]?.components?.[0]?.value, "Emoji bootstrap canary");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -3097,6 +3098,102 @@ test("Discord message command poll skips messages already marked processed", asy
     delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
     delete process.env.DISCORD_BOT_TOKEN;
     delete process.env.DISCORD_MAIN_CHANNEL_ID;
+  }
+});
+
+test("Discord message command poll formats structured owner updates into embed fields", async () => {
+  process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
+  process.env.DISCORD_UPDATES_CHANNEL_ID = "1504671871512346695";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user";
+
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+
+    if (url.hostname !== "discord.com") {
+      throw new Error(`Unexpected fetch host: ${url.toString()} (${method})`);
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
+      return new Response(JSON.stringify([
+        {
+          id: "main-message-update-structured-1",
+          content: [
+            "computa post update [ATLAS Cleanup & Re-sync Status",
+            "ATLAS cleanup and re-sync work has moved past the main repair phase and into workflow convergence.",
+            "",
+            "What changed:",
+            "Canonical Fitness repo truth is restored again and _stack now fail-closes deploy identity for Fitness, Trove, and Mazer before deploy wrappers can reach Vercel.",
+            "ATLAS brand source, _stack launcher sync, Trove brand sync, and local Fitness icon sync are all aligned without using tmp as fallback truth.",
+            "",
+            "Current markers:",
+            "Brand Asset Canonicalization: 80%",
+            "Unified Workflow Convergence: 70%",
+            "",
+            "Why it matters:",
+            "The stack now has explicit handoff boundaries instead of relying on operator memory.",
+            "]",
+          ].join("\n"),
+          author: { id: "owner-user", bot: false },
+          reactions: [],
+        },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504671871512346695/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.embeds?.[0]?.title, "ATLAS Cleanup & Re-sync Status");
+      assert.match(body?.embeds?.[0]?.description ?? "", /workflow convergence/);
+      assert.equal(body?.embeds?.[0]?.fields?.[0]?.name, "What changed");
+      assert.match(body?.embeds?.[0]?.fields?.[0]?.value ?? "", /- Canonical Fitness repo truth is restored again/);
+      assert.equal(body?.embeds?.[0]?.fields?.[1]?.name, "Current markers");
+      assert.match(body?.embeds?.[0]?.fields?.[1]?.value ?? "", /Brand Asset Canonicalization: 80%/);
+      assert.equal(body?.embeds?.[0]?.fields?.[2]?.name, "Why it matters");
+      return new Response(JSON.stringify({ id: "updates-formatted-message-structured-1" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-update-structured-1/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await GET(new Request("http://localhost/api/discord/interactions", {
+      method: "GET",
+      headers: { authorization: "Bearer poll-secret" },
+    }));
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      ok: true,
+      processed: [
+        {
+          messageId: "main-message-update-structured-1",
+          ok: true,
+          code: null,
+          action: "posted",
+        },
+      ],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
+    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_MAIN_CHANNEL_ID;
+    delete process.env.DISCORD_UPDATES_CHANNEL_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
   }
 });
 
@@ -7961,7 +8058,7 @@ test("Discord interactions route opens the Spotify queue suggestion modal from t
     const payload = await response.json();
     assert.equal(payload.type, 9);
     assert.equal(payload.data.custom_id, "spotify_queue_suggest_modal");
-    assert.equal(payload.data.components[0]?.component?.custom_id, "spotify_track");
+    assert.equal(payload.data.components[0]?.components?.[0]?.custom_id, "spotify_track");
   } finally {
     globalThis.fetch = originalFetch;
   }
