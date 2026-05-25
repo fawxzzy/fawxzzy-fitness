@@ -434,6 +434,15 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `View Channel`
 - `Read Message History`
 - `Send Messages`
+
+## Completed board recovery
+- Active member submission and live staff review stay on the main Feedback forum.
+- Historical resolved cards can be recovered into a dedicated `completed` forum without reopening active intake.
+- The recovery lane is for old fixed/completed cards that were previously archived or deleted from the main board surface.
+- Do not move active in-progress cards into `completed`.
+- Do not use the `completed` forum as a new member submission surface.
+- Recovery should repost the canonical finished card body from Supabase and then repoint that report row at the recovered completed-board thread.
+- No updates-channel promotion is required just because a historical completed card is recovered into the completed board.
 - `Embed Links` optional
 - `Use External Emojis` optional
 
