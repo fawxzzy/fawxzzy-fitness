@@ -444,6 +444,7 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - Do not use the `completed` forum as a new member submission surface.
 - Recovery should repost the canonical finished card body from Supabase and then repoint that report row at the recovered completed-board thread.
 - Mirror-only copies in `completed` should not retarget source rows that still have a healthy original board thread.
+- Once a resolved card has a `completed` board copy, duplicate active source-board copies should be archived and locked with `npm run discord:feedback:archive-completed-duplicates -- --apply`.
 - No updates-channel promotion is required just because a historical completed card is recovered into the completed board.
 - `Embed Links` optional
 - `Use External Emojis` optional

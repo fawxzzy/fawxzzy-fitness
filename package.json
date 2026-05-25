@@ -35,6 +35,7 @@
     "discord:feedback:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:feedback:prune": "node scripts/prune-discord-bug-reports.mjs",
     "discord:feedback:completed-board": "node scripts/setup-discord-completed-board.mjs",
+    "discord:feedback:archive-completed-duplicates": "node scripts/archive-duplicate-completed-feedback-threads.mjs",
     "discord:feedback:worker": "node scripts/discord-feedback-gateway-worker.mjs",
     "discord:bugs:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
