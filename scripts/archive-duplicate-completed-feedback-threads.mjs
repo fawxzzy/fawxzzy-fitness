@@ -86,10 +86,6 @@ export function shouldArchiveCompletedDuplicateThread({ thread, completedForumId
     return { archive: false, reason: "invalid_thread" };
   }
 
-  if (thread.archived === true) {
-    return { archive: false, reason: "already_archived" };
-  }
-
   if (typeof thread.parent_id !== "string" || thread.parent_id === completedForumId) {
     return { archive: false, reason: "completed_board_thread" };
   }
@@ -119,14 +115,37 @@ async function fetchDiscordMessage(channelId, messageId, options) {
   return discordRequest(`/channels/${channelId}/messages/${messageId}`, {}, options);
 }
 
-async function fetchCompletedForumId({ guildId }, options) {
-  const channels = await fetchGuildChannels(guildId, options);
+async function fetchCompletedForumId({ channels }) {
   const forum = channels.find((channel) => channel?.type === 15 && String(channel?.name ?? "").trim().toLowerCase() === COMPLETED_FORUM_NAME);
   if (!forum?.id || typeof forum.id !== "string") {
     throw new Error(`Unable to find Discord forum named "${COMPLETED_FORUM_NAME}".`);
   }
 
   return forum.id;
+}
+
+async function fetchArchivedThreadsForForum(forumId, options) {
+  const archivedThreads = [];
+
+  const archivedPublicResult = await discordRequest(`/channels/${forumId}/threads/archived/public?limit=100`, {}, options);
+  if (archivedPublicResult.ok && Array.isArray(archivedPublicResult.data?.threads)) {
+    for (const thread of archivedPublicResult.data.threads) {
+      if (thread?.parent_id === forumId && typeof thread?.id === "string") {
+        archivedThreads.push(thread);
+      }
+    }
+  }
+
+  const archivedPrivateResult = await discordRequest(`/channels/${forumId}/users/@me/threads/archived/private?limit=100`, {}, options);
+  if (archivedPrivateResult.ok && Array.isArray(archivedPrivateResult.data?.threads)) {
+    for (const thread of archivedPrivateResult.data.threads) {
+      if (thread?.parent_id === forumId && typeof thread?.id === "string") {
+        archivedThreads.push(thread);
+      }
+    }
+  }
+
+  return archivedThreads;
 }
 
 async function fetchCompletedBoardShortIds({ guildId, forumId }, options) {
@@ -141,12 +160,9 @@ async function fetchCompletedBoardShortIds({ guildId, forumId }, options) {
     }
   }
 
-  const archivedThreadsResult = await discordRequest(`/channels/${forumId}/threads/archived/public?limit=100`, {}, options);
-  if (archivedThreadsResult.ok && Array.isArray(archivedThreadsResult.data?.threads)) {
-    for (const thread of archivedThreadsResult.data.threads) {
-      if (thread?.parent_id === forumId && typeof thread?.id === "string") {
-        threads.push(thread);
-      }
+  for (const thread of await fetchArchivedThreadsForForum(forumId, options)) {
+    if (thread?.parent_id === forumId && typeof thread?.id === "string") {
+      threads.push(thread);
     }
   }
 
@@ -175,13 +191,9 @@ async function fetchGuildActiveThreads(guildId, options) {
   return result.data.threads;
 }
 
-async function archiveThread(threadId, options) {
+async function deleteThread(threadId, options) {
   return discordRequest(`/channels/${threadId}`, {
-    method: "PATCH",
-    body: {
-      archived: true,
-      locked: true,
-    },
+    method: "DELETE",
   }, options);
 }
 
@@ -191,14 +203,14 @@ function renderSummary(summary) {
     `Completed board short IDs: ${summary.completedShortIds}`,
     `Active threads scanned: ${summary.scannedThreads}`,
     `Duplicate completed targets: ${summary.duplicateTargets}`,
-    `Archived threads: ${summary.archivedThreads}`,
+    `Deleted threads: ${summary.archivedThreads}`,
     `Skipped threads: ${summary.skippedThreads}`,
     `Failures: ${summary.failures.length}`,
   ];
 
   if (summary.archived.length > 0) {
     lines.push("");
-    lines.push("Archived:");
+    lines.push("Deleted:");
     for (const entry of summary.archived) {
       lines.push(`- ${entry.shortId} -> ${entry.threadId} (${entry.parentId})`);
     }
@@ -230,9 +242,21 @@ export async function runArchiveDuplicateCompletedFeedbackThreads({
 } = {}) {
   const guildId = getRequiredEnv("DISCORD_GUILD_ID");
   const options = { fetchImpl };
-  const completedForumId = await fetchCompletedForumId({ guildId }, options);
+  const channels = await fetchGuildChannels(guildId, options);
+  const completedForumId = await fetchCompletedForumId({ channels });
   const completedShortIds = await fetchCompletedBoardShortIds({ guildId, forumId: completedForumId }, options);
   const activeThreads = await fetchGuildActiveThreads(guildId, options);
+  const forumChannelIds = channels
+    .filter((channel) => channel?.type === 15 && typeof channel?.id === "string" && channel.id !== completedForumId)
+    .map((channel) => channel.id);
+  const archivedThreads = [];
+  for (const forumId of forumChannelIds) {
+    for (const thread of await fetchArchivedThreadsForForum(forumId, options)) {
+      archivedThreads.push(thread);
+    }
+  }
+  const allThreads = [...activeThreads, ...archivedThreads];
+  const seenThreadIds = new Set();
 
   const summary = {
     apply: args.apply,
@@ -246,10 +270,14 @@ export async function runArchiveDuplicateCompletedFeedbackThreads({
     failures: [],
   };
 
-  for (const thread of activeThreads) {
+  for (const thread of allThreads) {
     if (typeof thread?.id !== "string") {
       continue;
     }
+    if (seenThreadIds.has(thread.id)) {
+      continue;
+    }
+    seenThreadIds.add(thread.id);
 
     summary.scannedThreads += 1;
 
@@ -294,9 +322,9 @@ export async function runArchiveDuplicateCompletedFeedbackThreads({
         continue;
       }
 
-      const archiveResult = await archiveThread(thread.id, options);
+      const archiveResult = await deleteThread(thread.id, options);
       if (!archiveResult.ok) {
-        summary.failures.push(`${decision.shortId}:${thread.id} archive failed (${archiveResult.status ?? "unknown"}${archiveResult.message ? ` ${archiveResult.message}` : ""})`);
+        summary.failures.push(`${decision.shortId}:${thread.id} delete failed (${archiveResult.status ?? "unknown"}${archiveResult.message ? ` ${archiveResult.message}` : ""})`);
         continue;
       }
 

@@ -46,6 +46,25 @@ test("shouldArchiveCompletedDuplicateThread archives active non-completed-board 
   });
 });
 
+test("shouldArchiveCompletedDuplicateThread still targets archived source-board duplicates", () => {
+  const decision = shouldArchiveCompletedDuplicateThread({
+    thread: {
+      id: "thread-1",
+      parent_id: "forum-source",
+      archived: true,
+    },
+    completedForumId: "forum-completed",
+    completedShortIds: new Set(["16d98fc2"]),
+    starterMessageContent: "Report ID: `16d98fc2`",
+  });
+
+  assert.deepEqual(decision, {
+    archive: true,
+    reason: "completed_board_duplicate",
+    shortId: "16d98fc2",
+  });
+});
+
 test("shouldArchiveCompletedDuplicateThread skips completed board threads", () => {
   const decision = shouldArchiveCompletedDuplicateThread({
     thread: {
