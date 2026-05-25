@@ -1,18 +1,20 @@
 import {
-  DISCORD_INTERACTION_TYPE,
   FITNESS_VERIFY_BUTTON_CUSTOM_ID,
   FITNESS_VERIFY_CLEANUP_COMMAND_NAME,
   FITNESS_VERIFY_COMMAND_NAME,
   FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME,
   FITNESS_VERIFY_MODAL_CUSTOM_ID,
 } from "@/lib/discord/interactions";
+import {
+  isDiscordApplicationCommand,
+  isDiscordMessageComponent,
+  isDiscordModalSubmit,
+} from "@/lib/discord/runtime/helpers";
 import type { DiscordInteraction } from "@/lib/discord/runtime/types";
-
-type JsonResponse = (body: Record<string, unknown>, init?: ResponseInit) => Response;
 
 type VerificationDispatchArgs = {
   interaction: DiscordInteraction;
-  jsonResponse: JsonResponse;
+  jsonResponse: (body: Record<string, unknown>, init?: ResponseInit) => Response;
   buildDiscordVerifyModalResponse: () => Record<string, unknown>;
   handleSetupVerifyInteraction: (interaction: DiscordInteraction) => Promise<Record<string, unknown>>;
   handleVerifyCleanupInteraction: (interaction: DiscordInteraction) => Promise<Record<string, unknown>>;
@@ -23,38 +25,23 @@ type VerificationDispatchArgs = {
 export async function dispatchVerificationInteraction(args: VerificationDispatchArgs): Promise<Response | null> {
   const { interaction } = args;
 
-  if (
-    interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-    && interaction.data?.name === FITNESS_VERIFY_COMMAND_NAME
-  ) {
+  if (isDiscordApplicationCommand(interaction, FITNESS_VERIFY_COMMAND_NAME)) {
     return args.jsonResponse(await args.handleSetupVerifyInteraction(interaction));
   }
 
-  if (
-    interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-    && interaction.data?.name === FITNESS_VERIFY_CLEANUP_COMMAND_NAME
-  ) {
+  if (isDiscordApplicationCommand(interaction, FITNESS_VERIFY_CLEANUP_COMMAND_NAME)) {
     return args.jsonResponse(await args.handleVerifyCleanupInteraction(interaction));
   }
 
-  if (
-    interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-    && interaction.data?.name === FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME
-  ) {
+  if (isDiscordApplicationCommand(interaction, FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME)) {
     return args.jsonResponse(await args.handleVerifyLockdownInteraction(interaction));
   }
 
-  if (
-    interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-    && interaction.data?.custom_id === FITNESS_VERIFY_BUTTON_CUSTOM_ID
-  ) {
+  if (isDiscordMessageComponent(interaction, FITNESS_VERIFY_BUTTON_CUSTOM_ID)) {
     return args.jsonResponse(args.buildDiscordVerifyModalResponse());
   }
 
-  if (
-    interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-    && interaction.data?.custom_id === FITNESS_VERIFY_MODAL_CUSTOM_ID
-  ) {
+  if (isDiscordModalSubmit(interaction, FITNESS_VERIFY_MODAL_CUSTOM_ID)) {
     return args.jsonResponse(await args.handleVerifyModalSubmit(interaction));
   }
 

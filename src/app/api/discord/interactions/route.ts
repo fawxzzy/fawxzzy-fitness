@@ -285,6 +285,7 @@ import { dispatchOperationsInteraction } from "@/lib/discord/runtime/domains/ope
 import { dispatchSpotifyInteraction } from "@/lib/discord/runtime/domains/spotify";
 import { dispatchUpdatesInteraction } from "@/lib/discord/runtime/domains/updates";
 import { dispatchVerificationInteraction } from "@/lib/discord/runtime/domains/verification";
+import { dispatchDiscordDomainResponses } from "@/lib/discord/runtime/helpers";
 import type { DiscordInteraction } from "@/lib/discord/runtime/types";
 import { consumeDiscordVerificationTokenForDiscordUser } from "@/lib/discord/verification-server";
 
@@ -7758,11 +7759,9 @@ export async function POST(request: Request) {
       }),
     ];
 
-    for (const dispatch of dispatchers) {
-      const response = await dispatch();
-      if (response) {
-        return response;
-      }
+    const response = await dispatchDiscordDomainResponses(dispatchers);
+    if (response) {
+      return response;
     }
 
     return jsonResponse(buildDiscordEphemeralMessageResponse("Unsupported Discord interaction."), { status: 400 });
