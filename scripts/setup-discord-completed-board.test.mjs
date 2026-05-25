@@ -7,6 +7,7 @@ import {
   buildCompletedForumCloneBody,
   parseArgs,
   shouldRecoverCompletedFeedbackReport,
+  shouldMirrorCompletedFeedbackReport,
 } from "./setup-discord-completed-board.mjs";
 
 test("parseArgs defaults to dry-run and default limit", () => {
@@ -103,4 +104,32 @@ test("shouldRecoverCompletedFeedbackReport skips active intact threads", () => {
   );
 
   assert.deepEqual(decision, { recover: false, reason: "active_thread_intact" });
+});
+
+test("shouldMirrorCompletedFeedbackReport mirrors intact resolved non-testing rows", () => {
+  const decision = shouldMirrorCompletedFeedbackReport(
+    { status: "fixed" },
+    {
+      isTestingCard: false,
+      alreadyCompletedBoard: false,
+      missingForumRefs: false,
+      threadMissing: false,
+      messageMissing: false,
+      threadArchived: false,
+    },
+  );
+
+  assert.deepEqual(decision, { mirror: true, reason: "intact_resolved_source_thread" });
+});
+
+test("shouldMirrorCompletedFeedbackReport skips cards already in completed board", () => {
+  const decision = shouldMirrorCompletedFeedbackReport(
+    { status: "fixed" },
+    {
+      isTestingCard: false,
+      alreadyCompletedBoard: true,
+    },
+  );
+
+  assert.deepEqual(decision, { mirror: false, reason: "already_completed_board" });
 });

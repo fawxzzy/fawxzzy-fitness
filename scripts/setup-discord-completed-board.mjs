@@ -182,6 +182,31 @@ export function shouldRecoverCompletedFeedbackReport(row, inspection) {
   return { recover: false, reason: "active_thread_intact" };
 }
 
+export function shouldMirrorCompletedFeedbackReport(row, inspection) {
+  if (!RESOLVED_FEEDBACK_STATUSES.has(String(row?.status ?? ""))) {
+    return { mirror: false, reason: "not_resolved" };
+  }
+
+  if (Boolean(inspection?.isTestingCard)) {
+    return { mirror: false, reason: "testing_card" };
+  }
+
+  if (Boolean(inspection?.alreadyCompletedBoard)) {
+    return { mirror: false, reason: "already_completed_board" };
+  }
+
+  if (
+    !Boolean(inspection?.missingForumRefs)
+    && !Boolean(inspection?.threadMissing)
+    && !Boolean(inspection?.messageMissing)
+    && !Boolean(inspection?.threadArchived)
+  ) {
+    return { mirror: true, reason: "intact_resolved_source_thread" };
+  }
+
+  return { mirror: false, reason: "needs_recovery_instead" };
+}
+
 async function loadFeedbackForumHelpers() {
   register("./test-alias-loader.mjs", pathToFileURL(`${scriptDir}${path.sep}`));
   const module = await import(pathToFileURL(path.join(repoRoot, "src", "lib", "discord", "bug-reports.ts")).href);
@@ -216,6 +241,54 @@ async function fetchDiscordChannel(channelId) {
 
 async function fetchDiscordMessage(channelId, messageId) {
   return discordRequest(`/channels/${channelId}/messages/${messageId}`);
+}
+
+async function fetchCompletedForumExistingThreads({ guildId, forumId }) {
+  const threads = [];
+
+  const activeThreadsResult = await discordRequest(`/guilds/${guildId}/threads/active`);
+  if (activeThreadsResult.ok && Array.isArray(activeThreadsResult.data?.threads)) {
+    for (const thread of activeThreadsResult.data.threads) {
+      if (thread?.parent_id === forumId && typeof thread?.id === "string") {
+        threads.push(thread);
+      }
+    }
+  }
+
+  const archivedThreadsResult = await discordRequest(`/channels/${forumId}/threads/archived/public?limit=100`);
+  if (archivedThreadsResult.ok && Array.isArray(archivedThreadsResult.data?.threads)) {
+    for (const thread of archivedThreadsResult.data.threads) {
+      if (thread?.parent_id === forumId && typeof thread?.id === "string") {
+        threads.push(thread);
+      }
+    }
+  }
+
+  const byShortId = new Map();
+  for (const thread of threads) {
+    const starterMessageId = typeof thread?.id === "string" ? thread.id : null;
+    if (!starterMessageId) {
+      continue;
+    }
+
+    const messageResult = await fetchDiscordMessage(thread.id, starterMessageId);
+    if (!messageResult.ok || typeof messageResult.data?.content !== "string") {
+      continue;
+    }
+
+    const shortIdMatch = messageResult.data.content.match(/Report ID:\s*`([a-f0-9]{8})`/i);
+    if (!shortIdMatch?.[1]) {
+      continue;
+    }
+
+    byShortId.set(shortIdMatch[1].toLowerCase(), {
+      threadId: thread.id,
+      messageId: starterMessageId,
+      archived: Boolean(thread?.thread_metadata?.archived),
+    });
+  }
+
+  return byShortId;
 }
 
 async function ensureCompletedForum({ guildId, sourceForumId, apply, debug }) {
@@ -436,6 +509,7 @@ function renderSummary(summary) {
     `Completed forum: ${summary.completedForumId ?? "(would create)"}`,
     `Rows scanned: ${summary.scannedCount}`,
     `Recovered: ${summary.recovered.length}`,
+    `Mirrored: ${summary.mirrored.length}`,
     `Skipped: ${summary.skipped.length}`,
     `Failures: ${summary.failures.length}`,
   ];
@@ -448,6 +522,14 @@ function renderSummary(summary) {
     lines.push("");
     lines.push("Recovered reports:");
     for (const entry of summary.recovered) {
+      lines.push(`- ${entry.shortId} -> ${entry.threadId ?? "(pending)"} (${entry.reason})`);
+    }
+  }
+
+  if (summary.mirrored.length > 0) {
+    lines.push("");
+    lines.push("Mirrored reports:");
+    for (const entry of summary.mirrored) {
       lines.push(`- ${entry.shortId} -> ${entry.threadId ?? "(pending)"} (${entry.reason})`);
     }
   }
@@ -488,7 +570,14 @@ export async function runSetupDiscordCompletedBoard({
   });
   const completedForumId = forumResult.forumId;
   const rows = await fetchResolvedRows({ client, args });
+  const existingCompletedThreads = completedForumId
+    ? await fetchCompletedForumExistingThreads({
+      guildId,
+      forumId: completedForumId,
+    })
+    : new Map();
   const recovered = [];
+  const mirrored = [];
   const skipped = [];
   const failures = [];
 
@@ -500,7 +589,63 @@ export async function runSetupDiscordCompletedBoard({
         completedForumId: completedForumId ?? "__pending__",
         helpers: resolvedHelpers,
       });
+      const existingCompletedThread = existingCompletedThreads.get(shortId.toLowerCase()) ?? null;
+      if (existingCompletedThread) {
+        skipped.push({ shortId, reason: "already_completed_board_copy" });
+        continue;
+      }
+
       const decision = shouldRecoverCompletedFeedbackReport(row, inspection);
+
+      if (!decision.recover) {
+        const mirrorDecision = shouldMirrorCompletedFeedbackReport(row, inspection);
+        if (!mirrorDecision.mirror) {
+          skipped.push({ shortId, reason: decision.reason });
+          continue;
+        }
+
+        if (!args.apply || !completedForumId) {
+          mirrored.push({ shortId, threadId: null, reason: mirrorDecision.reason });
+          continue;
+        }
+
+        const reporterLabel = resolvedHelpers.buildReporterLabel({
+          reporterDiscordUsername: row.reporter_discord_username ?? null,
+          reporterMemberNumber: row.reporter_member_number ?? null,
+        });
+        const forumTitle = resolvedHelpers.buildTitle({
+          reportType: row.report_type,
+          area: row.area ?? null,
+          summary: row.summary,
+        });
+        const forumContent = resolvedHelpers.buildBody({
+          report: row,
+          reporterLabel,
+        });
+        const tagNames = resolvedHelpers.buildTagNames({
+          reportType: row.report_type,
+          status: row.status,
+          severity: row.severity,
+          includeBacklog: resolvedHelpers.shouldApplyBacklogTag(row),
+        });
+        const tagResolution = await resolveTagIdsByName({
+          channelId: completedForumId,
+          tagNames,
+        });
+        const created = await createForumThread({
+          forumId: completedForumId,
+          threadName: forumTitle,
+          content: forumContent,
+          appliedTagIds: tagResolution.matchedTagIds,
+        });
+
+        mirrored.push({
+          shortId,
+          threadId: created.threadId,
+          reason: mirrorDecision.reason,
+        });
+        continue;
+      }
 
       if (!decision.recover) {
         skipped.push({ shortId, reason: decision.reason });
@@ -572,6 +717,7 @@ export async function runSetupDiscordCompletedBoard({
     createdForum: forumResult.created,
     scannedCount: rows.length,
     recovered,
+    mirrored,
     skipped,
     failures,
   };
