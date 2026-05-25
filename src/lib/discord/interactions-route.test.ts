@@ -1269,8 +1269,8 @@ test("Discord message command poll replaces one computa command menu per channel
       assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
       assert.equal(body?.embeds?.[0]?.footer, undefined);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa` - Show this command card\./);
-      assert.match(body?.embeds?.[0]?.description ?? "", /`computa setup feedback`/);
-      assert.match(body?.embeds?.[0]?.description ?? "", /`computa setup music sesh`/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa setup feedback`/);
+      assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa setup music sesh`/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /live/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /Owner-only/);
       assert.equal(body?.components, undefined);
@@ -1394,6 +1394,8 @@ test("Discord message command poll replaces one owner computa command menu per c
       assert.equal(body?.embeds?.[0]?.color, 0x22c55e);
       assert.equal(body?.embeds?.[0]?.footer, undefined);
       assert.match(body?.embeds?.[0]?.description ?? "", /`computa owner` - Show this owner command card\./);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa setup feedback`/);
+      assert.match(body?.embeds?.[0]?.description ?? "", /`computa setup music sesh`/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa repair command card`/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa repair feedback launcher`/);
       assert.doesNotMatch(body?.embeds?.[0]?.description ?? "", /`computa sync feedback reactions`/);
@@ -1876,13 +1878,14 @@ test("Discord message command poll rejects computa menu for users without comman
   }
 });
 
-test("Discord message command poll lets a manager bootstrap the commander role and setup feedback", async () => {
+test("Discord message command poll requires the owner for setup feedback", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
   process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
   process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID = "1504673475489562744";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user-id";
   delete process.env.DISCORD_FEEDBACK_BUG_EMOJI_ID;
   delete process.env.DISCORD_FEEDBACK_FEATURE_EMOJI_ID;
 
@@ -1918,114 +1921,26 @@ test("Discord message command poll lets a manager bootstrap the commander role a
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
-      return new Response(JSON.stringify({ id: "1504668396338413671", type: 0, name: "main" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
-      return new Response(JSON.stringify([
-        { id: "manager-role", name: "Ops", permissions: String(BigInt(1) << BigInt(5)) },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "POST") {
-      const body = parseJsonBody(init?.body);
-      assert.equal(body?.name, "Fawxzzy Commander");
-      return new Response(JSON.stringify({ id: "commander-role", name: "Fawxzzy Commander", permissions: "0" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/guilds/1504668396338413670/members/123456789012345678/roles/commander-role" && method === "PUT") {
-      return new Response(null, { status: 204 });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "GET") {
-      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "submit-feedback" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "PATCH") {
-      const body = parseJsonBody(init?.body);
-      assert.equal(body?.name, "feedback-submission");
-      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "feedback-submission" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
-      return new Response(JSON.stringify([
-        { id: "1504668396338413671", type: 0, name: "main" },
-        { id: "1504673475489562744", type: 0, name: "submit-feedback" },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "GET") {
-      return new Response(JSON.stringify([{
-        id: "old-feedback-panel-message",
-        author: { id: "1504700208251146371" },
-        components: [
-          {
-            type: 1,
-            components: [
-              { type: 2, custom_id: "fitness_feedback_submit_open" },
-              { type: 2, custom_id: "fitness_feedback_update_open" },
-            ],
-          },
-        ],
-      }]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "POST") {
-      const body = parseJsonBody(init?.body);
-      assert.equal(body?.message_reference, undefined);
-      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
-      return new Response(JSON.stringify({ id: "feedback-panel-message-1" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504673475489562744/messages/old-feedback-panel-message" && method === "DELETE") {
-      return new Response(null, { status: 204 });
-    }
-
     if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
       const body = parseJsonBody(init?.body);
       assert.equal(body?.recipient_id, "123456789012345678");
-      return new Response(JSON.stringify({ id: "dm-feedback-command" }), {
+      return new Response(JSON.stringify({ id: "dm-feedback-owner-only" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (url.pathname === "/api/v10/channels/dm-feedback-command/messages" && method === "POST") {
+    if (url.pathname === "/api/v10/channels/dm-feedback-owner-only/messages" && method === "POST") {
       const body = parseJsonBody(init?.body);
-      assert.match(body?.content ?? "", /Feedback launcher updated in <#1504673475489562744>/);
+      assert.match(body?.content ?? "", /Only the configured Computa owner can run `computa setup feedback`\./);
       assert.deepEqual(body?.allowed_mentions, { parse: [] });
-      return new Response(JSON.stringify({ id: "dm-message-1" }), {
+      return new Response(JSON.stringify({ id: "dm-feedback-owner-only-message" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-1/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
+    if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-1/reactions/fawxzzy%3A1507384094424694785/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
 
@@ -2044,15 +1959,14 @@ test("Discord message command poll lets a manager bootstrap the commander role a
       processed: [
         {
           messageId: "main-message-1",
-          ok: true,
-          code: null,
-          action: "reposted",
+          ok: false,
+          code: "DISCORD_FEEDBACK_SETUP_FORBIDDEN",
+          action: null,
         },
       ],
     });
-    assert.equal(calls.some((call) => call.method === "POST" && call.pathname.endsWith("/roles")), true);
-    assert.equal(calls.some((call) => call.method === "PUT" && call.pathname.includes("/roles/commander-role")), true);
-    assert.equal(calls.some((call) => call.body?.message_reference?.message_id === "main-message-1"), false);
+    assert.equal(calls.some((call) => call.method === "POST" && call.pathname.endsWith("/roles")), false);
+    assert.equal(calls.some((call) => call.method === "PUT" && call.pathname.includes("/roles/commander-role")), false);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET;
@@ -2061,10 +1975,11 @@ test("Discord message command poll lets a manager bootstrap the commander role a
     delete process.env.DISCORD_GUILD_ID;
     delete process.env.DISCORD_APPLICATION_ID;
     delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
   }
 });
 
-test("Discord message command poll reposts the Music Sesh panel when computa setup music sesh reruns", async () => {
+test("Discord message command poll lets the owner repost the Music Sesh panel when computa setup music sesh reruns", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
@@ -2072,6 +1987,7 @@ test("Discord message command poll reposts the Music Sesh panel when computa set
   process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "123456789012345678";
 
   const originalFetch = globalThis.fetch;
 
@@ -2125,7 +2041,7 @@ test("Discord message command poll reposts the Music Sesh panel when computa set
             id: "main-message-music-sesh-setup",
             content: "computa setup music sesh",
             author: { id: "123456789012345678", bot: false },
-            member: { roles: ["commander-role"] },
+            member: { roles: [] },
             reactions: [],
           },
           {
@@ -2204,15 +2120,6 @@ test("Discord message command poll reposts the Music Sesh panel when computa set
       });
     }
 
-    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
-      return new Response(JSON.stringify([
-        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     if (url.pathname === "/api/v10/channels/1504668396338413671/messages/main-message-music-sesh-setup/reactions/fawxzzy%3A1507384062166302851/@me" && method === "PUT") {
       return new Response(null, { status: 204 });
     }
@@ -2255,14 +2162,16 @@ test("Discord message command poll reposts the Music Sesh panel when computa set
     delete process.env.DISCORD_APPLICATION_ID;
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
   }
 });
 
-test("Discord message command poll requires the commander role after bootstrap", async () => {
+test("Discord message command poll denies setup feedback for non-owner even when the commander role exists", async () => {
   process.env.DISCORD_MESSAGE_COMMAND_POLL_SECRET = "poll-secret";
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_MAIN_CHANNEL_ID = "1504668396338413671";
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORD_COMPUTA_OWNER_USER_ID = "owner-user-id";
 
   const originalFetch = globalThis.fetch;
 
@@ -2289,15 +2198,6 @@ test("Discord message command poll requires the commander role after bootstrap",
       });
     }
 
-    if (url.pathname === "/api/v10/guilds/1504668396338413670/roles" && method === "GET") {
-      return new Response(JSON.stringify([
-        { id: "commander-role", name: "Fawxzzy Commander", permissions: "0" },
-      ]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
     if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
       const body = parseJsonBody(init?.body);
       assert.equal(body?.recipient_id, "123456789012345678");
@@ -2309,7 +2209,7 @@ test("Discord message command poll requires the commander role after bootstrap",
 
     if (url.pathname === "/api/v10/channels/dm-feedback-command-forbidden/messages" && method === "POST") {
       const body = parseJsonBody(init?.body);
-      assert.match(body?.content ?? "", /Fawxzzy Commander/);
+      assert.match(body?.content ?? "", /Only the configured Computa owner can run `computa setup feedback`\./);
       assert.equal(body?.message_reference, undefined);
       return new Response(JSON.stringify({ id: "dm-message-2" }), {
         status: 200,
@@ -2337,7 +2237,7 @@ test("Discord message command poll requires the commander role after bootstrap",
         {
           messageId: "main-message-2",
           ok: false,
-          code: "DISCORD_MESSAGE_COMMAND_FORBIDDEN",
+          code: "DISCORD_FEEDBACK_SETUP_FORBIDDEN",
           action: null,
         },
       ],
@@ -2348,6 +2248,7 @@ test("Discord message command poll requires the commander role after bootstrap",
     delete process.env.DISCORD_BOT_TOKEN;
     delete process.env.DISCORD_MAIN_CHANNEL_ID;
     delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_COMPUTA_OWNER_USER_ID;
   }
 });
 

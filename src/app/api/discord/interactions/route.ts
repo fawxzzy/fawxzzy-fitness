@@ -3068,8 +3068,6 @@ function buildDiscordComputaCommandMenuPayload(): Record<string, unknown> {
         title: "Computa",
         description: [
           "`computa` - Show this command card.",
-          "`computa setup feedback` - Refresh feedback buttons in this channel.",
-          "`computa setup music sesh` - Refresh the Music Sesh panel.",
         ].join("\n"),
         color: DISCORD_EMBED_COLOR_SUCCESS,
       },
@@ -3427,6 +3425,37 @@ async function authorizeDiscordCommanderMessageCommand(args: {
   return { ok: true, authorId, messageId };
 }
 
+async function authorizeDiscordOwnerMessageCommand(args: {
+  channelId: string;
+  message: DiscordMessageCommand;
+  forbiddenCode: string;
+  forbiddenMessage: string;
+}): Promise<
+  | { ok: true; authorId: string; messageId: string }
+  | { ok: false; code: string; status?: number; message?: string | null }
+> {
+  const messageId = typeof args.message.id === "string" ? args.message.id : null;
+  const authorId = typeof args.message.author?.id === "string" ? args.message.author.id : null;
+  if (!messageId || !authorId) {
+    return { ok: false, code: "DISCORD_MESSAGE_COMMAND_INVALID_MESSAGE" };
+  }
+
+  if (authorId === resolveDiscordComputaOwnerUserId()) {
+    return { ok: true, authorId, messageId };
+  }
+
+  await sendDiscordMessageCommandPrivateNotice({
+    userId: authorId,
+    content: args.forbiddenMessage,
+  });
+  await markDiscordMessageCommandProcessed({
+    channelId: args.channelId,
+    messageId,
+    emoji: DISCORD_MESSAGE_COMMAND_FORBIDDEN_REACTION,
+  });
+  return { ok: false, code: args.forbiddenCode };
+}
+
 async function processDiscordComputaMenuMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
@@ -3521,7 +3550,11 @@ async function processDiscordFeedbackSetupMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
 }) {
-  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  const authorization = await authorizeDiscordOwnerMessageCommand({
+    ...args,
+    forbiddenCode: "DISCORD_FEEDBACK_SETUP_FORBIDDEN",
+    forbiddenMessage: "Only the configured Computa owner can run `computa setup feedback`.",
+  });
   if (!authorization.ok) {
     return authorization;
   }
@@ -3567,7 +3600,11 @@ async function processDiscordMusicSeshSetupMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
 }) {
-  const authorization = await authorizeDiscordCommanderMessageCommand(args);
+  const authorization = await authorizeDiscordOwnerMessageCommand({
+    ...args,
+    forbiddenCode: "DISCORD_MUSIC_SESH_SETUP_FORBIDDEN",
+    forbiddenMessage: "Only the configured Computa owner can run `computa setup music sesh`.",
+  });
   if (!authorization.ok) {
     return authorization;
   }

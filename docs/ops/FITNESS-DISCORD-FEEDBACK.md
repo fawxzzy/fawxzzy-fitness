@@ -51,7 +51,7 @@ Product rules:
   - aliases: `computa repair feedback setup`
 - `computa setup music sesh`
   - main-channel message trigger
-  - commander-only, with configured owner bypass
+  - owner-only
   - refreshes the canonical Music Sesh panel in the channel where the trigger was used
   - aliases: `computa music sesh setup`, `computa setup spotify club`, `computa spotify club setup`
 - `computa archive checked cards`
@@ -84,8 +84,7 @@ Product rules:
   - creates `feedback-submission` next to the invoking channel when no dedicated channel exists yet
   - removes older launcher messages from previous feedback setup channels after successful setup
 - main-channel message triggers: `computa setup feedback` and `computa setup music sesh`
-  - requires the `Fawxzzy Commander` role after bootstrap
-  - can be bootstrapped by a member with Manage Server/Administrator when the role does not exist yet
+  - owner-only
   - polls only `DISCORD_MAIN_CHANNEL_ID`
   - deletes the old launcher and reposts the launcher in the dedicated target channel
   - removes older launcher messages from previous feedback or Music Sesh setup channels after successful setup
@@ -223,7 +222,7 @@ Rule:
 - Feedback audit comments tell a card's history.
 
 ## User flow
-1. An admin runs `/setup-feedback`, or an approved commander says `computa setup feedback` in main chat.
+1. An admin runs `/setup-feedback`, or the configured owner says `computa setup feedback` in main chat.
 2. Fitness creates or updates the dedicated launcher message in `feedback-submission`.
 3. A user clicks `Submit`.
 4. Fitness opens one general modal.
@@ -252,8 +251,7 @@ Rules:
 - Bot-authored messages are ignored.
 - Messages already marked with the bot's processed reaction are ignored.
 - Only `DISCORD_MAIN_CHANNEL_ID` is polled.
-- A member with the `Fawxzzy Commander` role may run the trigger.
-- If the role does not exist, a member with Manage Server or Administrator may bootstrap it; the bot creates `Fawxzzy Commander`, assigns it to that member when allowed, and runs setup.
+- Only the configured Computa owner account may run the trigger.
 - The poll endpoint requires `Authorization: Bearer <DISCORD_MESSAGE_COMMAND_POLL_SECRET>` or `Authorization: Bearer <CRON_SECRET>`.
 - Successful processing marks the source message processed. Detailed private output should use interaction ephemerals where possible.
 - Public command reactions use the configured success/failure custom emoji:
@@ -709,7 +707,7 @@ After verify-copy changes, rerun:
 1. Make sure the Feedback forum has the required tags.
 2. Register commands with `npm run discord:commands:register`.
 3. Set the forum and optional fallback panel env vars.
-4. Run `/setup-feedback`, or say `computa setup feedback` in main chat, then confirm the launcher lives in `feedback-submission`.
+4. Run `/setup-feedback`, or have the configured owner say `computa setup feedback` in main chat, then confirm the launcher lives in `feedback-submission`.
 5. Pin the panel if needed.
 6. Run `npm run discord:emoji:bootstrap -- --apply --write-env-template` if bot-owned emoji should be available.
 7. Test `Submit` with both `Bug` and `Feature`.
