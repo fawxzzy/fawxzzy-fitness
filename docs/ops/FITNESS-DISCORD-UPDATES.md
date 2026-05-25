@@ -158,6 +158,12 @@ Formatting rules:
 - keep the raw message content empty for low-noise posts unless an explicit loud ping is approved
 - if a broad release-summary really needs `@everyone`, put the mention in the message content above the embed card only when explicitly approved
 
+Direct operator post path:
+- `npm run discord:update:post -- --title "<title>" --body-file <absolute-or-repo-path> --dry-run`
+- `npm run discord:update:post -- --title "<title>" --body-file <absolute-or-repo-path> --apply`
+- this script uses the same canonical section-aware formatter as the live owner-triggered `computa post update` path
+- use it when a governed update post must be repaired or published directly without relying on manual Discord message-command routing
+
 Good copy:
 - `Better feedback tools are live`
 - `Submit feedback from one panel instead of memorizing commands`

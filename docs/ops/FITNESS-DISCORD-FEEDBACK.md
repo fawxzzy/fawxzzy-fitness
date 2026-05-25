@@ -436,6 +436,12 @@ Stored attachment metadata should stay bounded to:
 - after successful setup, remove older launcher messages from previous feedback setup channels
 - if Discord does not provide a source channel, reuse `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` or an existing `feedback-submission` channel
 
+Direct operator repair:
+- `npm run discord:feedback:launcher:refresh -- --dry-run`
+- `npm run discord:feedback:launcher:refresh -- --apply`
+- use this when the live launcher needs to be refreshed immediately and Discord slash/message triggers are not the safest recovery path
+- the script reuses or repairs the canonical `feedback-submission` channel, removes stale bot-authored launcher messages there, and reposts one fresh launcher
+
 If panel creation fails with Discord `50013 Missing Permissions`, the admin response should mention:
 - `View Channel`
 - `Read Message History`
