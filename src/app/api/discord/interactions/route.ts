@@ -87,56 +87,30 @@ import {
   discordMessageHasSpotifyClubPanel,
   discordMemberHasSetupPermission,
   discordMessageHasVerifyButton,
-  FITNESS_FEEDBACK_COMMAND_NAME,
-  FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID,
-  FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
-  FITNESS_FEEDBACK_SUBMIT_PICKER_SELECT_CUSTOM_ID,
-  FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX,
   FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID,
   FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
   FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
   FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
   FITNESS_BUG_DETAILS_INPUT_CUSTOM_ID,
-  FITNESS_FEEDBACK_SETUP_COMMAND_NAME,
-  FITNESS_FEEDBACK_UPDATE_PICKER_SELECT_CUSTOM_ID,
-  FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX,
-  FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID,
-  FITNESS_FEEDBACK_COMPLETION_REVIEW_COMMAND_NAME,
   FITNESS_FEEDBACK_COMPLETION_REVIEW_DECISION_OPTION_NAME,
-  FITNESS_FEEDBACK_STATUS_COMMAND_NAME,
-  FITNESS_FEEDBACK_UPDATE_PICKER_BUTTON_CUSTOM_ID_PREFIX,
-  FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_BUTTON_CUSTOM_ID,
   FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_INPUT_CUSTOM_ID,
-  FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_MODAL_CUSTOM_ID,
-  FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID,
   FITNESS_FEEDBACK_WITHDRAW_NOTE_INPUT_CUSTOM_ID,
   FITNESS_FEEDBACK_WITHDRAW_REPORT_SELECT_CUSTOM_ID,
   FITNESS_FEEDBACK_WITHDRAW_REPORT_ID_INPUT_CUSTOM_ID,
-  FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME,
   FITNESS_BUG_STATUS_NOTE_OPTION_NAME,
   FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
   FITNESS_BUG_STATUS_STATUS_OPTION_NAME,
   FITNESS_UPDATE_DRAFT_ID_OPTION_NAME,
-  FITNESS_UPDATE_LATEST_COMMAND_NAME,
-  FITNESS_MOD_LOG_COMMAND_NAME,
   FITNESS_MOD_LOG_LIMIT_OPTION_NAME,
-  FITNESS_SERVER_INVENTORY_COMMAND_NAME,
-  FITNESS_UPDATE_PUBLISH_COMMAND_NAME,
-  FITNESS_PURGATORY_COMMAND_NAME,
   FITNESS_PURGATORY_DURATION_OPTION_NAME,
   FITNESS_PURGATORY_REASON_OPTION_NAME,
-  FITNESS_PURGATORY_SETUP_COMMAND_NAME,
   FITNESS_PURGATORY_USER_OPTION_NAME,
   FITNESS_RELEASE_CASE_ID_OPTION_NAME,
-  FITNESS_RELEASE_COMMAND_NAME,
   FITNESS_RELEASE_NOTE_OPTION_NAME,
-  FITNESS_WARNING_CLEAR_COMMAND_NAME,
   FITNESS_JAM_LOBBY_CLOSE_SUBCOMMAND_NAME,
-  FITNESS_JAM_LOBBY_COMMAND_NAME,
   FITNESS_JAM_LOBBY_OPEN_SUBCOMMAND_NAME,
   FITNESS_JAM_LOBBY_STATUS_SUBCOMMAND_NAME,
   FITNESS_JAM_QUEUE_APPROVE_SUBCOMMAND_NAME,
-  FITNESS_JAM_QUEUE_COMMAND_NAME,
   FITNESS_JAM_QUEUE_ITEM_OPTION_NAME,
   FITNESS_JAM_QUEUE_LIST_SUBCOMMAND_NAME,
   FITNESS_JAM_QUEUE_REASON_OPTION_NAME,
@@ -145,12 +119,8 @@ import {
   FITNESS_JAM_QUEUE_SUGGEST_SUBCOMMAND_NAME,
   FITNESS_JAM_QUEUE_TRACK_OPTION_NAME,
   FITNESS_WARNING_SEVERITY_OPTION_NAME,
-  FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME,
-  FITNESS_SPOTIFY_COMMAND_NAME,
-  FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_CONTROLS_OPEN_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_APPROVAL_MODE_TOGGLE_BUTTON_CUSTOM_ID,
-  FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_CONNECT_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_DEVICE_CHECK_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_DISCONNECT_SUBCOMMAND_NAME,
@@ -159,12 +129,8 @@ import {
   FITNESS_SPOTIFY_QUEUE_PENDING_VIEW_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_PENDING_APPROVE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_PENDING_REJECT_BUTTON_CUSTOM_ID,
-  FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SEARCH_BUTTON_CUSTOM_ID,
-  FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID,
   FITNESS_SPOTIFY_QUEUE_SEARCH_SELECT_CUSTOM_ID,
-  FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID,
-  FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_ROOM_CLOSE_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_ROOM_OPEN_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_MIRROR_REFRESH_BUTTON_CUSTOM_ID,
@@ -174,35 +140,20 @@ import {
   FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID,
   FITNESS_SPOTIFY_STATUS_SUBCOMMAND_NAME,
   FITNESS_SPOTIFY_TRACK_INPUT_CUSTOM_ID,
-  FITNESS_WARNINGS_COMMAND_NAME,
-  FITNESS_WARN_COMMAND_NAME,
-  FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX,
-  FITNESS_UPDATE_SKIP_COMMAND_NAME,
   FITNESS_UPDATE_SKIP_REASON_OPTION_NAME,
   FITNESS_UPDATE_TITLE_INPUT_CUSTOM_ID,
   FITNESS_UPDATE_WHAT_CHANGED_INPUT_CUSTOM_ID,
   FITNESS_UPDATE_WHY_IT_MATTERS_INPUT_CUSTOM_ID,
-  extractDiscordFeedbackManageEditReportId,
-  extractDiscordFeedbackManageWithdrawReportId,
   extractDiscordFeedbackSubmitCreateReportType,
   extractDiscordFeedbackUpdatePickerReportId,
-  extractDiscordFeedbackUpdateReportIdFromModalCustomId,
-  extractDiscordFeedbackWithdrawSelectedReportId,
   extractDiscordUpdateDraftIdFromPublishModalCustomId,
   resolveDiscordFeedbackReportTypeFromModalCustomId,
   DISCORD_INTERACTION_TYPE,
-  FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID,
-  FITNESS_VERIFY_BUTTON_CUSTOM_ID,
-  FITNESS_VERIFY_CLEANUP_COMMAND_NAME,
-  FITNESS_VERIFY_COMMAND_NAME,
-  FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME,
-  FITNESS_VERIFY_MODAL_CUSTOM_ID,
   extractDiscordCommandIntegerOption,
   extractDiscordCommandSubcommand,
   extractDiscordCommandStringOption,
   extractDiscordCommandUserOption,
   extractDiscordModalFileUploadIds,
-  extractDiscordModalStringSelectValue,
   extractDiscordModalTextInputValue,
 } from "@/lib/discord/interactions";
 import {
@@ -319,6 +270,13 @@ import {
   formatDiscordMemberNickname,
   shouldDisplayDiscordMemberNumber,
 } from "@/lib/discord/member-number";
+import { dispatchFeedbackInteraction } from "@/lib/discord/runtime/domains/feedback";
+import { dispatchModerationInteraction } from "@/lib/discord/runtime/domains/moderation";
+import { dispatchOperationsInteraction } from "@/lib/discord/runtime/domains/operations";
+import { dispatchSpotifyInteraction } from "@/lib/discord/runtime/domains/spotify";
+import { dispatchUpdatesInteraction } from "@/lib/discord/runtime/domains/updates";
+import { dispatchVerificationInteraction } from "@/lib/discord/runtime/domains/verification";
+import type { DiscordInteraction } from "@/lib/discord/runtime/types";
 import { consumeDiscordVerificationTokenForDiscordUser } from "@/lib/discord/verification-server";
 
 export const runtime = "nodejs";
@@ -415,52 +373,7 @@ const DISCORD_MESSAGE_COMMAND_PROCESSED_REACTIONS = new Set([
   "\u26a0\ufe0f",
   "\ud83d\udeab",
 ]);
-const LEGACY_SPOTIFY_CLUB_SETUP_COMMAND_NAME = "setup-spotify-club";
 const SPOTIFY_START_QUEUE_URI_LIMIT = 50;
-
-type DiscordInteraction = {
-  id?: unknown;
-  application_id?: unknown;
-  token?: unknown;
-  type?: unknown;
-  guild_id?: unknown;
-  channel_id?: unknown;
-  message?: {
-    id?: unknown;
-    flags?: unknown;
-  } | null;
-  member?: {
-    permissions?: unknown;
-    nick?: unknown;
-    user?: {
-      id?: unknown;
-      username?: unknown;
-      global_name?: unknown;
-    };
-  } | null;
-  user?: {
-    id?: unknown;
-    username?: unknown;
-    global_name?: unknown;
-  } | null;
-  data?: {
-    name?: unknown;
-    custom_id?: unknown;
-    values?: unknown;
-    components?: unknown;
-    options?: unknown;
-    resolved?: {
-      attachments?: Record<string, {
-        id?: unknown;
-        filename?: unknown;
-        content_type?: unknown;
-        size?: unknown;
-        url?: unknown;
-        proxy_url?: unknown;
-      }>;
-    } | null;
-  } | null;
-};
 
 type DiscordMessageCommand = {
   id?: unknown;
@@ -7766,352 +7679,81 @@ export async function POST(request: Request) {
       return jsonResponse(buildDiscordPongResponse());
     }
 
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_FEEDBACK_COMMAND_NAME
-    ) {
-      return jsonResponse(buildDiscordFeedbackSubmitPickerResponse());
-    }
+    const dispatchers = [
+      () => dispatchFeedbackInteraction({
+        interaction,
+        jsonResponse,
+        buildDiscordFeedbackSubmitPickerResponse,
+        buildDiscordFeedbackManageLookupModalResponse,
+        buildDiscordEphemeralMessageResponse,
+        handleBugStatusInteraction,
+        handleFeedbackCompletionReviewInteraction,
+        handleFeedbackWithdrawInteraction,
+        handleSetupFeedbackInteraction,
+        handleFeedbackSubmitPickerSelection,
+        handleFeedbackSubmitCreateButton,
+        buildFeedbackUpdatePickerOpenResponse,
+        handleFeedbackUpdatePickerButton,
+        handleFeedbackUpdatePickerSelection,
+        handleFeedbackManageEditButton,
+        handleFeedbackManageWithdrawButton,
+        handleDeferredFeedbackCreateModalSubmit,
+        handleFeedbackManageLookupModalSubmit,
+        handleFeedbackUpdateModalSubmit,
+        handleFeedbackWithdrawModalSubmit,
+        handleFeedbackWithdrawSelectedModalSubmit,
+      }),
+      () => dispatchSpotifyInteraction({
+        interaction,
+        jsonResponse,
+        handleSetupSpotifyClubInteraction,
+        handleSpotifyInteraction,
+        handleJamLobbyInteraction,
+        handleJamQueueInteraction,
+        handleSpotifyClubButtonInteraction,
+        handleSpotifyQueueSuggestModalSubmit,
+        handleSpotifyQueueSearchModalSubmit,
+      }),
+      () => dispatchVerificationInteraction({
+        interaction,
+        jsonResponse,
+        buildDiscordVerifyModalResponse,
+        handleSetupVerifyInteraction,
+        handleVerifyCleanupInteraction,
+        handleVerifyLockdownInteraction,
+        handleVerifyModalSubmit,
+      }),
+      () => dispatchModerationInteraction({
+        interaction,
+        jsonResponse,
+        handleWarnInteraction,
+        handleWarningsInteraction,
+        handleWarningClearInteraction,
+        handlePurgatorySetupInteraction,
+        handlePurgatoryInteraction,
+      }),
+      () => dispatchOperationsInteraction({
+        interaction,
+        jsonResponse,
+        handleReleaseInteraction,
+        handleModLogInteraction,
+        handleServerInventoryInteraction,
+      }),
+      () => dispatchUpdatesInteraction({
+        interaction,
+        jsonResponse,
+        handleUpdateLatestInteraction,
+        handleUpdatePublishInteraction,
+        handleUpdateSkipInteraction,
+        handleUpdatePublishModalSubmit,
+      }),
+    ];
 
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_FEEDBACK_STATUS_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleBugStatusInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_FEEDBACK_COMPLETION_REVIEW_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleFeedbackCompletionReviewInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleFeedbackWithdrawInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && (
-        interaction.data?.name === FITNESS_SPOTIFY_CLUB_SETUP_COMMAND_NAME
-        || interaction.data?.name === LEGACY_SPOTIFY_CLUB_SETUP_COMMAND_NAME
-      )
-    ) {
-      return jsonResponse(await handleSetupSpotifyClubInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_SPOTIFY_COMMAND_NAME
-    ) {
-      const response = await handleSpotifyInteraction(interaction);
-      return response instanceof Response ? response : jsonResponse(response);
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_JAM_LOBBY_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleJamLobbyInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_JAM_QUEUE_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleJamQueueInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_VERIFY_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleSetupVerifyInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_VERIFY_CLEANUP_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleVerifyCleanupInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_VERIFY_LOCKDOWN_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleVerifyLockdownInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_FEEDBACK_SETUP_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleSetupFeedbackInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_PURGATORY_SETUP_COMMAND_NAME
-    ) {
-      return jsonResponse(await handlePurgatorySetupInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_WARN_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleWarnInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_WARNINGS_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleWarningsInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_WARNING_CLEAR_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleWarningClearInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_PURGATORY_COMMAND_NAME
-    ) {
-      return jsonResponse(await handlePurgatoryInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_RELEASE_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleReleaseInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_MOD_LOG_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleModLogInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_SERVER_INVENTORY_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleServerInventoryInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_UPDATE_LATEST_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleUpdateLatestInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_UPDATE_PUBLISH_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleUpdatePublishInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND
-      && interaction.data?.name === FITNESS_UPDATE_SKIP_COMMAND_NAME
-    ) {
-      return jsonResponse(await handleUpdateSkipInteraction(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_VERIFY_BUTTON_CUSTOM_ID
-    ) {
-      return jsonResponse(buildDiscordVerifyModalResponse());
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && typeof interaction.data?.custom_id === "string"
-      && (
-        interaction.data.custom_id === FITNESS_SPOTIFY_CONNECT_BUTTON_CUSTOM_ID
-        || interaction.data.custom_id === FITNESS_SPOTIFY_STATUS_BUTTON_CUSTOM_ID
-        || interaction.data.custom_id === FITNESS_SPOTIFY_DISCONNECT_AUTH_BUTTON_CUSTOM_ID
-        || interaction.data.custom_id === FITNESS_SPOTIFY_QUEUE_SUGGEST_BUTTON_CUSTOM_ID
-        || interaction.data.custom_id === FITNESS_SPOTIFY_QUEUE_VIEW_BUTTON_CUSTOM_ID
-        || interaction.data.custom_id.startsWith("spotify_")
-      )
-    ) {
-      const response = await handleSpotifyClubButtonInteraction(interaction);
-      return response instanceof Response ? response : jsonResponse(response);
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_SUBMIT_BUTTON_CUSTOM_ID
-    ) {
-      return jsonResponse(buildDiscordFeedbackSubmitPickerResponse());
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_SUBMIT_PICKER_SELECT_CUSTOM_ID
-    ) {
-      return jsonResponse(await handleFeedbackSubmitPickerSelection(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && typeof interaction.data?.custom_id === "string"
-      && interaction.data.custom_id.startsWith(`${FITNESS_FEEDBACK_SUBMIT_CREATE_BUTTON_CUSTOM_ID_PREFIX}:`)
-    ) {
-      return jsonResponse(await handleFeedbackSubmitCreateButton(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_UPDATE_BUTTON_CUSTOM_ID
-    ) {
-      return jsonResponse(await buildFeedbackUpdatePickerOpenResponse(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && typeof interaction.data?.custom_id === "string"
-      && interaction.data.custom_id.startsWith(`${FITNESS_FEEDBACK_UPDATE_PICKER_BUTTON_CUSTOM_ID_PREFIX}:`)
-    ) {
-      return jsonResponse(await handleFeedbackUpdatePickerButton(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_UPDATE_PICKER_SELECT_CUSTOM_ID
-    ) {
-      return jsonResponse(await handleFeedbackUpdatePickerSelection(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_BUTTON_CUSTOM_ID
-    ) {
-      return jsonResponse(buildDiscordFeedbackManageLookupModalResponse());
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && typeof interaction.data?.custom_id === "string"
-      && extractDiscordFeedbackManageEditReportId(interaction.data.custom_id)
-    ) {
-      return jsonResponse(await handleFeedbackManageEditButton(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && typeof interaction.data?.custom_id === "string"
-      && extractDiscordFeedbackManageWithdrawReportId(interaction.data.custom_id)
-    ) {
-      return jsonResponse(await handleFeedbackManageWithdrawButton(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MESSAGE_COMPONENT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_MANAGE_CANCEL_BUTTON_CUSTOM_ID
-    ) {
-      return jsonResponse(buildDiscordEphemeralMessageResponse("Feedback action cancelled."));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && typeof interaction.data?.custom_id === "string"
-      && interaction.data.custom_id.startsWith(`${FITNESS_FEEDBACK_REPORT_MODAL_CUSTOM_ID_PREFIX}:`)
-    ) {
-      return handleDeferredFeedbackCreateModalSubmit(interaction);
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID
-    ) {
-      const rawReportType = extractDiscordModalStringSelectValue(interaction.data?.components, FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID)
-        ?? extractDiscordModalTextInputValue(interaction.data?.components, FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID);
-      const reportType = normalizeDiscordFeedbackReportType(rawReportType);
-
-      if (reportType === "bug" || reportType === "feature") {
-        return handleDeferredFeedbackCreateModalSubmit(interaction, reportType);
+    for (const dispatch of dispatchers) {
+      const response = await dispatch();
+      if (response) {
+        return response;
       }
-
-      if (rawReportType) {
-        return jsonResponse(buildDiscordEphemeralMessageResponse("Choose Bug or Feature for the feedback type."), { status: 400 });
-      }
-
-      return handleDeferredFeedbackCreateModalSubmit(interaction, "bug");
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && interaction.data?.custom_id === FITNESS_SPOTIFY_QUEUE_SUGGEST_MODAL_CUSTOM_ID
-    ) {
-      return jsonResponse(await handleSpotifyQueueSuggestModalSubmit(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && interaction.data?.custom_id === FITNESS_SPOTIFY_QUEUE_SEARCH_MODAL_CUSTOM_ID
-    ) {
-      return jsonResponse(await handleSpotifyQueueSearchModalSubmit(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_UPDATE_PICKER_LOOKUP_MODAL_CUSTOM_ID
-    ) {
-      return jsonResponse(await handleFeedbackManageLookupModalSubmit(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && typeof interaction.data?.custom_id === "string"
-      && extractDiscordFeedbackUpdateReportIdFromModalCustomId(interaction.data.custom_id)
-    ) {
-      return handleFeedbackUpdateModalSubmit(interaction);
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && interaction.data?.custom_id === FITNESS_FEEDBACK_WITHDRAW_MODAL_CUSTOM_ID
-    ) {
-      return handleFeedbackWithdrawModalSubmit(interaction);
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && typeof interaction.data?.custom_id === "string"
-      && extractDiscordFeedbackWithdrawSelectedReportId(interaction.data.custom_id)
-    ) {
-      return handleFeedbackWithdrawSelectedModalSubmit(interaction);
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && typeof interaction.data?.custom_id === "string"
-      && interaction.data.custom_id.startsWith(`${FITNESS_UPDATE_PUBLISH_MODAL_CUSTOM_ID_PREFIX}:`)
-    ) {
-      return jsonResponse(await handleUpdatePublishModalSubmit(interaction));
-    }
-
-    if (
-      interaction.type === DISCORD_INTERACTION_TYPE.MODAL_SUBMIT
-      && interaction.data?.custom_id === FITNESS_VERIFY_MODAL_CUSTOM_ID
-    ) {
-      return jsonResponse(await handleVerifyModalSubmit(interaction));
     }
 
     return jsonResponse(buildDiscordEphemeralMessageResponse("Unsupported Discord interaction."), { status: 400 });
