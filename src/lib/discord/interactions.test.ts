@@ -95,7 +95,7 @@ test("buildDiscordFeedbackReportModalResponse adapts the title and custom id by 
 test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel buttons", () => {
   const payload = buildDiscordFeedbackPanelMessagePayload();
 
-  assert.equal(payload.embeds[0]?.title, "Submit Feedback Here");
+  assert.equal(payload.embeds[0]?.title, "Feedback Submission");
   assert.equal(payload.embeds[0]?.color, 0x22c55e);
   assert.match(payload.embeds[0]?.description ?? "", /choose bug or feature, then create a card/i);
   assert.deepEqual(
@@ -373,8 +373,10 @@ test("feedback panel button modals expose submit and manage flows", () => {
   assert.equal(submit.data.custom_id, "fitness_feedback_submit_modal");
   assert.equal(submit.data.components[0]?.component?.custom_id, "bug_summary");
   assert.equal(submit.data.components[3]?.component?.custom_id, "feedback_section_overrides");
+  assert.match(submit.data.components[3]?.description ?? "", /Acceptance Criteria.*(plain-language checklist|fix result you expect)/i);
   assert.equal(submit.data.components.length, 4);
   assert.equal(submitPicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
+  assert.match(submitPicker.data.content ?? "", /Choose Bug or Feature, then create your feedback card\./);
   assert.equal(updatePicker.data.flags, 64);
   assert.equal(updatePicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_manage_recent:11111111-1111-4111-8111-111111111111");
   assert.equal(updatePicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_update_pick_report");
@@ -501,6 +503,8 @@ test("feedback panel payload stays text-only even when custom emoji env vars are
   const payload = buildDiscordFeedbackPanelMessagePayload();
   const firstButton = payload.components[0]?.components[0] as { emoji?: { id: string; name: string } } | undefined;
 
+  assert.equal(payload.embeds[0]?.title, "Feedback Submission");
+  assert.match(payload.embeds[0]?.description ?? "", /without cluttering main chat/i);
   assert.doesNotMatch(payload.embeds[0]?.description ?? "", /<:/);
   assert.equal(firstButton?.emoji, undefined);
 

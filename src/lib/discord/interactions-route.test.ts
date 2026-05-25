@@ -596,12 +596,12 @@ test("Discord interactions route reposts an existing feedback panel when setup-f
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback launcher updated in configured channel.",
+        content: "Feedback launcher updated in <#1504673475489562744>.",
         flags: 64,
       },
     });
     assert.equal(deletedOldPanel, true);
-    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Submit Feedback Here");
+    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Feedback Submission");
     assert.deepEqual(
       observedDiscordBodies[0]?.components?.[0]?.components?.map((component) => component.custom_id),
       [
@@ -615,7 +615,7 @@ test("Discord interactions route reposts an existing feedback panel when setup-f
   }
 });
 
-test("Discord interactions route posts setup-feedback in the invoking channel and removes the old panel", async () => {
+test("Discord interactions route reuses and renames the dedicated feedback-submission channel when setup-feedback is run elsewhere", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
@@ -643,16 +643,8 @@ test("Discord interactions route posts setup-feedback in the invoking channel an
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "GET") {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
-      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
-      return new Response(JSON.stringify({ id: "new-panel-message" }), {
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "submit-feedback" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -687,12 +679,21 @@ test("Discord interactions route posts setup-feedback in the invoking channel an
       });
     }
 
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "PATCH") {
+      assert.equal(body?.name, "feedback-submission");
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "feedback-submission" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.pathname === "/api/v10/channels/1504673475489562744/messages/old-panel-message" && method === "DELETE") {
       return new Response(null, { status: 204 });
     }
 
-    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "DELETE") {
-      return new Response(JSON.stringify({ id: "1504673475489562744", name: "submit-feedback" }), {
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "POST") {
+      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
+      return new Response(JSON.stringify({ id: "new-panel-message" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -722,13 +723,14 @@ test("Discord interactions route posts setup-feedback in the invoking channel an
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback launcher created in <#1504668396338413671>.",
+        content: "Feedback launcher updated in <#1504673475489562744>.",
         flags: 64,
       },
     });
-    assert.equal(calls.some((call) => call.method === "POST" && call.pathname === "/api/v10/channels/1504668396338413671/messages"), true);
+    assert.equal(calls.some((call) => call.method === "PATCH" && call.pathname === "/api/v10/channels/1504673475489562744" && call.body?.name === "feedback-submission"), true);
+    assert.equal(calls.some((call) => call.method === "POST" && call.pathname === "/api/v10/channels/1504673475489562744/messages"), true);
     assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504673475489562744/messages/old-panel-message"), true);
-    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504673475489562744"), true);
+    assert.equal(calls.some((call) => call.method === "DELETE" && call.pathname === "/api/v10/channels/1504673475489562744"), false);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
@@ -828,33 +830,96 @@ test("Discord interactions route recreates the feedback panel when the old panel
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Feedback launcher updated in configured channel.",
+        content: "Feedback launcher updated in <#1504673475489562744>.",
         flags: 64,
       },
     });
-    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Submit Feedback Here");
+    assert.equal(observedDiscordBodies[0]?.embeds?.[0]?.title, "Feedback Submission");
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
   }
 });
 
-test("Discord interactions route does not auto-create a submit-feedback launcher channel", async () => {
+test("Discord interactions route creates a dedicated feedback-submission launcher channel when no channel exists yet", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
   process.env.DISCORD_APPLICATION_ID = "1504700208251146371";
   delete process.env.DISCORD_FEEDBACK_PANEL_CHANNEL_ID;
-  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
+  let discordFetchCount = 0;
 
   const originalFetch = globalThis.fetch;
-  let discordFetchCount = 0;
 
   globalThis.fetch = async (input, init) => {
     const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = parseJsonBody(init?.body);
     if (url.hostname === "discord.com") {
       discordFetchCount += 1;
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "GET") {
+      return new Response(JSON.stringify([
+        { id: "1504668396338413671", type: 0, name: "main", parent_id: "community-parent", position: 4 },
+      ]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "1504668396338413671",
+        type: 0,
+        name: "main",
+        parent_id: "community-parent",
+        position: 4,
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/guilds/1504668396338413670/channels" && method === "POST") {
+      assert.equal(body?.name, "feedback-submission");
+      assert.equal(body?.type, 0);
+      assert.equal(body?.parent_id, "community-parent");
+      assert.equal(body?.position, 5);
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        type: 0,
+        name: "feedback-submission",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "GET") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        type: 0,
+        name: "feedback-submission",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "GET") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "POST") {
+      return new Response(JSON.stringify({ id: "new-feedback-panel-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     throw new Error(`Unexpected fetch: ${url.toString()} (${String(init?.method ?? "GET")})`);
@@ -864,6 +929,7 @@ test("Discord interactions route does not auto-create a submit-feedback launcher
     const response = await POST(createSignedRequest(JSON.stringify({
       type: 2,
       guild_id: "1504668396338413670",
+      channel_id: "1504668396338413671",
       member: {
         permissions: String(BigInt(1) << BigInt(5)),
         user: {
@@ -880,14 +946,13 @@ test("Discord interactions route does not auto-create a submit-feedback launcher
     assert.deepEqual(await response.json(), {
       type: 4,
       data: {
-        content: "Discord feedback panel channel is not configured.",
+        content: "Feedback launcher created in <#1504673475489562744>.",
         flags: 64,
       },
     });
-    assert.equal(discordFetchCount, 0);
+    assert.equal(discordFetchCount > 0, true);
   } finally {
     globalThis.fetch = originalFetch;
-    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
   }
 });
 
@@ -1888,22 +1953,10 @@ test("Discord message command poll lets a manager bootstrap the commander role a
       });
     }
 
-    if (
-      url.pathname === "/api/v10/channels/1504668396338413671/messages"
-      && method === "GET"
-      && url.searchParams.get("limit") === "50"
-    ) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504668396338413671/messages" && method === "POST") {
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "PATCH") {
       const body = parseJsonBody(init?.body);
-      assert.equal(body?.message_reference, undefined);
-      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
-      return new Response(JSON.stringify({ id: "feedback-panel-message-1" }), {
+      assert.equal(body?.name, "feedback-submission");
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "feedback-submission" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -1938,15 +1991,18 @@ test("Discord message command poll lets a manager bootstrap the commander role a
       });
     }
 
-    if (url.pathname === "/api/v10/channels/1504673475489562744/messages/old-feedback-panel-message" && method === "DELETE") {
-      return new Response(null, { status: 204 });
-    }
-
-    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "DELETE") {
-      return new Response(JSON.stringify({ id: "1504673475489562744", name: "submit-feedback" }), {
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages" && method === "POST") {
+      const body = parseJsonBody(init?.body);
+      assert.equal(body?.message_reference, undefined);
+      assert.equal(body?.components?.[0]?.components?.[0]?.custom_id, "fitness_feedback_submit_open");
+      return new Response(JSON.stringify({ id: "feedback-panel-message-1" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/messages/old-feedback-panel-message" && method === "DELETE") {
+      return new Response(null, { status: 204 });
     }
 
     if (url.pathname === "/api/v10/users/@me/channels" && method === "POST") {
@@ -1960,7 +2016,7 @@ test("Discord message command poll lets a manager bootstrap the commander role a
 
     if (url.pathname === "/api/v10/channels/dm-feedback-command/messages" && method === "POST") {
       const body = parseJsonBody(init?.body);
-      assert.match(body?.content ?? "", /Feedback launcher created in <#1504668396338413671>/);
+      assert.match(body?.content ?? "", /Feedback launcher updated in <#1504673475489562744>/);
       assert.deepEqual(body?.allowed_mentions, { parse: [] });
       return new Response(JSON.stringify({ id: "dm-message-1" }), {
         status: 200,
@@ -1989,7 +2045,7 @@ test("Discord message command poll lets a manager bootstrap the commander role a
           messageId: "main-message-1",
           ok: true,
           code: null,
-          action: "created",
+          action: "reposted",
         },
       ],
     });
@@ -2098,6 +2154,13 @@ test("Discord message command poll reposts the Music Sesh panel when computa set
 
     if (url.pathname === "/api/v10/channels/1504668396338413671" && method === "GET") {
       return new Response(JSON.stringify({ id: "1504668396338413671", type: 0, name: "main" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744" && method === "GET") {
+      return new Response(JSON.stringify({ id: "1504673475489562744", type: 0, name: "submit-feedback" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

@@ -182,6 +182,7 @@ import {
   createDiscordRole,
   createDiscordChannelMessage,
   createDiscordForumThreadWithMessage,
+  createDiscordGuildChannel,
   createDiscordInteractionFollowupMessage,
   createDiscordMessageReaction,
   deleteDiscordMessageReactionEmoji,
@@ -203,6 +204,7 @@ import {
   resolveDiscordForumTagIdsByName,
   removeDiscordGuildMemberRole,
   updateDiscordChannelPermissionOverwrite,
+  updateDiscordChannel,
   updateDiscordForumThreadArchiveState,
   updateDiscordForumThreadTags,
   updateDiscordForumThreadTitle,
@@ -322,7 +324,8 @@ const DISCORD_FEEDBACK_ALLOWED_ATTACHMENT_CONTENT_TYPES = new Set([
 ]);
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_COUNT = 3;
 const DISCORD_FEEDBACK_MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
-const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "submit-feedback";
+const DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME = "feedback-submission";
+const LEGACY_DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAMES = new Set(["submit-feedback"]);
 const DISCORD_COMMANDER_ROLE_NAME = "Fawxzzy Commander";
 const DISCORD_MESSAGE_COMMAND_FEEDBACK_SETUP_TRIGGERS = [
   "computa setup feedback",
@@ -1539,13 +1542,17 @@ function isDiscordForumLikeChannel(type: unknown): boolean {
   return type === 15 || type === 16;
 }
 
+function isDiscordStandardTextChannel(type: unknown): boolean {
+  return type === 0;
+}
+
 function isDiscordMissingPermissionsFailure(result: { status?: number; message?: string | null }): boolean {
   return result.status === 403 || /missing permissions/i.test(String(result.message ?? ""));
 }
 
 function buildDiscordPanelPermissionFailureResponse() {
   return buildDiscordEphemeralMessageResponse(
-    "Discord could not create the feedback launcher. The bot needs View Channel, Read Message History, and Send Messages in the channel where setup is used. Embed Links and Use External Emojis are optional.",
+    "Discord could not create the feedback launcher. The bot needs View Channel, Read Message History, and Send Messages in the feedback-submission channel. Embed Links and Use External Emojis are optional.",
   );
 }
 
@@ -1577,33 +1584,171 @@ function truncateDiscordSelectText(value: string, maxLength: number) {
   return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
-async function ensureFeedbackPanelChannel(args: { targetChannelId?: string | null } = {}) {
-  if (args.targetChannelId) {
-    const channelResult = await fetchDiscordChannel({ channelId: args.targetChannelId });
-    if (!channelResult.ok) {
-      return channelResult;
+function normalizeDiscordChannelName(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isLegacyDiscordFeedbackLauncherChannelName(value: string | null | undefined) {
+  return LEGACY_DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAMES.has(normalizeDiscordChannelName(value));
+}
+
+function isManagedDiscordFeedbackLauncherChannelName(value: string | null | undefined) {
+  const normalized = normalizeDiscordChannelName(value);
+  return normalized === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
+    || LEGACY_DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAMES.has(normalized);
+}
+
+async function maybeRenameDiscordFeedbackLauncherChannel(args: {
+  channelId: string;
+  channelName?: string | null;
+}) {
+  if (!isLegacyDiscordFeedbackLauncherChannelName(args.channelName)) {
+    return { ok: true as const };
+  }
+
+  const updateResult = await updateDiscordChannel({
+    channelId: args.channelId,
+    name: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME,
+  });
+
+  if (!updateResult.ok) {
+    return updateResult;
+  }
+
+  return { ok: true as const };
+}
+
+async function findExistingDiscordFeedbackLauncherChannel() {
+  const guildChannelsResult = await fetchDiscordGuildChannels({ guildId: DISCORD_GUILD_ID() });
+  if (!guildChannelsResult.ok) {
+    console.warn("[discord-feedback-panel] managed channel lookup failed", {
+      code: guildChannelsResult.code,
+      status: guildChannelsResult.status,
+      message: guildChannelsResult.message,
+    });
+    return null;
+  }
+
+  const canonicalMatch = guildChannelsResult.channels.find((channel) => (
+    channel.id
+    && isDiscordStandardTextChannel(channel.type)
+    && normalizeDiscordChannelName(channel.name) === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
+  ));
+  if (canonicalMatch?.id) {
+    return canonicalMatch;
+  }
+
+  const legacyMatch = guildChannelsResult.channels.find((channel) => (
+    channel.id
+    && isDiscordStandardTextChannel(channel.type)
+    && isLegacyDiscordFeedbackLauncherChannelName(channel.name)
+  ));
+  if (!legacyMatch?.id) {
+    return null;
+  }
+
+  const renameResult = await maybeRenameDiscordFeedbackLauncherChannel({
+    channelId: legacyMatch.id,
+    channelName: legacyMatch.name ?? null,
+  });
+  if (!renameResult.ok) {
+    return renameResult;
+  }
+
+  return legacyMatch;
+}
+
+async function createDiscordFeedbackLauncherChannelFromSource(sourceChannelId: string) {
+  const sourceChannelResult = await fetchDiscordChannel({ channelId: sourceChannelId });
+  if (!sourceChannelResult.ok) {
+    return sourceChannelResult;
+  }
+
+  const sourceChannel = sourceChannelResult.channel;
+  if (sourceChannel.id && isManagedDiscordFeedbackLauncherChannelName(sourceChannel.name) && isDiscordStandardTextChannel(sourceChannel.type)) {
+    const renameResult = await maybeRenameDiscordFeedbackLauncherChannel({
+      channelId: sourceChannel.id,
+      channelName: sourceChannel.name ?? null,
+    });
+    if (!renameResult.ok) {
+      return renameResult;
     }
 
     return {
       ok: true as const,
-      channelId: args.targetChannelId,
-      channelLabel: `<#${args.targetChannelId}>`,
+      channelId: sourceChannel.id,
+      channelLabel: `<#${sourceChannel.id}>`,
     };
   }
 
+  const createResult = await createDiscordGuildChannel({
+    guildId: DISCORD_GUILD_ID(),
+    name: DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME,
+    type: 0,
+    parentId: typeof sourceChannel.parent_id === "string" ? sourceChannel.parent_id : null,
+    position: typeof sourceChannel.position === "number" ? sourceChannel.position + 1 : null,
+  });
+  if (!createResult.ok || !createResult.channel.id) {
+    return createResult.ok
+      ? {
+        ok: false as const,
+        code: "DISCORD_FEEDBACK_PANEL_CHANNEL_CREATE_FAILED",
+        status: 500,
+        message: "Discord created the feedback launcher channel without an id.",
+      }
+      : createResult;
+  }
+
+  return {
+    ok: true as const,
+    channelId: createResult.channel.id,
+    channelLabel: `<#${createResult.channel.id}>`,
+  };
+}
+
+async function ensureFeedbackPanelChannel(args: { targetChannelId?: string | null } = {}) {
   const configuredChannelId = DISCORD_FEEDBACK_PANEL_CHANNEL_ID();
   if (configuredChannelId) {
+    const channelResult = await fetchDiscordChannel({ channelId: configuredChannelId });
+    if (!channelResult.ok) {
+      return channelResult;
+    }
+
+    const renameResult = await maybeRenameDiscordFeedbackLauncherChannel({
+      channelId: configuredChannelId,
+      channelName: channelResult.channel.name ?? null,
+    });
+    if (!renameResult.ok) {
+      return renameResult;
+    }
+
     return {
       ok: true as const,
       channelId: configuredChannelId,
-      channelLabel: "configured channel",
+      channelLabel: `<#${configuredChannelId}>`,
     };
+  }
+
+  const existingLauncherChannel = await findExistingDiscordFeedbackLauncherChannel();
+  if (existingLauncherChannel && "id" in existingLauncherChannel && typeof existingLauncherChannel.id === "string") {
+    return {
+      ok: true as const,
+      channelId: existingLauncherChannel.id,
+      channelLabel: `<#${existingLauncherChannel.id}>`,
+    };
+  }
+  if (existingLauncherChannel && "ok" in existingLauncherChannel && existingLauncherChannel.ok === false) {
+    return existingLauncherChannel;
+  }
+
+  if (args.targetChannelId) {
+    return createDiscordFeedbackLauncherChannelFromSource(args.targetChannelId);
   }
 
   return {
     ok: false as const,
     code: "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED",
-    message: "Discord did not provide a setup source channel and no fallback feedback panel channel is configured.",
+    message: "Discord did not provide a setup source channel and no dedicated feedback-submission channel is configured.",
   };
 }
 
@@ -2059,7 +2204,7 @@ async function collectLegacyDiscordFeedbackPanelChannelIds(targetChannelId: stri
       channel.id
       && channel.id !== targetChannelId
       && channel.type === 0
-      && channel.name === DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME
+      && isLegacyDiscordFeedbackLauncherChannelName(channel.name)
     ) {
       channels.set(channel.id, { id: channel.id, name: channel.name });
     }
@@ -2129,7 +2274,7 @@ async function cleanupLegacyDiscordFeedbackPanels(args: {
   for (const channel of legacyChannels) {
     await deleteDiscordFeedbackPanelMessagesInChannel({ channelId: channel.id });
 
-    if (channel.name !== DISCORD_FEEDBACK_LAUNCHER_CHANNEL_NAME) {
+    if (!isLegacyDiscordFeedbackLauncherChannelName(channel.name)) {
       continue;
     }
 
@@ -4673,7 +4818,7 @@ async function handleSetupFeedbackInteraction(interaction: DiscordInteraction) {
     }
 
     if (upsertResult.code === "DISCORD_FEEDBACK_PANEL_CHANNEL_NOT_CONFIGURED") {
-      return buildDiscordEphemeralMessageResponse("Discord feedback panel channel is not configured.");
+      return buildDiscordEphemeralMessageResponse("Discord feedback-submission channel is not configured.");
     }
 
     return buildDiscordEphemeralMessageResponse("Discord could not update the feedback panel right now.");

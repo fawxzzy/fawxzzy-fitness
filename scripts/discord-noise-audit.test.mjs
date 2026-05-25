@@ -11,7 +11,7 @@ function buildSnapshot() {
     channels: [
       { id: "updates-1", name: "updates", type: 0, type_label: "text", parent_id: null, permission_overwrite_count: 1 },
       { id: "main-1", name: "main", type: 0, type_label: "text", parent_id: null, permission_overwrite_count: 1 },
-      { id: "feedback-1", name: "submit-feedback", type: 0, type_label: "text", parent_id: null, permission_overwrite_count: 1 },
+      { id: "feedback-1", name: "feedback-submission", type: 0, type_label: "text", parent_id: null, permission_overwrite_count: 1 },
       { id: "forum-1", name: "feedback-board", type: 15, type_label: "forum", parent_id: null, permission_overwrite_count: 3 },
     ],
     roles: [

@@ -170,13 +170,15 @@ export const DEFAULT_VERIFY_MESSAGE_BODY = [
   "",
   "By verifying, you agree to follow the server rules.",
 ].join("\n");
-export const DEFAULT_FEEDBACK_PANEL_TITLE = "Submit Feedback Here";
+export const DEFAULT_FEEDBACK_PANEL_TITLE = "Feedback Submission";
 export const DEFAULT_FEEDBACK_PANEL_BODY_LINES = [
-  "Use this panel to send new feedback or manage a card you already opened.",
+  "Use this panel to send bug reports or feature requests without cluttering main chat.",
   "",
   "- Submit: choose Bug or Feature, then create a card.",
   "- Edit: update or withdraw one of your cards.",
+  "- Public cards stay visible in the feedback board for examples and discussion.",
   "",
+  "Acceptance Criteria = a plain-language checklist of the outcome you want.",
   "Do not include passwords, tokens, or private info.",
 ] as const;
 export const DEFAULT_SPOTIFY_CLUB_PANEL_TITLE = "Music Sesh";
@@ -440,26 +442,30 @@ function buildDiscordFeedbackSectionOverridePlaceholder(reportType: "bug" | "fea
   if (reportType === "feature") {
     return [
       "User Story:",
-      "As a user, I want ...",
+      "As a member, I want feedback submission to stay easy to find and low-noise, so sharing ideas feels simple.",
       "",
       "Acceptance Criteria:",
-      "- ...",
-      "- ...",
+      "- Members can submit without using main-chat commands by default.",
+      "- The public card clearly shows the expected outcome.",
+      "- The flow stays easy to understand.",
     ].join("\n");
   }
 
   return [
     "Expected behavior:",
-    "...",
+    "Feedback opens from the dedicated submission flow.",
     "",
     "Actual behavior:",
-    "...",
+    "I still have to rely on a noisier or less clear path.",
     "",
     "Steps to reproduce:",
-    "1. ...",
+    "1. Open the current feedback flow.",
+    "2. Try to submit the report.",
+    "3. Notice what feels broken, unclear, or noisy.",
     "",
     "Acceptance Criteria:",
-    "- ...",
+    "- The fix is obvious from the card.",
+    "- Members can submit without cluttering main chat.",
   ].join("\n");
 }
 
@@ -476,14 +482,14 @@ function buildDiscordFeedbackSubmitModalData(args: {
   const reportType = args.reportType;
   const detailsLabel = reportType === "feature" ? "Description" : "Problem";
   const detailsPlaceholder = reportType === "feature"
-    ? "Describe the feature, flow, or requested outcome."
-    : "Describe the issue or broken behavior.";
+    ? "What should change, who is it for, and why does it matter?"
+    : "What broke, where did you see it, and what happened instead?";
   const sectionOverrideLabel = reportType === "feature"
     ? "User Story / Acceptance Criteria"
     : "Expected / Actual / Steps / Criteria";
   const sectionOverrideDescription = reportType === "feature"
-    ? "Optional. Use the labeled sections below to fully control the Feature card."
-    : "Optional. Use the labeled sections below to fully control the Bug card.";
+    ? "Optional. Use the labeled sections below if you want to control the public Feature card wording. Keep Acceptance Criteria as a plain-language checklist."
+    : "Optional. Use the labeled sections below if you want to control the public Bug card wording. Keep Acceptance Criteria focused on the fix result you expect.";
 
   return {
     custom_id: args.customId ?? FITNESS_FEEDBACK_PANEL_SUBMIT_MODAL_CUSTOM_ID,
@@ -494,17 +500,17 @@ function buildDiscordFeedbackSubmitModalData(args: {
         customId: FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
         style: 1,
         placeholder: reportType === "feature"
-          ? "Example: Add a weekly goal dashboard"
+          ? "Example: Add a dedicated feedback-submission flow"
           : "Example: Recovery screen closes after save",
         value: args.summary ?? undefined,
         required: true,
         maxLength: 120,
       }),
       buildDiscordModalLabelTextInput({
-        label: "Area / screen",
+        label: "Area / screen (optional)",
         customId: FITNESS_BUG_AREA_INPUT_CUSTOM_ID,
         style: 1,
-        placeholder: "Settings, Recovery, Discord Feedback...",
+        placeholder: "Discord Feedback, Settings, Recovery...",
         value: args.area ?? undefined,
         required: false,
         maxLength: 80,
@@ -1223,7 +1229,7 @@ export function buildDiscordFeedbackSubmitPickerResponse(args?: {
   return {
     type: DISCORD_INTERACTION_RESPONSE_TYPE.CHANNEL_MESSAGE_WITH_SOURCE,
     data: {
-      content: "Choose a feedback type, then create the card.",
+      content: "Choose Bug or Feature, then create your feedback card.",
       flags: DISCORD_MESSAGE_FLAG_EPHEMERAL,
       components: [
         {
@@ -1239,13 +1245,13 @@ export function buildDiscordFeedbackSubmitPickerResponse(args?: {
                 {
                   label: "Bug",
                   value: "bug",
-                  description: "Report something broken or unexpected.",
+                  description: "Report something broken, confusing, or unexpected.",
                   ...(selectedReportType === "bug" ? { default: true } : {}),
                 },
                 {
                   label: "Feature",
                   value: "feature",
-                  description: "Request a new capability or workflow.",
+                  description: "Request a new capability, workflow, or quality-of-life improvement.",
                   ...(selectedReportType === "feature" ? { default: true } : {}),
                 },
               ],
