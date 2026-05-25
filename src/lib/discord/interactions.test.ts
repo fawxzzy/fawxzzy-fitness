@@ -42,6 +42,15 @@ import {
   resolveDiscordVerifyMessageBody,
 } from "./interactions.ts";
 
+function readDiscordComponentLabel(component: unknown): string | null {
+  if (!component || typeof component !== "object") {
+    return null;
+  }
+
+  const label = (component as { label?: unknown }).label;
+  return typeof label === "string" ? label : null;
+}
+
 test("buildDiscordPongResponse returns Discord PONG type", () => {
   assert.deepEqual(buildDiscordPongResponse(), { type: 1 });
 });
@@ -105,12 +114,14 @@ test("buildDiscordFeedbackPanelMessagePayload includes the persistent panel butt
 test("buildDiscordFeedbackSubmitPickerResponse switches the create button by selected type", () => {
   const bugPicker = buildDiscordFeedbackSubmitPickerResponse();
   const featurePicker = buildDiscordFeedbackSubmitPickerResponse({ selectedReportType: "feature" });
+  const bugCreateButton = bugPicker.data.components[1]?.components[0];
+  const featureCreateButton = featurePicker.data.components[1]?.components[0];
 
   assert.equal(bugPicker.data.components[0]?.components[0]?.custom_id, "fitness_feedback_submit_pick_type");
   assert.equal(bugPicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_submit_create:bug");
-  assert.equal(bugPicker.data.components[1]?.components[0]?.label, "Create Bug");
+  assert.equal(readDiscordComponentLabel(bugCreateButton), "Create Bug");
   assert.equal(featurePicker.data.components[1]?.components[0]?.custom_id, "fitness_feedback_submit_create:feature");
-  assert.equal(featurePicker.data.components[1]?.components[0]?.label, "Create Feature");
+  assert.equal(readDiscordComponentLabel(featureCreateButton), "Create Feature");
 });
 
 test("discordMessageHasFeedbackPanel detects the feedback panel action row", () => {
