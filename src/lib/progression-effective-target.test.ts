@@ -96,6 +96,31 @@ test("applyEffortScheduleToProgressionTargetPlan shifts reps and load by day dir
   assert.equal(dayTwo?.repsTarget, 7);
 });
 
+test("applyEffortScheduleToProgressionTargetPlan uses lowered day adjustment steps for down days", () => {
+  const adjusted = applyEffortScheduleToProgressionTargetPlan({
+    playbookId: "double_progression",
+    config: {
+      version: 1,
+      loadIncrement: 5,
+      dayProgressionMode: "unsynced",
+      dayProgressionSteps: {
+        loadStep: 5,
+        repStep: 1,
+      },
+      dayLoweredProgressionSteps: {
+        loadStep: 10,
+        repStep: 2,
+      },
+      effortWaveDirections: ["straight", "down", "straight", "straight", "straight", "straight", "straight"],
+    },
+    routineDayIndex: 2,
+    plan: buildPlan(),
+  });
+
+  assert.equal(adjusted?.weightMin, 90);
+  assert.equal(adjusted?.repsTarget, 6);
+});
+
 test("applyEffortScheduleToProgressionTargetPlan does not turn optional cardio load into effort-adjusted load", () => {
   const adjusted = applyEffortScheduleToProgressionTargetPlan({
     playbookId: "double_progression",

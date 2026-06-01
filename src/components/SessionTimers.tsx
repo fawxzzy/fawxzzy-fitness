@@ -1436,6 +1436,7 @@ export function SetLoggerCard({
     ? buildSessionProgressionEditorGroups({
         state: progressionDraft,
         weightUnit: unitLabel === "kg" ? "kg" : "lbs",
+        distanceUnit,
         visiblePromotionStepFields: visiblePromotionStepFields ?? [],
         selectedMetrics: new Set(progressionSelectedMetrics ?? []),
       })

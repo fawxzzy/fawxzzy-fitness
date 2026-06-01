@@ -9,13 +9,14 @@ import {
 } from "@/components/ui/actionChrome";
 import { ExpandingChoiceRow } from "@/components/ui/ExpandingChoiceRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 import type { RoutineDetailsScheduleMode } from "@/lib/routine-details-form";
 import { getRoutineStartWeekdayFromDate, ROUTINE_START_WEEKDAYS } from "@/lib/routines";
+import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import { getRoutineTimezoneLabel, ROUTINE_TIMEZONE_OPTIONS } from "@/lib/timezones";
 
 const weekdayOptions = ROUTINE_START_WEEKDAYS.map((weekday) => ({
@@ -178,10 +179,13 @@ function RoutineEditorBinaryToggleButton({
 }
 
 const routineEditorCycleInputClassName = cn(
+  appTokens.measurementInput,
   labeledEditorFieldControlClassName,
-  "h-11 min-h-11 px-3 py-2 text-center font-semibold leading-none tabular-nums",
+  "h-11 rounded-[inherit] !border-0 !bg-transparent px-3 py-0 text-center !shadow-none placeholder:text-[rgb(var(--text-muted)/0.7)] focus-visible:!border-0 focus-visible:!ring-0 tabular-nums",
 );
-const routineEditorCycleFieldWidthClassName = "w-[10.5rem]";
+const routineEditorCycleFieldWidthClassName = "w-[9.75rem]";
+const routineEditorCycleFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
+const routineEditorCycleFieldLegendClassName = "ml-auto mr-3 whitespace-nowrap px-1 py-0 text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-[rgb(var(--accent)/0.94)]";
 const routineEditorCompactExpandingControlWidthClassName = "w-full max-w-[9rem]";
 
 type RoutineEditorInfoPayload = {
@@ -389,6 +393,9 @@ function RoutineEditorWeekdayField({
   onScheduleModeChange,
   onChange,
   trailingControl,
+  middleContent,
+  renderContentOnly = false,
+  showScheduleModeControl = true,
 }: {
   scheduleMode: RoutineDetailsScheduleMode;
   startDate: string | undefined;
@@ -396,126 +403,190 @@ function RoutineEditorWeekdayField({
   onScheduleModeChange?: (value: RoutineDetailsScheduleMode) => void;
   onChange?: (value: string) => void;
   trailingControl?: ReactNode;
+  middleContent?: ReactNode;
+  renderContentOnly?: boolean;
+  showScheduleModeControl?: boolean;
 }) {
   const startWeekday = getRoutineStartWeekdayFromDate(startDate) ?? ROUTINE_START_WEEKDAYS[0];
   const { coveredIndexSet, normalizedStartIndex, overflowDays } = buildCoveredWeekdayIndexes(startWeekday, cycleLengthDays);
 
+  const content = (
+    <>
+      {showScheduleModeControl ? (
+        <RoutineEditorSegmentedField
+          label=""
+          ariaLabel="Routine schedule mode"
+          value={scheduleMode}
+          onChange={(value) => onScheduleModeChange?.(value as RoutineDetailsScheduleMode)}
+          options={scheduleModeOptions}
+          display="expanding"
+          fullWidthWhenExpanded
+          showLabel={false}
+          info={{
+            title: "Schedule Mode",
+            summary: scheduleMode === "rolling_n_day"
+              ? "Day-based schedules repeat every N days from the Day 1 anchor date and do not use a weekday cycle anchor."
+              : "Week-based schedules anchor Day 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
+            sectionKey: "routine_setup",
+          }}
+          showDivider={false}
+          toggleWhenBinary
+          expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
+        />
+      ) : null}
+      {overflowDays > 0 ? (
+        <p className="text-center text-[10px] text-[rgb(var(--text-muted)/0.82)]">
+          +{overflowDays} more day{overflowDays === 1 ? "" : "s"} continue into next week
+        </p>
+      ) : null}
+      <div className="mx-auto mt-2 flex w-fit max-w-full flex-wrap items-start justify-center gap-2">
+        {trailingControl ? <div className="flex shrink-0 items-start">{trailingControl}</div> : null}
+        {scheduleMode === "weekday_anchored" ? (
+          <div className="flex shrink-0 items-start">
+            <RoutineEditorCycleAnchorField
+              value={startDate}
+              onChange={onChange}
+            />
+          </div>
+        ) : null}
+      </div>
+      {middleContent ? <div className="mt-3">{middleContent}</div> : null}
+    </>
+  );
+
+  if (renderContentOnly) {
+    return content;
+  }
+
   return (
     <RoutineEditorCollapsibleSection
-      title="Cycle"
+      title="Routine Type"
       info={{
-        title: "Cycle",
+        title: "Routine Type",
         summary: "Controls the cycle shape: schedule mode, Day 1 anchor, cycle length, and weekday anchor behavior for week-based schedules.",
         sectionKey: "routine_setup",
       }}
     >
-      <>
-          <RoutineEditorSegmentedField
-            label=""
-            ariaLabel="Routine schedule mode"
-            value={scheduleMode}
-            onChange={(value) => onScheduleModeChange?.(value as RoutineDetailsScheduleMode)}
-            options={scheduleModeOptions}
-            display="expanding"
-            fullWidthWhenExpanded
-            showLabel={false}
-              info={{
-                title: "Schedule Mode",
-                summary: scheduleMode === "rolling_n_day"
-                ? "Day-based schedules repeat every N days from the Day 1 anchor date and do not use a weekday cycle anchor."
-                : "Week-based schedules anchor Day 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
-                sectionKey: "routine_setup",
-              }}
-            showDivider={false}
-            toggleWhenBinary
-            expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
-          />
-          {overflowDays > 0 ? (
-            <p className="text-center text-[10px] text-[rgb(var(--text-muted)/0.82)]">
-              +{overflowDays} more day{overflowDays === 1 ? "" : "s"} continue into next week
-            </p>
-          ) : null}
-          <div className="mx-auto mt-2 flex w-fit max-w-full flex-wrap items-start justify-center gap-2">
-            {trailingControl ? <div className="flex shrink-0 items-start">{trailingControl}</div> : null}
-            <div className="flex shrink-0 items-start">
-              <RoutineEditorTextField
-                label={scheduleMode === "rolling_n_day" ? "Anchor" : "Day 1"}
-                className={routineEditorCycleFieldWidthClassName}
-                info={{
-                  title: scheduleMode === "rolling_n_day" ? "Rolling Anchor" : "Cycle Start",
-                  summary: scheduleMode === "rolling_n_day"
-                    ? "Calendar date that anchors the repeating N-day cycle."
-                    : "Calendar date that places Day 1 inside the current anchored week.",
-                  sectionKey: "routine_setup",
-                }}
-              >
-                <input
-                  type="date"
-                  name="startDate"
-                  required
-                  value={startDate ?? ""}
-                  onChange={(event) => onChange?.(event.target.value)}
-                  className={cn(
-                    routineEditorCycleInputClassName,
-                    "[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80",
-                  )}
-                />
-              </RoutineEditorTextField>
-            </div>
-          </div>
-          {scheduleMode === "weekday_anchored" ? (
-            <div className="mt-3 space-y-2">
-              <RoutineEditorControlCaption
-                label="Weekday Cycle Anchor"
-                labelClassName="text-[rgb(var(--accent-divider-rgb)/0.98)]"
-              />
-              <div className="flex justify-center max-w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto inline-flex w-max min-w-max")}>
-                  {weekdayOptions.map((option, index) => {
-                    const isStartDay = index === normalizedStartIndex;
-                    const isCoveredDay = coveredIndexSet.has(index);
-
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          publishRoutineEditorInfo({
-                            title: "Weekday Cycle Anchor",
-                            summary: "Pick which weekday Day 1 anchors to inside the current calendar week. Covered days show how the current cycle spans forward from that anchor, and extra cycle days continue into the next week.",
-                            sectionKey: "routine_setup",
-                          });
-                          const nextStartDate = getDateForSelectedWeekdayInCurrentCalendarWeek(startDate, option.value);
-                          if (nextStartDate) {
-                            onChange?.(nextStartDate);
-                          }
-                        }}
-                        data-action-chrome-intent={isStartDay ? "positive" : isCoveredDay ? "info" : "neutral"}
-                        data-action-chrome-selected={isStartDay || isCoveredDay ? "true" : undefined}
-                        data-action-chrome-segmented="true"
-                        className={cn(
-                          ACTION_CHROME_CONTROL_CLASS_NAME,
-                          ACTION_CHROME_SEGMENTED_CLASS_NAME,
-                          "flex min-h-10 min-w-[3.35rem] items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold uppercase tracking-[0.14em]",
-                          isStartDay
-                            ? "border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] text-[rgb(var(--text-primary))] shadow-[var(--action-chrome-shadow-hover)]"
-                            : isCoveredDay
-                              ? "border-[rgb(var(--accent)/0.46)] bg-[linear-gradient(180deg,rgba(71,215,196,0.18),rgba(18,31,48,0.94))] ring-1 ring-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary)/0.96)] shadow-[0_8px_18px_rgb(0_0_0_/0.18)]"
-                              : "text-[rgb(var(--text-secondary)/0.9)]",
-                        )}
-                        aria-pressed={isStartDay}
-                        aria-label={`Set cycle start to ${option.value}`}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          ) : null}
-      </>
+      {content}
     </RoutineEditorCollapsibleSection>
+  );
+}
+
+function RoutineEditorInlineUnitGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 w-[9rem] shrink-0 space-y-2">
+      <div className="mx-auto w-fit max-w-full space-y-1 text-center">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.96)]">
+          {title}
+        </p>
+        <MetricAccentBar variant="thin" className="w-full opacity-85" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function RoutineEditorInlineCycleModeControl({
+  scheduleMode,
+  onScheduleModeChange,
+}: {
+  scheduleMode: RoutineDetailsScheduleMode;
+  onScheduleModeChange?: (value: RoutineDetailsScheduleMode) => void;
+}) {
+  return (
+    <div
+      className="min-w-0 shrink-0 space-y-[5px]"
+      {...routineEditorInfoHandlers({
+        title: "Routine Type",
+        summary: scheduleMode === "rolling_n_day"
+          ? "Day-based schedules repeat every N days from the Day 1 anchor date and do not use a weekday cycle anchor."
+          : "Week-based schedules anchor Day 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
+        sectionKey: "routine_setup",
+      })}
+    >
+      <div className="space-y-[2px]">
+        <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+          Routine Type
+        </div>
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      </div>
+      <RoutineEditorBinaryToggleButton
+        label={scheduleMode === "rolling_n_day" ? "# day-based" : "Week-based"}
+        ariaLabel="Routine schedule mode"
+        onClick={() => onScheduleModeChange?.(
+          scheduleMode === "rolling_n_day" ? "weekday_anchored" : "rolling_n_day",
+        )}
+        className="min-w-[8.5rem]"
+      />
+    </div>
+  );
+}
+
+function RoutineCycleStraightDirectionIcon({ className }: { className?: string }) {
+  return <span aria-hidden="true" className={cn("inline-block h-[2px] w-4 rounded-full bg-current", className)} />;
+}
+
+function RoutineCycleDirectionGlyph({
+  direction,
+  className,
+}: {
+  direction: SetFlowDirection;
+  className?: string;
+}) {
+  if (direction === "up") {
+    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>{"\u2191"}</span>;
+  }
+
+  if (direction === "down") {
+    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>{"\u2193"}</span>;
+  }
+
+  return <RoutineCycleStraightDirectionIcon className={className} />;
+}
+
+function RoutineCycleDayDirectionButton({
+  dayNumber,
+  direction,
+  onClick,
+}: {
+  dayNumber: number;
+  direction: SetFlowDirection;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.32)] bg-transparent p-0 transition-[border-color,background-color,transform] focus-visible:outline-none focus-visible:ring-2",
+        direction === "up"
+          ? "hover:bg-[rgb(var(--accent)/0.12)] focus-visible:ring-[rgb(var(--accent)/0.22)]"
+          : direction === "down"
+            ? "hover:bg-[rgb(var(--danger-rgb)/0.12)] focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]"
+            : "hover:bg-[rgb(var(--accent-yellow-on)/0.12)] focus-visible:ring-[rgb(var(--accent-yellow-on)/0.22)]",
+      )}
+      aria-label={`Cycle day ${dayNumber} adjustment`}
+    >
+      <span className="flex h-3.5 items-center justify-center">
+        <RoutineCycleDirectionGlyph
+          direction={direction}
+          className={cn(
+            "text-[11px]",
+            direction === "up"
+              ? "text-[rgb(var(--accent)/0.88)]"
+              : direction === "down"
+                ? "text-[rgb(var(--danger-rgb)/0.94)]"
+                : "text-[rgb(var(--accent-yellow-on))]",
+          )}
+        />
+      </span>
+    </button>
   );
 }
 
@@ -523,23 +594,33 @@ function RoutineEditorTextField({
   label,
   children,
   className,
+  labelClassName,
   info,
 }: {
   label: string;
   children: ReactNode;
   className?: string;
+  labelClassName?: string;
   info?: RoutineEditorInfoPayload;
 }) {
   return (
     <label className="block" {...(info ? routineEditorInfoHandlers(info) : {})}>
-      <LabeledEditorField label={label} className={className}>
+      <fieldset
+        className={cn(
+          "min-w-0 rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.28)] shadow-[0_10px_24px_rgba(0,0,0,0.12)] transition-colors focus-within:border-[rgb(var(--button-primary-border)/0.42)]",
+          className,
+        )}
+      >
+        <legend className={cn(labeledEditorFieldFloatingLabelClassName, labelClassName)}>
+          {label}
+        </legend>
         {children}
-      </LabeledEditorField>
+      </fieldset>
     </label>
   );
 }
 
-function RoutineEditorCycleLengthField({
+export function RoutineEditorCycleLengthField({
   value,
   onCycleLengthInputChange,
   onCycleLengthInputCommit,
@@ -551,47 +632,203 @@ function RoutineEditorCycleLengthField({
   onFieldChange?: (field: string, value: string) => void;
 }) {
   return (
-    <RoutineEditorTextField
-      label="Length"
-      className={routineEditorCycleFieldWidthClassName}
-      info={{
-        title: "Cycle Length",
+    <label
+      className={cn("block", routineEditorCycleFieldWidthClassName)}
+      {...routineEditorInfoHandlers({
+        title: "Routine Length",
         summary: "Total routine days before the cycle repeats. In week-based mode, extra days continue into the next week.",
         sectionKey: "routine_setup",
-      }}
+      })}
     >
-      <input
-        type="text"
-        inputMode="numeric"
-        enterKeyHint="done"
-        pattern="[0-9]*"
-        name="cycleLengthDays"
-        min={1}
-        max={365}
-        required
-        value={value}
-        onChange={(event) => {
-          if (onCycleLengthInputChange) {
-            onCycleLengthInputChange(event.target.value);
-            return;
-          }
+      <div className={cn(
+        appTokens.measurementField,
+        appTokens.measurementFieldStandard,
+        "min-h-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
+      )}>
+        <fieldset className={routineEditorCycleFieldShellClassName}>
+          <legend className={cn(labeledEditorFieldFloatingLabelClassName, routineEditorCycleFieldLegendClassName)}>
+            Routine Length
+          </legend>
+          <input
+            type="text"
+            inputMode="numeric"
+            enterKeyHint="done"
+            pattern="[0-9]*"
+            name="cycleLengthDays"
+            min={1}
+            max={365}
+            required
+            value={value}
+            onChange={(event) => {
+              if (onCycleLengthInputChange) {
+                onCycleLengthInputChange(event.target.value);
+                return;
+              }
 
-          onFieldChange?.("cycleLengthDays", event.target.value);
-        }}
-        onBlur={() => onCycleLengthInputCommit?.()}
-        onKeyDown={(event) => {
-          if (event.key !== "Enter") {
-            return;
-          }
+              onFieldChange?.("cycleLengthDays", event.target.value);
+            }}
+            onBlur={() => onCycleLengthInputCommit?.()}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") {
+                return;
+              }
 
-          event.preventDefault();
-          onCycleLengthInputCommit?.();
-        }}
-        className={cn(
-          routineEditorCycleInputClassName,
-        )}
-      />
-    </RoutineEditorTextField>
+              event.preventDefault();
+              onCycleLengthInputCommit?.();
+            }}
+            className={routineEditorCycleInputClassName}
+          />
+        </fieldset>
+      </div>
+    </label>
+  );
+}
+
+export function RoutineEditorCycleAnchorField({
+  value,
+  onChange,
+}: {
+  value: string | undefined;
+  onChange?: (value: string) => void;
+}) {
+  return (
+    <label
+      className={cn("block", routineEditorCycleFieldWidthClassName)}
+      {...routineEditorInfoHandlers({
+        title: "Week Day Anchor",
+        summary: "Calendar date that places Day 1 inside the current anchored week.",
+        sectionKey: "routine_setup",
+      })}
+    >
+      <div className={cn(
+        appTokens.measurementField,
+        appTokens.measurementFieldStandard,
+        "min-h-0 overflow-visible border-transparent bg-transparent px-0 py-0 shadow-none",
+      )}>
+        <fieldset className={routineEditorCycleFieldShellClassName}>
+          <legend className={cn(labeledEditorFieldFloatingLabelClassName, routineEditorCycleFieldLegendClassName)}>
+            Week Day Anchor
+          </legend>
+          <input
+            type="date"
+            name="startDate"
+            required
+            value={value ?? ""}
+            onChange={(event) => onChange?.(event.target.value)}
+            className={cn(
+              routineEditorCycleInputClassName,
+              "[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80",
+            )}
+          />
+        </fieldset>
+      </div>
+    </label>
+  );
+}
+
+export function RoutineEditorInlineCycleControls({
+  scheduleMode,
+  startDate,
+  cycleLengthDays,
+  cycleLengthInputValue,
+  effortWaveDirections,
+  onScheduleModeChange,
+  onStartDateChange,
+  onCycleLengthInputChange,
+  onCycleLengthInputCommit,
+  onFieldChange,
+  onToggleEffortWaveDirection,
+  showModeControl = true,
+  showSectionTitle = true,
+  showCycleFields = true,
+}: {
+  scheduleMode: RoutineDetailsScheduleMode;
+  startDate: string | undefined;
+  cycleLengthDays: number | undefined;
+  cycleLengthInputValue?: string;
+  effortWaveDirections?: SetFlowDirection[];
+  onScheduleModeChange?: (value: RoutineDetailsScheduleMode) => void;
+  onStartDateChange?: (value: string) => void;
+  onCycleLengthInputChange?: (value: string) => void;
+  onCycleLengthInputCommit?: () => void;
+  onFieldChange?: (field: string, value: string) => void;
+  onToggleEffortWaveDirection?: (dayIndex: number) => void;
+  showModeControl?: boolean;
+  showSectionTitle?: boolean;
+  showCycleFields?: boolean;
+}) {
+  const visibleDayCount = (() => {
+    const parsed = Number.parseInt(cycleLengthInputValue ?? "", 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.min(parsed, 365);
+    }
+    return Math.max(1, cycleLengthDays ?? 1);
+  })();
+  const cycleLengthField = (
+    <RoutineEditorCycleLengthField
+      value={cycleLengthInputValue ?? String(visibleDayCount)}
+      onCycleLengthInputChange={onCycleLengthInputChange}
+      onCycleLengthInputCommit={onCycleLengthInputCommit}
+      onFieldChange={onFieldChange}
+    />
+  );
+  const dayDirectionRow = onToggleEffortWaveDirection ? (
+    <div className="space-y-2">
+      <div className="mx-auto w-fit max-w-full space-y-1 text-center">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+          Day Adjustment
+        </p>
+        <MetricAccentBar variant="thin" className="w-full opacity-85" />
+      </div>
+      <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
+        <div className="mx-auto flex w-max min-w-max items-start justify-center gap-3 px-1">
+          {Array.from({ length: visibleDayCount }, (_, index) => {
+            const direction = effortWaveDirections?.[index] ?? "straight";
+            return (
+              <div key={`cycle-day-direction-${index + 1}`} className="flex min-w-[2.25rem] shrink-0 flex-col items-center gap-1 text-center">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                  {index + 1}
+                </span>
+                <MetricAccentBar variant="thin" className="w-5 opacity-80" />
+                <RoutineCycleDayDirectionButton
+                  dayNumber={index + 1}
+                  direction={direction}
+                  onClick={() => onToggleEffortWaveDirection(index)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <section className="px-0 py-0">
+      <div className="space-y-3">
+        {showSectionTitle ? (
+          <div className="space-y-[2px] text-center">
+            <div className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+              Routine Type
+            </div>
+            <MetricAccentBar variant="thin" className="mx-auto w-12 opacity-80" />
+          </div>
+        ) : null}
+        {showCycleFields ? (
+          <RoutineEditorWeekdayField
+            scheduleMode={scheduleMode}
+            startDate={startDate}
+            cycleLengthDays={cycleLengthDays}
+            onScheduleModeChange={onScheduleModeChange}
+            onChange={onStartDateChange}
+            trailingControl={cycleLengthField}
+            middleContent={dayDirectionRow}
+            renderContentOnly
+            showScheduleModeControl={showModeControl}
+          />
+        ) : dayDirectionRow}
+      </div>
+    </section>
   );
 }
 
@@ -611,6 +848,7 @@ export function RoutineEditorFormFields({
   onCycleLengthInputChange,
   onCycleLengthInputCommit,
   fields,
+  showCycleSection = true,
 }: {
   nameDefaultValue?: string;
   cycleLengthDefaultValue: number;
@@ -627,6 +865,7 @@ export function RoutineEditorFormFields({
   onCycleLengthInputChange?: (value: string) => void;
   onCycleLengthInputCommit?: () => void;
   fields?: readonly RoutineEditorFieldName[];
+  showCycleSection?: boolean;
 }) {
   const visibleFields = new Set<RoutineEditorFieldName>(fields ?? ["name", "cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]);
   const showName = visibleFields.has("name");
@@ -687,7 +926,7 @@ export function RoutineEditorFormFields({
         </div>
       ) : null}
 
-      {showStartWeekday ? (
+      {showStartWeekday && showCycleSection ? (
         <div className="pt-2">
           <RoutineEditorWeekdayField
             scheduleMode={showScheduleMode ? (values?.scheduleMode ?? scheduleModeDefaultValue) : "weekday_anchored"}
@@ -701,14 +940,7 @@ export function RoutineEditorFormFields({
       ) : null}
 
       {showTimezone ? (
-        <RoutineEditorCollapsibleSection
-          title="Timezone"
-          sectionKey="routine_setup"
-          info={{
-            title: "Timezone",
-            summary: "Controls Today rollover and routine cycle day rollover.",
-          }}
-        >
+        <div className="pt-1">
           <RoutineEditorSegmentedField
             label="Timezone"
             ariaLabel="Routine timezone"
@@ -721,52 +953,58 @@ export function RoutineEditorFormFields({
             showLabel={false}
             showDivider={false}
           />
-        </RoutineEditorCollapsibleSection>
+        </div>
       ) : null}
 
       {showWeightUnit || showDistanceUnit ? (
-        <RoutineEditorCollapsibleSection
-          title="Units"
-          sectionKey="routine_setup"
-          info={{
+        <div
+          className="pt-1"
+          {...routineEditorInfoHandlers({
             title: "Units",
             summary: "Default measurement units used for routine targets, progression values, and logged workout values.",
-          }}
+            sectionKey: "routine_setup",
+          })}
         >
-          <div className="space-y-3">
+          <div className="flex flex-wrap items-start justify-center gap-2">
             {showWeightUnit ? (
-              <RoutineEditorSegmentedField
-                label="Weight"
-                ariaLabel="Routine weight unit"
-                value={values?.weightUnit ?? weightUnitDefaultValue}
-                onChange={(nextValue) => onFieldChange?.("weightUnit", nextValue)}
-                options={weightUnitOptions}
-                display="expanding"
-                fullWidthWhenExpanded
-                getInfoForValue={getWeightUnitInfoPayload}
-                showDivider={false}
-                toggleWhenBinary
-                expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
-              />
+              <RoutineEditorInlineUnitGroup title="Weight">
+                <RoutineEditorSegmentedField
+                  label="Weight"
+                  ariaLabel="Routine weight unit"
+                  value={values?.weightUnit ?? weightUnitDefaultValue}
+                  onChange={(nextValue) => onFieldChange?.("weightUnit", nextValue)}
+                  options={weightUnitOptions}
+                  display="expanding"
+                  fullWidthWhenExpanded
+                  getInfoForValue={getWeightUnitInfoPayload}
+                  showLabel={false}
+                  showDivider={false}
+                  toggleWhenBinary
+                  expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
+                />
+              </RoutineEditorInlineUnitGroup>
             ) : null}
 
             {showDistanceUnit ? (
-              <RoutineEditorSegmentedField
-                label="Distance"
-                ariaLabel="Routine distance unit"
-                value={values?.distanceUnit ?? distanceUnitDefaultValue}
-                onChange={(nextValue) => onFieldChange?.("distanceUnit", nextValue)}
-                options={distanceUnitOptions}
-                display="expanding"
-                fullWidthWhenExpanded
-                getInfoForValue={getDistanceUnitInfoPayload}
-                showDivider={false}
-                toggleWhenBinary
-                expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
-              />
+              <RoutineEditorInlineUnitGroup title="Distance">
+                <RoutineEditorSegmentedField
+                  label="Distance"
+                  ariaLabel="Routine distance unit"
+                  value={values?.distanceUnit ?? distanceUnitDefaultValue}
+                  onChange={(nextValue) => onFieldChange?.("distanceUnit", nextValue)}
+                  options={distanceUnitOptions}
+                  display="expanding"
+                  fullWidthWhenExpanded
+                  getInfoForValue={getDistanceUnitInfoPayload}
+                  showLabel={false}
+                  showDivider={false}
+                  toggleWhenBinary
+                  expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
+                />
+              </RoutineEditorInlineUnitGroup>
             ) : null}
           </div>
-        </RoutineEditorCollapsibleSection>
+        </div>
       ) : null}
     </>
   );

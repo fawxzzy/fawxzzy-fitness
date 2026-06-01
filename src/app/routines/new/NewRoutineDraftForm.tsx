@@ -16,7 +16,7 @@ import {
   useRoutineDetailsExitGuard,
   useRoutineDetailsHeaderTitle,
 } from "@/components/routines/RoutineDetailsExitGuard";
-import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
+import { RoutineEditorCycleAnchorField, RoutineEditorCycleLengthField, RoutineEditorFormFields, RoutineEditorInlineCycleControls, RoutineEditorInlineCycleModeControl } from "@/components/routines/RoutineEditorForm";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 import {
@@ -36,6 +36,7 @@ import {
   isTrainingGoalCustomized,
 } from "@/lib/progression-playbook-form-state";
 import { TRAINING_GOAL_IDS, type TrainingGoalId } from "@/lib/progression-playbooks";
+import { cycleSetFlowDirection } from "@/lib/set-flow-directions";
 
 const STORAGE_KEY = "routine-new-draft-v1";
 const LEGACY_SET_FLOW_DRAFT_DEFAULTS = {
@@ -127,6 +128,10 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           progressionDayRepStep?: string;
           progressionDayDurationStep?: string;
           progressionDayDistanceStep?: string;
+          progressionDayLoweredLoadStep?: string;
+          progressionDayLoweredRepStep?: string;
+          progressionDayLoweredDurationStep?: string;
+          progressionDayLoweredDistanceStep?: string;
           progressionEffortWaveDirections?: Array<"straight" | "up" | "down">;
           progressionSetFlowTimeDirection?: "straight" | "up" | "down";
           progressionSetFlowDistanceDirection?: "straight" | "up" | "down";
@@ -190,6 +195,10 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
           progressionDayRepStep: typeof parsed.progressionDayRepStep === "string" ? parsed.progressionDayRepStep : current.progressionDayRepStep,
           progressionDayDurationStep: typeof parsed.progressionDayDurationStep === "string" ? parsed.progressionDayDurationStep : current.progressionDayDurationStep,
           progressionDayDistanceStep: typeof parsed.progressionDayDistanceStep === "string" ? parsed.progressionDayDistanceStep : current.progressionDayDistanceStep,
+          progressionDayLoweredLoadStep: typeof parsed.progressionDayLoweredLoadStep === "string" ? parsed.progressionDayLoweredLoadStep : current.progressionDayLoweredLoadStep,
+          progressionDayLoweredRepStep: typeof parsed.progressionDayLoweredRepStep === "string" ? parsed.progressionDayLoweredRepStep : current.progressionDayLoweredRepStep,
+          progressionDayLoweredDurationStep: typeof parsed.progressionDayLoweredDurationStep === "string" ? parsed.progressionDayLoweredDurationStep : current.progressionDayLoweredDurationStep,
+          progressionDayLoweredDistanceStep: typeof parsed.progressionDayLoweredDistanceStep === "string" ? parsed.progressionDayLoweredDistanceStep : current.progressionDayLoweredDistanceStep,
           progressionEffortWaveDirections: Array.isArray(parsed.progressionEffortWaveDirections) && parsed.progressionEffortWaveDirections.length > 0
             ? parsed.progressionEffortWaveDirections.map((direction) => (
               direction === "up" || direction === "down" || direction === "straight" ? direction : "straight"
@@ -313,6 +322,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
         <div className="space-y-2 pt-4">
           <RoutineEditorFormFields
             fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+            showCycleSection={false}
             cycleLengthInputValue={cycleLengthInput}
             cycleLengthDefaultValue={draft.cycleLengthDays}
             scheduleModeDefaultValue={draft.scheduleMode}
@@ -344,9 +354,103 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
             weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
             distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
             cycleLengthDays={draft.cycleLengthDays}
+            topMethodRailContent={(
+              <RoutineEditorInlineCycleModeControl
+                scheduleMode={draft.scheduleMode}
+                onScheduleModeChange={(nextValue) => {
+                  setHasUserEdited(true);
+                  setDraft((current) => ({ ...current, scheduleMode: nextValue }));
+                }}
+              />
+            )}
+            preSessionSettingsGroups={[
+              {
+                key: "cycle-settings",
+                infoSection: "routine_setup",
+                fields: [
+                  ...(draft.scheduleMode === "weekday_anchored"
+                    ? [(
+                      <div key="cycle-anchor" className="shrink-0">
+                        <RoutineEditorCycleAnchorField
+                          value={draft.startDate}
+                          onChange={(nextValue) => {
+                            setHasUserEdited(true);
+                            setDraft((current) => ({ ...current, startDate: nextValue }));
+                          }}
+                        />
+                      </div>
+                    )]
+                    : []),
+                  <div key="cycle-count" className="shrink-0">
+                    <RoutineEditorCycleLengthField
+                      value={cycleLengthInput}
+                      onCycleLengthInputChange={(nextValue) => {
+                        setHasUserEdited(true);
+                        setCycleLengthInput(nextValue);
+                      }}
+                      onCycleLengthInputCommit={commitCycleLengthInput}
+                    />
+                  </div>,
+                ],
+              },
+            ]}
+            preSessionSettingsContent={progressionDraft.progressionPlaybookId ? (
+              <RoutineEditorInlineCycleControls
+                scheduleMode={draft.scheduleMode}
+                startDate={draft.startDate}
+                cycleLengthDays={draft.cycleLengthDays}
+                cycleLengthInputValue={cycleLengthInput}
+                effortWaveDirections={progressionDraft.progressionEffortWaveDirections}
+                onStartDateChange={(nextValue) => {
+                  setHasUserEdited(true);
+                  setDraft((current) => ({ ...current, startDate: nextValue }));
+                }}
+                onCycleLengthInputChange={(nextValue) => {
+                  setHasUserEdited(true);
+                  setCycleLengthInput(nextValue);
+                }}
+                onCycleLengthInputCommit={commitCycleLengthInput}
+                onFieldChange={(field, nextValue) => {
+                  setHasUserEdited(true);
+                  setDraft((current) => ({
+                    ...current,
+                    [field]: resolveRoutineDraftFieldValue(field, nextValue),
+                  }));
+                }}
+                showModeControl={false}
+                showSectionTitle={false}
+                showCycleFields={false}
+                onToggleEffortWaveDirection={(dayIndex) => {
+                  setHasUserEdited(true);
+                  setProgressionDraft((current) => {
+                    const visibleDayCount = (() => {
+                      const parsed = Number.parseInt(cycleLengthInput, 10);
+                      if (Number.isFinite(parsed) && parsed > 0) {
+                        return Math.min(parsed, 365);
+                      }
+                      return Math.max(1, draft.cycleLengthDays);
+                    })();
+                    const nextDirections = Array.from(
+                      { length: visibleDayCount },
+                      (_, index) => current.progressionEffortWaveDirections[index] ?? "straight",
+                    );
+                    const currentDirection = nextDirections[dayIndex] ?? "straight";
+                    nextDirections[dayIndex] = cycleSetFlowDirection({
+                      current: currentDirection,
+                      hasStepValue: false,
+                    });
+                    return {
+                      ...current,
+                      progressionEffortWaveDirections: nextDirections,
+                    };
+                  });
+                }}
+              />
+            ) : null}
             context="routine-default"
-            collapsible
+            title=""
             defaultExpanded
+            collapsible={false}
             separateInfoBox
             trainingFocusValue={selectedTrainingGoal}
             trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}

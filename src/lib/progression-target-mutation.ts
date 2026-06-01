@@ -326,3 +326,246 @@ export function applyTargetMutation(args: {
     maxAutoPromotionSteps: args.maxAutoPromotionSteps,
   });
 }
+
+export function reverseTargetMutation(args: {
+  targetMutation?: unknown;
+  plan: ProgressionTargetPlan;
+  config?: MutationConfigLike | null;
+  progressionStepPolicy?: ProgressionStepPolicy | null;
+  loadStep?: number | null;
+  repStep?: number | null;
+  durationStep?: number | null;
+  distanceStep?: number | null;
+}): ProgressionVectorApplication | null {
+  const targetMutation = getDefaultTargetMutationForConfig({
+    config: {
+      targetMutation: args.targetMutation,
+      promotionBasis: args.config?.promotionBasis,
+    },
+    plan: args.plan,
+  });
+
+  if (targetMutation === "none") {
+    return {
+      proposedTarget: { ...args.plan },
+      qualifiedValue: null,
+    };
+  }
+
+  if (targetMutation === "increase_load_and_reps") {
+    const currentWeight = resolveSingleValue(args.plan.weightMin, args.plan.weightMax);
+    const repFloor = resolveRepFloor(args.plan);
+    const repCeiling = resolveRepCeiling(args.plan);
+    const repRangeWidth = resolveRangeWidth(args.plan);
+    const loadStep = resolveMutationStep({
+      kind: "load",
+      explicitStep: args.loadStep ?? null,
+      progressionStepPolicy: args.progressionStepPolicy,
+      plan: args.plan,
+    });
+    const repStep = resolveMutationStep({
+      kind: "reps",
+      explicitStep: args.repStep ?? null,
+      progressionStepPolicy: null,
+      plan: args.plan,
+    });
+
+    if (!isPositiveNumber(currentWeight)
+      || !isPositiveNumber(repFloor)
+      || !isPositiveNumber(repCeiling)
+      || !isPositiveNumber(loadStep)
+      || !isPositiveNumber(repStep)) {
+      return null;
+    }
+
+    const previousWeight = Number(Math.max(loadStep, currentWeight - loadStep).toFixed(3));
+    const previousRepFloor = Math.max(1, repFloor - repStep);
+    const previousRepCeiling = repRangeWidth === null
+      ? Math.max(previousRepFloor, repCeiling - repStep)
+      : previousRepFloor + repRangeWidth;
+    const currentRepTarget = isPositiveNumber(args.plan.repsTarget) ? args.plan.repsTarget : repFloor;
+
+    return {
+      proposedTarget: {
+        ...args.plan,
+        repsTarget: Math.max(previousRepFloor, currentRepTarget - repStep),
+        repsMin: previousRepFloor,
+        repsMax: previousRepCeiling,
+        weightMin: previousWeight,
+        weightMax: previousWeight,
+      },
+      qualifiedValue: currentWeight,
+    };
+  }
+
+  if (targetMutation === "increase_duration_and_distance") {
+    const currentDuration = args.plan.durationSeconds;
+    const currentDistance = args.plan.distance;
+    const durationStep = resolveMutationStep({
+      kind: "duration",
+      explicitStep: args.durationStep ?? null,
+      progressionStepPolicy: args.progressionStepPolicy,
+      plan: args.plan,
+    });
+    const distanceStep = resolveMutationStep({
+      kind: "distance",
+      explicitStep: args.distanceStep ?? null,
+      progressionStepPolicy: args.progressionStepPolicy,
+      plan: args.plan,
+    });
+
+    if (!isPositiveNumber(currentDuration)
+      || !isPositiveNumber(currentDistance)
+      || !isPositiveNumber(durationStep)
+      || !isPositiveNumber(distanceStep)) {
+      return null;
+    }
+
+    return {
+      proposedTarget: {
+        ...args.plan,
+        durationSeconds: Math.max(1, Math.round(currentDuration - durationStep)),
+        distance: Number(Math.max(distanceStep, currentDistance - distanceStep).toFixed(3)),
+      },
+      qualifiedValue: currentDistance,
+    };
+  }
+
+  if (targetMutation === "increase_load_reset_reps") {
+    const currentWeight = resolveSingleValue(args.plan.weightMin, args.plan.weightMax);
+    const repFloor = resolveRepFloor(args.plan);
+    const repCeiling = resolveRepCeiling(args.plan);
+    const loadStep = resolveMutationStep({
+      kind: "load",
+      explicitStep: args.loadStep ?? null,
+      progressionStepPolicy: args.progressionStepPolicy,
+      plan: args.plan,
+    });
+
+    if (!isPositiveNumber(currentWeight)
+      || !isPositiveNumber(repFloor)
+      || !isPositiveNumber(repCeiling)
+      || !isPositiveNumber(loadStep)) {
+      return null;
+    }
+
+    const previousWeight = Number(Math.max(loadStep, currentWeight - loadStep).toFixed(3));
+
+    return {
+      proposedTarget: {
+        ...args.plan,
+        repsTarget: repCeiling,
+        repsMin: args.plan.repsMin ?? repFloor,
+        repsMax: args.plan.repsMax ?? repCeiling,
+        weightMin: previousWeight,
+        weightMax: previousWeight,
+      },
+      qualifiedValue: currentWeight,
+    };
+  }
+
+  if (targetMutation === "increase_load") {
+    const currentWeight = resolveSingleValue(args.plan.weightMin, args.plan.weightMax);
+    const loadStep = resolveMutationStep({
+      kind: "load",
+      explicitStep: args.loadStep ?? null,
+      progressionStepPolicy: args.progressionStepPolicy,
+      plan: args.plan,
+    });
+
+    if (!isPositiveNumber(currentWeight) || !isPositiveNumber(loadStep)) {
+      return null;
+    }
+
+    const previousWeight = Number(Math.max(loadStep, currentWeight - loadStep).toFixed(3));
+
+    return {
+      proposedTarget: {
+        ...args.plan,
+        weightMin: previousWeight,
+        weightMax: previousWeight,
+      },
+      qualifiedValue: currentWeight,
+    };
+  }
+
+  if (targetMutation === "increase_reps") {
+    const repFloor = resolveRepFloor(args.plan);
+    const repCeiling = resolveRepCeiling(args.plan);
+    const repRangeWidth = resolveRangeWidth(args.plan);
+    const repStep = resolveMutationStep({
+      kind: "reps",
+      explicitStep: args.repStep ?? null,
+      progressionStepPolicy: null,
+      plan: args.plan,
+    });
+
+    if (!isPositiveNumber(repFloor)
+      || !isPositiveNumber(repCeiling)
+      || !isPositiveNumber(repStep)) {
+      return null;
+    }
+
+    const previousRepFloor = Math.max(1, repFloor - repStep);
+    const previousRepCeiling = repRangeWidth === null
+      ? Math.max(previousRepFloor, repCeiling - repStep)
+      : previousRepFloor + repRangeWidth;
+    const currentRepTarget = isPositiveNumber(args.plan.repsTarget) ? args.plan.repsTarget : repCeiling;
+
+    return {
+      proposedTarget: {
+        ...args.plan,
+        repsTarget: Math.max(previousRepFloor, currentRepTarget - repStep),
+        repsMin: previousRepFloor,
+        repsMax: previousRepCeiling,
+      },
+      qualifiedValue: repCeiling,
+    };
+  }
+
+  if (targetMutation === "increase_duration") {
+    const currentDuration = args.plan.durationSeconds;
+    const durationStep = resolveMutationStep({
+      kind: "duration",
+      explicitStep: args.durationStep ?? null,
+      progressionStepPolicy: args.progressionStepPolicy,
+      plan: args.plan,
+    });
+
+    if (!isPositiveNumber(currentDuration) || !isPositiveNumber(durationStep)) {
+      return null;
+    }
+
+    return {
+      proposedTarget: {
+        ...args.plan,
+        durationSeconds: Math.max(1, Math.round(currentDuration - durationStep)),
+      },
+      qualifiedValue: currentDuration,
+    };
+  }
+
+  if (targetMutation === "increase_distance") {
+    const currentDistance = args.plan.distance;
+    const distanceStep = resolveMutationStep({
+      kind: "distance",
+      explicitStep: args.distanceStep ?? null,
+      progressionStepPolicy: args.progressionStepPolicy,
+      plan: args.plan,
+    });
+
+    if (!isPositiveNumber(currentDistance) || !isPositiveNumber(distanceStep)) {
+      return null;
+    }
+
+    return {
+      proposedTarget: {
+        ...args.plan,
+        distance: Number(Math.max(distanceStep, currentDistance - distanceStep).toFixed(3)),
+      },
+      qualifiedValue: currentDistance,
+    };
+  }
+
+  return null;
+}

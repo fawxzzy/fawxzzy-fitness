@@ -12,7 +12,7 @@ import type { ExerciseGoalFormState } from "@/components/ui/measurements/Exercis
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
-import { normalizeFitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import type { GoalModality } from "@/lib/exercise-goal-validation";
 import {
@@ -50,7 +50,7 @@ function resolveExerciseDistanceUnit(defaultUnit: string | null | undefined) {
 
 export function getProgressionStepFieldLabel(policy: ReturnType<typeof inferProgressionStepPolicy>, weightUnit: "lbs" | "kg") {
   if (!policy.label) {
-    return `STEP (${weightUnit})`;
+    return `WEIGHT (${weightUnit})`;
   }
 
   if (policy.unit === "seconds") {
@@ -62,7 +62,7 @@ export function getProgressionStepFieldLabel(policy: ReturnType<typeof inferProg
   }
 
   if (policy.unit === "mi" || policy.unit === "km") {
-    return `DISTANCE STEP (${policy.unit})`;
+    return `DIST (${policy.unit})`;
   }
 
   if (policy.unit === "lbs" || policy.unit === "kg") {
@@ -90,6 +90,7 @@ export function ProgressionSettingsInputRow({
   progressionDraft,
   onProgressionDraftChange,
   weightUnit,
+  distanceUnit,
   progressionStepLabel,
   visiblePromotionStepFields,
   visibleSetStepFields,
@@ -97,6 +98,7 @@ export function ProgressionSettingsInputRow({
   progressionDraft: ProgressionPlaybookFormState;
   onProgressionDraftChange: (nextState: ProgressionPlaybookFormState) => void;
   weightUnit: "lbs" | "kg";
+  distanceUnit: FitnessDistanceUnit;
   progressionStepLabel?: string | null;
   visiblePromotionStepFields: PromotionStepFieldId[];
   visibleSetStepFields: SetStepFieldId[];
@@ -146,7 +148,7 @@ export function ProgressionSettingsInputRow({
       case "genericLoad":
         return (
           <ProgressionNumberField
-            label={progressionStepLabel ?? `STEP (${weightUnit})`}
+            label={progressionStepLabel ?? `WEIGHT (${weightUnit})`}
             name="progressionLoadIncrement"
             inputMode="decimal"
             value={progressionDraft.progressionLoadIncrement}
@@ -176,7 +178,7 @@ export function ProgressionSettingsInputRow({
       case "distance":
         return (
           <ProgressionNumberField
-            label="DISTANCE"
+            label={`DIST (${distanceUnit})`}
             name="progressionDistanceIncrement"
             inputMode="decimal"
             value={progressionDraft.progressionDistanceIncrement}
@@ -192,7 +194,7 @@ export function ProgressionSettingsInputRow({
       case "load":
         return (
           <ProgressionNumberField
-            label={`SET LOAD (${weightUnit})`}
+            label={`SET WEIGHT (${weightUnit})`}
             name="progressionSetFlowLoadStep"
             inputMode="decimal"
             value={progressionDraft.progressionSetFlowLoadStep}
@@ -222,7 +224,7 @@ export function ProgressionSettingsInputRow({
       case "distance":
         return (
           <ProgressionNumberField
-            label="SET DISTANCE"
+            label={`SET DIST (${distanceUnit})`}
             name="progressionSetFlowDistanceStep"
             inputMode="decimal"
             value={progressionDraft.progressionSetFlowDistanceStep}
@@ -266,25 +268,16 @@ export function ProgressionSettingsInputRow({
 
     if (progressionDraft.progressionStallPolicy === "deload_after_stall") {
       fieldGroups.push({
-        title: "Deload Settings",
+        title: "Regression Settings",
         tone: "secondary",
         fields: [
           <div key="deload-stall" className="w-[8.25rem] shrink-0">
             <ProgressionNumberField
-              label="MISS COUNT"
+              label="FAILURE COUNT"
               name="progressionStallThreshold"
               inputMode="numeric"
               value={progressionDraft.progressionStallThreshold}
               onChange={(nextValue) => onProgressionDraftChange({ ...progressionDraft, progressionStallThreshold: nextValue })}
-            />
-          </div>,
-          <div key="deload-percent" className="w-[8.25rem] shrink-0">
-            <ProgressionNumberField
-              label="DELOAD %"
-              name="progressionDeloadPercent"
-              inputMode="decimal"
-              value={progressionDraft.progressionDeloadPercent}
-              onChange={(nextValue) => onProgressionDraftChange({ ...progressionDraft, progressionDeloadPercent: nextValue })}
             />
           </div>,
         ],
@@ -300,7 +293,7 @@ export function ProgressionSettingsInputRow({
     const order: Record<string, number> = {
       "Promotion Step Settings": 0,
       "Set Step Settings": 1,
-      "Deload Settings": 2,
+      "Regression Settings": 2,
     };
     return (order[left.title] ?? 99) - (order[right.title] ?? 99);
   });
@@ -534,6 +527,7 @@ export function ExerciseChooserAddFlowForm({
                   setProgressionDraft(nextValue);
                 }}
                 weightUnit={weightUnit}
+                distanceUnit={resolveExerciseDistanceUnit(activeExercise?.default_unit ?? selectedExercise?.default_unit)}
                 progressionStepLabel={activeProgressionStepLabel}
                 visiblePromotionStepFields={visiblePromotionStepFields}
                 visibleSetStepFields={visibleSetStepFields}

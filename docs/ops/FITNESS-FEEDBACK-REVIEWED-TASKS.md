@@ -139,6 +139,9 @@ Prompt rules:
 - no automatic issue creation
 - no automatic ATLAS write
 - no Discord or Supabase mutation from this lane
+- implementation prompts for mutating work are not governed unless they declare `Acceptance Criteria`, `Expected Changed Paths`, `Expected Unchanged Paths`, and `Blocked / Skipped Reporting Rules`
+- summary text is not proof; any satisfied criterion must be supportable from the final diff and verification output
+- if a generated draft prompt is still missing the mutating-task contract, treat it as review-only until that contract is completed
 
 ## After implementation
 This lane stops at reviewed packet and prompt generation.

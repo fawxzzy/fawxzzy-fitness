@@ -84,28 +84,34 @@ function shiftNumber(value: number | null | undefined, step: number, offset: num
   return Math.max(minimum, roundMetric(value + (step * offset)));
 }
 
-function resolveEffortStepConfig(config: NonNullable<ReturnType<typeof validateProgressionPlaybookSelection>>["config"]) {
+function resolveEffortStepConfig(
+  config: NonNullable<ReturnType<typeof validateProgressionPlaybookSelection>>["config"],
+  direction: SetFlowDirection,
+) {
+  const resolvedDaySteps = direction === "down"
+    ? config.dayLoweredProgressionSteps ?? config.dayProgressionSteps
+    : config.dayProgressionSteps;
   const loadStep = config.dayProgressionMode === "synced"
     ? config.loadIncrement
-    : config.dayProgressionSteps?.loadStep
+    : resolvedDaySteps?.loadStep
       ?? config.stepOverrides?.barbellLoadIncrement
       ?? config.loadIncrement;
   const repStep = config.dayProgressionMode === "synced"
     ? config.stepOverrides?.bodyweightRepIncrement
       ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.bodyweightRepIncrement
-    : config.dayProgressionSteps?.repStep
+    : resolvedDaySteps?.repStep
       ?? config.stepOverrides?.bodyweightRepIncrement
       ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.bodyweightRepIncrement;
   const durationStep = config.dayProgressionMode === "synced"
     ? config.stepOverrides?.durationSecondsIncrement
       ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.durationSecondsIncrement
-    : config.dayProgressionSteps?.durationSecondsStep
+    : resolvedDaySteps?.durationSecondsStep
       ?? config.stepOverrides?.durationSecondsIncrement
       ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.durationSecondsIncrement;
   const distanceStep = config.dayProgressionMode === "synced"
     ? config.stepOverrides?.distanceIncrement
       ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.distanceIncrement
-    : config.dayProgressionSteps?.distanceStep
+    : resolvedDaySteps?.distanceStep
       ?? config.stepOverrides?.distanceIncrement
       ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.distanceIncrement;
 
@@ -148,7 +154,7 @@ function resolveEffortSelection(args: {
     selection,
     direction,
     offset,
-    steps: resolveEffortStepConfig(selection.config),
+    steps: resolveEffortStepConfig(selection.config, direction),
   };
 }
 

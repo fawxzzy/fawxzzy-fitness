@@ -244,6 +244,10 @@ test("progression payload parsing preserves recovered day and set persistence fi
     progressionDayRepStep: "4",
     progressionDayDurationStep: "90",
     progressionDayDistanceStep: "0.4",
+    progressionDayLoweredLoadStep: "6.5",
+    progressionDayLoweredRepStep: "3",
+    progressionDayLoweredDurationStep: "60",
+    progressionDayLoweredDistanceStep: "0.3",
     progressionEffortWaveDirections: effortWaveDirections,
     progressionTargetMutation: "increase_load_and_reps" as const,
     progressionHasExplicitTargetMutation: true,
@@ -300,6 +304,12 @@ test("progression payload parsing preserves recovered day and set persistence fi
     repStep: 4,
     durationSecondsStep: 90,
     distanceStep: 0.4,
+  });
+  assert.deepEqual(parsed.config.dayLoweredProgressionSteps, {
+    loadStep: 6.5,
+    repStep: 3,
+    durationSecondsStep: 60,
+    distanceStep: 0.3,
   });
   assert.deepEqual(parsed.config.effortWaveDirections, effortWaveDirections);
   assert.ok("stallPolicy" in parsed.config);
@@ -1047,7 +1057,7 @@ test("progression review maps legacy fixed-load aliases to Manual Review candida
   assert.equal(candidate.label, "Manual Review");
 });
 
-test("deload after stall reduces load after the configured stall threshold", () => {
+test("deload after stall reverses the current target one cycle step after the configured stall threshold", () => {
   const history = buildProgressionHistorySessions({
     rows: [
       ...buildHistoryRows({
@@ -1078,9 +1088,10 @@ test("deload after stall reduces load after the configured stall threshold", () 
   assert.ok(target);
   assert.equal(target.playbookId, "deload_after_stall");
   assert.equal(target.changed, true);
-  assert.equal(target.plan.weightMin, 90);
+  assert.equal(target.plan.weightMin, 95);
   assert.equal(target.plan.repsMin, 8);
-  assert.equal(target.plan.repsMax, 8);
+  assert.equal(target.plan.repsMax, 10);
+  assert.equal(target.plan.repsTarget, 10);
 });
 
 test("deload modifier combines with double progression without using deload as method id", () => {
@@ -1114,8 +1125,9 @@ test("deload modifier combines with double progression without using deload as m
   assert.ok(target);
   assert.equal(target.playbookId, "double_progression");
   assert.equal(target.changed, true);
-  assert.equal(target.plan.weightMin, 90);
-  assert.match(target.reason, /Deload policy/i);
+  assert.equal(target.plan.weightMin, 95);
+  assert.equal(target.plan.repsTarget, 10);
+  assert.match(target.reason, /reverse one cycle step/i);
 });
 
 test("deload modifier combines with fixed-load block", () => {
@@ -1149,8 +1161,9 @@ test("deload modifier combines with fixed-load block", () => {
   assert.ok(target);
   assert.equal(target.playbookId, "fixed_load_rep_range_progression");
   assert.equal(target.changed, true);
-  assert.equal(target.plan.weightMin, 90);
-  assert.match(target.reason, /Deload policy/i);
+  assert.equal(target.plan.weightMin, 95);
+  assert.equal(target.plan.repsTarget, 10);
+  assert.match(target.reason, /reverse one cycle step/i);
 });
 
 test("no history falls back by returning no playbook derivation", () => {

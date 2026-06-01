@@ -451,3 +451,20 @@ test("decisions file orders approved packets first and summarizes deferred packe
   assert.equal(result.reviewSummary.defer.length, 1);
   assert.equal(result.reviewSummary.defer[0].packetId, packetIds[0]);
 });
+
+test("codex implementation prompts include the mutating-task proof contract", () => {
+  const result = buildTaskPacketResult({
+    records: [
+      loadBoardRecords(writeBoardFixture([buildRecord()]).sourcePath)[0],
+    ],
+    inputCount: 1,
+    args: parseArgs([]),
+    sourcePath: "fixture.json",
+  });
+  const prompts = renderCodexPrompts(result);
+
+  assert.match(prompts, /Expected Changed Paths/);
+  assert.match(prompts, /Expected Unchanged Paths/);
+  assert.match(prompts, /Blocked \/ Skipped Reporting Rules/);
+  assert.match(prompts, /Summary text is not proof\./);
+});

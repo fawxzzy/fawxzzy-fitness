@@ -74,7 +74,7 @@ test("formats deload candidate copy as regression", () => {
       playbookId: "double_progression",
       label: "Double Progression",
       proposedTarget: buildTarget({ repsMin: 8, repsMax: 8, weightMin: 120, weightMax: 120 }),
-      reason: "Deload policy: stall detected - reduce load and rebuild.",
+      reason: "Deload policy: stall detected - reverse one cycle step and rebuild.",
     }),
   });
 

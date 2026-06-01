@@ -1117,11 +1117,35 @@ export function renderCodexPrompts(result) {
       lines.push("- Keep the one-board, reviewed-export workflow intact.");
       lines.push("- Card mutation audit comments stay in the Feedback thread. Do not post to #updates unless the shipped change is user-facing and approved.");
       lines.push("");
-      lines.push("Acceptance criteria");
+      lines.push("Acceptance Criteria");
       lines.push("");
       for (const item of packet.acceptanceCriteria) {
         lines.push(`- ${item}`);
       }
+      lines.push("");
+      lines.push("Expected Changed Paths");
+      lines.push("");
+      for (const file of packet.filesToInspect) {
+        lines.push(`- ${file}`);
+      }
+      if (packet.docsUpdateNeeded.required && packet.docsUpdateNeeded.suggestedPaths.length > 0) {
+        for (const docPath of packet.docsUpdateNeeded.suggestedPaths) {
+          if (!packet.filesToInspect.includes(docPath)) {
+            lines.push(`- ${docPath}`);
+          }
+        }
+      }
+      lines.push("");
+      lines.push("Expected Unchanged Paths");
+      lines.push("");
+      lines.push("- Any repo path outside Expected Changed Paths.");
+      lines.push("- Discord, Supabase, and ATLAS state outside the approved implementation lane.");
+      lines.push("");
+      lines.push("Blocked / Skipped Reporting Rules");
+      lines.push("");
+      lines.push("- Mutating Codex tasks are not governed unless they declare explicit acceptance criteria.");
+      lines.push("- Summary text is not proof. Do not mark a criterion satisfied unless the final diff and verification output prove it.");
+      lines.push("- If a criterion cannot be completed or a non-listed path would need to change, report it as blocked, skipped, or failed with the exact reason.");
       lines.push("");
       lines.push("Verification steps");
       lines.push("");

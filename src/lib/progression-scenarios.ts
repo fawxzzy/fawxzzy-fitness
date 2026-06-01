@@ -587,7 +587,7 @@ export function buildProgressionScenarioFixtures(): ProgressionScenario[] {
       expectedUi: [
         "Today card says Regression.",
         "Copy says stall detected, not skipped.",
-        "Apply should reduce only this one exercise target.",
+        "Apply should reverse only this one exercise target by one cycle step.",
       ],
       playbookId: "double_progression",
       config: { version: 1, loadIncrement: 5, stallPolicy: "deload_after_stall", stallThreshold: 2, deloadPercent: 10 },

@@ -332,10 +332,12 @@ async function resolveExpectedRedMigrations() {
   }
 
   const filenames = await fs.readdir(path.join(repoRoot, "supabase", "migrations"));
-  const missingRemoteVersions = drift.mismatches.map((mismatch) => {
-    const matchedFilename = filenames.find((filename) => filename.startsWith(`${mismatch.local}_`));
-    return matchedFilename ?? mismatch.local;
-  });
+  const missingRemoteVersions = drift.mismatches
+    .filter((mismatch) => mismatch.remote === "<missing>" && mismatch.local !== "<missing>")
+    .map((mismatch) => {
+      const matchedFilename = filenames.find((filename) => filename.startsWith(`${mismatch.local}_`));
+      return matchedFilename ?? mismatch.local;
+    });
 
   if (missingRemoteVersions.length === 0) {
     return {

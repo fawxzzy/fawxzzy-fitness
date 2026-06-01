@@ -47,6 +47,7 @@ import {
   applyTargetMutation,
   getDefaultTargetMutationForConfig,
   normalizeTargetMutation,
+  reverseTargetMutation,
   type ProgressionTargetMutationId,
 } from "@/lib/progression-target-mutation";
 import {
@@ -441,10 +442,10 @@ export const PROGRESSION_INFO_TERM_DEFINITIONS: ProgressionInfoTermDefinition[] 
     example: "Session count 2 means the same active measurement or group must qualify twice before the next progression move.",
   },
   {
-    term: "Day Sync Session",
-    meaning: "Whether Day Settings mirror Session Settings or use separate day-step inputs.",
-    affects: "Whether day input boxes appear and whether day steps reuse Session Settings values.",
-    example: "Synced hides day inputs; Unsynced shows separate time, distance, rep, and load day steps.",
+    term: "Day Adjustment Settings",
+    meaning: "The separate raised and lowered time, distance, rep, and weight steps used for each cycle day before session and set settings continue the progression flow.",
+    affects: "Cycle-day targets, visible raised/lowered day inputs, and how each day adjusts before the workout starts.",
+    example: "Day Adjustment Settings can raise Day 1, lower Day 2, and leave Day 3 straight before session progression begins.",
   },
   {
     term: "Set Settings",
@@ -460,9 +461,9 @@ export const PROGRESSION_INFO_TERM_DEFINITIONS: ProgressionInfoTermDefinition[] 
   },
   {
     term: "Deload",
-    meaning: "Reduce target difficulty to rebuild.",
-    affects: "Load, time, or distance depending measurement type.",
-    example: "200 lb with 10% deload becomes about 180 lb.",
+    meaning: "Reverse the current target by one cycle step to rebuild.",
+    affects: "The same progressing target dimensions that the progression method normally moves forward.",
+    example: "If the current target is one cycle step ahead of the last successful block, deload moves it back one cycle step.",
   },
   {
     term: "Failure",
@@ -534,6 +535,7 @@ export type SetFlowConfigFields = {
 export type ProgressionDayConfigFields = {
   dayProgressionMode?: ProgressionDayMode;
   dayProgressionSteps?: SetFlowStepConfig;
+  dayLoweredProgressionSteps?: SetFlowStepConfig;
   effortWaveDirections?: SetFlowDirection[];
 };
 
@@ -582,6 +584,7 @@ export type DeloadAfterStallConfig = {
   loadIncrement: number;
   stepOverrides?: ProgressionStepOverrideConfig;
   stallThreshold: number;
+  // Legacy compatibility field. Regression now reverses one cycle step instead of using a percent.
   deloadPercent: number;
 } & ProgressionPromotionConfigFields & SetFlowConfigFields & ProgressionDayConfigFields;
 
@@ -702,7 +705,7 @@ const PLAYBOOK_DEFINITIONS: Record<ProgressionPlaybookId, ProgressionPlaybookDef
   deload_after_stall: {
     id: "deload_after_stall",
     label: "Deload policy",
-    shortExplanation: "After repeated logged misses, reduce load and rebuild. This is a stall policy, not a primary progression method.",
+    shortExplanation: "After repeated logged misses, reverse one cycle step and rebuild. This is a stall policy, not a primary progression method.",
   },
 };
 
@@ -769,14 +772,14 @@ export const STALL_POLICY_DEFINITIONS: Record<ProgressionStallPolicy, {
   deload_after_stall: {
     id: "deload_after_stall",
     label: "Deload",
-    whatItDoes: "After repeated logged misses on the current goal, reduce load.",
+    whatItDoes: "After repeated logged misses on the current goal, reverse the target by one cycle step.",
     useItFor: "Exercises where repeated misses are meaningful.",
     inputMeanings: [
-      "Stall = consecutive logged misses before deload",
-      "Deload % = amount to reduce load",
-      "Step = rounding/rebuild amount",
+      "Stall = consecutive logged misses before regression",
+      "Regression = reverse the current target by one cycle step",
+      "Step = the same configured progression step used for rebuild",
     ],
-    pattern: "Progression moves goals up; deload recovers goals down.",
+    pattern: "Progression moves goals forward; regression moves the target back one cycle step.",
   },
 };
 
@@ -1158,11 +1161,19 @@ function parseSetFlowStepsFromFormData(formData: FormData): SetFlowStepConfig | 
   return Object.keys(parsed).length > 0 ? parsed : undefined;
 }
 
-function parseDayProgressionStepsFromFormData(formData: FormData): SetFlowStepConfig | undefined {
-  const loadStep = parseOptionalPositiveNumber(formData.get("progressionDayLoadStep"));
-  const repStep = parseOptionalPositiveNumber(formData.get("progressionDayRepStep"));
-  const durationSecondsStep = parseOptionalPositiveNumber(formData.get("progressionDayDurationStep"));
-  const distanceStep = parseOptionalPositiveNumber(formData.get("progressionDayDistanceStep"));
+function parseDayProgressionStepsFromFormData(
+  formData: FormData,
+  fieldNames: {
+    load: string;
+    reps: string;
+    duration: string;
+    distance: string;
+  },
+): SetFlowStepConfig | undefined {
+  const loadStep = parseOptionalPositiveNumber(formData.get(fieldNames.load));
+  const repStep = parseOptionalPositiveNumber(formData.get(fieldNames.reps));
+  const durationSecondsStep = parseOptionalPositiveNumber(formData.get(fieldNames.duration));
+  const distanceStep = parseOptionalPositiveNumber(formData.get(fieldNames.distance));
   const parsed: SetFlowStepConfig = {};
   if (loadStep !== null && !Number.isNaN(loadStep)) {
     parsed.loadStep = loadStep;
@@ -1227,6 +1238,7 @@ function attachDayProgressionConfig<Config extends ProgressionPlaybookConfig>(
   args: {
     dayProgressionMode: ProgressionDayMode;
     dayProgressionSteps?: SetFlowStepConfig;
+    dayLoweredProgressionSteps?: SetFlowStepConfig;
     effortWaveDirections?: SetFlowDirection[];
   },
 ) {
@@ -1234,6 +1246,7 @@ function attachDayProgressionConfig<Config extends ProgressionPlaybookConfig>(
     ...config,
     dayProgressionMode: args.dayProgressionMode,
     ...(args.dayProgressionSteps ? { dayProgressionSteps: args.dayProgressionSteps } : {}),
+    ...(args.dayLoweredProgressionSteps ? { dayLoweredProgressionSteps: args.dayLoweredProgressionSteps } : {}),
     ...(args.effortWaveDirections ? { effortWaveDirections: args.effortWaveDirections } : {}),
   };
 }
@@ -2175,6 +2188,7 @@ export function validateProgressionPlaybookSelection(args: {
   const stepOverrides = normalizeProgressionStepOverrides(config.stepOverrides);
   const setFlowSteps = normalizeSetFlowSteps(config.setFlowSteps);
   const dayProgressionSteps = normalizeSetFlowSteps(config.dayProgressionSteps);
+  const dayLoweredProgressionSteps = normalizeSetFlowSteps(config.dayLoweredProgressionSteps);
   const dayProgressionMode = normalizeProgressionDayMode(config.dayProgressionMode);
   const effortWaveDirections = normalizeEffortWaveDirections(config.effortWaveDirections);
   const normalizedSetFlow = normalizeSetFlowId(config.setFlow) ?? "straight_sets";
@@ -2262,6 +2276,7 @@ export function validateProgressionPlaybookSelection(args: {
       setFlowSteps,
       dayProgressionMode,
       dayProgressionSteps,
+      dayLoweredProgressionSteps,
       effortWaveDirections,
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
@@ -2341,6 +2356,7 @@ export function validateProgressionPlaybookSelection(args: {
       setFlowSteps,
       dayProgressionMode,
       dayProgressionSteps,
+      dayLoweredProgressionSteps,
       effortWaveDirections,
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
@@ -2418,6 +2434,7 @@ export function validateProgressionPlaybookSelection(args: {
     setFlowSteps,
     dayProgressionMode,
     dayProgressionSteps,
+    dayLoweredProgressionSteps,
     effortWaveDirections,
     stallThreshold: config.stallThreshold,
     deloadPercent: config.deloadPercent,
@@ -2476,7 +2493,18 @@ export function parseProgressionPlaybookPayload(formData: FormData):
   const setFlow = normalizeSetFlowId(String(formData.get("progressionSetFlow") ?? "").trim());
   const stepOverrides = parseProgressionStepOverridesFromFormData(formData);
   const setFlowSteps = parseSetFlowStepsFromFormData(formData);
-  const dayProgressionSteps = parseDayProgressionStepsFromFormData(formData);
+  const dayProgressionSteps = parseDayProgressionStepsFromFormData(formData, {
+    load: "progressionDayLoadStep",
+    reps: "progressionDayRepStep",
+    duration: "progressionDayDurationStep",
+    distance: "progressionDayDistanceStep",
+  });
+  const dayLoweredProgressionSteps = parseDayProgressionStepsFromFormData(formData, {
+    load: "progressionDayLoweredLoadStep",
+    reps: "progressionDayLoweredRepStep",
+    duration: "progressionDayLoweredDurationStep",
+    distance: "progressionDayLoweredDistanceStep",
+  });
   const dayProgressionMode = normalizeProgressionDayMode(String(formData.get("progressionDayMode") ?? "").trim());
   const rawEffortWaveDirectionsJson = String(formData.get("progressionEffortWaveDirectionsJson") ?? "").trim();
   const effortWaveDirections = rawEffortWaveDirectionsJson
@@ -2691,7 +2719,12 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     config = attachProgressionStepOverrides(config, stepOverrides);
     config = attachSetFlowSteps(config, setFlowSteps);
     config = attachSetFlowDirections(config, setFlowDirections);
-    config = attachDayProgressionConfig(config, { dayProgressionMode, dayProgressionSteps, effortWaveDirections });
+    config = attachDayProgressionConfig(config, {
+      dayProgressionMode,
+      dayProgressionSteps,
+      dayLoweredProgressionSteps,
+      effortWaveDirections,
+    });
     if (setFlow) {
       config.setFlow = setFlow;
     }
@@ -2736,7 +2769,12 @@ export function parseProgressionPlaybookPayload(formData: FormData):
   config = attachProgressionStepOverrides(config, stepOverrides);
   config = attachSetFlowSteps(config, setFlowSteps);
   config = attachSetFlowDirections(config, setFlowDirections);
-  config = attachDayProgressionConfig(config, { dayProgressionMode, dayProgressionSteps, effortWaveDirections });
+  config = attachDayProgressionConfig(config, {
+    dayProgressionMode,
+    dayProgressionSteps,
+    dayLoweredProgressionSteps,
+    effortWaveDirections,
+  });
   if (setFlow) {
     config.setFlow = setFlow;
   }
@@ -2768,7 +2806,7 @@ export function describeProgressionPlaybookSelection(args: {
   case "fixed_load_rep_range_progression":
     return `Hold the same load for this block. Build clean reps and review before increasing.${stallPolicy === "deload_after_stall" && deloadConfig ? ` Deload after ${deloadConfig.stallThreshold} logged misses.` : ""}`;
   case "deload_after_stall":
-    return `If progress stalls for ${selection.config.stallThreshold} straight sessions at the same load, reduce load by ${formatNumber(selection.config.deloadPercent)}% and rebuild from the bottom rep target.`;
+    return `If progress stalls for ${selection.config.stallThreshold} straight sessions, reverse the current target back one cycle step and rebuild.`;
   }
 }
 
@@ -2973,31 +3011,34 @@ export function deriveProgressionPlaybookTarget(args: {
     };
   }
 
-  if (stallPolicy === "deload_after_stall" && deloadConfig && isFinitePositiveNumber(targetWeight)) {
+  if (stallPolicy === "deload_after_stall" && deloadConfig) {
     const stallCount = countConsecutiveStalls({
       history,
       qualification: resolvedCurrentRepQualification,
     });
 
     if (stallCount >= deloadConfig.stallThreshold) {
-      const reducedWeight = clampDeloadWeight(
-        targetWeight * (1 - (deloadConfig.deloadPercent / 100)),
-        resolvedLoadIncrement,
-      );
+      const targetMutation = resolveTargetMutationForSelection({
+        selection,
+        plan: basePlan,
+      });
+      const regression = reverseTargetMutation({
+        targetMutation,
+        plan: basePlan,
+        config: selection.config,
+        progressionStepPolicy: args.progressionStepPolicy,
+        loadStep: resolvedLoadIncrement,
+      });
 
-      return {
-        playbookId: selection.id,
-        label: methodDefinition.label,
-        plan: {
-          ...basePlan,
-          repsMin: bottomRep,
-          repsMax: bottomRep,
-          weightMin: reducedWeight,
-          weightMax: reducedWeight,
-        },
-        changed: true,
-        reason: "Deload policy: stall detected - reduce load and rebuild.",
-      };
+      if (regression) {
+        return {
+          playbookId: selection.id,
+          label: methodDefinition.label,
+          plan: regression.proposedTarget,
+          changed: didProgressionTargetChange(basePlan, regression.proposedTarget),
+          reason: "Deload policy: stall detected - reverse one cycle step and rebuild.",
+        };
+      }
     }
   }
 
@@ -3347,33 +3388,36 @@ export function deriveProgressionReviewCandidate(args: {
   const stallPolicy = resolveStallPolicyFromSelection(selection);
   const deloadConfig = resolveDeloadConfig(selection);
 
-  if (stallPolicy === "deload_after_stall" && deloadConfig && isFinitePositiveNumber(targetWeight)) {
+  if (stallPolicy === "deload_after_stall" && deloadConfig) {
     const stallCount = countConsecutiveStalls({
       history,
       qualification: resolvedCurrentRepQualification,
     });
 
     if (stallCount >= deloadConfig.stallThreshold) {
-      const reducedWeight = clampDeloadWeight(
-        targetWeight * (1 - (deloadConfig.deloadPercent / 100)),
-        resolvedLoadIncrement,
-      );
+      const targetMutation = resolveTargetMutationForSelection({
+        selection,
+        plan: basePlan,
+      });
+      const regression = reverseTargetMutation({
+        targetMutation,
+        plan: basePlan,
+        config: selection.config,
+        progressionStepPolicy: args.progressionStepPolicy,
+        loadStep: resolvedLoadIncrement,
+      });
 
-      return {
-        type: "deload",
-        playbookId: selection.id,
-        label: methodDefinition.label,
-        currentTarget: basePlan,
-        proposedTarget: {
-          ...basePlan,
-          repsMin: bottomRep,
-          repsMax: bottomRep,
-          weightMin: reducedWeight,
-          weightMax: reducedWeight,
-        },
-        reason: "Deload policy: stall detected - reduce load and rebuild.",
-        cycleWindow: args.cycleWindow ?? null,
-      };
+      if (regression && didProgressionTargetChange(basePlan, regression.proposedTarget)) {
+        return {
+          type: "deload",
+          playbookId: selection.id,
+          label: methodDefinition.label,
+          currentTarget: basePlan,
+          proposedTarget: regression.proposedTarget,
+          reason: "Deload policy: stall detected - reverse one cycle step and rebuild.",
+          cycleWindow: args.cycleWindow ?? null,
+        };
+      }
     }
   }
 

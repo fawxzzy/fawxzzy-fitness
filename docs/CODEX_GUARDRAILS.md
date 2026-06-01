@@ -32,6 +32,16 @@ Reference: <local doc>
 - Enforcement: Run `npm run verify` when available; otherwise run `npm run lint` and `npm run build`.
 - Reference: `docs/PROJECT_GOVERNANCE.md`.
 
+### 5) Govern mutating prompts with explicit criteria
+- Rule: Mutating Codex tasks are not governed unless they declare `Acceptance Criteria`, `Expected Changed Paths`, `Expected Unchanged Paths`, and `Blocked / Skipped Reporting Rules`.
+- Enforcement: If a mutating prompt lacks that contract, do not treat it as governed completion authority.
+- Reference: `docs/ops/FITNESS-COMPOUNDING-LANES-2026-05.md`.
+
+### 6) Summary text is not proof
+- Rule: Summary text cannot stand in for diff-proof or verification-proof.
+- Enforcement: Do not claim completion for a mutating task unless each requested criterion is supportable from the final diff and verification output. Report blocked/skipped/failed criteria explicitly.
+- Reference: `docs/ops/FITNESS-FEEDBACK-REVIEWED-TASKS.md`.
+
 ## Sanity Check
 
 Run before pushing major changes:

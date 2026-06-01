@@ -317,6 +317,10 @@ export type ProgressionPlaybookFormState = {
   progressionDayRepStep: string;
   progressionDayDurationStep: string;
   progressionDayDistanceStep: string;
+  progressionDayLoweredLoadStep: string;
+  progressionDayLoweredRepStep: string;
+  progressionDayLoweredDurationStep: string;
+  progressionDayLoweredDistanceStep: string;
   progressionEffortWaveDirections: SetFlowDirection[];
   progressionSetFlowTimeDirection: SetFlowDirection;
   progressionSetFlowDistanceDirection: SetFlowDirection;
@@ -424,6 +428,7 @@ export function createProgressionPlaybookFormState({
     getSetFlowDirectionConfigForLegacySetFlow(progressionSetFlow),
   );
   const dayProgressionSteps = defaultConfig?.dayProgressionSteps;
+  const dayLoweredProgressionSteps = defaultConfig?.dayLoweredProgressionSteps ?? defaultConfig?.dayProgressionSteps;
   const effortWaveDirections: SetFlowDirection[] = Array.isArray(defaultConfig?.effortWaveDirections) && defaultConfig.effortWaveDirections.length > 0
     ? defaultConfig.effortWaveDirections.map((direction) => (direction === "up" || direction === "down" || direction === "straight" ? direction : "straight"))
     : ["straight", "straight", "straight", "straight", "straight", "straight", "straight"];
@@ -498,6 +503,10 @@ export function createProgressionPlaybookFormState({
     progressionDayRepStep: formatNumber(dayProgressionSteps?.repStep ?? defaultConfig?.stepOverrides?.bodyweightRepIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.bodyweightRepIncrement),
     progressionDayDurationStep: formatNumber(dayProgressionSteps?.durationSecondsStep ?? defaultConfig?.stepOverrides?.durationSecondsIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.durationSecondsIncrement),
     progressionDayDistanceStep: formatNumber(dayProgressionSteps?.distanceStep ?? defaultConfig?.stepOverrides?.distanceIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.distanceIncrement),
+    progressionDayLoweredLoadStep: formatNumber(dayLoweredProgressionSteps?.loadStep ?? dayProgressionSteps?.loadStep ?? defaultConfig?.stepOverrides?.barbellLoadIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.barbellLoadIncrement),
+    progressionDayLoweredRepStep: formatNumber(dayLoweredProgressionSteps?.repStep ?? dayProgressionSteps?.repStep ?? defaultConfig?.stepOverrides?.bodyweightRepIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.bodyweightRepIncrement),
+    progressionDayLoweredDurationStep: formatNumber(dayLoweredProgressionSteps?.durationSecondsStep ?? dayProgressionSteps?.durationSecondsStep ?? defaultConfig?.stepOverrides?.durationSecondsIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.durationSecondsIncrement),
+    progressionDayLoweredDistanceStep: formatNumber(dayLoweredProgressionSteps?.distanceStep ?? dayProgressionSteps?.distanceStep ?? defaultConfig?.stepOverrides?.distanceIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.distanceIncrement),
     progressionEffortWaveDirections: effortWaveDirections,
     progressionSetFlowTimeDirection: setFlowDirections.time,
     progressionSetFlowDistanceDirection: setFlowDirections.distance,
@@ -604,6 +613,10 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionDayRepStep: state.progressionDayRepStep,
     progressionDayDurationStep: state.progressionDayDurationStep,
     progressionDayDistanceStep: state.progressionDayDistanceStep,
+    progressionDayLoweredLoadStep: state.progressionDayLoweredLoadStep,
+    progressionDayLoweredRepStep: state.progressionDayLoweredRepStep,
+    progressionDayLoweredDurationStep: state.progressionDayLoweredDurationStep,
+    progressionDayLoweredDistanceStep: state.progressionDayLoweredDistanceStep,
     progressionEffortWaveDirections: state.progressionEffortWaveDirections,
     progressionSetFlowTimeDirection: state.progressionSetFlowTimeDirection,
     progressionSetFlowDistanceDirection: state.progressionSetFlowDistanceDirection,
@@ -720,6 +733,16 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     Object.entries(dayProgressionSteps).filter(([, value]) => typeof value === "number"),
   );
   const hasDayProgressionSteps = Object.keys(normalizedDayProgressionSteps).length > 0;
+  const dayLoweredProgressionSteps = {
+    loadStep: parsePositiveNumber(state.progressionDayLoweredLoadStep) ?? undefined,
+    repStep: parsePositiveNumber(state.progressionDayLoweredRepStep) ?? undefined,
+    durationSecondsStep: parsePositiveNumber(state.progressionDayLoweredDurationStep) ?? undefined,
+    distanceStep: parsePositiveNumber(state.progressionDayLoweredDistanceStep) ?? undefined,
+  };
+  const normalizedDayLoweredProgressionSteps = Object.fromEntries(
+    Object.entries(dayLoweredProgressionSteps).filter(([, value]) => typeof value === "number"),
+  );
+  const hasDayLoweredProgressionSteps = Object.keys(normalizedDayLoweredProgressionSteps).length > 0;
   const normalizedEffortWaveDirections = state.progressionEffortWaveDirections
     .map((direction) => (direction === "up" || direction === "down" ? direction : "straight"))
     .filter((direction, index, array) => index < array.length && direction);
@@ -844,6 +867,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       ...(hasSetFlowSteps ? { setFlowSteps: normalizedSetFlowSteps } : {}),
       dayProgressionMode: state.progressionDayMode,
       ...(hasDayProgressionSteps ? { dayProgressionSteps: normalizedDayProgressionSteps } : {}),
+      ...(hasDayLoweredProgressionSteps ? { dayLoweredProgressionSteps: normalizedDayLoweredProgressionSteps } : {}),
       ...(effortWaveDirections ? { effortWaveDirections } : {}),
       setFlow: derivedLegacySetFlow,
       ...(shouldSerializeSetFlowDirections ? { setFlowDirections } : {}),
@@ -870,6 +894,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     ...(hasSetFlowSteps ? { setFlowSteps: normalizedSetFlowSteps } : {}),
     dayProgressionMode: state.progressionDayMode,
     ...(hasDayProgressionSteps ? { dayProgressionSteps: normalizedDayProgressionSteps } : {}),
+    ...(hasDayLoweredProgressionSteps ? { dayLoweredProgressionSteps: normalizedDayLoweredProgressionSteps } : {}),
     ...(effortWaveDirections ? { effortWaveDirections } : {}),
     setFlow: derivedLegacySetFlow,
     ...(shouldSerializeSetFlowDirections ? { setFlowDirections } : {}),
@@ -949,6 +974,10 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionDayRepStep", state.progressionDayRepStep);
   formData.set("progressionDayDurationStep", state.progressionDayDurationStep);
   formData.set("progressionDayDistanceStep", state.progressionDayDistanceStep);
+  formData.set("progressionDayLoweredLoadStep", state.progressionDayLoweredLoadStep);
+  formData.set("progressionDayLoweredRepStep", state.progressionDayLoweredRepStep);
+  formData.set("progressionDayLoweredDurationStep", state.progressionDayLoweredDurationStep);
+  formData.set("progressionDayLoweredDistanceStep", state.progressionDayLoweredDistanceStep);
   formData.set("progressionEffortWaveDirectionsJson", JSON.stringify(state.progressionEffortWaveDirections));
   formData.set("progressionSetFlowDirectionsJson", JSON.stringify({
     time: state.progressionSetFlowTimeDirection,

@@ -1,3 +1,4 @@
+import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import type { MeasurementSelection } from "@/lib/exercise-goal-validation";
@@ -23,8 +24,7 @@ export type SessionProgressionEditorFieldId =
   | "setFlowReps"
   | "setFlowDuration"
   | "setFlowDistance"
-  | "stallThreshold"
-  | "deloadPercent";
+  | "stallThreshold";
 
 export type SessionProgressionEditorField = SessionProgressionDisplayField & {
   id: SessionProgressionEditorFieldId;
@@ -47,16 +47,18 @@ export type SessionProgressionEditorGroup = {
 function getVisibleSetStepFields({
   selectedMetrics,
   weightUnit,
+  distanceUnit,
   state,
 }: {
   selectedMetrics: Set<MeasurementSelection>;
   weightUnit: "lbs" | "kg";
+  distanceUnit: FitnessDistanceUnit;
   state: ProgressionPlaybookFormState;
 }): SessionProgressionEditorField[] {
   const fields: SessionProgressionEditorField[] = [];
 
   if (selectedMetrics.has("weight")) {
-    fields.push({ id: "setFlowLoad", label: `SET LOAD (${weightUnit})`, value: state.progressionSetFlowLoadStep });
+    fields.push({ id: "setFlowLoad", label: `SET WEIGHT (${weightUnit})`, value: state.progressionSetFlowLoadStep });
   }
   if (selectedMetrics.has("reps")) {
     fields.push({ id: "setFlowReps", label: "SET REPS", value: state.progressionSetFlowRepStep });
@@ -65,7 +67,7 @@ function getVisibleSetStepFields({
     fields.push({ id: "setFlowDuration", label: "SET TIME (S)", value: state.progressionSetFlowDurationStep });
   }
   if (selectedMetrics.has("distance")) {
-    fields.push({ id: "setFlowDistance", label: "SET DISTANCE", value: state.progressionSetFlowDistanceStep });
+    fields.push({ id: "setFlowDistance", label: `SET DIST (${distanceUnit})`, value: state.progressionSetFlowDistanceStep });
   }
 
   return fields;
@@ -119,17 +121,20 @@ export function getSessionVisiblePromotionStepFieldIds({
 export function buildSessionProgressionDisplayGroups({
   state,
   weightUnit,
+  distanceUnit,
   visiblePromotionStepFields,
   selectedMetrics,
 }: {
   state: ProgressionPlaybookFormState;
   weightUnit: "lbs" | "kg";
+  distanceUnit: FitnessDistanceUnit;
   visiblePromotionStepFields: PromotionStepFieldId[];
   selectedMetrics: Set<MeasurementSelection>;
 }): SessionProgressionDisplayGroup[] {
   return buildSessionProgressionEditorGroups({
     state,
     weightUnit,
+    distanceUnit,
     visiblePromotionStepFields,
     selectedMetrics,
   }).map((group) => ({
@@ -141,11 +146,13 @@ export function buildSessionProgressionDisplayGroups({
 export function buildSessionProgressionEditorGroups({
   state,
   weightUnit,
+  distanceUnit,
   visiblePromotionStepFields,
   selectedMetrics,
 }: {
   state: ProgressionPlaybookFormState;
   weightUnit: "lbs" | "kg";
+  distanceUnit: FitnessDistanceUnit;
   visiblePromotionStepFields: PromotionStepFieldId[];
   selectedMetrics: Set<MeasurementSelection>;
 }): SessionProgressionEditorGroup[] {
@@ -157,10 +164,10 @@ export function buildSessionProgressionEditorGroups({
       dumbbellLoad: { id: "dumbbellLoad", label: `DUMBBELL (${weightUnit})`, value: state.progressionDumbbellLoadIncrement },
       machineLoad: { id: "machineLoad", label: `MACHINE (${weightUnit})`, value: state.progressionMachineLoadIncrement },
       cableLoad: { id: "cableLoad", label: `CABLE (${weightUnit})`, value: state.progressionCableLoadIncrement },
-      genericLoad: { id: "genericLoad", label: `STEP (${weightUnit})`, value: state.progressionLoadIncrement },
+      genericLoad: { id: "genericLoad", label: `WEIGHT (${weightUnit})`, value: state.progressionLoadIncrement },
       bodyweightReps: { id: "bodyweightReps", label: "BODYWEIGHT REPS", value: state.progressionBodyweightRepIncrement },
       duration: { id: "duration", label: "DURATION (S)", value: state.progressionDurationIncrementSeconds },
-      distance: { id: "distance", label: "DISTANCE", value: state.progressionDistanceIncrement },
+      distance: { id: "distance", label: `DIST (${distanceUnit})`, value: state.progressionDistanceIncrement },
     };
 
     groups.push({
@@ -174,6 +181,7 @@ export function buildSessionProgressionEditorGroups({
   const visibleSetStepFields = getVisibleSetStepFields({
     selectedMetrics,
     weightUnit,
+    distanceUnit,
     state,
   });
 
@@ -189,11 +197,10 @@ export function buildSessionProgressionEditorGroups({
   if (state.progressionPlaybookId && state.progressionStallPolicy === "deload_after_stall") {
     groups.push({
       key: "deload-settings",
-      title: "Deload Settings",
+      title: "Regression Settings",
       tone: "secondary",
       fields: [
-        { id: "stallThreshold", label: "MISS COUNT", value: state.progressionStallThreshold },
-        { id: "deloadPercent", label: "DELOAD %", value: state.progressionDeloadPercent },
+        { id: "stallThreshold", label: "FAILURE COUNT", value: state.progressionStallThreshold },
       ],
     });
   }

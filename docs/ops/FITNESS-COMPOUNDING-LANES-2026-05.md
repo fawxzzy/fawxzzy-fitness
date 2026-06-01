@@ -364,3 +364,6 @@ Verification:
 - Prefer extending existing shells, analytics helpers, and follow-up seams.
 - Avoid combining install, progression, and shareability into the same PR.
 - Do not start FIT-06/FIT-07 until FIT-03 through FIT-05 pass the no-loose-ends audit and authenticated LLEL.
+- Mutating Codex tasks are not governed unless the prompt declares `Acceptance Criteria`, `Expected Changed Paths`, `Expected Unchanged Paths`, and `Blocked / Skipped Reporting Rules`.
+- Summary text is not proof. Lane completion should be claimed only when the final diff and verification output prove each satisfied criterion.
+- If a criterion cannot be completed or a non-listed path would need to change, report it as blocked, skipped, or failed instead of widening the lane silently.
