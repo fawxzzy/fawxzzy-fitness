@@ -10,6 +10,15 @@ const atlasRoot = path.resolve(repoRoot, "..", "..");
 const LOCAL_REMOTE_DB_ENV_PATH = path.join(atlasRoot, "secrets", "local", "fawxzzy-fitness-prod-db.env");
 const EXPECTED_PROJECT_REF = "lpswxoyfniocuhljgzbc";
 
+function quoteWindowsArg(value) {
+  const normalized = String(value);
+  if (!/[\s"]/u.test(normalized)) {
+    return normalized;
+  }
+
+  return `"${normalized.replace(/"/g, '\\"')}"`;
+}
+
 function resolveSupabaseCommandEnv() {
   const commandEnv = { ...process.env };
   const hasPassword = typeof commandEnv.SUPABASE_DB_PASSWORD === "string" && commandEnv.SUPABASE_DB_PASSWORD.trim().length > 0;
@@ -35,18 +44,33 @@ function resolveSupabaseCommandEnv() {
 
 export function runSupabaseCommand(args) {
   const commandEnv = resolveSupabaseCommandEnv();
-  const result = spawnSync(
-    process.platform === "win32" ? "cmd.exe" : "npx",
-    process.platform === "win32"
-      ? ["/d", "/s", "/c", "npx", ...args]
-      : args,
-    {
-      cwd: process.cwd(),
-      encoding: "utf8",
-      env: commandEnv,
-      shell: false,
-    },
-  );
+  const result = process.platform === "win32"
+    ? spawnSync(
+      process.env.ComSpec || "cmd.exe",
+      [
+        "/d",
+        "/s",
+        "/c",
+        ["npx", ...args].map((value) => quoteWindowsArg(value)).join(" "),
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        env: commandEnv,
+        shell: false,
+        windowsHide: true,
+      },
+    )
+    : spawnSync(
+      "npx",
+      args,
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        env: commandEnv,
+        shell: false,
+      },
+    );
 
   return {
     ...result,

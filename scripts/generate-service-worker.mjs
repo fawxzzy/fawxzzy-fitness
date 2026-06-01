@@ -64,7 +64,10 @@ self.addEventListener("fetch", (event) => {
 async function main() {
   const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
   const source = renderServiceWorkerSource(manifest.buildId);
-  await fs.writeFile(outputPath, source, "utf8");
+  const existingSource = await fs.readFile(outputPath, "utf8").catch(() => null);
+  if (existingSource !== source) {
+    await fs.writeFile(outputPath, source, "utf8");
+  }
   process.stdout.write(`Generated service worker at ${path.relative(rootDir, outputPath)}\n`);
 }
 

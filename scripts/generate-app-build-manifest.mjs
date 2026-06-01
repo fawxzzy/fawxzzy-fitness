@@ -9,23 +9,50 @@ const packageJsonPath = path.join(rootDir, "package.json");
 const generatedDir = path.join(rootDir, "src", "generated");
 const manifestPath = path.join(generatedDir, "appBuildManifest.json");
 
+async function readExistingManifest() {
+  try {
+    return JSON.parse(await fs.readFile(manifestPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf8"));
-  const generatedAt = new Date().toISOString();
-  const buildSource =
+  const existingManifest = await readExistingManifest();
+  const deploymentBuildSource =
     process.env.VERCEL_GIT_COMMIT_SHA
     || process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA
-    || process.env.VERCEL_DEPLOYMENT_ID
-    || `${packageJson.version}-${generatedAt}`;
+    || process.env.VERCEL_DEPLOYMENT_ID;
 
-  const manifest = {
-    buildId: String(buildSource),
-    generatedAt,
-    version: String(packageJson.version),
-  };
+  let manifest;
+  if (deploymentBuildSource) {
+    manifest = {
+      buildId: String(deploymentBuildSource),
+      generatedAt: new Date().toISOString(),
+      version: String(packageJson.version),
+    };
+  } else if (
+    existingManifest
+    && existingManifest.version === String(packageJson.version)
+    && typeof existingManifest.buildId === "string"
+    && typeof existingManifest.generatedAt === "string"
+  ) {
+    manifest = existingManifest;
+  } else {
+    manifest = {
+      buildId: `${packageJson.version}-local`,
+      generatedAt: new Date().toISOString(),
+      version: String(packageJson.version),
+    };
+  }
 
   await fs.mkdir(generatedDir, { recursive: true });
-  await fs.writeFile(`${manifestPath}`, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const nextContent = `${JSON.stringify(manifest, null, 2)}\n`;
+  const existingContent = await fs.readFile(manifestPath, "utf8").catch(() => null);
+  if (existingContent !== nextContent) {
+    await fs.writeFile(`${manifestPath}`, nextContent, "utf8");
+  }
   process.stdout.write(`Generated app build manifest at ${path.relative(rootDir, manifestPath)}\n`);
 }
 

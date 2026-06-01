@@ -42,7 +42,7 @@ const seamSuites = [
   "exercise-detail-bottom-seam",
 ];
 const laneOwnedSourceFiles = [
-  "docs/VISUAL-CHANGE-WORKFLOW.md",
+  "docs/ops/FITNESS-LLEL-CHECKLIST.md",
   "package.json",
   "scripts/qa/visual-fitness-readiness.mjs",
   "scripts/qa/visual-fitness-runner.mjs",

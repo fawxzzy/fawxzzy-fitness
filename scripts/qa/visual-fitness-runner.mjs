@@ -11,6 +11,10 @@ import {
   resolveBaseUrl,
   sessionArtifactPath,
 } from "./fitness-qa-config.mjs";
+import {
+  ensureBrowserSupabaseStorageState,
+  QA_STORAGE_STATE_PATH,
+} from "./fitness-auth-state.mjs";
 import { inspectQaSession } from "./fitness-qa-user.mjs";
 import {
   DEFAULT_VISUAL_VIEWPORT,
@@ -210,6 +214,7 @@ function resolveProofLane(rawValue) {
 async function resolveQaSession(baseUrl) {
   const inspection = await inspectQaSession({
     expectedBaseUrl: baseUrl,
+    requireCredentials: false,
     liveVerify: true,
   });
   if (inspection.status !== "valid-session") {
@@ -231,6 +236,15 @@ async function resolveQaSession(baseUrl) {
       expires_at: inspection.expiresAtEpochSeconds,
     }, baseUrl),
   };
+}
+
+async function loadQaStorageState(baseUrl) {
+  try {
+    const storageState = JSON.parse(await fs.readFile(QA_STORAGE_STATE_PATH, "utf8"));
+    return ensureBrowserSupabaseStorageState(storageState, { baseUrl });
+  } catch {
+    return null;
+  }
 }
 
 function normalizePlaywrightCookies(cookies, fallbackBaseUrl) {
@@ -297,6 +311,22 @@ async function runSuiteInteraction(page, suite) {
 
     await trigger.click();
     await page.waitForTimeout(1000);
+    if (typeof interaction.selectThemeSlotLabel === "string" && interaction.selectThemeSlotLabel.trim().length > 0) {
+      const slotTrigger = page.getByRole("button", { name: new RegExp(interaction.selectThemeSlotLabel, "i") }).first();
+      const slotVisible = await slotTrigger.isVisible().catch(() => false);
+      if (!slotVisible) {
+        return {
+          performed: true,
+          bodyText: ((await page.textContent("body")) ?? "").replace(/\s+/g, " ").trim(),
+          missingExpectedText: interaction.expectedText ?? [],
+          blockedReason: `Unable to find the "${interaction.selectThemeSlotLabel}" theme slot trigger.`,
+        };
+      }
+
+      await slotTrigger.click();
+      await page.waitForTimeout(750);
+    }
+
     const bodyText = ((await page.textContent("body")) ?? "").replace(/\s+/g, " ").trim();
     const normalizedBodyText = bodyText.toLowerCase();
     const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !normalizedBodyText.includes(text.toLowerCase()));
@@ -317,13 +347,8 @@ async function runSuiteInteraction(page, suite) {
   };
 }
 
-async function applyThemePreset(page, baseUrl, themePreset) {
-  await page.goto(`${baseUrl}/login`, {
-    waitUntil: "domcontentloaded",
-    timeout: 30000,
-  });
-
-  await page.evaluate(({ key, preset, value }) => {
+async function applyThemePreset(context, themePreset) {
+  await context.addInitScript(({ key, preset, value }) => {
     window.localStorage.setItem("fawxzzy:loading-diagnostics", "1");
     if (preset === "default") {
       window.localStorage.removeItem(key);
@@ -361,6 +386,9 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
         path: sessionArtifactPath,
         cookies: [],
       };
+  const qaStorageState = suite.authRequired && qaSession.available
+    ? await loadQaStorageState(baseUrl)
+    : null;
 
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -384,7 +412,9 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     },
     isMobile: viewport.width <= 430,
     hasTouch: viewport.width <= 430,
+    ...(qaStorageState ? { storageState: qaStorageState } : {}),
   });
+  await applyThemePreset(context, suite.themePreset);
   const page = await context.newPage();
   const consoleMessages = [];
   page.on("console", (message) => {
@@ -404,11 +434,9 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
   let manifest = null;
 
   try {
-    if (suite.authRequired && qaSession.available) {
+    if (suite.authRequired && qaSession.available && !qaStorageState) {
       await context.addCookies(normalizePlaywrightCookies(qaSession.cookies, baseUrl));
     }
-
-    await applyThemePreset(page, baseUrl, suite.themePreset);
 
     const response = await page.goto(`${baseUrl}${suite.route}`, {
       waitUntil: "domcontentloaded",
