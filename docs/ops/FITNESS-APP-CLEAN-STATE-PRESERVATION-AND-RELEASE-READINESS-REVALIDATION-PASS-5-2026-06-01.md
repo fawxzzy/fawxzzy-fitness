@@ -11,8 +11,8 @@
 
 - preserved the intended owner-side truth from passes 2 through 4
 - removed the line-ending-only `stretch-library` residue from the worktree
-- reran the Fitness release-readiness gate from an honest clean preserved state
-- verified the release gate stays green after the preserve-path commit chain
+- surfaced the narrower governed notes gate caused by the stabilized generated manifest, preserved the required repo-local note, and reran the Fitness release-readiness gate from an honest clean preserved state
+- verified the release gate stays green after the full preserve-path commit chain
 
 ## Now
 
@@ -69,6 +69,7 @@ These were line-ending-only worktree noise with no semantic diff and were revert
 
 - committed the pass-2-through-pass-4 code and generated-output truth on `main`
 - committed the owner-side receipt chain, including this pass-5 receipt, on `main`
+- committed the repo-local `docs/PLAYBOOK_NOTES.md` note required by the generated-artifact preservation rule
 - verified the working tree is clean after preservation
 
 ## Exact Verification Commands Run
@@ -81,6 +82,8 @@ git status --short
 npm run migration:validate
 npm run verify
 npm run release:fitness:ready -- --json
+npm run verify
+npm run release:fitness:ready -- --json
 ```
 
 ## Release-Gate Results
@@ -89,6 +92,10 @@ npm run release:fitness:ready -- --json
   - working tree ended clean after preservation
 - `npm run migration:validate`: `PASS`
 - `npm run verify`: `PASS`
+- governed note gate:
+  - narrowed blocker surfaced first:
+    - `src/generated/appBuildManifest.json` required a matching `docs/PLAYBOOK_NOTES.md` entry before `verify` would pass against the preserved diff from `origin/main`
+  - final state after note preservation: `PASS`
 - `npm run release:fitness:ready -- --json`: `PASS`
   - git check: `PASS`
   - verify check: `PASS`
