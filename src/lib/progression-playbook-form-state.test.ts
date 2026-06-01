@@ -856,6 +856,23 @@ test("invalid config fields do not compare equal to valid defaults", () => {
   assert.equal(areProgressionPlaybookFormStatesEqual(invalidExercise, routineDefault), false);
 });
 
+test("deload-after-stall config build tolerates missing legacy deload percent state", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "deload_after_stall",
+      config: { version: 1, loadIncrement: 5, stallThreshold: 2, deloadPercent: 10 },
+    }),
+    progressionDeloadPercent: "",
+  };
+
+  const config = buildProgressionPlaybookConfigFromFormState(state);
+
+  assert.ok(config);
+  assert.equal(config?.stallThreshold, 2);
+  assert.equal("deloadPercent" in (config ?? {}), true);
+  assert.equal(config?.deloadPercent, 10);
+});
+
 test("training goals seed expected routine default progression presets", () => {
   const buildMuscle = createProgressionPlaybookFormStateForTrainingGoal("build_muscle");
   const buildStrength = createProgressionPlaybookFormStateForTrainingGoal("build_strength");

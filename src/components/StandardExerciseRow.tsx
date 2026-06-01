@@ -29,6 +29,8 @@ type StandardExerciseRowProps = {
   onPress?: () => void;
   badgeText?: string;
   rightIcon?: ReactNode;
+  overlayActions?: ReactNode;
+  overlayActionsClassName?: string;
   actions?: ReactNode;
   className?: string;
   shellClassName?: string;
@@ -71,6 +73,8 @@ export function StandardExerciseRow({
   onPress,
   badgeText,
   rightIcon,
+  overlayActions,
+  overlayActionsClassName,
   actions,
   className,
   shellClassName,
@@ -148,6 +152,8 @@ export function StandardExerciseRow({
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}
+      overlayActions={overlayActions}
+      overlayActionsClassName={overlayActionsClassName}
       rightIconMode={rightIconMode}
       actions={actions}
       className={cn("shadow-none", shellClassName, className)}

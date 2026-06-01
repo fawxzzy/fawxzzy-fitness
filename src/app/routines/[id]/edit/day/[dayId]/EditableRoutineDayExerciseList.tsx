@@ -1,16 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { BottomActionDock } from "@/components/layout/BottomActionDock";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
@@ -54,7 +51,7 @@ import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
-import { publishEditDayCloseExpandedCard, publishScreenFocusMode, publishScreenMode, subscribeEditDayCloseExpandedCard } from "@/lib/screen-focus-mode";
+import { publishEditDayAutoProgressionVisibility, publishEditDayCloseExpandedCard, publishScreenFocusMode, publishScreenMode, subscribeEditDayCloseExpandedCard } from "@/lib/screen-focus-mode";
 import type { TrainingGoalId } from "@/lib/progression-playbooks";
 
 function hasTextValue(value: string | null | undefined) {
@@ -100,6 +97,7 @@ type EditableRoutineDayExerciseItem = {
 type Props = {
   routineId: string;
   routineDayId: string;
+  dayIndex?: number | null;
   cycleLengthDays: number;
   weightUnit: "lbs" | "kg";
   exercises: EditableRoutineDayExerciseItem[];
@@ -116,14 +114,6 @@ type DragState = {
   id: string;
   pointerId: number;
 };
-
-function clampOrderValue(rawValue: number, listLength: number) {
-  if (!Number.isFinite(rawValue)) return 1;
-  const normalized = Math.trunc(rawValue);
-  if (normalized < 1) return 1;
-  if (normalized > listLength) return listLength;
-  return normalized;
-}
 
 function resolveInlineModality(
   measurementType: "reps" | "time" | "distance" | "time_distance" | "none",
@@ -208,8 +198,9 @@ function ProgressionPlaybookInputs({
   draft,
   onDraftChange,
   weightUnit,
+  distanceUnit,
   cycleLengthDays,
-  title,
+  progressionExampleDayNumber,
   routineDefaultValue,
   onApplyRoutineDefault,
   progressionStepLabel,
@@ -221,12 +212,14 @@ function ProgressionPlaybookInputs({
   trainingFocusValue,
   trainingFocusCustomized,
   onTrainingFocusChange,
+  hideExerciseSetSuccessCount = false,
 }: {
   draft: EditDayExerciseDraft;
   onDraftChange: (nextDraft: EditDayExerciseDraft) => void;
   weightUnit: "lbs" | "kg";
+  distanceUnit: FitnessDistanceUnit;
   cycleLengthDays: number;
-  title?: string;
+  progressionExampleDayNumber?: number | null;
   routineDefaultValue: ProgressionPlaybookFormState;
   onApplyRoutineDefault: () => void;
   progressionStepLabel?: string | null;
@@ -238,21 +231,23 @@ function ProgressionPlaybookInputs({
   trainingFocusValue: TrainingGoalId | "";
   trainingFocusCustomized: boolean;
   onTrainingFocusChange: (goal: TrainingGoalId) => void;
+  hideExerciseSetSuccessCount?: boolean;
 }) {
   return (
     <ProgressionPlaybookEditor
       value={draft}
       onChange={(nextValue) => onDraftChange({ ...draft, ...nextValue })}
       weightUnit={weightUnit}
-      title={title}
+      distanceUnit={distanceUnit}
+      title=""
       context="exercise"
       routineDefaultValue={routineDefaultValue}
       onApplyRoutineDefault={onApplyRoutineDefault}
       showDefaultState
-      collapsible
-      defaultExpanded={false}
+      collapsible={false}
       separateInfoBox
       cycleLengthDays={cycleLengthDays}
+      progressionExampleDayNumber={progressionExampleDayNumber}
       progressionStepLabel={progressionStepLabel}
       progressionStepPolicy={progressionStepPolicy}
       visiblePromotionStepFields={visiblePromotionStepFields}
@@ -262,6 +257,7 @@ function ProgressionPlaybookInputs({
       trainingFocusValue={trainingFocusValue}
       trainingFocusCustomized={trainingFocusCustomized}
       onTrainingFocusChange={onTrainingFocusChange}
+      hideExerciseSetSuccessCount={hideExerciseSetSuccessCount}
     />
   );
 }
@@ -308,17 +304,16 @@ function applyProgressionStepSeed(
   };
 }
 
-const INLINE_VIEW_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "toggleInactive",
-});
-
-const INLINE_DELETE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
-  intent: "danger",
-});
+const CARD_REORDER_HANDLE_CLASS_NAME = cn(
+  appTokens.routineEditorReorderHandle,
+  "relative z-[1] h-8 w-8 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
+);
 
 export function EditableRoutineDayExerciseList({
   routineId,
   routineDayId,
+  dayIndex,
   cycleLengthDays,
   weightUnit,
   exercises,
@@ -339,7 +334,6 @@ export function EditableRoutineDayExerciseList({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [isRestDay, setIsRestDay] = useState(initialIsRest);
-  const [reorderMode, setReorderMode] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
@@ -424,21 +418,6 @@ export function EditableRoutineDayExerciseList({
     });
   };
 
-  const applyManualOrderValue = (exerciseId: string, rawOrderValue: number) => {
-    const current = itemsRef.current;
-    if (current.length === 0) return;
-    const fromIndex = current.findIndex((item) => item.id === exerciseId);
-    if (fromIndex === -1) return;
-    const clampedOrder = clampOrderValue(rawOrderValue, current.length);
-    const next = moveItemWithinList(current, fromIndex, clampedOrder - 1);
-    const didChangeOrder = next !== current;
-    setItems(next);
-    itemsRef.current = next;
-    if (didChangeOrder) {
-      requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
-    }
-  };
-
   const finishReorder = () => {
     setActiveDragId(null);
     dragStateRef.current = null;
@@ -449,15 +428,14 @@ export function EditableRoutineDayExerciseList({
     }
   };
 
-  const handleHandlePointerDown = (exerciseId: string, event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!reorderMode) return;
+  const handleHandlePointerDown = (exerciseId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
     dragStateRef.current = { id: exerciseId, pointerId: event.pointerId };
     setActiveDragId(exerciseId);
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   };
 
-  const handleHandlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handleHandlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
     const elementBelow = document.elementFromPoint(event.clientX, event.clientY);
@@ -467,7 +445,7 @@ export function EditableRoutineDayExerciseList({
     event.preventDefault();
   };
 
-  const handleHandlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handleHandlePointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
     event.currentTarget.releasePointerCapture(event.pointerId);
@@ -475,28 +453,13 @@ export function EditableRoutineDayExerciseList({
   };
 
   useEffect(() => {
-    if (!reorderMode) {
+    if (isRestDay) {
       setActiveDragId(null);
       dragStateRef.current = null;
-      return;
-    }
-    setExpandedId(null);
-    setSelectedExerciseId(null);
-  }, [reorderMode]);
-
-  useEffect(() => {
-    if (isRestDay) {
-      setReorderMode(false);
       setExpandedId(null);
       setSelectedExerciseId(null);
     }
   }, [isRestDay]);
-
-  useEffect(() => {
-    if (expandedId) {
-      setReorderMode(false);
-    }
-  }, [expandedId]);
 
   useEffect(() => {
     if (!expandedId) {
@@ -524,14 +487,6 @@ export function EditableRoutineDayExerciseList({
       window.cancelAnimationFrame(frameB);
     };
   }, [expandedId]);
-
-  const handleToggleReorderMode = () => {
-    if (isRestDay) return;
-    flushAutosave();
-    setExpandedId(null);
-    setSelectedExerciseId(null);
-    setReorderMode((current) => !current);
-  };
 
   const createDraftSnapshot = useCallback((formData: FormData) => {
     const trackedKeys = [
@@ -613,7 +568,7 @@ export function EditableRoutineDayExerciseList({
   const editModeActive = expandedId !== null;
   const modeViewModel = getDayEditorModeViewModel({
     isRestDay,
-    isReorderMode: reorderMode,
+    isReorderMode: false,
     hasExpandedExercise: editModeActive,
   });
   const ctaDockState = getDayCtaDockState(modeViewModel.mode);
@@ -644,8 +599,14 @@ export function EditableRoutineDayExerciseList({
     },
     [buildExerciseDraft],
   );
-  const hasExercises = items.length > 0;
   const visibleItems = items;
+  const hasVisibleAutoProgression = useMemo(
+    () => items.some((exercise) => {
+      const draft = draftsById[exercise.id];
+      return Boolean((draft?.progressionPlaybookId ?? exercise.defaults.progressionPlaybookId ?? "").trim());
+    }),
+    [draftsById, items],
+  );
 
   useEffect(() => {
     publishScreenFocusMode({ screen: "edit-day", active: editModeActive });
@@ -661,21 +622,14 @@ export function EditableRoutineDayExerciseList({
     };
   }, [modeViewModel.mode]);
 
+  useEffect(() => {
+    publishEditDayAutoProgressionVisibility({
+      screen: "edit-day",
+      visible: hasVisibleAutoProgression,
+    });
+  }, [hasVisibleAutoProgression]);
+
   const addExerciseLabel = NORMALIZED_ACTION_LABELS.add;
-  const reorderButton = modeViewModel.headerAction === "reorder_toggle" ? (
-    <BottomDockButton
-      type="button"
-      intent={reorderMode ? "toggleActive" : "toggleInactive"}
-      onClick={handleToggleReorderMode}
-      aria-pressed={reorderMode}
-      disabled={isRestDay || !hasExercises}
-      className={cn(
-        isRestDay || !hasExercises ? appTokens.routineEditorHeaderActionButtonDisabled : undefined,
-      )}
-    >
-      {reorderMode ? "Done" : "Reorder"}
-    </BottomDockButton>
-  ) : null;
 
   const handleAddExercisePress = () => {
     if (addExerciseNavigationLockedRef.current) return;
@@ -686,17 +640,42 @@ export function EditableRoutineDayExerciseList({
     router.push(addExerciseHref);
   };
 
-  const addExerciseDock = editModeActive ? (
-    reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
-  ) : (
-    <BottomActionDock
-      left={reorderButton ?? <div />}
-      right={(
-        <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress}>
-          {addExerciseLabel}
+  const addExerciseDock = (
+    <BottomActionSingle>
+      <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress}>
+        {addExerciseLabel}
+      </BottomDockButton>
+    </BottomActionSingle>
+  );
+  const expandedExerciseDock = activeExercise ? (
+    <BottomActionSplit
+      secondary={(
+        <BottomDockButton type="button" intent="toggleInactive" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
+          {NORMALIZED_ACTION_LABELS.view}
+        </BottomDockButton>
+      )}
+      primary={(
+        <BottomDockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
+          Delete
         </BottomDockButton>
       )}
     />
+  ) : null;
+
+  const renderReorderHandle = (exerciseId: string, exerciseName: string) => (
+    <button
+      type="button"
+      aria-label={`Reorder ${exerciseName}`}
+      title="Drag to reorder"
+      className={cn(CARD_REORDER_HANDLE_CLASS_NAME, activeDragId === exerciseId ? "ring-2 ring-[rgb(var(--selection-rgb)/0.26)]" : undefined)}
+      onPointerDown={(event) => handleHandlePointerDown(exerciseId, event)}
+      onPointerMove={handleHandlePointerMove}
+      onPointerUp={handleHandlePointerUp}
+      onPointerCancel={() => finishReorder()}
+      onClick={(event) => event.preventDefault()}
+    >
+      <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>::</span>
+    </button>
   );
 
   if (items.length === 0 || modeViewModel.sections.restDayCardVisible) {
@@ -719,12 +698,10 @@ export function EditableRoutineDayExerciseList({
           )}
         </SharedSectionShell>
         <PublishBottomActions>
-          {ctaDockState.variant === "add_exercise" || ctaDockState.variant === "edit_exercise" ? (
+          {ctaDockState.variant === "add_exercise" ? (
             addExerciseDock
-          ) : ctaDockState.variant === "reorder_only" ? (
-            reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
-          ) : ctaDockState.variant === "rest_toggle_only" ? (
-            reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
+          ) : ctaDockState.variant === "edit_exercise" ? (
+            expandedExerciseDock
           ) : null}
         </PublishBottomActions>
       </>
@@ -734,12 +711,10 @@ export function EditableRoutineDayExerciseList({
   return (
     <>
       <PublishBottomActions>
-        {ctaDockState.variant === "add_exercise" || ctaDockState.variant === "edit_exercise" ? (
+        {ctaDockState.variant === "add_exercise" ? (
           addExerciseDock
-        ) : ctaDockState.variant === "reorder_only" ? (
-          reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
-        ) : ctaDockState.variant === "rest_toggle_only" ? (
-          reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
+        ) : ctaDockState.variant === "edit_exercise" ? (
+          expandedExerciseDock
         ) : null}
       </PublishBottomActions>
       <form
@@ -761,144 +736,92 @@ export function EditableRoutineDayExerciseList({
       </form>
 
       {modeViewModel.sections.exerciseListVisible ? (
-        reorderMode ? (
-          <ul className="space-y-2">
-            {visibleItems.map((exercise, index) => {
-              const isDragging = activeDragId === exercise.id;
-              return (
-                <li key={exercise.id} className={appTokens.routineEditorReorderItem}>
-                  <ReorderExerciseRow
-                    exerciseId={exercise.id}
-                    exerciseName={exercise.name}
-                    metadata={exercise.targetSummary}
-                    measurementType={exercise.measurementType}
-                    primary_muscle={exercise.primary_muscle}
-                    equipment={exercise.equipment}
-                    movement_pattern={exercise.movement_pattern}
-                    isCardio={exercise.isCardio}
-                    kind={exercise.kind}
-                    type={exercise.type}
-                    tags={exercise.tags}
-                    categories={exercise.categories}
-                    slug={exercise.slug}
-                    image_path={exercise.image_path}
-                    image_icon_path={exercise.image_icon_path}
-                    image_howto_path={exercise.image_howto_path}
-                    orderNumber={canonicalOrderById.get(exercise.id) ?? index + 1}
-                    isDragging={isDragging}
-                    onHandlePointerDown={(event) => handleHandlePointerDown(exercise.id, event)}
-                    onHandlePointerMove={handleHandlePointerMove}
-                    onHandlePointerUp={handleHandlePointerUp}
-                    onHandlePointerCancel={() => finishReorder()}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <DayDetailExerciseList
-            mode="editable"
-            showOrderBadges={false}
-            items={visibleItems.map((exercise) => ({
-              ...resolveEditDayExercisePreview({
-                savedSummary: exercise.targetSummary,
-                savedOrderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
-                draft: expandedId === exercise.id ? getExerciseDraft(exercise) : null,
-                listLength: items.length,
-              }),
-              id: exercise.id,
-              name: exercise.name,
-              measurementType: exercise.measurementType,
-              primary_muscle: exercise.primary_muscle,
+        <DayDetailExerciseList
+          mode="editable"
+          showOrderBadges={false}
+          items={visibleItems.map((exercise) => ({
+            ...resolveEditDayExercisePreview({
+              savedSummary: exercise.targetSummary,
+              savedOrderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+              draft: expandedId === exercise.id ? getExerciseDraft(exercise) : null,
+              listLength: items.length,
+            }),
+            id: exercise.id,
+            name: exercise.name,
+            measurementType: exercise.measurementType,
+            primary_muscle: exercise.primary_muscle,
+            equipment: exercise.equipment,
+            movement_pattern: exercise.movement_pattern,
+            isCardio: exercise.isCardio,
+            kind: exercise.kind,
+            type: exercise.type,
+            tags: exercise.tags,
+            categories: exercise.categories,
+            slug: exercise.slug,
+            image_path: exercise.image_path,
+            image_icon_path: exercise.image_icon_path,
+            image_howto_path: exercise.image_howto_path,
+          }))}
+          activeItemId={expandedId}
+          renderOverlayActions={(item) => expandedId === item.id ? null : renderReorderHandle(item.id, item.name)}
+          onSelectItem={!modeViewModel.exerciseListInteractive ? undefined : (item) => {
+            setExpandedId((current) => {
+              if (current === item.id) {
+                flushAutosave();
+                return null;
+              }
+              if (current) {
+                flushAutosave();
+              }
+              return item.id;
+            });
+          }}
+          renderExpandedContent={(item) => {
+            const exercise = items.find((entry) => entry.id === item.id);
+            if (!exercise) return null;
+            const isExpanded = expandedId === exercise.id;
+            if (!isExpanded) return null;
+            const isStretchExercise = isStretchHubExercise(exercise);
+            const showEditableTargets = !isStretchExercise;
+            const showProgressionInputs = !isStretchExercise;
+            const draft = getExerciseDraft(exercise);
+            const modality = resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name);
+            const draftProgressionConfig = buildProgressionPlaybookConfigFromFormState(draft);
+            const routineDefaultProgressionConfig = buildProgressionPlaybookConfigFromFormState(routineDefaultProgression);
+            const progressionStepPolicy = inferProgressionStepPolicy({
+              measurementType: exercise.measurementType === "none" ? "reps" : exercise.measurementType,
               equipment: exercise.equipment,
-              movement_pattern: exercise.movement_pattern,
-              isCardio: exercise.isCardio,
-              kind: exercise.kind,
-              type: exercise.type,
-              tags: exercise.tags,
-              categories: exercise.categories,
-              slug: exercise.slug,
-              image_path: exercise.image_path,
-              image_icon_path: exercise.image_icon_path,
-              image_howto_path: exercise.image_howto_path,
-            }))}
-            activeItemId={expandedId}
-            onSelectItem={!modeViewModel.exerciseListInteractive ? undefined : (item) => {
-              setExpandedId((current) => {
-                if (current === item.id) {
-                  flushAutosave();
-                  return null;
-                }
-                if (current) {
-                  flushAutosave();
-                }
-                return item.id;
-              });
-            }}
-            renderExpandedContent={(item) => {
-              const exercise = items.find((entry) => entry.id === item.id);
-              if (!exercise) return null;
-              const isExpanded = expandedId === exercise.id;
-              if (!isExpanded) return null;
-              const isStretchExercise = isStretchHubExercise(exercise);
-              const showEditableTargets = !isStretchExercise;
-              const showProgressionInputs = !isStretchExercise;
-              const draft = getExerciseDraft(exercise);
-              const modality = resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name);
-              const draftProgressionConfig = buildProgressionPlaybookConfigFromFormState(draft);
-              const routineDefaultProgressionConfig = buildProgressionPlaybookConfigFromFormState(routineDefaultProgression);
-              const progressionStepPolicy = inferProgressionStepPolicy({
-                measurementType: exercise.measurementType === "none" ? "reps" : exercise.measurementType,
-                equipment: exercise.equipment,
-                movementPattern: exercise.movement_pattern ?? null,
-                defaultUnit: exercise.defaultDistanceUnit,
-                weightUnit,
-                distanceUnit: exercise.defaultDistanceUnit === "km" ? "km" : "mi",
-                targetWeight: Number(draft.goalState.weight),
-                routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
-                exerciseOverrideValue: Number(draft.progressionLoadIncrement),
-                stepOverrides: draftProgressionConfig?.stepOverrides ?? routineDefaultProgressionConfig?.stepOverrides ?? null,
-              });
-              const visiblePromotionStepFields = getVisiblePromotionStepFieldsForGoal({
-                modality,
-                values: draft.goalState,
-                policy: progressionStepPolicy,
-              });
-              const promotionUiModel = buildProgressionPromotionUiModel({
-                context: "exercise",
-                promotionBasis: draft.progressionPromotionBasis,
-                modality,
-                values: draft.goalState,
-              });
-              const progressionStepLabel = getProgressionStepFieldLabel(progressionStepPolicy, weightUnit);
-              const repRangeMin = hasTextValue(draft.goalState.repsMin)
-                ? Number(draft.goalState.repsMin)
-                : null;
-              const repRangeMax = hasTextValue(draft.goalState.repsMax)
-                ? Number(draft.goalState.repsMax)
-                : repRangeMin;
-              const selectedTrainingFocus = trainingFocusById[exercise.id] ?? "";
-              return (
-                <div className={appTokens.routineEditorCompactStack}>
-                  <AttachedCardActionStripFrame gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
-                      <button
-                        type="button"
-                        data-bottom-action-intent="toggleInactive"
-                        className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]")}
-                        onClick={() => setSelectedExerciseId(exercise.exerciseId)}
-                      >
-                        <span className="bottom-action__label">{NORMALIZED_ACTION_LABELS.view}</span>
-                      </button>
-                      <button
-                        type="button"
-                        data-bottom-action-intent="danger"
-                        className={cn(INLINE_DELETE_ACTION_BUTTON_CLASS_NAME, "translate-x-px")}
-                        onClick={() => setDeleteConfirmOpen(true)}
-                      >
-                        <span className="bottom-action__label">Delete</span>
-                      </button>
-                  </AttachedCardActionStripFrame>
-                  <form
+              movementPattern: exercise.movement_pattern ?? null,
+              defaultUnit: exercise.defaultDistanceUnit,
+              weightUnit,
+              distanceUnit: exercise.defaultDistanceUnit === "km" ? "km" : "mi",
+              targetWeight: Number(draft.goalState.weight),
+              routineDefaultValue: Number(routineDefaultProgression.progressionLoadIncrement),
+              exerciseOverrideValue: Number(draft.progressionLoadIncrement),
+              stepOverrides: draftProgressionConfig?.stepOverrides ?? routineDefaultProgressionConfig?.stepOverrides ?? null,
+            });
+            const visiblePromotionStepFields = getVisiblePromotionStepFieldsForGoal({
+              modality,
+              values: draft.goalState,
+              policy: progressionStepPolicy,
+            });
+            const promotionUiModel = buildProgressionPromotionUiModel({
+              context: "exercise",
+              promotionBasis: draft.progressionPromotionBasis,
+              modality,
+              values: draft.goalState,
+            });
+            const progressionStepLabel = getProgressionStepFieldLabel(progressionStepPolicy, weightUnit);
+            const repRangeMin = hasTextValue(draft.goalState.repsMin)
+              ? Number(draft.goalState.repsMin)
+              : null;
+            const repRangeMax = hasTextValue(draft.goalState.repsMax)
+              ? Number(draft.goalState.repsMax)
+              : repRangeMin;
+            const selectedTrainingFocus = trainingFocusById[exercise.id] ?? "";
+            return (
+              <div className={appTokens.routineEditorCompactStack}>
+                <form
                     ref={(node) => {
                       if (!isExpanded) {
                         return;
@@ -997,8 +920,9 @@ export function EditableRoutineDayExerciseList({
                         draft={draft}
                         onDraftChange={(nextDraft) => updateExerciseDraft(exercise, () => nextDraft)}
                         weightUnit={weightUnit}
+                        distanceUnit={exercise.defaultDistanceUnit}
                         cycleLengthDays={cycleLengthDays}
-                        title="Progression Settings"
+                        progressionExampleDayNumber={dayIndex}
                         routineDefaultValue={routineDefaultProgression}
                         onApplyRoutineDefault={() => {
                           updateExerciseDraft(exercise, (current) => ({
@@ -1027,14 +951,14 @@ export function EditableRoutineDayExerciseList({
                             ),
                           }));
                         }}
+                        hideExerciseSetSuccessCount
                       />
                     ) : null}
-                  </form>
-                </div>
-              );
-            }}
-          />
-        )
+                </form>
+              </div>
+            );
+          }}
+        />
       ) : null}
 
       <ConfirmDestructiveModal

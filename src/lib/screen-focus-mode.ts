@@ -15,9 +15,15 @@ type EditDayCloseExpandedCardDetail = {
   screen: "edit-day";
 };
 
+type EditDayAutoProgressionVisibilityDetail = {
+  screen: "edit-day";
+  visible: boolean;
+};
+
 const SCREEN_FOCUS_MODE_EVENT = "atlas:screen-focus-mode";
 const SCREEN_MODE_EVENT = "atlas:screen-mode";
 const EDIT_DAY_CLOSE_EXPANDED_CARD_EVENT = "atlas:edit-day-close-expanded-card";
+const EDIT_DAY_AUTO_PROGRESSION_VISIBILITY_EVENT = "atlas:edit-day-auto-progression-visibility";
 
 export function publishScreenFocusMode(detail: ScreenFocusModeDetail) {
   if (typeof window === "undefined") {
@@ -108,5 +114,35 @@ export function subscribeEditDayCloseExpandedCard(
   window.addEventListener(EDIT_DAY_CLOSE_EXPANDED_CARD_EVENT, handleEvent as EventListener);
   return () => {
     window.removeEventListener(EDIT_DAY_CLOSE_EXPANDED_CARD_EVENT, handleEvent as EventListener);
+  };
+}
+
+export function publishEditDayAutoProgressionVisibility(detail: EditDayAutoProgressionVisibilityDetail) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent<EditDayAutoProgressionVisibilityDetail>(EDIT_DAY_AUTO_PROGRESSION_VISIBILITY_EVENT, { detail }));
+}
+
+export function subscribeEditDayAutoProgressionVisibility(
+  onChange: (visible: boolean) => void,
+) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleEvent = (event: Event) => {
+    const nextDetail = (event as CustomEvent<EditDayAutoProgressionVisibilityDetail>).detail;
+    if (!nextDetail || nextDetail.screen !== "edit-day") {
+      return;
+    }
+
+    onChange(nextDetail.visible);
+  };
+
+  window.addEventListener(EDIT_DAY_AUTO_PROGRESSION_VISIBILITY_EVENT, handleEvent as EventListener);
+  return () => {
+    window.removeEventListener(EDIT_DAY_AUTO_PROGRESSION_VISIBILITY_EVENT, handleEvent as EventListener);
   };
 }

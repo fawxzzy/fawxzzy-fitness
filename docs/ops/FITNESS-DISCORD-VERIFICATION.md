@@ -2,7 +2,7 @@
 
 ## User flow
 1. The user signs into the Fitness app.
-2. The user goes to `Settings → Account → Discord Connector`.
+2. The user goes to `Settings -> Account -> Discord Connector`.
 3. The app generates a short-lived verification token.
 4. The user opens the Discord verify modal and pastes the token.
 5. Fitness verifies the signed Discord interaction, consumes the token, grants the Discord role, and records the durable link.
@@ -14,7 +14,7 @@ Default verify message body:
 To unlock the server:
 
 1. Sign into Fawxzzy Fitness.
-2. Go to Settings → Account → Discord Connector.
+2. Go to Settings -> Account -> Discord Connector.
 3. Generate your Discord verification token.
 4. Click Verify below and paste the token.
 
@@ -49,9 +49,24 @@ After deployment:
 2. Run `npm run discord:commands:register`.
 3. Run `/setup-feedback` and confirm the panel is refreshed.
 4. Run `/setup-verify` and confirm the verify message is refreshed.
-5. Test `Submit Feedback`, `Update Feedback`, and `Withdraw Feedback`.
-6. Generate a token from `Settings → Account → Discord Connector`.
+5. Test `Submit`, `Edit`, and `Withdraw` through a real authenticated Discord member session.
+6. Generate a token from `Settings -> Account -> Discord Connector`.
 7. Paste the token into the Discord modal.
+
+Live proof note:
+- automation QA accounts cannot generate Discord verification tokens
+- same-event Discord submit proof needs a non-automation authenticated app session plus a real authenticated Discord member browser context
+- do not count bot-only, stale, or panel-only checks as member-submit proof
+- local token generation also needs non-empty `DISCORD_VERIFICATION_TOKEN_PEPPER` and `DISCORD_VERIFICATION_BOT_SECRET` in the active local env mirror (`.env.local` or the file selected through `FITNESS_ENV_FILE`)
+- when those values are blank locally, refresh the active mirror from the governed root secret lane rather than inventing repo-local replacements; the current governed source is `secrets/local/fawxzzy-fitness-discord-prod.env`
+- if the proof path depends on consuming an existing real Discord member browser context from Chrome, the selected Chrome profile also needs the Codex Chrome Extension installed and enabled; token-mint success alone does not prove that member browser context exists
+- if the selected Chrome profile is `Default` and the Codex Chrome Extension is neither registered in Chrome preferences nor present under that profile's `Extensions/` directory, treat the blocker as install-required browser-context enablement rather than an app-side or env-side proof defect
+- if Chrome is installed, the native host is correct, the selected profile is `Default`, and `Default` still lacks both extension registration and the install directory, treat the next move as explicit manual installation or enablement readiness for the [Codex Chrome Extension](https://chromewebstore.google.com/detail/codex/hehggadaopoacecdllhhajmbjkdcmajg) in `Default` rather than more proof-path probing
+- if that manual-install boundary is reached and no smaller local defect remains, stop local repair packets and acknowledge the human-required step explicitly: install or enable the Codex Chrome Extension in `Default`, then reopen proof capture only after evidence shows registration, install-directory presence, and enabled state in that profile
+- if the Codex Chrome Extension is installed, registered, and enabled in `Default`, the native host is correct, and the live Codex-to-Chrome bridge still times out in the current session, stop Fitness repo/runtime repair work and classify the blocker as an external/session-scoped bridge issue; only reopen post-install proof capture after a live Chrome runtime call succeeds from the current Codex session
+
+Rule:
+- automation QA accounts are not valid Discord verification-token subjects
 
 ## Community doctor
 Run:
@@ -73,34 +88,3 @@ Explicitly parked:
 - `DISCORD_VERIFICATION_BOT_SECRET`
 - `DISCORD_VERIFICATION_TOKEN_PEPPER`
 - `DISCORD_PUBLIC_KEY`
-- `DISCORD_BOT_TOKEN`
-- `DISCORD_APPLICATION_ID`
-- `DISCORD_GUILD_ID`
-- `DISCORD_VERIFY_CHANNEL_ID`
-- `DISCORD_VERIFIED_ROLE_ID`
-- `DISCORD_MEMBER_SYNC_SECRET`
-
-Optional:
-- `DISCORD_UNVERIFIED_ROLE_ID`
-- `DISCORD_VERIFY_MESSAGE_TITLE`
-- `DISCORD_VERIFY_MESSAGE_BODY`
-- `DISCORD_FEEDBACK_PANEL_CHANNEL_ID`
-- `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
-
-Known feedback forum value:
-- `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`
-
-## Member number sync
-- source of truth: `public.profiles.user_number`
-- nickname format: `display name · number`
-- sync is best-effort during verification
-- queued resync runs through the protected member-sync path, not SQL-side Discord calls
-
-## Guardrails
-Rule: verification proves possession of an authenticated app session, not knowledge of an email.
-
-Rule: signed Discord interactions must be verified before execution.
-
-Rule: verification copy should consistently say `Discord Connector`.
-
-Rule: owner or high-role nickname update failures can remain expected Discord limitations while the link row stays queued or marked with a safe error code.

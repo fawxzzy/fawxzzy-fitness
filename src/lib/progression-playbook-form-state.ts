@@ -74,6 +74,7 @@ type SetFlowMeasurementSequence = SetFlowMeasurementKey[][];
 type SetFlowCountFieldMap = Partial<Record<SetFlowMeasurementKey, string>>;
 type SetFlowGroupedCountFieldMap = Record<string, string>;
 type SetFlowGroupedDirectionFieldMap = Record<string, SetFlowDirection>;
+const LEGACY_DELOAD_PERCENT_FALLBACK = 10;
 
 const SET_FLOW_MEASUREMENT_KEYS: SetFlowMeasurementKey[] = [
   "time",
@@ -882,8 +883,11 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
   }
 
   const stallThreshold = parsePositiveInteger(state.progressionStallThreshold);
-  const deloadPercent = parsePositiveNumber(state.progressionDeloadPercent);
-  if (stallThreshold === null || deloadPercent === null || deloadPercent >= 100) {
+  const rawDeloadPercent = parsePositiveNumber(state.progressionDeloadPercent);
+  const deloadPercent = rawDeloadPercent === null || rawDeloadPercent >= 100
+    ? LEGACY_DELOAD_PERCENT_FALLBACK
+    : rawDeloadPercent;
+  if (stallThreshold === null) {
     return null;
   }
 

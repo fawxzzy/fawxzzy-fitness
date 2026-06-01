@@ -11,7 +11,9 @@ import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } f
 import { insertRoutineDayExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
 import { buildProgressionReviewTargetPlan } from "@/lib/progression-review-loader";
-import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
+import { buildProgressionPlaybookConfigFromFormState, createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
+import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
+import { isSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import {
   buildProgressionEventPayload,
   recordProgressionEvent,
@@ -51,6 +53,45 @@ function selectedProgressionPlaybook(payload: Record<string, unknown>) {
 }
 
 const ROUTINE_DAY_EXERCISE_PROGRESS_EVENT_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
+const ROUTINE_DAY_EXERCISE_PROGRESSION_CONFIG_SELECT = "id, progression_playbook_id, progression_playbook_config";
+
+function buildConfigWithUpdatedDayAdjustment(args: {
+  playbookId: string | null | undefined;
+  config: Record<string, unknown> | null | undefined;
+  dayIndex: number;
+  cycleLengthDays: number;
+  direction: SetFlowDirection;
+}) {
+  if (!args.playbookId || args.dayIndex < 1) {
+    return null;
+  }
+
+  const state = createProgressionPlaybookFormState({
+    playbookId: args.playbookId,
+    config: args.config ?? null,
+  });
+
+  if (!state.progressionPlaybookId) {
+    return null;
+  }
+
+  const totalDays = Math.max(
+    1,
+    args.dayIndex,
+    args.cycleLengthDays,
+    state.progressionEffortWaveDirections.length,
+  );
+  const nextDirections = Array.from(
+    { length: totalDays },
+    (_, index) => state.progressionEffortWaveDirections[index] ?? "straight",
+  );
+  nextDirections[args.dayIndex - 1] = args.direction;
+
+  return buildProgressionPlaybookConfigFromFormState({
+    ...state,
+    progressionEffortWaveDirections: nextDirections,
+  });
+}
 
 export async function updateRoutineDaySettingsAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
@@ -60,6 +101,8 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const isRest = formData.get("isRest") === "on";
+  const dayAdjustmentRaw = String(formData.get("dayAdjustmentDirection") ?? "").trim();
+  const dayAdjustmentDirection = isSetFlowDirection(dayAdjustmentRaw) ? dayAdjustmentRaw : null;
   if (!routineId || !routineDayId) {
     return { ok: false, error: "Missing day info" };
   }
@@ -87,6 +130,94 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  if (dayAdjustmentDirection) {
+    const { data: routineWithProgression, error: routineWithProgressionError } = await supabase
+      .from("routines")
+      .select("id, cycle_length_days, default_progression_playbook_id, default_progression_playbook_config")
+      .eq("id", routineId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (routineWithProgressionError && isMissingRoutineDefaultProgressionColumnError(routineWithProgressionError)) {
+      return {
+        ok: false,
+        error: getSchemaMismatchMessage(routineWithProgressionError, {
+          operation: "update routine day adjustment",
+          progressionMigration: "046",
+        }) ?? "Progression schema is missing. Apply migration 046.",
+      };
+    }
+
+    if (routineWithProgressionError || !routineWithProgression) {
+      return { ok: false, error: routineWithProgressionError?.message ?? "Routine not found" };
+    }
+
+    const routineConfig = buildConfigWithUpdatedDayAdjustment({
+      playbookId: routineWithProgression.default_progression_playbook_id,
+      config: routineWithProgression.default_progression_playbook_config,
+      dayIndex: existingDay.day_index,
+      cycleLengthDays: routineWithProgression.cycle_length_days ?? existingDay.day_index,
+      direction: dayAdjustmentDirection,
+    });
+
+    if (routineConfig) {
+      const { error: routineUpdateError } = await supabase
+        .from("routines")
+        .update({ default_progression_playbook_config: routineConfig })
+        .eq("id", routineId)
+        .eq("user_id", user.id);
+
+      if (routineUpdateError) {
+        return { ok: false, error: routineUpdateError.message };
+      }
+    }
+
+    const { data: dayExerciseRows, error: dayExerciseRowsError } = await supabase
+      .from("routine_day_exercises")
+      .select(ROUTINE_DAY_EXERCISE_PROGRESSION_CONFIG_SELECT)
+      .eq("routine_day_id", routineDayId)
+      .eq("user_id", user.id);
+
+    if (dayExerciseRowsError && isMissingProgressionPlaybookColumnError(dayExerciseRowsError)) {
+      return {
+        ok: false,
+        error: getSchemaMismatchMessage(dayExerciseRowsError, {
+          operation: "update routine day exercise day adjustment",
+          progressionMigration: "045",
+        }) ?? "Progression schema is missing. Apply migration 045.",
+      };
+    }
+
+    if (dayExerciseRowsError) {
+      return { ok: false, error: dayExerciseRowsError.message };
+    }
+
+    for (const row of dayExerciseRows ?? []) {
+      const nextConfig = buildConfigWithUpdatedDayAdjustment({
+        playbookId: row.progression_playbook_id,
+        config: row.progression_playbook_config,
+        dayIndex: existingDay.day_index,
+        cycleLengthDays: routineWithProgression.cycle_length_days ?? existingDay.day_index,
+        direction: dayAdjustmentDirection,
+      });
+
+      if (!nextConfig) {
+        continue;
+      }
+
+      const { error: exerciseUpdateError } = await supabase
+        .from("routine_day_exercises")
+        .update({ progression_playbook_config: nextConfig })
+        .eq("id", row.id)
+        .eq("routine_day_id", routineDayId)
+        .eq("user_id", user.id);
+
+      if (exerciseUpdateError) {
+        return { ok: false, error: exerciseUpdateError.message };
+      }
+    }
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);

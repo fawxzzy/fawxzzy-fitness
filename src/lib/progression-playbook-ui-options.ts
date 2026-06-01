@@ -248,12 +248,7 @@ export function detectActiveProgressionMeasurementsFromGoal(args: {
   modality: GoalModality;
   values: GoalLikeValues;
 }) {
-  const activeMeasurements = detectActiveMeasurementsFromTargets(buildActiveMeasurementInput(args));
-  if (args.values.failure && !activeMeasurements.includes("reps")) {
-    activeMeasurements.unshift("reps");
-  }
-
-  return activeMeasurements;
+  return detectActiveMeasurementsFromTargets(buildActiveMeasurementInput(args));
 }
 
 function getCardioPromotionOptionId(measurements: ProgressionMeasurementKey[]) {

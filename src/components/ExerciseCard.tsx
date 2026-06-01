@@ -187,6 +187,8 @@ export function ExerciseCard({
   leadingVisual,
   onPress,
   rightIcon = defaultChevron,
+  overlayActions,
+  overlayActionsClassName,
   actions,
   badgeText,
   disabled = false,
@@ -226,6 +228,8 @@ export function ExerciseCard({
   leadingVisual?: ReactNode;
   onPress?: () => void;
   rightIcon?: ReactNode;
+  overlayActions?: ReactNode;
+  overlayActionsClassName?: string;
   actions?: ReactNode;
   badgeText?: string;
   disabled?: boolean;
@@ -266,6 +270,7 @@ export function ExerciseCard({
   const usesRailMedia = hasLeadingVisual && mediaLayout === "rail";
   const usesInlineMedia = hasLeadingVisual && mediaLayout === "inline";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
+  const hasOverlayActions = overlayActions !== null && overlayActions !== undefined && overlayActions !== false;
   const hasTitleMeta = titleMeta !== null && titleMeta !== undefined && titleMeta !== false;
   const hasBadgeText = Boolean(badgeText?.trim());
   const hasSupportingContent = Boolean(subtitle) || Boolean(headerDivider) || Boolean(children);
@@ -524,11 +529,22 @@ export function ExerciseCard({
     className,
   );
   const resolvedPressClassName = disablePressScale ? cardPressNoScaleClassName : cardPressClassName;
+  const overlayActionsNode = hasOverlayActions ? (
+    <div
+      className={cn(
+        "pointer-events-auto absolute right-[var(--exercise-row-shell-padding-x)] top-1/2 z-[2] flex -translate-y-1/2 items-center justify-center",
+        overlayActionsClassName,
+      )}
+    >
+      {overlayActions}
+    </div>
+  ) : null;
 
   if (actions) {
-      return (
+    return (
       <Glass variant="base" interactive={!disabled} disablePressScale={disableSurfacePressScale} className={shellClassName} style={resolvedShellStyle}>
-        <div className="flex w-full items-stretch gap-2">
+        <div className="relative flex w-full items-stretch gap-2">
+          {overlayActionsNode}
           {onPress ? (
             <button
               type="button"
@@ -551,22 +567,28 @@ export function ExerciseCard({
   if (onPress) {
     return (
       <Glass variant="base" interactive={!disabled} disablePressScale={disableSurfacePressScale} className={shellClassName} style={resolvedShellStyle}>
-        <button
-          type="button"
-          {...buttonProps}
-          className={cn("block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", resolvedPressClassName)}
-          onClick={onPress}
-          disabled={disabled}
-        >
-          {bodyContent}
-        </button>
+        <div className="relative">
+          {overlayActionsNode}
+          <button
+            type="button"
+            {...buttonProps}
+            className={cn("block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", resolvedPressClassName)}
+            onClick={onPress}
+            disabled={disabled}
+          >
+            {bodyContent}
+          </button>
+        </div>
       </Glass>
     );
   }
 
   return (
     <Glass variant="base" className={shellClassName} style={resolvedShellStyle}>
-      {bodyContent}
+      <div className="relative">
+        {overlayActionsNode}
+        {bodyContent}
+      </div>
     </Glass>
   );
 }

@@ -46,6 +46,8 @@ export function ExerciseDisclosureCard({
   shellClassName,
   shellStyle,
   titleMeta,
+  overlayActions,
+  overlayActionsClassName,
   trailingClassName,
   rightRailClassName,
   mediaClassName,
@@ -60,6 +62,7 @@ export function ExerciseDisclosureCard({
   hideEmptySummary = false,
   contentVerticalAlign,
   progressFill,
+  stickyHeaderWhenExpanded = false,
 }: {
   scope: DisclosureScope;
   itemId: string;
@@ -82,6 +85,8 @@ export function ExerciseDisclosureCard({
   shellClassName?: string;
   shellStyle?: CSSProperties;
   titleMeta?: ReactNode;
+  overlayActions?: ReactNode;
+  overlayActionsClassName?: string;
   trailingClassName?: string;
   rightRailClassName?: string;
   mediaClassName?: string;
@@ -96,6 +101,7 @@ export function ExerciseDisclosureCard({
   hideEmptySummary?: boolean;
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
   progressFill?: ProgressionProgressFill | null;
+  stickyHeaderWhenExpanded?: boolean;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
@@ -107,50 +113,61 @@ export function ExerciseDisclosureCard({
   );
 
   const sharpMediaEdgeClassName = showLeadingVisual ? mediaDisclosureShellClassName : undefined;
+  const stickyHeaderActive = stickyHeaderWhenExpanded && expanded;
 
   return (
-    <div className={cn(appTokens.workoutCardDisclosureShell, expanded ? "rounded-b-none [border-bottom-right-radius:0px]" : undefined, sharpMediaEdgeClassName, className)}>
-      <StandardExerciseRow
-        exercise={exercise}
-        summary={summary}
-        summaryLabel={summaryLabel}
-        variant={variant}
-        density={density}
-        state={state}
-        semanticTone={semanticTone}
-        surface={surface}
-        onPress={onToggle}
-        showLeadingVisual={showLeadingVisual}
-        leadingVisual={leadingVisual}
-        titleMeta={titleMeta}
-        buttonProps={{
-          "aria-expanded": expanded,
-          "aria-controls": contract.panelId,
-          "data-testid": contract.buttonTestId,
-        } satisfies ExerciseCardButtonProps}
-        shellClassName={shellClassName}
-        shellStyle={shellStyle}
-        mediaLeftCornerMode={mediaLeftCornerMode}
-        className={cn("shadow-none", expanded ? "rounded-b-none [border-bottom-right-radius:0px]" : undefined, cardClassName)}
-        trailingClassName={trailingClassName}
-        rightRailClassName={resolvedRightRailClassName}
-        mediaClassName={mediaClassName}
-        bodyClassName={bodyClassName}
-        contentClassName={contentClassName}
-        subtitleClassName={subtitleClassName}
-        subtitleTone={subtitleTone}
-        showAccentRail={showAccentRail}
-        hideEmptySummary={hideEmptySummary}
-        rightIconMode={resolvedRightIconMode}
-        contentVerticalAlign={contentVerticalAlign}
-        progressFill={progressFill}
-        rightIcon={(
-          expanded
-            ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
-            : <ChevronRightIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />
+    <div className={cn(appTokens.workoutCardDisclosureShell, stickyHeaderActive ? "overflow-visible" : "overflow-hidden", sharpMediaEdgeClassName, className)}>
+      <div
+        className={cn(
+          stickyHeaderActive
+            ? "sticky top-0 z-20 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.98)_0%,rgba(var(--bg-app),0.92)_78%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]"
+            : undefined,
         )}
-        badgeText={badgeText}
-      />
+      >
+        <StandardExerciseRow
+          exercise={exercise}
+          summary={summary}
+          summaryLabel={summaryLabel}
+          variant={variant}
+          density={density}
+          state={state}
+          semanticTone={semanticTone}
+          surface={surface}
+          onPress={onToggle}
+          showLeadingVisual={showLeadingVisual}
+          leadingVisual={leadingVisual}
+          titleMeta={titleMeta}
+          overlayActions={overlayActions}
+          overlayActionsClassName={overlayActionsClassName}
+          buttonProps={{
+            "aria-expanded": expanded,
+            "aria-controls": contract.panelId,
+            "data-testid": contract.buttonTestId,
+          } satisfies ExerciseCardButtonProps}
+          shellClassName={shellClassName}
+          shellStyle={shellStyle}
+          mediaLeftCornerMode={mediaLeftCornerMode}
+          className={cn("shadow-none", cardClassName)}
+          trailingClassName={trailingClassName}
+          rightRailClassName={resolvedRightRailClassName}
+          mediaClassName={mediaClassName}
+          bodyClassName={bodyClassName}
+          contentClassName={contentClassName}
+          subtitleClassName={subtitleClassName}
+          subtitleTone={subtitleTone}
+          showAccentRail={showAccentRail}
+          hideEmptySummary={hideEmptySummary}
+          rightIconMode={resolvedRightIconMode}
+          contentVerticalAlign={contentVerticalAlign}
+          progressFill={progressFill}
+          rightIcon={(
+            expanded
+              ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
+              : <ChevronRightIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />
+          )}
+          badgeText={badgeText}
+        />
+      </div>
       {(expanded || keepPanelMounted) && children ? (
         <div
           id={contract.panelId}

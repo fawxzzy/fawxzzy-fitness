@@ -9,9 +9,11 @@ import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
+import { resolveEditDayAutoProgressionState } from "@/lib/edit-day-progression";
 import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
+import type { SetFlowDirection } from "@/lib/set-flow-directions";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -187,6 +189,19 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     })),
     day.is_rest,
   );
+  const {
+    showDayAdjustmentControl,
+    initialDayAdjustmentDirection,
+  }: {
+    showDayAdjustmentControl: boolean;
+    initialDayAdjustmentDirection: SetFlowDirection;
+  } = resolveEditDayAutoProgressionState({
+    exercises: editableExercises.map((exercise) => ({
+      playbookId: exercise.defaults.progressionPlaybookId ?? null,
+      config: exercise.defaults.progressionPlaybookConfig ?? null,
+    })),
+    dayIndex: day.day_index,
+  });
   return (
     <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
       <DetailScreenScaffold
@@ -203,12 +218,15 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           name={(day as RoutineDayRow).name}
           startDate={(routine as RoutineRow).start_date}
           isRest={(day as RoutineDayRow).is_rest}
+          showDayAdjustmentControl={showDayAdjustmentControl}
+          initialDayAdjustmentDirection={initialDayAdjustmentDirection}
           floatingHeaderSlotId="edit-day-floating-header-slot"
         />
 
         <EditableRoutineDayExerciseList
           routineId={params.id}
           routineDayId={params.dayId}
+          dayIndex={day.day_index}
           cycleLengthDays={(routine as RoutineRow).cycle_length_days}
           weightUnit={(routine as RoutineRow).weight_unit}
           exercises={editableExercises}

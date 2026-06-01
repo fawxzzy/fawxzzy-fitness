@@ -175,8 +175,7 @@ Completion review:
 User-facing flow:
 - `/feedback`
 - feedback panel `Submit`
-- feedback panel `Add Update`
-- feedback panel `Withdraw`
+- feedback panel `Edit`
 
 Staff board control:
 - `/feedback-status`

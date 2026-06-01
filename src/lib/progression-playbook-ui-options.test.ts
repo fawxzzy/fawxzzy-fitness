@@ -167,13 +167,23 @@ test("calories are detected but not exposed as promotion options", () => {
   assert.match(model.summary ?? "", /calories-aware promotion controls stay deferred/i);
 });
 
-test("failure targets still register reps as active progression measurements", () => {
+test("failure targets do not register reps as active progression measurements by themselves", () => {
   assert.deepEqual(
     detectActiveProgressionMeasurementsFromGoal({
       modality: "strength",
       values: buildGoalValues({ failure: true }),
     }),
-    ["reps"],
+    [],
+  );
+});
+
+test("failure targets keep only non-rep active progression measurements", () => {
+  assert.deepEqual(
+    detectActiveProgressionMeasurementsFromGoal({
+      modality: "strength",
+      values: buildGoalValues({ failure: true, weight: "135" }),
+    }),
+    ["weight"],
   );
 });
 
@@ -212,6 +222,17 @@ test("promotion step fields keep reps visible when mixed measurement goals add t
   );
 });
 
+test("promotion step fields do not add reps when failure is toggled on without rep targets", () => {
+  assert.deepEqual(
+    getVisiblePromotionStepFieldsForGoal({
+      modality: "strength",
+      values: buildGoalValues({ failure: true, weight: "135" }),
+      policy: buildLoadPolicy(),
+    }),
+    ["barbellLoad"],
+  );
+});
+
 test("set step fields use shared active-measurement detection", () => {
   assert.deepEqual(
     getVisibleSetStepFieldsForGoal({
@@ -226,6 +247,16 @@ test("set step fields use shared active-measurement detection", () => {
       values: buildGoalValues({ duration: "12:00", distance: "2.5" }),
     }),
     ["duration", "distance"],
+  );
+});
+
+test("set step fields do not add reps when failure is toggled on without rep targets", () => {
+  assert.deepEqual(
+    getVisibleSetStepFieldsForGoal({
+      modality: "strength",
+      values: buildGoalValues({ failure: true, weight: "135" }),
+    }),
+    ["load"],
   );
 });
 

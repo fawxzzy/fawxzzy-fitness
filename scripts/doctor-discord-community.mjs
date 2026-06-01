@@ -14,14 +14,35 @@ const fileEnv = parseDotenvFile(envPath);
 const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
 const discordApiBaseUrl = "https://discord.com/api/v10";
 const discordApiUserAgent = "fawxzzy-fitness-discord-community-doctor/1.0";
-const expectedFeedbackPanelTitle = "Feedback Actions";
-const legacyFeedbackPanelTitle = "Fawxzzy Feedback";
-const expectedFeedbackPanelButtons = ["Submit", "Add Update", "Withdraw"];
-const legacyFeedbackPanelButtons = ["Submit Feedback", "Update Feedback", "Withdraw Feedback"];
-const expectedFeedbackPanelCustomIds = [
+const currentFeedbackPanelTitles = ["Feedback Submission"];
+const legacyFeedbackPanelTitles = ["Feedback Actions", "Fawxzzy Feedback"];
+const currentFeedbackPanelButtons = ["Submit", "Edit"];
+const legacyFeedbackPanelButtons = [
+  ["Submit", "Add Update", "Withdraw"],
+  ["Submit Feedback", "Update Feedback", "Withdraw Feedback"],
+];
+const currentFeedbackPanelCustomIds = [
   "fitness_feedback_submit_open",
   "fitness_feedback_update_open",
-  "fitness_feedback_withdraw_open",
+];
+const legacyFeedbackPanelCustomIds = [
+  [
+    "fitness_feedback_submit_open",
+    "fitness_feedback_update_open",
+    "fitness_feedback_withdraw_open",
+  ],
+];
+const acceptedFeedbackPanelCustomIdSets = [
+  currentFeedbackPanelCustomIds,
+  ...legacyFeedbackPanelCustomIds,
+];
+const acceptedFeedbackPanelButtonSets = [
+  currentFeedbackPanelButtons,
+  ...legacyFeedbackPanelButtons,
+];
+const acceptedFeedbackPanelTitles = [
+  ...currentFeedbackPanelTitles,
+  ...legacyFeedbackPanelTitles,
 ];
 const expectedVerifyButtonLabel = "Verify Fitness Account";
 const expectedVerifyCopyNeedle = "By verifying, you agree to follow the server rules.";
@@ -270,15 +291,13 @@ function matchesFeedbackPanelMessage(message, applicationId) {
   const buttonLabels = extractButtonLabels(message);
   const buttonCustomIds = extractButtonCustomIds(message);
   const authorId = typeof message?.author?.id === "string" ? message.author.id : null;
-  const hasCurrentTitle = embedText.includes(expectedFeedbackPanelTitle);
-  const hasLegacyTitle = embedText.includes(legacyFeedbackPanelTitle);
-  const hasCurrentButtons = expectedFeedbackPanelButtons.every((label) => buttonLabels.includes(label));
-  const hasLegacyButtons = legacyFeedbackPanelButtons.every((label) => buttonLabels.includes(label));
-  const hasExpectedCustomIds = expectedFeedbackPanelCustomIds.every((customId) => buttonCustomIds.includes(customId));
+  const hasAcceptedTitle = acceptedFeedbackPanelTitles.some((title) => embedText.includes(title));
+  const hasAcceptedButtons = acceptedFeedbackPanelButtonSets.some((labels) => labels.every((label) => buttonLabels.includes(label)));
+  const hasAcceptedCustomIds = acceptedFeedbackPanelCustomIdSets.some((customIds) => customIds.every((customId) => buttonCustomIds.includes(customId)));
 
   return authorId === applicationId
-    && hasExpectedCustomIds
-    && ((hasCurrentTitle && hasCurrentButtons) || (hasLegacyTitle && hasLegacyButtons) || hasCurrentButtons || hasLegacyButtons);
+    && hasAcceptedCustomIds
+    && (hasAcceptedTitle || hasAcceptedButtons);
 }
 
 function compactPositiveGaps(numbers) {

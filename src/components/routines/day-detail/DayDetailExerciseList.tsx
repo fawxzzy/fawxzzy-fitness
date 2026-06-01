@@ -34,6 +34,7 @@ type Props = {
   activeItemId?: string | null;
   showOrderBadges?: boolean;
   onSelectItem?: (item: DayDetailExerciseListItem) => void;
+  renderOverlayActions?: (item: DayDetailExerciseListItem) => React.ReactNode;
   renderExpandedContent?: (item: DayDetailExerciseListItem) => React.ReactNode;
   className?: string;
 };
@@ -45,15 +46,19 @@ export function DayDetailExerciseList({
   activeItemId = null,
   showOrderBadges = mode === "editable",
   onSelectItem,
+  renderOverlayActions,
   renderExpandedContent,
   className,
 }: Props) {
   const interactive = Boolean(onSelectItem);
   const policy = resolveWorkoutCardSurfacePolicy(mode === "editable" ? "edit-day" : "view-day", "compact");
+  const renderedItems = activeItemId
+    ? items.filter((item) => item.id === activeItemId)
+    : items;
 
   return (
     <ul className={cn("space-y-1.5", className)}>
-      {items.map((item) => {
+      {renderedItems.map((item) => {
         const isActive = activeItemId === item.id;
         const isStretchHub = isStretchHubExercise(item);
         const resolvedSummary = isStretchHub ? undefined : item.summary;
@@ -66,7 +71,7 @@ export function DayDetailExerciseList({
         };
 
         return (
-          <li key={item.id} className={appTokens.routineEditorReorderItem}>
+          <li key={item.id} className={appTokens.routineEditorReorderItem} data-exercise-row-id={item.id}>
             {mode === "editable" && interactive ? (
               <ExerciseDisclosureCard
                 scope="day-detail"
@@ -84,7 +89,10 @@ export function DayDetailExerciseList({
                 showAccentRail={!isStretchHub}
                 hideEmptySummary={isStretchHub}
                 rightIconMode="overlay"
-                rightRailClassName={mode === "editable" ? "right-[0.8rem] top-auto bottom-[0.62rem] translate-y-0" : undefined}
+                overlayActions={renderOverlayActions?.(item)}
+                overlayActionsClassName="right-[2.95rem]"
+                rightRailClassName={mode === "editable" ? "right-[0.8rem] top-1/2 -translate-y-1/2" : undefined}
+                stickyHeaderWhenExpanded={mode === "editable"}
               >
                 {renderExpandedContent?.(item)}
               </ExerciseDisclosureCard>

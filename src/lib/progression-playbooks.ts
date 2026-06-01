@@ -607,6 +607,22 @@ export type ProgressionPlaybookSelection =
       config: DeloadAfterStallConfig;
     };
 
+const LEGACY_DELOAD_PERCENT_FALLBACK = 10;
+
+function resolveLegacyDeloadPercent(value: unknown) {
+  const parsed = typeof value === "number"
+    ? value
+    : isFinitePositiveNumber(value)
+      ? Number(value)
+      : null;
+
+  if (parsed === null || Number.isNaN(parsed) || parsed >= 100) {
+    return LEGACY_DELOAD_PERCENT_FALLBACK;
+  }
+
+  return parsed;
+}
+
 export type ProgressionTargetPlan = {
   measurementType: ProgressionMeasurementType;
   setsMin?: number | null;
@@ -1013,7 +1029,7 @@ function resolveDeloadConfig(selection: ProgressionPlaybookSelection) {
     return null;
   }
 
-  if (!isPositiveInteger(selection.config.stallThreshold) || !isFinitePositiveNumber(selection.config.deloadPercent) || selection.config.deloadPercent >= 100) {
+  if (!isPositiveInteger(selection.config.stallThreshold)) {
     return null;
   }
 
@@ -1021,7 +1037,7 @@ function resolveDeloadConfig(selection: ProgressionPlaybookSelection) {
     version: 1 as const,
     loadIncrement: selection.config.loadIncrement,
     stallThreshold: selection.config.stallThreshold,
-    deloadPercent: selection.config.deloadPercent,
+    deloadPercent: resolveLegacyDeloadPercent(selection.config.deloadPercent),
   };
 }
 
@@ -2263,9 +2279,12 @@ export function validateProgressionPlaybookSelection(args: {
 
   if (id === "double_progression") {
     const stallPolicy = normalizeStallPolicy(config.stallPolicy);
-    if (stallPolicy === "deload_after_stall" && (!isPositiveInteger(config.stallThreshold) || !isFinitePositiveNumber(config.deloadPercent) || config.deloadPercent >= 100)) {
+    if (stallPolicy === "deload_after_stall" && !isPositiveInteger(config.stallThreshold)) {
       return null;
     }
+    const deloadPercent = stallPolicy === "deload_after_stall"
+      ? resolveLegacyDeloadPercent(config.deloadPercent)
+      : undefined;
 
     const nextConfig: DoubleProgressionConfig = {
       version: 1,
@@ -2280,7 +2299,7 @@ export function validateProgressionPlaybookSelection(args: {
       effortWaveDirections,
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
-      deloadPercent: stallPolicy === "deload_after_stall" ? config.deloadPercent as number : undefined,
+      deloadPercent,
       autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
       promotionBasis: promotionConfig.promotionBasis,
       repPromotionThreshold: promotionConfig.repPromotionThreshold,
@@ -2343,9 +2362,12 @@ export function validateProgressionPlaybookSelection(args: {
 
   if (id === "fixed_load_rep_range_progression") {
     const stallPolicy = normalizeStallPolicy(config.stallPolicy);
-    if (stallPolicy === "deload_after_stall" && (!isPositiveInteger(config.stallThreshold) || !isFinitePositiveNumber(config.deloadPercent) || config.deloadPercent >= 100)) {
+    if (stallPolicy === "deload_after_stall" && !isPositiveInteger(config.stallThreshold)) {
       return null;
     }
+    const deloadPercent = stallPolicy === "deload_after_stall"
+      ? resolveLegacyDeloadPercent(config.deloadPercent)
+      : undefined;
 
     const nextConfig: FixedLoadRepRangeProgressionConfig = {
       version: 1,
@@ -2360,7 +2382,7 @@ export function validateProgressionPlaybookSelection(args: {
       effortWaveDirections,
       stallPolicy,
       stallThreshold: stallPolicy === "deload_after_stall" ? config.stallThreshold as number : undefined,
-      deloadPercent: stallPolicy === "deload_after_stall" ? config.deloadPercent as number : undefined,
+      deloadPercent,
       autoUpdateRoutineGoals: normalizeAutoUpdateRoutineGoals(config.autoUpdateRoutineGoals),
       promotionBasis: promotionConfig.promotionBasis,
       repPromotionThreshold: promotionConfig.repPromotionThreshold,
@@ -2421,7 +2443,7 @@ export function validateProgressionPlaybookSelection(args: {
     };
   }
 
-  if (!isPositiveInteger(config.stallThreshold) || !isFinitePositiveNumber(config.deloadPercent) || config.deloadPercent >= 100) {
+  if (!isPositiveInteger(config.stallThreshold)) {
     return null;
   }
 
@@ -2437,7 +2459,7 @@ export function validateProgressionPlaybookSelection(args: {
     dayLoweredProgressionSteps,
     effortWaveDirections,
     stallThreshold: config.stallThreshold,
-    deloadPercent: config.deloadPercent,
+    deloadPercent: resolveLegacyDeloadPercent(config.deloadPercent),
   };
   if (targetMutation) {
     nextConfig.targetMutation = targetMutation;
@@ -2736,10 +2758,10 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     return { ok: false, error: "Stall threshold must be a whole number above 0." };
   }
 
-  const deloadPercent = parseOptionalPositiveNumber(formData.get("progressionDeloadPercent"));
-  if (deloadPercent === null || Number.isNaN(deloadPercent) || deloadPercent >= 100) {
-    return { ok: false, error: "Deload percent must be greater than 0 and less than 100." };
-  }
+  const rawDeloadPercent = parseOptionalPositiveNumber(formData.get("progressionDeloadPercent"));
+  const deloadPercent = rawDeloadPercent === null || Number.isNaN(rawDeloadPercent) || rawDeloadPercent >= 100
+    ? LEGACY_DELOAD_PERCENT_FALLBACK
+    : rawDeloadPercent;
 
   let config: ProgressionPlaybookConfig = {
     version: 1,
