@@ -1,6 +1,16 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-06-01 - Local release-readiness proof should preserve stable generated build artifacts
+- Type: Pattern
+- Summary: Local Fitness release-readiness proof should reuse the current app build manifest and service worker bytes when deployment metadata is unchanged so visual and release checks do not create no-op generated drift on every run.
+- Rule: Local proof runs should not rewrite `src/generated/appBuildManifest.json` or `public/sw.js` unless the effective build identity actually changed.
+- Rule: When no deployment commit or deployment id is present, local manifest generation may preserve the current manifest or fall back to a stable local build id instead of timestamp churn.
+- Pattern: read existing manifest -> derive deployment-backed identity when available -> otherwise preserve stable local identity -> regenerate service worker only when source bytes change -> rerun readiness proof.
+- Failure Mode: Timestamp-only build artifact rewrites make the worktree dirty, hide real readiness blockers behind generated noise, and break release-gate preservation checks.
+- Evidence: `scripts/generate-app-build-manifest.mjs`, `scripts/generate-service-worker.mjs`, `src/generated/appBuildManifest.json`, `public/sw.js`
+- Status: Proposed
+
 ## 2026-05-22 - Fitness migration readiness should preserve exact remote versions and use local-only linked DB secrets
 - Type: Guardrail
 - Summary: When the linked Fitness migration chain is validated locally, the repo should preserve the exact remote migration version instead of a local timestamp alias, and standalone validation may load `SUPABASE_DB_PASSWORD` from the documented local-only secret lane when the shell does not already provide it.
