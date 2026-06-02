@@ -18,7 +18,7 @@ import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-dir
 import { getRoutineOverviewHref } from "@/lib/routine-day-navigation";
 import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
-import { publishEditDayCloseExpandedCard, subscribeEditDayAutoProgressionVisibility, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
+import { publishEditDayAdjustmentDirection, subscribeEditDayAutoProgressionVisibility, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
 
 type Props = {
   routineId: string;
@@ -48,11 +48,11 @@ function EditDayDirectionGlyph({
   className?: string;
 }) {
   if (direction === "up") {
-    return <span aria-hidden="true" className={cn("text-[11px] leading-none", className)}>{"\u2191"}</span>;
+    return <span aria-hidden="true" className={cn("text-[15px] leading-none font-semibold", className)}>{"\u2191"}</span>;
   }
 
   if (direction === "down") {
-    return <span aria-hidden="true" className={cn("text-[11px] leading-none", className)}>{"\u2193"}</span>;
+    return <span aria-hidden="true" className={cn("text-[15px] leading-none font-semibold", className)}>{"\u2193"}</span>;
   }
 
   return <span aria-hidden="true" className={cn("inline-block h-[2px] w-4 rounded-full bg-current", className)} />;
@@ -81,7 +81,7 @@ function EditDayAdjustmentButton({
       )}
       aria-label={`Cycle day ${dayNumber} adjustment`}
     >
-      <span className="flex h-3.5 items-center justify-center">
+      <span className="flex h-4.5 items-center justify-center">
         <EditDayDirectionGlyph
           direction={direction}
           className={cn(
@@ -129,6 +129,17 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
     pendingSnapshotRef.current = nextDraft;
     lastSubmittedRef.current = JSON.stringify(nextDraft);
   }, [initialDayAdjustmentDirection, initialEditableName, isRest, showDayAdjustmentControl]);
+
+  useEffect(() => {
+    if (!isDayAdjustmentVisible) {
+      return;
+    }
+
+    publishEditDayAdjustmentDirection({
+      screen: "edit-day",
+      direction: draft.dayAdjustmentDirection,
+    });
+  }, [draft.dayAdjustmentDirection, isDayAdjustmentVisible]);
 
   useEffect(() => {
     const syncSlot = () => {
@@ -252,8 +263,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
         <TopRightBackButton
           href={backHref}
           ariaLabel="Back to routines"
-          historyBehavior="fallback-only"
-          onClick={() => publishEditDayCloseExpandedCard()}
+          historyBehavior="history-first"
           className="translate-y-[2px] scale-[1.03]"
         />
       )}
@@ -279,14 +289,19 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
                   dayNumber={dayIndex}
                   direction={draft.dayAdjustmentDirection}
                   onClick={() => {
+                    const nextDirection = cycleSetFlowDirection({
+                      current: draft.dayAdjustmentDirection,
+                      hasStepValue: false,
+                    });
                     const nextSnapshot: typeof draft = {
                       ...draft,
-                      dayAdjustmentDirection: cycleSetFlowDirection({
-                        current: draft.dayAdjustmentDirection,
-                        hasStepValue: false,
-                      }),
+                      dayAdjustmentDirection: nextDirection,
                     };
                     setDraft(nextSnapshot);
+                    publishEditDayAdjustmentDirection({
+                      screen: "edit-day",
+                      direction: nextDirection,
+                    });
                     scheduleAutosave(nextSnapshot);
                   }}
                 />

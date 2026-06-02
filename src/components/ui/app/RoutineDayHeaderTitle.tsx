@@ -28,6 +28,7 @@ export function RoutineDayHeaderTitle({
   dayLabelOrder?: "weekday-first" | "day-first";
 }) {
   const visibleLeadingItems = leadingItems.filter(isRenderableNode);
+  const hasLeadingItems = visibleLeadingItems.length > 0;
   const normalizedDayLabel = String(dayLabel ?? "").trim();
   const dayParts = splitWeekdayDisplayLabel(normalizedDayLabel);
   const remainderClassName = dayParts?.remainder?.trim().toLowerCase() === "rest"
@@ -36,14 +37,18 @@ export function RoutineDayHeaderTitle({
 
   return (
     <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]", className)}>
-      {visibleLeadingItems.map((item, index) => (
-        <span key={index} className="min-w-0">
-          {item}
+      {hasLeadingItems ? (
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
+          {visibleLeadingItems.map((item, index) => (
+            <span key={index} className="min-w-0">
+              {item}
+            </span>
+          ))}
         </span>
-      ))}
+      ) : null}
       {normalizedDayLabel ? (
         <>
-          {visibleLeadingItems.length > 0 ? <SignatureMiniPipe /> : null}
+          {hasLeadingItems ? <SignatureMiniPipe /> : null}
           <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             {dayParts?.remainder && dayLabelOrder === "day-first" ? (
               <>

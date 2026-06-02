@@ -1,12 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
+import {
+  dispatchFitnessOverlayExclusiveOpen,
+  FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT,
+  type FitnessOverlayExclusiveDetail,
+} from "@/lib/fitness-overlay-mutual-exclusion";
 
 export const DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME = "space-y-2.5";
 
@@ -61,6 +67,31 @@ export function ExerciseSearchFilters({
 }: ExerciseSearchFiltersProps) {
   void searchFirst;
   const [isFilterOpen, setIsFilterOpen] = useState(defaultFilterOpen);
+
+  useEffect(() => {
+    const handleExclusiveOverlayOpen = (event: Event) => {
+      const payload = (event as CustomEvent<FitnessOverlayExclusiveDetail>).detail;
+      if (payload?.source !== "info") {
+        return;
+      }
+
+      setIsFilterOpen(false);
+    };
+
+    window.addEventListener(FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT, handleExclusiveOverlayOpen);
+    return () => window.removeEventListener(FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT, handleExclusiveOverlayOpen);
+  }, []);
+
+  const updateFilterOpen = (nextValue: boolean | ((previous: boolean) => boolean)) => {
+    setIsFilterOpen((previous) => {
+      const resolvedValue = typeof nextValue === "function" ? nextValue(previous) : nextValue;
+      if (resolvedValue) {
+        dispatchFitnessOverlayExclusiveOpen("filter");
+      }
+      return resolvedValue;
+    });
+  };
+
   const selectedFilterCount = selectedTags.length;
   const searchPlaceholderText = useMemo(() => {
     if (typeof resultCount !== "number") {
@@ -102,7 +133,7 @@ export function ExerciseSearchFilters({
         ) : null}
         <button
           type="button"
-          onClick={() => setIsFilterOpen((previous) => !previous)}
+          onClick={() => updateFilterOpen((previous) => !previous)}
           aria-expanded={isFilterOpen}
           aria-label={toggleFiltersAriaLabel}
           data-action-chrome-intent={isFilterOpen || selectedFilterCount > 0 ? "toggleActive" : "neutral"}
@@ -130,7 +161,7 @@ export function ExerciseSearchFilters({
       groups={groups}
       defaultOpen={defaultFilterOpen}
       open={isFilterOpen}
-      onOpenChange={setIsFilterOpen}
+      onOpenChange={updateFilterOpen}
       hideButton
       trailingMeta={filterTrailingMeta ?? (typeof resultCount === "number" ? `${resultCount} shown` : undefined)}
       headerLabel={filterLabel}
@@ -145,7 +176,7 @@ export function ExerciseSearchFilters({
     <div className={cn("relative", className)}>
       {searchControl}
       {isFilterOpen ? (
-        <div className="absolute inset-x-0 top-[calc(100%+0.625rem)] z-40">
+        <div className={cn("absolute left-1/2 top-[calc(100%+0.625rem)] z-60 -translate-x-1/2", SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME)}>
           {filterControl}
         </div>
       ) : null}

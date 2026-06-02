@@ -9,14 +9,14 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { AppButton } from "@/components/ui/AppButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
-import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
-import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
+import { buildFailureToggleInfoPayload, type ExerciseGoalFormState, type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
 import { MeasurementDockSummary, measurementDockSurfaceClassName } from "@/components/ui/measurements/MeasurementDock";
 import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -33,12 +33,14 @@ import {
   deriveGoalMeasurementSelections,
   getDefaultMeasurementsForGoalModality,
   getMissingGoalPreviewLabel,
+  isMissingCardioTimeOrDistance,
   isFailureGoalSelection,
   resolveGoalModality,
   validateGoalConfiguration,
   type GoalModality,
   type GoalValidationResult,
 } from "@/lib/exercise-goal-validation";
+import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { getStretchHubMetaItems, isStretchHubExercise } from "@/lib/stretch-library";
 
 type ExerciseOption = {
@@ -87,15 +89,30 @@ type ExercisePickerProps = {
     goalState: ExerciseGoalFormState;
     goalModality: GoalModality;
     effectiveGoalModality: GoalModality;
+    failureToggleInfoContent: RoutineEditorInfoPayload | null;
   }) => ReactNode);
   goalBetweenInputsAndPreviewContent?: ReactNode | ((context: {
     selectedExercise: ExerciseOption | undefined;
     goalState: ExerciseGoalFormState;
     goalModality: GoalModality;
     effectiveGoalModality: GoalModality;
+    failureToggleInfoContent: RoutineEditorInfoPayload | null;
   }) => ReactNode);
+  goalDockViewportMode?: "default" | "compact" | ((context: {
+    selectedExercise: ExerciseOption | undefined;
+    goalState: ExerciseGoalFormState;
+    goalModality: GoalModality;
+    effectiveGoalModality: GoalModality;
+    failureToggleInfoContent: RoutineEditorInfoPayload | null;
+  }) => "default" | "compact");
   footerSlot?: ReactNode;
   onSelectedExerciseChange?: (exercise: ExerciseOption | null) => void;
+  onApplyLastSelection?: (selection: {
+    exerciseId: string;
+    progressionPlaybookId: string | null;
+    progressionPlaybookConfig: Record<string, unknown> | null;
+  }) => void;
+  onClearLastSelection?: (selection: { exerciseId: string }) => void;
   customExerciseEnabled?: boolean;
   renderFooter?: (context: {
     selectedExercise: ExerciseOption | undefined;
@@ -119,7 +136,7 @@ type ExerciseRowProps = {
   isSelected: boolean;
   hasStats: boolean;
   metadataItems: string[];
-  selectedPreviewContent?: ReactNode;
+  selectedSummaryText?: string;
   onPress: (exerciseId: string, isSelected: boolean) => void;
 };
 
@@ -379,11 +396,11 @@ function ExerciseMetaLine({ items }: { items: string[] }) {
   }
 
   return (
-    <span className="inline-flex flex-wrap items-center justify-start gap-x-2 gap-y-1 text-[11px] font-medium leading-[1.2] text-[rgb(var(--text-secondary)/0.94)]">
+    <span className="inline-flex min-w-0 flex-nowrap items-center justify-start gap-x-2 text-[11px] font-medium leading-[1.2] text-[rgb(var(--text-secondary)/0.94)]">
       {items.map((item, index) => (
-        <span key={`${item}-${index}`} className="inline-flex min-w-0 items-center gap-2">
+        <span key={`${item}-${index}`} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap">
           {index > 0 ? <SignatureDot /> : null}
-          <span className="min-w-0 [text-wrap:balance]">{item}</span>
+          <span className="whitespace-nowrap">{item}</span>
         </span>
       ))}
     </span>
@@ -431,12 +448,134 @@ function formatLoggedMeasurementStat(weight: number | null, reps: number | null,
   return `${reps} reps`;
 }
 
+function formatCompactMetricNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatConfiguredDurationSummary(durationSeconds: number | null) {
+  if (typeof durationSeconds !== "number" || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    return null;
+  }
+
+  if (durationSeconds < 60) {
+    return `${durationSeconds} sec`;
+  }
+
+  const minutes = Math.floor(durationSeconds / 60);
+  const seconds = durationSeconds % 60;
+  if (seconds === 0) {
+    return `${minutes} min`;
+  }
+
+  return `${minutes}m ${seconds}s`;
+}
+
+function hasConfiguredSetupSnapshot(stats: ExerciseStatsOption | undefined) {
+  if (!stats) return false;
+  return Boolean(
+    stats.lastConfiguredTargetSets != null
+    || stats.lastConfiguredTargetRepsMin != null
+    || stats.lastConfiguredTargetRepsMax != null
+    || stats.lastConfiguredTargetWeight != null
+    || stats.lastConfiguredTargetDurationSeconds != null
+    || stats.lastConfiguredTargetDistance != null
+    || stats.lastConfiguredTargetCalories != null
+    || stats.lastConfiguredAt
+    || stats.lastProgressionPlaybookId
+    || stats.lastProgressionPlaybookConfig,
+  );
+}
+
+function buildUseLastInfoPayload(args: {
+  stats: ExerciseStatsOption;
+  lastSummaryText: string;
+  didApplyLast: boolean;
+}): RoutineEditorInfoPayload {
+  const usesCompletedHistory = Boolean(
+    formatLoggedMeasurementStat(args.stats.lastWeight, args.stats.lastReps, args.stats.lastUnit),
+  );
+  const progressionMode = args.stats.lastProgressionPlaybookId ? "Progression saved" : "No progression saved";
+
+  return {
+    title: args.didApplyLast ? "Clear Last Setup" : "Use Last Setup",
+    summary: args.didApplyLast
+      ? "Clear removes the copied last setup and returns the exercise to a fresh starting draft."
+      : "Use copies the most recent target setup for this exercise into the current add flow.",
+    rows: [
+      { label: "Current action", value: args.didApplyLast ? "Clear copied setup" : "Apply last setup" },
+      { label: "Source", value: usesCompletedHistory ? "Latest completed history" : "Latest saved routine setup" },
+      { label: "Snapshot", value: args.lastSummaryText },
+      { label: "Progression", value: progressionMode },
+    ],
+    sectionKey: null,
+  };
+}
+
+function formatConfiguredMeasurementStat(stats: ExerciseStatsOption | undefined) {
+  if (!stats) {
+    return null;
+  }
+
+  const hasFailureTarget = stats.lastConfiguredTargetRepsMin === 0 && stats.lastConfiguredTargetRepsMax === 0;
+  const weightValue = stats.lastConfiguredTargetWeight;
+  const weightLabel = typeof weightValue === "number" && Number.isFinite(weightValue) && weightValue >= 0
+    ? `${formatCompactMetricNumber(weightValue)}${stats.lastConfiguredTargetWeightUnit ? ` ${stats.lastConfiguredTargetWeightUnit}` : ""}`
+    : null;
+
+  const repsMin = stats.lastConfiguredTargetRepsMin;
+  const repsMax = stats.lastConfiguredTargetRepsMax;
+  const repCountLabel = !hasFailureTarget && typeof repsMin === "number" && Number.isFinite(repsMin) && repsMin > 0
+    ? (
+      typeof repsMax === "number" && Number.isFinite(repsMax) && repsMax > 0 && repsMax !== repsMin
+        ? `${repsMin}-${repsMax}`
+        : `${repsMin}`
+    )
+    : null;
+
+  if (weightLabel && repCountLabel) {
+    return `${weightLabel} x ${repCountLabel}`;
+  }
+
+  if (weightLabel && hasFailureTarget) {
+    return `${weightLabel} x till failure`;
+  }
+
+  const parts: string[] = [];
+  if (repCountLabel) {
+    parts.push(`${repCountLabel} reps`);
+  } else if (hasFailureTarget) {
+    parts.push("till failure");
+  }
+
+  if (weightLabel) {
+    parts.push(weightLabel);
+  }
+
+  const durationLabel = formatConfiguredDurationSummary(stats.lastConfiguredTargetDurationSeconds);
+  if (durationLabel) {
+    parts.push(durationLabel);
+  }
+
+  if (typeof stats.lastConfiguredTargetDistance === "number" && Number.isFinite(stats.lastConfiguredTargetDistance) && stats.lastConfiguredTargetDistance > 0) {
+    parts.push(
+      `${formatCompactMetricNumber(stats.lastConfiguredTargetDistance)}${stats.lastConfiguredTargetDistanceUnit ? ` ${stats.lastConfiguredTargetDistanceUnit}` : ""}`,
+    );
+  }
+
+  if (typeof stats.lastConfiguredTargetCalories === "number" && Number.isFinite(stats.lastConfiguredTargetCalories) && stats.lastConfiguredTargetCalories > 0) {
+    parts.push(`${formatCompactMetricNumber(stats.lastConfiguredTargetCalories)} cal`);
+  }
+
+  return parts.length > 0 ? parts.join(" • ") : null;
+}
+
 function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
   if (!stats) return false;
   return Boolean(
     stats.lastWeight != null
     || stats.lastReps != null
     || stats.lastPerformedAt
+    || hasConfiguredSetupSnapshot(stats)
     || stats.prWeight != null
     || stats.prReps != null
     || stats.prEst1rm != null
@@ -444,6 +583,106 @@ function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
     || stats.actualPrReps != null
     || stats.actualPrAt,
   );
+}
+
+function applyConfiguredSetupToGoalState({
+  current,
+  stats,
+  fallbackWeightUnit,
+  fallbackDistanceUnit,
+  modality,
+}: {
+  current: ExerciseGoalFormState;
+  stats: ExerciseStatsOption;
+  fallbackWeightUnit: "lbs" | "kg";
+  fallbackDistanceUnit: FitnessDistanceUnit;
+  modality: GoalModality;
+}) {
+  const hasFailureTarget = stats.lastConfiguredTargetRepsMin === 0 && stats.lastConfiguredTargetRepsMax === 0;
+  const repsMin = !hasFailureTarget && typeof stats.lastConfiguredTargetRepsMin === "number" && stats.lastConfiguredTargetRepsMin > 0
+    ? String(stats.lastConfiguredTargetRepsMin)
+    : "";
+  const repsMax = !hasFailureTarget
+    ? (
+      typeof stats.lastConfiguredTargetRepsMax === "number" && stats.lastConfiguredTargetRepsMax > 0
+        ? String(stats.lastConfiguredTargetRepsMax)
+        : repsMin
+    )
+    : "";
+  const weight = typeof stats.lastConfiguredTargetWeight === "number" && Number.isFinite(stats.lastConfiguredTargetWeight)
+    ? String(stats.lastConfiguredTargetWeight)
+    : "";
+  const duration = typeof stats.lastConfiguredTargetDurationSeconds === "number" && Number.isFinite(stats.lastConfiguredTargetDurationSeconds)
+    ? String(stats.lastConfiguredTargetDurationSeconds)
+    : "";
+  const distance = typeof stats.lastConfiguredTargetDistance === "number" && Number.isFinite(stats.lastConfiguredTargetDistance)
+    ? String(stats.lastConfiguredTargetDistance)
+    : "";
+  const calories = typeof stats.lastConfiguredTargetCalories === "number" && Number.isFinite(stats.lastConfiguredTargetCalories)
+    ? String(stats.lastConfiguredTargetCalories)
+    : "";
+
+  return {
+    ...current,
+    sets: typeof stats.lastConfiguredTargetSets === "number" && Number.isFinite(stats.lastConfiguredTargetSets) && stats.lastConfiguredTargetSets > 0
+      ? String(stats.lastConfiguredTargetSets)
+      : current.sets,
+    repsMin,
+    repsMax,
+    failure: hasFailureTarget,
+    weight,
+    duration,
+    distance,
+    calories,
+    weightUnit: stats.lastConfiguredTargetWeightUnit === "kg" || stats.lastConfiguredTargetWeightUnit === "lbs"
+      ? stats.lastConfiguredTargetWeightUnit
+      : fallbackWeightUnit,
+    distanceUnit: normalizeFitnessDistanceUnit(stats.lastConfiguredTargetDistanceUnit, fallbackDistanceUnit),
+    measurements: deriveGoalMeasurementSelections(modality, {
+      repsMin,
+      repsMax,
+      failure: hasFailureTarget,
+      weight,
+      duration,
+      distance,
+      calories,
+    }),
+  } satisfies ExerciseGoalFormState;
+}
+
+function buildFreshGoalStateForExercise(args: {
+  exercise: ExerciseOption | null | undefined;
+  fallbackWeightUnit: "lbs" | "kg";
+  customGoalModality?: GoalModality | null;
+}) {
+  const exercise = args.exercise;
+  const isStretch = !exercise ? false : isStretchHubExercise(exercise);
+  const isOptional = !exercise ? false : isMeasurementOptionalExercise(exercise);
+  const modality = exercise
+    ? (
+      args.customGoalModality
+      ?? resolveGoalModality({
+        measurementType: exercise.measurement_type,
+        equipment: exercise.equipment,
+        name: exercise.name,
+        tags: new Set(normalizeExerciseTags(exercise).keys()),
+      })
+    )
+    : "strength";
+
+  return {
+    sets: isStretch ? "1" : "3",
+    repsMin: "",
+    repsMax: "",
+    failure: false,
+    weight: "",
+    duration: "",
+    distance: "",
+    calories: "",
+    weightUnit: args.fallbackWeightUnit,
+    distanceUnit: resolveExerciseDistanceUnit(exercise?.default_unit),
+    measurements: isOptional ? [] : getDefaultMeasurementsForGoalModality(modality),
+  } satisfies ExerciseGoalFormState;
 }
 
 function parseDurationInput(value: string) {
@@ -455,7 +694,7 @@ function parseDurationInput(value: string) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
-const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, metadataItems, selectedPreviewContent, onPress }: ExerciseRowProps) {
+const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, metadataItems, selectedSummaryText, onPress }: ExerciseRowProps) {
   if (!isSelected) {
     return (
       <li>
@@ -465,15 +704,15 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           onClick={() => onPress(exercise.id, isSelected)}
         >
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-              <p className="min-w-0 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
+            <div className="flex min-w-0 flex-wrap items-center justify-start gap-x-1.5 gap-y-0.5 text-left">
+              <p className="min-w-0 max-w-full flex-[0_1_auto] whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
                 {exercise.name}
               </p>
               {metadataItems.length > 0 ? (
-                <>
+                <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 self-start whitespace-nowrap">
                   <SignatureMiniPipe className="self-center" />
                   <ExerciseMetaLine items={metadataItems} />
-                </>
+                </span>
               ) : null}
             </div>
           </div>
@@ -502,6 +741,9 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
     <li>
         <ExerciseCard
           title={exercise.name}
+          subtitle={isSelected ? selectedSummaryText : undefined}
+          subtitleLabel={isSelected ? "Goal" : undefined}
+          subtitleTone="plain"
         leadingVisual={(
           <ExerciseThumb
             exercise={exercise}
@@ -527,7 +769,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
             <span
             aria-hidden="true"
               className={cn(
-                "flex h-full min-h-0 min-w-[4.4rem] self-stretch items-center justify-center rounded-none rounded-r-[inherit] border-0 bg-transparent px-3.5 shadow-none",
+                "flex h-full min-h-0 min-w-[3.4rem] self-stretch items-center justify-center rounded-none rounded-r-[inherit] border-0 bg-transparent px-2 shadow-none",
                 pickerRowMobileDensityClassNames.selectPill,
                 isSelected
                   ? "text-[rgb(224_255_248)]"
@@ -553,11 +795,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
           contentClassName={cn("pl-1.5", pickerRowMobileDensityClassNames.content)}
         >
-          {selectedPreviewContent ? (
-            <div className="pt-0.5">
-              {selectedPreviewContent}
-            </div>
-          ) : metadataItems.length > 0 ? (
+          {!isSelected && metadataItems.length > 0 ? (
             <div className="pt-0.5"><ExerciseMetaLine items={metadataItems} /></div>
           ) : null}
         </ExerciseCard>
@@ -608,16 +846,16 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
           <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
             <span className="min-w-0 whitespace-normal break-words">Custom Exercise</span>
             {selectedTags.length > 0 ? (
-              <>
+              <span className="inline-flex min-w-0 shrink-0 items-center gap-1.5 whitespace-nowrap">
                 <SignatureMiniPipe className="self-center" />
                 <ExerciseMetaLine items={selectedTags} />
-              </>
+              </span>
             ) : null}
           </span>
         )}
         variant="compact"
         state="selected"
-        className="!border-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
+        className="!border-[rgb(var(--accent-yellow-on)/0.72)] shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
         rightIcon={(
           <span
             aria-hidden="true"
@@ -726,8 +964,11 @@ export function ExercisePicker({
   exerciseStats = [],
   goalExtraContent,
   goalBetweenInputsAndPreviewContent,
+  goalDockViewportMode: goalDockViewportModeProp = "default",
   footerSlot,
   onSelectedExerciseChange,
+  onApplyLastSelection,
+  onClearLastSelection,
   customExerciseEnabled = false,
   renderFooter,
 }: ExercisePickerProps) {
@@ -998,24 +1239,35 @@ export function ExercisePicker({
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const selectedStats = selectedCanonicalExerciseId ? statsByExerciseId.get(selectedCanonicalExerciseId) : undefined;
   const lastSummaryText = selectedStats
-    ? formatLoggedMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)
+    ? (
+      formatLoggedMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)
+      ?? formatConfiguredMeasurementStat(selectedStats)
+    )
     : null;
   const hasLast = Boolean(lastSummaryText);
+  const useLastInfoContent = selectedStats && lastSummaryText
+    ? buildUseLastInfoPayload({
+      stats: selectedStats,
+      lastSummaryText,
+      didApplyLast,
+    })
+    : null;
+  const publishUseLastInfo = useCallback(() => {
+    if (!useLastInfoContent) {
+      return;
+    }
 
-  const resetMeasurementFields = useCallback((nextSets = "3") => {
-    setGoalState((current) => ({
-      ...current,
-      sets: nextSets,
-      repsMin: "",
-      repsMax: "",
-      failure: false,
-      weight: "",
-      duration: "",
-      distance: "",
-      calories: "",
-      weightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+    window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+      detail: useLastInfoContent,
     }));
-  }, [routineTargetConfig?.weightUnit]);
+  }, [useLastInfoContent]);
+  const clearToFreshGoalState = useCallback(() => {
+    setGoalState(buildFreshGoalStateForExercise({
+      exercise: activeSelectedExercise,
+      fallbackWeightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+      customGoalModality: isCustomExerciseSelected ? inferredCustomGoalModality : null,
+    }));
+  }, [activeSelectedExercise, inferredCustomGoalModality, isCustomExerciseSelected, routineTargetConfig?.weightUnit]);
 
   useEffect(() => {
     if (!routineTargetConfig) {
@@ -1028,13 +1280,7 @@ export function ExercisePicker({
     }
 
     if (isCustomExerciseSelected) {
-      setGoalState((current) => ({
-        ...current,
-        measurements: getDefaultMeasurementsForGoalModality(inferredCustomGoalModality),
-        failure: false,
-        distanceUnit: resolveExerciseDistanceUnit(customExerciseDraftOption.default_unit),
-      }));
-      resetMeasurementFields("3");
+      clearToFreshGoalState();
       setDidApplyLast(false);
       previousExerciseIdRef.current = nextSelectionKey;
       return;
@@ -1044,24 +1290,10 @@ export function ExercisePicker({
       return;
     }
 
-    const nextDefaultUnit = resolveExerciseDistanceUnit(selectedExercise.default_unit);
-    const selectedExerciseTags = normalizeExerciseTags(selectedExercise);
-    const defaultModality = resolveGoalModality({
-      measurementType: selectedExercise.measurement_type,
-      equipment: selectedExercise.equipment,
-      name: selectedExercise.name,
-      tags: new Set(selectedExerciseTags.keys()),
-    });
-    setGoalState((current) => ({
-      ...current,
-      measurements: isMeasurementOptionalExercise(selectedExercise) ? [] : getDefaultMeasurementsForGoalModality(defaultModality),
-      failure: false,
-      distanceUnit: nextDefaultUnit,
-    }));
-    resetMeasurementFields(isStretchHubExercise(selectedExercise) ? "1" : "3");
+    clearToFreshGoalState();
     setDidApplyLast(false);
     previousExerciseIdRef.current = nextSelectionKey;
-  }, [customExerciseDraftOption.default_unit, inferredCustomGoalModality, isCustomExerciseSelected, resetMeasurementFields, routineTargetConfig, selectedExercise]);
+  }, [clearToFreshGoalState, inferredCustomGoalModality, isCustomExerciseSelected, selectedExercise]);
 
   const previousCustomProfileKeyRef = useRef<string | null>(null);
 
@@ -1166,36 +1398,41 @@ export function ExercisePicker({
       measurementSelections: new Set(goalMeasurementSelections),
     });
   }, [effectiveGoalModality, goalMeasurementSelections, goalState, isMeasurementOptionalSelected]);
-  const goalPreviewMissingLabel = !goalValidation.isValid && goalValidation.requiredFields.length > 0
-    ? `missing ${getMissingGoalPreviewLabel(goalValidation.requiredFields[0])}`
+  const goalPreviewMissingLabel = !goalValidation.isValid
+    ? (
+      effectiveGoalModality === "cardio_time_distance" && isMissingCardioTimeOrDistance({
+        duration: goalState.duration,
+        distance: goalState.distance,
+      })
+        ? "missing time or distance"
+        : goalValidation.requiredFields.length > 0
+          ? `missing ${getMissingGoalPreviewLabel(goalValidation.requiredFields[0])}`
+          : null
+    )
     : null;
-  const selectedCardGoalPreviewNode = goalPreviewMissingLabel ? (
-    <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
-      {goalPreviewMissingLabel}
-    </p>
-  ) : (
-    <GoalSummaryInline
-      includeSets={false}
-      className="min-w-0 px-0 py-0 text-left"
-      values={{
-        sets: goalState.sets ? Number(goalState.sets) : null,
-        reps: goalState.failure ? 0 : (goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null),
-        repsMax: goalState.failure ? 0 : (goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null),
-        failure: goalState.failure || isFailureGoalSelection({
-          repsMin: goalState.repsMin,
-          repsMax: goalState.repsMax,
-          failure: goalState.failure,
-        }),
-        weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
-        weightUnit: goalState.weightUnit,
-        durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
-        distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
-        distanceUnit: goalState.distanceUnit,
-        calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
-        emptyLabel: "Goal missing",
-      }}
-    />
-  );
+  const failureToggleInfoContent = buildFailureToggleInfoPayload({
+    modality: effectiveGoalModality,
+    state: goalState,
+    isFailureMode: goalState.failure && (effectiveGoalModality === "strength" || effectiveGoalModality === "bodyweight"),
+  });
+  const selectedCardGoalPreviewText = formatGoalInlineSummaryText({
+    sets: goalState.sets ? Number(goalState.sets) : null,
+    reps: goalState.failure ? 0 : (goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null),
+    repsMax: goalState.failure ? 0 : (goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null),
+    failure: goalState.failure || isFailureGoalSelection({
+      repsMin: goalState.repsMin,
+      repsMax: goalState.repsMax,
+      failure: goalState.failure,
+    }),
+    weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
+    weightUnit: goalState.weightUnit,
+    durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
+    distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
+    distanceUnit: goalState.distanceUnit,
+    calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
+    emptyLabel: "Goal missing",
+  });
+  const selectedCardGoalPreviewTextResolved = goalPreviewMissingLabel ?? selectedCardGoalPreviewText;
   const customExerciseStatusNode = customExerciseName.trim().length === 0 ? (
     <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
       add exercise name
@@ -1205,7 +1442,7 @@ export function ExercisePicker({
       rename duplicate custom exercise
     </p>
   ) : (
-    selectedCardGoalPreviewNode
+    selectedCardGoalPreviewTextResolved
   );
   const customExerciseShowStatusSeparator = customExerciseName.trim().length > 0 && !duplicateCustomExercise && !goalPreviewMissingLabel;
 
@@ -1269,7 +1506,12 @@ export function ExercisePicker({
     goalState,
     goalModality,
     effectiveGoalModality,
+    failureToggleInfoContent,
   };
+  const goalDockViewportMode = typeof goalDockViewportModeProp === "function"
+    ? goalDockViewportModeProp(goalContentContext)
+    : goalDockViewportModeProp;
+  const compactGoalDockViewport = goalDockViewportMode === "compact";
   const betweenInputsAndPreviewNode = goalBetweenInputsAndPreviewContent
     ? (typeof goalBetweenInputsAndPreviewContent === "function"
       ? goalBetweenInputsAndPreviewContent(goalContentContext)
@@ -1299,6 +1541,8 @@ export function ExercisePicker({
             appTokens.exercisePickerStatsCompact,
             "px-2 pb-1.5",
           )}
+          onFocusCapture={publishUseLastInfo}
+          onPointerDownCapture={publishUseLastInfo}
         >
           {hasLast ? (
             <MeasurementDockSummary
@@ -1322,9 +1566,33 @@ export function ExercisePicker({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="shrink-0 self-center"
+                  className="shrink-0 self-center border-[rgb(var(--accent)/0.44)] hover:border-[rgb(var(--accent)/0.62)]"
                   onClick={() => {
+                    publishUseLastInfo();
+                    if (didApplyLast) {
+                      clearToFreshGoalState();
+                      if (selectedCanonicalExerciseId) {
+                        onClearLastSelection?.({ exerciseId: selectedCanonicalExerciseId });
+                      }
+                      setDidApplyLast(false);
+                      return;
+                    }
+
                     setGoalState((current) => {
+                      if (
+                        selectedStats
+                        && !formatLoggedMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)
+                        && hasConfiguredSetupSnapshot(selectedStats)
+                      ) {
+                        return applyConfiguredSetupToGoalState({
+                          current,
+                          stats: selectedStats,
+                          fallbackWeightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+                          fallbackDistanceUnit: current.distanceUnit,
+                          modality: effectiveGoalModality,
+                        });
+                      }
+
                       const nextMeasurements = new Set(current.measurements);
                       const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
                       const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
@@ -1346,11 +1614,19 @@ export function ExercisePicker({
                         measurements: Array.from(nextMeasurements),
                       };
                     });
+                    if (selectedCanonicalExerciseId) {
+                      onApplyLastSelection?.({
+                        exerciseId: selectedCanonicalExerciseId,
+                        progressionPlaybookId: selectedStats.lastProgressionPlaybookId,
+                        progressionPlaybookConfig: selectedStats.lastProgressionPlaybookConfig,
+                      });
+                    }
                     setDidApplyLast(true);
-                    setTimeout(() => setDidApplyLast(false), 1200);
                   }}
+                  onFocus={publishUseLastInfo}
+                  onPointerDown={publishUseLastInfo}
                 >
-                  Use
+                  {didApplyLast ? "Clear" : "Use"}
                 </AppButton>
               )}
             />
@@ -1358,40 +1634,52 @@ export function ExercisePicker({
         </div>
       ) : null}
 
-      <div className="min-w-0">
-        <SharedExerciseGoalForm
-          modality={goalModality}
-          state={goalState}
-          onStateChange={setGoalState}
-          names={{
-            sets: "targetSets",
-            repsMin: "targetRepsMin",
-            repsMax: "targetRepsMax",
-            failure: "targetFailure",
-            weight: "targetWeight",
-            duration: "targetDuration",
-            distance: "targetDistance",
-            calories: "targetCalories",
-            weightUnit: "targetWeightUnit",
-            distanceUnit: "targetDistanceUnit",
-          }}
-          includeSetsInSummary={false}
-          showValidationMessage={false}
-          hideEmptySummary
-          hideSummary
-          measurementLayoutMode="horizontal-scroll"
-          visibleMetrics={isMeasurementOptionalSelected ? [] : undefined}
-          visibleMetricOrder={isMeasurementOptionalSelected ? [] : undefined}
-          betweenInputsAndFooterContent={combinedBetweenInputsAndPreviewNode}
-          footerContent={null}
-          footerClassName="mt-1"
-        />
-      </div>
-      {goalExtraNode ? (
-        <div className="px-1 pb-1.5 pt-1">
-          {goalExtraNode}
+      <div className={cn(
+        compactGoalDockViewport
+          ? "min-h-0 max-h-[min(30dvh,18rem)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+          : "min-h-0 max-h-[min(40dvh,24rem)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]",
+        goalExtraNode ? (compactGoalDockViewport ? "pb-[3.25rem]" : "pb-[5.25rem]") : undefined,
+      )}>
+        <div className="sticky top-0 z-0 px-1 pb-1 pt-0">
+          <div className="bg-[rgb(var(--bg-app))] pt-0.5">
+            <MetricAccentBar variant="thin" className="w-full opacity-85" />
+          </div>
         </div>
-      ) : null}
+        <div className="min-w-0">
+          <SharedExerciseGoalForm
+            modality={goalModality}
+            state={goalState}
+            onStateChange={setGoalState}
+            names={{
+              sets: "targetSets",
+              repsMin: "targetRepsMin",
+              repsMax: "targetRepsMax",
+              failure: "targetFailure",
+              weight: "targetWeight",
+              duration: "targetDuration",
+              distance: "targetDistance",
+              calories: "targetCalories",
+              weightUnit: "targetWeightUnit",
+              distanceUnit: "targetDistanceUnit",
+            }}
+            includeSetsInSummary={false}
+            showValidationMessage={false}
+            hideEmptySummary
+            hideSummary
+            measurementLayoutMode="horizontal-scroll"
+            visibleMetrics={isMeasurementOptionalSelected ? [] : undefined}
+            visibleMetricOrder={isMeasurementOptionalSelected ? [] : undefined}
+            betweenInputsAndFooterContent={combinedBetweenInputsAndPreviewNode}
+            footerContent={null}
+            footerClassName="mt-1"
+          />
+        </div>
+        {goalExtraNode ? (
+          <div className="px-1 pb-1.5 pt-1">
+            {goalExtraNode}
+          </div>
+        ) : null}
+      </div>
     </section>
   ) : null;
   const goalDockRef = useRef<HTMLDivElement | null>(null);
@@ -1516,7 +1804,7 @@ export function ExercisePicker({
           isSelected={exercise.id === selectedId}
           hasStats={hasExerciseStatsSignal(statsByExerciseId.get(resolveCanonicalExerciseId(exercise)))}
           metadataItems={exerciseMetadataById.get(exercise.id) ?? []}
-          selectedPreviewContent={exercise.id === selectedId && !isStretchHubSelected ? selectedCardGoalPreviewNode : undefined}
+          selectedSummaryText={exercise.id === selectedId && !isStretchHubSelected ? selectedCardGoalPreviewTextResolved : undefined}
           onPress={handleExercisePress}
         />
       ))}
@@ -1530,7 +1818,7 @@ export function ExercisePicker({
     >
       <input type="hidden" name={name} value={isCustomExerciseSelected ? "" : (selectedCanonicalExerciseId ?? selectedId)} required={!isCustomExerciseSelected} />
 
-      <div className="sticky top-0 z-30">
+      <div className="sticky top-0 z-[55]">
         <div className={cn(appTokens.historyFloatingHeaderRail, "overflow-visible bg-transparent")}>
           <ExerciseSearchFilters
             query={search}

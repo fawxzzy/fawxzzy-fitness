@@ -33,17 +33,16 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
-import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { ProgressionStatusSection } from "@/components/progression/ProgressionStatusSection";
-import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
-import { buildRoutineTrainingRestInfoRailItems } from "@/lib/header-info-rail";
+import { buildTodayHeaderInfoRailItems } from "@/lib/header-info-rail";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
@@ -539,18 +538,29 @@ export function TodayDayPicker({
   const selectedDaySummaryToneClassName = daySummaryTone === "blocking"
     ? "border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
     : "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]";
-  const selectedDayHeaderSubtitle = selectedDay && !selectedDay.isRest
-    ? getDayTaxonomyHeaderSummaryParts({
-        dayName: selectedDay.name,
-        summary: getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest),
-        isRest: selectedDay.isRest,
-      }).countsSummary
-    : null;
-  const routineHeaderInfoItems = useMemo(() => {
+  const selectedDaySplitSummary = useMemo(() => (
+    selectedDay
+      ? getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)
+      : null
+  ), [selectedDay]);
+  const todayHeaderInfoItems = useMemo(() => {
     const restDays = days.filter((day) => day.isRest).length;
     const trainingDays = Math.max(days.length - restDays, 0);
-    return buildRoutineTrainingRestInfoRailItems({ trainingDays, restDays });
-  }, [days]);
+    return buildTodayHeaderInfoRailItems({
+      trainingDays,
+      restDays,
+      daysLength: days.length,
+      selectedDay: selectedDay ? {
+        dayIndex: selectedDay.dayIndex,
+        isRest: selectedDay.isRest,
+        isToday: selectedDay.dayIndex === currentDayIndex,
+        isInSession: inSessionDayIndex === selectedDay.dayIndex,
+        state: selectedDay.state,
+        invalidExerciseCount: selectedDay.invalidExerciseCount,
+        splitSummary: selectedDaySplitSummary,
+      } : null,
+    });
+  }, [currentDayIndex, days, inSessionDayIndex, selectedDay, selectedDaySplitSummary]);
   const selectedDayStateCard = useMemo(() => {
     if (!selectedDay || mode.dayPickerOpen) {
       return null;
@@ -614,10 +624,12 @@ export function TodayDayPicker({
           />
         )}
         align="center"
-        subtitle={selectedDayHeaderSubtitle ? (
-          <AccentDotSeparatedText
-            text={selectedDayHeaderSubtitle}
-            separatorClassName="h-[3.5px] w-[3.5px]"
+        subtitle={todayHeaderInfoItems.length > 0 ? (
+          <HeaderInfoRail
+            items={todayHeaderInfoItems}
+            ariaLabel="Today day summary"
+            behavior="rotate-single"
+            className="justify-center text-center"
           />
         ) : undefined}
       />
@@ -629,8 +641,9 @@ export function TodayDayPicker({
         title={routineName.trim() || "Routine"}
         subtitle={(
           <HeaderInfoRail
-            items={routineHeaderInfoItems}
-            ariaLabel="Routine cycle summary"
+            items={todayHeaderInfoItems}
+            ariaLabel="Today day summary"
+            behavior="rotate-single"
             className="justify-center text-center"
           />
         )}

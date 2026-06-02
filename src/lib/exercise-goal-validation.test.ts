@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { GOAL_SCHEMA_MATRIX, deriveGoalMeasurementSelections, getDefaultMeasurementsForGoalModality, getGoalMeasurementOrder, getVisibleMetricsForModality, inferMeasurementTypeFromGoalModality, resolveGoalModality, validateGoalConfiguration } from "./exercise-goal-validation.ts";
+import { GOAL_SCHEMA_MATRIX, deriveGoalMeasurementSelections, getDefaultMeasurementsForGoalModality, getGoalMeasurementOrder, getVisibleMetricsForModality, inferMeasurementTypeFromGoalModality, isMissingCardioTimeOrDistance, resolveGoalModality, validateGoalConfiguration } from "./exercise-goal-validation.ts";
 
 test("strength prescription requires reps and sets", () => {
   const result = validateGoalConfiguration({
@@ -102,6 +102,29 @@ test("time + distance cardio accepts time-only mode", () => {
   assert.equal(result.isValid, true);
 });
 
+test("time + distance cardio empty state asks for time or distance", () => {
+  const result = validateGoalConfiguration({
+    modality: "cardio_time_distance",
+    sets: "1",
+    repsMin: "",
+    repsMax: "",
+    weight: "",
+    duration: "",
+    distance: "",
+    calories: "",
+    measurementSelections: new Set(["time", "distance"]),
+  });
+
+  assert.equal(result.isValid, false);
+  assert.equal(result.message, "Missing Time or Distance");
+});
+
+test("empty dual-cardio helper only flags when both measurements are blank", () => {
+  assert.equal(isMissingCardioTimeOrDistance({ duration: "", distance: "" }), true);
+  assert.equal(isMissingCardioTimeOrDistance({ duration: "8:00", distance: "" }), false);
+  assert.equal(isMissingCardioTimeOrDistance({ duration: "", distance: "1.5" }), false);
+});
+
 test("goal schema matrix keeps strength minimum requirements stable", () => {
   assert.deepEqual(GOAL_SCHEMA_MATRIX.strength.requiredFields, ["sets", "repsMin"]);
 });
@@ -124,6 +147,14 @@ test("entered auxiliary bodyweight values stay in derived selections", () => {
 
 test("goal layouts use the fixed shared measurement ordering", () => {
   assert.deepEqual(getGoalMeasurementOrder("cardio_time"), ["time", "distance", "calories", "reps", "weight"]);
+});
+
+test("bodyweight goal layouts keep weighted progression inputs in primary order", () => {
+  assert.deepEqual(getGoalMeasurementOrder("bodyweight"), ["reps", "weight", "time", "distance", "calories"]);
+});
+
+test("distance-first cardio goal layouts preserve distance priority", () => {
+  assert.deepEqual(getGoalMeasurementOrder("cardio_distance"), ["distance", "time", "calories", "reps", "weight"]);
 });
 
 test("goal modality keeps strength measurement type stable when auxiliary values are present", () => {

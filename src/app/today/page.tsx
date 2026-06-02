@@ -11,7 +11,6 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { EarnedInstallPrompt } from "@/components/install/EarnedInstallPrompt";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { RoutineDayCardTitle } from "@/components/day-list/RoutineDayCardPresentation";
-import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import {
@@ -23,9 +22,11 @@ import {
   TodayOverviewScaffold,
   TodayRouteScaffold,
 } from "@/components/today/TodayScreenFamily";
+import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import type { ActionResult } from "@/lib/action-result";
+import { buildTodayHeaderInfoRailItems } from "@/lib/header-info-rail";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -61,7 +62,7 @@ import {
   recordProgressionEvent,
 } from "@/lib/progression-events";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
@@ -1385,13 +1386,24 @@ export default async function TodayPage({
   const todayHeaderSummary = todayPayload.routine
     ? getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)
     : null;
-  const todayHeaderSummaryParts = todayPayload.routine && todayHeaderSummary
-    ? getDayTaxonomyHeaderSummaryParts({
-        dayName: todayPayload.routine.dayName,
-        summary: todayHeaderSummary,
-        isRest: todayPayload.routine.isRest,
+  const routineRestDays = normalizedDaySummaries.filter((summary) => summary.day.is_rest).length;
+  const routineTrainingDays = Math.max(normalizedDaySummaries.length - routineRestDays, 0);
+  const todayHeaderInfoItems = todayPayload.routine
+    ? buildTodayHeaderInfoRailItems({
+        trainingDays: routineTrainingDays,
+        restDays: routineRestDays,
+        daysLength: normalizedDaySummaries.length,
+        selectedDay: {
+          dayIndex: todayPayload.routine.dayIndex,
+          isRest: todayPayload.routine.isRest,
+          isToday: true,
+          isInSession: Boolean(todayPayload.inProgressSessionId),
+          state: todayPayload.routine.state,
+          invalidExerciseCount: effectiveDaySummary?.invalidExercises.length ?? 0,
+          splitSummary: todayHeaderSummary,
+        },
       })
-    : null;
+    : [];
 
   const todayGlobalError = getTodayGlobalErrorMessage({
     searchParamError: searchParams?.error,
@@ -1428,11 +1440,13 @@ export default async function TodayPage({
       },
       timeoutMs: 5000,
     });
-  const todayHeaderSubtitle = todayPayload.routine && !todayPayload.routine.isRest && todayHeaderSummaryParts?.countsSummary
+  const todayHeaderSubtitle = todayHeaderInfoItems.length > 0
     ? (
-      <AccentDotSeparatedText
-        text={todayHeaderSummaryParts.countsSummary}
-        separatorClassName="h-[3.5px] w-[3.5px]"
+      <HeaderInfoRail
+        items={todayHeaderInfoItems}
+        ariaLabel="Today day summary"
+        behavior="rotate-single"
+        className="justify-center text-center"
       />
     )
     : undefined;

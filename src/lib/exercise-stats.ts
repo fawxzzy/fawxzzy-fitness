@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseServer } from "@/lib/supabase/server";
 import { unstable_noStore as noStore } from "next/cache";
 import { aggregateExerciseStatsFromSets, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
+import {
+  mergeExerciseStatsWithLatestProgression,
+  type LatestCompletedExerciseProgressionRow,
+  type LatestConfiguredExerciseSetupRow,
+} from "@/lib/exercise-stats-progression";
 import { logDebugSummary } from "@/lib/observability";
 
 export type ExerciseStatsRow = {
@@ -10,6 +15,20 @@ export type ExerciseStatsRow = {
   last_reps: number | null;
   last_unit: string | null;
   last_performed_at: string | null;
+  last_progression_playbook_id?: string | null;
+  last_progression_playbook_config?: Record<string, unknown> | null;
+  last_configured_at?: string | null;
+  last_configured_target_sets?: number | null;
+  last_configured_target_reps_min?: number | null;
+  last_configured_target_reps_max?: number | null;
+  last_configured_target_weight?: number | null;
+  last_configured_target_weight_unit?: "lbs" | "kg" | null;
+  last_configured_target_duration_seconds?: number | null;
+  last_configured_target_distance?: number | null;
+  last_configured_target_distance_unit?: string | null;
+  last_configured_target_calories?: number | null;
+  last_configured_measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
+  last_configured_default_unit?: string | null;
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
@@ -18,6 +37,7 @@ export type ExerciseStatsRow = {
   actual_pr_reps: number | null;
   actual_pr_at: string | null;
 };
+
 
 function uniqueExerciseIds(exerciseIds: Array<string | null | undefined>): string[] {
   return Array.from(new Set(exerciseIds.filter((exerciseId): exerciseId is string => Boolean(exerciseId))));
@@ -194,18 +214,87 @@ export async function getExerciseStatsForExercises(
   }
 
   const supabase = client ?? supabaseServer();
-  const { data } = await supabase
-    .from("exercise_stats")
-    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at, actual_pr_weight, actual_pr_reps, actual_pr_at")
-    .eq("user_id", userId)
-    .in("exercise_id", exerciseIds);
+  const [{ data: statsData }, { data: latestProgressionData }, { data: latestConfiguredSetupData }] = await Promise.all([
+    supabase
+      .from("exercise_stats")
+      .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at, actual_pr_weight, actual_pr_reps, actual_pr_at")
+      .eq("user_id", userId)
+      .in("exercise_id", exerciseIds),
+    supabase
+      .from("session_exercises")
+      .select("exercise_id, progression_playbook_id, progression_playbook_config, session:sessions!inner(performed_at,status,user_id)")
+      .eq("user_id", userId)
+      .eq("session.user_id", userId)
+      .in("exercise_id", exerciseIds)
+      .eq("session.status", "completed"),
+    supabase
+      .from("routine_day_exercises")
+      .select("exercise_id, created_at, target_sets, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, progression_playbook_id, progression_playbook_config")
+      .eq("user_id", userId)
+      .in("exercise_id", exerciseIds),
+  ]);
+
+  const latestProgressionRows = ((latestProgressionData ?? []) as Array<{
+    exercise_id: string;
+    progression_playbook_id: string | null;
+    progression_playbook_config: Record<string, unknown> | null;
+    session?: { performed_at?: string | null } | Array<{ performed_at?: string | null }>;
+  }>).map((row) => {
+    const sessionValue = Array.isArray(row.session) ? row.session[0] : row.session;
+    return {
+      exercise_id: row.exercise_id,
+      performed_at: sessionValue?.performed_at ?? null,
+      progression_playbook_id: row.progression_playbook_id ?? null,
+      progression_playbook_config: row.progression_playbook_config ?? null,
+    } satisfies LatestCompletedExerciseProgressionRow;
+  });
+
+  const latestConfiguredSetupRows = ((latestConfiguredSetupData ?? []) as Array<{
+    exercise_id: string;
+    created_at: string | null;
+    target_sets: number | null;
+    target_reps_min: number | null;
+    target_reps_max: number | null;
+    target_weight: number | null;
+    target_weight_unit: "lbs" | "kg" | null;
+    target_duration_seconds: number | null;
+    target_distance: number | null;
+    target_distance_unit: string | null;
+    target_calories: number | null;
+    measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
+    default_unit: string | null;
+    progression_playbook_id: string | null;
+    progression_playbook_config: Record<string, unknown> | null;
+  }>).map((row) => ({
+    exercise_id: row.exercise_id,
+    created_at: row.created_at ?? null,
+    target_sets: row.target_sets ?? null,
+    target_reps_min: row.target_reps_min ?? null,
+    target_reps_max: row.target_reps_max ?? null,
+    target_weight: row.target_weight ?? null,
+    target_weight_unit: row.target_weight_unit ?? null,
+    target_duration_seconds: row.target_duration_seconds ?? null,
+    target_distance: row.target_distance ?? null,
+    target_distance_unit: row.target_distance_unit ?? null,
+    target_calories: row.target_calories ?? null,
+    measurement_type: row.measurement_type ?? null,
+    default_unit: row.default_unit ?? null,
+    progression_playbook_id: row.progression_playbook_id ?? null,
+    progression_playbook_config: row.progression_playbook_config ?? null,
+  } satisfies LatestConfiguredExerciseSetupRow));
+
+  const mergedRows = mergeExerciseStatsWithLatestProgression(
+    (statsData ?? []) as ExerciseStatsRow[],
+    latestProgressionRows,
+    latestConfiguredSetupRows,
+  );
 
   logDebugSummary("exercise-stats", "fetched stats rows", {
     requestedExerciseCount: exerciseIds.length,
-    rowCount: (data ?? []).length,
+    rowCount: mergedRows.length,
   });
 
-  return new Map(((data ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
+  return new Map(mergedRows.map((row) => [row.exercise_id, row]));
 }
 
 export type ExerciseStatsLookupError = {

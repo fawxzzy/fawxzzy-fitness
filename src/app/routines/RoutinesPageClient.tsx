@@ -48,9 +48,9 @@ import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import { cn } from "@/lib/cn";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import {
-  buildRoutineBrowseInfoRailItems,
-  buildRoutineTrainingRestInfoRailItems,
+  buildCurrentRoutineInfoRailItems,
 } from "@/lib/header-info-rail";
+import type { SetFlowDirection } from "@/lib/set-flow-directions";
 
 export type RoutineSwitcherItem = {
   id: string;
@@ -79,6 +79,7 @@ export type RoutineDayCardItem = {
   isSkipped?: boolean;
   isInSession: boolean;
   loggedSetCount?: number;
+  dayAdjustmentDirection?: SetFlowDirection | null;
 };
 
 const ROUTINES_IA_COPY = {
@@ -90,8 +91,8 @@ const ROUTINES_IA_COPY = {
   },
 } as const;
 
-const ROUTINES_LIST_CARD_BODY_CLASS_NAME = "min-h-[3.85rem] py-2";
-const ROUTINES_LIST_CARD_CONTENT_CLASS_NAME = "py-0.5";
+const ROUTINES_LIST_CARD_BODY_CLASS_NAME = "min-h-[2.85rem] py-1";
+const ROUTINES_LIST_CARD_CONTENT_CLASS_NAME = "py-0";
 const ROUTINE_HOME_TOGGLE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
   intent: "toggleInactive",
   className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)]",
@@ -286,7 +287,7 @@ export function RoutinesPageClient({
 
     const editRoutineAction = activeRoutineEditHref ? (
       <BottomDockLink href={activeRoutineEditHref} intent="positive">
-        Edit
+        Edit Routine
       </BottomDockLink>
     ) : (
       <div aria-hidden="true" />
@@ -298,7 +299,7 @@ export function RoutinesPageClient({
           secondary={toggleButton}
           primary={(
             <BottomDockLink href={newRoutineHref} intent="positive">
-              New
+              New Routine
             </BottomDockLink>
           )}
         />
@@ -314,27 +315,28 @@ export function RoutinesPageClient({
     ? "All Routines"
     : (activeRoutineName ?? "Routine Selection");
   const floatingHeaderInfoItems = screenMode === "browse-routines"
-    ? buildRoutineBrowseInfoRailItems({
-        activeRoutineName,
-        routineCount: routines.length,
-      })
+    ? []
     : activeRoutineTrainingDays === null || activeRoutineTrainingDays === undefined || activeRoutineRestDays === null || activeRoutineRestDays === undefined
       ? []
-      : buildRoutineTrainingRestInfoRailItems({
+      : buildCurrentRoutineInfoRailItems({
           trainingDays: activeRoutineTrainingDays,
           restDays: activeRoutineRestDays,
+          days,
         });
 
   const floatingHeader = (
     <RoutinesRouteHeaderCard
       title={floatingHeaderTitle}
-      subtitle={floatingHeaderInfoItems.length > 0 ? (
-        <HeaderInfoRail
-          items={floatingHeaderInfoItems}
-          ariaLabel={screenMode === "browse-routines" ? "Routine list summary" : "Routine cycle summary"}
-          className="justify-center text-center"
-        />
-      ) : renderRoutineHeaderSubtitle(activeRoutineSummary)}
+      subtitle={screenMode === "browse-routines"
+        ? undefined
+        : floatingHeaderInfoItems.length > 0 ? (
+            <HeaderInfoRail
+              items={floatingHeaderInfoItems}
+              ariaLabel="Routine cycle summary"
+              behavior="rotate-single"
+              className="justify-center text-center"
+            />
+          ) : renderRoutineHeaderSubtitle(activeRoutineSummary)}
     />
   );
 
@@ -408,13 +410,13 @@ export function RoutinesPageClient({
                         displayIsRest ? ROUTINE_REST_DAY_CARD_CLASS_NAME : undefined,
                         isExpanded ? "rounded-b-none ![border-bottom-left-radius:0px] ![border-bottom-right-radius:0px]" : undefined,
                       )}
-                      bodyClassName={displayIsRest ? ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME : ROUTINE_DAY_CARD_BODY_CLASS_NAME}
-                      contentClassName={displayIsRest ? ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME : ROUTINE_DAY_CARD_CONTENT_CLASS_NAME}
+                      bodyClassName={displayIsRest ? cn(ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME, "min-h-[1.2rem] py-0") : cn(ROUTINE_DAY_CARD_BODY_CLASS_NAME, "min-h-[3.75rem] py-1.5")}
+                      contentClassName={displayIsRest ? cn(ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME, "py-0") : cn(ROUTINE_DAY_CARD_CONTENT_CLASS_NAME, "py-0")}
                       titleClassName={ROUTINE_DAY_CARD_TITLE_CLASS_NAME}
                       subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
                       contentVerticalAlign={displayIsRest ? "top" : undefined}
-                      rightRailClassName="!items-end"
-                      trailingStackClassName={displayIsRest ? "!items-center" : "!items-end !pb-1"}
+                      rightRailClassName="!items-center"
+                      trailingStackClassName="!items-center"
                       onPress={() => handleToggleDayExpansion(day.id)}
                       wrapper={(card) => (
                         <div className="min-w-0">

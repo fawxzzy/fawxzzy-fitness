@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
+import {
+  SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME,
+} from "@/components/ui/app/overlayPanelTokens";
 import { Button } from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { PillButton } from "@/components/ui/Pill";
 import { cn } from "@/lib/cn";
 import {
@@ -14,6 +18,8 @@ import {
   toggleGroupBySelection,
 } from "@/lib/exercise-tag-filter-order";
 import { formatExerciseTagLabel } from "@/lib/exercise-curation";
+
+const FILTER_OVERLAY_VIEWPORT_CLASS_NAME = "max-h-[min(66dvh,44rem)] space-y-2.5";
 
 export type ExerciseTagGroup = {
   key: string;
@@ -58,10 +64,10 @@ export function ExerciseTagFilterControl({
   onOpenChange,
   hideButton = false,
   tagLayout = "horizontal",
-  showScrollEdgeFades = true,
+  showScrollEdgeFades = false,
 }: ExerciseTagFilterControlProps) {
   const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(defaultOpen);
-  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+  const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
   const isOpen = typeof open === "boolean" ? open : uncontrolledIsOpen;
 
   const setIsOpen = (nextValue: boolean | ((previous: boolean) => boolean)) => {
@@ -81,36 +87,33 @@ export function ExerciseTagFilterControl({
   }, [groups, selectedTags]);
 
   const groupByOptions = useMemo(
-    () => orderGroupByOptions(groups.map((group) => ({ key: group.key, label: group.label })), selectedGroupKey),
-    [groups, selectedGroupKey],
+    () => orderGroupByOptions(groups.map((group) => ({ key: group.key, label: group.label })), selectedGroupKeys),
+    [groups, selectedGroupKeys],
   );
-  const showGroupByClearButton = hasActiveGroupBySelection(selectedGroupKey);
+  const showGroupByClearButton = hasActiveGroupBySelection(selectedGroupKeys);
 
   const orderedGroups = useMemo(() => {
-    if (!selectedGroupKey) {
+    if (selectedGroupKeys.length === 0) {
       return groups;
     }
-
-    const pinnedGroup = groups.find((group) => group.key === selectedGroupKey);
-    if (!pinnedGroup) {
-      return groups;
-    }
-
-    return [
-      pinnedGroup,
-      ...groups.filter((group) => group.key !== selectedGroupKey),
-    ];
-  }, [groups, selectedGroupKey]);
+    const selectedKeySet = new Set(selectedGroupKeys);
+    return selectedGroupKeys
+      .map((selectedGroupKey) => groups.find((group) => group.key === selectedGroupKey))
+      .filter((group): group is ExerciseTagGroup => Boolean(group))
+      .filter((group) => selectedKeySet.has(group.key));
+  }, [groups, selectedGroupKeys]);
 
   useEffect(() => {
-    if (!selectedGroupKey) {
+    if (selectedGroupKeys.length === 0) {
       return;
     }
 
-    if (!groups.some((group) => group.key === selectedGroupKey)) {
-      setSelectedGroupKey(null);
-    }
-  }, [groups, selectedGroupKey]);
+    const validGroupKeys = new Set(groups.map((group) => group.key));
+    setSelectedGroupKeys((current) => {
+      const next = current.filter((groupKey) => validGroupKeys.has(groupKey));
+      return next.length === current.length ? current : next;
+    });
+  }, [groups, selectedGroupKeys.length]);
 
   const compact = variant === "compact";
   const useStackedTagLayout = tagLayout === "stacked";
@@ -125,7 +128,7 @@ export function ExerciseTagFilterControl({
           aria-expanded={isOpen}
           className={cn(
             compact
-              ? appTokens.exercisePickerFilterToggle
+              ? cn(appTokens.exercisePickerFilterToggle, "!border-[rgb(var(--accent)/0.52)]")
               : "w-full justify-between rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] [-webkit-tap-highlight-color:transparent]",
             buttonClassName,
           )}
@@ -157,30 +160,33 @@ export function ExerciseTagFilterControl({
       {isOpen ? (
         <div
           className={cn(
-            compact ? appTokens.exercisePickerFilterPanel : "space-y-2",
+            compact ? cn(appTokens.exercisePickerFilterPanel, `mx-auto w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} !border-[rgb(var(--accent)/0.42)] !shadow-none`) : "space-y-2",
             panelClassName,
           )}
         >
           {groupByOptions.length > 1 ? (
             <div className="space-y-1.5">
-              <p
-                className={cn(
-                  compact
-                    ? appTokens.exercisePickerFilterGroupLabel
-                    : "text-[11px] font-medium uppercase tracking-wide",
-                  "pl-[4px] pt-[4px]",
-                )}
-              >
-                Group By
-              </p>
+              <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
+                <p
+                  className={cn(
+                    compact
+                      ? appTokens.exercisePickerFilterGroupLabel
+                      : "text-[11px] font-medium uppercase tracking-wide",
+                  )}
+                >
+                  Filter Categories
+                </p>
+                <MetricAccentBar variant="thin" className="w-full opacity-80" />
+              </div>
               <div className="hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1">
                 <div className={cn(compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1")}>
                   {showGroupByClearButton ? (
                     <button
                       type="button"
-                      onClick={() => setSelectedGroupKey(clearGroupBySelection())}
+                      onClick={() => setSelectedGroupKeys(clearGroupBySelection())}
                       className={cn(
                         appTokens.exercisePickerFilterClearButton,
+                        "!border-[rgb(var(--accent-yellow-on)/0.58)]",
                         "shrink-0 whitespace-nowrap",
                         compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
                       )}
@@ -189,7 +195,7 @@ export function ExerciseTagFilterControl({
                     </button>
                   ) : null}
                   {groupByOptions.map((option) => {
-                    const isSelected = selectedGroupKey === option.key;
+                    const isSelected = selectedGroupKeys.includes(option.key);
                     return (
                       <PillButton
                         key={option.key}
@@ -200,7 +206,7 @@ export function ExerciseTagFilterControl({
                           compact ? "px-2 py-1 text-[10px]" : undefined,
                           isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
                         )}
-                        onClick={() => setSelectedGroupKey((current) => toggleGroupBySelection(current, option.key))}
+                        onClick={() => setSelectedGroupKeys((current) => toggleGroupBySelection(current, option.key))}
                       >
                         {option.label}
                       </PillButton>
@@ -208,11 +214,14 @@ export function ExerciseTagFilterControl({
                   })}
                 </div>
               </div>
+              <div className="px-[4px] pt-0.5">
+                <MetricAccentBar variant="thin" className="w-full opacity-80" />
+              </div>
             </div>
           ) : null}
           <FilterScrollPanel
             showEdgeFades={showScrollEdgeFades}
-            viewportClassName={compact ? "max-h-[min(42vh,20rem)] space-y-3" : "max-h-[min(48vh,24rem)] space-y-2"}
+            viewportClassName={compact ? FILTER_OVERLAY_VIEWPORT_CLASS_NAME : "max-h-[min(48vh,24rem)] space-y-2"}
           >
               {orderedGroups.map((group) => {
                 const selectedTagsForGroup = group.tags
@@ -221,16 +230,18 @@ export function ExerciseTagFilterControl({
 
                 return (
                 <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
-                  <p
-                    className={cn(
-                      compact
-                        ? appTokens.exercisePickerFilterGroupLabel
-                        : "text-[11px] font-medium uppercase tracking-wide",
-                      "pl-[4px] pt-[4px]",
-                    )}
-                  >
-                    {group.label}
-                  </p>
+                  <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
+                    <p
+                      className={cn(
+                        compact
+                          ? appTokens.exercisePickerFilterGroupLabel
+                          : "text-[11px] font-medium uppercase tracking-wide",
+                      )}
+                    >
+                      {group.label}
+                    </p>
+                    <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                  </div>
                   <div
                     className={cn(
                       useStackedTagLayout
@@ -254,6 +265,7 @@ export function ExerciseTagFilterControl({
                           onClick={() => onChange(selectedTags.filter((value) => !selectedTagsForGroup.includes(value)))}
                           className={cn(
                             appTokens.exercisePickerFilterClearButton,
+                            "!border-[rgb(var(--accent-yellow-on)/0.58)]",
                             "shrink-0 whitespace-nowrap",
                             compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
                           )}

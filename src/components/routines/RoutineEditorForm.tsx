@@ -540,11 +540,11 @@ function RoutineCycleDirectionGlyph({
   className?: string;
 }) {
   if (direction === "up") {
-    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>{"\u2191"}</span>;
+    return <span aria-hidden="true" className={cn("text-[16px] font-semibold leading-none", className)}>{"\u2191"}</span>;
   }
 
   if (direction === "down") {
-    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>{"\u2193"}</span>;
+    return <span aria-hidden="true" className={cn("text-[16px] font-semibold leading-none", className)}>{"\u2193"}</span>;
   }
 
   return <RoutineCycleStraightDirectionIcon className={className} />;

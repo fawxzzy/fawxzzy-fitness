@@ -3,30 +3,32 @@ export type ExerciseTagGroupByOption = {
   label: string;
 };
 
-export function orderGroupByOptions(options: readonly ExerciseTagGroupByOption[], selectedGroupKey: string | null) {
-  if (!selectedGroupKey) {
+export function orderGroupByOptions(options: readonly ExerciseTagGroupByOption[], selectedGroupKeys: readonly string[]) {
+  if (selectedGroupKeys.length === 0) {
     return [...options];
   }
 
-  const selected = options.find((option) => option.key === selectedGroupKey);
-  if (!selected) {
-    return [...options];
-  }
+  const selectedKeySet = new Set(selectedGroupKeys);
+  const selected = selectedGroupKeys
+    .map((selectedKey) => options.find((option) => option.key === selectedKey))
+    .filter((option): option is ExerciseTagGroupByOption => Boolean(option));
 
   return [
-    selected,
-    ...options.filter((option) => option.key !== selectedGroupKey),
+    ...selected,
+    ...options.filter((option) => !selectedKeySet.has(option.key)),
   ];
 }
 
-export function hasActiveGroupBySelection(selectedGroupKey: string | null) {
-  return Boolean(selectedGroupKey);
+export function hasActiveGroupBySelection(selectedGroupKeys: readonly string[]) {
+  return selectedGroupKeys.length > 0;
 }
 
 export function clearGroupBySelection() {
-  return null;
+  return [] as string[];
 }
 
-export function toggleGroupBySelection(current: string | null, nextKey: string) {
-  return current === nextKey ? null : nextKey;
+export function toggleGroupBySelection(current: readonly string[], nextKey: string) {
+  return current.includes(nextKey)
+    ? current.filter((key) => key !== nextKey)
+    : [...current, nextKey];
 }

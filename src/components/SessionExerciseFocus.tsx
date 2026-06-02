@@ -673,7 +673,7 @@ export function SessionExerciseFocus({
                   planTargetsHash={exercise.planTargetsHash}
                   deleteSetAction={deleteSetAction}
                   resetSignal={setLoggerResetSignal}
-                  secondaryActionLabel="View"
+                  secondaryActionLabel="Inspect"
                   onSecondaryAction={() => setExerciseInfoExerciseId(exercise.exerciseId)}
                   warmupValue={warmupDraft}
                   onWarmupValueChange={setWarmupDraft}

@@ -25,7 +25,7 @@ type PageProps = {
   };
 };
 
-const ROUTINE_SELECT_LEGACY = "id, user_id, name, weight_unit, start_date";
+const ROUTINE_SELECT_LEGACY = "id, user_id, name, weight_unit, start_date, cycle_length_days";
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
 
 export default async function EditDayAddExercisePage({ params, searchParams }: PageProps) {
@@ -71,8 +71,9 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
       recipe="editDay"
       title={(
         <RoutineDayHeaderTitle
-          leadingItems={["Add Exercise to", routine.name]}
+          leadingItems={["Add to", routine.name]}
           dayLabel={dayLabel}
+          dayLabelOrder="day-first"
         />
       )}
       backHref={backHref}
@@ -84,6 +85,8 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
       <EditDayAddExerciseScreen
         routineId={params.id}
         routineDayId={params.dayId}
+        dayIndex={day.day_index}
+        cycleLengthDays={(routine as RoutineRow).cycle_length_days}
         exercises={exercises}
         initialSelectedId={searchParams?.exerciseId}
         weightUnit={routine.weight_unit}

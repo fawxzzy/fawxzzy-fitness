@@ -29,6 +29,8 @@ type ExerciseOption = {
 export function EditDayAddExerciseScreen({
   routineId,
   routineDayId,
+  dayIndex,
+  cycleLengthDays,
   exercises,
   initialSelectedId,
   weightUnit,
@@ -40,6 +42,8 @@ export function EditDayAddExerciseScreen({
 }: {
   routineId: string;
   routineDayId: string;
+  dayIndex: number;
+  cycleLengthDays: number;
   exercises: ExerciseOption[];
   initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
@@ -53,6 +57,8 @@ export function EditDayAddExerciseScreen({
     <ExerciseChooserAddFlowForm
       formId="routine-day-add-exercise-form"
       hiddenFields={{ routineId, routineDayId }}
+      cycleLengthDays={cycleLengthDays}
+      progressionExampleDayNumber={dayIndex}
       exercises={exercises}
       initialSelectedId={initialSelectedId}
       weightUnit={weightUnit}

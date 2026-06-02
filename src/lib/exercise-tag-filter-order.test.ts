@@ -14,18 +14,19 @@ const options = [
   { key: "muscle", label: "Muscle" },
 ];
 
-test("selected Group by option moves to the front", () => {
-  const ordered = orderGroupByOptions(options, "movement");
+test("selected Group by options move to the front in selection order", () => {
+  const ordered = orderGroupByOptions(options, ["movement", "equipment"]);
   assert.deepEqual(ordered.map((option) => option.key), ["movement", "equipment", "muscle"]);
 });
 
 test("Group by clear button appears only when a selection is active", () => {
-  assert.equal(hasActiveGroupBySelection(null), false);
-  assert.equal(hasActiveGroupBySelection("movement"), true);
+  assert.equal(hasActiveGroupBySelection([]), false);
+  assert.equal(hasActiveGroupBySelection(["movement"]), true);
 });
 
 test("Group by clear resets the selection", () => {
-  assert.equal(clearGroupBySelection(), null);
-  assert.equal(toggleGroupBySelection("movement", "movement"), null);
-  assert.equal(toggleGroupBySelection(null, "movement"), "movement");
+  assert.deepEqual(clearGroupBySelection(), []);
+  assert.deepEqual(toggleGroupBySelection(["movement"], "movement"), []);
+  assert.deepEqual(toggleGroupBySelection([], "movement"), ["movement"]);
+  assert.deepEqual(toggleGroupBySelection(["movement"], "equipment"), ["movement", "equipment"]);
 });

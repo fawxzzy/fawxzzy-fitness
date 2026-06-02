@@ -1,9 +1,12 @@
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { formatDurationPreview } from "@/lib/duration";
+import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
 import { deriveGoalMeasurementSelections, isFailureGoalSelection, type GoalModality } from "@/lib/exercise-goal-validation";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
 import type { ProgressionPlaybookId } from "@/lib/progression-playbooks";
-import { createProgressionPlaybookFormState, type ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
+import { buildProgressionPlaybookConfigFromFormState, createProgressionPlaybookFormState, type ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
+import { applyEditDayAdjustmentDirectionToProgressionConfig } from "@/lib/edit-day-progression";
 
 export type EditDayExerciseDefaults = {
   targetSets?: number | null;
@@ -210,5 +213,109 @@ export function resolveEditDayExercisePreview({
   return {
     summary: formatEditDayExerciseDraftSummary(draft),
     orderNumber: parsedOrder === null ? savedOrderNumber : clampOrderValue(parsedOrder, listLength),
+  };
+}
+
+export function resolveEditDayAdjustedSummary(args: {
+  draft: EditDayExerciseDraft;
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none";
+  dayIndex: number;
+  cycleLengthDays: number;
+  direction: "straight" | "up" | "down";
+}) {
+  if (args.direction === "straight" || !args.draft.progressionPlaybookId) {
+    return null;
+  }
+
+  const measurementSelections = new Set(deriveGoalMeasurementSelections(args.draft.modality, {
+    repsMin: args.draft.goalState.repsMin,
+    repsMax: args.draft.goalState.repsMax,
+    failure: args.draft.goalState.failure,
+    weight: args.draft.goalState.weight,
+    duration: args.draft.goalState.duration,
+    distance: args.draft.goalState.distance,
+    calories: args.draft.goalState.calories,
+  }));
+  const nextConfig = applyEditDayAdjustmentDirectionToProgressionConfig({
+    playbookId: args.draft.progressionPlaybookId,
+    config: buildProgressionPlaybookConfigFromFormState(args.draft),
+    dayIndex: args.dayIndex,
+    cycleLengthDays: args.cycleLengthDays,
+    direction: args.direction,
+  });
+
+  if (!nextConfig) {
+    return null;
+  }
+
+  const currentRepsMin = args.draft.goalState.failure ? 0 : (measurementSelections.has("reps") ? parseOptionalNumber(args.draft.goalState.repsMin) : null);
+  const currentRepsMax = args.draft.goalState.failure ? 0 : (measurementSelections.has("reps") ? parseOptionalNumber(args.draft.goalState.repsMax) : null);
+  const currentSummary = formatExerciseGoalSummary({
+    sets: parseOptionalNumber(args.draft.goalState.sets),
+    reps: currentRepsMin,
+    repsMax: currentRepsMax,
+    failure: args.draft.goalState.failure,
+    weight: measurementSelections.has("weight") ? parseOptionalNumber(args.draft.goalState.weight) : null,
+    weightUnit: args.draft.goalState.weightUnit,
+    durationSeconds: measurementSelections.has("time") ? parseDurationInput(args.draft.goalState.duration) : null,
+    distance: measurementSelections.has("distance") ? parseOptionalNumber(args.draft.goalState.distance) : null,
+    distanceUnit: args.draft.goalState.distanceUnit,
+    calories: measurementSelections.has("calories") ? parseOptionalNumber(args.draft.goalState.calories) : null,
+    enabledMeasurements: {
+      reps: measurementSelections.has("reps"),
+      weight: measurementSelections.has("weight"),
+      time: measurementSelections.has("time"),
+      distance: measurementSelections.has("distance"),
+      calories: measurementSelections.has("calories"),
+    },
+    emptyLabel: "Goal missing",
+  });
+  const adjusted = applyEffortScheduleToRoutineDayExercise({
+    exercise: {
+      measurement_type: args.measurementType === "none" ? "reps" : args.measurementType,
+      target_sets: parseOptionalNumber(args.draft.goalState.sets),
+      target_reps: currentRepsMin,
+      target_reps_min: currentRepsMin,
+      target_reps_max: currentRepsMax,
+      target_weight: measurementSelections.has("weight") ? parseOptionalNumber(args.draft.goalState.weight) : null,
+      target_weight_unit: measurementSelections.has("weight") ? args.draft.goalState.weightUnit : null,
+      target_duration_seconds: measurementSelections.has("time") ? parseDurationInput(args.draft.goalState.duration) : null,
+      target_distance: measurementSelections.has("distance") ? parseOptionalNumber(args.draft.goalState.distance) : null,
+      target_distance_unit: measurementSelections.has("distance") ? args.draft.goalState.distanceUnit : null,
+      target_calories: measurementSelections.has("calories") ? parseOptionalNumber(args.draft.goalState.calories) : null,
+      progression_playbook_id: args.draft.progressionPlaybookId,
+      progression_playbook_config: nextConfig,
+    },
+    routineDayIndex: args.dayIndex,
+  });
+
+  const adjustedSummary = formatExerciseGoalSummary({
+    sets: null,
+    reps: adjusted.target_reps_min ?? adjusted.target_reps,
+    repsMax: adjusted.target_reps_max ?? adjusted.target_reps,
+    failure: args.draft.goalState.failure,
+    weight: adjusted.target_weight,
+    weightUnit: adjusted.target_weight_unit ?? args.draft.goalState.weightUnit,
+    durationSeconds: adjusted.target_duration_seconds,
+    distance: adjusted.target_distance,
+    distanceUnit: adjusted.target_distance_unit ?? args.draft.goalState.distanceUnit,
+    calories: adjusted.target_calories,
+    enabledMeasurements: {
+      reps: measurementSelections.has("reps"),
+      weight: measurementSelections.has("weight"),
+      time: measurementSelections.has("time"),
+      distance: measurementSelections.has("distance"),
+      calories: measurementSelections.has("calories"),
+    },
+    emptyLabel: "Goal missing",
+  });
+
+  if (adjustedSummary === currentSummary || adjustedSummary === "Goal missing") {
+    return null;
+  }
+
+  return {
+    currentSummary,
+    adjustedSummary,
   };
 }

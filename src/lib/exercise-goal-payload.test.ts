@@ -92,3 +92,18 @@ test("parseExerciseGoalPayload accepts steps as a cardio distance unit", () => {
   assert.equal(mapped.target_distance, 5000);
   assert.equal(mapped.target_distance_unit, "steps");
 });
+
+test("parseExerciseGoalPayload requires time or distance for mixed cardio goals", () => {
+  const formData = new FormData();
+  formData.set("targetSets", "1");
+  formData.set("goalModality", "cardio_time_distance");
+
+  const result = parseExerciseGoalPayload(formData, { requireSets: true });
+
+  assert.equal(result.ok, false);
+  if (result.ok) {
+    throw new Error("Expected mixed cardio payload parsing to fail.");
+  }
+
+  assert.equal(result.error, "Missing Time or Distance");
+});

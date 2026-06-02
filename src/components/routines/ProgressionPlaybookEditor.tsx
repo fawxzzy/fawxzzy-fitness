@@ -9,16 +9,27 @@ import {
   ACTION_CHROME_SEGMENTED_CLASS_NAME,
 } from "@/components/ui/actionChrome";
 import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import {
+  SHARED_OVERLAY_PANEL_COMPACT_VIEWPORT_CLASS_NAME,
+  SHARED_OVERLAY_PANEL_EXPANDED_VIEWPORT_CLASS_NAME,
+  SHARED_OVERLAY_PANEL_SURFACE_CLASS_NAME,
+} from "@/components/ui/app/overlayPanelTokens";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { ExpandingChoiceRow } from "@/components/ui/ExpandingChoiceRow";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
+import { BOTTOM_ACTION_SHELL_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import type { BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { cn } from "@/lib/cn";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import {
+  dispatchFitnessOverlayExclusiveOpen,
+  FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT,
+  type FitnessOverlayExclusiveDetail,
+} from "@/lib/fitness-overlay-mutual-exclusion";
 import {
   ROUTINE_PROMOTION_MEASUREMENT_LABELS,
   type PromotionMeasurementConnector,
@@ -49,6 +60,7 @@ import {
   getRepPromotionTarget,
   usesRepsForPromotion,
 } from "@/lib/progression-promotion";
+import { resolveProgressionSectionVisibility } from "@/lib/progression-section-visibility";
 import {
   getDefaultProgressionPlaybookConfig,
   PROGRESSION_INFO_TERM_DEFINITIONS,
@@ -195,11 +207,11 @@ function DirectionGlyph({
   className?: string;
 }) {
   if (direction === "up") {
-    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>↑</span>;
+    return <span aria-hidden="true" className={cn("text-[16px] font-semibold leading-none", className)}>↑</span>;
   }
 
   if (direction === "down") {
-    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>↓</span>;
+    return <span aria-hidden="true" className={cn("text-[16px] font-semibold leading-none", className)}>↓</span>;
   }
 
   return <StraightDirectionIcon className={className} />;
@@ -213,11 +225,11 @@ function DirectionArrowGlyph({
   className?: string;
 }) {
   if (direction === "up") {
-    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>↑</span>;
+    return <span aria-hidden="true" className={cn("text-[16px] font-semibold leading-none", className)}>↑</span>;
   }
 
   if (direction === "down") {
-    return <span aria-hidden="true" className={cn("text-[14px] leading-none", className)}>↓</span>;
+    return <span aria-hidden="true" className={cn("text-[16px] font-semibold leading-none", className)}>↓</span>;
   }
 
   return <StraightDirectionIcon className={className} />;
@@ -1263,7 +1275,7 @@ function getRoutineDefaultVisualStepFieldIds(args: {
 
 const progressionInfoTitleClassName = "text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
 const progressionInfoBodyClassName = "text-[0.78rem] leading-5 text-[rgb(var(--text-secondary)/0.94)]";
-const progressionInfoMiniCardClassName = "rounded-[1rem] bg-transparent shadow-none";
+const progressionInfoMiniCardClassName = "w-full max-w-full rounded-[1rem] bg-transparent shadow-none";
 const progressionInfoMiniCardButtonClassName = "group block w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pt-3 pb-2 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
 const progressionInfoMutedClassName = "text-[0.78rem] leading-5 text-[rgb(var(--text-muted)/0.9)]";
 
@@ -1281,6 +1293,7 @@ type ProgressionInfoMiniSectionKey =
   | "routine_setup"
   | "progression_method"
   | "regression_method"
+  | "failure_toggle"
   | "session_settings"
   | "day_settings"
   | "set_step_settings"
@@ -2302,27 +2315,75 @@ function AlignedInlineMoveArrowButton({
   );
 }
 
+function ProgressionOverlayPanel({
+  children,
+  viewportClassName = SHARED_OVERLAY_PANEL_COMPACT_VIEWPORT_CLASS_NAME,
+}: {
+  children: ReactNode;
+  viewportClassName?: string;
+}) {
+  return (
+    <div className={cn(SHARED_OVERLAY_PANEL_SURFACE_CLASS_NAME, "!bg-[rgb(var(--bg-app))]")}>
+      <div className="pointer-events-none absolute inset-0 z-0 bg-transparent" aria-hidden="true" />
+      <FilterScrollPanel
+        className="relative z-[1] !bg-transparent"
+        showEdgeFades={false}
+        viewportClassName={viewportClassName}
+      >
+        {children}
+      </FilterScrollPanel>
+    </div>
+  );
+}
+
 function ProgressionInfoAccordion({
   children,
   currentSectionTitle,
   currentSectionSummary,
   hasSelection,
+  reserveLayoutSpace = true,
 }: {
   children: ReactNode;
   currentSectionTitle: string;
   currentSectionSummary: string;
   hasSelection: boolean;
+  reserveLayoutSpace?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleExclusiveOverlayOpen = (event: Event) => {
+      const payload = (event as CustomEvent<FitnessOverlayExclusiveDetail>).detail;
+      if (payload?.source !== "filter") {
+        return;
+      }
+
+      setIsOpen(false);
+    };
+
+    window.addEventListener(FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT, handleExclusiveOverlayOpen);
+    return () => window.removeEventListener(FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT, handleExclusiveOverlayOpen);
+  }, []);
+
+  const updateIsOpen = (nextOpen: boolean | ((current: boolean) => boolean)) => {
+    setIsOpen((current) => {
+      const resolvedValue = typeof nextOpen === "function" ? nextOpen(current) : nextOpen;
+      if (resolvedValue) {
+        dispatchFitnessOverlayExclusiveOpen("info");
+      }
+      return resolvedValue;
+    });
+  };
 
   return (
     <RoutineEditorFloatingDropdownChrome
       isOpen={isOpen}
-      onOpenChange={setIsOpen}
+      onOpenChange={updateIsOpen}
       title="Info"
       currentSectionTitle={currentSectionTitle}
       currentSectionSummary={currentSectionSummary}
       hasSelection={hasSelection}
+      reserveLayoutSpace={reserveLayoutSpace}
     >
       {children}
     </RoutineEditorFloatingDropdownChrome>
@@ -2350,6 +2411,10 @@ function RoutineEditorFloatingDropdownChrome({
   reserveLayoutSpace?: boolean;
   blockBackground?: boolean;
 }) {
+  const triggerHeightClassName = "h-[4.1rem]";
+  const triggerBottomClassName = "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))-3.35rem)]";
+  const panelBottomClassName = "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.8rem)]";
+
   return (
     <section className="relative pt-2">
       {isOpen && blockBackground ? (
@@ -2361,30 +2426,26 @@ function RoutineEditorFloatingDropdownChrome({
         />
       ) : null}
       {isOpen ? (
-        <div className="fixed inset-x-0 bottom-[calc(var(--app-mobile-bottom-dock-height,0px)+4.75rem)] z-[70] mx-auto w-full max-w-[720px] px-2">
-          <div
-            className={cn(
-              appTokens.exercisePickerFilterPanel,
-              "mx-auto max-w-[760px] bg-[rgba(var(--bg-app),0.92)] shadow-[0_22px_60px_rgb(0_0_0_/0.42)] backdrop-blur-[18px]",
-            )}
-          >
-            <FilterScrollPanel viewportClassName="max-h-[min(72dvh,44rem)] space-y-2.5">
+        <div className={cn("fixed inset-x-0 z-[70]", panelBottomClassName)}>
+          <div className={BOTTOM_ACTION_SHELL_CLASSNAME}>
+            <ProgressionOverlayPanel viewportClassName={SHARED_OVERLAY_PANEL_EXPANDED_VIEWPORT_CLASS_NAME}>
               {children}
-            </FilterScrollPanel>
+            </ProgressionOverlayPanel>
           </div>
         </div>
       ) : null}
       {reserveLayoutSpace ? (
         <div
           aria-hidden="true"
-          className={isOpen ? "h-[min(78dvh,48rem)]" : "h-[4.25rem]"}
+          className={isOpen ? "h-[min(78dvh,48rem)]" : triggerHeightClassName}
         />
       ) : null}
-      <div className="fixed inset-x-0 bottom-[calc(var(--app-mobile-bottom-dock-height,0px)-0.25rem)] z-[75] mx-auto w-full max-w-[720px] px-1">
-        <button
+      <div className={cn("fixed inset-x-0 z-[75]", triggerBottomClassName)}>
+        <div className={BOTTOM_ACTION_SHELL_CLASSNAME}>
+          <button
             type="button"
             className={cn(
-              "group relative block w-full select-none appearance-none !border-0 !bg-[rgba(var(--bg-app),0.82)] px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
+              "group relative block w-full select-none appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
               appTokens.routineEditorInlineTitle,
             )}
           onClick={() => onOpenChange((current) => !current)}
@@ -2419,7 +2480,8 @@ function RoutineEditorFloatingDropdownChrome({
             </span>
           </span>
           <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />
-        </button>
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -2459,6 +2521,8 @@ export function ProgressionPlaybookEditor({
   onAutoApplyUpdatesToExercisesChange,
   hideExerciseSetSuccessCount = false,
   progressionExampleDayNumber,
+  separateInfoReserveLayoutSpace = true,
+  failureToggleInfoContent = null,
 }: {
   value: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -2500,6 +2564,13 @@ export function ProgressionPlaybookEditor({
   onAutoApplyUpdatesToExercisesChange?: (nextValue: boolean) => void;
   hideExerciseSetSuccessCount?: boolean;
   progressionExampleDayNumber?: number | null;
+  separateInfoReserveLayoutSpace?: boolean;
+  failureToggleInfoContent?: {
+    title: string;
+    summary: string;
+    rows?: Array<{ label: string; value: string }>;
+    sectionKey?: "failure_toggle" | null;
+  } | null;
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [activeInfoSection, setActiveInfoSection] = useState<ActiveProgressionInfoSection>("progression_method");
@@ -2668,6 +2739,11 @@ export function ProgressionPlaybookEditor({
     isRoutineDefaultContext,
     progressionStepPolicy,
   });
+  const visibleCurrentInputMeasurements = Array.from(new Set(
+    visiblePromotionStepFieldIds
+      .map((fieldId) => getDayAdjustmentMeasurementKey(fieldId))
+      .filter((measurement): measurement is SetFlowMeasurementKey => measurement !== null),
+  ));
   const promotionOptions = promotionUiModel?.visibleOptions ?? [
     {
       id: "weight_only" as const,
@@ -2717,6 +2793,57 @@ export function ProgressionPlaybookEditor({
   const setFlowLinks = value.progressionSetFlowLinks;
   const setFlowMeasurementGroups = buildPromotionMeasurementGroups(setFlowMeasurements, setFlowLinks) as SetFlowMeasurementKey[][];
   const defaultSetFlowCount = "3";
+  const visibleSessionPromotionMeasurementsForSettings: SetFlowMeasurementKey[] = visibleCurrentInputMeasurements;
+  const filteredSessionPromotionMeasurementGroupsForSettings = routinePromotionMeasurementGroups
+    .map((group) => group.filter((measurement) => (
+      measurement !== "calories" && visibleSessionPromotionMeasurementsForSettings.includes(measurement)
+    )))
+    .filter((group): group is ProgressionMeasurementKey[] => group.length > 0);
+  const renderedSessionPromotionMeasurements = filteredSessionPromotionMeasurementGroupsForSettings.length > 0
+    ? flattenPromotionMeasurementGroups(filteredSessionPromotionMeasurementGroupsForSettings)
+    : isRoutineDefaultContext
+      ? routinePromotionMeasurements
+      : [];
+  const renderedSessionPromotionLinks = filteredSessionPromotionMeasurementGroupsForSettings.length > 0
+    ? buildPromotionLinksFromGroups(filteredSessionPromotionMeasurementGroupsForSettings)
+    : isRoutineDefaultContext
+      ? routinePromotionLinks
+      : [];
+  const visibleSetFlowMeasurementsForSettings: SetFlowMeasurementKey[] = isRoutineDefaultContext
+    ? visibleCurrentInputMeasurements
+    : Array.from(new Set(
+      visiblePromotionStepFieldIds
+        .map((fieldId) => getDayAdjustmentMeasurementKey(fieldId))
+        .filter((measurement): measurement is SetFlowMeasurementKey => measurement !== null),
+    ));
+  const filteredSetFlowMeasurementGroupsForSettings = setFlowMeasurementGroups
+    .map((group) => group.filter((measurement) => visibleSetFlowMeasurementsForSettings.includes(measurement)))
+    .filter((group): group is SetFlowMeasurementKey[] => group.length > 0);
+  const renderedSetFlowMeasurements = filteredSetFlowMeasurementGroupsForSettings.length > 0
+    ? flattenPromotionMeasurementGroups(filteredSetFlowMeasurementGroupsForSettings) as SetFlowMeasurementKey[]
+    : isRoutineDefaultContext
+      ? setFlowMeasurements
+      : [];
+  const renderedSetFlowLinks = filteredSetFlowMeasurementGroupsForSettings.length > 0
+    ? buildPromotionLinksFromGroups(filteredSetFlowMeasurementGroupsForSettings as ProgressionMeasurementKey[][])
+    : isRoutineDefaultContext
+      ? setFlowLinks
+      : [];
+  const activeSessionMeasurementOrderLabel = formatPromotionMeasurementSequence(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks);
+  const activeSetMeasurementOrderLabel = formatPromotionMeasurementSequence(renderedSetFlowMeasurements as ProgressionMeasurementKey[], renderedSetFlowLinks as PromotionMeasurementConnector[]);
+  const activeSetStepSummary = renderedSetFlowMeasurements.length > 0
+    ? renderedSetFlowMeasurements.map((measurement) => {
+      const label = ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement];
+      const valueLabel = measurement === "weight"
+        ? `${value.progressionSetFlowLoadStep || "-"} ${weightUnit}`
+        : measurement === "reps"
+          ? `${value.progressionSetFlowRepStep || "-"} reps`
+          : measurement === "time"
+            ? `${value.progressionSetFlowDurationStep || "-"}s`
+            : `${value.progressionSetFlowDistanceStep || "-"} ${distanceUnit}`;
+      return `${label} ${valueLabel}`;
+    }).join(" | ")
+    : "No active set-step values";
   const repsParticipateInPromotion = promotionUiModel?.showsRepThresholdControls ?? usesRepsForPromotion(value.progressionPromotionBasis);
   const resolvedRepRangeMin = typeof repRangeMin === "number" ? repRangeMin : null;
   const resolvedRepRangeMax = typeof repRangeMax === "number" ? repRangeMax : null;
@@ -2748,10 +2875,9 @@ export function ProgressionPlaybookEditor({
     && hasRepRangePreview
     && repPromotionTarget !== parseOptionalPositiveInteger(value.progressionCustomRepPromotionTarget);
   const shouldRenderPromotionStepSettings = Boolean(selectedPlaybookId) && visiblePromotionStepFieldIds.length > 0;
-  const shouldRenderDeloadSettings = Boolean(selectedPlaybookId) && value.progressionStallPolicy === "deload_after_stall";
-  const shouldRenderSetStepSettings = Boolean(selectedPlaybookId);
+  const shouldRenderRegressionControls = Boolean(selectedPlaybookId) && (isRoutineDefaultContext || visiblePromotionStepFieldIds.length > 0);
+  const shouldRenderDeloadSettings = shouldRenderRegressionControls && value.progressionStallPolicy === "deload_after_stall";
   const cycleLengthDays = Math.max(1, _cycleLengthDays ?? 7);
-  const shouldRenderProgressionSettingsRow = showProgressionSettingsRow && (shouldRenderPromotionStepSettings || shouldRenderDeloadSettings || shouldRenderSetStepSettings);
   const keyTermRows = PROGRESSION_INFO_TERM_DEFINITIONS
     .filter((term) => [
       "Sets",
@@ -2788,6 +2914,37 @@ export function ProgressionPlaybookEditor({
     };
 
     return visiblePromotionStepFieldIds.map((fieldId) => rowsByFieldId[fieldId]);
+  };
+  const formatActiveMeasurementList = (measurements: ProgressionMeasurementKey[]) => (
+    measurements.length > 0
+      ? measurements.map((measurement) => ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement]).join(" • ")
+      : "No active measurements"
+  );
+  const getDayAdjustmentStepSummary = (variant: "raised" | "lowered") => {
+    const labelsByFieldId: Record<PromotionStepFieldId, string> = {
+      barbellLoad: `Barbell (${weightUnit})`,
+      dumbbellLoad: `Dumbbell (${weightUnit})`,
+      machineLoad: `Machine (${weightUnit})`,
+      cableLoad: `Cable (${weightUnit})`,
+      genericLoad: `Weight (${weightUnit})`,
+      bodyweightReps: "Bodyweight Reps",
+      duration: "Time",
+      distance: `Dist (${distanceUnit})`,
+    };
+    const rowsByFieldId: Record<PromotionStepFieldId, string> = {
+      barbellLoad: `${variant === "raised" ? value.progressionDayLoadStep : value.progressionDayLoweredLoadStep || value.progressionDayLoadStep || "-"} ${weightUnit}`,
+      dumbbellLoad: `${variant === "raised" ? value.progressionDayLoadStep : value.progressionDayLoweredLoadStep || value.progressionDayLoadStep || "-"} ${weightUnit}`,
+      machineLoad: `${variant === "raised" ? value.progressionDayLoadStep : value.progressionDayLoweredLoadStep || value.progressionDayLoadStep || "-"} ${weightUnit}`,
+      cableLoad: `${variant === "raised" ? value.progressionDayLoadStep : value.progressionDayLoweredLoadStep || value.progressionDayLoadStep || "-"} ${weightUnit}`,
+      genericLoad: `${variant === "raised" ? value.progressionDayLoadStep || "-" : value.progressionDayLoweredLoadStep || value.progressionDayLoadStep || "-"} ${weightUnit}`,
+      bodyweightReps: `${variant === "raised" ? value.progressionDayRepStep || "-" : value.progressionDayLoweredRepStep || value.progressionDayRepStep || "-"} reps`,
+      duration: `${variant === "raised" ? value.progressionDayDurationStep || "-" : value.progressionDayLoweredDurationStep || value.progressionDayDurationStep || "-"}s`,
+      distance: `${variant === "raised" ? value.progressionDayDistanceStep || "-" : value.progressionDayLoweredDistanceStep || value.progressionDayDistanceStep || "-"} ${distanceUnit}`,
+    };
+
+    return visiblePromotionStepFieldIds
+      .map((fieldId) => `${labelsByFieldId[fieldId]}: ${rowsByFieldId[fieldId]}`)
+      .join(" | ");
   };
   useEffect(() => {
     const handleRoutineEditorInfo = (event: Event) => {
@@ -2898,7 +3055,8 @@ export function ProgressionPlaybookEditor({
           title: "Session Settings",
           summary: "Session Settings control measurement order, grouping, session count span, and asc or desc direction for the measurements that can progress.",
           rows: [
-            { label: "Order", value: formatPromotionMeasurementSequence(routinePromotionMeasurements, routinePromotionLinks) },
+            { label: "Order", value: activeSessionMeasurementOrderLabel },
+            { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
             { label: "Resolution", value: "Each exercise keeps this order, then drops anything its target does not use or whose step field is blank. Empty measurements are omitted from active AND groups, and active AND groups share session count and direction until the flow advances." },
           ],
         };
@@ -2907,14 +3065,9 @@ export function ProgressionPlaybookEditor({
           title: "Day Adjustment Settings",
           summary: "Day Adjustment Settings shape the target for that cycle day before Session Settings and Set Settings continue the progression flow.",
           rows: [
-            {
-              label: "Display",
-              value: "Day Adjustment Settings stay visible in auto progression and use separate raised and lowered time, distance, rep, and weight steps.",
-            },
-            {
-              label: "Active measurements",
-              value: "Only measurements active in the Session Settings row appear here. Unused measurements stay hidden.",
-            },
+            { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
+            { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
+            { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
             ...getPromotionStepInfoRows(),
             { label: "Effort schedule", value: value.progressionEffortWaveDirections.map((direction, index) => `Day ${index + 1} ${formatSetFlowDirectionGlyph(direction)}`).join(" • ") },
           ],
@@ -2925,9 +3078,11 @@ export function ProgressionPlaybookEditor({
           summary: "Set Settings control within-session set order, grouping, set count, and asc, desc, or straight direction for the active set measurements.",
           rows: [
             { label: "Flow", value: isCustomSetFlow ? "Custom order and grouping per measurement" : selectedSetFlowInfo.label },
+            { label: "Order", value: activeSetMeasurementOrderLabel },
+            { label: "Active measurements", value: formatActiveMeasurementList(renderedSetFlowMeasurements as ProgressionMeasurementKey[]) },
             { label: "Set count", value: "Each active measurement or active AND group holds its own set count span. Grouped sets default to a shared count." },
             { label: "Session effect", value: "Changes the within-session example, quick log targets, and next-set defaults while logging." },
-            { label: "Step", value: `Weight ${value.progressionSetFlowLoadStep || "-"} ${weightUnit} | Reps ${value.progressionSetFlowRepStep || "-"} | Time ${value.progressionSetFlowDurationStep || "-"}s | Dist ${value.progressionSetFlowDistanceStep || "-"} ${distanceUnit}` },
+            { label: "Step", value: activeSetStepSummary },
             { label: "Empty inputs", value: "Blank set-step inputs stay straight, do not show active direction behavior, and are omitted from active grouped set logic." },
           ],
         };
@@ -3082,7 +3237,7 @@ export function ProgressionPlaybookEditor({
       { label: "Order", value: formatPromotionMeasurementSequence(measurements, links) },
       { label: "Resolution", value: "Each exercise keeps this order, then drops anything its target does not use or whose step field is blank. Empty measurements are omitted from active AND groups, and active AND groups share session count and direction until the flow advances." },
     ],
-    sectionKey: "progression_method",
+    sectionKey: "session_settings",
   });
   const getRoutinePromotionStepValuesForState = (
     state: ProgressionPlaybookFormState,
@@ -3710,22 +3865,6 @@ export function ProgressionPlaybookEditor({
       {renderPromotionStepField(fieldId)}
     </div>
   ));
-  const visibleSessionPromotionMeasurementsForSettings: SetFlowMeasurementKey[] = Array.from(new Set(
-    visiblePromotionStepFieldIds
-      .map((fieldId) => getDayAdjustmentMeasurementKey(fieldId))
-      .filter((measurement): measurement is SetFlowMeasurementKey => measurement !== null),
-  ));
-  const filteredSessionPromotionMeasurementGroupsForSettings = routinePromotionMeasurementGroups
-    .map((group) => group.filter((measurement) => (
-      measurement !== "calories" && visibleSessionPromotionMeasurementsForSettings.includes(measurement)
-    )))
-    .filter((group): group is ProgressionMeasurementKey[] => group.length > 0);
-  const renderedSessionPromotionMeasurements = filteredSessionPromotionMeasurementGroupsForSettings.length > 0
-    ? flattenPromotionMeasurementGroups(filteredSessionPromotionMeasurementGroupsForSettings)
-    : routinePromotionMeasurements;
-  const renderedSessionPromotionLinks = filteredSessionPromotionMeasurementGroupsForSettings.length > 0
-    ? buildPromotionLinksFromGroups(filteredSessionPromotionMeasurementGroupsForSettings)
-    : routinePromotionLinks;
   const effortWaveDirections = Array.from(
     { length: cycleLengthDays },
     (_, index) => value.progressionEffortWaveDirections[index] ?? "straight",
@@ -3973,7 +4112,11 @@ export function ProgressionPlaybookEditor({
     isRoutineDefaultContext
       ? routinePromotionMeasurementGroups
       : buildPromotionMeasurementGroups(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks)
-  ) as ProgressionMeasurementKey[][];
+  )
+    .map((group) => group.filter((measurement) => (
+      measurement !== "calories" && visibleCurrentInputMeasurements.includes(measurement as SetFlowMeasurementKey)
+    )))
+    .filter((group): group is ProgressionMeasurementKey[] => group.length > 0);
   const visibleRoutinePromotionMeasurementGroups = examplePromotionMeasurementGroupsSource
     .map((group) => group.filter((measurement) => {
       if (measurement === "calories") {
@@ -4058,7 +4201,9 @@ export function ProgressionPlaybookEditor({
   const visibleProgressionExampleGroups = (
     visibleRoutinePromotionMeasurementGroups.length > 0
       ? visibleRoutinePromotionMeasurementGroups
-      : [["weight"] as ProgressionMeasurementKey[]]
+      : visibleCurrentInputMeasurements.length > 0
+        ? [visibleCurrentInputMeasurements as ProgressionMeasurementKey[]]
+        : []
   ).map((group) => ({
     measurements: [...group],
     sessionCount: resolveExampleGroupSessionCount(group),
@@ -4504,15 +4649,25 @@ export function ProgressionPlaybookEditor({
     reps: number;
     repsCap: number;
     weight: number;
-  }) => formatTargetMeasurements(
-    visibleRoutinePromotionMeasurements.length > 0 ? visibleRoutinePromotionMeasurements : ["weight"],
-    {
-      time: target.time,
-      distance: target.distance,
-      reps: target.reps,
-      weight: target.weight,
-    },
-  );
+  }) => {
+    const measurements = visibleRoutinePromotionMeasurements.length > 0
+      ? visibleRoutinePromotionMeasurements
+      : visibleCurrentInputMeasurements;
+
+    if (measurements.length === 0) {
+      return "—";
+    }
+
+    return formatTargetMeasurements(
+      measurements,
+      {
+        time: target.time,
+        distance: target.distance,
+        reps: target.reps,
+        weight: target.weight,
+      },
+    );
+  };
   const formatExampleTargetMeasurementsFor = (
     measurements: ProgressionMeasurementKey[],
     target: {
@@ -4600,16 +4755,19 @@ export function ProgressionPlaybookEditor({
     isRoutineDefaultContext
       ? setFlowMeasurementGroups
       : setFlowMeasurementGroups
-        .map((group) => group.filter((measurement) => visibleSessionPromotionMeasurementsForSettings.includes(measurement)))
+        .map((group) => group.filter((measurement) => visibleCurrentInputMeasurements.includes(measurement)))
         .filter((group): group is SetFlowMeasurementKey[] => group.length > 0)
   );
+  const fallbackSetFlowExampleMeasurements = activeSetStepMeasurements.filter((measurement) => (
+    visibleCurrentInputMeasurements.includes(measurement)
+  )) as SetFlowMeasurementKey[];
   const visibleSetFlowMeasurementGroups = exampleSetFlowMeasurementGroupsSource
     .map((group) => getActiveSetFlowMeasurementGroup(group, setFlowStepValues))
     .filter((group) => group.length > 0);
   const visibleSetFlowExampleMeasurements = (
     visibleSetFlowMeasurementGroups.length > 0
       ? Array.from(new Set(visibleSetFlowMeasurementGroups.flat()))
-      : activeSetStepMeasurements
+      : fallbackSetFlowExampleMeasurements
   ) as ProgressionMeasurementKey[];
   const resolveExampleSetGroupCount = (group: SetFlowMeasurementKey[]) => {
     const rawValue = resolveSetFlowGroupCountValue({
@@ -4627,7 +4785,7 @@ export function ProgressionPlaybookEditor({
     if (visibleSetFlowMeasurementGroups.length === 0) {
       return Array.from(
         { length: Math.max(1, setCountValue) },
-        (_, setIndex) => applyExampleSetShift(dayShiftedTarget, activeSetStepMeasurements as SetFlowMeasurementKey[], setIndex),
+        (_, setIndex) => applyExampleSetShift(dayShiftedTarget, fallbackSetFlowExampleMeasurements, setIndex),
       );
     }
 
@@ -4902,22 +5060,25 @@ export function ProgressionPlaybookEditor({
       after: pendingRepResetPreview.after,
     });
   }
-  const visibleSetFlowMeasurementsForSettings: SetFlowMeasurementKey[] = isRoutineDefaultContext
-    ? visibleRoutinePromotionMeasurements as SetFlowMeasurementKey[]
-    : Array.from(new Set(
-      visiblePromotionStepFieldIds
-        .map((fieldId) => getDayAdjustmentMeasurementKey(fieldId))
-        .filter((measurement): measurement is SetFlowMeasurementKey => measurement !== null),
-    ));
-  const filteredSetFlowMeasurementGroupsForSettings = setFlowMeasurementGroups
-    .map((group) => group.filter((measurement) => visibleSetFlowMeasurementsForSettings.includes(measurement)))
-    .filter((group): group is SetFlowMeasurementKey[] => group.length > 0);
-  const renderedSetFlowMeasurements = filteredSetFlowMeasurementGroupsForSettings.length > 0
-    ? flattenPromotionMeasurementGroups(filteredSetFlowMeasurementGroupsForSettings) as SetFlowMeasurementKey[]
-    : setFlowMeasurements;
-  const renderedSetFlowLinks = filteredSetFlowMeasurementGroupsForSettings.length > 0
-    ? buildPromotionLinksFromGroups(filteredSetFlowMeasurementGroupsForSettings as ProgressionMeasurementKey[][])
-    : setFlowLinks;
+  const hasDetailedProgressionExampleContent = combinedProgressionExampleRows.length > 0
+    || (shouldUsePromotionRepMeasurement && uniquePreProgressionCycleShiftRows.length > 0);
+  const hasScopedDetailedProgressionExampleContent = scopedCombinedProgressionExampleRows.length > 0
+    || (shouldUsePromotionRepMeasurement && scopedPreProgressionCycleShiftRows.length > 0);
+  const {
+    shouldRenderDayAdjustmentSettings,
+    shouldRenderSessionSettings,
+    shouldRenderSetStepSettings,
+    shouldRenderProgressionSettingsRow,
+  } = resolveProgressionSectionVisibility({
+    context,
+    hasPlaybook: Boolean(selectedPlaybookId),
+    visiblePromotionStepFieldIds,
+    renderedSessionMeasurementCount: renderedSessionPromotionMeasurements.length,
+    renderedSetMeasurementCount: renderedSetFlowMeasurements.length,
+    daySettingFieldCount: daySettingFields.length,
+    stallPolicy: value.progressionStallPolicy,
+    showProgressionSettingsRow,
+  });
   const setFlowSettingsRow = (
     <SetFlowMeasurementStepRow
       measurements={renderedSetFlowMeasurements}
@@ -5291,6 +5452,8 @@ export function ProgressionPlaybookEditor({
           <ProgressionInfoRows
             rows={[
               { label: "Purpose", value: "Controls measurement order, grouping, session count span, and direction for the measurements that can progress." },
+              { label: "Order", value: activeSessionMeasurementOrderLabel },
+              { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
               { label: "Grouped sessions", value: "Active AND groups share one session count and one direction until the session flow advances." },
               { label: "Empty inputs", value: "Blank measurements stay straight, do not show active direction behavior, and are omitted from active grouped session behavior." },
               { label: "Cycle effect", value: "Session Settings drive how progression advances across the routine cycle and how the progression example sequences its session steps." },
@@ -5308,9 +5471,9 @@ export function ProgressionPlaybookEditor({
           <ProgressionInfoRows
             rows={[
               { label: "Purpose", value: "Controls how the effective target adjusts for a cycle day before Session Settings and Set Settings continue the workout flow." },
-              { label: "Raised", value: "Raised settings apply when that day uses the up adjustment." },
-              { label: "Lowered", value: "Lowered settings apply when that day uses the down adjustment." },
-              { label: "Active measurements", value: "Only measurements active in the Session Settings row appear here. Unused measurements stay hidden." },
+              { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
+              { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
+              { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
             ]}
           />
         </ProgressionInfoMiniSection>
@@ -5324,12 +5487,15 @@ export function ProgressionPlaybookEditor({
           <ProgressionInfoRows
             rows={[
               { label: "Purpose", value: "Controls within-session set order, grouping, set count span, and direction for the active set measurements." },
+              { label: "Order", value: activeSetMeasurementOrderLabel },
+              { label: "Active measurements", value: formatActiveMeasurementList(renderedSetFlowMeasurements as ProgressionMeasurementKey[]) },
               {
                 label: "Current flow",
                 value: isCustomSetFlow
                   ? "Custom order and grouping per measurement: each active metric can move independently or share grouped set behavior."
                   : `${selectedSetFlowInfo.label}: ${selectedSetFlowInfo.shortExplanation}`,
               },
+              { label: "Step", value: activeSetStepSummary },
               { label: "Quick Log", value: "Quick Log uses these settings to suggest the next set target inside the current set sequence." },
               { label: "Grouped sets", value: "Active AND groups share one set count and one direction until the set flow advances." },
               { label: "Empty inputs", value: "Blank measurements stay straight and are omitted from active grouped set behavior." },
@@ -5363,6 +5529,17 @@ export function ProgressionPlaybookEditor({
                 { label: "Review", value: "A regression candidate is still an explicit update; it is not auto-applied from the settings screen." },
               ]}
             />
+          </ProgressionInfoMiniSection>
+        ) : null}
+
+        {failureToggleInfoContent ? (
+          <ProgressionInfoMiniSection
+            title={failureToggleInfoContent.title}
+            sectionKey="failure_toggle"
+            openSectionKey={openInfoMiniSectionKey}
+            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
+          >
+            <ProgressionInfoRows rows={failureToggleInfoContent.rows ?? []} />
           </ProgressionInfoMiniSection>
         ) : null}
 
@@ -5402,7 +5579,7 @@ export function ProgressionPlaybookEditor({
                       />
                     </div>
 
-                    {selectedPlaybookId ? (
+                    {shouldRenderRegressionControls ? (
                       <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
                         <div className="space-y-[2px]">
                           <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-yellow-on))]">
@@ -5463,7 +5640,7 @@ export function ProgressionPlaybookEditor({
           </div>
         ) : null}
 
-        {shouldRenderPromotionStepSettings && daySettingFields.length > 0 ? (
+        {shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
           <ProgressionInfoMiniSection title="Day Adjustment Settings">
             <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
               <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
@@ -5473,7 +5650,7 @@ export function ProgressionPlaybookEditor({
           </ProgressionInfoMiniSection>
         ) : null}
 
-        {selectedPlaybookId && supportsPromotionQualificationControls && (promotionOptions.length > 0 || sessionSettingFields.length > 0) ? (
+        {shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0) ? (
           <ProgressionInfoMiniSection title="Session Settings">
             {isRoutineDefaultContext ? (
               <div className="space-y-3.5" {...getInfoSectionHandlers("session_settings")}>
@@ -5550,13 +5727,13 @@ export function ProgressionPlaybookEditor({
           </ProgressionInfoMiniSection>
         ) : null}
 
-        {selectedPlaybookId && !isRoutineDefaultContext ? (
+        {selectedPlaybookId && !isRoutineDefaultContext && hasScopedDetailedProgressionExampleContent ? (
           <ProgressionInfoMiniSection title={<span className={progressionExampleTitleClassName}>Progression Example</span>}>
             {renderDetailedProgressionExample(scopedCombinedProgressionExampleRows, scopedPreProgressionCycleShiftRows)}
           </ProgressionInfoMiniSection>
         ) : null}
 
-        {selectedPlaybookId && isRoutineDefaultContext ? (
+        {selectedPlaybookId && isRoutineDefaultContext && hasDetailedProgressionExampleContent ? (
           <ProgressionControlsSection
             title="Progression Example"
             titleClassName={progressionExampleTitleClassName}
@@ -5872,45 +6049,21 @@ export function ProgressionPlaybookEditor({
     : "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.02rem)]";
   const dockPortalOverlay = (
     <div className="absolute inset-x-0 bottom-[calc(100%+0.35rem)] z-[90] mx-auto w-full px-1">
-      <div
-        className={cn(
-          appTokens.exercisePickerFilterPanel,
-          "relative isolate mx-auto max-w-[760px] overflow-hidden !bg-[rgb(var(--bg-app))] shadow-[0_22px_60px_rgb(0_0_0_/0.42)] backdrop-blur-none",
-        )}
-      >
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[rgb(var(--bg-app))]" aria-hidden="true" />
-        <FilterScrollPanel
-          className="relative z-[1] !bg-[rgb(var(--bg-app))]"
-          showEdgeFades={false}
-          viewportClassName="max-h-[min(46dvh,28rem)] space-y-2.5"
-        >
-          <div className={cn(appTokens.routineEditorCompactStack, "space-y-2.5")}>
-            {progressionControlsContent}
-          </div>
-        </FilterScrollPanel>
-      </div>
+      <ProgressionOverlayPanel>
+        <div className={cn(appTokens.routineEditorCompactStack, "space-y-2.5")}>
+          {progressionControlsContent}
+        </div>
+      </ProgressionOverlayPanel>
     </div>
   );
 
   const progressionFloatingOverlay = (
     <div className={cn("fixed inset-x-0 z-[70] mx-auto w-full max-w-[720px] px-2", progressionFloatingBottomOffsetClassName)}>
-      <div
-        className={cn(
-          appTokens.exercisePickerFilterPanel,
-          "relative isolate mx-auto max-w-[760px] overflow-hidden !bg-[rgb(var(--bg-app))] shadow-[0_22px_60px_rgb(0_0_0_/0.42)] backdrop-blur-none",
-        )}
-      >
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[rgb(var(--bg-app))]" aria-hidden="true" />
-        <FilterScrollPanel
-          className="relative z-[1] !bg-[rgb(var(--bg-app))]"
-          showEdgeFades={false}
-          viewportClassName="max-h-[min(46dvh,28rem)] space-y-2.5"
-        >
-          <div className={cn(appTokens.routineEditorCompactStack, "space-y-2.5")}>
-            {progressionControlsContent}
-          </div>
-        </FilterScrollPanel>
-      </div>
+      <ProgressionOverlayPanel>
+        <div className={cn(appTokens.routineEditorCompactStack, "space-y-2.5")}>
+          {progressionControlsContent}
+        </div>
+      </ProgressionOverlayPanel>
     </div>
   );
   const triggerButton = collapsible ? (
@@ -6085,6 +6238,7 @@ export function ProgressionPlaybookEditor({
           currentSectionTitle={activeInfoContent.title}
           currentSectionSummary={activeInfoContent.summary}
           hasSelection={hasInfoSelection}
+          reserveLayoutSpace={separateInfoReserveLayoutSpace}
         >
           {progressionInfoBox}
         </ProgressionInfoAccordion>

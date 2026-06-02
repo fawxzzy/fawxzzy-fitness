@@ -65,6 +65,13 @@ export function getMissingGoalPreviewLabel(
   return requiredFieldPreviewLabels[field];
 }
 
+export function isMissingCardioTimeOrDistance(values: {
+  duration: string;
+  distance: string;
+}) {
+  return values.duration.trim().length === 0 && values.distance.trim().length === 0;
+}
+
 export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
   requiredFields: GoalValidationResult["requiredFields"];
   optionalFields: MeasurementSelection[];
@@ -224,7 +231,7 @@ export function getGoalMeasurementOrder(modality: GoalModality): MeasurementSele
     case "cardio_time_distance":
       return ["time", "distance", "calories", "reps", "weight"];
     case "bodyweight":
-      return ["reps", "time", "distance", "weight", "calories"];
+      return ["reps", "weight", "time", "distance", "calories"];
     case "strength":
     default:
       return ["reps", "weight", "time", "distance", "calories"];
@@ -337,7 +344,7 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
         return {
           isValid: false,
           requiredFields: ["duration"],
-          message: getMissingGoalMeasurementMessage("duration"),
+          message: "Missing Time or Distance",
         };
       }
       break;

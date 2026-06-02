@@ -25,6 +25,7 @@ import {
   getRestDayExerciseCountSummaryFromCanonicalDay,
   getRestDayExerciseCountSummaryFromCanonicalDayOrFallback,
 } from "@/lib/day-summary";
+import { resolveEditDayAutoProgressionState } from "@/lib/edit-day-progression";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +59,24 @@ function formatDateInTimeZone(date: Date, timeZone: string) {
   const day = parts.find((part) => part.type === "day")?.value;
 
   return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+function formatRoutineBrowseCardSummary(args: {
+  trainingDays: number;
+  restDays: number;
+  exerciseCount: number;
+}) {
+  const safeExerciseCount = Math.max(0, args.exerciseCount);
+  const safeTrainingDays = Math.max(0, args.trainingDays);
+  const safeRestDays = Math.max(0, args.restDays);
+
+  return [
+    safeExerciseCount > 0
+      ? `${safeExerciseCount} ${safeExerciseCount === 1 ? "exercise" : "exercises"}`
+      : "No exercises",
+    `${safeTrainingDays} train`,
+    `${safeRestDays} rest`,
+  ].join(" • ");
 }
 
 async function setActiveRoutineAction(formData: FormData) {
@@ -376,7 +395,7 @@ export default async function RoutinesPage({
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
-          <ContentRail>
+          <ContentRail className="py-1">
             <div id="routines-floating-header" />
           </ContentRail>
         )}
@@ -414,11 +433,24 @@ export default async function RoutinesPage({
                   const restDaysForSummary = dayStats?.restDays ?? 0;
                   const trainingDaysForSummary = Math.max(totalDaysForSummary - restDaysForSummary, 0);
                   const exerciseCountForSummary = exerciseCountByRoutineId.get(routine.id) ?? 0;
-                  return `${totalDaysForSummary} days • ${trainingDaysForSummary} training • ${restDaysForSummary} rest • ${exerciseCountForSummary} exercises`;
+                  return formatRoutineBrowseCardSummary({
+                    trainingDays: trainingDaysForSummary,
+                    restDays: restDaysForSummary,
+                    exerciseCount: exerciseCountForSummary,
+                  });
                 })(),
               }))}
               days={activeRoutine ? sortedActiveRoutineDays.map((day, index) => {
                 const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+                const progressionState = resolveEditDayAutoProgressionState({
+                  exercises: activeRoutineDayExercises
+                    .filter((exercise) => exercise.routine_day_id === day.id)
+                    .map((exercise) => ({
+                      playbookId: exercise.progression_playbook_id ?? null,
+                      config: exercise.progression_playbook_config ?? null,
+                    })),
+                  dayIndex: dayNumber,
+                });
                 return {
                   id: day.id,
                   dayIndex: dayNumber,
@@ -431,6 +463,9 @@ export default async function RoutinesPage({
                   isCompleted: completedDayIndexSet.has(dayNumber),
                   isSkipped: skippedDayIndexSet.has(dayNumber),
                   isInSession: inSessionDayIndex === dayNumber,
+                  dayAdjustmentDirection: progressionState.showDayAdjustmentControl
+                    ? progressionState.initialDayAdjustmentDirection
+                    : null,
                 };
               }) : []}
               setActiveRoutineAction={setActiveRoutineAction}

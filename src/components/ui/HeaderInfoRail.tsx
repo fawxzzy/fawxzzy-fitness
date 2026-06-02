@@ -1,4 +1,7 @@
+ "use client";
+
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -54,11 +57,15 @@ export function HeaderInfoRail({
   ariaLabel,
   emptyFallback = null,
   className,
+  behavior = "static",
+  rotationMs = 3200,
 }: {
   items: HeaderInfoRailItem[];
   ariaLabel?: string;
   emptyFallback?: ReactNode;
   className?: string;
+  behavior?: "static" | "rotate-single";
+  rotationMs?: number;
 }) {
   const visibleItems = items
     .map((item) => ({
@@ -67,8 +74,38 @@ export function HeaderInfoRail({
     }))
     .filter((item) => item.label.length > 0 || (item.value !== null && item.value !== undefined && `${item.value}`.trim().length > 0));
 
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [visibleItems.length, behavior]);
+
+  useEffect(() => {
+    if (behavior !== "rotate-single" || visibleItems.length <= 1) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % visibleItems.length);
+    }, Math.max(1600, rotationMs));
+
+    return () => window.clearInterval(intervalId);
+  }, [behavior, rotationMs, visibleItems.length]);
+
   if (visibleItems.length === 0) {
     return emptyFallback;
+  }
+
+  if (behavior === "rotate-single") {
+    const activeItem = visibleItems[activeIndex] ?? visibleItems[0];
+
+    return (
+      <span aria-label={ariaLabel} className="block w-full">
+        <span className={cn("inline-flex w-full items-center justify-center text-[11.5px] leading-[1.22]", className)}>
+          {renderHeaderInfoRailItem(activeItem)}
+        </span>
+      </span>
+    );
   }
 
   return (

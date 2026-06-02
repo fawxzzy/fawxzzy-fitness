@@ -1,4 +1,4 @@
-import { createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
+import { buildProgressionPlaybookConfigFromFormState, createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import type { SetFlowDirection } from "@/lib/set-flow-directions";
 
 type EditDayProgressionExerciseConfig = {
@@ -47,4 +47,40 @@ export function resolveEditDayAutoProgressionState(args: {
       ? uniqueDirections[0]!
       : "straight",
   };
+}
+
+export function applyEditDayAdjustmentDirectionToProgressionConfig(args: EditDayProgressionExerciseConfig & {
+  dayIndex: number;
+  cycleLengthDays: number;
+  direction: SetFlowDirection;
+}) {
+  if (!args.playbookId || args.dayIndex < 1) {
+    return null;
+  }
+
+  const state = createProgressionPlaybookFormState({
+    playbookId: args.playbookId,
+    config: args.config ?? null,
+  });
+
+  if (!state.progressionPlaybookId) {
+    return null;
+  }
+
+  const totalDays = Math.max(
+    1,
+    args.dayIndex,
+    args.cycleLengthDays,
+    state.progressionEffortWaveDirections.length,
+  );
+  const nextDirections = Array.from(
+    { length: totalDays },
+    (_, index) => state.progressionEffortWaveDirections[index] ?? "straight",
+  );
+  nextDirections[args.dayIndex - 1] = args.direction;
+
+  return buildProgressionPlaybookConfigFromFormState({
+    ...state,
+    progressionEffortWaveDirections: nextDirections,
+  });
 }

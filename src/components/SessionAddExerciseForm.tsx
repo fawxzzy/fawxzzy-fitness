@@ -79,7 +79,7 @@ export function SessionAddExerciseForm({
                     onClick={openExerciseInfo}
                     disabled={!selectedCanonicalExerciseId}
                   >
-                    View
+                    Inspect
                   </BottomDockButton>
                 )}
                 primary={(

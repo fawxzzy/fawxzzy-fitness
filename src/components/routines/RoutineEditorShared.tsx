@@ -326,9 +326,12 @@ export function RoutineEditorAddExerciseFlowShell({
   weightUnit,
   exerciseStats,
   onSelectedExerciseChange,
+  onApplyLastSelection,
+  onClearLastSelection,
   renderFooter,
   goalExtraContent,
   goalBetweenInputsAndPreviewContent,
+  goalDockViewportMode,
   footerSlot,
   name = "exerciseId",
   customExerciseEnabled = false,
@@ -340,9 +343,12 @@ export function RoutineEditorAddExerciseFlowShell({
   weightUnit?: "lbs" | "kg";
   exerciseStats?: ExerciseStatsOption[];
   onSelectedExerciseChange?: ComponentProps<typeof ExercisePicker>["onSelectedExerciseChange"];
+  onApplyLastSelection?: ComponentProps<typeof ExercisePicker>["onApplyLastSelection"];
+  onClearLastSelection?: ComponentProps<typeof ExercisePicker>["onClearLastSelection"];
   renderFooter?: ComponentProps<typeof ExercisePicker>["renderFooter"];
   goalExtraContent?: ComponentProps<typeof ExercisePicker>["goalExtraContent"];
   goalBetweenInputsAndPreviewContent?: ComponentProps<typeof ExercisePicker>["goalBetweenInputsAndPreviewContent"];
+  goalDockViewportMode?: ComponentProps<typeof ExercisePicker>["goalDockViewportMode"];
   footerSlot?: ReactNode;
   name?: string;
   customExerciseEnabled?: boolean;
@@ -355,11 +361,14 @@ export function RoutineEditorAddExerciseFlowShell({
       initialCustomExerciseDraft={initialCustomExerciseDraft}
       selectionSearchParam={selectionSearchParam}
       onSelectedExerciseChange={onSelectedExerciseChange}
+      onApplyLastSelection={onApplyLastSelection}
+      onClearLastSelection={onClearLastSelection}
       routineTargetConfig={weightUnit ? { weightUnit } : undefined}
       exerciseStats={exerciseStats}
       renderFooter={renderFooter}
       goalExtraContent={goalExtraContent}
       goalBetweenInputsAndPreviewContent={goalBetweenInputsAndPreviewContent}
+      goalDockViewportMode={goalDockViewportMode}
       footerSlot={footerSlot}
       customExerciseEnabled={customExerciseEnabled}
     />

@@ -36,7 +36,7 @@ export function RoutinesRouteHeaderCard({
   subtitle?: ReactNode;
   action?: ReactNode;
 }) {
-  return <SharedScreenHeader recipe="routinesOverview" title={title} subtitle={subtitle} action={action} align="center" />;
+  return <SharedScreenHeader recipe="routinesOverview" withPanel={false} title={title} subtitle={subtitle} action={action} align="center" />;
 }
 
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {

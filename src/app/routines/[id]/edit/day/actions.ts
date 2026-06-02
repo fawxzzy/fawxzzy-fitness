@@ -6,7 +6,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { validateExerciseEquipment, validateExerciseName, validateMovementPattern } from "@/lib/exercises";
 import { buildCustomExerciseInsertPayload } from "@/lib/custom-exercise-payload";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
+import { getRoutineEditPath, getTodayPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import { insertRoutineDayExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
@@ -220,7 +220,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     }
   }
 
-  revalidateRoutineEditPaths(routineId, routineDayId);
+  revalidateRoutinesViews();
   return { ok: true };
 }
 
@@ -348,7 +348,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     return { ok: false, error: error.message };
   }
 
-  revalidateRoutineEditPaths(routineId, routineDayId);
+  revalidateRoutinesViews();
   return { ok: true };
 }
 
@@ -440,7 +440,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
     });
   }
 
-  revalidateRoutineEditPaths(routineId, routineDayId);
+  revalidateRoutinesViews();
   return { ok: true };
 }
 
@@ -487,6 +487,7 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
+  revalidateRoutinesViews();
   return { ok: true };
 }
 
@@ -513,5 +514,6 @@ export async function deleteRoutineDayExerciseAction(formData: FormData): Promis
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
+  revalidateRoutinesViews();
   return { ok: true };
 }

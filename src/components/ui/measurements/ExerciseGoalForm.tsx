@@ -27,6 +27,50 @@ export type ExerciseGoalFormState = {
   measurements: MeasurementSelection[];
 };
 
+export type RoutineEditorInfoPayload = {
+  title: string;
+  summary: string;
+  rows?: Array<{ label: string; value: string }>;
+  sectionKey?: "failure_toggle" | null;
+};
+
+export function supportsFailureToggleForGoalModality(modality: GoalModality) {
+  return modality === "strength" || modality === "bodyweight";
+}
+
+export function buildFailureToggleInfoPayload({
+  modality,
+  state,
+  isFailureMode,
+}: {
+  modality: GoalModality;
+  state: ExerciseGoalFormState;
+  isFailureMode: boolean;
+}): RoutineEditorInfoPayload | null {
+  if (!supportsFailureToggleForGoalModality(modality)) {
+    return null;
+  }
+
+  const repTargetLabel = state.repsMin.trim().length > 0
+    ? state.repsMax.trim().length > 0 && state.repsMax.trim() !== state.repsMin.trim()
+      ? `${state.repsMin.trim()}-${state.repsMax.trim()} reps`
+      : `${state.repsMin.trim()} reps`
+    : "No rep target entered yet";
+
+  return {
+    title: "Reps / Failure Toggle",
+    summary: isFailureMode
+      ? "Till Failure turns the goal into a failure-based effort target."
+      : "Reps-Based keeps explicit rep targets active in the goal row.",
+    rows: [
+      { label: "Selected", value: isFailureMode ? "Till Failure" : "Reps-Based" },
+      { label: "Effect", value: isFailureMode ? "Rep inputs collapse and the exercise targets effort to failure instead of a fixed rep count." : "Rep inputs stay active and progression can qualify against the rep target you enter." },
+      { label: "Current reps", value: isFailureMode ? "Rep target hidden while failure mode is on." : repTargetLabel },
+    ],
+    sectionKey: "failure_toggle",
+  };
+}
+
 function parseDurationInput(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -57,6 +101,7 @@ export function ExerciseGoalForm({
   visibleMetrics,
   visibleMetricOrder,
   measurementLayoutMode = "grid",
+  onInfoRequest,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -74,6 +119,7 @@ export function ExerciseGoalForm({
   visibleMetrics?: Array<keyof MeasurementMetrics>;
   visibleMetricOrder?: Array<keyof MeasurementMetrics>;
   measurementLayoutMode?: "grid" | "horizontal-scroll";
+  onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
@@ -132,12 +178,31 @@ export function ExerciseGoalForm({
   });
   const shouldHideEmptySummary = hideEmptySummary ?? showValidationMessage;
   const setsHasValue = Boolean(state.sets.trim());
+  const publishFailureToggleInfo = (overrideIsFailureMode?: boolean) => {
+    const payload = buildFailureToggleInfoPayload({
+      modality,
+      state,
+      isFailureMode: overrideIsFailureMode ?? isFailureMode,
+    });
+    if (!payload) {
+      return;
+    }
+
+    onInfoRequest?.(payload);
+    window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+      detail: payload,
+    }));
+  };
   const failureToggleRow = supportsFailure ? (
-    <div className="flex justify-center">
-      <div className="w-full max-w-[8.5rem] space-y-[5px] text-center">
+    <div
+      className="flex justify-center"
+      onFocusCapture={() => publishFailureToggleInfo()}
+      onPointerDownCapture={() => publishFailureToggleInfo()}
+    >
+      <div className="w-full max-w-[12rem] space-y-[5px] text-center">
         <div className="mx-auto w-fit max-w-full space-y-[2px]">
           <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-            Rep / Failure Toggle
+            Reps / Failure Toggle
           </p>
           <MetricAccentBar variant="thin" className="w-full opacity-80" />
         </div>
@@ -150,14 +215,18 @@ export function ExerciseGoalForm({
           )}
           aria-pressed={isFailureMode}
           aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
-          onClick={() => onStateChange({
-            ...state,
-            failure: !isFailureMode,
-          })}
+          onClick={() => {
+            const nextIsFailureMode = !isFailureMode;
+            onStateChange({
+              ...state,
+              failure: nextIsFailureMode,
+            });
+            publishFailureToggleInfo(nextIsFailureMode);
+          }}
         >
           <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
             <span className="measurement-toggle__label">
-            {isFailureMode ? "Till Failure" : "Rep-Based"}
+            {isFailureMode ? "Till Failure" : "Reps-Based"}
             </span>
             <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
           </span>

@@ -25,6 +25,7 @@ type StandardExerciseRowProps = {
     thumbnailSource?: ExerciseThumbSourceKind | null;
   };
   summary?: ExerciseGoalSummaryValue;
+  summaryContent?: ReactNode;
   subtitle?: ExerciseGoalSummaryValue;
   onPress?: () => void;
   badgeText?: string;
@@ -69,6 +70,7 @@ type StandardExerciseRowProps = {
 export function StandardExerciseRow({
   exercise,
   summary,
+  summaryContent,
   subtitle,
   onPress,
   badgeText,
@@ -111,9 +113,11 @@ export function StandardExerciseRow({
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const hasMeaningfulSummary = hasMeaningfulExerciseGoalSummary(resolvedSummary);
-  const resolvedSubtitle = hideEmptySummary && !hasMeaningfulSummary
-    ? undefined
-    : getExerciseGoalSummaryText(resolvedSummary);
+  const resolvedSubtitle = summaryContent ?? (
+    hideEmptySummary && !hasMeaningfulSummary
+      ? undefined
+      : getExerciseGoalSummaryText(resolvedSummary)
+  );
   const resolvedState = state ?? (hideEmptySummary && !hasMeaningfulSummary ? "default" : getExerciseGoalSummaryState(resolvedSummary));
   const resolvedDensity = density ?? (variant === "standard" || variant === "expanded" || variant === "summary" ? "detailed" : "compact");
   const usesCompactDensity = resolvedDensity === "compact";

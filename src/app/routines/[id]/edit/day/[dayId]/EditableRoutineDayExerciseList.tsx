@@ -9,11 +9,12 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
-import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { type ExerciseGoalFormState, type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
+import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
+import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
@@ -22,6 +23,7 @@ import { deriveGoalMeasurementSelections, resolveGoalModality, type GoalModality
 import {
   createEditDayExerciseDraft,
   formatEditDayExerciseDraftSummary,
+  resolveEditDayAdjustedSummary,
   resolveEditDayExercisePreview,
   type EditDayExerciseDraft,
 } from "@/lib/edit-day-exercise-draft";
@@ -35,28 +37,27 @@ import {
   createProgressionPlaybookFormState,
   createProgressionPlaybookFormStateForTrainingGoal,
   isTrainingGoalCustomized,
-  type ProgressionPlaybookFormState,
 } from "@/lib/progression-playbook-form-state";
 import {
-  buildProgressionPromotionUiModel,
-  getVisiblePromotionStepFieldsForGoal,
-  type PromotionStepFieldId,
-} from "@/lib/progression-playbook-ui-options";
-import {
   inferProgressionStepPolicy,
-  type ProgressionStepPolicy,
 } from "@/lib/progression-step-policy";
+import { seedProgressionDraftWithStepValue } from "@/lib/progression-step-seeding";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
-import { publishEditDayAutoProgressionVisibility, publishEditDayCloseExpandedCard, publishScreenFocusMode, publishScreenMode, subscribeEditDayCloseExpandedCard } from "@/lib/screen-focus-mode";
+import {
+  publishEditDayAutoProgressionVisibility,
+  publishEditDayCloseExpandedCard,
+  publishScreenFocusMode,
+  publishScreenMode,
+  subscribeEditDayAdjustmentDirection,
+  subscribeEditDayAutoProgressionVisibility,
+  subscribeEditDayCloseExpandedCard,
+} from "@/lib/screen-focus-mode";
 import type { TrainingGoalId } from "@/lib/progression-playbooks";
-
-function hasTextValue(value: string | null | undefined) {
-  return typeof value === "string" && value.trim().length > 0;
-}
+import type { SetFlowDirection } from "@/lib/set-flow-directions";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -108,6 +109,8 @@ type Props = {
   addExerciseHref: string;
   routineDefaultProgressionPlaybookId?: ProgressionPlaybookId | null;
   routineDefaultProgressionPlaybookConfig?: Record<string, unknown> | null;
+  showDayAdjustmentControl: boolean;
+  initialDayAdjustmentDirection: SetFlowDirection;
 };
 
 type DragState = {
@@ -127,10 +130,12 @@ function RoutineTargetInputs({
   state,
   onStateChange,
   modality,
+  onInfoRequest,
 }: {
   state: ExerciseGoalFormState;
   onStateChange: (next: ExerciseGoalFormState) => void;
   modality: GoalModality;
+  onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
 }) {
   return (
     <div className={appTokens.routineEditorCompactStack}>
@@ -152,6 +157,7 @@ function RoutineTargetInputs({
         emptySummaryLabel="Goal missing"
         hideSummary
         measurementLayoutMode="horizontal-scroll"
+        onInfoRequest={onInfoRequest}
       />
     </div>
   );
@@ -194,121 +200,46 @@ function HiddenRoutineTargetInputs({
   );
 }
 
-function ProgressionPlaybookInputs({
-  draft,
-  onDraftChange,
-  weightUnit,
-  distanceUnit,
-  cycleLengthDays,
-  progressionExampleDayNumber,
-  routineDefaultValue,
-  onApplyRoutineDefault,
-  progressionStepLabel,
-  progressionStepPolicy,
-  visiblePromotionStepFields,
-  promotionUiModel,
-  repRangeMin,
-  repRangeMax,
-  trainingFocusValue,
-  trainingFocusCustomized,
-  onTrainingFocusChange,
-  hideExerciseSetSuccessCount = false,
-}: {
-  draft: EditDayExerciseDraft;
-  onDraftChange: (nextDraft: EditDayExerciseDraft) => void;
-  weightUnit: "lbs" | "kg";
-  distanceUnit: FitnessDistanceUnit;
-  cycleLengthDays: number;
-  progressionExampleDayNumber?: number | null;
-  routineDefaultValue: ProgressionPlaybookFormState;
-  onApplyRoutineDefault: () => void;
-  progressionStepLabel?: string | null;
-  progressionStepPolicy?: ProgressionStepPolicy | null;
-  visiblePromotionStepFields?: PromotionStepFieldId[] | null;
-  promotionUiModel?: import("@/lib/progression-playbook-ui-options").ProgressionPromotionUiModel | null;
-  repRangeMin?: number | null;
-  repRangeMax?: number | null;
-  trainingFocusValue: TrainingGoalId | "";
-  trainingFocusCustomized: boolean;
-  onTrainingFocusChange: (goal: TrainingGoalId) => void;
-  hideExerciseSetSuccessCount?: boolean;
-}) {
-  return (
-    <ProgressionPlaybookEditor
-      value={draft}
-      onChange={(nextValue) => onDraftChange({ ...draft, ...nextValue })}
-      weightUnit={weightUnit}
-      distanceUnit={distanceUnit}
-      title=""
-      context="exercise"
-      routineDefaultValue={routineDefaultValue}
-      onApplyRoutineDefault={onApplyRoutineDefault}
-      showDefaultState
-      collapsible={false}
-      separateInfoBox
-      cycleLengthDays={cycleLengthDays}
-      progressionExampleDayNumber={progressionExampleDayNumber}
-      progressionStepLabel={progressionStepLabel}
-      progressionStepPolicy={progressionStepPolicy}
-      visiblePromotionStepFields={visiblePromotionStepFields}
-      promotionUiModel={promotionUiModel}
-      repRangeMin={repRangeMin}
-      repRangeMax={repRangeMax}
-      trainingFocusValue={trainingFocusValue}
-      trainingFocusCustomized={trainingFocusCustomized}
-      onTrainingFocusChange={onTrainingFocusChange}
-      hideExerciseSetSuccessCount={hideExerciseSetSuccessCount}
-    />
-  );
-}
-
-function formatStepNumber(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-}
-
-function getProgressionStepFieldLabel(policy: ReturnType<typeof inferProgressionStepPolicy>, weightUnit: "lbs" | "kg") {
-  if (!policy.label) {
-    return `STEP (${weightUnit})`;
-  }
-
-  if (policy.unit === "seconds") {
-    return "DURATION STEP";
-  }
-
-  if (policy.unit === "reps") {
-    return "REP STEP";
-  }
-
-  if (policy.unit === "mi" || policy.unit === "km") {
-    return `DISTANCE STEP (${policy.unit})`;
-  }
-
-  if (policy.unit === "lbs" || policy.unit === "kg") {
-    return `${policy.label.toUpperCase()} (${policy.unit})`;
-  }
-
-  return policy.label.toUpperCase();
-}
-
-function applyProgressionStepSeed(
-  state: ProgressionPlaybookFormState,
-  policy: ReturnType<typeof inferProgressionStepPolicy>,
-) {
-  if (!state.progressionPlaybookId || !policy.defaultValue) {
-    return state;
-  }
-
-  return {
-    ...state,
-    progressionLoadIncrement: formatStepNumber(policy.defaultValue),
-  };
-}
-
 const CARD_REORDER_HANDLE_CLASS_NAME = cn(
   appTokens.routineEditorReorderHandle,
   "relative z-[1] h-8 w-8 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
+
+function EditDayAdjustedSummaryPreview({
+  currentSummary,
+  adjustedSummary,
+  direction,
+}: {
+  currentSummary: string;
+  adjustedSummary: string;
+  direction: SetFlowDirection;
+}) {
+  const arrowColor = direction === "up"
+    ? "rgb(var(--accent))"
+    : "rgb(var(--danger-rgb))";
+
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <AccentDotSeparatedText
+        text={currentSummary}
+        className="min-w-0 text-[rgb(var(--text-secondary)/0.84)]"
+        itemClassName="truncate"
+      />
+      <span
+        className="inline-flex min-w-4 items-center justify-center"
+        style={{ color: arrowColor }}
+      >
+        <span className="text-[12px] font-bold leading-none">{"\u2192"}</span>
+      </span>
+      <AccentDotSeparatedText
+        text={adjustedSummary}
+        className="min-w-0 text-[rgb(var(--text-primary)/0.96)]"
+        itemClassName="truncate"
+      />
+    </span>
+  );
+}
 
 export function EditableRoutineDayExerciseList({
   routineId,
@@ -324,6 +255,8 @@ export function EditableRoutineDayExerciseList({
   addExerciseHref,
   routineDefaultProgressionPlaybookId,
   routineDefaultProgressionPlaybookConfig,
+  showDayAdjustmentControl,
+  initialDayAdjustmentDirection,
 }: Props) {
   const toast = useToast();
   const router = useRouter();
@@ -338,6 +271,8 @@ export function EditableRoutineDayExerciseList({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
   const [trainingFocusById, setTrainingFocusById] = useState<Record<string, TrainingGoalId | "">>({});
+  const [isDayAdjustmentVisible, setIsDayAdjustmentVisible] = useState(showDayAdjustmentControl);
+  const [dayAdjustmentDirection, setDayAdjustmentDirection] = useState<SetFlowDirection>(initialDayAdjustmentDirection);
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
   const pendingSnapshotRef = useRef<string | null>(null);
@@ -365,6 +300,14 @@ export function EditableRoutineDayExerciseList({
   useEffect(() => {
     setIsRestDay(initialIsRest);
   }, [initialIsRest]);
+
+  useEffect(() => {
+    setIsDayAdjustmentVisible(showDayAdjustmentControl);
+  }, [showDayAdjustmentControl]);
+
+  useEffect(() => {
+    setDayAdjustmentDirection(initialDayAdjustmentDirection);
+  }, [initialDayAdjustmentDirection]);
 
   useEffect(() => () => {
     if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
@@ -565,6 +508,9 @@ export function EditableRoutineDayExerciseList({
     setExpandedId(null);
   }), [flushAutosave]);
 
+  useEffect(() => subscribeEditDayAutoProgressionVisibility(setIsDayAdjustmentVisible), []);
+  useEffect(() => subscribeEditDayAdjustmentDirection(setDayAdjustmentDirection), []);
+
   const editModeActive = expandedId !== null;
   const modeViewModel = getDayEditorModeViewModel({
     isRestDay,
@@ -629,7 +575,7 @@ export function EditableRoutineDayExerciseList({
     });
   }, [hasVisibleAutoProgression]);
 
-  const addExerciseLabel = NORMALIZED_ACTION_LABELS.add;
+  const addExerciseLabel = "Add Exercise";
 
   const handleAddExercisePress = () => {
     if (addExerciseNavigationLockedRef.current) return;
@@ -740,27 +686,58 @@ export function EditableRoutineDayExerciseList({
           mode="editable"
           showOrderBadges={false}
           items={visibleItems.map((exercise) => ({
-            ...resolveEditDayExercisePreview({
+            ...(() => {
+              const draftForPreview = expandedId === exercise.id
+                ? getExerciseDraft(exercise)
+                : createEditDayExerciseDraft({
+                    defaults: exercise.defaults,
+                    weightUnit,
+                    distanceUnit: exercise.defaultDistanceUnit,
+                    orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+                    modality: resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name),
+                  });
+              const preview = resolveEditDayExercisePreview({
               savedSummary: exercise.targetSummary,
               savedOrderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
-              draft: expandedId === exercise.id ? getExerciseDraft(exercise) : null,
+              draft: expandedId === exercise.id ? draftForPreview : null,
               listLength: items.length,
-            }),
-            id: exercise.id,
-            name: exercise.name,
-            measurementType: exercise.measurementType,
-            primary_muscle: exercise.primary_muscle,
-            equipment: exercise.equipment,
-            movement_pattern: exercise.movement_pattern,
-            isCardio: exercise.isCardio,
-            kind: exercise.kind,
-            type: exercise.type,
-            tags: exercise.tags,
-            categories: exercise.categories,
-            slug: exercise.slug,
-            image_path: exercise.image_path,
-            image_icon_path: exercise.image_icon_path,
-            image_howto_path: exercise.image_howto_path,
+              });
+              const adjustedPreview = isDayAdjustmentVisible
+                ? resolveEditDayAdjustedSummary({
+                    draft: draftForPreview,
+                    measurementType: exercise.measurementType,
+                    dayIndex: dayIndex ?? 1,
+                    cycleLengthDays,
+                    direction: dayAdjustmentDirection,
+                  })
+                : null;
+
+              return {
+                ...preview,
+                id: exercise.id,
+                name: exercise.name,
+                measurementType: exercise.measurementType,
+                primary_muscle: exercise.primary_muscle,
+                equipment: exercise.equipment,
+                movement_pattern: exercise.movement_pattern,
+                isCardio: exercise.isCardio,
+                kind: exercise.kind,
+                type: exercise.type,
+                tags: exercise.tags,
+                categories: exercise.categories,
+                slug: exercise.slug,
+                image_path: exercise.image_path,
+                image_icon_path: exercise.image_icon_path,
+                image_howto_path: exercise.image_howto_path,
+                summaryContent: adjustedPreview ? (
+                  <EditDayAdjustedSummaryPreview
+                    currentSummary={adjustedPreview.currentSummary}
+                    adjustedSummary={adjustedPreview.adjustedSummary}
+                    direction={dayAdjustmentDirection}
+                  />
+                ) : undefined,
+              };
+            })()
           }))}
           activeItemId={expandedId}
           renderOverlayActions={(item) => expandedId === item.id ? null : renderReorderHandle(item.id, item.name)}
@@ -800,24 +777,6 @@ export function EditableRoutineDayExerciseList({
               exerciseOverrideValue: Number(draft.progressionLoadIncrement),
               stepOverrides: draftProgressionConfig?.stepOverrides ?? routineDefaultProgressionConfig?.stepOverrides ?? null,
             });
-            const visiblePromotionStepFields = getVisiblePromotionStepFieldsForGoal({
-              modality,
-              values: draft.goalState,
-              policy: progressionStepPolicy,
-            });
-            const promotionUiModel = buildProgressionPromotionUiModel({
-              context: "exercise",
-              promotionBasis: draft.progressionPromotionBasis,
-              modality,
-              values: draft.goalState,
-            });
-            const progressionStepLabel = getProgressionStepFieldLabel(progressionStepPolicy, weightUnit);
-            const repRangeMin = hasTextValue(draft.goalState.repsMin)
-              ? Number(draft.goalState.repsMin)
-              : null;
-            const repRangeMax = hasTextValue(draft.goalState.repsMax)
-              ? Number(draft.goalState.repsMax)
-              : repRangeMin;
             const selectedTrainingFocus = trainingFocusById[exercise.id] ?? "";
             return (
               <div className={appTokens.routineEditorCompactStack}>
@@ -916,11 +875,17 @@ export function EditableRoutineDayExerciseList({
                       <HiddenRoutineTargetInputs state={draft.goalState} modality={modality} />
                     )}
                     {showProgressionInputs ? (
-                      <ProgressionPlaybookInputs
+                      <ExerciseProgressionEditorSurface
                         draft={draft}
-                        onDraftChange={(nextDraft) => updateExerciseDraft(exercise, () => nextDraft)}
+                        onChange={(nextValue) => updateExerciseDraft(exercise, (current) => ({ ...current, ...nextValue }))}
+                        goalState={draft.goalState}
+                        modality={modality}
                         weightUnit={weightUnit}
                         distanceUnit={exercise.defaultDistanceUnit}
+                        exerciseMeasurementType={exercise.measurementType}
+                        exerciseEquipment={exercise.equipment}
+                        exerciseMovementPattern={exercise.movement_pattern ?? null}
+                        exerciseName={exercise.name}
                         cycleLengthDays={cycleLengthDays}
                         progressionExampleDayNumber={dayIndex}
                         routineDefaultValue={routineDefaultProgression}
@@ -930,12 +895,6 @@ export function EditableRoutineDayExerciseList({
                             ...routineDefaultProgression,
                           }));
                         }}
-                        progressionStepLabel={progressionStepLabel}
-                        progressionStepPolicy={progressionStepPolicy}
-                        visiblePromotionStepFields={visiblePromotionStepFields}
-                        promotionUiModel={promotionUiModel}
-                        repRangeMin={Number.isFinite(repRangeMin) ? repRangeMin : null}
-                        repRangeMax={Number.isFinite(repRangeMax) ? repRangeMax : null}
                         trainingFocusValue={selectedTrainingFocus}
                         trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingFocus, draft)}
                         onTrainingFocusChange={(goal) => {
@@ -945,9 +904,9 @@ export function EditableRoutineDayExerciseList({
                           }));
                           updateExerciseDraft(exercise, (current) => ({
                             ...current,
-                            ...applyProgressionStepSeed(
+                            ...seedProgressionDraftWithStepValue(
                               createProgressionPlaybookFormStateForTrainingGoal(goal),
-                              progressionStepPolicy,
+                              progressionStepPolicy.defaultValue,
                             ),
                           }));
                         }}

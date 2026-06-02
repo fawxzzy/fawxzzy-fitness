@@ -237,6 +237,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           addExerciseHref={addExerciseHref}
           routineDefaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
           routineDefaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
+          showDayAdjustmentControl={showDayAdjustmentControl}
+          initialDayAdjustmentDirection={initialDayAdjustmentDirection}
         />
       </DetailScreenScaffold>
     </AppShell>

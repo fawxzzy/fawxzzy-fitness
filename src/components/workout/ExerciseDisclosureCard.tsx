@@ -32,6 +32,7 @@ export function ExerciseDisclosureCard({
   onToggle,
   exercise,
   summary,
+  summaryContent,
   summaryLabel = "Goal",
   badgeText,
   state = "default",
@@ -71,6 +72,7 @@ export function ExerciseDisclosureCard({
   onToggle: () => void;
   exercise: ExerciseCardVisual;
   summary?: ExerciseGoalSummaryValue;
+  summaryContent?: ReactNode;
   summaryLabel?: string;
   badgeText?: string;
   state?: ExerciseCardState;
@@ -127,6 +129,7 @@ export function ExerciseDisclosureCard({
         <StandardExerciseRow
           exercise={exercise}
           summary={summary}
+          summaryContent={summaryContent}
           summaryLabel={summaryLabel}
           variant={variant}
           density={density}

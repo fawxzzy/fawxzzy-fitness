@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -11,6 +12,7 @@ export type DayDetailExerciseListItem = {
   id: string;
   name: string;
   summary: string | null;
+  summaryContent?: ReactNode;
   orderNumber: number;
   measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
@@ -62,6 +64,7 @@ export function DayDetailExerciseList({
         const isActive = activeItemId === item.id;
         const isStretchHub = isStretchHubExercise(item);
         const resolvedSummary = isStretchHub ? undefined : item.summary;
+        const resolvedSummaryContent = isStretchHub ? undefined : item.summaryContent;
         const exerciseVisual = {
           name: item.name,
           slug: item.slug,
@@ -80,6 +83,7 @@ export function DayDetailExerciseList({
                 onToggle={() => onSelectItem?.(item)}
                 exercise={exerciseVisual}
                 summary={resolvedSummary}
+                summaryContent={resolvedSummaryContent}
                 summaryLabel={isStretchHub ? "" : "Goal"}
                 state={isActive ? "selected" : "default"}
                 badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
@@ -88,10 +92,16 @@ export function DayDetailExerciseList({
                 showLeadingVisual={policy.showMedia}
                 showAccentRail={!isStretchHub}
                 hideEmptySummary={isStretchHub}
-                rightIconMode="overlay"
+                rightIconMode={isActive ? "overlay" : "rail"}
                 overlayActions={renderOverlayActions?.(item)}
-                overlayActionsClassName="right-[2.95rem]"
-                rightRailClassName={mode === "editable" ? "right-[0.8rem] top-1/2 -translate-y-1/2" : undefined}
+                overlayActionsClassName="right-[3.7rem]"
+                rightRailClassName={mode === "editable"
+                  ? (
+                    isActive
+                      ? "right-[0.8rem] top-1/2 -translate-y-1/2"
+                      : "min-w-[2.6rem] pr-[0.35rem]"
+                  )
+                  : undefined}
                 stickyHeaderWhenExpanded={mode === "editable"}
               >
                 {renderExpandedContent?.(item)}
@@ -100,6 +110,7 @@ export function DayDetailExerciseList({
               <StandardExerciseRow
                 exercise={exerciseVisual}
                 summary={resolvedSummary}
+                summaryContent={resolvedSummaryContent}
                 summaryLabel={mode === "editable" ? (isStretchHub ? "" : "Goal") : undefined}
                 subtitleTone="plain"
                 variant={interactive ? "interactive" : "standard"}

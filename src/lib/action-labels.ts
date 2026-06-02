@@ -13,5 +13,5 @@ export const NORMALIZED_ACTION_LABELS = {
   sessions: "Sessions",
   training: "Training",
   resting: "Resting",
-  view: "View",
+  view: "Inspect",
 } as const;

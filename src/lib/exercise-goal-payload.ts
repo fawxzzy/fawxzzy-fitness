@@ -316,7 +316,11 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
     return { ok: false, error: getMissingGoalMeasurementMessage("duration") };
   }
 
-  if (measurementType !== "none") {
+  const shouldValidateCardioModality = modality === "cardio_time"
+    || modality === "cardio_distance"
+    || modality === "cardio_time_distance";
+
+  if (measurementType !== "none" || shouldValidateCardioModality) {
     switch (modality) {
     case "bodyweight":
     case "strength":
@@ -338,7 +342,7 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
       const hasDuration = targetDurationSeconds !== null && targetDurationSeconds > 0;
       const hasDistance = targetDistance !== null && targetDistance > 0;
       if (!hasDuration && !hasDistance) {
-        return { ok: false, error: getMissingGoalMeasurementMessage("duration") };
+        return { ok: false, error: "Missing Time or Distance" };
       }
       break;
     }
