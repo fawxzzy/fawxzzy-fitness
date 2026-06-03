@@ -24,6 +24,9 @@ async function loadFitnessConsumers() {
   try {
     manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
   } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return null;
+    }
     throw new Error(`Unable to read ATLAS branding manifest at ${manifestPath}: ${error.message}`);
   }
 
@@ -60,8 +63,14 @@ async function main() {
   }
 
   const consumers = await loadFitnessConsumers();
+  if (consumers === null) {
+    console.log(`Skipped external Fitness brand sync; no ATLAS branding manifest found at ${manifestPath}`);
+    return;
+  }
+
   if (consumers.length === 0) {
-    throw new Error(`No Fitness brand consumers were found in ${manifestPath}.`);
+    console.log(`Skipped external Fitness brand sync; no Fitness brand consumers were declared in ${manifestPath}`);
+    return;
   }
 
   await Promise.all(

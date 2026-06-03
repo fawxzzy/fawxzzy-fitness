@@ -9,7 +9,7 @@ test("fixture inventory covers the current canonical mobile screen set", () => {
     byRoute.set(scenario.route, (byRoute.get(scenario.route) ?? 0) + 1);
   }
 
-  assert.equal(byRoute.get("today"), 6);
+  assert.equal(byRoute.get("today"), 7);
   assert.equal(byRoute.get("session"), 12);
   assert.equal(byRoute.get("routines"), 2);
   assert.equal(byRoute.get("viewDay"), 3);
