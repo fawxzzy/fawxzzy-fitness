@@ -183,10 +183,10 @@ test("getAppThemeCssVariables derives shared accent and surface variables", () =
 
 test("rose theme preset is registered as a first-class preset", () => {
   assert.equal(ROSE_APP_THEME.preset, "rose");
-  assert.equal(ROSE_APP_THEME.primaryActionColor, "#ff4fa3");
-  assert.equal(ROSE_APP_THEME.accentDividerColor, "#ff5fb3");
-  assert.equal(ROSE_APP_THEME.metricAccentColor, "#ff5fb3");
-  assert.equal(ROSE_APP_THEME.cardOutlineColor, "#ff5fb3");
+  assert.equal(ROSE_APP_THEME.primaryActionColor, "#ff5ea8");
+  assert.equal(ROSE_APP_THEME.accentDividerColor, "#ff74bc");
+  assert.equal(ROSE_APP_THEME.metricAccentColor, "#ff74bc");
+  assert.equal(ROSE_APP_THEME.cardOutlineColor, "#ff8dca");
   assert.equal(APP_THEME_PRESETS.rose, ROSE_APP_THEME);
   assert.equal(getAppThemePresetLabel("rose"), "Rose Circuit");
   assert.equal(getAppThemePresetMatch(ROSE_APP_THEME), "rose");
@@ -195,12 +195,12 @@ test("rose theme preset is registered as a first-class preset", () => {
 test("rose theme CSS variables keep metric strips and outlines aligned", () => {
   const cssVariables = getAppThemeCssVariables(ROSE_APP_THEME);
 
-  assert.equal(cssVariables["--accent-divider-rgb"], "255 95 179");
-  assert.equal(cssVariables["--metric-accent-rgb"], "255 95 179");
-  assert.equal(cssVariables["--stroke-soft"], "255 95 179");
-  assert.equal(cssVariables["--stroke-strong"], "255 95 179");
-  assert.equal(cssVariables["--selection-rgb"], "255 79 163");
-  assert.equal(cssVariables["--success-rgb"], "255 123 192");
+  assert.equal(cssVariables["--accent-divider-rgb"], "255 116 188");
+  assert.equal(cssVariables["--metric-accent-rgb"], "255 116 188");
+  assert.equal(cssVariables["--stroke-soft"], "255 141 202");
+  assert.equal(cssVariables["--stroke-strong"], "255 141 202");
+  assert.equal(cssVariables["--selection-rgb"], "255 94 168");
+  assert.equal(cssVariables["--success-rgb"], "115 216 155");
 });
 
 test("default app theme keeps metric and outline accents aligned to the crisp green", () => {
@@ -384,9 +384,9 @@ test("pre-hydration theme primer resolves a selected preset theme before hydrati
     },
   });
 
-  assert.equal(style.getPropertyValue("--accent"), "255 79 163");
+  assert.equal(style.getPropertyValue("--accent"), "255 94 168");
   assert.equal(style.getPropertyValue("--card-radius"), "24px");
-  assert.equal(style.getPropertyValue("--surface-2-rgb"), "19 7 17");
+  assert.equal(style.getPropertyValue("--surface-2-rgb"), "22 10 20");
   assert.equal(dataset.appThemeReady, "true");
   assert.equal(dataset.appBootPrimer, "applied");
 });
