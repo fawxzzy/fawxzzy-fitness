@@ -1,17 +1,19 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
-import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
+import { deriveLoggedSetCountProgressFill } from "@/lib/exercise-card-progress-fill";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
+import { cn } from "@/lib/cn";
 
 export type TodayExerciseRow = {
   id: string;
@@ -46,7 +48,7 @@ function formatLoggedSetFraction(loggedSetCount: number, goalSetTarget: number |
   return `${loggedSetCount} logged`;
 }
 
-function renderProgressChevron(progressLabel?: string, completed = false) {
+function renderProgressChevron(progressLabel?: string, completed = false, expanded = false) {
   return (
     <div className="flex min-w-[4.75rem] shrink-0 items-center justify-end gap-1.5 self-center">
       {progressLabel ? (
@@ -57,10 +59,14 @@ function renderProgressChevron(progressLabel?: string, completed = false) {
           {progressLabel}
         </span>
       ) : null}
-      <ChevronRightIcon className={[
-        "h-5 w-5 shrink-0 self-center",
-        completed ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]",
-      ].join(" ")} />
+      {expanded ? (
+        <ChevronDownIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--success-rgb)/0.98)]" />
+      ) : (
+        <ChevronRightIcon className={[
+          "h-5 w-5 shrink-0 self-center",
+          completed ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]",
+        ].join(" ")} />
+      )}
     </div>
   );
 }
@@ -86,12 +92,14 @@ export function TodayExerciseRows({
   rowContentClassName?: string;
   rightIcon?: ReactNode;
 }) {
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [selectedExerciseRowId, setSelectedExerciseRowId] = useState<string | null>(null);
+  const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
 
   return (
     <>
       <ul className="flex flex-col gap-[0.375rem]">
         {exercises.map((exercise) => {
+          const isSelected = selectedExerciseRowId === exercise.id;
           const isStretchHub = isStretchHubExercise(exercise);
           const resolvedSummary = isStretchHub ? null : exercise.targets;
           const progressState = showProgress
@@ -106,10 +114,10 @@ export function TodayExerciseRows({
           const progressLabel = progressState && progressState.goalSetTarget !== null
             ? formatLoggedSetFraction(progressState.loggedSetCount, progressState.goalSetTarget)
             : undefined;
-          const progressFillModel = deriveExerciseCardProgressFill({
-            progressFill: exercise.progressFill,
+          const resolvedProgressFill = deriveLoggedSetCountProgressFill({
+            loggedSetCount: progressState?.loggedSetCount ?? exercise.loggedSetCount ?? 0,
+            goalSetTarget: progressState?.goalSetTarget ?? null,
           });
-          const resolvedProgressFill = progressFillModel.fill;
           const detailedMetrics = buildPlannedExerciseDetailMetrics({
             name: exercise.name,
             slug: exercise.slug,
@@ -139,63 +147,102 @@ export function TodayExerciseRows({
           return (
             <li key={exercise.id}>
               {shouldRenderCompactSkippedRow ? (
-                <button
-                  type="button"
-                  className={[
-                    "relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)] px-4 py-2.5 text-left opacity-60 saturate-[0.78] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]",
-                    rowClassName,
-                  ].filter(Boolean).join(" ")}
-                  onClick={() => {
-                    if (process.env.NODE_ENV === "development") {
-                      console.debug(`[ExerciseInfo:open] ${sourceContext}`, { exerciseId: exercise.exerciseId, exercise });
-                    }
-                    setSelectedExerciseId(exercise.exerciseId);
-                  }}
-                >
-                  <p className="relative z-[1] min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
-                    {exercise.name}
-                  </p>
-                  <div className="relative z-[1]">
-                    {renderProgressChevron(progressLabel, false)}
-                  </div>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={[
+                      "relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)] px-4 py-2.5 text-left opacity-60 saturate-[0.78] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                      isSelected ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined,
+                      rowClassName,
+                    ].filter(Boolean).join(" ")}
+                    onClick={() => {
+                      setSelectedExerciseRowId((current) => current === exercise.id ? null : exercise.id);
+                    }}
+                  >
+                    <p className="relative z-[1] min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
+                      {exercise.name}
+                    </p>
+                    <div className="relative z-[1]">
+                      {renderProgressChevron(progressLabel, false, isSelected)}
+                    </div>
+                  </button>
+                  {isSelected ? (
+                    <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-1">
+                      <button
+                        type="button"
+                        data-bottom-action-intent="toggleActive"
+                        className={getAttachedCardActionButtonClassName({
+                          intent: "toggleActive",
+                          className: "focus-visible:ring-[rgb(var(--accent)/0.24)]",
+                        })}
+                        onClick={() => {
+                          setExerciseInfoExerciseId(exercise.exerciseId);
+                        }}
+                      >
+                        <span className="bottom-action__label">Inspect</span>
+                      </button>
+                    </AttachedCardActionStripFrame>
+                  ) : null}
+                </>
               ) : (
-                <StandardExerciseRow
-                  exercise={exercise}
-                  summary={resolvedSummary}
-                  subtitleTone="plain"
-                  variant="interactive"
-                  density={density}
-                  contentClassName={rowContentClassName}
-                  state={progressState?.cardState ?? "default"}
-                  semanticTone={progressState?.cardState === "completed" ? "completed" : undefined}
-                  badgeText={progressState && progressState.goalSetTarget === null ? progressState.badgeText : undefined}
-                  className={[
-                    rowClassName,
-                    progressState?.cardState === "completed"
-      ? "border-[rgb(var(--success-rgb)/0.96)] bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.72),rgb(var(--surface-2-rgb)/0.99))] ring-1 ring-[rgb(var(--success-rgb)/0.42)]"
-                      : undefined,
-                    exercise.isSkipped && progressState && progressState.cardState !== "completed" ? "opacity-60 saturate-[0.78]" : undefined,
-                  ].filter(Boolean).join(" ")}
-                  rightIcon={rightIcon ?? renderProgressChevron(progressLabel, progressState?.cardState === "completed")}
-                  onPress={() => {
-                    if (process.env.NODE_ENV === "development") {
-                      console.debug(`[ExerciseInfo:open] ${sourceContext}`, { exerciseId: exercise.exerciseId, exercise });
-                    }
-                    setSelectedExerciseId(exercise.exerciseId);
-                  }}
-                  surface={surface}
-                  showLeadingVisual={policy.showMedia}
-                  showAccentRail={!isStretchHub}
-                  hideEmptySummary={isStretchHub}
-                  progressFill={resolvedProgressFill}
-                >
-                  <WorkoutExerciseCardDetails
+                <>
+                  <StandardExerciseRow
+                    exercise={exercise}
+                    summary={resolvedSummary}
+                    subtitleTone="plain"
+                    variant="interactive"
                     density={density}
-                    chips={chips}
-                    detailedMetrics={visibleDetailedMetrics}
-                  />
-                </StandardExerciseRow>
+                    contentClassName={rowContentClassName}
+                    state={progressState?.cardState ?? "default"}
+                    semanticTone={progressState?.cardState === "completed" ? "completed" : undefined}
+                    badgeText={progressState && progressState.goalSetTarget === null ? progressState.badgeText : undefined}
+                    className={[
+                      rowClassName,
+                      progressState?.cardState === "completed"
+        ? "border-[rgb(var(--success-rgb)/0.96)] bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.72),rgb(var(--surface-2-rgb)/0.99))] ring-1 ring-[rgb(var(--success-rgb)/0.42)]"
+                        : undefined,
+                      exercise.isSkipped && progressState && progressState.cardState !== "completed" ? "opacity-60 saturate-[0.78]" : undefined,
+                    ].filter(Boolean).join(" ")}
+                    rightIcon={rightIcon ?? renderProgressChevron(progressLabel, progressState?.cardState === "completed", isSelected)}
+                    onPress={() => {
+                      setSelectedExerciseRowId((current) => current === exercise.id ? null : exercise.id);
+                    }}
+                    surface={surface}
+                    showLeadingVisual={policy.showMedia}
+                    showAccentRail={!isStretchHub}
+                    hideEmptySummary={isStretchHub}
+                    progressFill={resolvedProgressFill}
+                    shellClassName={isSelected ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
+                    shellStyle={isSelected ? ({
+                      "--exercise-card-progress-fill-bottom-right-radius": "0px",
+                    } as CSSProperties) : undefined}
+                  >
+                    <WorkoutExerciseCardDetails
+                      density={density}
+                      chips={chips}
+                      detailedMetrics={visibleDetailedMetrics}
+                    />
+                  </StandardExerciseRow>
+                  {isSelected ? (
+                    <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-1">
+                      <button
+                        type="button"
+                        data-bottom-action-intent="toggleActive"
+                        className={cn(
+                          getAttachedCardActionButtonClassName({
+                            intent: "toggleActive",
+                            className: "focus-visible:ring-[rgb(var(--accent)/0.24)]",
+                          }),
+                        )}
+                        onClick={() => {
+                          setExerciseInfoExerciseId(exercise.exerciseId);
+                        }}
+                      >
+                        <span className="bottom-action__label">Inspect</span>
+                      </button>
+                    </AttachedCardActionStripFrame>
+                  ) : null}
+                </>
               )}
             </li>
           );
@@ -204,15 +251,15 @@ export function TodayExerciseRows({
       </ul>
 
       <ExerciseInfo
-        exerciseId={selectedExerciseId}
-        open={Boolean(selectedExerciseId)}
+        exerciseId={exerciseInfoExerciseId}
+        open={Boolean(exerciseInfoExerciseId)}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedExerciseId(null);
+            setExerciseInfoExerciseId(null);
           }
         }}
         onClose={() => {
-          setSelectedExerciseId(null);
+          setExerciseInfoExerciseId(null);
         }}
         sourceContext={sourceContext}
       />

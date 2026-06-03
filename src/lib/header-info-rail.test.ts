@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildCurrentSessionHeaderInfoRailItems,
   buildCurrentRoutineInfoRailItems,
   buildRoutineBrowseInfoRailItems,
   buildRoutineTrainingRestInfoRailItems,
@@ -358,6 +359,112 @@ test("today rail items surface partial-day warnings before lower-priority summar
       value: "3 exercises",
       tone: "default",
       title: "Configured exercise count for this day",
+      valuePosition: "after",
+    },
+  ]);
+});
+
+test("current session rail items prioritize live session progress before lower-priority day summaries", () => {
+  assert.deepEqual(buildCurrentSessionHeaderInfoRailItems({
+    sessionDayIndex: 3,
+    cycleLengthDays: 7,
+    isRestDay: false,
+    trainingDays: 5,
+    restDays: 2,
+    sessionExerciseCount: 6,
+    loggedExerciseCount: 2,
+    skippedExerciseCount: 1,
+    splitSummary: {
+      total: 6,
+      strength: 5,
+      cardio: 1,
+      bodyweight: 0,
+      unknown: 0,
+    },
+  }), [
+    {
+      id: "live-session",
+      label: "Session",
+      value: "In Progress",
+      tone: "accent",
+      title: "Current workout session is active",
+      valuePosition: "after",
+    },
+    {
+      id: "cycle-position",
+      label: "Cycle",
+      value: "Day 3 of 7",
+      tone: "default",
+      title: "Current day position inside this routine cycle",
+      valuePosition: "after",
+    },
+    {
+      id: "session-status",
+      label: "Progress",
+      value: "2 logged Â· 1 skipped",
+      tone: "warning",
+      title: "Logged and skipped exercise status in this session",
+      valuePosition: "after",
+    },
+    {
+      id: "day-load",
+      label: "Day Load",
+      value: "6 exercises",
+      tone: "default",
+      title: "Configured exercise count for this session day",
+      valuePosition: "after",
+    },
+  ]);
+});
+
+test("current session rail falls back to focus and structure when no progress counts exist yet", () => {
+  assert.deepEqual(buildCurrentSessionHeaderInfoRailItems({
+    sessionDayIndex: 1,
+    cycleLengthDays: 5,
+    isRestDay: false,
+    trainingDays: 4,
+    restDays: 1,
+    sessionExerciseCount: 3,
+    loggedExerciseCount: 0,
+    skippedExerciseCount: 0,
+    splitSummary: {
+      total: 3,
+      strength: 0,
+      cardio: 0,
+      bodyweight: 3,
+      unknown: 0,
+    },
+  }), [
+    {
+      id: "live-session",
+      label: "Session",
+      value: "In Progress",
+      tone: "accent",
+      title: "Current workout session is active",
+      valuePosition: "after",
+    },
+    {
+      id: "cycle-position",
+      label: "Cycle",
+      value: "Day 1 of 5",
+      tone: "default",
+      title: "Current day position inside this routine cycle",
+      valuePosition: "after",
+    },
+    {
+      id: "day-load",
+      label: "Day Load",
+      value: "3 exercises",
+      tone: "default",
+      title: "Configured exercise count for this session day",
+      valuePosition: "after",
+    },
+    {
+      id: "day-focus",
+      label: "Focus",
+      value: "Bodyweight-focused",
+      tone: "default",
+      title: "Overall exercise mix for this session day",
       valuePosition: "after",
     },
   ]);

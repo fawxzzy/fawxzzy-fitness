@@ -17,7 +17,7 @@ import {
 import { createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { deriveProgressionProgressPercent } from "@/lib/progression-progress-percent";
 import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
-import { getSessionVisiblePromotionStepFieldIds } from "@/lib/session-progression-display";
+import { deriveSessionProgressionSelectedMetrics, getSessionVisiblePromotionStepFieldIds } from "@/lib/session-progression-display";
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionQuickLogTarget } from "@/lib/session-quick-log";
 import type { DisplayTarget } from "@/lib/session-targets";
@@ -179,6 +179,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     sessionRow,
     routine,
     sessionExercises,
+    routineDays,
     setsByExercise,
     sessionTargets,
     exerciseOptions,
@@ -216,6 +217,10 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       };
     }),
   );
+  const routineTrainingDays = routineDays.filter((day) => !day.is_rest).length;
+  const routineRestDays = routineDays.filter((day) => Boolean(day.is_rest)).length;
+  const routineCycleLengthDays = routineDays.length;
+  const sessionIsRestDay = routineDays.find((day) => day.day_index === sessionRow.routine_day_index)?.is_rest ?? false;
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
   const requestedExerciseId = typeof searchParams?.exerciseId === "string"
     && sessionExercises.some((exercise) => exercise.id === searchParams.exerciseId)
@@ -233,6 +238,11 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           routineName={routineName}
           sessionDayName={sessionDayName}
           sessionSummaryCounts={sessionSummaryCounts}
+          routineTrainingDays={routineTrainingDays}
+          routineRestDays={routineRestDays}
+          routineCycleLengthDays={routineCycleLengthDays}
+          sessionDayIndex={sessionRow.routine_day_index ?? null}
+          sessionIsRestDay={sessionIsRestDay}
           searchError={searchParams?.error}
           unitLabel={unitLabel}
           exercises={sessionExercises.map((exercise) => {
@@ -308,15 +318,17 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   stepOverrides: progressionSelection.config.stepOverrides ?? null,
                 })
               : null;
-            const progressionMeasurementSelections = new Set(
-              [
-                progressionPlan?.repsMin ?? progressionPlan?.repsMax ?? progressionPlan?.repsTarget ?? null ? "reps" : null,
-                progressionPlan?.weightMin ?? progressionPlan?.weightMax ?? null ? "weight" : null,
-                progressionPlan?.durationSeconds ?? null ? "time" : null,
-                progressionPlan?.distance ?? null ? "distance" : null,
-                progressionPlan?.calories ?? null ? "calories" : null,
-              ].filter((value): value is "reps" | "weight" | "time" | "distance" | "calories" => value !== null),
-            );
+            const progressionMeasurementSelections = deriveSessionProgressionSelectedMetrics({
+              measurementType: progressionPlan?.measurementType ?? null,
+              repsTarget: progressionPlan?.repsTarget ?? null,
+              repsMin: progressionPlan?.repsMin ?? null,
+              repsMax: progressionPlan?.repsMax ?? null,
+              weightMin: progressionPlan?.weightMin ?? null,
+              weightMax: progressionPlan?.weightMax ?? null,
+              durationSeconds: progressionPlan?.durationSeconds ?? null,
+              distance: progressionPlan?.distance ?? null,
+              calories: progressionPlan?.calories ?? null,
+            });
             const setFlowQuickLogTargets = progressionSelection && progressionPlan
               ? generateSetFlowTargets({
                   setFlow: progressionSelection.config.setFlow,

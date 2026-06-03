@@ -1,76 +1,40 @@
-import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
-import type { ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
+import { detectActiveMeasurementsFromTargets } from "@/lib/progression-active-measurements";
+import type { PromotionStepFieldId as SharedPromotionStepFieldId } from "@/lib/progression-playbook-ui-options";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import type { MeasurementSelection } from "@/lib/exercise-goal-validation";
 
-export type PromotionStepFieldId =
-  | "barbellLoad"
-  | "dumbbellLoad"
-  | "machineLoad"
-  | "cableLoad"
-  | "genericLoad"
-  | "bodyweightReps"
-  | "duration"
-  | "distance";
+export type PromotionStepFieldId = SharedPromotionStepFieldId;
 
-export type SessionProgressionDisplayField = {
-  label: string;
-  value: string;
-};
-
-export type SessionProgressionEditorFieldId =
-  | PromotionStepFieldId
-  | "setFlowLoad"
-  | "setFlowReps"
-  | "setFlowDuration"
-  | "setFlowDistance"
-  | "stallThreshold";
-
-export type SessionProgressionEditorField = SessionProgressionDisplayField & {
-  id: SessionProgressionEditorFieldId;
-};
-
-export type SessionProgressionDisplayGroup = {
-  key: "promotion-step-settings" | "set-step-settings" | "deload-settings";
-  title: string;
-  tone: "primary" | "secondary";
-  fields: SessionProgressionDisplayField[];
-};
-
-export type SessionProgressionEditorGroup = {
-  key: "promotion-step-settings" | "set-step-settings" | "deload-settings";
-  title: string;
-  tone: "primary" | "secondary";
-  fields: SessionProgressionEditorField[];
-};
-
-function getVisibleSetStepFields({
-  selectedMetrics,
-  weightUnit,
-  distanceUnit,
-  state,
-}: {
-  selectedMetrics: Set<MeasurementSelection>;
-  weightUnit: "lbs" | "kg";
-  distanceUnit: FitnessDistanceUnit;
-  state: ProgressionPlaybookFormState;
-}): SessionProgressionEditorField[] {
-  const fields: SessionProgressionEditorField[] = [];
-
-  if (selectedMetrics.has("weight")) {
-    fields.push({ id: "setFlowLoad", label: `SET WEIGHT (${weightUnit})`, value: state.progressionSetFlowLoadStep });
-  }
-  if (selectedMetrics.has("reps")) {
-    fields.push({ id: "setFlowReps", label: "SET REPS", value: state.progressionSetFlowRepStep });
-  }
-  if (selectedMetrics.has("time")) {
-    fields.push({ id: "setFlowDuration", label: "SET TIME (S)", value: state.progressionSetFlowDurationStep });
-  }
-  if (selectedMetrics.has("distance")) {
-    fields.push({ id: "setFlowDistance", label: `SET DIST (${distanceUnit})`, value: state.progressionSetFlowDistanceStep });
-  }
-
-  return fields;
+export function deriveSessionProgressionSelectedMetrics(targets: {
+  measurementType?: string | null;
+  repsTarget?: number | null;
+  repsMin?: number | null;
+  repsMax?: number | null;
+  weightMin?: number | null;
+  weightMax?: number | null;
+  durationSeconds?: number | null;
+  distance?: number | null;
+  calories?: number | null;
+}) {
+  return new Set<MeasurementSelection>(
+    detectActiveMeasurementsFromTargets({
+      measurementType: targets.measurementType,
+      repsTarget: targets.repsTarget,
+      repsMin: targets.repsMin,
+      repsMax: targets.repsMax,
+      weightMin: targets.weightMin,
+      weightMax: targets.weightMax,
+      durationSeconds: targets.durationSeconds,
+      distance: targets.distance,
+      calories: targets.calories,
+    }).filter((value): value is MeasurementSelection => (
+      value === "reps"
+      || value === "weight"
+      || value === "time"
+      || value === "distance"
+      || value === "calories"
+    )),
+  );
 }
 
 export function getSessionVisiblePromotionStepFieldIds({
@@ -116,94 +80,4 @@ export function getSessionVisiblePromotionStepFieldIds({
   }
 
   return [];
-}
-
-export function buildSessionProgressionDisplayGroups({
-  state,
-  weightUnit,
-  distanceUnit,
-  visiblePromotionStepFields,
-  selectedMetrics,
-}: {
-  state: ProgressionPlaybookFormState;
-  weightUnit: "lbs" | "kg";
-  distanceUnit: FitnessDistanceUnit;
-  visiblePromotionStepFields: PromotionStepFieldId[];
-  selectedMetrics: Set<MeasurementSelection>;
-}): SessionProgressionDisplayGroup[] {
-  return buildSessionProgressionEditorGroups({
-    state,
-    weightUnit,
-    distanceUnit,
-    visiblePromotionStepFields,
-    selectedMetrics,
-  }).map((group) => ({
-    ...group,
-    fields: group.fields.map(({ label, value }) => ({ label, value: value || "-" })),
-  }));
-}
-
-export function buildSessionProgressionEditorGroups({
-  state,
-  weightUnit,
-  distanceUnit,
-  visiblePromotionStepFields,
-  selectedMetrics,
-}: {
-  state: ProgressionPlaybookFormState;
-  weightUnit: "lbs" | "kg";
-  distanceUnit: FitnessDistanceUnit;
-  visiblePromotionStepFields: PromotionStepFieldId[];
-  selectedMetrics: Set<MeasurementSelection>;
-}): SessionProgressionEditorGroup[] {
-  const groups: SessionProgressionEditorGroup[] = [];
-
-  if (state.progressionPlaybookId && visiblePromotionStepFields.length > 0) {
-    const rowsByFieldId: Record<PromotionStepFieldId, SessionProgressionEditorField> = {
-      barbellLoad: { id: "barbellLoad", label: `BARBELL (${weightUnit})`, value: state.progressionBarbellLoadIncrement },
-      dumbbellLoad: { id: "dumbbellLoad", label: `DUMBBELL (${weightUnit})`, value: state.progressionDumbbellLoadIncrement },
-      machineLoad: { id: "machineLoad", label: `MACHINE (${weightUnit})`, value: state.progressionMachineLoadIncrement },
-      cableLoad: { id: "cableLoad", label: `CABLE (${weightUnit})`, value: state.progressionCableLoadIncrement },
-      genericLoad: { id: "genericLoad", label: `WEIGHT (${weightUnit})`, value: state.progressionLoadIncrement },
-      bodyweightReps: { id: "bodyweightReps", label: "BODYWEIGHT REPS", value: state.progressionBodyweightRepIncrement },
-      duration: { id: "duration", label: "DURATION (S)", value: state.progressionDurationIncrementSeconds },
-      distance: { id: "distance", label: `DIST (${distanceUnit})`, value: state.progressionDistanceIncrement },
-    };
-
-    groups.push({
-      key: "promotion-step-settings",
-      title: "Promotion Step Settings",
-      tone: "primary",
-      fields: visiblePromotionStepFields.map((fieldId) => rowsByFieldId[fieldId]),
-    });
-  }
-
-  const visibleSetStepFields = getVisibleSetStepFields({
-    selectedMetrics,
-    weightUnit,
-    distanceUnit,
-    state,
-  });
-
-  if (state.progressionPlaybookId && state.progressionSetFlow !== "straight_sets" && visibleSetStepFields.length > 0) {
-    groups.push({
-      key: "set-step-settings",
-      title: "Set Step Settings",
-      tone: "primary",
-      fields: visibleSetStepFields,
-    });
-  }
-
-  if (state.progressionPlaybookId && state.progressionStallPolicy === "deload_after_stall") {
-    groups.push({
-      key: "deload-settings",
-      title: "Regression Settings",
-      tone: "secondary",
-      fields: [
-        { id: "stallThreshold", label: "FAILURE COUNT", value: state.progressionStallThreshold },
-      ],
-    });
-  }
-
-  return groups;
 }

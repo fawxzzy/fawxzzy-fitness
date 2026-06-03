@@ -22,6 +22,7 @@ import { cn } from "@/lib/cn";
 import { writeInstallEarnedMoment } from "@/lib/install/earned-install-prompt";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import { buildCurrentSessionHeaderInfoRailItems } from "@/lib/header-info-rail";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -95,6 +96,11 @@ export function SessionPageClient({
   routineName,
   sessionDayName,
   sessionSummaryCounts,
+  routineTrainingDays,
+  routineRestDays,
+  routineCycleLengthDays,
+  sessionDayIndex,
+  sessionIsRestDay = false,
   searchError,
   unitLabel,
   exercises,
@@ -121,6 +127,11 @@ export function SessionPageClient({
     bodyweight: number;
     unknown: number;
   };
+  routineTrainingDays?: number | null;
+  routineRestDays?: number | null;
+  routineCycleLengthDays?: number | null;
+  sessionDayIndex?: number | null;
+  sessionIsRestDay?: boolean;
   searchError?: string;
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
@@ -181,13 +192,47 @@ export function SessionPageClient({
 
   const isExerciseOpen = selectedExerciseId !== null;
   const hasExercises = exercises.length > 0;
+  const sessionHeaderInfoItems = useMemo(() => {
+    const total = exercises.length;
+    const loggedExerciseCount = exercises.filter((exercise) => exercise.loggedSetCount > 0).length;
+    const skippedExerciseCount = exercises.filter((exercise) => exercise.isSkipped).length;
+
+    return buildCurrentSessionHeaderInfoRailItems({
+      sessionDayIndex,
+      cycleLengthDays: routineCycleLengthDays,
+      isRestDay: sessionIsRestDay,
+      trainingDays: routineTrainingDays,
+      restDays: routineRestDays,
+      sessionExerciseCount: total,
+      loggedExerciseCount,
+      skippedExerciseCount,
+      splitSummary: {
+        total,
+        strength: sessionSummaryCounts.strength,
+        cardio: sessionSummaryCounts.cardio,
+        bodyweight: sessionSummaryCounts.bodyweight,
+        unknown: sessionSummaryCounts.unknown,
+      },
+    });
+  }, [
+    exercises,
+    routineCycleLengthDays,
+    routineRestDays,
+    routineTrainingDays,
+    sessionDayIndex,
+    sessionIsRestDay,
+    sessionSummaryCounts.bodyweight,
+    sessionSummaryCounts.cardio,
+    sessionSummaryCounts.strength,
+    sessionSummaryCounts.unknown,
+  ]);
   const floatingHeader = !isExerciseOpen ? (
     <ContentRail>
       <ScreenScaffold recipe="todayOverview" className="w-full">
         <SessionHeaderControls
           routineName={routineName}
           sessionDayName={sessionDayName}
-          sessionSummaryCounts={sessionSummaryCounts}
+          infoItems={sessionHeaderInfoItems}
           backHref={fallbackReturnHref ?? "/today"}
         />
       </ScreenScaffold>
@@ -266,13 +311,13 @@ export function SessionPageClient({
     <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip [touch-action:pan-x_pan-y]")} floatingHeader={floatingHeader}>
       <PublishBottomActions>{sessionActions}</PublishBottomActions>
 
-      <ContentRail className={appTokens.currentSessionContentRail}>
+      <ContentRail className={cn(appTokens.currentSessionContentRail, "!gap-0 !py-0")}>
         <section
           data-screen-scaffold={sessionRecipe.scaffold}
           data-section-chrome={sessionRecipe.sectionChrome}
           data-footer-dock={sessionRecipe.footerDock}
           data-row-interaction={sessionRecipe.rowInteraction}
-          className={cn(appTokens.currentSessionSectionStack, isExerciseOpen ? "pt-3" : undefined)}
+          className={cn(appTokens.currentSessionSectionStack, "!gap-0", isExerciseOpen ? "pt-3" : undefined)}
         >
           {!isExerciseOpen ? (
             <div className="flex justify-end">

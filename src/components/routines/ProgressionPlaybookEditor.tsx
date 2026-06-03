@@ -2,6 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ACTION_CHROME_CONTROL_CLASS_NAME,
   ACTION_CHROME_RAIL_CLASS_NAME,
@@ -1554,6 +1555,7 @@ function PromotionMeasurementStepRow({
   onRepRangeMaxChange,
   onRepRangeStepChange,
   infoHandlers,
+  showCountInput = true,
 }: {
   measurements: ProgressionMeasurementKey[];
   links: PromotionMeasurementConnector[];
@@ -1582,6 +1584,7 @@ function PromotionMeasurementStepRow({
     onFocusCapture?: () => void;
     onPointerDownCapture?: () => void;
   };
+  showCountInput?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const labels: Record<ProgressionMeasurementKey, string> = {
@@ -1745,6 +1748,7 @@ function PromotionMeasurementStepRow({
                               }}
                               hasStepValue={sharedDirectionHasStepValue}
                               ariaPrefix={sharedDirectionAriaPrefix}
+                              showValueInput={showCountInput}
                             />
                           </div>
                         </div>
@@ -2323,7 +2327,12 @@ function ProgressionOverlayPanel({
   viewportClassName?: string;
 }) {
   return (
-    <div className={cn(SHARED_OVERLAY_PANEL_SURFACE_CLASS_NAME, "!bg-[rgb(var(--bg-app))]")}>
+    <div
+      className={cn(
+        SHARED_OVERLAY_PANEL_SURFACE_CLASS_NAME,
+        "!bg-[rgb(0_0_0_/0.3)] backdrop-blur-md",
+      )}
+    >
       <div className="pointer-events-none absolute inset-0 z-0 bg-transparent" aria-hidden="true" />
       <FilterScrollPanel
         className="relative z-[1] !bg-transparent"
@@ -2342,12 +2351,14 @@ function ProgressionInfoAccordion({
   currentSectionSummary,
   hasSelection,
   reserveLayoutSpace = true,
+  dockPlacement = "default",
 }: {
   children: ReactNode;
   currentSectionTitle: string;
   currentSectionSummary: string;
   hasSelection: boolean;
   reserveLayoutSpace?: boolean;
+  dockPlacement?: "default" | "above-bottom-actions";
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -2384,6 +2395,7 @@ function ProgressionInfoAccordion({
       currentSectionSummary={currentSectionSummary}
       hasSelection={hasSelection}
       reserveLayoutSpace={reserveLayoutSpace}
+      dockPlacement={dockPlacement}
     >
       {children}
     </RoutineEditorFloatingDropdownChrome>
@@ -2400,6 +2412,7 @@ function RoutineEditorFloatingDropdownChrome({
   hasSelection = false,
   reserveLayoutSpace = true,
   blockBackground = false,
+  dockPlacement = "default",
 }: {
   children: ReactNode;
   isOpen: boolean;
@@ -2410,13 +2423,29 @@ function RoutineEditorFloatingDropdownChrome({
   hasSelection?: boolean;
   reserveLayoutSpace?: boolean;
   blockBackground?: boolean;
+  dockPlacement?: "default" | "above-bottom-actions";
 }) {
+  const shellAnchorRef = useRef<HTMLElement | null>(null);
   const triggerHeightClassName = "h-[4.1rem]";
-  const triggerBottomClassName = "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))-3.35rem)]";
-  const panelBottomClassName = "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.8rem)]";
+  const triggerBottomClassName = dockPlacement === "above-bottom-actions"
+    ? "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.1rem)]"
+    : "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))-3.35rem)]";
+  const panelBottomClassName = dockPlacement === "above-bottom-actions"
+    ? "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+4.9rem)]"
+    : "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.8rem)]";
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
-  return (
-    <section className="relative pt-2">
+  useEffect(() => {
+    const shellAnchor = shellAnchorRef.current;
+    if (!shellAnchor) {
+      return;
+    }
+    const nearestShell = shellAnchor.closest("[data-mobile-screen-shell='true']");
+    setPortalTarget(nearestShell instanceof HTMLElement ? nearestShell : document.body);
+  }, []);
+
+  const floatingChrome = (
+    <>
       {isOpen && blockBackground ? (
         <button
           type="button"
@@ -2434,12 +2463,6 @@ function RoutineEditorFloatingDropdownChrome({
           </div>
         </div>
       ) : null}
-      {reserveLayoutSpace ? (
-        <div
-          aria-hidden="true"
-          className={isOpen ? "h-[min(78dvh,48rem)]" : triggerHeightClassName}
-        />
-      ) : null}
       <div className={cn("fixed inset-x-0 z-[75]", triggerBottomClassName)}>
         <div className={BOTTOM_ACTION_SHELL_CLASSNAME}>
           <button
@@ -2448,41 +2471,53 @@ function RoutineEditorFloatingDropdownChrome({
               "group relative block w-full select-none appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
               appTokens.routineEditorInlineTitle,
             )}
-          onClick={() => onOpenChange((current) => !current)}
-          aria-expanded={isOpen}
-        >
-          <span className="grid min-h-[2rem] grid-cols-[2rem_minmax(0,1fr)_4rem] items-end px-4 pb-3">
-            <span aria-hidden="true" />
-            <span className="min-w-0 w-full text-center">
-              {hasSelection && !isOpen && currentSectionTitle && currentSectionSummary ? (
-                <>
-                  <span className="mt-0.5 block truncate text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">
-                    {currentSectionTitle}
+            onClick={() => onOpenChange((current) => !current)}
+            aria-expanded={isOpen}
+          >
+            <span className="grid min-h-[2rem] grid-cols-[2rem_minmax(0,1fr)_4rem] items-end px-4 pb-3">
+              <span aria-hidden="true" />
+              <span className="min-w-0 w-full text-center">
+                {hasSelection && !isOpen && currentSectionTitle && currentSectionSummary ? (
+                  <>
+                    <span className="mt-0.5 block truncate text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">
+                      {currentSectionTitle}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[0.68rem] font-medium normal-case tracking-[0.02em] text-[rgb(var(--text-secondary)/0.82)]">
+                      {currentSectionSummary}
+                    </span>
+                  </>
+                ) : (
+                  <span className="block text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</span>
+                )}
+              </span>
+              <span className={cn(
+                "flex items-center justify-end gap-1 transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]",
+                isOpen ? "text-[rgb(var(--accent-divider-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.84)]",
+              )}>
+                {hasSelection && !isOpen ? (
+                  <span className="text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.78)]">
+                    {title}
                   </span>
-                  <span className="mt-0.5 block truncate text-[0.68rem] font-medium normal-case tracking-[0.02em] text-[rgb(var(--text-secondary)/0.82)]">
-                    {currentSectionSummary}
-                  </span>
-                </>
-              ) : (
-                <span className="block text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</span>
-              )}
+                ) : null}
+                {isOpen ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+              </span>
             </span>
-            <span className={cn(
-              "flex items-center justify-end gap-1 transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]",
-              isOpen ? "text-[rgb(var(--accent-divider-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.84)]",
-            )}>
-              {hasSelection && !isOpen ? (
-                <span className="text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.78)]">
-                  {title}
-                </span>
-              ) : null}
-              {isOpen ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-            </span>
-          </span>
-          <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />
+            <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />
           </button>
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <section ref={shellAnchorRef as React.RefObject<HTMLElement>} className="relative pt-2">
+      {reserveLayoutSpace ? (
+        <div
+          aria-hidden="true"
+          className={isOpen ? "h-[min(78dvh,48rem)]" : triggerHeightClassName}
+        />
+      ) : null}
+      {portalTarget ? createPortal(floatingChrome, portalTarget) : null}
     </section>
   );
 }
@@ -2519,10 +2554,16 @@ export function ProgressionPlaybookEditor({
   onTrainingFocusChange,
   autoApplyUpdatesToExercises,
   onAutoApplyUpdatesToExercisesChange,
+  hideProgressionMethodControl = false,
+  renderRegressionAsSection = false,
+  hideDayAdjustmentSettingsSection = false,
+  hideSessionSettingsSection = false,
+  hideExerciseSessionSuccessCount = false,
   hideExerciseSetSuccessCount = false,
   progressionExampleDayNumber,
   separateInfoReserveLayoutSpace = true,
   failureToggleInfoContent = null,
+  infoDockPlacement = "default",
 }: {
   value: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -2562,6 +2603,11 @@ export function ProgressionPlaybookEditor({
   onTrainingFocusChange?: (goal: TrainingGoalId) => void;
   autoApplyUpdatesToExercises?: boolean;
   onAutoApplyUpdatesToExercisesChange?: (nextValue: boolean) => void;
+  hideProgressionMethodControl?: boolean;
+  renderRegressionAsSection?: boolean;
+  hideDayAdjustmentSettingsSection?: boolean;
+  hideSessionSettingsSection?: boolean;
+  hideExerciseSessionSuccessCount?: boolean;
   hideExerciseSetSuccessCount?: boolean;
   progressionExampleDayNumber?: number | null;
   separateInfoReserveLayoutSpace?: boolean;
@@ -2571,6 +2617,7 @@ export function ProgressionPlaybookEditor({
     rows?: Array<{ label: string; value: string }>;
     sectionKey?: "failure_toggle" | null;
   } | null;
+  infoDockPlacement?: "default" | "above-bottom-actions";
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [activeInfoSection, setActiveInfoSection] = useState<ActiveProgressionInfoSection>("progression_method");
@@ -2585,6 +2632,7 @@ export function ProgressionPlaybookEditor({
   const showAutoApplyUpdatesControl = context === "routine-default"
     && typeof autoApplyUpdatesToExercises === "boolean"
     && typeof onAutoApplyUpdatesToExercisesChange === "function";
+  const showProgressionMethodToggle = !hideProgressionMethodControl;
   const setFlowDirections = {
     time: normalizeSetFlowDirectionForStepValue({
       current: value.progressionSetFlowTimeDirection,
@@ -2877,6 +2925,16 @@ export function ProgressionPlaybookEditor({
   const shouldRenderPromotionStepSettings = Boolean(selectedPlaybookId) && visiblePromotionStepFieldIds.length > 0;
   const shouldRenderRegressionControls = Boolean(selectedPlaybookId) && (isRoutineDefaultContext || visiblePromotionStepFieldIds.length > 0);
   const shouldRenderDeloadSettings = shouldRenderRegressionControls && value.progressionStallPolicy === "deload_after_stall";
+  const showRegressionTopRailControl = shouldRenderRegressionControls && !renderRegressionAsSection;
+  const hasPreSessionInlineFieldGroups = (preSessionSettingsGroups?.some((group) => group.fields.length > 0) ?? false)
+    || (!renderRegressionAsSection && selectedPlaybookId && shouldRenderDeloadSettings);
+  const shouldRenderTopMethodRailCard = showLegacyTopMethodRail && (
+    Boolean(topMethodRailContent)
+    || showProgressionMethodToggle
+    || showRegressionTopRailControl
+    || showAutoApplyUpdatesControl
+    || hasPreSessionInlineFieldGroups
+  );
   const cycleLengthDays = Math.max(1, _cycleLengthDays ?? 7);
   const keyTermRows = PROGRESSION_INFO_TERM_DEFINITIONS
     .filter((term) => [
@@ -5552,7 +5610,7 @@ export function ProgressionPlaybookEditor({
   const progressionControlsContent = (
     <div className="rounded-[1.1rem] border border-transparent bg-transparent px-2 py-3 text-left">
       <div className="space-y-2.5">
-        {showLegacyTopMethodRail ? (
+        {shouldRenderTopMethodRailCard ? (
         <section className={progressionInfoMiniCardClassName}>
           <div className="px-3 pb-3 pt-2.5">
             <div className="mx-auto w-full max-w-full space-y-3">
@@ -5560,26 +5618,28 @@ export function ProgressionPlaybookEditor({
                 <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 pt-0 pl-1 pr-2 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
                   <div className="mx-auto flex w-max min-w-max flex-nowrap items-end justify-center gap-[3px]">
                     {topMethodRailContent ? <>{topMethodRailContent}</> : null}
-                    <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
-                      <div className="space-y-[2px]">
-                        <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                          Progression
+                    {showProgressionMethodToggle ? (
+                      <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
+                        <div className="space-y-[2px]">
+                          <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                            Progression
+                          </div>
+                          <MetricAccentBar variant="thin" className="w-full opacity-80" />
                         </div>
-                        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                        <ProgressionBinaryToggleButton
+                          label={selectedPlaybookId ? "Auto" : "Manual"}
+                          ariaLabel="Progression method"
+                          onClick={() => {
+                            const nextValue = selectedPlaybookId ? "" : "double_progression";
+                            setPlaybookId(nextValue as ProgressionPlaybookId | "");
+                            showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
+                          }}
+                          className="min-w-[8.5rem]"
+                        />
                       </div>
-                      <ProgressionBinaryToggleButton
-                        label={selectedPlaybookId ? "Auto" : "Manual"}
-                        ariaLabel="Progression method"
-                        onClick={() => {
-                          const nextValue = selectedPlaybookId ? "" : "double_progression";
-                          setPlaybookId(nextValue as ProgressionPlaybookId | "");
-                          showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
-                        }}
-                        className="min-w-[8.5rem]"
-                      />
-                    </div>
+                    ) : null}
 
-                    {shouldRenderRegressionControls ? (
+                    {showRegressionTopRailControl ? (
                       <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
                         <div className="space-y-[2px]">
                           <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-yellow-on))]">
@@ -5620,7 +5680,7 @@ export function ProgressionPlaybookEditor({
                     ) : null}
                   </div>
                 </div>
-                {((preSessionSettingsGroups?.some((group) => group.fields.length > 0) ?? false) || (selectedPlaybookId && shouldRenderDeloadSettings)) ? renderInlineSettingsFieldGroups([
+                {hasPreSessionInlineFieldGroups ? renderInlineSettingsFieldGroups([
                   ...(preSessionSettingsGroups ?? []),
                   {
                     key: "deload",
@@ -5640,7 +5700,7 @@ export function ProgressionPlaybookEditor({
           </div>
         ) : null}
 
-        {shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
+        {!hideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
           <ProgressionInfoMiniSection title="Day Adjustment Settings">
             <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
               <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
@@ -5650,7 +5710,35 @@ export function ProgressionPlaybookEditor({
           </ProgressionInfoMiniSection>
         ) : null}
 
-        {shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0) ? (
+        {renderRegressionAsSection && shouldRenderRegressionControls ? (
+          <ProgressionInfoMiniSection title="Regression Settings">
+            <div className="space-y-3" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
+              <div className="flex justify-center">
+                <ProgressionBinaryToggleButton
+                  label={value.progressionStallPolicy === "deload_after_stall" ? "Deload" : "None"}
+                  ariaLabel="Regression policy"
+                  onClick={() => {
+                    const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
+                      ? "none"
+                      : "deload_after_stall";
+                    setStallPolicy(nextPolicy);
+                    showCustomInfo(getRegressionInfoPayload(nextPolicy));
+                  }}
+                  className="min-w-[8.5rem]"
+                />
+              </div>
+              {shouldRenderDeloadSettings ? (
+                <div {...getInfoSectionHandlers("deload_settings")}>
+                  <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
+                    {deloadSettingFields}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </ProgressionInfoMiniSection>
+        ) : null}
+
+        {!hideSessionSettingsSection && shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0) ? (
           <ProgressionInfoMiniSection title="Session Settings">
             {isRoutineDefaultContext ? (
               <div className="space-y-3.5" {...getInfoSectionHandlers("session_settings")}>
@@ -5710,6 +5798,7 @@ export function ProgressionPlaybookEditor({
                       onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
                       onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
                       infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks))}
+                      showCountInput={!(context === "exercise" && hideExerciseSessionSuccessCount)}
                     />
                   </div>
                 ) : null}
@@ -6239,6 +6328,7 @@ export function ProgressionPlaybookEditor({
           currentSectionSummary={activeInfoContent.summary}
           hasSelection={hasInfoSelection}
           reserveLayoutSpace={separateInfoReserveLayoutSpace}
+          dockPlacement={infoDockPlacement}
         >
           {progressionInfoBox}
         </ProgressionInfoAccordion>

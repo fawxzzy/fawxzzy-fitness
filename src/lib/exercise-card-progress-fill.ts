@@ -15,6 +15,35 @@ export type ExerciseCardProgressFillModel = {
   fill: ProgressionProgressFill | null;
 };
 
+export function deriveLoggedSetCountProgressFill(args: {
+  loggedSetCount: number;
+  goalSetTarget?: number | null;
+}): ProgressionProgressFill | null {
+  const goalSetTarget = Number.isFinite(args.goalSetTarget)
+    ? Math.max(0, Math.floor(args.goalSetTarget as number))
+    : 0;
+
+  if (goalSetTarget <= 0) {
+    return null;
+  }
+
+  const loggedSetCount = Number.isFinite(args.loggedSetCount)
+    ? Math.max(0, Math.floor(args.loggedSetCount))
+    : 0;
+  const cappedLoggedSetCount = Math.min(loggedSetCount, goalSetTarget);
+  const percent = Math.max(0, Math.min(100, Math.round((cappedLoggedSetCount / goalSetTarget) * 100)));
+
+  if (percent <= 0) {
+    return null;
+  }
+
+  return {
+    percent,
+    state: percent >= 100 ? "ready" : "partial",
+    label: `${cappedLoggedSetCount}/${goalSetTarget} sets`,
+  };
+}
+
 export function deriveExerciseCardProgressFill(args: {
   progressFill?: ProgressionProgressFill | null;
   candidateType?: ProgressionReviewDisplayItem["type"] | null;

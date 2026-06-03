@@ -21,7 +21,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
@@ -173,7 +173,8 @@ export function TodayDayPicker({
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => currentDayIndex ?? days[0]?.dayIndex ?? 1);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [selectedExerciseRowId, setSelectedExerciseRowId] = useState<string | null>(null);
+  const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const [selectedDayAppliedPins, setSelectedDayAppliedPins] = useState<ProgressionAppliedPin[]>([]);
   const [cardConfirmItem, setCardConfirmItem] = useState<ProgressionReviewDisplayItem | null>(null);
   const [cardConfirmSelectedIds, setCardConfirmSelectedIds] = useState<string[]>([]);
@@ -681,13 +682,13 @@ export function TodayDayPicker({
     return (
       <BottomActionSplit
         secondary={selectDayButton}
-        primary={mode.cta.primaryLabel === "Resume" ? (
+        primary={mode.cta.primaryLabel === "Resume Workout" ? (
           <TodayStartButton
             sessionId={inProgressSessionId ?? undefined}
             returnTo="/today"
             fullWidth
             className="w-full"
-            label="Resume"
+            label="Resume Workout"
           />
         ) : (
           <TodayStartButton
@@ -742,6 +743,7 @@ export function TodayDayPicker({
                           }}
                           startDate={startDate}
                           isSelected={isSelected}
+                          showSelectedTag={isSelected}
                           onPress={() => {
                             setSelectedDayIndex(day.dayIndex);
                             setIsPickerOpen(false);
@@ -763,6 +765,7 @@ export function TodayDayPicker({
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
                   <ul className="flex flex-col gap-[0.375rem]">
                     {selectedDay.exercises.map((exercise) => {
+                      const isSelected = selectedExerciseRowId === exercise.id;
                       const isStretchHub = isStretchHubExercise(exercise);
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
                       const cardAppliedPin = findSelectedDayAppliedPinForExercise(exercise.id);
@@ -813,18 +816,17 @@ export function TodayDayPicker({
                             subtitleTone="plain"
                             contentClassName="pl-3"
                             onPress={() => {
-                              if (process.env.NODE_ENV === "development") {
-                                console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
-                              }
-                              setSelectedExerciseId(exercise.exerciseId);
+                              setSelectedExerciseRowId((current) => current === exercise.id ? null : exercise.id);
                             }}
                             showLeadingVisual={policy.showMedia}
                             showAccentRail={!isStretchHub}
                             hideEmptySummary={isStretchHub}
                             progressFill={cardProgressFill.fill}
-                            rightIcon={<ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />}
-                            shellClassName={cardProgressionAction ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
-                            shellStyle={cardProgressionAction ? ({
+                            rightIcon={isSelected
+                              ? <ChevronDownIcon className="h-5 w-5 text-[rgb(var(--success-rgb)/0.98)]" />
+                              : <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />}
+                            shellClassName={isSelected || cardProgressionAction ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
+                            shellStyle={isSelected || cardProgressionAction ? ({
                               "--exercise-card-progress-fill-bottom-right-radius": "0px",
                             } as CSSProperties) : undefined}
                           >
@@ -834,8 +836,27 @@ export function TodayDayPicker({
                               detailedMetrics={visibleDetailedMetrics}
                             />
                           </StandardExerciseRow>
+                          {isSelected ? (
+                            <AttachedCardActionStripFrame className={cardProgressionAction ? "rounded-none border-t-0" : "rounded-t-none"} gridClassName="grid-cols-1">
+                              <button
+                                type="button"
+                                data-bottom-action-intent="toggleActive"
+                                className={cn(
+                                  getAttachedCardActionButtonClassName({
+                                    intent: "toggleActive",
+                                    className: "focus-visible:ring-[rgb(var(--accent)/0.24)]",
+                                  }),
+                                )}
+                                onClick={() => {
+                                  setExerciseInfoExerciseId(exercise.exerciseId);
+                                }}
+                              >
+                                <span className="bottom-action__label">Inspect</span>
+                              </button>
+                            </AttachedCardActionStripFrame>
+                          ) : null}
                           {cardProgressionAction ? (
-                            <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-1">
+                            <AttachedCardActionStripFrame className={isSelected ? "rounded-t-none border-t-0" : "rounded-t-none"} gridClassName="grid-cols-1">
                               <button
                                 type="button"
                                 disabled={cardActionPending}
@@ -906,15 +927,15 @@ export function TodayDayPicker({
         ) : null}
 
         <ExerciseInfo
-          exerciseId={selectedExerciseId}
-          open={Boolean(selectedExerciseId)}
+          exerciseId={exerciseInfoExerciseId}
+          open={Boolean(exerciseInfoExerciseId)}
           onOpenChange={(open) => {
             if (!open) {
-              setSelectedExerciseId(null);
+              setExerciseInfoExerciseId(null);
             }
           }}
           onClose={() => {
-            setSelectedExerciseId(null);
+            setExerciseInfoExerciseId(null);
           }}
           sourceContext="TodayDayPicker"
         />

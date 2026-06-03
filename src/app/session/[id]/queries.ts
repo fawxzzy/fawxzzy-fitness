@@ -116,15 +116,18 @@ export async function getSessionPageData(
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
-  const { data: routineDay } = session.routine_id && session.routine_day_index
+  const { data: routineDaysData } = session.routine_id
     ? await supabase
         .from("routine_days")
-        .select("id")
+        .select("id, day_index, is_rest")
         .eq("routine_id", session.routine_id)
-        .eq("day_index", session.routine_day_index)
         .eq("user_id", user.id)
-        .maybeSingle()
-    : { data: null };
+        .order("day_index", { ascending: true })
+    : { data: [] };
+  const routineDays = (routineDaysData ?? []) as Array<{ id: string; day_index: number | null; is_rest?: boolean | null }>;
+  const routineDay = session.routine_day_index
+    ? (routineDays.find((day) => day.day_index === session.routine_day_index) ?? null)
+    : null;
 
   const { data: routineDayExercisesWithProgression, error: routineDayExercisesWithProgressionError } = routineDay?.id
     ? await supabase
@@ -382,6 +385,7 @@ export async function getSessionPageData(
   return {
     sessionRow: session as SessionRow,
     routineDayId: routineDay?.id ?? null,
+    routineDays,
     routine,
     sessionExercises,
     setsByExercise,

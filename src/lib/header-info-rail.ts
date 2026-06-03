@@ -36,6 +36,16 @@ const TODAY_HEADER_SIGNAL_PRIORITY = [
 ] as const;
 
 type TodayHeaderSignalId = (typeof TODAY_HEADER_SIGNAL_PRIORITY)[number];
+const SESSION_HEADER_SIGNAL_PRIORITY = [
+  "live-session",
+  "cycle-position",
+  "session-status",
+  "day-load",
+  "day-focus",
+  "routine-structure",
+] as const;
+
+type SessionHeaderSignalId = (typeof SESSION_HEADER_SIGNAL_PRIORITY)[number];
 
 type CurrentRoutineHeaderDay = {
   dayIndex: number;
@@ -56,6 +66,18 @@ type CurrentTodayHeaderDay = {
   isInSession: boolean;
   state: "rest" | "empty" | "partial" | "runnable";
   invalidExerciseCount: number;
+  splitSummary?: RoutineDayCardCounts | null;
+};
+
+type CurrentSessionHeaderContext = {
+  sessionDayIndex?: number | null;
+  cycleLengthDays?: number | null;
+  isRestDay?: boolean;
+  trainingDays?: number | null | undefined;
+  restDays?: number | null | undefined;
+  sessionExerciseCount?: number | null | undefined;
+  loggedExerciseCount?: number | null | undefined;
+  skippedExerciseCount?: number | null | undefined;
   splitSummary?: RoutineDayCardCounts | null;
 };
 
@@ -348,6 +370,99 @@ export function buildTodayHeaderInfoRailItems(args: {
   const maxItems = Math.max(1, Math.floor(args.maxItems ?? 4));
 
   return TODAY_HEADER_SIGNAL_PRIORITY
+    .map((signalId) => signalMap[signalId])
+    .filter((item): item is HeaderInfoRailItem => Boolean(item))
+    .slice(0, maxItems);
+}
+
+function buildCurrentSessionHeaderSignalMap(args: CurrentSessionHeaderContext): Partial<Record<SessionHeaderSignalId, HeaderInfoRailItem>> {
+  const trainingDays = normalizeCount(args.trainingDays);
+  const restDays = normalizeCount(args.restDays);
+  const cycleLengthDays = Math.max(
+    normalizeCount(args.cycleLengthDays),
+    trainingDays + restDays,
+    0,
+  );
+  const sessionExerciseCount = normalizeCount(args.sessionExerciseCount ?? args.splitSummary?.total);
+  const loggedExerciseCount = normalizeCount(args.loggedExerciseCount);
+  const skippedExerciseCount = normalizeCount(args.skippedExerciseCount);
+  const descriptor = args.splitSummary ? resolveRoutineDayExerciseDescriptor(args.splitSummary) : null;
+  const signalMap: Partial<Record<SessionHeaderSignalId, HeaderInfoRailItem>> = {};
+
+  signalMap["live-session"] = {
+    id: "live-session",
+    label: "Session",
+    value: "In Progress",
+    tone: "accent",
+    title: "Current workout session is active",
+    valuePosition: "after",
+  };
+
+  if (normalizeCount(args.sessionDayIndex) > 0 && cycleLengthDays > 0) {
+    signalMap["cycle-position"] = {
+      id: "cycle-position",
+      label: "Cycle",
+      value: `Day ${normalizeCount(args.sessionDayIndex)} of ${cycleLengthDays}`,
+      tone: "default",
+      title: "Current day position inside this routine cycle",
+      valuePosition: "after",
+    };
+  }
+
+  if (loggedExerciseCount > 0 || skippedExerciseCount > 0) {
+    signalMap["session-status"] = {
+      id: "session-status",
+      label: "Progress",
+      value: `${loggedExerciseCount} logged${skippedExerciseCount > 0 ? ` Â· ${skippedExerciseCount} skipped` : ""}`,
+      tone: skippedExerciseCount > 0 ? "warning" : "success",
+      title: "Logged and skipped exercise status in this session",
+      valuePosition: "after",
+    };
+  }
+
+  if (!args.isRestDay && sessionExerciseCount > 0) {
+    signalMap["day-load"] = {
+      id: "day-load",
+      label: "Day Load",
+      value: formatRoutineDayExerciseCountLabel(sessionExerciseCount),
+      tone: "default",
+      title: "Configured exercise count for this session day",
+      valuePosition: "after",
+    };
+  }
+
+  if (!args.isRestDay && descriptor) {
+    signalMap["day-focus"] = {
+      id: "day-focus",
+      label: "Focus",
+      value: descriptor,
+      tone: "default",
+      title: "Overall exercise mix for this session day",
+      valuePosition: "after",
+    };
+  }
+
+  if (trainingDays > 0 || restDays > 0) {
+    signalMap["routine-structure"] = {
+      id: "routine-structure",
+      label: "Structure",
+      value: `${trainingDays} training Â· ${restDays} rest`,
+      tone: "default",
+      title: "Training and rest day split across this routine",
+      valuePosition: "after",
+    };
+  }
+
+  return signalMap;
+}
+
+export function buildCurrentSessionHeaderInfoRailItems(args: CurrentSessionHeaderContext & {
+  maxItems?: number;
+}): HeaderInfoRailItem[] {
+  const signalMap = buildCurrentSessionHeaderSignalMap(args);
+  const maxItems = Math.max(1, Math.floor(args.maxItems ?? 4));
+
+  return SESSION_HEADER_SIGNAL_PRIORITY
     .map((signalId) => signalMap[signalId])
     .filter((item): item is HeaderInfoRailItem => Boolean(item))
     .slice(0, maxItems);

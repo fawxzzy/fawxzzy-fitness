@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
+import { deriveExerciseCardProgressFill, deriveLoggedSetCountProgressFill } from "@/lib/exercise-card-progress-fill";
 import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 
 function buildFill(overrides: Partial<ProgressionProgressFill> = {}): ProgressionProgressFill {
@@ -102,4 +102,42 @@ test("does not mutate the input fill object", () => {
   });
 
   assert.deepEqual(sourceFill, sourceSnapshot);
+});
+
+test("deriveLoggedSetCountProgressFill returns partial set progress", () => {
+  const result = deriveLoggedSetCountProgressFill({
+    loggedSetCount: 2,
+    goalSetTarget: 4,
+  });
+
+  assert.deepEqual(result, {
+    percent: 50,
+    state: "partial",
+    label: "2/4 sets",
+  });
+});
+
+test("deriveLoggedSetCountProgressFill caps completed set progress at full", () => {
+  const result = deriveLoggedSetCountProgressFill({
+    loggedSetCount: 6,
+    goalSetTarget: 4,
+  });
+
+  assert.deepEqual(result, {
+    percent: 100,
+    state: "ready",
+    label: "4/4 sets",
+  });
+});
+
+test("deriveLoggedSetCountProgressFill returns none when there is no target or no logged sets yet", () => {
+  assert.equal(deriveLoggedSetCountProgressFill({
+    loggedSetCount: 0,
+    goalSetTarget: 4,
+  }), null);
+
+  assert.equal(deriveLoggedSetCountProgressFill({
+    loggedSetCount: 2,
+    goalSetTarget: null,
+  }), null);
 });

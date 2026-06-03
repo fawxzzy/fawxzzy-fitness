@@ -4,7 +4,7 @@ import { getBottomActionButtonClassName, type BottomActionIntent } from "@/compo
 import { cn } from "@/lib/cn";
 
 export function SessionExerciseBlock({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("w-full pb-4", className)}>{children}</div>;
+  return <div className={cn("w-full pb-2", className)}>{children}</div>;
 }
 
 export function SessionExerciseCard({ children }: { children: ReactNode }) {

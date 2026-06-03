@@ -2,41 +2,30 @@
 
 import { SessionBackButton } from "@/components/SessionBackButton";
 import { TodayOverviewHeader } from "@/components/today/TodayScreenFamily";
+import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
-import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
-import { getDayTaxonomyHeaderSummaryParts } from "@/lib/day-summary";
+import type { HeaderInfoRailItem } from "@/lib/header-info-rail";
 
 export function SessionHeaderControls({
   routineName,
   sessionDayName,
-  sessionSummaryCounts,
-  isRestDay = false,
+  infoItems,
   backHref,
 }: {
   routineName: string;
   sessionDayName: string;
-  sessionSummaryCounts: {
-    strength: number;
-    cardio: number;
-    bodyweight: number;
-    unknown: number;
-  };
-  isRestDay?: boolean;
+  infoItems: HeaderInfoRailItem[];
   backHref?: string;
 }) {
-  const { countsSummary } = getDayTaxonomyHeaderSummaryParts({
-    dayName: sessionDayName,
-    summary: sessionSummaryCounts,
-    isRest: isRestDay,
-  });
   const titleNode = <RoutineDayHeaderTitle leadingItems={[routineName.trim() || "Routine"]} dayLabel={sessionDayName} dayLabelOrder="day-first" />;
-  const subtitleNode = (
-    <AccentDotSeparatedText
-      text={countsSummary}
+  const subtitleNode = infoItems.length > 0 ? (
+    <HeaderInfoRail
+      items={infoItems}
+      ariaLabel="Current session summary"
+      behavior="rotate-single"
       className="justify-center text-center"
-      separatorClassName="h-[3.5px] w-[3.5px]"
     />
-  );
+  ) : undefined;
 
   return (
     <TodayOverviewHeader

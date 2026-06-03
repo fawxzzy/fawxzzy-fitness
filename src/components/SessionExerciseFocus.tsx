@@ -25,6 +25,7 @@ import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
+import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -350,15 +351,15 @@ export function SessionExerciseFocus({
   const handleSetCountChange = useCallback((exerciseId: string, count: number) => {
     patchRowState(exerciseId, (existing) => {
       const exercise = exercises.find((item) => item.id === exerciseId);
-      const progressState = exercise ? deriveSessionExerciseProgressState({
-        loggedSetCount: count,
-        isSkipped: existing.isSkipped,
-        targetSetsMin: exercise.targetSetsMin,
-        targetSetsMax: exercise.targetSetsMax,
-      }) : null;
-      const isNowGoalCompleted = Boolean(progressState?.isGoalCompleted);
-      const nextShowWhenCompleted = isNowGoalCompleted
-        ? false
+      const nextShowWhenCompleted = exercise
+        ? deriveCompletedVisibilityOverride({
+            previousLoggedSetCount: existing.loggedSetCount,
+            nextLoggedSetCount: count,
+            isSkipped: existing.isSkipped,
+            targetSetsMin: exercise.targetSetsMin,
+            targetSetsMax: exercise.targetSetsMax,
+            previousShowWhenCompleted: existing.showWhenCompleted,
+          })
         : existing.showWhenCompleted;
 
       if (existing.loggedSetCount === count && existing.showWhenCompleted === nextShowWhenCompleted) {
@@ -794,7 +795,11 @@ export function SessionExerciseFocus({
                               : "rounded-r-[999px] shadow-[0_0_18px_rgb(var(--accent)/0.12)]",
                           )}
                           style={compactProgressFillStyle}
-                        />
+                        >
+                          {isCompactProgressFillComplete && !baseRowViewModel.isSkipped ? (
+                            <span className="exercise-card-progress-glint" />
+                          ) : null}
+                        </span>
                       ) : null}
                       <div className="relative z-[1] flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2.5">
                         <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">

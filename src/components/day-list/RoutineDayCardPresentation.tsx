@@ -12,11 +12,11 @@ import {
 } from "@/lib/routine-day-card-summary";
 import type { SetFlowDirection } from "@/lib/set-flow-directions";
 
-export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "min-h-[2.55rem] py-0.5";
+export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "min-h-[2.35rem] py-[0.2rem]";
 export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-0 py-0";
-export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "py-0";
+export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 py-0";
 export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 py-0 !space-y-0";
-export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.22]";
+export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.14]";
 export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
 export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
 export const ROUTINE_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
@@ -254,6 +254,7 @@ export function RoutineOverviewDayCard({
   startDate,
   onPress,
   isSelected = false,
+  showSelectedTag = false,
   isExpanded = false,
   wrapper,
 }: {
@@ -261,9 +262,12 @@ export function RoutineOverviewDayCard({
   startDate?: string | null;
   onPress?: () => void;
   isSelected?: boolean;
+  showSelectedTag?: boolean;
   isExpanded?: boolean;
   wrapper?: (child: ReactNode) => ReactNode;
 }) {
+  const selectedTag = showSelectedTag ? renderRoutineTag("SELECTED") : null;
+  const statusTag = renderRoutineTag(resolveRoutineDayTagLabel(day));
   const card = (
     <DayCard
       title={(
@@ -278,13 +282,17 @@ export function RoutineOverviewDayCard({
       subtitleTone="plain"
       rightIcon={day.isRest
         ? (
-            isExpanded
-              ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
-              : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />
+            <span className="inline-flex items-center gap-3">
+              {selectedTag}
+              {isExpanded
+                ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
+                : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />}
+            </span>
           )
         : (
             <span className="inline-flex items-center gap-3">
-              {renderRoutineTag(resolveRoutineDayTagLabel(day))}
+              {selectedTag}
+              {statusTag}
               {isExpanded
                 ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
                 : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />}

@@ -1455,20 +1455,20 @@ export default async function TodayPage({
                 returnTo="/today"
                 fullWidth
                 className="w-full"
-                label="Resume"
+                label="Resume Workout"
               />
             )}
             secondary={(
               <ConfirmedServerFormButton
                 action={discardInProgressSessionAction}
                 hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                triggerLabel="Discard"
+                triggerLabel="Discard Workout"
                 triggerIntent="danger"
                 triggerClassName="h-full w-full"
                 size="md"
                 modalTitle="Discard workout?"
                 modalConsequenceText="Current workout will be removed."
-                confirmLabel="Discard"
+                confirmLabel="Discard Workout"
               />
             )}
           />

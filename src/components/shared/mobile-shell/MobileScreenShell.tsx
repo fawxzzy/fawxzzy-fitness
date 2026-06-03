@@ -102,7 +102,14 @@ function MobileScreenShellFrame({
   }, [bottomDock, shouldRenderBottomDock]);
 
   return (
-    <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-hidden", className)}>
+    <section
+      data-mobile-screen-shell="true"
+      className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-hidden", className)}
+      style={{
+        "--bottom-actions-height": `${dockHeight}px`,
+        "--app-mobile-bottom-dock-height": `${dockHeight}px`,
+      } as CSSProperties}
+    >
       {hasTopChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
       {hasFloatingHeader ? (
         <div

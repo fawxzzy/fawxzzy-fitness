@@ -873,12 +873,12 @@ export function MeasurementPanelV2({
   if (hasRpeInput) {
     metricFields.push({ id: "rpe", node: renderMetricCard({
             testId: "measurement-field-rpe",
-            width: shareSingleMetricRowWithRpe ? "standard" : "compact",
+            width: "standard",
             gridColumnCount,
             children: (
               <>
                 <InlineFieldControl
-                  label="/ 10"
+                  label="EFFORT / 10"
                   showEmptyValue={!(rpe ?? "").trim()}
                   hasValue={Boolean((rpe ?? "").trim())}
                   labelClassName={resolveInlineLabelClassName(useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined)}
@@ -923,7 +923,7 @@ export function MeasurementPanelV2({
   auxiliaryFields?.forEach((_, index) => {
     metricSortOrder.set(`aux-field-${index}`, -20 + (index * 0.01));
   });
-  metricSortOrder.set("rpe", resolvedMetricOrder.length * 10 + 5);
+  metricSortOrder.set("rpe", -30);
 
   const orderedMetricFields = [...metricFields].sort(
     (left, right) => (metricSortOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (metricSortOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER),
@@ -1070,7 +1070,7 @@ export function MeasurementPanelV2({
     if (fieldId === "time") return "w-[5.6rem]";
     if (fieldId === "distance") return "w-[5.75rem]";
     if (fieldId === "calories") return "w-[5.55rem]";
-    if (fieldId === "rpe") return "w-[5.15rem]";
+    if (fieldId === "rpe") return "w-[7.25rem]";
     return "w-[5.75rem]";
   }
 
