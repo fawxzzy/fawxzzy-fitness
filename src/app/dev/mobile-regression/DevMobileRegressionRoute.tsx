@@ -50,7 +50,6 @@ import {
   type ProgressionHistoryFilters,
 } from "@/lib/progression-history-filters";
 import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
-import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 
 export const dynamic = "force-dynamic";
@@ -1126,49 +1125,70 @@ const mockTodayProgressionReviewItems: ProgressionReviewDisplayItem[] = [
   },
 ];
 
-const mockTodayProgressionStatusSurfaceItems: ProgressionStatusSurfaceItem[] = [
+const mockTodayLinkedProgressionReviewItems: ProgressionReviewDisplayItem[] = [
   {
     id: "td-2",
     exerciseName: "Back Squat",
     dayName: "Lower",
     dayGroupId: "day-2",
-    readinessState: "ready",
-    readinessLabel: "Ready",
-    currentTargetLine: "Current target: 225 lbs x 5",
-    promotionBasisLabel: "Weight only",
-    promotionBasisDetail: "Weight-only promotion: reps are tracked for guidance but do not block readiness.",
-    repTargetLine: null,
-    latestLine: "Latest evidence: 230 lbs x 5 from the last qualifying session.",
-    targetLine: "Requirement: valid load evidence from a qualifying session.",
-    detailLine: "Ready: load evidence cleared the promotion rule.",
-    nextUpdateLine: "Next update: 230 lbs x 5",
-    reason: "Ready: met the load evidence requirement.",
-    progress: {
-      percent: 100,
-      state: "ready",
-      label: "4 of 4 qualifying sets recorded.",
+    linkedUpdate: {
+      count: 2,
+      dayNames: ["Lower", "Push"],
+      routineDayExerciseIds: ["td-2", "td-1"],
+      targets: [
+        {
+          routineDayExerciseId: "td-2",
+          dayName: "Lower",
+          dayGroupId: "day-2",
+        },
+        {
+          routineDayExerciseId: "td-1",
+          dayName: "Push",
+          dayGroupId: "day-1",
+        },
+      ],
+      displayOnly: true,
     },
-  },
-  {
-    id: "td-3",
-    exerciseName: "Walking Lunge",
-    dayName: "Lower",
-    dayGroupId: "day-2",
-    readinessState: "not_ready",
-    readinessLabel: "Not ready",
-    currentTargetLine: "Current target: 40 lbs x 8-12",
-    promotionBasisLabel: "Weight + reps",
-    promotionBasisDetail: "Both dimensions participate in auto-promotion for this exercise.",
-    repTargetLine: "Rep target for promotion: Top half of range (10+ reps)",
-    latestLine: "Latest evidence: 40 lbs x 9 on the strongest qualifying set.",
-    targetLine: "Requirement: 10+ reps at the current load before the next increase.",
-    detailLine: "Needs 10+ reps; latest best was 9.",
-    nextUpdateLine: "Next update: 45 lbs x 8",
-    reason: "Rep threshold not met yet.",
-    progress: {
-      percent: 75,
-      state: "partial",
-      label: "3 of 4 qualifying sets matched the current target.",
+    type: "promote",
+    badgeLabel: "Promote",
+    summary: "Back Squat: 225 lbs x 5 -> 230 lbs x 5",
+    summaryParts: {
+      exerciseName: "Back Squat",
+      currentTarget: "225 lbs x 5",
+      proposedTarget: "230 lbs x 5",
+      fallback: null,
+    },
+    reason: "Ready: linked days share the same target and can be promoted together.",
+    actionLabel: "Promote",
+    currentTarget: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 225,
+      weightMax: 225,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+    },
+    proposedTarget: {
+      measurementType: "reps",
+      setsMin: 4,
+      setsMax: 4,
+      repsTarget: null,
+      repsMin: 5,
+      repsMax: 5,
+      weightMin: 230,
+      weightMax: 230,
+      weightUnit: "lbs",
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
     },
   },
 ];
@@ -1425,8 +1445,11 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       : 2;
   const selectedDay = mockTodayDays.find((day) => day.dayIndex === selectedDayIndex) ?? mockTodayDays[1];
   const exerciseDensity = scenario.id === "today-detailed" ? "detailed" : "compact";
-  const progressionReviewItems = scenario.id === "today-progression-status" ? mockTodayProgressionReviewItems : [];
-  const progressionStatusSurfaceItems = scenario.id === "today-progression-status" ? mockTodayProgressionStatusSurfaceItems : [];
+  const progressionReviewItems = scenario.id === "today-progression-linked"
+    ? mockTodayLinkedProgressionReviewItems
+    : scenario.id === "today-progression-status"
+      ? mockTodayProgressionReviewItems
+      : [];
 
   if (scenario.id === "today-in-session-summary") {
     return (
@@ -1520,7 +1543,6 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
             exerciseDensity={exerciseDensity}
             progressionRoutineId="routine-1"
             progressionReviewItems={progressionReviewItems}
-            progressionStatusSurfaceItems={progressionStatusSurfaceItems}
           />
         </ContentRail>
       </ScrollScreenWithBottomActions>

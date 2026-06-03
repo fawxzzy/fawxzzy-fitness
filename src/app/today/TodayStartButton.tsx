@@ -50,7 +50,7 @@ export function TodayStartButton({
   returnTo,
   fullWidth = true,
   className,
-  label = "Start",
+  label = "Start Workout",
   sessionId,
 }: {
   selectedDayIndex?: number;
@@ -158,7 +158,7 @@ export function TodayStartButton({
       <ConfirmDestructiveModal
         open={confirmLockInOpen}
         title="Lock in applied progression updates?"
-        consequenceText="Starting this workout will keep the promoted targets and clear quick undo for this day."
+        consequenceText="Starting this workout will keep the applied progression targets and clear quick undo for this day."
         confirmLabel="Lock In"
         confirmActionLabel="Lock In"
         cancelLabel="Keep Revert"

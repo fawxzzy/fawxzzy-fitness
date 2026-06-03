@@ -1,6 +1,8 @@
 import { Fragment, type ReactNode } from "react";
+import { DayCard, resolveDayCardState } from "@/components/day-list/DayList";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { cn } from "@/lib/cn";
 import { formatRoutineDayStableDisplayName, getRoutineDayWeekdayLabel } from "@/lib/routines";
 import {
@@ -10,15 +12,16 @@ import {
 } from "@/lib/routine-day-card-summary";
 import type { SetFlowDirection } from "@/lib/set-flow-directions";
 
-export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "min-h-[4.3rem] py-2";
-export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "min-h-[1.45rem] py-0";
-export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "py-0.5";
-export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "py-0 min-h-0";
+export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "min-h-[2.55rem] py-0.5";
+export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-0 py-0";
+export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "py-0";
+export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 py-0 !space-y-0";
 export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.22]";
 export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
 export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
 export const ROUTINE_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
 export const ROUTINE_TAG_CLASS_NAME = "text-[11px] tracking-[0.12em]";
+export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "!h-auto !min-h-0 !items-center";
 
 export type RoutineDayCardSummary = {
   total?: number;
@@ -33,6 +36,21 @@ export type RoutineDayCardPresentationItem = {
   splitSummary?: RoutineDayCardSummary;
   exerciseSummary?: string;
   dayAdjustmentDirection?: SetFlowDirection | null;
+};
+
+export type RoutineDayCardTagState = {
+  isToday?: boolean;
+  isRest?: boolean;
+  isCompleted?: boolean;
+  isSkipped?: boolean;
+  isInSession?: boolean;
+};
+
+export type RoutineOverviewDayCardItem = RoutineDayCardPresentationItem & RoutineDayCardTagState & {
+  dayIndex: number;
+  name?: string | null;
+  title?: string | null;
+  occurrenceWeekday?: string | null;
 };
 
 export function splitRoutineSummaryParts(value: string | null | undefined) {
@@ -156,6 +174,26 @@ export function renderRoutineDaySubtitle(day: RoutineDayCardPresentationItem): R
   return renderSignatureParts(splitRoutineSummaryParts(day.exerciseSummary)) ?? day.exerciseSummary ?? "No exercises yet";
 }
 
+export function resolveRoutineDayTagLabel(day: RoutineDayCardTagState) {
+  if (day.isInSession) {
+    return "IN SESSION";
+  }
+
+  if (day.isCompleted) {
+    return "DONE";
+  }
+
+  if (day.isSkipped) {
+    return "SKIPPED";
+  }
+
+  if (day.isToday) {
+    return "TODAY";
+  }
+
+  return undefined;
+}
+
 export function renderRoutineTag(label: string | undefined) {
   const normalizedLabel = label?.trim().toUpperCase();
   if (!normalizedLabel) {
@@ -190,6 +228,7 @@ export function renderRoutineTag(label: string | undefined) {
     ? "text-[rgb(var(--accent-yellow-on))]"
     : normalizedLabel === "TODAY"
       || normalizedLabel === "CURRENT"
+      || normalizedLabel === "SELECTED"
       || normalizedLabel === "IN SESSION"
       || normalizedLabel === "COMPLETED"
       || normalizedLabel === "DONE"
@@ -208,4 +247,70 @@ export function renderRoutineDayRightRail(label: string | undefined) {
       <span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>
     </span>
   );
+}
+
+export function RoutineOverviewDayCard({
+  day,
+  startDate,
+  onPress,
+  isSelected = false,
+  isExpanded = false,
+  wrapper,
+}: {
+  day: RoutineOverviewDayCardItem;
+  startDate?: string | null;
+  onPress?: () => void;
+  isSelected?: boolean;
+  isExpanded?: boolean;
+  wrapper?: (child: ReactNode) => ReactNode;
+}) {
+  const card = (
+    <DayCard
+      title={(
+        <RoutineDayCardTitle
+          name={day.name ?? day.title ?? null}
+          dayIndex={day.dayIndex}
+          startDate={startDate}
+          weekdayLabel={day.occurrenceWeekday}
+        />
+      )}
+      subtitle={renderRoutineDaySubtitle(day)}
+      subtitleTone="plain"
+      rightIcon={day.isRest
+        ? (
+            isExpanded
+              ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
+              : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />
+          )
+        : (
+            <span className="inline-flex items-center gap-3">
+              {renderRoutineTag(resolveRoutineDayTagLabel(day))}
+              {isExpanded
+                ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
+                : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />}
+            </span>
+          )}
+      state={resolveDayCardState({
+        isToday: day.isToday,
+        isSelected,
+        isRest: day.isRest,
+        isCompleted: false,
+        isInSession: day.isInSession,
+      })}
+      className={cn(
+        day.isRest ? ROUTINE_REST_DAY_CARD_CLASS_NAME : undefined,
+        isExpanded ? "rounded-b-none ![border-bottom-left-radius:0px] ![border-bottom-right-radius:0px]" : undefined,
+      )}
+      bodyClassName={day.isRest ? ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME : ROUTINE_DAY_CARD_BODY_CLASS_NAME}
+      contentClassName={day.isRest ? ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME : ROUTINE_DAY_CARD_CONTENT_CLASS_NAME}
+      titleClassName={day.isRest ? cn(ROUTINE_DAY_CARD_TITLE_CLASS_NAME, "leading-none") : ROUTINE_DAY_CARD_TITLE_CLASS_NAME}
+      subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
+      contentVerticalAlign={day.isRest ? "auto" : undefined}
+      rightRailClassName="!items-center"
+      trailingStackClassName={ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME}
+      onPress={onPress}
+    />
+  );
+
+  return wrapper ? wrapper(card) : card;
 }

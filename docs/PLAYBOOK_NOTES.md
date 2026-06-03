@@ -1,6 +1,17 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-06-02 - Progression v2 exercise surfaces should reuse shared display and gating contracts
+- Type: Pattern
+- Summary: Routine, Edit Day, Add Exercise, and Today progression surfaces should derive visible measurements, review labels, day-card summaries, and status rails from shared progression contracts instead of screen-local formatting or gating rules.
+- Rule: Exercise progression UI should hide or show sections from the current active measurement inputs, not stale broad defaults.
+- Rule: Today review strips should format targets and action semantics through the shared progression review display path.
+- Rule: Routine and Today switch-day cards should reuse the same closed-card presentation path so status, sizing, and summary behavior stay aligned.
+- Pattern: shared progression review loader/display + shared routine day card presentation + screen-specific composition only where context actually differs.
+- Failure Mode: Screen-local copies drift into outdated labels, wrong measurement sets, stale action semantics, and card layout mismatches that regress independently.
+- Evidence: `src/app/today/TodayDayPicker.tsx`, `src/app/today/page.tsx`, `src/app/routines/RoutinesPageClient.tsx`, `src/app/routines/page.tsx`, `src/components/day-list/RoutineDayCardPresentation.tsx`, `src/lib/progression-review-display.ts`, `src/lib/routines.ts`
+- Status: Proposed
+
 ## 2026-06-01 - Local release-readiness proof should preserve stable generated build artifacts
 - Type: Pattern
 - Summary: Local Fitness release-readiness proof should reuse the current app build manifest and service worker bytes when deployment metadata is unchanged so visual and release checks do not create no-op generated drift on every run.

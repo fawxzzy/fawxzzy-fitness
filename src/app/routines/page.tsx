@@ -12,7 +12,13 @@ import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import { getRoutineStartWeekdayFromDate, getTimeZoneDayWindow, resolveRoutineScheduleForToday } from "@/lib/routines";
+import {
+  getCurrentCycleOccurrenceContext,
+  getRoutineStartWeekdayFromDate,
+  getTimeZoneDayWindow,
+  resolveCompletedRoutineDayIndexesForOccurrence,
+  resolveRoutineScheduleForToday,
+} from "@/lib/routines";
 import {
   filterQaLlelRows,
   QA_LLEL_VISIBILITY_COOKIE,
@@ -29,37 +35,6 @@ import { resolveEditDayAutoProgressionState } from "@/lib/edit-day-progression";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function parseDateStringAsUtc(dateString: string) {
-  const [year, month, day] = dateString.split("-").map(Number);
-  return Date.UTC(year, month - 1, day);
-}
-
-function formatUtcDate(timestamp: number) {
-  return new Date(timestamp).toISOString().slice(0, 10);
-}
-
-function addDaysToDateString(dateString: string, days: number) {
-  return formatUtcDate(parseDateStringAsUtc(dateString) + (days * MS_PER_DAY));
-}
-
-function formatDateInTimeZone(date: Date, timeZone: string) {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  const parts = formatter.formatToParts(date);
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  const day = parts.find((part) => part.type === "day")?.value;
-
-  return year && month && day ? `${year}-${month}-${day}` : null;
-}
 
 function formatRoutineBrowseCardSummary(args: {
   trainingDays: number;
@@ -289,24 +264,16 @@ export default async function RoutinesPage({
 
     if (activeRoutine.start_date && todayRoutineSchedule?.resolution.status === "scheduled" && todayRoutineSchedule.dayIndex !== null) {
       const todayDate = todayRoutineSchedule.todayDate;
-      const startDateTimestamp = Date.parse(`${activeRoutine.start_date}T00:00:00Z`);
-      const todayDateTimestamp = Date.parse(`${todayDate}T00:00:00Z`);
-      const daysSinceStart = Number.isFinite(startDateTimestamp) && Number.isFinite(todayDateTimestamp)
-        ? Math.floor((todayDateTimestamp - startDateTimestamp) / MS_PER_DAY)
-        : Number.NaN;
-      const currentCycleStartOffset = Number.isFinite(daysSinceStart)
-        ? Math.floor(daysSinceStart / safeCycleLength) * safeCycleLength
-        : 0;
-      const currentCycleStartDate = addDaysToDateString(activeRoutine.start_date, currentCycleStartOffset);
-      const occurrenceDateByDayIndex = new Map<number, string>();
-
-      for (const [index, day] of sortedActiveRoutineDays.entries()) {
-        const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
-        occurrenceDateByDayIndex.set(dayNumber, addDaysToDateString(currentCycleStartDate, dayNumber - 1));
-      }
-
-      const queryStartDate = addDaysToDateString(currentCycleStartDate, -1);
-      const queryEndDate = addDaysToDateString(todayDate, 2);
+      const dayIndexes = sortedActiveRoutineDays.map((day, index) => (
+        Number.isFinite(day.day_index) ? day.day_index : index + 1
+      ));
+      const { occurrenceDateByDayIndex, queryStartDate, queryEndDate } = getCurrentCycleOccurrenceContext({
+        cycleLengthDays: safeCycleLength,
+        startDate: activeRoutine.start_date,
+        profileTimeZone: routineTimeZone,
+        dayIndexes,
+        referenceDate: todayDate,
+      });
       const { data: completedCycleSessions } = await supabase
         .from("sessions")
         .select("routine_day_index, performed_at")
@@ -316,21 +283,11 @@ export default async function RoutinesPage({
         .gte("performed_at", `${queryStartDate}T00:00:00.000Z`)
         .lt("performed_at", `${queryEndDate}T00:00:00.000Z`);
 
-      completedDayIndexSet = new Set(
-        (completedCycleSessions ?? [])
-          .filter((session) => {
-            const dayIndex = session.routine_day_index;
-            if (!Number.isFinite(dayIndex) || !session.performed_at) {
-              return false;
-            }
-
-            const occurrenceDate = occurrenceDateByDayIndex.get(dayIndex);
-            const performedDate = formatDateInTimeZone(new Date(session.performed_at), routineTimeZone);
-            return Boolean(occurrenceDate && performedDate === occurrenceDate);
-          })
-          .map((session) => session.routine_day_index)
-          .filter((value): value is number => Number.isFinite(value)),
-      );
+      completedDayIndexSet = new Set(resolveCompletedRoutineDayIndexesForOccurrence({
+        sessions: completedCycleSessions ?? [],
+        occurrenceDateByDayIndex,
+        timeZone: routineTimeZone,
+      }));
 
       skippedDayIndexSet = new Set(
         sortedActiveRoutineDays

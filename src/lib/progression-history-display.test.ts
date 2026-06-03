@@ -90,7 +90,7 @@ test("display rows fall back gracefully when routine or exercise names are missi
 
   assert.equal(row.exerciseName, "Exercise");
   assert.equal(row.routineName, null);
-  assert.equal(row.targetChangeSummary, "100 lbs x 12 -> 105 lbs x 8");
+  assert.equal(row.targetChangeSummary, "12 reps • 100 lbs -> 8 reps • 105 lbs");
 });
 
 test("summary cards consume analytics helpers and resolve the top progressed exercise label", () => {

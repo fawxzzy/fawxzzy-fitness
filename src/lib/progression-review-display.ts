@@ -93,7 +93,7 @@ function formatRepTarget(plan: ProgressionTargetPlan) {
   const repsLabel = formatReps(reps);
 
   if (weightLabel && repsLabel) {
-    return `${weightLabel} x ${repsLabel.replace(" reps", "")}`;
+    return `${repsLabel} • ${weightLabel}`;
   }
 
   return weightLabel ?? repsLabel;

@@ -378,7 +378,7 @@ test("builds a ready status surface row with top-half rep guidance", () => {
   assert.equal(item.readinessLabel, "Ready");
   assert.equal(item.promotionBasisLabel, "Weight + reps");
   assert.equal(item.repTargetLine, "Rep target for promotion: Top half of range · 8-12 => 10+ reps");
-  assert.equal(item.nextUpdateLine, "Next update: 230 lbs x 12");
+  assert.equal(item.nextUpdateLine, "Next update: 12 reps • 230 lbs");
 });
 
 test("builds a weight-only status surface row that explains reps do not block readiness", () => {

@@ -127,11 +127,11 @@ test("builds a full Progression Updates status report from ready and status rows
     dayGroupId: "day-hunt",
     type: "promote",
     badgeLabel: "Promote",
-    summary: "Weighted Pull-Up: 25 lbs x 8 -> 35 lbs x 5",
+    summary: "Weighted Pull-Up: 8 reps • 25 lbs -> 5 reps • 35 lbs",
     summaryParts: {
       exerciseName: "Weighted Pull-Up",
-      currentTarget: "25 lbs x 8",
-      proposedTarget: "35 lbs x 5",
+      currentTarget: "8 reps • 25 lbs",
+      proposedTarget: "5 reps • 35 lbs",
       fallback: null,
     },
     reason: "Completed top reps above target load.",
@@ -314,6 +314,6 @@ test("formatProgressionReviewDisplayItem can present effort-adjusted current and
   });
 
   assert.ok(item);
-  assert.equal(item.summaryParts.currentTarget, "105 lbs x 9");
-  assert.equal(item.summaryParts.proposedTarget, "110 lbs x 9");
+  assert.equal(item.summaryParts.currentTarget, "9 reps • 105 lbs");
+  assert.equal(item.summaryParts.proposedTarget, "9 reps • 110 lbs");
 });

@@ -135,6 +135,26 @@ function formatUtcDate(timestamp: number) {
   return new Date(timestamp).toISOString().slice(0, 10);
 }
 
+export function addDaysToDateString(dateString: string, days: number) {
+  return formatUtcDate(parseDateStringAsUtc(dateString) + (days * MS_PER_DAY));
+}
+
+export function formatDateInTimeZone(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
 function normalizeCycleDayOffset(value: number, cycleLengthDays: number) {
   return ((value % cycleLengthDays) + cycleLengthDays) % cycleLengthDays;
 }
@@ -192,6 +212,63 @@ export function getRoutineCycleOccurrence(params: {
     occurrenceLabel: formatRoutineOccurrenceDateLabel(occurrenceDate),
     cycleRotationIndex: Math.floor(occurrenceDaysSinceStart / safeCycleLengthDays),
   };
+}
+
+export function getCurrentCycleOccurrenceContext(params: {
+  cycleLengthDays: number;
+  startDate: string;
+  profileTimeZone: string;
+  dayIndexes: number[];
+  referenceDate?: string | null;
+}) {
+  const safeCycleLengthDays = Number.isFinite(params.cycleLengthDays) && params.cycleLengthDays > 0
+    ? Math.floor(params.cycleLengthDays)
+    : 1;
+  const todayDate = params.referenceDate || getTodayDateInTimeZone(params.profileTimeZone);
+  const todayTs = parseDateStringAsUtc(todayDate);
+  const startTs = parseDateStringAsUtc(params.startDate);
+  const daysSinceStart = Math.floor((todayTs - startTs) / MS_PER_DAY);
+  const currentCycleStartOffset = Math.floor(daysSinceStart / safeCycleLengthDays) * safeCycleLengthDays;
+  const currentCycleStartDate = addDaysToDateString(params.startDate, currentCycleStartOffset);
+  const occurrenceDateByDayIndex = new Map<number, string>();
+
+  for (const dayIndex of params.dayIndexes) {
+    if (!Number.isFinite(dayIndex) || dayIndex <= 0) {
+      continue;
+    }
+
+    occurrenceDateByDayIndex.set(dayIndex, addDaysToDateString(currentCycleStartDate, dayIndex - 1));
+  }
+
+  return {
+    todayDate,
+    currentCycleStartDate,
+    occurrenceDateByDayIndex,
+    queryStartDate: addDaysToDateString(currentCycleStartDate, -1),
+    queryEndDate: addDaysToDateString(todayDate, 2),
+  };
+}
+
+export function resolveCompletedRoutineDayIndexesForOccurrence(params: {
+  sessions: Array<{ routine_day_index: number | null; performed_at: string | null }>;
+  occurrenceDateByDayIndex: Map<number, string>;
+  timeZone: string;
+}) {
+  return [...new Set(
+    params.sessions
+      .filter((session) => {
+        const dayIndex = session.routine_day_index;
+        if (typeof dayIndex !== "number" || !Number.isFinite(dayIndex) || !session.performed_at) {
+          return false;
+        }
+
+        const occurrenceDate = params.occurrenceDateByDayIndex.get(dayIndex);
+        const performedDate = formatDateInTimeZone(new Date(session.performed_at), params.timeZone);
+        return Boolean(occurrenceDate && performedDate === occurrenceDate);
+      })
+      .map((session) => session.routine_day_index)
+      .filter((value): value is number => Number.isFinite(value)),
+  )];
 }
 
 export function createRoutineDaySeeds(cycleLengthDays: number, userId: string, routineId: string) {

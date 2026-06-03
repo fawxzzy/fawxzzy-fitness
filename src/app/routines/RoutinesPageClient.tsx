@@ -11,9 +11,7 @@ import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } fr
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
-  DayCard,
   DayList,
-  resolveDayCardState,
 } from "@/components/day-list/DayList";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import {
@@ -24,10 +22,7 @@ import {
   ROUTINE_DAY_CARD_TITLE_CLASS_NAME,
   ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME,
   ROUTINE_REST_DAY_CARD_CLASS_NAME,
-  ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME,
-  RoutineDayCardTitle,
-  renderRoutineDayRightRail,
-  renderRoutineDaySubtitle,
+  RoutineOverviewDayCard,
   renderRoutineTag,
   renderSignatureParts,
   splitRoutineSummaryParts,
@@ -106,26 +101,6 @@ const ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonCl
   className: "translate-x-px !border-l-0 focus-visible:ring-[rgb(var(--accent)/0.24)]",
 });
 
-function resolveRoutineDayTagLabel(day: Pick<RoutineDayCardItem, "isToday" | "isRest" | "isCompleted" | "isSkipped" | "isInSession">) {
-  if (day.isInSession) {
-    return "IN SESSION";
-  }
-
-  if (day.isToday) {
-    return "TODAY";
-  }
-
-  if (day.isCompleted) {
-    return "DONE";
-  }
-
-  if (day.isSkipped) {
-    return "SKIPPED";
-  }
-
-  return undefined;
-}
-
 function renderRoutineHeaderSubtitle(summary: string | null | undefined) {
   const parts = splitRoutineSummaryParts(summary);
   return renderSignatureParts(parts, "justify-center text-center") ?? summary ?? undefined;
@@ -144,7 +119,7 @@ function renderRoutineListRightRail(args: {
 
   return (
     <span className="inline-flex items-center gap-3">
-      {args.isCurrent ? renderRoutineTag("CURRENT") : null}
+      {args.isCurrent ? renderRoutineTag("SELECTED") : null}
       <span aria-hidden="true" className={appTokens.metaText}>{"\u203A"}</span>
     </span>
   );
@@ -386,37 +361,12 @@ export function RoutinesPageClient({
                   const editDayHref = activeRoutineId ? resolveRoutineHomeEditDayHref(activeRoutineId, day.id) : day.href;
 
                   return (
-                    <DayCard
+                    <RoutineOverviewDayCard
                       key={day.id}
-                      title={<RoutineDayCardTitle name={day.name ?? day.title ?? null} dayIndex={day.dayIndex} startDate={activeRoutineStartDate} />}
-                      subtitle={renderRoutineDaySubtitle(displayDay)}
-                      subtitleTone="plain"
-                      rightIcon={(
-                        <span className="inline-flex items-center gap-3">
-                          {renderRoutineTag(resolveRoutineDayTagLabel(displayDay))}
-                          {isExpanded
-                            ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
-                            : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />}
-                        </span>
-                      )}
-                      state={resolveDayCardState({
-                        isToday: day.isToday,
-                        isSelected: day.isToday,
-                        isRest: displayIsRest,
-                        isCompleted: false,
-                        isInSession: day.isInSession,
-                      })}
-                      className={cn(
-                        displayIsRest ? ROUTINE_REST_DAY_CARD_CLASS_NAME : undefined,
-                        isExpanded ? "rounded-b-none ![border-bottom-left-radius:0px] ![border-bottom-right-radius:0px]" : undefined,
-                      )}
-                      bodyClassName={displayIsRest ? cn(ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME, "min-h-[1.2rem] py-0") : cn(ROUTINE_DAY_CARD_BODY_CLASS_NAME, "min-h-[3.75rem] py-1.5")}
-                      contentClassName={displayIsRest ? cn(ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME, "py-0") : cn(ROUTINE_DAY_CARD_CONTENT_CLASS_NAME, "py-0")}
-                      titleClassName={ROUTINE_DAY_CARD_TITLE_CLASS_NAME}
-                      subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
-                      contentVerticalAlign={displayIsRest ? "top" : undefined}
-                      rightRailClassName="!items-center"
-                      trailingStackClassName="!items-center"
+                      day={displayDay}
+                      startDate={activeRoutineStartDate}
+                      isSelected={day.isToday}
+                      isExpanded={isExpanded}
                       onPress={() => handleToggleDayExpansion(day.id)}
                       wrapper={(card) => (
                         <div className="min-w-0">

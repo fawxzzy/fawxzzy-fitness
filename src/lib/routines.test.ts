@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  getCurrentCycleOccurrenceContext,
   formatRoutineDayDisplayName,
   formatRoutineDayOccurrenceDisplayName,
   formatRoutineDayStableDisplayName,
   getRoutineCycleOccurrence,
   getRoutineDayEditableName,
+  resolveCompletedRoutineDayIndexesForOccurrence,
   resolveRoutineScheduleForToday,
 } from "./routines.ts";
 
@@ -55,6 +57,42 @@ test("getRoutineCycleOccurrence advances labels for non-week cycles", () => {
   assert.equal(occurrence.occurrenceDate, "2026-05-14");
   assert.equal(occurrence.occurrenceLabel, "Thu, May 14");
   assert.equal(occurrence.cycleRotationIndex, 1);
+});
+
+test("getCurrentCycleOccurrenceContext maps day indexes to the current cycle occurrence dates", () => {
+  const context = getCurrentCycleOccurrenceContext({
+    cycleLengthDays: 7,
+    startDate: "2026-05-25",
+    profileTimeZone: "America/New_York",
+    referenceDate: "2026-06-03",
+    dayIndexes: [1, 2, 3, 4, 5, 6, 7],
+  });
+
+  assert.equal(context.currentCycleStartDate, "2026-06-01");
+  assert.equal(context.occurrenceDateByDayIndex.get(1), "2026-06-01");
+  assert.equal(context.occurrenceDateByDayIndex.get(3), "2026-06-03");
+  assert.equal(context.occurrenceDateByDayIndex.get(7), "2026-06-07");
+});
+
+test("resolveCompletedRoutineDayIndexesForOccurrence keeps only sessions from the matching cycle occurrence", () => {
+  const occurrenceDateByDayIndex = new Map<number, string>([
+    [1, "2026-06-01"],
+    [2, "2026-06-02"],
+    [3, "2026-06-03"],
+  ]);
+
+  const completedDayIndexes = resolveCompletedRoutineDayIndexesForOccurrence({
+    occurrenceDateByDayIndex,
+    timeZone: "America/New_York",
+    sessions: [
+      { routine_day_index: 1, performed_at: "2026-06-01T14:00:00.000Z" },
+      { routine_day_index: 1, performed_at: "2026-05-25T14:00:00.000Z" },
+      { routine_day_index: 2, performed_at: "2026-06-02T14:00:00.000Z" },
+      { routine_day_index: 3, performed_at: "2026-06-04T12:00:00.000Z" },
+    ],
+  });
+
+  assert.deepEqual(completedDayIndexes, [1, 2]);
 });
 
 test("getRoutineCycleOccurrence returns next occurrence for previous cycle days", () => {

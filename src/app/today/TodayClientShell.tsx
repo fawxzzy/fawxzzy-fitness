@@ -83,13 +83,9 @@ export function TodayClientShell({
     };
 
     syncActiveSessionHint();
-    window.addEventListener("focus", syncActiveSessionHint);
-    window.addEventListener("pageshow", syncActiveSessionHint);
     window.addEventListener(ACTIVE_SESSION_EVENT, syncActiveSessionHint as EventListener);
 
     return () => {
-      window.removeEventListener("focus", syncActiveSessionHint);
-      window.removeEventListener("pageshow", syncActiveSessionHint);
       window.removeEventListener(ACTIVE_SESSION_EVENT, syncActiveSessionHint as EventListener);
     };
   }, [payload.inProgressSessionId, router]);

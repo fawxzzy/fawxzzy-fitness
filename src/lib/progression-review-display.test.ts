@@ -40,7 +40,7 @@ test("formats promote candidate copy with current and proposed targets", () => {
   assert.equal(item.type, "promote");
   assert.equal(item.badgeLabel, "Promote");
   assert.equal(item.actionLabel, "Promote");
-  assert.equal(item.summary, "Bench Press: 135 lbs x 10 -> 140 lbs x 8");
+  assert.equal(item.summary, "Bench Press: 10 reps • 135 lbs -> 8 reps • 140 lbs");
 });
 
 test("formats review candidate copy without pretending to increase load", () => {
@@ -60,7 +60,7 @@ test("formats review candidate copy without pretending to increase load", () => 
   assert.equal(item.type, "review");
   assert.equal(item.badgeLabel, "Review");
   assert.equal(item.actionLabel, "Review manually");
-  assert.equal(item.summary, "Lateral Raise: 135 lbs x 10");
+  assert.equal(item.summary, "Lateral Raise: 10 reps • 135 lbs");
   assert.equal(item.proposedTarget?.weightMin, 135);
   assert.match(item.reason, /review before increasing/i);
 });
@@ -82,7 +82,7 @@ test("formats deload candidate copy as regression", () => {
   assert.equal(item.type, "deload");
   assert.equal(item.badgeLabel, "Regression");
   assert.equal(item.actionLabel, "Apply regression");
-  assert.equal(item.summary, "Squat: 135 lbs x 10 -> 120 lbs x 8");
+  assert.equal(item.summary, "Squat: 10 reps • 135 lbs -> 8 reps • 120 lbs");
 });
 
 test("formats cardio progression candidates without load copy", () => {

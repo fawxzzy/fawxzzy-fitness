@@ -164,8 +164,8 @@ test("deriveTodayScreenMode returns start dock for runnable day", () => {
 
   assert.equal(mode.runnableSelection, true);
   assert.equal(mode.dayRowsVisible, true);
-  assert.equal(mode.cta.primaryLabel, "Start");
-  assert.equal(mode.cta.secondaryLabel, "Switch");
+  assert.equal(mode.cta.primaryLabel, "Start Workout");
+  assert.equal(mode.cta.secondaryLabel, "Switch Day");
 });
 
 test("deriveTodayScreenMode hides rows and switches secondary CTA when picker is open", () => {
@@ -213,7 +213,7 @@ test("deriveTodayScreenMode keeps resume CTA available for closed picker empty s
   assert.equal(mode.emptyTrainingDay, true);
   assert.equal(mode.cta.showPrimary, true);
   assert.equal(mode.cta.primaryLabel, "Resume");
-  assert.equal(mode.cta.secondaryLabel, "Switch");
+  assert.equal(mode.cta.secondaryLabel, "Switch Day");
 });
 
 test("deriveTodayScreenMode keeps rest-day detail content visible when the picker is closed", () => {
@@ -257,7 +257,7 @@ test("deriveTodayScreenMode falls back to the first template day when no calenda
 
   assert.equal(mode.selectedDay?.dayIndex, 4);
   assert.equal(mode.runnableSelection, true);
-  assert.equal(mode.cta.primaryLabel, "Start");
+  assert.equal(mode.cta.primaryLabel, "Start Workout");
 });
 
 test("rest and invalid-empty summaries resolve from pure summary selectors", () => {

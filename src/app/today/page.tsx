@@ -35,7 +35,14 @@ import {
   getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
-import { formatRoutineDayStableDisplayName, getRoutineCycleOccurrence, getTimeZoneDayWindow, resolveRoutineScheduleForToday } from "@/lib/routines";
+import {
+  formatRoutineDayStableDisplayName,
+  getCurrentCycleOccurrenceContext,
+  getRoutineCycleOccurrence,
+  getTimeZoneDayWindow,
+  resolveCompletedRoutineDayIndexesForOccurrence,
+  resolveRoutineScheduleForToday,
+} from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import {
   buildProgressionHistorySessions,
@@ -48,13 +55,12 @@ import {
   loadProgressionUpdatesDisplayData,
 } from "@/lib/progression-review-loader";
 import {
-  formatProgressionReviewDisplayItem,
   type ProgressionReviewApplyResult,
   type ProgressionReviewDisplayItem,
   type ProgressionReviewLinkedTargetSnapshot,
   type ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem, ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
+import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
 import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
 import {
   buildProgressionEventPayload,
@@ -669,173 +675,6 @@ async function revertProgressionReviewCandidateAction(payload: {
   return { ok: true };
 }
 
-async function loadTodayProgressionReviewItems(args: {
-  supabase: ReturnType<typeof supabaseServer>;
-  userId: string;
-  routineId: string;
-  fallbackWeightUnit: "lbs" | "kg";
-  exercises: RoutineDayExerciseRow[];
-  exerciseNameByRoutineExerciseId: Map<string, string>;
-  routineDayNameById: Map<string, string>;
-}) {
-  const progressionExercises = args.exercises.filter((exercise) => exercise.progression_playbook_id);
-  if (progressionExercises.length === 0) {
-    return [] as ProgressionReviewDisplayItem[];
-  }
-
-  const progressionExerciseIds = Array.from(new Set(
-    progressionExercises
-      .map((exercise) => exercise.exercise_id)
-      .filter((exerciseId): exerciseId is string => Boolean(exerciseId)),
-  ));
-  const routineExerciseCountByCatalogExerciseId = progressionExercises.reduce((counts, exercise) => {
-    if (exercise.exercise_id) {
-      counts.set(exercise.exercise_id, (counts.get(exercise.exercise_id) ?? 0) + 1);
-    }
-    return counts;
-  }, new Map<string, number>());
-
-  if (progressionExerciseIds.length === 0) {
-    return [] as ProgressionReviewDisplayItem[];
-  }
-
-  const { data: sessionExercisesData, error: sessionExercisesError } = await args.supabase
-    .from("session_exercises")
-    .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status, routine_id)")
-    .eq("user_id", args.userId)
-    .in("exercise_id", progressionExerciseIds)
-    .eq("session.status", "completed")
-    .eq("session.routine_id", args.routineId);
-
-  if (sessionExercisesError) {
-    throw sessionExercisesError;
-  }
-
-  const sessionExerciseMetaById = new Map<string, { exerciseId: string; routineDayExerciseId: string | null; performedAt: string }>();
-  for (const row of (sessionExercisesData ?? []) as Array<{
-    id: string;
-    exercise_id: string;
-    routine_day_exercise_id?: string | null;
-    session?: { performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null } | Array<{ performed_at?: string | null; status?: "completed" | "in_progress"; routine_id?: string | null }> | null;
-  }>) {
-    const sessionRow = Array.isArray(row.session) ? (row.session[0] ?? null) : (row.session ?? null);
-    if (!row.id || !row.exercise_id || !sessionRow?.performed_at || sessionRow.status !== "completed" || sessionRow.routine_id !== args.routineId) {
-      continue;
-    }
-
-    sessionExerciseMetaById.set(row.id, {
-      exerciseId: row.exercise_id,
-      routineDayExerciseId: row.routine_day_exercise_id ?? null,
-      performedAt: sessionRow.performed_at,
-    });
-  }
-
-  const sessionExerciseIds = [...sessionExerciseMetaById.keys()];
-  const { data: setsData, error: setsError } = sessionExerciseIds.length > 0
-    ? await args.supabase
-        .from("sets")
-        .select("session_exercise_id, set_index, weight, reps, weight_unit, duration_seconds, distance, distance_unit, calories, is_warmup")
-        .eq("user_id", args.userId)
-        .in("session_exercise_id", sessionExerciseIds)
-        .order("set_index", { ascending: true })
-    : { data: [], error: null };
-
-  if (setsError) {
-    throw setsError;
-  }
-
-  const historyRowsByRoutineDayExerciseId = new Map<string, ProgressionHistorySetRow[]>();
-  const fallbackHistoryRowsByExerciseId = new Map<string, ProgressionHistorySetRow[]>();
-  for (const row of (setsData ?? []) as Array<{
-    session_exercise_id: string;
-    set_index: number;
-    weight: number | null;
-    reps: number | null;
-    weight_unit: "lbs" | "kg" | null;
-    duration_seconds: number | null;
-    distance: number | null;
-    distance_unit: FitnessDistanceUnit | null;
-    calories: number | null;
-    is_warmup: boolean;
-  }>) {
-    const meta = sessionExerciseMetaById.get(row.session_exercise_id);
-    if (!meta) {
-      continue;
-    }
-
-    const historyRow = {
-      sessionId: row.session_exercise_id,
-      performedAt: meta.performedAt,
-      setIndex: row.set_index,
-      weight: row.weight ?? null,
-      reps: row.reps ?? null,
-      weightUnit: row.weight_unit ?? null,
-      durationSeconds: row.duration_seconds ?? null,
-      distance: row.distance ?? null,
-      distanceUnit: row.distance_unit ?? null,
-      calories: row.calories ?? null,
-      isWarmup: row.is_warmup,
-    };
-
-    if (meta.routineDayExerciseId) {
-      const current = historyRowsByRoutineDayExerciseId.get(meta.routineDayExerciseId) ?? [];
-      current.push(historyRow);
-      historyRowsByRoutineDayExerciseId.set(meta.routineDayExerciseId, current);
-      continue;
-    }
-
-    const fallback = fallbackHistoryRowsByExerciseId.get(meta.exerciseId) ?? [];
-    fallback.push(historyRow);
-    fallbackHistoryRowsByExerciseId.set(meta.exerciseId, fallback);
-  }
-
-  return progressionExercises
-    .map((exercise) => {
-      const plan = buildProgressionReviewTargetPlan(exercise);
-      const directHistoryRows = historyRowsByRoutineDayExerciseId.get(exercise.id) ?? [];
-      const fallbackHistoryRows = routineExerciseCountByCatalogExerciseId.get(exercise.exercise_id) === 1
-        ? fallbackHistoryRowsByExerciseId.get(exercise.exercise_id) ?? []
-        : [];
-      const selectedHistoryRows = directHistoryRows.length > 0 ? directHistoryRows : fallbackHistoryRows;
-      const historySource = directHistoryRows.length > 0
-        ? "routine_day_exercise_id"
-        : fallbackHistoryRows.length > 0
-          ? "unique_catalog_exercise_id_fallback"
-          : "none";
-      const history = buildProgressionHistorySessions({
-        rows: selectedHistoryRows,
-        targetSetCount: exercise.target_sets,
-        topRepTarget: resolveRoutineExerciseRepTarget(exercise),
-        limit: 8,
-      });
-      const candidate = deriveProgressionReviewCandidate({
-        playbookId: exercise.progression_playbook_id,
-        config: exercise.progression_playbook_config,
-        plan,
-        history,
-        historyRows: selectedHistoryRows,
-        fallbackWeightUnit: args.fallbackWeightUnit,
-      });
-
-      return formatProgressionReviewDisplayItem({
-        id: exercise.id,
-        exerciseName: args.exerciseNameByRoutineExerciseId.get(exercise.id) ?? "Exercise",
-        dayName: args.routineDayNameById.get(exercise.routine_day_id) ?? null,
-        dayGroupId: exercise.routine_day_id,
-        candidate,
-        debug: {
-          historySource,
-          historySetCount: selectedHistoryRows.length,
-          historySessionCount: history.length,
-        },
-      });
-    })
-    .filter((item): item is ProgressionReviewDisplayItem => item !== null);
-}
-
-
-
-
 async function discardInProgressSessionAction(formData: FormData): Promise<void> {
   "use server";
 
@@ -1080,7 +919,25 @@ export default async function TodayPage({
 
     try {
       const completionSummary = await diagnostics.measure("today.completed-sessions.fetch", async () => {
-        const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
+        const routineTimeZone = activeRoutine.timezone || profile.timezone;
+        const dayIndexes = routineDays.map((day, index) => (
+          Number.isFinite(day.day_index) ? day.day_index : index + 1
+        ));
+        const todayWindow = getTimeZoneDayWindow(routineTimeZone);
+        const cycleOccurrenceContext = activeRoutine.start_date && todayDayIndex !== null
+          ? getCurrentCycleOccurrenceContext({
+              cycleLengthDays: activeRoutine.cycle_length_days,
+              startDate: activeRoutine.start_date,
+              profileTimeZone: routineTimeZone,
+              dayIndexes,
+            })
+          : null;
+        const { startIso: cycleStartIso, endIso: cycleEndIso } = cycleOccurrenceContext
+          ? {
+              startIso: `${cycleOccurrenceContext.queryStartDate}T00:00:00.000Z`,
+              endIso: `${cycleOccurrenceContext.queryEndDate}T00:00:00.000Z`,
+            }
+          : todayWindow;
 
         const { count: completedTodayCountValue, error: completedTodayCountError } = await supabase
           .from("sessions")
@@ -1088,8 +945,8 @@ export default async function TodayPage({
           .eq("user_id", user.id)
           .eq("status", "completed")
           .eq("routine_id", activeRoutine.id)
-          .gte("performed_at", startIso)
-          .lt("performed_at", endIso)
+          .gte("performed_at", todayWindow.startIso)
+          .lt("performed_at", todayWindow.endIso)
           .limit(1);
 
         if (completedTodayCountError) {
@@ -1098,12 +955,12 @@ export default async function TodayPage({
 
         const { data: completedTodaySessions, error: completedTodaySessionsError } = await supabase
           .from("sessions")
-          .select("routine_day_index")
+          .select("routine_day_index, performed_at")
           .eq("user_id", user.id)
           .eq("status", "completed")
           .eq("routine_id", activeRoutine.id)
-          .gte("performed_at", startIso)
-          .lt("performed_at", endIso);
+          .gte("performed_at", cycleStartIso)
+          .lt("performed_at", cycleEndIso);
 
         if (completedTodaySessionsError) {
           throw completedTodaySessionsError;
@@ -1111,11 +968,17 @@ export default async function TodayPage({
 
         return {
           completedTodayCountValue: completedTodayCountValue ?? 0,
-          completedDayIndexes: [...new Set(
-            (completedTodaySessions ?? [])
-              .map((session) => session.routine_day_index)
-              .filter((value): value is number => Number.isFinite(value)),
-          )],
+          completedDayIndexes: cycleOccurrenceContext
+            ? resolveCompletedRoutineDayIndexesForOccurrence({
+                sessions: completedTodaySessions ?? [],
+                occurrenceDateByDayIndex: cycleOccurrenceContext.occurrenceDateByDayIndex,
+                timeZone: routineTimeZone,
+              })
+            : [...new Set(
+                (completedTodaySessions ?? [])
+                  .map((session) => session.routine_day_index)
+                  .filter((value): value is number => Number.isFinite(value)),
+              )],
         };
       }, {
         blockingReason: "Waiting for Today completed-session summary.",
@@ -1257,7 +1120,6 @@ export default async function TodayPage({
   const earnedInstallPromptEnabled = isFeatureEnabled("earnedInstallPromptTiming");
   let progressionReviewItems: ProgressionReviewDisplayItem[] = [];
   let progressionStatusItems: ProgressionStatusDisplayItem[] = [];
-  let progressionStatusSurfaceItems: ProgressionStatusSurfaceItem[] = [];
   if (progressionUpdatesEnabled && activeRoutine && !inProgressSession && allDayExercises.length > 0) {
     try {
       const progressionUpdates = await diagnostics.measure("today.progression-review.fetch", () => loadProgressionUpdatesDisplayData({
@@ -1280,7 +1142,6 @@ export default async function TodayPage({
       });
       progressionReviewItems = progressionUpdates.readyItems;
       progressionStatusItems = progressionUpdates.statusItems;
-      progressionStatusSurfaceItems = progressionUpdates.statusSurfaceItems;
     } catch (error) {
       logTodayBootstrapFailure({
         step: "progression review fetch",
@@ -1575,7 +1436,6 @@ export default async function TodayPage({
               switchFloatingHeaderSlotId="today-routine-switch-floating-header-slot"
               progressionReviewItems={progressionReviewItems}
               progressionStatusItems={progressionStatusItems}
-              progressionStatusSurfaceItems={progressionStatusSurfaceItems}
               progressionRoutineId={todayPayload.routine.id}
               applyProgressionReviewCandidateAction={applyProgressionReviewCandidateAction}
               revertProgressionReviewCandidateAction={revertProgressionReviewCandidateAction}
