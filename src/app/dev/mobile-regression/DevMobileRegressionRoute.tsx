@@ -2015,8 +2015,6 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                   email="dev-regression@example.com"
                   username="dev-regression"
                   legacyBridgeConfigured={false}
-                  preferredWeightUnit="lbs"
-                  preferredDistanceUnit="mi"
                   userKind="human"
                   userNumber={null}
                   canAccessQaVisibilitySetting={false}

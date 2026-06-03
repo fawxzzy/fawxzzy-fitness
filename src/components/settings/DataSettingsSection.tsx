@@ -14,18 +14,19 @@ import { resolveShowQaLlelDataPreference } from "@/lib/qa-data-visibility";
 import type { ProfileRow } from "@/types/db";
 
 type ExportFileType = "csv" | "json" | "xlsx";
-type ExportScope = "all" | "completed_only" | "current_routine";
+type ExportScope = "all" | "history" | "routines";
 type ExportPreview = {
   fileType: ExportFileType;
   scope: ExportScope;
   scopeLabel: string;
+  scopeSummaryLabel: string;
   dateRange: {
     dateFrom: string | null;
     dateTo: string | null;
     label: string;
   };
-  routineScopeLabel: string;
   tables: Array<{
+    key: string;
     name: string;
     rowCount: number;
     empty: boolean;
@@ -38,7 +39,7 @@ type ExportPreview = {
     sets: number;
     routines: number;
     routineDays: number;
-    routineDayExercises: number;
+    routineExercises: number;
     exercises: number;
     progressionEvents: number;
   };
@@ -51,9 +52,9 @@ const FILE_TYPE_OPTIONS: Array<{ value: ExportFileType; label: string; disabled?
 ];
 
 const SCOPE_OPTIONS: Array<{ value: ExportScope; label: string }> = [
-  { value: "all", label: "All workout data" },
-  { value: "completed_only", label: "Completed only" },
-  { value: "current_routine", label: "Current routine" },
+  { value: "all", label: "All" },
+  { value: "history", label: "History" },
+  { value: "routines", label: "Routines" },
 ];
 
 function sanitizeExportNameInput(value: string) {
@@ -63,11 +64,11 @@ function sanitizeExportNameInput(value: string) {
 function getExportFormatNote(fileType: ExportFileType) {
   switch (fileType) {
     case "json":
-      return "JSON keeps the full account payload shape with the same top-level keys used in the download.";
+      return "JSON keeps the same clean section split as the download, with separate history and routine data.";
     case "xlsx":
-      return "Excel keeps one sheet per export section, including Progression Events and Progression Summary.";
+      return "Excel keeps one sheet per export section with only the relevant fields for that section.";
     default:
-      return "CSV exports the workout log plus a dedicated progression_events table.";
+      return "CSV exports one clean table per section instead of one wide log filled with blanks.";
   }
 }
 
@@ -371,18 +372,16 @@ export function DataSettingsSection({
                   <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.dateRange.label}</span>
                 </div>
                 <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-2">
-                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Routine scope</span>
-                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.routineScopeLabel}</span>
+                  <span className="block text-[0.7rem] uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.82)]">Includes</span>
+                  <span className="mt-1 block text-sm font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.tables.length} sections</span>
                 </div>
               </div>
 
               <div className="rounded-[0.8rem] bg-[rgb(var(--surface-1-rgb)/0.26)] px-3 py-3">
                 <p className="text-center text-xs leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-                  Includes exact export sections for <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.fileType.toUpperCase()}</span>, including
+                  <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview.scopeSummaryLabel}</span>
                   {" "}
-                  <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">
-                    {exportPreview.includesProgressionEvents ? "progression events" : "the selected export tables"}
-                  </span>.
+                  {exportPreview.includesProgressionEvents ? "Progression events are included in this scope." : "Progression events are not part of this scope."}
                 </p>
               </div>
 

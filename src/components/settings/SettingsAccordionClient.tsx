@@ -71,8 +71,6 @@ export function SettingsAccordionClient({
   email,
   username,
   legacyBridgeConfigured,
-  preferredWeightUnit,
-  preferredDistanceUnit,
   userKind,
   userNumber,
   canAccessQaVisibilitySetting,
@@ -83,8 +81,6 @@ export function SettingsAccordionClient({
   email: string;
   username: string;
   legacyBridgeConfigured: boolean;
-  preferredWeightUnit: "lbs" | "kg";
-  preferredDistanceUnit: "mi" | "km";
   userKind: "human" | "automation" | "unknown";
   userNumber: number | null;
   canAccessQaVisibilitySetting: boolean;
@@ -146,10 +142,7 @@ export function SettingsAccordionClient({
             />
           ) : null}
           {expandedSection === "theme" ? (
-            <AppThemeSettings
-              preferredWeightUnit={preferredWeightUnit}
-              preferredDistanceUnit={preferredDistanceUnit}
-            />
+            <AppThemeSettings />
           ) : null}
         </div>
       ) : null}

@@ -85,8 +85,6 @@ export default async function SettingsPage() {
                 email={user.email ?? ""}
                 username={username}
                 legacyBridgeConfigured={legacyBridgeConfigured}
-                preferredWeightUnit={profile.preferred_weight_unit ?? "lbs"}
-                preferredDistanceUnit={profile.preferred_distance_unit ?? "mi"}
                 userKind={profile.user_kind}
                 userNumber={profile.user_number}
                 canAccessQaVisibilitySetting={canAccessQaVisibilitySetting}

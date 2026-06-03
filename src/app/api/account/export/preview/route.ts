@@ -16,7 +16,7 @@ function isValidFileType(value: unknown): value is AccountWorkoutExportFileType 
 }
 
 function isValidScope(value: unknown): value is AccountWorkoutExportScope {
-  return value === "all" || value === "completed_only" || value === "current_routine";
+  return value === "all" || value === "history" || value === "routines";
 }
 
 export async function POST(request: Request) {

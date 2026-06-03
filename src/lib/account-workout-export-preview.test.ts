@@ -1,14 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  buildAccountWorkoutExportCsvTables,
-  buildAccountWorkoutExportWorkbookSheets,
-  type AccountWorkoutExportPayload,
-} from "@/lib/account-workout-export";
+import type { AccountWorkoutExportPayload } from "@/lib/account-workout-export";
 import { buildAccountWorkoutExportPreview } from "@/lib/account-workout-export-preview";
 import type {
-  ProfileRow,
   ProgressionEventRow,
   RoutineDayExerciseRow,
   RoutineDayRow,
@@ -19,17 +14,6 @@ import type {
 } from "@/types/db";
 
 function buildPayload(): AccountWorkoutExportPayload {
-  const profile: ProfileRow = {
-    id: "user-1",
-    timezone: "America/New_York",
-    active_routine_id: "routine-1",
-    preferred_weight_unit: "lbs",
-    preferred_distance_unit: "mi",
-    show_qa_llel_data: false,
-    user_number: 101,
-    user_kind: "human",
-    user_number_assigned_at: "2026-05-01T00:00:00.000Z",
-  };
   const routines: RoutineRow[] = [{
     id: "routine-1",
     user_id: "user-1",
@@ -51,7 +35,7 @@ function buildPayload(): AccountWorkoutExportPayload {
     is_rest: false,
     notes: null,
   }];
-  const routineDayExercises: RoutineDayExerciseRow[] = [{
+  const routineExercises: RoutineDayExerciseRow[] = [{
     id: "routine-exercise-1",
     user_id: "user-1",
     routine_day_id: "day-1",
@@ -154,48 +138,32 @@ function buildPayload(): AccountWorkoutExportPayload {
       dateFrom: null,
       dateTo: null,
       counts: {
-        sessions: sessions.length,
+        sessions: 1,
         completedSessions: 1,
-        sessionExercises: sessionExercises.length,
-        sets: sets.length,
-        routines: routines.length,
-        routineDays: routineDays.length,
-        routineDayExercises: routineDayExercises.length,
+        sessionExercises: 1,
+        sets: 1,
+        routines: 1,
+        routineDays: 1,
+        routineExercises: 1,
         exercises: 1,
-        progressionEvents: progressionEvents.length,
+        progressionEvents: 1,
       },
     },
-    profile,
     sessions,
     sessionExercises,
     sets,
     routines,
     routineDays,
-    routineDayExercises,
+    routineExercises,
     progressionEvents,
     exercises: [{
       id: "exercise-1",
       name: "Back Squat",
-      user_id: null,
-      is_global: true,
-      primary_muscle: "Quads",
-      equipment: "Barbell",
-      movement_pattern: "squat",
-      measurement_type: "reps",
-      default_unit: "lbs",
-      calories_estimation_method: null,
-      image_path: null,
-      image_icon_path: null,
-      image_howto_path: null,
-      slug: "back-squat",
-      how_to_short: null,
-      curation_tags: null,
-      created_at: "2026-01-01T00:00:00.000Z",
     }],
   };
 }
 
-test("preview includes progression events and exact CSV table names", () => {
+test("preview includes progression events and clean section labels", () => {
   const payload = buildPayload();
   const preview = buildAccountWorkoutExportPreview({
     payload,
@@ -210,66 +178,80 @@ test("preview includes progression events and exact CSV table names", () => {
   assert.equal(preview.includesProgressionEvents, true);
   assert.deepEqual(
     preview.tables.map((table) => table.name),
-    buildAccountWorkoutExportCsvTables(payload).map((table) => table.name),
+    [
+      "History Sessions",
+      "History Exercises",
+      "History Sets",
+      "History Progression Events",
+      "Routines",
+      "Routine Days",
+      "Routine Exercises",
+    ],
   );
 });
 
-test("preview reflects current routine scope and selected date range", () => {
+test("preview reflects history scope and selected date range", () => {
   const payload = buildPayload();
+  payload.metadata.scope = "history";
+  payload.routines = [];
+  payload.routineDays = [];
+  payload.routineExercises = [];
+  payload.metadata.counts.routines = 0;
+  payload.metadata.counts.routineDays = 0;
+  payload.metadata.counts.routineExercises = 0;
+
   const preview = buildAccountWorkoutExportPreview({
     payload,
     options: {
       fileType: "json",
-      scope: "current_routine",
+      scope: "history",
       dateFrom: "2026-05-01",
       dateTo: "2026-05-09",
     },
   });
 
-  assert.equal(preview.scopeLabel, "Current routine");
-  assert.equal(preview.routineScopeLabel, "Atlas Routine");
+  assert.equal(preview.scopeLabel, "History");
+  assert.equal(preview.scopeSummaryLabel, "History exports only session, set, and progression data.");
   assert.equal(preview.dateRange.label, "2026-05-01 to 2026-05-09");
+  assert.deepEqual(
+    preview.tables.map((table) => table.key),
+    [
+      "historySessions",
+      "historyExercises",
+      "historySets",
+      "historyProgressionEvents",
+    ],
+  );
 });
 
-test("preview table names match workbook sheets for xlsx", () => {
+test("preview for routines scope omits progression-event inclusion", () => {
   const payload = buildPayload();
+  payload.metadata.scope = "routines";
+  payload.sessions = [];
+  payload.sessionExercises = [];
+  payload.sets = [];
+  payload.progressionEvents = [];
+  payload.metadata.counts.sessions = 0;
+  payload.metadata.counts.completedSessions = 0;
+  payload.metadata.counts.sessionExercises = 0;
+  payload.metadata.counts.sets = 0;
+  payload.metadata.counts.progressionEvents = 0;
+
   const preview = buildAccountWorkoutExportPreview({
     payload,
     options: {
       fileType: "xlsx",
-      scope: "all",
+      scope: "routines",
       dateFrom: null,
       dateTo: null,
     },
   });
 
+  assert.equal(preview.includesProgressionEvents, false);
   assert.deepEqual(
-    preview.tables.map((table) => table.name),
-    buildAccountWorkoutExportWorkbookSheets(payload).map((sheet) => sheet.name),
+    preview.tables.map((table) => table.key),
+    ["routines", "routineDays", "routineExercises"],
   );
-});
-
-test("empty progression events preview stays stable and does not mutate payload", () => {
-  const payload = buildPayload();
-  payload.progressionEvents = [];
-  payload.metadata.counts.progressionEvents = 0;
-  const before = structuredClone(payload);
-
-  const preview = buildAccountWorkoutExportPreview({
-    payload,
-    options: {
-      fileType: "json",
-      scope: "all",
-      dateFrom: null,
-      dateTo: null,
-    },
-  });
-
-  const progressionTable = preview.tables.find((table) => table.name === "progressionEvents");
-  assert.ok(progressionTable);
-  assert.equal(progressionTable?.rowCount, 0);
-  assert.equal(progressionTable?.empty, true);
-  assert.deepEqual(payload, before);
 });
 
 test("preview reports exact payload counts without mutating export truth", () => {

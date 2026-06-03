@@ -1,16 +1,16 @@
 import "server-only";
 
 import {
-  ACCOUNT_WORKOUT_EXPORT_JSON_TABLE_NAMES,
-  buildAccountWorkoutExportCsvTables,
-  buildAccountWorkoutExportWorkbookSheets,
+  buildAccountWorkoutExportSections,
   type AccountWorkoutExportFileType,
   type AccountWorkoutExportOptions,
   type AccountWorkoutExportPayload,
   type AccountWorkoutExportScope,
+  type AccountWorkoutExportSectionKey,
 } from "@/lib/account-workout-export";
 
 export type AccountWorkoutExportPreviewTable = {
+  key: AccountWorkoutExportSectionKey;
   name: string;
   rowCount: number;
   empty: boolean;
@@ -20,12 +20,12 @@ export type AccountWorkoutExportPreview = {
   fileType: AccountWorkoutExportFileType;
   scope: AccountWorkoutExportScope;
   scopeLabel: string;
+  scopeSummaryLabel: string;
   dateRange: {
     dateFrom: string | null;
     dateTo: string | null;
     label: string;
   };
-  routineScopeLabel: string;
   tables: AccountWorkoutExportPreviewTable[];
   includesProgressionEvents: boolean;
   counts: AccountWorkoutExportPayload["metadata"]["counts"];
@@ -33,12 +33,23 @@ export type AccountWorkoutExportPreview = {
 
 function getScopeLabel(scope: AccountWorkoutExportScope) {
   switch (scope) {
-    case "completed_only":
-      return "Completed only";
-    case "current_routine":
-      return "Current routine";
+    case "history":
+      return "History";
+    case "routines":
+      return "Routines";
     default:
-      return "All workout data";
+      return "All";
+  }
+}
+
+function getScopeSummaryLabel(scope: AccountWorkoutExportScope) {
+  switch (scope) {
+    case "history":
+      return "History exports only session, set, and progression data.";
+    case "routines":
+      return "Routines exports routine builds now and templates when they are added.";
+    default:
+      return "All exports combine routines with history data.";
   }
 }
 
@@ -58,62 +69,31 @@ function getDateRangeLabel(options: Pick<AccountWorkoutExportOptions, "dateFrom"
   return "All time";
 }
 
-function getRoutineScopeLabel(payload: AccountWorkoutExportPayload, scope: AccountWorkoutExportScope) {
-  if (scope !== "current_routine") {
-    return "All routines";
-  }
-
-  return payload.routines[0]?.name ?? "Current routine";
-}
-
 export function buildAccountWorkoutExportPreview(args: {
   payload: AccountWorkoutExportPayload;
   options: Pick<AccountWorkoutExportOptions, "fileType" | "scope" | "dateFrom" | "dateTo">;
 }): AccountWorkoutExportPreview {
   const { payload, options } = args;
-  let tables: AccountWorkoutExportPreviewTable[];
-
-  if (options.fileType === "csv") {
-    tables = buildAccountWorkoutExportCsvTables(payload).map((table) => ({
-      name: table.name,
-      rowCount: table.rows.length,
-      empty: table.rows.length === 0,
-    }));
-  } else if (options.fileType === "xlsx") {
-    tables = buildAccountWorkoutExportWorkbookSheets(payload).map((sheet) => ({
-      name: sheet.name,
-      rowCount: sheet.rows.length,
-      empty: sheet.rows.length === 0,
-    }));
-  } else {
-    tables = ACCOUNT_WORKOUT_EXPORT_JSON_TABLE_NAMES.map((name) => {
-      const value = payload[name];
-      const rowCount = Array.isArray(value)
-        ? value.length
-        : value
-          ? 1
-          : 0;
-
-      return {
-        name,
-        rowCount,
-        empty: rowCount === 0,
-      };
-    });
-  }
+  const sections = buildAccountWorkoutExportSections(payload);
+  const tables = sections.map((section) => ({
+    key: section.key,
+    name: section.label,
+    rowCount: section.rows.length,
+    empty: section.rows.length === 0,
+  }));
 
   return {
     fileType: options.fileType,
     scope: options.scope,
     scopeLabel: getScopeLabel(options.scope),
+    scopeSummaryLabel: getScopeSummaryLabel(options.scope),
     dateRange: {
       dateFrom: options.dateFrom ?? null,
       dateTo: options.dateTo ?? null,
       label: getDateRangeLabel(options),
     },
-    routineScopeLabel: getRoutineScopeLabel(payload, options.scope),
     tables,
-    includesProgressionEvents: tables.some((table) => table.name === "progression_events" || table.name === "Progression Events" || table.name === "progressionEvents"),
+    includesProgressionEvents: sections.some((section) => section.key === "historyProgressionEvents"),
     counts: payload.metadata.counts,
   };
 }

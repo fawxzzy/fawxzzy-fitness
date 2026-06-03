@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { updateUnitPreferencesAction } from "@/app/settings/actions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { appTokens } from "@/components/ui/app/tokens";
 import { mergeAppBootPreferences } from "@/lib/app-boot-preferences";
 import {
@@ -36,20 +34,28 @@ import {
 } from "@/lib/app-theme";
 import { cn } from "@/lib/cn";
 
-const WEIGHT_OPTIONS: Array<{ value: "lbs" | "kg"; label: string }> = [
-  { value: "lbs", label: "lbs" },
-  { value: "kg", label: "kg" },
-];
+function normalizeThemeHexInput(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
 
-const DISTANCE_OPTIONS: Array<{ value: "mi" | "km"; label: string }> = [
-  { value: "mi", label: "mi" },
-  { value: "km", label: "km" },
-];
+  const hex = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  if (/^#[\da-fA-F]{6}$/.test(hex)) {
+    return hex.toLowerCase();
+  }
+
+  if (/^#[\da-fA-F]{3}$/.test(hex)) {
+    const [, first, second, third] = hex;
+    return `#${first}${first}${second}${second}${third}${third}`.toLowerCase();
+  }
+
+  return null;
+}
 
 const THEME_COLOR_GROUPS = [
   {
     title: "Text",
-    description: "Global text tiers for the bright, supporting, and muted copy used across the app.",
     fields: [
       { key: "textPrimaryColor", label: "Primary Text" },
       { key: "textSecondaryColor", label: "Secondary Text" },
@@ -57,37 +63,40 @@ const THEME_COLOR_GROUPS = [
     ],
   },
   {
-    title: "Core",
-    description: "Buttons and the main card surfaces used across the app.",
+    title: "Surfaces & Borders",
+    fields: [
+      { key: "surfaceCardColor", label: "Card Surface" },
+      { key: "cardOutlineColor", label: "Card Outline" },
+    ],
+  },
+  {
+    title: "Actions & Selection",
     fields: [
       { key: "primaryActionColor", label: "Primary Action" },
       { key: "secondaryActionColor", label: "Secondary Action" },
-      { key: "surfaceCardColor", label: "Cards & Surfaces" },
-      { key: "cardOutlineColor", label: "Card Outlines" },
-    ],
-  },
-  {
-    title: "State & Feedback",
-    description: "Progress, warning, destructive, and active-state colors for shared flows.",
-    fields: [
-      { key: "successCompleteColor", label: "Success" },
-      { key: "warningColor", label: "Warning" },
-      { key: "dangerColor", label: "Red Actions" },
       { key: "selectionActiveColor", label: "Selected / Active" },
+      { key: "accentYellowColor", label: "Yellow Accent" },
     ],
   },
   {
-    title: "Accents",
-    description: "Supporting lines, Done status tags, and motion highlights that tie the system together.",
+    title: "Progress & Feedback",
     fields: [
-      { key: "accentDividerColor", label: "Accent Lines / Done" },
-      { key: "metricAccentColor", label: "Metric Strips" },
+      { key: "successCompleteColor", label: "Success / Complete" },
+      { key: "warningColor", label: "Warning Message" },
+      { key: "dangerColor", label: "Red Actions" },
       { key: "loaderScanColor", label: "Loading Scan" },
+    ],
+  },
+  {
+    title: "Utility Accents",
+    fields: [
+      { key: "accentDividerColor", label: "Divider Lines" },
+      { key: "metricAccentColor", label: "Metric Strips" },
     ],
   },
 ] as const satisfies ReadonlyArray<{
   title: string;
-  description: string;
+  description?: string;
   fields: ReadonlyArray<{ key: keyof AppThemeSettings; label: string }>;
 }>;
 
@@ -118,14 +127,14 @@ function ThemePanelSection({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className={cn(THEME_PANEL_SHELL_CLASSNAME, "space-y-3 p-4 sm:p-5")}>
       <div className="space-y-1 text-center">
         <h3 className="text-sm font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary)/0.96)]">{title}</h3>
-        <p className={appTokens.settingsBodyText}>{description}</p>
+        {description ? <p className={appTokens.settingsBodyText}>{description}</p> : null}
       </div>
       {children}
     </section>
@@ -141,19 +150,66 @@ function ThemeColorField({
   value: string;
   onChange: (nextValue: string) => void;
 }) {
+  const [draftValue, setDraftValue] = useState(value);
+
+  useEffect(() => {
+    setDraftValue(value);
+  }, [value]);
+
   return (
     <div className={cn(appTokens.settingsFieldStack, "w-[9rem] max-w-full shrink-0")}>
       <LabeledEditorField label={label} className="w-[9rem] max-w-full">
-        <div className="px-3 py-2.5">
+        <div className="space-y-2 px-3 py-2.5">
           <span className="flex h-10 w-full items-center justify-center overflow-hidden rounded-[calc(var(--radius-md)-4px)]">
             <input
               aria-label={label}
               type="color"
               value={value}
-              onChange={(event) => onChange(event.target.value)}
+              onChange={(event) => {
+                setDraftValue(event.target.value);
+                onChange(event.target.value);
+              }}
               className="block h-full w-full cursor-pointer appearance-none border-0 bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[calc(var(--radius-md)-4px)] [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-[calc(var(--radius-md)-4px)] [&::-moz-color-swatch]:border-0"
             />
           </span>
+          <input
+            aria-label={`${label} hex value`}
+            type="text"
+            inputMode="text"
+            spellCheck={false}
+            value={draftValue}
+            onChange={(event) => setDraftValue(event.target.value.slice(0, 7))}
+            onBlur={() => {
+              const normalizedValue = normalizeThemeHexInput(draftValue);
+              if (!normalizedValue) {
+                setDraftValue(value);
+                return;
+              }
+              setDraftValue(normalizedValue);
+              if (normalizedValue !== value) {
+                onChange(normalizedValue);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") {
+                return;
+              }
+              event.preventDefault();
+              const normalizedValue = normalizeThemeHexInput(draftValue);
+              if (!normalizedValue) {
+                setDraftValue(value);
+                return;
+              }
+              setDraftValue(normalizedValue);
+              if (normalizedValue !== value) {
+                onChange(normalizedValue);
+              }
+            }}
+            className={cn(
+              labeledEditorFieldControlClassName,
+              "h-10 px-2.5 py-2 text-center font-mono text-[11px] uppercase tracking-[0.08em]",
+            )}
+          />
         </div>
       </LabeledEditorField>
     </div>
@@ -250,22 +306,13 @@ function ThemeSlotButton({
 }
 
 export function AppThemeSettings({
-  preferredWeightUnit,
-  preferredDistanceUnit,
-}: {
-  preferredWeightUnit: "lbs" | "kg";
-  preferredDistanceUnit: "mi" | "km";
-}) {
+}: Record<string, never>) {
   const [theme, setTheme] = useState<AppThemeSettings>(DEFAULT_APP_THEME);
   const [savedThemes, setSavedThemes] = useState<SavedAppThemeSlot[]>([]);
   const [selectedThemeId, setSelectedThemeId] = useState<AppThemeSelectionId>("default");
   const [themeName, setThemeName] = useState("");
   const [saveMessage, setSaveMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [weightUnit, setWeightUnit] = useState<"lbs" | "kg">(preferredWeightUnit);
-  const [distanceUnit, setDistanceUnit] = useState<"mi" | "km">(preferredDistanceUnit);
-  const [savedWeightUnit, setSavedWeightUnit] = useState<"lbs" | "kg">(preferredWeightUnit);
-  const [savedDistanceUnit, setSavedDistanceUnit] = useState<"mi" | "km">(preferredDistanceUnit);
   const [isSaving, startSaving] = useTransition();
   const [isThemeNameFocused, setIsThemeNameFocused] = useState(false);
 
@@ -345,8 +392,7 @@ export function AppThemeSettings({
   const canSaveTheme = normalizedThemeName.length > 0
     && hasActiveThemeChange
     && (isCustomThemeSlotSelected || nextAvailableThemeSlotId !== null);
-  const hasUnitPreferenceChange = weightUnit !== savedWeightUnit || distanceUnit !== savedDistanceUnit;
-  const canSaveAnyChange = canSaveTheme || hasUnitPreferenceChange;
+  const canSaveAnyChange = canSaveTheme;
 
   const selectPresetTheme = (preset: AppThemePreset) => {
     setSelectedThemeId(preset);
@@ -376,21 +422,6 @@ export function AppThemeSettings({
     startSaving(async () => {
       const successMessages: string[] = [];
       const errorMessages: string[] = [];
-
-      if (hasUnitPreferenceChange) {
-        const formData = new FormData();
-        formData.set("weightUnit", weightUnit);
-        formData.set("distanceUnit", distanceUnit);
-
-        const result = await updateUnitPreferencesAction(formData);
-        if (!result.ok) {
-          errorMessages.push(result.error);
-        } else {
-          setSavedWeightUnit(weightUnit);
-          setSavedDistanceUnit(distanceUnit);
-          successMessages.push("Preferences saved.");
-        }
-      }
 
       if (canSaveTheme) {
         const normalizedName = sanitizeAppThemeName(themeName);
@@ -551,54 +582,9 @@ export function AppThemeSettings({
         <>
           <ThemeSectionDivider />
 
-          <ThemePanelSection
-            title="Units"
-            description="Choose the measurement units used across routines, sessions, and progress displays."
-          >
-            <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-3">
-              <div className={cn(appTokens.settingsFieldStack, "w-fit items-center text-center")}>
-                <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Weight</p>
-                <SegmentedControl
-                  ariaLabel="Weight unit"
-                  options={WEIGHT_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
-                  value={weightUnit}
-                  onChange={(nextValue) => {
-                    setSaveMessage(null);
-                    setWeightUnit(nextValue as "lbs" | "kg");
-                  }}
-                  size="sm"
-                  activeIntent="positive"
-                  fitContent
-                  className="mx-auto"
-                  shellClassName="!border-transparent !bg-transparent !shadow-none !p-0 gap-1.5"
-                />
-              </div>
-
-              <div className={cn(appTokens.settingsFieldStack, "w-fit items-center text-center")}>
-                <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Distance</p>
-                <SegmentedControl
-                  ariaLabel="Distance unit"
-                  options={DISTANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
-                  value={distanceUnit}
-                  onChange={(nextValue) => {
-                    setSaveMessage(null);
-                    setDistanceUnit(nextValue as "mi" | "km");
-                  }}
-                  size="sm"
-                  activeIntent="positive"
-                  fitContent
-                  className="mx-auto"
-                  shellClassName="!border-transparent !bg-transparent !shadow-none !p-0 gap-1.5"
-                />
-              </div>
-            </div>
-          </ThemePanelSection>
-
-          <ThemeSectionDivider />
-
           {THEME_COLOR_GROUPS.map((group) => (
             <div key={group.title} className="space-y-4">
-              <ThemePanelSection title={group.title} description={group.description}>
+              <ThemePanelSection title={group.title}>
                 <div className="flex flex-wrap justify-center gap-2.5">
                   {group.fields.map((field) => (
                     <ThemeColorField
@@ -616,7 +602,6 @@ export function AppThemeSettings({
 
           <ThemePanelSection
             title="Shape"
-            description="Set how rounded buttons and cards should feel across shared flows."
           >
             <div className="flex flex-wrap justify-center gap-3">
               <ThemeRangeField

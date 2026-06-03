@@ -99,6 +99,7 @@ function isValidAppThemeSettings(value: unknown): value is AppThemeSettings {
     && isNormalizedHexColor(record.metricAccentColor)
     && isNormalizedHexColor(record.successCompleteColor)
     && isNormalizedHexColor(record.selectionActiveColor)
+    && isNormalizedHexColor(record.accentYellowColor)
     && isNormalizedHexColor(record.loaderScanColor)
     && isNormalizedHexColor(record.warningColor)
     && isNormalizedHexColor(record.dangerColor)

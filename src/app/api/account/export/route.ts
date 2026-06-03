@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import {
   buildAccountWorkoutExportFilename,
   buildAccountWorkoutExportPayload,
+  buildAccountWorkoutExportJsonDocument,
   serializeAccountWorkoutExportCsv,
   buildAccountWorkoutExportCsvTables,
   buildAccountWorkoutExportWorkbookBuffer,
@@ -20,7 +21,7 @@ function isValidFileType(value: unknown): value is AccountWorkoutExportFileType 
 }
 
 function isValidScope(value: unknown): value is AccountWorkoutExportScope {
-  return value === "all" || value === "completed_only" || value === "current_routine";
+  return value === "all" || value === "history" || value === "routines";
 }
 
 export async function POST(request: Request) {
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return new NextResponse(`${JSON.stringify(exportPayload, null, 2)}\n`, {
+    return new NextResponse(`${JSON.stringify(buildAccountWorkoutExportJsonDocument(exportPayload), null, 2)}\n`, {
       status: 200,
       headers: {
         "Content-Type": getAccountWorkoutExportContentType(options.fileType),
