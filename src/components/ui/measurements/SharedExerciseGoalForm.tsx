@@ -40,6 +40,8 @@ export function SharedExerciseGoalForm({
   visibleMetricOrder,
   measurementLayoutMode,
   onInfoRequest,
+  companionToggleCard,
+  companionToggleCards,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -57,6 +59,8 @@ export function SharedExerciseGoalForm({
   visibleMetricOrder?: Array<keyof MeasurementMetrics>;
   measurementLayoutMode?: "grid" | "horizontal-scroll";
   onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
+  companionToggleCard?: ReactNode;
+  companionToggleCards?: ReactNode[];
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
@@ -82,6 +86,8 @@ export function SharedExerciseGoalForm({
         visibleMetricOrder={visibleMetricOrder}
         measurementLayoutMode={measurementLayoutMode}
         onInfoRequest={onInfoRequest}
+        companionToggleCard={companionToggleCard}
+        companionToggleCards={companionToggleCards}
       />
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
       <input type="hidden" name="defaultUnit" value={state.distanceUnit} />

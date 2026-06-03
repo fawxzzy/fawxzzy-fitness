@@ -67,6 +67,9 @@ export function ExerciseProgressionEditorSurface({
   onTrainingFocusChange,
   hideExerciseSetSuccessCount = false,
   reserveInfoLayoutSpace = true,
+  hideProgressionMethodControl = false,
+  renderRegressionAsSection = false,
+  infoDockPlacement = "default",
 }: {
   draft: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -87,6 +90,9 @@ export function ExerciseProgressionEditorSurface({
   onTrainingFocusChange?: (goal: TrainingGoalId) => void;
   hideExerciseSetSuccessCount?: boolean;
   reserveInfoLayoutSpace?: boolean;
+  hideProgressionMethodControl?: boolean;
+  renderRegressionAsSection?: boolean;
+  infoDockPlacement?: "default" | "above-bottom-actions";
 }) {
   const draftProgressionConfig = useMemo(
     () => buildProgressionPlaybookConfigFromFormState(draft),
@@ -184,6 +190,9 @@ export function ExerciseProgressionEditorSurface({
       onTrainingFocusChange={onTrainingFocusChange}
       hideExerciseSetSuccessCount={hideExerciseSetSuccessCount}
       failureToggleInfoContent={failureToggleInfoContent}
+      hideProgressionMethodControl={hideProgressionMethodControl}
+      renderRegressionAsSection={renderRegressionAsSection}
+      infoDockPlacement={infoDockPlacement}
     />
   );
 }

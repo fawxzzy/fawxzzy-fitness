@@ -332,6 +332,7 @@ export function RoutineEditorAddExerciseFlowShell({
   goalExtraContent,
   goalBetweenInputsAndPreviewContent,
   goalDockViewportMode,
+  goalCompanionToggleCards,
   footerSlot,
   name = "exerciseId",
   customExerciseEnabled = false,
@@ -349,6 +350,7 @@ export function RoutineEditorAddExerciseFlowShell({
   goalExtraContent?: ComponentProps<typeof ExercisePicker>["goalExtraContent"];
   goalBetweenInputsAndPreviewContent?: ComponentProps<typeof ExercisePicker>["goalBetweenInputsAndPreviewContent"];
   goalDockViewportMode?: ComponentProps<typeof ExercisePicker>["goalDockViewportMode"];
+  goalCompanionToggleCards?: ComponentProps<typeof ExercisePicker>["goalCompanionToggleCards"];
   footerSlot?: ReactNode;
   name?: string;
   customExerciseEnabled?: boolean;
@@ -369,6 +371,7 @@ export function RoutineEditorAddExerciseFlowShell({
       goalExtraContent={goalExtraContent}
       goalBetweenInputsAndPreviewContent={goalBetweenInputsAndPreviewContent}
       goalDockViewportMode={goalDockViewportMode}
+      goalCompanionToggleCards={goalCompanionToggleCards}
       footerSlot={footerSlot}
       customExerciseEnabled={customExerciseEnabled}
     />

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
@@ -148,7 +147,6 @@ export function SessionPageClient({
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(initialSelectedExerciseId);
-  const router = useRouter();
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [hasMountedTimer, setHasMountedTimer] = useState(false);
@@ -273,7 +271,6 @@ export function SessionPageClient({
           if (result.ok) {
             clearActiveSessionHint(sessionId);
             writeInstallEarnedMoment("workout-completed");
-            router.refresh();
             navigateReturn();
           }
         }}
@@ -304,7 +301,7 @@ export function SessionPageClient({
         </div>
       </form>
     ),
-    [durationSeconds, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, timerPill, toast],
+    [durationSeconds, navigateReturn, quickAddAction, saveSessionAction, sessionId, timerPill, toast],
   );
 
   return (

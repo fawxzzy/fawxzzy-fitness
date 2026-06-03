@@ -1,7 +1,6 @@
 "use client";
 
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -268,7 +267,6 @@ export function SessionExerciseFocus({
     );
   }, [exercises, rowClientStateBySessionExerciseId, unitLabel]);
   const toast = useToast();
-  const router = useRouter();
   void removeExerciseAction;
   useEffect(() => {
     setWarmupDraft(false);
@@ -470,7 +468,6 @@ export function SessionExerciseFocus({
         if (nextSkipped && selectedExerciseId === exerciseId) {
           onSelectedExerciseIdChange(null);
         }
-        router.refresh();
       } else {
         patchRowState(exerciseId, (current) => ({
           ...current,
@@ -484,7 +481,7 @@ export function SessionExerciseFocus({
         isSkipPending: false,
       }));
     }
-  }, [onSelectedExerciseIdChange, patchRowState, router, selectedExerciseId, sessionId, toast, toggleSkipAction]);
+  }, [onSelectedExerciseIdChange, patchRowState, selectedExerciseId, sessionId, toast, toggleSkipAction]);
 
   return (
     <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>
@@ -757,7 +754,6 @@ export function SessionExerciseFocus({
 
                   if (result.ok) {
                     handleSetCountChange(exercise.id, setCount + 1);
-                    router.refresh();
                   }
                 } finally {
                   patchRowState(exercise.id, (current) => ({

@@ -45,6 +45,8 @@ type ExerciseTagFilterControlProps = {
   hideButton?: boolean;
   tagLayout?: "horizontal" | "stacked";
   showScrollEdgeFades?: boolean;
+  viewportMode?: "scroll" | "auto-height";
+  horizontalRailOverrideClassName?: string;
 };
 
 export function ExerciseTagFilterControl({
@@ -65,6 +67,8 @@ export function ExerciseTagFilterControl({
   hideButton = false,
   tagLayout = "horizontal",
   showScrollEdgeFades = false,
+  viewportMode = "scroll",
+  horizontalRailOverrideClassName,
 }: ExerciseTagFilterControlProps) {
   const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(defaultOpen);
   const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
@@ -117,6 +121,9 @@ export function ExerciseTagFilterControl({
 
   const compact = variant === "compact";
   const useStackedTagLayout = tagLayout === "stacked";
+  const horizontalRailClassName = compact
+    ? "hide-scrollbar -mx-1 max-w-none overflow-x-auto overflow-y-visible px-1 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
+    : "hide-scrollbar -mx-0.5 max-w-full overflow-x-auto overflow-y-visible px-0.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
 
   return (
     <div className={className ?? "space-y-2"}>
@@ -178,7 +185,7 @@ export function ExerciseTagFilterControl({
                 </p>
                 <MetricAccentBar variant="thin" className="w-full opacity-80" />
               </div>
-              <div className="hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1">
+              <div className={cn(horizontalRailClassName, horizontalRailOverrideClassName)}>
                 <div className={cn(compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1")}>
                   {showGroupByClearButton ? (
                     <button
@@ -219,96 +226,188 @@ export function ExerciseTagFilterControl({
               </div>
             </div>
           ) : null}
-          <FilterScrollPanel
-            showEdgeFades={showScrollEdgeFades}
-            viewportClassName={compact ? FILTER_OVERLAY_VIEWPORT_CLASS_NAME : "max-h-[min(48vh,24rem)] space-y-2"}
-          >
+          {viewportMode === "auto-height" ? (
+            <div className="space-y-2">
               {orderedGroups.map((group) => {
                 const selectedTagsForGroup = group.tags
                   .map((tag) => tag.value)
                   .filter((tagValue) => selectedTags.includes(tagValue));
 
                 return (
-                <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
-                  <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
-                    <p
+                  <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
+                    <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
+                      <p
+                        className={cn(
+                          compact
+                            ? appTokens.exercisePickerFilterGroupLabel
+                            : "text-[11px] font-medium uppercase tracking-wide",
+                        )}
+                      >
+                        {group.label}
+                      </p>
+                      <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                    </div>
+                    <div
                       className={cn(
-                        compact
-                          ? appTokens.exercisePickerFilterGroupLabel
-                          : "text-[11px] font-medium uppercase tracking-wide",
+                        useStackedTagLayout
+                          ? "px-0.5 pb-1"
+                          : cn(horizontalRailClassName, horizontalRailOverrideClassName),
+                        compact ? "pt-0.5" : undefined,
                       )}
-                    >
-                      {group.label}
-                    </p>
-                    <MetricAccentBar variant="thin" className="w-full opacity-80" />
-                  </div>
-                  <div
-                    className={cn(
-                      useStackedTagLayout
-                        ? "px-0.5 pb-1"
-                        : "hide-scrollbar -mx-0.5 overflow-x-auto px-0.5 pb-1",
-                      compact ? "pt-0.5" : undefined,
-                    )}
                     >
                       <div
                         className={cn(
                           useStackedTagLayout
                             ? "flex flex-col gap-1.5"
-                          : compact
-                            ? "flex min-w-max flex-nowrap gap-1.5"
-                            : "flex min-w-max flex-nowrap gap-1",
+                            : compact
+                              ? "flex min-w-max flex-nowrap gap-1.5"
+                              : "flex min-w-max flex-nowrap gap-1",
                         )}
                       >
-                      {selectedTagsForGroup.length > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => onChange(selectedTags.filter((value) => !selectedTagsForGroup.includes(value)))}
-                          className={cn(
-                            appTokens.exercisePickerFilterClearButton,
-                            "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                            "shrink-0 whitespace-nowrap",
-                            compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
-                          )}
-                        >
-                          Clear
-                        </button>
-                      ) : null}
-                      {[...group.tags].sort((left, right) => {
-                        const leftSelected = selectedTags.includes(left.value);
-                        const rightSelected = selectedTags.includes(right.value);
-                        if (leftSelected === rightSelected) return left.label.localeCompare(right.label);
-                        return leftSelected ? -1 : 1;
-                      }).map((tag) => {
-                        const isSelected = selectedTags.includes(tag.value);
-                        return (
-                          <PillButton
-                            key={tag.value}
+                        {selectedTagsForGroup.length > 0 ? (
+                          <button
                             type="button"
-                            active={isSelected}
+                            onClick={() => onChange(selectedTags.filter((value) => !selectedTagsForGroup.includes(value)))}
                             className={cn(
-                              "max-w-full justify-start text-left leading-tight [word-break:normal]",
-                              useStackedTagLayout ? "w-full whitespace-normal" : "shrink-0 whitespace-nowrap",
-                              compact ? "px-2 py-1 text-[10px]" : undefined,
-                              isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                              appTokens.exercisePickerFilterClearButton,
+                              "!border-[rgb(var(--accent-yellow-on)/0.58)]",
+                              "shrink-0 whitespace-nowrap",
+                              compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
                             )}
-                            onClick={() => {
-                              if (isSelected) {
-                                onChange(selectedTags.filter((value) => value !== tag.value));
-                                return;
-                              }
-
-                              onChange([...selectedTags, tag.value]);
-                            }}
                           >
-                            {tag.label}
-                          </PillButton>
-                        );
-                      })}
+                            Clear
+                          </button>
+                        ) : null}
+                        {[...group.tags].sort((left, right) => {
+                          const leftSelected = selectedTags.includes(left.value);
+                          const rightSelected = selectedTags.includes(right.value);
+                          if (leftSelected === rightSelected) return left.label.localeCompare(right.label);
+                          return leftSelected ? -1 : 1;
+                        }).map((tag) => {
+                          const isSelected = selectedTags.includes(tag.value);
+                          return (
+                            <PillButton
+                              key={tag.value}
+                              type="button"
+                              active={isSelected}
+                              className={cn(
+                                "max-w-full justify-start text-left leading-tight [word-break:normal]",
+                                useStackedTagLayout ? "w-full whitespace-normal" : "shrink-0 whitespace-nowrap",
+                                compact ? "px-2 py-1 text-[10px]" : undefined,
+                                isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                              )}
+                              onClick={() => {
+                                if (isSelected) {
+                                  onChange(selectedTags.filter((value) => value !== tag.value));
+                                  return;
+                                }
+
+                                onChange([...selectedTags, tag.value]);
+                              }}
+                            >
+                              {tag.label}
+                            </PillButton>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )})}
-          </FilterScrollPanel>
+                );
+              })}
+            </div>
+          ) : (
+            <FilterScrollPanel
+              showEdgeFades={showScrollEdgeFades}
+              viewportClassName={compact ? `${FILTER_OVERLAY_VIEWPORT_CLASS_NAME} pr-0` : "max-h-[min(48vh,24rem)] space-y-2"}
+            >
+              {orderedGroups.map((group) => {
+                const selectedTagsForGroup = group.tags
+                  .map((tag) => tag.value)
+                  .filter((tagValue) => selectedTags.includes(tagValue));
+
+                return (
+                  <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
+                    <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
+                      <p
+                        className={cn(
+                          compact
+                            ? appTokens.exercisePickerFilterGroupLabel
+                            : "text-[11px] font-medium uppercase tracking-wide",
+                        )}
+                      >
+                        {group.label}
+                      </p>
+                      <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                    </div>
+                    <div
+                      className={cn(
+                        useStackedTagLayout
+                          ? "px-0.5 pb-1"
+                          : cn(horizontalRailClassName, horizontalRailOverrideClassName),
+                        compact ? "pt-0.5" : undefined,
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          useStackedTagLayout
+                            ? "flex flex-col gap-1.5"
+                            : compact
+                              ? "flex min-w-max flex-nowrap gap-1.5"
+                              : "flex min-w-max flex-nowrap gap-1",
+                        )}
+                      >
+                        {selectedTagsForGroup.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => onChange(selectedTags.filter((value) => !selectedTagsForGroup.includes(value)))}
+                            className={cn(
+                              appTokens.exercisePickerFilterClearButton,
+                              "!border-[rgb(var(--accent-yellow-on)/0.58)]",
+                              "shrink-0 whitespace-nowrap",
+                              compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+                            )}
+                          >
+                            Clear
+                          </button>
+                        ) : null}
+                        {[...group.tags].sort((left, right) => {
+                          const leftSelected = selectedTags.includes(left.value);
+                          const rightSelected = selectedTags.includes(right.value);
+                          if (leftSelected === rightSelected) return left.label.localeCompare(right.label);
+                          return leftSelected ? -1 : 1;
+                        }).map((tag) => {
+                          const isSelected = selectedTags.includes(tag.value);
+                          return (
+                            <PillButton
+                              key={tag.value}
+                              type="button"
+                              active={isSelected}
+                              className={cn(
+                                "max-w-full justify-start text-left leading-tight [word-break:normal]",
+                                useStackedTagLayout ? "w-full whitespace-normal" : "shrink-0 whitespace-nowrap",
+                                compact ? "px-2 py-1 text-[10px]" : undefined,
+                                isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                              )}
+                              onClick={() => {
+                                if (isSelected) {
+                                  onChange(selectedTags.filter((value) => value !== tag.value));
+                                  return;
+                                }
+
+                                onChange([...selectedTags, tag.value]);
+                              }}
+                            >
+                              {tag.label}
+                            </PillButton>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </FilterScrollPanel>
+          )}
         </div>
       ) : null}
     </div>

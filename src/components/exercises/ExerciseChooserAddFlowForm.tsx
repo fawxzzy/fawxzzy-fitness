@@ -6,7 +6,11 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
+import { ChevronDownIcon } from "@/components/ui/Chevrons";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useToast } from "@/components/ui/ToastProvider";
+import { type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
+import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -17,7 +21,12 @@ import {
   createProgressionPlaybookFormStateForTrainingGoal,
   isTrainingGoalCustomized,
 } from "@/lib/progression-playbook-form-state";
-import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
+import {
+  getDefaultProgressionPlaybookConfig,
+  PROGRESSION_METHOD_DEFINITIONS,
+  type ProgressionPlaybookId,
+  type TrainingGoalId,
+} from "@/lib/progression-playbooks";
 import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { seedProgressionDraftWithStepValue } from "@/lib/progression-step-seeding";
 import { isStretchHubExercise } from "@/lib/stretch-library";
@@ -28,6 +37,74 @@ function resolveExerciseDistanceUnit(defaultUnit: string | null | undefined) {
 
 function hasTextValue(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+type AddExerciseProgressionMethodId = Exclude<ProgressionPlaybookId, "deload_after_stall"> | "";
+
+function createAddExerciseProgressionMethodInfoPayload(playbookId: AddExerciseProgressionMethodId): RoutineEditorInfoPayload {
+  const definition = playbookId && playbookId in PROGRESSION_METHOD_DEFINITIONS
+    ? PROGRESSION_METHOD_DEFINITIONS[playbookId]
+    : PROGRESSION_METHOD_DEFINITIONS.manual;
+
+  return {
+    title: "Progression",
+    summary: definition.whatItDoes,
+    rows: [
+      { label: "Selected", value: definition.label },
+      { label: "Use it for", value: definition.useItFor },
+      { label: "Pattern", value: definition.pattern },
+    ],
+  };
+}
+
+function applyAddExerciseProgressionMethod(
+  value: ReturnType<typeof createProgressionPlaybookFormState>,
+  nextPlaybookId: AddExerciseProgressionMethodId,
+) {
+  if (!nextPlaybookId) {
+    return {
+      ...value,
+      progressionPlaybookId: "" as const,
+      progressionStallPolicy: "none" as const,
+    };
+  }
+
+  const nextDefaults = getDefaultProgressionPlaybookConfig(nextPlaybookId);
+  const nextState = createProgressionPlaybookFormState({
+    playbookId: nextPlaybookId,
+    config: nextDefaults,
+  });
+
+  return {
+    ...value,
+    ...nextState,
+    progressionStallPolicy: value.progressionStallPolicy,
+    progressionStallThreshold: value.progressionStallThreshold,
+    progressionDeloadPercent: value.progressionDeloadPercent,
+    progressionAutoUpdateRoutineGoals: value.progressionAutoUpdateRoutineGoals,
+    progressionSetFlow: value.progressionSetFlow,
+    progressionSetFlowTimeDirection: value.progressionSetFlowTimeDirection,
+    progressionSetFlowDistanceDirection: value.progressionSetFlowDistanceDirection,
+    progressionSetFlowRepDirection: value.progressionSetFlowRepDirection,
+    progressionSetFlowLoadDirection: value.progressionSetFlowLoadDirection,
+    progressionSetFlowMeasurements: value.progressionSetFlowMeasurements,
+    progressionSetFlowLinks: value.progressionSetFlowLinks,
+    progressionSetFlowCountMap: value.progressionSetFlowCountMap,
+    progressionSetFlowGroupedCountMap: value.progressionSetFlowGroupedCountMap,
+    progressionSetFlowGroupedDirectionMap: value.progressionSetFlowGroupedDirectionMap,
+    progressionPromotionBasis: value.progressionPromotionBasis,
+    progressionRepPromotionThreshold: value.progressionRepPromotionThreshold,
+    progressionCustomRepPromotionTarget: value.progressionCustomRepPromotionTarget,
+    progressionPromotionDirectionMap: value.progressionPromotionDirectionMap,
+    progressionPromotionSessionCountMap: value.progressionPromotionSessionCountMap,
+    progressionPromotionGroupedSessionCountMap: value.progressionPromotionGroupedSessionCountMap,
+    progressionTargetMutation: value.progressionTargetMutation,
+    progressionHasExplicitTargetMutation: value.progressionHasExplicitTargetMutation,
+    progressionRequiredQualifiedSessions: value.progressionRequiredQualifiedSessions,
+    progressionQualificationWindowMode: value.progressionQualificationWindowMode,
+    progressionQualificationWindowResetOnMiss: value.progressionQualificationWindowResetOnMiss,
+    progressionHasExplicitQualificationWindow: value.progressionHasExplicitQualificationWindow,
+  };
 }
 
 export function ExerciseChooserAddFlowForm({
@@ -122,6 +199,59 @@ export function ExerciseChooserAddFlowForm({
 
     setProgressionDraft(seededExerciseProgression);
   }, [hasCustomizedProgression, seededExerciseProgression]);
+  const currentProgressionMethodId: AddExerciseProgressionMethodId = progressionDraft.progressionPlaybookId === "double_progression"
+    || progressionDraft.progressionPlaybookId === "fixed_load_rep_range_progression"
+    ? progressionDraft.progressionPlaybookId
+    : "";
+  const progressionMethodInfoPayload = createAddExerciseProgressionMethodInfoPayload(currentProgressionMethodId);
+  const addExerciseSecondaryToggleCardClassName = "w-[calc((100%-1.5rem)/3)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center";
+  const progressionToggleCard = (
+    <div
+      className={addExerciseSecondaryToggleCardClassName}
+      onFocusCapture={() => {
+        window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+          detail: progressionMethodInfoPayload,
+        }));
+      }}
+      onPointerDownCapture={() => {
+        window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+          detail: progressionMethodInfoPayload,
+        }));
+      }}
+    >
+      <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
+        <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+          Progression
+        </p>
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      </div>
+      <button
+        type="button"
+        className={[
+          ACTION_CHROME_CONTROL_CLASS_NAME,
+          ACTION_CHROME_SEGMENTED_CLASS_NAME,
+          "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+        ].join(" ")}
+        aria-pressed={Boolean(progressionDraft.progressionPlaybookId)}
+        aria-label={progressionDraft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
+        onClick={() => {
+          const nextPlaybookId: AddExerciseProgressionMethodId = progressionDraft.progressionPlaybookId ? "" : "double_progression";
+          setHasCustomizedProgression(true);
+          setProgressionDraft(applyAddExerciseProgressionMethod(progressionDraft, nextPlaybookId));
+          window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+            detail: createAddExerciseProgressionMethodInfoPayload(nextPlaybookId),
+          }));
+        }}
+      >
+        <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
+          <span className="measurement-toggle__label">
+            {progressionDraft.progressionPlaybookId ? "Auto" : "Manual"}
+          </span>
+          <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
+        </span>
+      </button>
+    </div>
+  );
 
   return (
     <>
@@ -168,6 +298,7 @@ export function ExerciseChooserAddFlowForm({
             setHasCustomizedProgression(false);
             setProgressionDraft(seededExerciseProgression);
           }}
+          goalCompanionToggleCards={[progressionToggleCard]}
           renderFooter={({ goalValidation, selectedCanonicalExerciseId, openExerciseInfo, isCustomExerciseSelected, customExerciseError }) => (
             <BottomActionSplit
               secondary={(
@@ -236,6 +367,9 @@ export function ExerciseChooserAddFlowForm({
                 }}
                 hideExerciseSetSuccessCount
                 reserveInfoLayoutSpace={false}
+                hideProgressionMethodControl
+                infoDockPlacement="above-bottom-actions"
+                renderRegressionAsSection
               />
             );
           } : null}

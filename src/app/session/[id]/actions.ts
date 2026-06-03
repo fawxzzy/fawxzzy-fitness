@@ -199,7 +199,6 @@ export async function addSetAction(payload: {
         userId: user.id,
         supabase,
       });
-      revalidateSessionViews(sessionId);
       return { ok: true, data: { set: existingByClientLogId as SetRow } };
     }
   }
@@ -266,7 +265,6 @@ export async function addSetAction(payload: {
         userId: user.id,
         supabase,
       });
-      revalidateSessionViews(sessionId);
       return { ok: true, data: { set: insertedSet as SetRow } };
     }
 
@@ -365,7 +363,6 @@ export async function deleteSetAction(payload: {
     return { ok: false, error: error.message };
   }
 
-  revalidateSessionViews(sessionId);
   return { ok: true };
 }
 
@@ -402,7 +399,6 @@ export async function toggleSkipAction(formData: FormData): Promise<ActionResult
     return { ok: false, error: error.message };
   }
 
-  revalidateSessionViews(sessionId);
   return { ok: true };
 }
 
@@ -485,7 +481,6 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
     });
   }
 
-  revalidateSessionViews(sessionId);
   return { ok: true };
 }
 
@@ -695,7 +690,6 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     });
   }
 
-  revalidateSessionViews(sessionId);
   return { ok: true };
 }
 
@@ -731,7 +725,6 @@ export async function removeExerciseAction(formData: FormData): Promise<ActionRe
     return { ok: false, error: error.message };
   }
 
-  revalidateSessionViews(sessionId);
   return { ok: true };
 }
 
@@ -893,7 +886,6 @@ export async function updateSessionExerciseProgressionAction(formData: FormData)
         .maybeSingle()
     : { data: null };
 
-  revalidateSessionViews(sessionId);
   revalidateRoutinesViews();
   if (routineDayRow?.routine_id) {
     revalidatePath(getRoutineEditPath(routineDayRow.routine_id));

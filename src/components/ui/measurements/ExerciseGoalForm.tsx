@@ -102,6 +102,8 @@ export function ExerciseGoalForm({
   visibleMetricOrder,
   measurementLayoutMode = "grid",
   onInfoRequest,
+  companionToggleCard,
+  companionToggleCards,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -120,6 +122,8 @@ export function ExerciseGoalForm({
   visibleMetricOrder?: Array<keyof MeasurementMetrics>;
   measurementLayoutMode?: "grid" | "horizontal-scroll";
   onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
+  companionToggleCard?: ReactNode;
+  companionToggleCards?: ReactNode[];
 }) {
   const [expanded, setExpanded] = useState(true);
   const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
@@ -193,50 +197,68 @@ export function ExerciseGoalForm({
       detail: payload,
     }));
   };
-  const failureToggleRow = supportsFailure ? (
+  const resolvedCompanionToggleCards = useMemo(
+    () => [
+      ...(companionToggleCards ?? []),
+      ...(companionToggleCard ? [companionToggleCard] : []),
+    ],
+    [companionToggleCard, companionToggleCards],
+  );
+  const secondaryToggleCount = resolvedCompanionToggleCards.length + (supportsFailure ? 1 : 0);
+  const multiToggleLayoutActive = secondaryToggleCount > 1;
+  const secondaryToggleCardClassName = secondaryToggleCount >= 3
+    ? "w-[calc((100%-1.5rem)/3)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center"
+    : multiToggleLayoutActive
+      ? "w-[calc((100%-0.75rem)/2)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center"
+      : "w-full max-w-[12rem] space-y-[5px] text-center";
+  const failureToggleCard = supportsFailure ? (
     <div
-      className="flex justify-center"
+      className={secondaryToggleCardClassName}
       onFocusCapture={() => publishFailureToggleInfo()}
       onPointerDownCapture={() => publishFailureToggleInfo()}
     >
-      <div className="w-full max-w-[12rem] space-y-[5px] text-center">
-        <div className="mx-auto w-fit max-w-full space-y-[2px]">
-          <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-            Reps / Failure Toggle
-          </p>
-          <MetricAccentBar variant="thin" className="w-full opacity-80" />
-        </div>
-        <button
-          type="button"
-          className={cn(
-            ACTION_CHROME_CONTROL_CLASS_NAME,
-            ACTION_CHROME_SEGMENTED_CLASS_NAME,
-            "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
-          )}
-          aria-pressed={isFailureMode}
-          aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
-          onClick={() => {
-            const nextIsFailureMode = !isFailureMode;
-            onStateChange({
-              ...state,
-              failure: nextIsFailureMode,
-            });
-            publishFailureToggleInfo(nextIsFailureMode);
-          }}
-        >
-          <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-            <span className="measurement-toggle__label">
-            {isFailureMode ? "Till Failure" : "Reps-Based"}
-            </span>
-            <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-          </span>
-        </button>
+      <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
+        <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+          Reps / Failure Toggle
+        </p>
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
       </div>
+      <button
+        type="button"
+        className={cn(
+          ACTION_CHROME_CONTROL_CLASS_NAME,
+          ACTION_CHROME_SEGMENTED_CLASS_NAME,
+          "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+        )}
+        aria-pressed={isFailureMode}
+        aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+        onClick={() => {
+          const nextIsFailureMode = !isFailureMode;
+          onStateChange({
+            ...state,
+            failure: nextIsFailureMode,
+          });
+          publishFailureToggleInfo(nextIsFailureMode);
+        }}
+      >
+        <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
+          <span className="measurement-toggle__label">
+          {isFailureMode ? "Till Failure" : "Reps-Based"}
+          </span>
+          <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
+        </span>
+      </button>
     </div>
   ) : null;
-  const resolvedBetweenInputsAndFooterContent = failureToggleRow || betweenInputsAndFooterContent ? (
+  const secondaryToggleRow = failureToggleCard || resolvedCompanionToggleCards.length > 0 ? (
+    <div className={multiToggleLayoutActive ? "flex items-start justify-center gap-3" : "flex justify-center"}>
+      {resolvedCompanionToggleCards}
+      {failureToggleCard}
+    </div>
+  ) : null;
+  const resolvedBetweenInputsAndFooterContent = secondaryToggleRow || betweenInputsAndFooterContent ? (
     <div className="space-y-3">
-      {failureToggleRow}
+      {secondaryToggleRow}
       {betweenInputsAndFooterContent}
     </div>
   ) : null;

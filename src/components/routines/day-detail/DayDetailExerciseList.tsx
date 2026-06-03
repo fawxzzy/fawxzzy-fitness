@@ -92,14 +92,14 @@ export function DayDetailExerciseList({
                 showLeadingVisual={policy.showMedia}
                 showAccentRail={!isStretchHub}
                 hideEmptySummary={isStretchHub}
-                rightIconMode={isActive ? "overlay" : "rail"}
+                rightIconMode="overlay"
                 overlayActions={renderOverlayActions?.(item)}
-                overlayActionsClassName="right-[4.35rem]"
+                overlayActionsClassName="right-[2.9rem]"
                 rightRailClassName={mode === "editable"
                   ? (
                     isActive
                       ? "right-[0.8rem] top-1/2 -translate-y-1/2"
-                      : "min-w-[3.25rem] pr-[0.55rem]"
+                      : "right-[0.55rem] top-1/2 -translate-y-1/2"
                   )
                   : undefined}
                 stickyHeaderWhenExpanded={mode === "editable"}

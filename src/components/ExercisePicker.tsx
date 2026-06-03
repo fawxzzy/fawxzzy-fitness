@@ -2,19 +2,20 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { ExerciseCard } from "@/components/ExerciseCard";
+import { ExerciseCard, EXERCISE_CARD_SUMMARY_CLASS_NAME } from "@/components/ExerciseCard";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
 import { BOTTOM_ACTION_SHELL_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 import { appTokens } from "@/components/ui/app/tokens";
-import { AppButton } from "@/components/ui/AppButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { buildFailureToggleInfoPayload, type ExerciseGoalFormState, type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
-import { MeasurementDockSummary, measurementDockSurfaceClassName } from "@/components/ui/measurements/MeasurementDock";
+import { measurementDockSurfaceClassName } from "@/components/ui/measurements/MeasurementDock";
 import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { SignatureDot, SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { ChevronDownIcon } from "@/components/ui/Chevrons";
+import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
@@ -105,6 +106,13 @@ type ExercisePickerProps = {
     effectiveGoalModality: GoalModality;
     failureToggleInfoContent: RoutineEditorInfoPayload | null;
   }) => "default" | "compact");
+  goalCompanionToggleCards?: ReactNode[] | ((context: {
+    selectedExercise: ExerciseOption | undefined;
+    goalState: ExerciseGoalFormState;
+    goalModality: GoalModality;
+    effectiveGoalModality: GoalModality;
+    failureToggleInfoContent: RoutineEditorInfoPayload | null;
+  }) => ReactNode[]);
   footerSlot?: ReactNode;
   onSelectedExerciseChange?: (exercise: ExerciseOption | null) => void;
   onApplyLastSelection?: (selection: {
@@ -730,7 +738,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
     );
   }
 
-  const rowState = hasStats ? "active" : "default";
+  const rowState = isSelected ? "selected" : hasStats ? "active" : "default";
   const rightRailClassName = isSelected
     ? "border-l-0 bg-[rgb(var(--selection-rgb)/0.12)]"
     : hasStats
@@ -758,7 +766,8 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           state={rowState}
           onPress={() => onPress(exercise.id, isSelected)}
           className={cn(
-            "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]",
+            isSelected ? "!border-[rgb(var(--accent-yellow-on)/0.72)]" : "!border-0",
+            "ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]",
             "[box-shadow:none]",
             isSelected
               ? "bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.12),rgb(var(--surface-1-rgb)/0.96))]"
@@ -818,7 +827,10 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
       <li>
         <button
           type="button"
-          className={thinPickerRowClassName}
+          className={cn(
+            thinPickerRowClassName,
+            "border border-[rgb(var(--accent-yellow-on)/0.72)]",
+          )}
           onClick={onPress}
         >
           <div className="min-w-0 flex-1">
@@ -842,17 +854,7 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
   return (
     <li>
       <ExerciseCard
-        title={(
-          <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-            <span className="min-w-0 whitespace-normal break-words">Custom Exercise</span>
-            {selectedTags.length > 0 ? (
-              <span className="inline-flex min-w-0 shrink-0 items-center gap-1.5 whitespace-nowrap">
-                <SignatureMiniPipe className="self-center" />
-                <ExerciseMetaLine items={selectedTags} />
-              </span>
-            ) : null}
-          </span>
-        )}
+        title={null}
         variant="compact"
         state="selected"
         className="!border-[rgb(var(--accent-yellow-on)/0.72)] shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
@@ -875,11 +877,12 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
         rightRailClassName="-my-[var(--exercise-row-shell-padding-y-compact)] -mr-[calc(var(--exercise-row-shell-padding-x)+1px)] self-stretch overflow-hidden rounded-r-[inherit] border-l border-l-0 bg-[rgb(var(--selection-rgb)/0.12)]"
         trailingStackClassName="h-full min-h-0"
         bodyClassName={pickerRowMobileDensityClassNames.body}
-        titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
-        contentClassName={cn("pl-1.5", pickerRowMobileDensityClassNames.content)}
+        titleClassName="hidden"
+        titleContainerClassName={cn("justify-center", pickerRowMobileDensityClassNames.titleContainer)}
+        contentClassName={pickerRowMobileDensityClassNames.content}
       >
-        <div className="space-y-1.5 pt-0.5">
-          <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="flex min-h-[2.95rem] items-center justify-start">
+          <div className="flex min-w-0 w-full max-w-full items-center justify-start gap-2">
             <div
               className="min-w-0 max-w-full shrink"
               style={{
@@ -905,7 +908,14 @@ const CustomExerciseRow = memo(function CustomExerciseRow({
             {statusContent ? (
               <>
                 {showStatusSeparator ? <SignatureMiniPipe className="shrink-0 self-center" /> : null}
-                <div className="min-w-0 flex-1 pt-0.5 text-right">
+                <div
+                  className={cn(
+                    "min-w-0 max-w-[11rem] shrink text-center",
+                    EXERCISE_CARD_SUMMARY_CLASS_NAME,
+                    pickerRowMobileDensityClassNames.subtitle,
+                    "text-[rgb(var(--text-secondary)/0.96)]",
+                  )}
+                >
                   {statusContent}
                 </div>
               </>
@@ -965,6 +975,7 @@ export function ExercisePicker({
   goalExtraContent,
   goalBetweenInputsAndPreviewContent,
   goalDockViewportMode: goalDockViewportModeProp = "default",
+  goalCompanionToggleCards: goalCompanionToggleCardsProp,
   footerSlot,
   onSelectedExerciseChange,
   onApplyLastSelection,
@@ -1433,21 +1444,15 @@ export function ExercisePicker({
     emptyLabel: "Goal missing",
   });
   const selectedCardGoalPreviewTextResolved = goalPreviewMissingLabel ?? selectedCardGoalPreviewText;
-  const customExerciseStatusNode = customExerciseName.trim().length === 0 ? (
-    <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
-      add exercise name
-    </p>
-  ) : duplicateCustomExercise ? (
-    <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
-      rename duplicate custom exercise
-    </p>
-  ) : (
-    selectedCardGoalPreviewTextResolved
-  );
+  const customExerciseStatusNode = customExerciseName.trim().length === 0
+    ? "missing exercise name"
+    : duplicateCustomExercise
+      ? "rename duplicate custom exercise"
+      : selectedCardGoalPreviewTextResolved;
   const customExerciseShowStatusSeparator = customExerciseName.trim().length > 0 && !duplicateCustomExercise && !goalPreviewMissingLabel;
 
   const customExerciseTagRowsNode = isCustomExerciseSelected ? (
-    <div className="space-y-2 px-1 pt-1">
+    <div className="space-y-2 pt-1">
       <ExerciseTagFilterControl
         selectedTags={customExerciseMuscleTags}
         onChange={(nextTags) => setCustomExerciseMuscleTags(buildSingleSelectTags(nextTags, customExerciseMuscleTags))}
@@ -1457,7 +1462,10 @@ export function ExercisePicker({
         open
         countDisplayMode="never"
         showScrollEdgeFades={false}
-        panelClassName="space-y-2 !rounded-none !border-0 !bg-transparent !p-0 !shadow-none"
+        viewportMode="auto-height"
+        className="overflow-visible"
+        horizontalRailOverrideClassName="max-md:-mx-4 max-md:px-4"
+        panelClassName="space-y-2 !overflow-visible !rounded-none !border-0 !bg-transparent !p-0 !shadow-none"
       />
       <ExerciseTagFilterControl
         selectedTags={customExerciseMovementTags}
@@ -1468,7 +1476,10 @@ export function ExercisePicker({
         open
         countDisplayMode="never"
         showScrollEdgeFades={false}
-        panelClassName="space-y-2 !rounded-none !border-0 !bg-transparent !p-0 !shadow-none"
+        viewportMode="auto-height"
+        className="overflow-visible"
+        horizontalRailOverrideClassName="max-md:-mx-4 max-md:px-4"
+        panelClassName="space-y-2 !overflow-visible !rounded-none !border-0 !bg-transparent !p-0 !shadow-none"
       />
       <ExerciseTagFilterControl
         selectedTags={customExerciseEquipmentTags}
@@ -1479,7 +1490,10 @@ export function ExercisePicker({
         open
         countDisplayMode="never"
         showScrollEdgeFades={false}
-        panelClassName="space-y-2 !rounded-none !border-0 !bg-transparent !p-0 !shadow-none"
+        viewportMode="auto-height"
+        className="overflow-visible"
+        horizontalRailOverrideClassName="max-md:-mx-4 max-md:px-4"
+        panelClassName="space-y-2 !overflow-visible !rounded-none !border-0 !bg-transparent !p-0 !shadow-none"
       />
       <input type="hidden" name="customExerciseMode" value="custom" />
       <input type="hidden" name="customExerciseName" value={customExerciseName.trim().replace(/\s+/g, " ")} />
@@ -1508,6 +1522,62 @@ export function ExercisePicker({
     effectiveGoalModality,
     failureToggleInfoContent,
   };
+  const applyLastToGoalState = useCallback(() => {
+    if (!selectedStats) {
+      return;
+    }
+
+    setGoalState((current) => {
+      if (
+        !formatLoggedMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)
+        && hasConfiguredSetupSnapshot(selectedStats)
+      ) {
+        return applyConfiguredSetupToGoalState({
+          current,
+          stats: selectedStats,
+          fallbackWeightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+          fallbackDistanceUnit: current.distanceUnit,
+          modality: effectiveGoalModality,
+        });
+      }
+
+      const nextMeasurements = new Set(current.measurements);
+      const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
+      const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
+
+      if (hasLastWeight) {
+        nextMeasurements.add("weight");
+      }
+      if (hasLastReps) {
+        nextMeasurements.add("reps");
+      }
+
+      return {
+        ...current,
+        weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
+        repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
+        repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
+        failure: false,
+        weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
+        measurements: Array.from(nextMeasurements),
+      };
+    });
+    if (selectedCanonicalExerciseId) {
+      onApplyLastSelection?.({
+        exerciseId: selectedCanonicalExerciseId,
+        progressionPlaybookId: selectedStats.lastProgressionPlaybookId,
+        progressionPlaybookConfig: selectedStats.lastProgressionPlaybookConfig,
+      });
+    }
+    setDidApplyLast(true);
+  }, [effectiveGoalModality, onApplyLastSelection, routineTargetConfig?.weightUnit, selectedCanonicalExerciseId, selectedStats]);
+  const clearAppliedLastFromGoalState = useCallback(() => {
+    clearToFreshGoalState();
+    if (selectedCanonicalExerciseId) {
+      onClearLastSelection?.({ exerciseId: selectedCanonicalExerciseId });
+    }
+    setDidApplyLast(false);
+  }, [clearToFreshGoalState, onClearLastSelection, selectedCanonicalExerciseId]);
   const goalDockViewportMode = typeof goalDockViewportModeProp === "function"
     ? goalDockViewportModeProp(goalContentContext)
     : goalDockViewportModeProp;
@@ -1530,110 +1600,70 @@ export function ExercisePicker({
       ? goalExtraContent(goalContentContext)
       : goalExtraContent)
     : null;
+  const callerCompanionToggleCards = goalCompanionToggleCardsProp
+    ? (typeof goalCompanionToggleCardsProp === "function"
+      ? goalCompanionToggleCardsProp(goalContentContext)
+      : goalCompanionToggleCardsProp)
+    : [];
+  const addFlowSecondaryToggleCardClassName = "w-[calc((100%-1.5rem)/3)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center";
+  const useLastToggleCard = !isStretchHubSelected && selectedStats && hasLast ? (
+    <div
+      className={addFlowSecondaryToggleCardClassName}
+      onFocusCapture={publishUseLastInfo}
+      onPointerDownCapture={publishUseLastInfo}
+    >
+      <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
+        <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+          {didApplyLast ? "Clear Last" : "Use Last"}
+        </p>
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      </div>
+      <button
+        type="button"
+        className={cn(
+          ACTION_CHROME_CONTROL_CLASS_NAME,
+          ACTION_CHROME_SEGMENTED_CLASS_NAME,
+          "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold tracking-[0.04em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+        )}
+        aria-pressed={didApplyLast}
+        aria-label={didApplyLast ? "Clear last setup" : "Apply last setup"}
+        onClick={() => {
+          publishUseLastInfo();
+          if (didApplyLast) {
+            clearAppliedLastFromGoalState();
+            return;
+          }
+          applyLastToGoalState();
+        }}
+        onFocus={publishUseLastInfo}
+        onPointerDown={publishUseLastInfo}
+      >
+        <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
+          {didApplyLast ? (
+            <span className="measurement-toggle__label">Clear</span>
+          ) : (
+            <SignatureInlineList
+              items={[lastSummaryText]}
+              separator="dot"
+              className={cn(
+                appTokens.currentSessionLoggerSummaryText,
+                "measurement-toggle__label min-w-0 justify-center whitespace-normal break-words text-center text-[11px] font-semibold leading-[1.15] text-inherit",
+                "[&_.signature-inline-list__item]:whitespace-nowrap",
+              )}
+            />
+          )}
+          <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
+        </span>
+      </button>
+    </div>
+  ) : null;
+  const resolvedCompanionToggleCards = [
+    ...callerCompanionToggleCards,
+    ...(useLastToggleCard ? [useLastToggleCard] : []),
+  ];
 
   const configureGoalDockNode = routineTargetConfig && (selectedExercise || isCustomExerciseSelected) ? (
     <section className={cn(appTokens.exercisePickerGoalCompact, measurementDockSurfaceClassName, "-mx-1 -mb-px flex w-[calc(100%+0.5rem)] min-w-0 max-w-none flex-col space-y-0 overflow-visible rounded-t-[1.7rem] rounded-b-none px-1 pb-px pt-0")}>
-      {!isStretchHubSelected && selectedStats && hasLast ? (
-        <div
-          className={cn(
-            appTokens.exercisePickerStatsStack,
-            didApplyLast ? appTokens.exercisePickerStatsEmphasis : undefined,
-            appTokens.exercisePickerStatsCompact,
-            "px-2 pb-1.5",
-          )}
-          onFocusCapture={publishUseLastInfo}
-          onPointerDownCapture={publishUseLastInfo}
-        >
-          {hasLast ? (
-            <MeasurementDockSummary
-              className="min-h-0 gap-1 pb-0.5"
-              barClassName="opacity-65"
-              rowClassName="min-h-[1.75rem]"
-              centerClassName="px-2"
-              lead={(
-                <div className="inline-flex items-center gap-1.5">
-                  <SignatureMetaTag className="text-[10px] tracking-[0.16em]">Last</SignatureMetaTag>
-                  <SignatureMiniPipe />
-                </div>
-              )}
-              summary={(
-                <p className={cn(appTokens.exercisePickerStatsText, "min-w-0 text-center text-[rgb(var(--text-primary)/0.98)]")}>
-                  {lastSummaryText}
-                </p>
-              )}
-              trailing={(
-                <AppButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 self-center border-[rgb(var(--accent)/0.44)] hover:border-[rgb(var(--accent)/0.62)]"
-                  onClick={() => {
-                    publishUseLastInfo();
-                    if (didApplyLast) {
-                      clearToFreshGoalState();
-                      if (selectedCanonicalExerciseId) {
-                        onClearLastSelection?.({ exerciseId: selectedCanonicalExerciseId });
-                      }
-                      setDidApplyLast(false);
-                      return;
-                    }
-
-                    setGoalState((current) => {
-                      if (
-                        selectedStats
-                        && !formatLoggedMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)
-                        && hasConfiguredSetupSnapshot(selectedStats)
-                      ) {
-                        return applyConfiguredSetupToGoalState({
-                          current,
-                          stats: selectedStats,
-                          fallbackWeightUnit: routineTargetConfig?.weightUnit ?? "lbs",
-                          fallbackDistanceUnit: current.distanceUnit,
-                          modality: effectiveGoalModality,
-                        });
-                      }
-
-                      const nextMeasurements = new Set(current.measurements);
-                      const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
-                      const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
-
-                      if (hasLastWeight) {
-                        nextMeasurements.add("weight");
-                      }
-                      if (hasLastReps) {
-                        nextMeasurements.add("reps");
-                      }
-
-                      return {
-                        ...current,
-                        weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
-                        repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
-                        repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
-                        failure: false,
-                        weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
-                        measurements: Array.from(nextMeasurements),
-                      };
-                    });
-                    if (selectedCanonicalExerciseId) {
-                      onApplyLastSelection?.({
-                        exerciseId: selectedCanonicalExerciseId,
-                        progressionPlaybookId: selectedStats.lastProgressionPlaybookId,
-                        progressionPlaybookConfig: selectedStats.lastProgressionPlaybookConfig,
-                      });
-                    }
-                    setDidApplyLast(true);
-                  }}
-                  onFocus={publishUseLastInfo}
-                  onPointerDown={publishUseLastInfo}
-                >
-                  {didApplyLast ? "Clear" : "Use"}
-                </AppButton>
-              )}
-            />
-          ) : null}
-        </div>
-      ) : null}
-
       <div className={cn(
         compactGoalDockViewport
           ? "min-h-0 max-h-[min(30dvh,18rem)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
@@ -1672,6 +1702,7 @@ export function ExercisePicker({
             betweenInputsAndFooterContent={combinedBetweenInputsAndPreviewNode}
             footerContent={null}
             footerClassName="mt-1"
+            companionToggleCards={resolvedCompanionToggleCards}
           />
         </div>
         {goalExtraNode ? (

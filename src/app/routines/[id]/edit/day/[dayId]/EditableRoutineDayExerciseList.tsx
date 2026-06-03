@@ -14,6 +14,9 @@ import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerc
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
+import { ChevronDownIcon } from "@/components/ui/Chevrons";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
+import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
@@ -29,7 +32,9 @@ import {
 } from "@/lib/edit-day-exercise-draft";
 import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import {
+  getDefaultProgressionPlaybookConfig,
   parseProgressionPlaybookPayload,
+  PROGRESSION_METHOD_DEFINITIONS,
   type ProgressionPlaybookId,
 } from "@/lib/progression-playbooks";
 import {
@@ -131,11 +136,13 @@ function RoutineTargetInputs({
   onStateChange,
   modality,
   onInfoRequest,
+  companionToggleCard,
 }: {
   state: ExerciseGoalFormState;
   onStateChange: (next: ExerciseGoalFormState) => void;
   modality: GoalModality;
   onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
+  companionToggleCard?: ReactNode;
 }) {
   return (
     <div className={appTokens.routineEditorCompactStack}>
@@ -158,6 +165,7 @@ function RoutineTargetInputs({
         hideSummary
         measurementLayoutMode="horizontal-scroll"
         onInfoRequest={onInfoRequest}
+        companionToggleCard={companionToggleCard}
       />
     </div>
   );
@@ -205,6 +213,75 @@ const CARD_REORDER_HANDLE_CLASS_NAME = cn(
   "relative z-[1] h-8 w-8 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
+const EDIT_DAY_SECONDARY_TOGGLE_CARD_CLASS_NAME = "w-[calc((100%-0.75rem)/2)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center";
+type EditDayProgressionMethodId = Exclude<ProgressionPlaybookId, "deload_after_stall"> | "";
+
+function createEditDayProgressionMethodInfoPayload(playbookId: EditDayProgressionMethodId) {
+  const definition = playbookId && playbookId in PROGRESSION_METHOD_DEFINITIONS
+    ? PROGRESSION_METHOD_DEFINITIONS[playbookId]
+    : PROGRESSION_METHOD_DEFINITIONS.manual;
+
+  return {
+    title: "Progression",
+    summary: definition.whatItDoes,
+    rows: [
+      { label: "Selected", value: definition.label },
+      { label: "Use it for", value: definition.useItFor },
+      { label: "Pattern", value: definition.pattern },
+    ],
+    sectionKey: "progression_method" as const,
+  };
+}
+
+function applyEditDayProgressionMethod(
+  value: EditDayExerciseDraft,
+  nextPlaybookId: EditDayProgressionMethodId,
+): EditDayExerciseDraft {
+  if (!nextPlaybookId) {
+    return {
+      ...value,
+      progressionPlaybookId: "" as const,
+      progressionStallPolicy: "none" as const,
+    };
+  }
+
+  const nextDefaults = getDefaultProgressionPlaybookConfig(nextPlaybookId);
+  const nextState = createProgressionPlaybookFormState({
+    playbookId: nextPlaybookId,
+    config: nextDefaults,
+  });
+
+  return {
+    ...value,
+    ...nextState,
+    progressionStallPolicy: value.progressionStallPolicy,
+    progressionStallThreshold: value.progressionStallThreshold,
+    progressionDeloadPercent: value.progressionDeloadPercent,
+    progressionAutoUpdateRoutineGoals: value.progressionAutoUpdateRoutineGoals,
+    progressionSetFlow: value.progressionSetFlow,
+    progressionSetFlowTimeDirection: value.progressionSetFlowTimeDirection,
+    progressionSetFlowDistanceDirection: value.progressionSetFlowDistanceDirection,
+    progressionSetFlowRepDirection: value.progressionSetFlowRepDirection,
+    progressionSetFlowLoadDirection: value.progressionSetFlowLoadDirection,
+    progressionSetFlowMeasurements: value.progressionSetFlowMeasurements,
+    progressionSetFlowLinks: value.progressionSetFlowLinks,
+    progressionSetFlowCountMap: value.progressionSetFlowCountMap,
+    progressionSetFlowGroupedCountMap: value.progressionSetFlowGroupedCountMap,
+    progressionSetFlowGroupedDirectionMap: value.progressionSetFlowGroupedDirectionMap,
+    progressionPromotionBasis: value.progressionPromotionBasis,
+    progressionRepPromotionThreshold: value.progressionRepPromotionThreshold,
+    progressionCustomRepPromotionTarget: value.progressionCustomRepPromotionTarget,
+    progressionPromotionDirectionMap: value.progressionPromotionDirectionMap,
+    progressionPromotionSessionCountMap: value.progressionPromotionSessionCountMap,
+    progressionPromotionGroupedSessionCountMap: value.progressionPromotionGroupedSessionCountMap,
+    progressionTargetMutation: value.progressionTargetMutation,
+    progressionHasExplicitTargetMutation: value.progressionHasExplicitTargetMutation,
+    progressionRequiredQualifiedSessions: value.progressionRequiredQualifiedSessions,
+    progressionQualificationWindowMode: value.progressionQualificationWindowMode,
+    progressionQualificationWindowResetOnMiss: value.progressionQualificationWindowResetOnMiss,
+    progressionHasExplicitQualificationWindow: value.progressionHasExplicitQualificationWindow,
+  };
+}
 
 function EditDayAdjustedSummaryPreview({
   currentSummary,
@@ -778,6 +855,58 @@ export function EditableRoutineDayExerciseList({
               stepOverrides: draftProgressionConfig?.stepOverrides ?? routineDefaultProgressionConfig?.stepOverrides ?? null,
             });
             const selectedTrainingFocus = trainingFocusById[exercise.id] ?? "";
+            const currentProgressionMethodId: EditDayProgressionMethodId = draft.progressionPlaybookId === "double_progression"
+              || draft.progressionPlaybookId === "fixed_load_rep_range_progression"
+              ? draft.progressionPlaybookId
+              : "";
+            const progressionMethodInfoPayload = createEditDayProgressionMethodInfoPayload(currentProgressionMethodId);
+            const progressionMethodToggleCard = (
+              <div
+                className={EDIT_DAY_SECONDARY_TOGGLE_CARD_CLASS_NAME}
+                onFocusCapture={() => {
+                  window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+                    detail: progressionMethodInfoPayload,
+                  }));
+                }}
+                onPointerDownCapture={() => {
+                  window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+                    detail: progressionMethodInfoPayload,
+                  }));
+                }}
+              >
+                <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
+                  <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+                    Progression
+                  </p>
+                  <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                </div>
+                <button
+                  type="button"
+                  className={cn(
+                    ACTION_CHROME_CONTROL_CLASS_NAME,
+                    ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                    "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                  )}
+                  aria-pressed={Boolean(draft.progressionPlaybookId)}
+                  aria-label={draft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
+                  onClick={() => {
+                    const nextPlaybookId: EditDayProgressionMethodId = draft.progressionPlaybookId ? "" : "double_progression";
+                    const nextDraft = applyEditDayProgressionMethod(draft, nextPlaybookId);
+                    updateExerciseDraft(exercise, () => nextDraft);
+                    window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+                      detail: createEditDayProgressionMethodInfoPayload(nextPlaybookId),
+                    }));
+                  }}
+                >
+                  <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
+                    <span className="measurement-toggle__label">
+                      {draft.progressionPlaybookId ? "Auto" : "Manual"}
+                    </span>
+                    <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
+                  </span>
+                </button>
+              </div>
+            );
             return (
               <div className={appTokens.routineEditorCompactStack}>
                 <form
@@ -870,6 +999,7 @@ export function EditableRoutineDayExerciseList({
                           goalState: nextState,
                         }))}
                         modality={modality}
+                        companionToggleCard={progressionMethodToggleCard}
                       />
                     ) : (
                       <HiddenRoutineTargetInputs state={draft.goalState} modality={modality} />
@@ -911,6 +1041,10 @@ export function EditableRoutineDayExerciseList({
                           }));
                         }}
                         hideExerciseSetSuccessCount
+                        hideProgressionMethodControl
+                        renderRegressionAsSection
+                        reserveInfoLayoutSpace={false}
+                        infoDockPlacement="above-bottom-actions"
                       />
                     ) : null}
                 </form>

@@ -2330,7 +2330,7 @@ function ProgressionOverlayPanel({
     <div
       className={cn(
         SHARED_OVERLAY_PANEL_SURFACE_CLASS_NAME,
-        "!bg-[rgb(0_0_0_/0.3)] backdrop-blur-md",
+        "!bg-[rgb(var(--bg-app))] !backdrop-blur-none",
       )}
     >
       <div className="pointer-events-none absolute inset-0 z-0 bg-transparent" aria-hidden="true" />
@@ -5700,16 +5700,6 @@ export function ProgressionPlaybookEditor({
           </div>
         ) : null}
 
-        {!hideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
-          <ProgressionInfoMiniSection title="Day Adjustment Settings">
-            <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
-              <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
-                {daySettingFields}
-              </div>
-            </div>
-          </ProgressionInfoMiniSection>
-        ) : null}
-
         {renderRegressionAsSection && shouldRenderRegressionControls ? (
           <ProgressionInfoMiniSection title="Regression Settings">
             <div className="space-y-3" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
@@ -5734,6 +5724,16 @@ export function ProgressionPlaybookEditor({
                   </div>
                 </div>
               ) : null}
+            </div>
+          </ProgressionInfoMiniSection>
+        ) : null}
+
+        {!hideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
+          <ProgressionInfoMiniSection title="Day Adjustment Settings">
+            <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
+              <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
+                {daySettingFields}
+              </div>
             </div>
           </ProgressionInfoMiniSection>
         ) : null}

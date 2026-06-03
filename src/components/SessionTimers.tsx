@@ -29,7 +29,6 @@ import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon } from "@/components/ui/Chevrons";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
-import { getMeasurementToggleIntent } from "@/components/ui/measurements/measurementToggleButton";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -371,6 +370,7 @@ export function SetLoggerCard({
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
+  const [didApplyLastTarget, setDidApplyLastTarget] = useState(false);
   const [progressionDraft, setProgressionDraft] = useState<ProgressionPlaybookFormState | null>(progressionFormState ?? null);
   const [progressionSaveError, setProgressionSaveError] = useState<string | null>(null);
   const resolvedIsWarmup = warmupValue ?? isWarmup;
@@ -453,7 +453,7 @@ export function SetLoggerCard({
     setIsMetricsExpanded(false);
   }, [sessionExerciseId]);
 
-  useEffect(() => {
+  const resetLoggerMeasurementInputs = useCallback(() => {
     setWeight(prefillWeight !== undefined ? String(prefillWeight) : "");
     setSelectedWeightUnit(prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
     setReps(prefillReps !== undefined ? String(prefillReps) : "");
@@ -461,16 +461,21 @@ export function SetLoggerCard({
     setDistance("");
     setDistanceUnit(normalizeFitnessDistanceUnit(defaultDistanceUnit, "mi"));
     setCalories("");
+  }, [defaultDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, unitLabel]);
+
+  useEffect(() => {
+    resetLoggerMeasurementInputs();
     setRpe("");
     setWarmupValue(false);
     setIsFailure(false);
+    setDidApplyLastTarget(false);
     setError(null);
     locallyDeletedSetIdentityKeysRef.current = new Set();
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
     setSets(nextDisplaySets);
     setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = nextDisplaySets.length;
-  }, [defaultDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, sessionExerciseId, setWarmupValue, unitLabel]);
+  }, [initialSets, resetLoggerMeasurementInputs, sessionExerciseId, setWarmupValue]);
 
   useEffect(() => {
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
@@ -1292,7 +1297,6 @@ export function SetLoggerCard({
     if (values.weightUnit === "kg" || values.weightUnit === "lbs") {
       setSelectedWeightUnit(values.weightUnit);
     }
-    setIsFailure(false);
     setError(null);
     toast.success("Applied to current set.");
   }, [toast]);
@@ -1391,56 +1395,60 @@ export function SetLoggerCard({
       visiblePromotionStepFields={visiblePromotionStepFields ?? null}
     />
   ) : null;
-  const loggerUtilityButtonClassName = cn(
-    ACTION_CHROME_CONTROL_CLASS_NAME,
-    appTokens.measurementField,
-    appTokens.measurementFieldCompact,
-    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-[5.25rem] !min-w-[5.25rem] !flex-none !justify-center !rounded-[1rem] !border !px-2.5 !py-0 text-center shadow-none",
-    "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
-  );
-  const loggerUtilitySummaryButtonClassName = cn(
-    ACTION_CHROME_CONTROL_CLASS_NAME,
-    appTokens.measurementField,
-    appTokens.measurementFieldCompact,
-    "measurement-toggle-button !h-[3.35rem] !min-h-[3.35rem] !w-auto !min-w-0 !flex-none !justify-center !rounded-[1rem] !border !px-3 !py-0 text-center shadow-none",
-    "[&_.measurement-toggle__label]:mx-auto [&_.measurement-toggle__label]:block [&_.measurement-toggle__label]:w-full [&_.measurement-toggle__label]:whitespace-nowrap [&_.measurement-toggle__label]:text-center",
-  );
-  const loggerUtilityButtonsRow = (
-      <div className="flex shrink-0 -translate-y-[11px] flex-nowrap items-stretch justify-start gap-1.5 pl-1 pr-0.5">
-      {applyLastRow ? (
-        <button
-          type="button"
-          onClick={() => {
-            if (applyLastRow.applyValues) {
-              applyHintValues(applyLastRow.applyValues);
-            }
-          }}
-          data-action-chrome-intent={getMeasurementToggleIntent(false)}
-          className={cn(
-            loggerUtilitySummaryButtonClassName,
-            "text-[12px] font-semibold tracking-[0.02em]",
-            tapFeedbackClass,
-          )}
-          aria-label="Apply last target"
-        >
-          <span className={cn(appTokens.currentSessionSetSummaryLabel, "measurement-toggle__label whitespace-nowrap text-[12px]")}>
-            Apply Last
-          </span>
-          <SignatureInlineList
-            items={applyLastRow.items}
-            separator="dot"
-            className={cn(
-              appTokens.currentSessionLoggerSummaryText,
-              "min-w-0 justify-center whitespace-normal break-words text-center text-[12px] leading-[1.1] text-inherit",
-              "[&_.signature-inline-list__item]:whitespace-nowrap",
-            )}
-          />
-        </button>
-      ) : null}
+  const sessionSecondaryToggleCardClassName = "w-[calc((100%-1.5rem)/3)] min-w-0 flex-1 basis-0 space-y-[5px] text-center";
+
+  const lastTargetToggleRow = applyLastRow ? (
+    <div className={sessionSecondaryToggleCardClassName}>
+      <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
+        <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
+          {didApplyLastTarget ? "Clear Last" : "Use Last"}
+        </p>
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
       </div>
-  );
+      <button
+        type="button"
+        className={cn(
+          ACTION_CHROME_CONTROL_CLASS_NAME,
+          ACTION_CHROME_SEGMENTED_CLASS_NAME,
+          tapFeedbackClass,
+          "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold tracking-[0.04em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+        )}
+        aria-pressed={didApplyLastTarget}
+        aria-label={didApplyLastTarget ? "Clear last target" : "Apply last target"}
+        onClick={() => {
+          if (didApplyLastTarget) {
+            resetLoggerMeasurementInputs();
+            setDidApplyLastTarget(false);
+            setError(null);
+            return;
+          }
+          if (applyLastRow.applyValues) {
+            applyHintValues(applyLastRow.applyValues);
+            setDidApplyLastTarget(true);
+          }
+        }}
+      >
+        <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
+          {didApplyLastTarget ? (
+            <span className="measurement-toggle__label">Clear</span>
+          ) : (
+            <SignatureInlineList
+              items={applyLastRow.items}
+              separator="dot"
+              className={cn(
+                appTokens.currentSessionLoggerSummaryText,
+                "measurement-toggle__label min-w-0 justify-center whitespace-normal break-words text-center text-[11px] font-semibold leading-[1.15] text-inherit",
+                "[&_.signature-inline-list__item]:whitespace-nowrap",
+              )}
+            />
+          )}
+          <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
+        </span>
+      </button>
+    </div>
+  ) : null;
   const failureToggleRow = showFailureToggle ? (
-    <div className="w-full max-w-[12rem] space-y-[5px] text-center">
+    <div className={sessionSecondaryToggleCardClassName}>
         <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
           <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
             Reps / Failure Toggle
@@ -1480,7 +1488,7 @@ export function SetLoggerCard({
     </div>
   ) : null;
   const warmupToggleRow = (
-    <div className="w-full max-w-[12rem] space-y-[5px] text-center">
+    <div className={sessionSecondaryToggleCardClassName}>
         <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
           <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
             Warm-Up Toggle
@@ -1516,7 +1524,8 @@ export function SetLoggerCard({
   );
   const measurementSecondaryControls = (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-start justify-center gap-x-3 gap-y-3">
+      <div className="flex items-start justify-center gap-3">
+        {lastTargetToggleRow}
         {warmupToggleRow}
         {failureToggleRow}
       </div>
@@ -1665,7 +1674,6 @@ export function SetLoggerCard({
           showInnerHeader={false}
           layoutMode="horizontal-scroll"
           labelTreatment="floating-border"
-          horizontalRowPrefix={loggerUtilityButtonsRow}
           metricLabelOverrides={{
             time: "Time (s)",
             distance: `Dist (${distanceUnit})`,
