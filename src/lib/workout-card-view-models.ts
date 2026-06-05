@@ -1,6 +1,11 @@
 import type { SessionSummary } from "@/app/history/session-summary";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import type { MetricDatum } from "@/components/ui/MetricItem";
+import {
+  mapExerciseAnalyticsFamilyToPresentationKind,
+  resolveExerciseAnalyticsFamily,
+  type ExerciseAnalyticsFamily,
+} from "@/lib/exercise-analytics-family";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import {
@@ -29,9 +34,15 @@ export type HistoryExerciseCardViewModel = {
   presentationKind: WorkoutCardPresentationKind;
   summaryLabel: string;
   summary: string;
+  comparison: string | null;
   chips: WorkoutCardChip[];
+  badgeItems: string[];
   badgeText?: string;
   detailedMetrics: MetricDatum[];
+  detailedSections: Array<{
+    title: string;
+    items: string[];
+  }>;
   semanticTone: CardSemanticTone;
 };
 
@@ -401,51 +412,115 @@ export function buildPlannedExerciseDetailMetrics(args: ExerciseIdentityChipArgs
   return metrics.slice(0, 3);
 }
 
-function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, presentationKind: WorkoutCardPresentationKind): MetricDatum[] {
-  const metrics: MetricDatum[] = [];
+function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily): MetricDatum[] {
+  const recentLabel = family === "timed-hold" ? "Active" : "Recent";
+  const trackingValue = family === "timed-hold" ? "Time" : "Review";
 
-  if (row.bestSummary) {
-    metrics.push({
-      label: presentationKind === "cardio" || presentationKind === "timed"
-        ? "Best"
-        : presentationKind === "bodyweight"
-          ? "Best Reps"
-          : "Top Set",
-      value: row.bestSummary.replace(/^Best \| /, ""),
-    });
+  const metrics: MetricDatum[] = [
+    {
+      label: "Sessions",
+      value: formatIntegerValue(row.sessionCount),
+      valueTone: row.sessionCount > 0 ? "default" : "muted",
+    },
+    {
+      label: "Sets",
+      value: formatIntegerValue(row.setCount ?? 0),
+      valueTone: positive(row.setCount) > 0 ? "default" : "muted",
+    },
+    {
+      label: recentLabel,
+      value: formatIntegerValue(row.sessionsLast30Days ?? 0),
+      timeframe: "recent window",
+      valueTone: positive(row.sessionsLast30Days) > 0 ? "default" : "muted",
+    },
+    {
+      label: family.startsWith("cardio") || family === "timed-hold" ? "Tracked" : "PRs",
+      value: family.startsWith("cardio") || family === "timed-hold"
+        ? trackingValue
+        : formatIntegerValue(row.prCount),
+      valueTone: family.startsWith("cardio") || family === "timed-hold"
+        ? "muted"
+        : row.prCount > 0 ? "success" : "muted",
+    },
+  ];
+
+  return metrics;
+}
+
+function buildHistoryExerciseBadgeItems(row: ExerciseBrowserRow) {
+  const items: string[] = [];
+
+  if (row.activityRank === 1) {
+    items.push("Most Trained");
+  } else if (row.activityRank && row.activityRank > 1 && row.activityRank <= 5) {
+    items.push("Top 5");
+  } else if (row.activityRank && row.activityRank > 5 && row.activityRank <= 10) {
+    items.push("Top 10");
   }
 
-  if (row.deltaFromBest) {
-    metrics.push({
-      label: "Vs Best",
-      value: row.deltaFromBest,
-      timeframe: "best effort",
-    });
+  if (positive(row.sessionsLast30Days) > 0) {
+    items.push(`${formatIntegerValue(row.sessionsLast30Days ?? 0)} recent`);
   }
 
   if (row.prCount > 0) {
-    metrics.push({
-      label: "PRs",
-      value: `${row.prCount}`,
-      timeframe: row.prLabel || null,
-    });
-  } else if (row.sessionCount > 0) {
-    metrics.push({
-      label: "Sessions",
-      value: `${row.sessionCount}`,
-      timeframe: row.last_performed_at ? `Last ${formatDateShort(row.last_performed_at)}` : null,
-    });
+    items.push(`${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"}`);
   }
 
-  if (row.lastSummary && metrics.length < 4) {
-    metrics.push({
-      label: "Last",
-      value: row.lastSummary,
-      timeframe: row.last_performed_at ? formatDateShort(row.last_performed_at) : null,
-    });
+  if (row.sessionCount > 0) {
+    items.push(`${formatIntegerValue(row.sessionCount)} ${row.sessionCount === 1 ? "Session" : "Sessions"}`);
   }
 
-  return metrics.slice(0, 4);
+  if (row.last_performed_at) {
+    items.push(`Last ${formatDateShort(row.last_performed_at)}`);
+  }
+
+  return items.slice(0, 4);
+}
+
+function buildHistoryExerciseDetailedSections(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily) {
+  if (row.detailSections && row.detailSections.length > 0) {
+    return row.detailSections;
+  }
+
+  const cleanedBest = row.bestSummary?.replace(/^Best\s*[:|]\s*/i, "").trim() || null;
+  const progressItems = row.deltaFromBest
+    ? [row.deltaFromBest]
+    : row.prCount > 0
+      ? [row.prLabel || `${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"} recorded`]
+      : row.last_performed_at
+        ? [`Last trained ${formatDateShort(row.last_performed_at)}`]
+        : ["No progression signal yet."];
+
+  return [
+    {
+      title: "Last",
+      items: [row.lastSummary ?? (family === "timed-hold" ? "No timed effort logged yet." : "No logged history yet.")],
+    },
+    {
+      title: "Best",
+      items: [cleanedBest ?? (family === "timed-hold" ? "No best hold recorded yet." : "No best effort recorded yet.")],
+    },
+    {
+      title: "Progress",
+      items: progressItems,
+    },
+  ];
+}
+
+function buildHistoryExerciseComparison(row: ExerciseBrowserRow) {
+  if (row.deltaFromBest) {
+    return row.deltaFromBest;
+  }
+
+  if (row.prCount > 0 && row.prLabel) {
+    return row.prLabel;
+  }
+
+  if (row.last_performed_at) {
+    return `Last ${formatDateShort(row.last_performed_at)}`;
+  }
+
+  return null;
 }
 
 export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): HistoryExerciseCardViewModel {
@@ -454,6 +529,7 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
       presentationKind: "timed",
       summaryLabel: "",
       summary: "",
+      comparison: null,
       chips: buildExerciseIdentityChips({
         name: row.name,
         slug: row.slug,
@@ -461,17 +537,29 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
         movementPattern: row.movement_pattern,
         primaryMuscle: row.primary_muscle,
       }),
-      badgeText: row.activityRank ? `Rank ${row.activityRank}` : undefined,
+      badgeItems: buildHistoryExerciseBadgeItems(row),
+      badgeText: buildHistoryExerciseBadgeItems(row)[0],
       detailedMetrics: [],
+      detailedSections: [],
       semanticTone: "current",
     };
   }
 
-  const basePresentationKind = row.kind === "cardio"
-    ? "cardio"
+  const fallbackPresentationKind = row.kind === "cardio"
+    ? (row.measurement_type === "time" || row.measurement_type === "duration" ? "timed" : "cardio")
     : resolveStrengthPresentationKind(row);
+  const family = row.analyticsFamily ?? resolveExerciseAnalyticsFamily({
+    presentationKind: fallbackPresentationKind,
+    measurement_type: row.measurement_type ?? null,
+    defaultUnit: row.default_unit ?? null,
+    equipment: row.equipment,
+    movement_pattern: row.movement_pattern,
+    primary_muscle: row.primary_muscle,
+  });
+  const basePresentationKind = mapExerciseAnalyticsFamilyToPresentationKind(family);
   const hasLoggedHistory = positive(row.setCount) > 0 || row.sessionCount > 0;
   const semanticTone: CardSemanticTone = hasLoggedHistory ? "logged" : "attention";
+  const badgeItems = buildHistoryExerciseBadgeItems(row);
 
   return {
     presentationKind: basePresentationKind,
@@ -483,16 +571,20 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
           ? "No rep history yet."
           : "No lifting history yet."
     ),
+    comparison: buildHistoryExerciseComparison(row),
     chips: buildExerciseIdentityChips({
       name: row.name,
       slug: row.slug,
       kind: basePresentationKind,
+      measurementType: row.measurement_type ?? null,
       equipment: row.equipment,
       movementPattern: row.movement_pattern,
       primaryMuscle: row.primary_muscle,
     }),
-    badgeText: row.activityRank ? `Rank ${row.activityRank}` : undefined,
-    detailedMetrics: row.detailedMetrics ?? buildHistoryExerciseDetailedMetrics(row, basePresentationKind),
+    badgeItems,
+    badgeText: badgeItems[0],
+    detailedMetrics: row.detailedMetrics ?? buildHistoryExerciseDetailedMetrics(row, family),
+    detailedSections: buildHistoryExerciseDetailedSections(row, family),
     semanticTone,
   };
 }
@@ -516,10 +608,6 @@ function buildSessionOutcome(session: SessionSummary) {
 function buildSessionProgress(session: SessionSummary, previousSession?: SessionSummary | null) {
   if (session.prCounts.total > 0) {
     return `${session.prCounts.total} ${session.prCounts.total === 1 ? "PR" : "PRs"} this session`;
-  }
-
-  if (previousSession && session.totalVolume > 0 && previousSession.totalVolume > 0 && session.totalVolume !== previousSession.totalVolume) {
-    return `${formatSignedWholeDelta(session.totalVolume - previousSession.totalVolume)} vs previous`;
   }
 
   if (
@@ -563,7 +651,7 @@ function buildSessionCompactChips(session: SessionSummary, progress: string | nu
 function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
   return [
     {
-      label: "Exercise",
+      label: "Exercises",
       value: formatIntegerValue(session.exerciseCount),
     },
     {
@@ -571,22 +659,14 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
       value: formatIntegerValue(session.setCount),
     },
     {
-      label: "Reps",
-      value: formatIntegerValue(session.repCount),
-    },
-    {
       label: "Duration",
       value: formatDurationShort(session.durationSec) ?? "0m",
-    },
-    {
-      label: "Volume",
-      value: session.totalVolume > 0 ? formatLoadWithUnit(session.totalVolume, session.volumeUnit) : "0",
     },
     {
       label: "Completion",
       value: session.completionRate !== undefined ? formatPercent(session.completionRate) : (session.hasSetData ? "Logged" : "Open"),
     },
-  ];
+  ].slice(0, 4);
 }
 
 export function buildHistorySessionCardViewModel(session: SessionSummary, previousSession?: SessionSummary | null): HistorySessionCardViewModel {
@@ -646,13 +726,13 @@ export function buildBodyweightRepMetric(rows: Array<{ reps: number | null; perf
 }
 
 export function buildCardioRecentTotal(args: {
-  rows: Array<{ durationSeconds: number; distance: number; distanceUnit: "mi" | "km" | "m" | null; performedAt: string }>;
+  rows: Array<{ durationSeconds: number; distance: number; distanceUnit: "mi" | "km" | "m" | "steps" | null; performedAt: string }>;
   recentDays?: number;
 }) {
   const cutoff = Date.now() - ((args.recentDays ?? 7) * 24 * 60 * 60 * 1000);
   let durationSeconds = 0;
   let distance = 0;
-  let distanceUnit: "mi" | "km" | "m" | null = null;
+  let distanceUnit: "mi" | "km" | "m" | "steps" | null = null;
 
   for (const row of args.rows) {
     const timestamp = Date.parse(row.performedAt);
@@ -680,10 +760,10 @@ export function buildCardioRecentTotal(args: {
   return null;
 }
 
-export function buildCardioPaceMetric(durationSeconds?: number | null, distance?: number | null, distanceUnit?: "mi" | "km" | "m" | null) {
+export function buildCardioPaceMetric(durationSeconds?: number | null, distance?: number | null, distanceUnit?: "mi" | "km" | "m" | "steps" | null) {
   const safeDuration = positive(durationSeconds);
   const safeDistance = positive(distance);
-  if (safeDuration <= 0 || safeDistance <= 0 || !distanceUnit) {
+  if (safeDuration <= 0 || safeDistance <= 0 || !distanceUnit || distanceUnit === "steps") {
     return null;
   }
 

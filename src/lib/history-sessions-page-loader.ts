@@ -10,11 +10,12 @@ import {
   type WeeklyProgressSet,
   type WeeklyProgressSummary,
 } from "@/lib/history-weekly-progress";
+import { buildThirtyDayHistorySummary, type ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import {
   filterQaLlelRows,
   resolveShowQaLlelDataPreferenceWithOverride,
 } from "@/lib/qa-data-visibility";
-import type { SessionExerciseRow, SessionRow } from "@/types/db";
+import type { ProgressionEventRow, SessionExerciseRow, SessionRow } from "@/types/db";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
 
@@ -38,6 +39,7 @@ export type HistorySessionsPageData = {
   selectedSessionId?: string;
   sessionItems: SessionSummary[];
   subtitle: string;
+  thirtyDaySummary: ThirtyDayHistorySummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
 };
@@ -50,6 +52,7 @@ type ConsoleLike = Pick<Console, "warn">;
 type QueryResult<T> = { data: T[] | null; error?: { message?: string | null } | null };
 type SupabaseLike = { from: (table: string) => any };
 type SessionExerciseSummaryRow = Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id" | "is_skipped">;
+type ProgressionEventSummaryRow = ProgressionEventRow;
 type SessionSetSummaryRow = {
   session_exercise_id: string;
   weight: number;
@@ -181,6 +184,65 @@ function normalizeSessionSetRow(row: unknown): SessionSetSummaryRow | null {
   };
 }
 
+function normalizeProgressionEventRow(row: unknown): ProgressionEventSummaryRow | null {
+  const record = asRecord(row);
+  if (!record) {
+    return null;
+  }
+
+  const id = asTrimmedString(record.id);
+  const userId = asTrimmedString(record.user_id);
+  const routineId = asTrimmedString(record.routine_id);
+  const routineDayExerciseId = asTrimmedString(record.routine_day_exercise_id);
+  const exerciseId = asTrimmedString(record.exercise_id);
+  const createdAt = asTrimmedString(record.created_at);
+  const eventType = record.event_type === "promotion_applied"
+    || record.event_type === "promotion_reverted"
+    || record.event_type === "lock_in"
+    || record.event_type === "deload_applied"
+    || record.event_type === "review_acknowledged"
+    || record.event_type === "manual_target_change"
+    ? record.event_type
+    : null;
+  const fromTarget = asRecord(record.from_target);
+  const toTarget = asRecord(record.to_target);
+  const method = asTrimmedString(record.method);
+  const vector = asTrimmedString(record.vector);
+
+  if (
+    !id
+    || !userId
+    || !routineId
+    || !routineDayExerciseId
+    || !exerciseId
+    || !createdAt
+    || !eventType
+    || !fromTarget
+    || !toTarget
+    || !method
+    || !vector
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    user_id: userId,
+    routine_id: routineId,
+    routine_day_exercise_id: routineDayExerciseId,
+    exercise_id: exerciseId,
+    event_type: eventType,
+    from_target: fromTarget,
+    to_target: toTarget,
+    method,
+    vector,
+    step: asRecord(record.step),
+    reason: asString(record.reason) ?? "",
+    source_session_id: asTrimmedString(record.source_session_id),
+    created_at: createdAt,
+  };
+}
+
 function normalizeExerciseNameRows(rows: unknown[]) {
   const exerciseNameById = new Map<string, string>();
 
@@ -271,8 +333,9 @@ function normalizeRoutineDayCounts(rows: unknown[]) {
     const record = asRecord(row);
     const routineId = record ? asTrimmedString(record.routine_id) : null;
     const dayIndex = record ? asNullableInteger(record.day_index) : null;
+    const isRest = record?.is_rest === true;
 
-    if (!routineId || dayIndex === null) {
+    if (!routineId || dayIndex === null || isRest) {
       continue;
     }
 
@@ -452,7 +515,7 @@ export async function loadHistorySessionsPageData({
   ));
   const nextCursor = null;
 
-  const [profileRows, routineRows, routineDayRows, sessionExerciseRows] = await Promise.all([
+  const [profileRows, routineRows, routineDayRows, sessionExerciseRows, progressionEventRows] = await Promise.all([
     loadOptionalRows({
       enabled: true,
       label: "profile timezone",
@@ -477,7 +540,7 @@ export async function loadHistorySessionsPageData({
       label: "routine day metadata",
       load: () => supabase
         .from("routine_days")
-        .select("routine_id, day_index, name")
+        .select("routine_id, day_index, name, is_rest")
         .in("routine_id", routineIds)
         .eq("user_id", userId),
       logger,
@@ -492,6 +555,15 @@ export async function loadHistorySessionsPageData({
         .eq("user_id", userId),
       logger,
     }),
+    loadOptionalRows({
+      enabled: true,
+      label: "progression event rows",
+      load: () => supabase
+        .from("progression_events")
+        .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+        .eq("user_id", userId),
+      logger,
+    }),
   ]);
 
   const profileSettings = normalizeProfileSettingsRow(profileRows, showQaLlelDataOverride);
@@ -500,8 +572,14 @@ export async function loadHistorySessionsPageData({
   const sessionExercises = sessionExerciseRows
     .map(normalizeSessionExerciseRow)
     .filter((row): row is SessionExerciseSummaryRow => Boolean(row));
+  const progressionEvents = progressionEventRows
+    .map(normalizeProgressionEventRow)
+    .filter((row): row is ProgressionEventSummaryRow => Boolean(row));
   const sessionExerciseIds = sessionExercises.map((row) => row.id);
-  const exerciseIds = Array.from(new Set(sessionExercises.map((row) => row.exercise_id)));
+  const exerciseIds = Array.from(new Set([
+    ...sessionExercises.map((row) => row.exercise_id),
+    ...progressionEvents.map((row) => row.exercise_id),
+  ]));
 
   const [setRows, exerciseNameRows, historicalSetRows] = await Promise.all([
     loadOptionalRows({
@@ -631,12 +709,21 @@ export async function loadHistorySessionsPageData({
       now,
       weekStart,
     }));
+  const thirtyDaySummary = buildThirtyDayHistorySummary({
+    sessions: visibleSessionItems,
+    progressionEvents,
+    exerciseNameById,
+    routineDayCountByRoutineId,
+    timezone: profileTimezone,
+    now,
+  });
 
   return {
     nextCursor,
     selectedSessionId: getSingleSearchParam(searchParams?.selected) ?? undefined,
     sessionItems: visibleSessionItems,
-    subtitle: `${visibleSessionItems.length} logged sessions`,
+    subtitle: `${visibleSessionItems.length} completed sessions`,
+    thirtyDaySummary,
     weeklyProgress,
     weeklyProgressByWeek,
   };

@@ -1,6 +1,6 @@
 import { formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
 
-type DistanceUnit = "mi" | "km" | "m";
+type DistanceUnit = "mi" | "km" | "m" | "steps";
 
 type CardioBestInput = {
   durationSeconds?: number | null;
@@ -19,18 +19,20 @@ export function isCardioMeasurementType(measurementType: string | null | undefin
   return normalized === "time"
     || normalized === "distance"
     || normalized === "time_distance"
-    || normalized === "duration";
+    || normalized === "duration"
+    || normalized === "calories";
 }
 
 export function resolveEffectiveKind(
   measurementType: string | null | undefined,
   hasDurationSignal: boolean,
   hasDistanceSignal: boolean,
+  hasCaloriesSignal = false,
 ): "strength" | "cardio" {
   const isExplicitCardio = isCardioMeasurementType(measurementType);
   if (!isExplicitCardio) return "strength";
 
-  const hasCardioSignal = hasDurationSignal || hasDistanceSignal;
+  const hasCardioSignal = hasDurationSignal || hasDistanceSignal || hasCaloriesSignal;
   return hasCardioSignal ? "cardio" : "strength";
 }
 
@@ -38,6 +40,7 @@ export function getDisplayPace(durationSeconds: number, distance: number, distan
   const safeDuration = positive(durationSeconds);
   const safeDistance = positive(distance);
   if (safeDuration <= 0 || safeDistance <= 0 || !distanceUnit) return null;
+  if (distanceUnit === "steps") return null;
 
   if (distanceUnit === "m") {
     const distanceKm = safeDistance / 1000;
@@ -51,11 +54,16 @@ export function getDisplayPace(durationSeconds: number, distance: number, distan
 export function chooseCardioBestMetric(args: CardioBestInput): CardioBestMetric | null {
   const duration = positive(args.durationSeconds);
   const distance = positive(args.distance);
-  const normalizedDistanceUnit = args.distanceUnit === "mi" || args.distanceUnit === "km" || args.distanceUnit === "m"
+  const normalizedDistanceUnit = args.distanceUnit === "mi" || args.distanceUnit === "km" || args.distanceUnit === "m" || args.distanceUnit === "steps"
     ? args.distanceUnit
     : null;
 
   if (duration <= 0 && distance > 0) {
+    const value = formatDistance(distance, normalizedDistanceUnit);
+    return value ? { kind: "distance", label: "Best distance", value } : null;
+  }
+
+  if (normalizedDistanceUnit === "steps" && distance > 0) {
     const value = formatDistance(distance, normalizedDistanceUnit);
     return value ? { kind: "distance", label: "Best distance", value } : null;
   }

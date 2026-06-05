@@ -32,6 +32,8 @@ export type WeeklyProgressSummary = {
   timezone: string;
   weekStart: string;
   weekEnd: string;
+  primaryRoutineTitle: string | null;
+  primaryRoutineTargetCount: number;
   completedWorkoutCount: number;
   previousWeekWorkoutCount: number;
   activeDayCount: number;
@@ -185,6 +187,36 @@ function resolvePrimaryRoutineTargetCount(
   return primaryRoutineId ? (routineDayCountByRoutineId.get(primaryRoutineId) ?? 0) : 0;
 }
 
+function resolvePrimaryRoutineTitle(sessions: Array<SessionSummary & { dayKey: string }>) {
+  const titleCounts = new Map<string, number>();
+
+  for (const session of sessions) {
+    const routineTitle = session.routineTitle?.trim();
+    if (!routineTitle) {
+      continue;
+    }
+
+    titleCounts.set(routineTitle, (titleCounts.get(routineTitle) ?? 0) + 1);
+  }
+
+  let primaryTitle: string | null = null;
+  let primaryCount = -1;
+
+  for (const [title, count] of titleCounts.entries()) {
+    if (count > primaryCount) {
+      primaryTitle = title;
+      primaryCount = count;
+      continue;
+    }
+
+    if (count === primaryCount && primaryTitle && title.localeCompare(primaryTitle) < 0) {
+      primaryTitle = title;
+    }
+  }
+
+  return primaryTitle;
+}
+
 export function buildWeeklyProgressSummary({
   sessions,
   sessionExercisesBySessionId,
@@ -227,6 +259,7 @@ export function buildWeeklyProgressSummary({
 
   const activeDayCount = new Set(currentWeekSessions.map((session) => session.dayKey)).size;
   const completedWorkoutCount = currentWeekSessions.length;
+  const primaryRoutineTitle = resolvePrimaryRoutineTitle(currentWeekSessions);
   const prMomentCount = currentWeekSessions.reduce((sum, session) => sum + session.prCounts.total, 0);
   const primaryRoutineTargetCount = resolvePrimaryRoutineTargetCount(currentWeekSessions, routineDayCountByRoutineId);
   const prExerciseNames: string[] = [];
@@ -329,6 +362,8 @@ export function buildWeeklyProgressSummary({
     timezone: safeTimezone,
     weekStart,
     weekEnd,
+    primaryRoutineTitle,
+    primaryRoutineTargetCount,
     completedWorkoutCount,
     previousWeekWorkoutCount,
     activeDayCount,

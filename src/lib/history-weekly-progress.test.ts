@@ -54,6 +54,8 @@ test("weekly progress returns an empty state when there are no workouts", () => 
 
   assert.equal(summary.completedWorkoutCount, 0);
   assert.equal(summary.previousWeekWorkoutCount, 0);
+  assert.equal(summary.primaryRoutineTitle, null);
+  assert.equal(summary.primaryRoutineTargetCount, 0);
   assert.equal(summary.prMomentCount, 0);
   assert.equal(summary.progressScore.value, 0);
   assert.equal(summary.consistencyTrend.label, "No sessions yet");
@@ -87,6 +89,8 @@ test("weekly progress treats one workout in an otherwise empty comparison week a
 
   assert.equal(summary.completedWorkoutCount, 1);
   assert.equal(summary.previousWeekWorkoutCount, 0);
+  assert.equal(summary.primaryRoutineTitle, "Routine");
+  assert.equal(summary.primaryRoutineTargetCount, 3);
   assert.equal(summary.consistencyTrend.direction, "new");
   assert.equal(summary.consistencyTrend.label, "Opened the week");
   assert.equal(summary.prMomentCount, 1);
@@ -151,6 +155,8 @@ test("weekly progress aggregates workouts, PR moments, and category volume insid
 
   assert.equal(summary.completedWorkoutCount, 2);
   assert.equal(summary.previousWeekWorkoutCount, 1);
+  assert.equal(summary.primaryRoutineTitle, "Routine");
+  assert.equal(summary.primaryRoutineTargetCount, 3);
   assert.equal(summary.activeDayCount, 2);
   assert.equal(summary.prMomentCount, 2);
   assert.deepEqual(summary.prExerciseNames, ["Back Squat", "Weighted Pull-Up"]);
@@ -204,6 +210,7 @@ test("weekly progress keeps previous-week sessions out of current-week PR and sc
 
   assert.equal(summary.completedWorkoutCount, 1);
   assert.equal(summary.previousWeekWorkoutCount, 2);
+  assert.equal(summary.primaryRoutineTitle, "Routine");
   assert.equal(summary.prMomentCount, 0);
   assert.equal(summary.consistencyTrend.direction, "down");
   assert.equal(summary.progressScore.value, 3);
@@ -235,6 +242,7 @@ test("weekly progress resolves week boundaries in the supplied timezone", () => 
   });
 
   assert.equal(summary.weekStart, "2026-05-04");
+  assert.equal(summary.primaryRoutineTitle, "Routine");
   assert.equal(summary.completedWorkoutCount, 1);
   assert.equal(summary.previousWeekWorkoutCount, 1);
   assert.equal(summary.consistencyTrend.direction, "flat");
@@ -262,6 +270,7 @@ test("weekly progress can build a historical week summary from an explicit week 
   });
 
   assert.equal(summary.weekStart, "2026-04-27");
+  assert.equal(summary.primaryRoutineTitle, "Routine");
   assert.equal(summary.completedWorkoutCount, 1);
   assert.equal(summary.previousWeekWorkoutCount, 0);
   assert.equal(summary.consistencyTrend.direction, "new");

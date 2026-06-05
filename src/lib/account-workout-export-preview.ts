@@ -28,7 +28,12 @@ export type AccountWorkoutExportPreview = {
   };
   tables: AccountWorkoutExportPreviewTable[];
   includesProgressionEvents: boolean;
-  counts: AccountWorkoutExportPayload["metadata"]["counts"];
+  counts: AccountWorkoutExportPayload["metadata"]["counts"] & {
+    visibleCompletedSessions?: number;
+    hiddenQaCompletedSessions?: number;
+    visibleSessionExercises?: number;
+    visibleSets?: number;
+  };
 };
 
 function getScopeLabel(scope: AccountWorkoutExportScope) {

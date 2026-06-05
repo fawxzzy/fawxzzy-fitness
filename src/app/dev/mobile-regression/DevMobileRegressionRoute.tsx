@@ -41,6 +41,7 @@ import {
   type MobileFixtureScenario,
 } from "@/features/mobile-regression/fixtures";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { buildProgressionHistoryDisplayModel, type ProgressionHistoryDisplayModel } from "@/lib/progression-history-display";
 import type { ProgressionAnalyticsEvent } from "@/lib/progression-event-analytics";
@@ -859,10 +860,12 @@ const mockHistorySessions = [
 ];
 
 const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
-  timezone: "America/New_York",
-  weekStart: "2026-04-06",
-  weekEnd: "2026-04-12",
-  completedWorkoutCount: 3,
+    timezone: "America/New_York",
+    weekStart: "2026-04-06",
+    weekEnd: "2026-04-12",
+    primaryRoutineTitle: "Atlas",
+    primaryRoutineTargetCount: 4,
+    completedWorkoutCount: 3,
   previousWeekWorkoutCount: 2,
   activeDayCount: 3,
   prMomentCount: 4,
@@ -888,6 +891,52 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
     ],
     summary: "3/4 workouts • 3/3 prs • 2/2 consistency",
   },
+};
+
+const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
+  timezone: "America/New_York",
+  windowStart: "2026-03-11",
+  windowEnd: "2026-04-09",
+  scopeLabel: "All Time",
+  primaryRoutineTitle: PREVIEW_ROUTINE_NAME,
+  completedWorkoutCount: 3,
+  activeDayCount: 3,
+  exerciseCount: 13,
+  routineCount: 3,
+  prMomentCount: 4,
+  prExerciseNames: ["Back Squat", "Bench Press", "Weighted Chin-Up"],
+  primaryRoutineCoverage: {
+    completedDayCount: 1,
+    targetDayCount: 4,
+  },
+  consistencyTrend: {
+    direction: "up",
+    label: "+1 this week",
+    detail: "2 workouts in the last 7 days, up from 1 the week before.",
+    delta: 1,
+  },
+  progressionSummary: {
+    totalEventCount: 4,
+    promotionCount: 2,
+    deloadCount: 1,
+    manualChangeCount: 1,
+    revertCount: 0,
+    topProgressedExerciseNames: ["Back Squat", "Bench Press"],
+    reviewItems: [
+      "4 progression events recorded across your history.",
+      "2 promotions landed across 2 exercises.",
+      "1 deload, 1 manual change, and 0 reverts were recorded.",
+      "Most progressed: Back Squat, Bench Press.",
+    ],
+    attentionItems: [],
+  },
+  reviewItems: [
+    "3 workouts across 3 workout days.",
+    `${PREVIEW_ROUTINE_NAME} led with 1 workout.`,
+    "13 exercises trained across 3 routines.",
+    "2 workouts in the last 7 days, up from 1 the week before.",
+  ],
+  attentionItems: [],
 };
 
 const mockHistoryExerciseRows = [
@@ -1912,6 +1961,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient
             sessions={[...mockHistorySessions]}
+            thirtyDaySummary={mockHistoryThirtyDaySummary}
             weeklyProgress={mockHistoryWeeklyProgress}
             selectedSessionId="history-session-2"
             initialViewMode={initialViewMode}

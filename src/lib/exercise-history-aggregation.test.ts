@@ -14,7 +14,7 @@ function row(args: {
   weightUnit?: "lb" | "lbs" | "kg" | null;
   durationSeconds?: number | null;
   distance?: number | null;
-  distanceUnit?: "mi" | "km" | "m" | null;
+  distanceUnit?: "mi" | "km" | "m" | "steps" | null;
   calories?: number | null;
 }): HistoricalSetRow {
   return {
@@ -79,6 +79,7 @@ test("aggregateCardioSessions separates raw aggregation from presentation-ready 
       distance: 2,
       distanceUnit: "mi",
       calories: 150,
+      setCount: 1,
     },
     {
       performedAt: "2026-03-10T10:00:00Z",
@@ -87,6 +88,53 @@ test("aggregateCardioSessions separates raw aggregation from presentation-ready 
       distance: 1.5,
       distanceUnit: "mi",
       calories: 150,
+      setCount: 2,
+    },
+  ]);
+});
+
+test("aggregateCardioSessions preserves steps-based cardio totals", () => {
+  const sessions = aggregateCardioSessions({
+    rows: [
+      row({ exerciseId: "cardio-steps", sessionId: "session-1", performedAt: "2026-03-10T10:00:00Z", setIndex: 1, durationSeconds: 1200, distance: 3200, distanceUnit: "steps", calories: 90 }),
+      row({ exerciseId: "cardio-steps", sessionId: "session-1", performedAt: "2026-03-10T10:00:00Z", setIndex: 2, durationSeconds: 600, distance: 1800, distanceUnit: "steps", calories: 45 }),
+    ],
+    measurementType: "time_distance",
+    defaultUnit: "steps",
+  });
+
+  assert.deepEqual(sessions, [
+    {
+      performedAt: "2026-03-10T10:00:00Z",
+      setIndex: 2,
+      durationSeconds: 1800,
+      distance: 5000,
+      distanceUnit: "steps",
+      calories: 135,
+      setCount: 2,
+    },
+  ]);
+});
+
+test("aggregateCardioSessions keeps calorie-first cardio sessions", () => {
+  const sessions = aggregateCardioSessions({
+    rows: [
+      row({ exerciseId: "cardio-cal", sessionId: "session-1", performedAt: "2026-03-11T10:00:00Z", setIndex: 1, durationSeconds: 900, calories: 140 }),
+      row({ exerciseId: "cardio-cal", sessionId: "session-1", performedAt: "2026-03-11T10:00:00Z", setIndex: 2, durationSeconds: 600, calories: 80 }),
+    ],
+    measurementType: "calories",
+    defaultUnit: null,
+  });
+
+  assert.deepEqual(sessions, [
+    {
+      performedAt: "2026-03-11T10:00:00Z",
+      setIndex: 2,
+      durationSeconds: 1500,
+      distance: 0,
+      distanceUnit: null,
+      calories: 220,
+      setCount: 2,
     },
   ]);
 });

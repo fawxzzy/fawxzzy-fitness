@@ -10,6 +10,7 @@ import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { MetricAccentBar, type MetricDatum, MetricGrid } from "@/components/ui/MetricItem";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
+import { HistoryMetaLine } from "@/components/history/HistoryMetaLine";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
 import { buildHistorySessionCardViewModel } from "@/lib/workout-card-view-models";
@@ -203,6 +204,31 @@ function SessionTitleFlow({
 }
 
 function renderPrExerciseList(exerciseNames: string[]) {
+  return (
+    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
+      <div className="w-full space-y-1">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+          PRs
+        </p>
+        <div className="space-y-1.5 pl-px">
+          {exerciseNames.length > 0 ? exerciseNames.map((exerciseName, index) => (
+            <div key={`${exerciseName}-${index}`} className="inline-flex min-w-0 items-center gap-2">
+              <SignatureDot />
+              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{exerciseName}</span>
+            </div>
+          )) : (
+            <div className="inline-flex min-w-0 items-center gap-2">
+              <SignatureDot />
+              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-secondary)/0.9)]")}>No PRs recorded in this session.</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderSessionExerciseRecap(exerciseNames: string[]) {
   if (exerciseNames.length === 0) {
     return null;
   }
@@ -210,14 +236,45 @@ function renderPrExerciseList(exerciseNames: string[]) {
   return (
     <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
       <div className="w-full space-y-1">
-        <p className={cn(appTokens.workoutMetricLabel, "px-px text-left text-[rgb(var(--accent-divider-rgb)/0.92)]")}>PRs</p>
-        <div className="flex w-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pl-px">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+          Recap
+        </p>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 pl-px">
           {exerciseNames.map((exerciseName, index) => (
             <div key={`${exerciseName}-${index}`} className="inline-flex min-w-0 items-center gap-2">
-              {index > 0 ? <SignatureDot /> : null}
+              <SignatureDot />
               <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{exerciseName}</span>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderBestLift(bestLift: SessionSummary["bestLift"]) {
+  return (
+    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
+      <div className="w-full space-y-1">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+          Best
+        </p>
+        <div className="space-y-1.5 pl-px">
+          {bestLift ? (
+            <div className="inline-flex min-w-0 items-center gap-2">
+              <SignatureDot />
+              <span className={cn(appTokens.workoutCardDetailCompact, "inline-flex min-w-0 items-center gap-2 text-[rgb(var(--text-primary)/0.95)]")}>
+                <span className="min-w-0">{bestLift.exerciseName}</span>
+                <SignatureMiniPipe className="w-[0.35rem] shrink-0" />
+                <span className="min-w-0">{bestLift.display}</span>
+              </span>
+            </div>
+          ) : (
+            <div className="inline-flex min-w-0 items-center gap-2">
+              <SignatureDot />
+              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-secondary)/0.9)]")}>No best lift recorded in this session.</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -285,6 +342,16 @@ export function HistorySessionCard({
   const resolvedDetailedMetrics = detailedMetrics ?? viewModel.detailedMetrics;
   const resolvedPrExerciseNames = prExerciseNames ?? session.prExerciseNames ?? [];
   const usesHeaderlessDetailedLayout = viewMode === "detailed" && detailedHeaderMode === "hidden";
+  const resolvedCompactMetaItems = viewModel.compactChips.map((chip) => chip.label).filter(Boolean);
+  const resolvedSubtitleItems = [viewModel.outcome, viewModel.progress].filter((item): item is string => Boolean(item));
+  const resolvedDetailedSubtitle = viewMode === "detailed" ? undefined : (
+    resolvedSubtitleItems.length > 0
+      ? <HistoryMetaLine items={resolvedSubtitleItems} />
+      : undefined
+  );
+  const resolvedSubtitle = subtitle ?? (
+    resolvedDetailedSubtitle
+  );
 
   if (viewMode === "compact") {
     const compactContent = (
@@ -305,7 +372,12 @@ export function HistorySessionCard({
               {title ?? buildSessionCompactTitleText(session)}
             </div>
           </div>
-          <div className="px-px pt-[1px]">
+          {resolvedCompactMetaItems.length > 0 ? (
+            <div className="px-px pt-[2px] text-[rgb(var(--text-secondary)/0.86)]">
+              <HistoryMetaLine items={resolvedCompactMetaItems} className="text-[10.5px] font-semibold tracking-[0.01em] text-inherit" />
+            </div>
+          ) : null}
+          <div className="px-px pt-[3px]">
             <MetricAccentBar variant="compact" />
           </div>
         </div>
@@ -340,7 +412,9 @@ export function HistorySessionCard({
           <div className={cn("pt-[0.45rem]", showDetailedDivider ? THIN_SECTION_TOP_DIVIDER_CLASS_NAME : undefined)}>
             <HistorySessionDetailedMetricGrid items={resolvedDetailedMetrics} />
           </div>
+          {renderSessionExerciseRecap(session.exerciseNames ?? [])}
           {renderPrExerciseList(resolvedPrExerciseNames)}
+          {renderBestLift(session.bestLift)}
         </>
       ) : null}
     </div>
@@ -390,8 +464,8 @@ export function HistorySessionCard({
   const content = (
     <ExerciseCard
       title={title ?? buildSessionTitleText(session)}
-      subtitle={subtitle}
-      subtitleLabel={undefined}
+      subtitle={resolvedSubtitle}
+      subtitleLabel={resolvedSubtitle ? "Recap" : undefined}
       subtitleTone="plain"
       semanticTone={resolvedTone}
       density={viewMode}

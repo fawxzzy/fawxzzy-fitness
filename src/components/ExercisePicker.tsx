@@ -19,6 +19,11 @@ import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } 
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
+import {
+  estimateCaloriesFromExerciseMetrics,
+  inferCaloriesEstimationMethodFromExercise,
+  resolveCaloriesEstimationMethod,
+} from "@/lib/calorie-estimation";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
@@ -379,6 +384,15 @@ function buildCustomExerciseDraftOption(
 
   const measurementType = bestMatch?.measurement_type ?? inferFallbackMeasurementType({ equipment, movementPattern });
   const defaultUnit = bestMatch?.default_unit ?? (measurementType === "distance" || measurementType === "time_distance" ? "mi" : null);
+  const caloriesEstimationMethod = bestMatch?.calories_estimation_method
+    ?? inferCaloriesEstimationMethodFromExercise({
+      name,
+      equipment,
+      movementPattern,
+      measurementType,
+      defaultUnit,
+      caloriesEstimationMethod: null,
+    });
 
   return {
     id: EXERCISE_PICKER_CUSTOM_EXERCISE_ID,
@@ -390,7 +404,7 @@ function buildCustomExerciseDraftOption(
     movement_pattern: movementPattern,
     measurement_type: measurementType,
     default_unit: defaultUnit,
-    calories_estimation_method: null,
+    calories_estimation_method: caloriesEstimationMethod,
     image_howto_path: null,
     tags: [primaryMuscle, movementPattern, equipment].filter((value): value is string => Boolean(value)),
     categories: [],
@@ -1044,6 +1058,9 @@ export function ExercisePicker({
     measurements: [],
   });
   const [didApplyLast, setDidApplyLast] = useState(false);
+  const lastAutoEstimatedGoalCaloriesRef = useRef<string | null>(null);
+  const didDismissAutoEstimatedGoalCaloriesRef = useRef(false);
+  const lastGoalCaloriesAutoSourceKeyRef = useRef<string | null>(null);
   const previousExerciseIdRef = useRef(selectedId);
   const isCustomExerciseSelected = customExerciseEnabled && selectedId === EXERCISE_PICKER_CUSTOM_EXERCISE_ID;
   const {
@@ -1363,6 +1380,55 @@ export function ExercisePicker({
   const effectiveGoalModality: GoalModality = goalModality === "cardio_time_distance"
     ? inferGoalModeFromState(goalState)
     : goalModality;
+  const parsedGoalDurationSeconds = useMemo(
+    () => parseDurationInput(goalState.duration),
+    [goalState.duration],
+  );
+  const parsedGoalDistance = useMemo(() => {
+    const trimmedDistance = goalState.distance.trim();
+    if (!trimmedDistance) {
+      return null;
+    }
+
+    const parsedDistance = Number(trimmedDistance);
+    return Number.isFinite(parsedDistance) && parsedDistance > 0 ? parsedDistance : null;
+  }, [goalState.distance]);
+  const resolvedGoalCaloriesEstimationMethod = useMemo(
+    () => activeSelectedExercise
+      ? resolveCaloriesEstimationMethod({
+        name: activeSelectedExercise.name,
+        slug: activeSelectedExercise.slug,
+        equipment: activeSelectedExercise.equipment,
+        movementPattern: activeSelectedExercise.movement_pattern,
+        measurementType: activeSelectedExercise.measurement_type,
+        defaultUnit: activeSelectedExercise.default_unit,
+        caloriesEstimationMethod: activeSelectedExercise.calories_estimation_method,
+      })
+      : null,
+    [activeSelectedExercise],
+  );
+  const goalCaloriesAutoResetKey = useMemo(
+    () => JSON.stringify({
+      exerciseId: activeSelectedExercise?.id ?? null,
+      method: resolvedGoalCaloriesEstimationMethod,
+    }),
+    [activeSelectedExercise?.id, resolvedGoalCaloriesEstimationMethod],
+  );
+  const estimatedGoalCalories = useMemo(
+    () => estimateCaloriesFromExerciseMetrics({
+      method: resolvedGoalCaloriesEstimationMethod,
+      durationSeconds: parsedGoalDurationSeconds,
+      distance: parsedGoalDistance,
+      distanceUnit: goalState.distanceUnit,
+      context: {
+        userProfile: {
+          bodyWeightKg: null,
+          bodyWeightLbs: null,
+        },
+      },
+    }),
+    [goalState.distanceUnit, parsedGoalDistance, parsedGoalDurationSeconds, resolvedGoalCaloriesEstimationMethod],
+  );
   const goalMeasurementSelections = useMemo(
     () => deriveGoalMeasurementSelections(effectiveGoalModality, {
       repsMin: goalState.repsMin,
@@ -1578,6 +1644,25 @@ export function ExercisePicker({
     }
     setDidApplyLast(false);
   }, [clearToFreshGoalState, onClearLastSelection, selectedCanonicalExerciseId]);
+  const handleGoalStateChange = useCallback((next: ExerciseGoalFormState) => {
+    setGoalState((current) => {
+      const currentCalories = current.calories.trim();
+      const nextCalories = next.calories.trim();
+      const lastAutoEstimatedCalories = lastAutoEstimatedGoalCaloriesRef.current;
+
+      if (currentCalories !== nextCalories) {
+        if (nextCalories === "" && currentCalories === lastAutoEstimatedCalories) {
+          didDismissAutoEstimatedGoalCaloriesRef.current = true;
+        } else if (nextCalories.length > 0 && nextCalories !== lastAutoEstimatedCalories) {
+          didDismissAutoEstimatedGoalCaloriesRef.current = true;
+        } else if (nextCalories === lastAutoEstimatedCalories) {
+          didDismissAutoEstimatedGoalCaloriesRef.current = false;
+        }
+      }
+
+      return next;
+    });
+  }, []);
   const goalDockViewportMode = typeof goalDockViewportModeProp === "function"
     ? goalDockViewportModeProp(goalContentContext)
     : goalDockViewportModeProp;
@@ -1679,7 +1764,7 @@ export function ExercisePicker({
           <SharedExerciseGoalForm
             modality={goalModality}
             state={goalState}
-            onStateChange={setGoalState}
+            onStateChange={handleGoalStateChange}
             names={{
               sets: "targetSets",
               repsMin: "targetRepsMin",
@@ -1799,6 +1884,48 @@ export function ExercisePicker({
   }, [configureGoalDockNode, goalDockHeight, filteredExercises.length, selectedId]);
 
   usePublishBottomActions(footerNode ?? null);
+
+  useEffect(() => {
+    if (lastGoalCaloriesAutoSourceKeyRef.current === goalCaloriesAutoResetKey) {
+      return;
+    }
+
+    lastGoalCaloriesAutoSourceKeyRef.current = goalCaloriesAutoResetKey;
+    didDismissAutoEstimatedGoalCaloriesRef.current = false;
+  }, [goalCaloriesAutoResetKey]);
+
+  useEffect(() => {
+    setGoalState((current) => {
+      const currentCalories = current.calories.trim();
+      const lastAutoEstimatedCalories = lastAutoEstimatedGoalCaloriesRef.current;
+
+      if (estimatedGoalCalories === null) {
+        if (currentCalories.length > 0 && currentCalories === lastAutoEstimatedCalories) {
+          lastAutoEstimatedGoalCaloriesRef.current = null;
+          return {
+            ...current,
+            calories: "",
+          };
+        }
+
+        lastAutoEstimatedGoalCaloriesRef.current = null;
+        return current;
+      }
+
+      const nextCalories = String(estimatedGoalCalories);
+      const isAutoControlled = currentCalories.length === 0 || currentCalories === lastAutoEstimatedCalories;
+
+      lastAutoEstimatedGoalCaloriesRef.current = nextCalories;
+      if (didDismissAutoEstimatedGoalCaloriesRef.current || !isAutoControlled || currentCalories === nextCalories) {
+        return current;
+      }
+
+      return {
+        ...current,
+        calories: nextCalories,
+      };
+    });
+  }, [estimatedGoalCalories]);
 
   useEffect(() => {
     if (goalState.measurements.length > 0) return;

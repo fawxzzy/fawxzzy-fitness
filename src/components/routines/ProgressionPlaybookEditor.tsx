@@ -1309,6 +1309,47 @@ type ActiveProgressionInfoContent = {
   sectionKey?: ProgressionInfoMiniSectionKey | null;
 };
 
+type ProgressionDropdownPreset = "default" | "exercise-inline" | "current-session";
+
+function resolveProgressionDropdownPreset(preset: ProgressionDropdownPreset) {
+  switch (preset) {
+  case "exercise-inline":
+    return {
+      hideProgressionMethodControl: true,
+      renderRegressionAsSection: true,
+      hideDayAdjustmentSettingsSection: false,
+      hideSessionSettingsSection: false,
+      hideExerciseSessionSuccessCount: false,
+      hideExerciseSetSuccessCount: true,
+      showProgressionSettingsRow: true,
+      infoDockPlacement: "above-bottom-actions" as const,
+    };
+  case "current-session":
+    return {
+      hideProgressionMethodControl: true,
+      renderRegressionAsSection: true,
+      hideDayAdjustmentSettingsSection: true,
+      hideSessionSettingsSection: true,
+      hideExerciseSessionSuccessCount: true,
+      hideExerciseSetSuccessCount: true,
+      showProgressionSettingsRow: false,
+      infoDockPlacement: "above-bottom-actions" as const,
+    };
+  case "default":
+  default:
+    return {
+      hideProgressionMethodControl: false,
+      renderRegressionAsSection: false,
+      hideDayAdjustmentSettingsSection: false,
+      hideSessionSettingsSection: false,
+      hideExerciseSessionSuccessCount: false,
+      hideExerciseSetSuccessCount: false,
+      showProgressionSettingsRow: true,
+      infoDockPlacement: "default" as const,
+    };
+  }
+}
+
 function formatTermDefinitionValue(term: {
   meaning: string;
   affects: string;
@@ -2541,7 +2582,7 @@ export function ProgressionPlaybookEditor({
   progressionStepPolicy,
   visiblePromotionStepFields,
   promotionUiModel,
-  showProgressionSettingsRow = true,
+  showProgressionSettingsRow,
   extraPanelContent,
   repRangeMin,
   repRangeMax,
@@ -2554,16 +2595,17 @@ export function ProgressionPlaybookEditor({
   onTrainingFocusChange,
   autoApplyUpdatesToExercises,
   onAutoApplyUpdatesToExercisesChange,
-  hideProgressionMethodControl = false,
-  renderRegressionAsSection = false,
-  hideDayAdjustmentSettingsSection = false,
-  hideSessionSettingsSection = false,
-  hideExerciseSessionSuccessCount = false,
-  hideExerciseSetSuccessCount = false,
+  dropdownPreset = "default",
+  hideProgressionMethodControl,
+  renderRegressionAsSection,
+  hideDayAdjustmentSettingsSection,
+  hideSessionSettingsSection,
+  hideExerciseSessionSuccessCount,
+  hideExerciseSetSuccessCount,
   progressionExampleDayNumber,
   separateInfoReserveLayoutSpace = true,
   failureToggleInfoContent = null,
-  infoDockPlacement = "default",
+  infoDockPlacement,
 }: {
   value: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -2603,6 +2645,7 @@ export function ProgressionPlaybookEditor({
   onTrainingFocusChange?: (goal: TrainingGoalId) => void;
   autoApplyUpdatesToExercises?: boolean;
   onAutoApplyUpdatesToExercisesChange?: (nextValue: boolean) => void;
+  dropdownPreset?: ProgressionDropdownPreset;
   hideProgressionMethodControl?: boolean;
   renderRegressionAsSection?: boolean;
   hideDayAdjustmentSettingsSection?: boolean;
@@ -2623,7 +2666,7 @@ export function ProgressionPlaybookEditor({
   const [activeInfoSection, setActiveInfoSection] = useState<ActiveProgressionInfoSection>("progression_method");
   const [hasInfoSelection, setHasInfoSelection] = useState(false);
   const [customInfoContent, setCustomInfoContent] = useState<ActiveProgressionInfoContent | null>(null);
-  const [openInfoMiniSectionKey, setOpenInfoMiniSectionKey] = useState<ProgressionInfoMiniSectionKey | null>("progression_method");
+  const [openInfoMiniSectionKey, setOpenInfoMiniSectionKey] = useState<ProgressionInfoMiniSectionKey | null>(null);
   const selectedPlaybookId = value.progressionPlaybookId || null;
   const selectedMethodInfo = selectedPlaybookId
     ? PROGRESSION_METHOD_DEFINITIONS[selectedPlaybookId as ProgressionMethodId]
@@ -2632,7 +2675,16 @@ export function ProgressionPlaybookEditor({
   const showAutoApplyUpdatesControl = context === "routine-default"
     && typeof autoApplyUpdatesToExercises === "boolean"
     && typeof onAutoApplyUpdatesToExercisesChange === "function";
-  const showProgressionMethodToggle = !hideProgressionMethodControl;
+  const presetOptions = resolveProgressionDropdownPreset(dropdownPreset);
+  const resolvedHideProgressionMethodControl = hideProgressionMethodControl ?? presetOptions.hideProgressionMethodControl;
+  const resolvedRenderRegressionAsSection = renderRegressionAsSection ?? presetOptions.renderRegressionAsSection;
+  const resolvedHideDayAdjustmentSettingsSection = hideDayAdjustmentSettingsSection ?? presetOptions.hideDayAdjustmentSettingsSection;
+  const resolvedHideSessionSettingsSection = hideSessionSettingsSection ?? presetOptions.hideSessionSettingsSection;
+  const resolvedHideExerciseSessionSuccessCount = hideExerciseSessionSuccessCount ?? presetOptions.hideExerciseSessionSuccessCount;
+  const resolvedHideExerciseSetSuccessCount = hideExerciseSetSuccessCount ?? presetOptions.hideExerciseSetSuccessCount;
+  const resolvedShowProgressionSettingsRow = showProgressionSettingsRow ?? presetOptions.showProgressionSettingsRow;
+  const resolvedInfoDockPlacement = infoDockPlacement ?? presetOptions.infoDockPlacement;
+  const showProgressionMethodToggle = !resolvedHideProgressionMethodControl;
   const setFlowDirections = {
     time: normalizeSetFlowDirectionForStepValue({
       current: value.progressionSetFlowTimeDirection,
@@ -2925,9 +2977,9 @@ export function ProgressionPlaybookEditor({
   const shouldRenderPromotionStepSettings = Boolean(selectedPlaybookId) && visiblePromotionStepFieldIds.length > 0;
   const shouldRenderRegressionControls = Boolean(selectedPlaybookId) && (isRoutineDefaultContext || visiblePromotionStepFieldIds.length > 0);
   const shouldRenderDeloadSettings = shouldRenderRegressionControls && value.progressionStallPolicy === "deload_after_stall";
-  const showRegressionTopRailControl = shouldRenderRegressionControls && !renderRegressionAsSection;
+  const showRegressionTopRailControl = shouldRenderRegressionControls && !resolvedRenderRegressionAsSection;
   const hasPreSessionInlineFieldGroups = (preSessionSettingsGroups?.some((group) => group.fields.length > 0) ?? false)
-    || (!renderRegressionAsSection && selectedPlaybookId && shouldRenderDeloadSettings);
+    || (!resolvedRenderRegressionAsSection && selectedPlaybookId && shouldRenderDeloadSettings);
   const shouldRenderTopMethodRailCard = showLegacyTopMethodRail && (
     Boolean(topMethodRailContent)
     || showProgressionMethodToggle
@@ -3055,6 +3107,8 @@ export function ProgressionPlaybookEditor({
           return "regression_method";
         case "deload_settings":
           return "deload_settings";
+        case "session_settings":
+          return "session_settings";
         case "day_settings":
           return "day_settings";
         case "set_step_settings":
@@ -5135,8 +5189,39 @@ export function ProgressionPlaybookEditor({
     renderedSetMeasurementCount: renderedSetFlowMeasurements.length,
     daySettingFieldCount: daySettingFields.length,
     stallPolicy: value.progressionStallPolicy,
-    showProgressionSettingsRow,
+    showProgressionSettingsRow: resolvedShowProgressionSettingsRow,
   });
+  const shouldRenderRoutineSetupInfoSection = isRoutineDefaultContext;
+  const shouldRenderProgressionMethodInfoSection = true;
+  const shouldRenderRegressionInfoSection = Boolean(selectedPlaybookId);
+  const shouldRenderSessionInfoSection = !resolvedHideSessionSettingsSection
+    && shouldRenderSessionSettings
+    && (isRoutineDefaultContext || sessionSettingFields.length > 0);
+  const shouldRenderDayAdjustmentInfoSection = !resolvedHideDayAdjustmentSettingsSection
+    && shouldRenderDayAdjustmentSettings
+    && daySettingFields.length > 0;
+  const shouldRenderSetSettingsInfoSection = shouldRenderSetStepSettings;
+  const visibleInfoMiniSectionKeys: ProgressionInfoMiniSectionKey[] = [
+    ...(shouldRenderRoutineSetupInfoSection ? ["routine_setup" as const] : []),
+    ...(shouldRenderProgressionMethodInfoSection ? ["progression_method" as const] : []),
+    ...(shouldRenderRegressionInfoSection ? ["regression_method" as const] : []),
+    ...(shouldRenderSessionInfoSection ? ["session_settings" as const] : []),
+    ...(shouldRenderDayAdjustmentInfoSection ? ["day_settings" as const] : []),
+    ...(shouldRenderSetSettingsInfoSection ? ["set_step_settings" as const] : []),
+    ...(failureToggleInfoContent ? ["failure_toggle" as const] : []),
+    "progression_terms",
+  ];
+  const defaultInfoMiniSectionKey = visibleInfoMiniSectionKeys[0] ?? null;
+  const visibleInfoMiniSectionKeySignature = visibleInfoMiniSectionKeys.join("|");
+  useEffect(() => {
+    setOpenInfoMiniSectionKey((current) => {
+      if (current && visibleInfoMiniSectionKeys.includes(current)) {
+        return current;
+      }
+
+      return defaultInfoMiniSectionKey;
+    });
+  }, [defaultInfoMiniSectionKey, visibleInfoMiniSectionKeySignature]);
   const setFlowSettingsRow = (
     <SetFlowMeasurementStepRow
       measurements={renderedSetFlowMeasurements}
@@ -5163,7 +5248,7 @@ export function ProgressionPlaybookEditor({
       }}
       onGroupedDirectionToggle={setSetFlowGroupedDirection}
       infoHandlers={getInfoSectionHandlers("set_step_settings")}
-      showCountInput={!(context === "exercise" && hideExerciseSetSuccessCount)}
+      showCountInput={!(context === "exercise" && resolvedHideExerciseSetSuccessCount)}
     />
   );
   const setFlowSettingsRailEmbeddedRow = (
@@ -5193,7 +5278,7 @@ export function ProgressionPlaybookEditor({
       onGroupedDirectionToggle={setSetFlowGroupedDirection}
       infoHandlers={getInfoSectionHandlers("set_step_settings")}
       useScrollRail={false}
-      showCountInput={!(context === "exercise" && hideExerciseSetSuccessCount)}
+      showCountInput={!(context === "exercise" && resolvedHideExerciseSetSuccessCount)}
     />
   );
   void setExampleEntries;
@@ -5459,24 +5544,26 @@ export function ProgressionPlaybookEditor({
   const progressionInfoBox = (
     <div className="rounded-[1.1rem] border border-transparent bg-transparent px-2 py-3 text-left">
       <div className="space-y-2.5">
-        <ProgressionInfoMiniSection
-          title="Routine setup"
-          defaultOpen
-          sectionKey="routine_setup"
-          openSectionKey={openInfoMiniSectionKey}
-          onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-        >
-          <ProgressionInfoRows
-            rows={[
-              { label: "Schedule Mode", value: "Week-based anchors Day 1 to a weekday. Day-based repeats every N days from the anchor date." },
-              { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Day 1 inside the current anchored week." },
-              { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Day 1 anchors to. Covered days show how the current cycle spans forward from that anchor." },
-              { label: "Cycle Length", value: "Total routine days before the cycle repeats. In week-based mode, extra days continue into the next week." },
-              { label: "Timezone", value: "Controls Today rollover, routine cycle day rollover, and routine occurrence dates." },
-              { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
-            ]}
-          />
-        </ProgressionInfoMiniSection>
+        {shouldRenderRoutineSetupInfoSection ? (
+          <ProgressionInfoMiniSection
+            title="Routine setup"
+            defaultOpen
+            sectionKey="routine_setup"
+            openSectionKey={openInfoMiniSectionKey}
+            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
+          >
+            <ProgressionInfoRows
+              rows={[
+                { label: "Schedule Mode", value: "Week-based anchors Day 1 to a weekday. Day-based repeats every N days from the anchor date." },
+                { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Day 1 inside the current anchored week." },
+                { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Day 1 anchors to. Covered days show how the current cycle spans forward from that anchor." },
+                { label: "Cycle Length", value: "Total routine days before the cycle repeats. In week-based mode, extra days continue into the next week." },
+                { label: "Timezone", value: "Controls Today rollover, routine cycle day rollover, and routine occurrence dates." },
+                { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
+              ]}
+            />
+          </ProgressionInfoMiniSection>
+        ) : null}
 
         <ProgressionInfoMiniSection
           title={(
@@ -5501,71 +5588,7 @@ export function ProgressionPlaybookEditor({
           />
         </ProgressionInfoMiniSection>
 
-        <ProgressionInfoMiniSection
-          title="Session Settings"
-          sectionKey="session_settings"
-          openSectionKey={openInfoMiniSectionKey}
-          onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-        >
-          <ProgressionInfoRows
-            rows={[
-              { label: "Purpose", value: "Controls measurement order, grouping, session count span, and direction for the measurements that can progress." },
-              { label: "Order", value: activeSessionMeasurementOrderLabel },
-              { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
-              { label: "Grouped sessions", value: "Active AND groups share one session count and one direction until the session flow advances." },
-              { label: "Empty inputs", value: "Blank measurements stay straight, do not show active direction behavior, and are omitted from active grouped session behavior." },
-              { label: "Cycle effect", value: "Session Settings drive how progression advances across the routine cycle and how the progression example sequences its session steps." },
-              { label: "Scope", value: "Session Settings affect progression order and qualification flow. They do not change within-session set sequencing." },
-            ]}
-          />
-        </ProgressionInfoMiniSection>
-
-        <ProgressionInfoMiniSection
-          title="Day Adjustment Settings"
-          sectionKey="day_settings"
-          openSectionKey={openInfoMiniSectionKey}
-          onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-        >
-          <ProgressionInfoRows
-            rows={[
-              { label: "Purpose", value: "Controls how the effective target adjusts for a cycle day before Session Settings and Set Settings continue the workout flow." },
-              { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
-              { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
-              { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
-            ]}
-          />
-        </ProgressionInfoMiniSection>
-
-        <ProgressionInfoMiniSection
-          title="Set Settings"
-          sectionKey="set_step_settings"
-          openSectionKey={openInfoMiniSectionKey}
-          onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-        >
-          <ProgressionInfoRows
-            rows={[
-              { label: "Purpose", value: "Controls within-session set order, grouping, set count span, and direction for the active set measurements." },
-              { label: "Order", value: activeSetMeasurementOrderLabel },
-              { label: "Active measurements", value: formatActiveMeasurementList(renderedSetFlowMeasurements as ProgressionMeasurementKey[]) },
-              {
-                label: "Current flow",
-                value: isCustomSetFlow
-                  ? "Custom order and grouping per measurement: each active metric can move independently or share grouped set behavior."
-                  : `${selectedSetFlowInfo.label}: ${selectedSetFlowInfo.shortExplanation}`,
-              },
-              { label: "Step", value: activeSetStepSummary },
-              { label: "Quick Log", value: "Quick Log uses these settings to suggest the next set target inside the current set sequence." },
-              { label: "Grouped sets", value: "Active AND groups share one set count and one direction until the set flow advances." },
-              { label: "Empty inputs", value: "Blank measurements stay straight and are omitted from active grouped set behavior." },
-              { label: SET_FLOW_DEFINITIONS.straight_sets.label, value: `${SET_FLOW_DEFINITIONS.straight_sets.shortExplanation} Best when every work set should hold the same active target.` },
-              { label: SET_FLOW_DEFINITIONS.ascending_ramp.label, value: `${SET_FLOW_DEFINITIONS.ascending_ramp.shortExplanation} Set Settings define the per-set measurement movement and count span.` },
-              { label: SET_FLOW_DEFINITIONS.descending_backoff.label, value: `${SET_FLOW_DEFINITIONS.descending_backoff.shortExplanation} Useful when the first set is heaviest and later sets back off across the active measurements.` },
-              { label: "Scope", value: "Set Settings affect the within-session example and session suggestions. They do not change post-session qualification or target updates." },
-            ]}
-          />
-        </ProgressionInfoMiniSection>
-
-        {selectedPlaybookId ? (
+        {shouldRenderRegressionInfoSection ? (
           <ProgressionInfoMiniSection
             title={(
               <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 text-center">
@@ -5585,6 +5608,76 @@ export function ProgressionPlaybookEditor({
                 { label: "Use it for", value: selectedStallPolicyInfo.useItFor },
                 { label: "When it runs", value: "Only after repeated misses against the current target. Deleted evidence recomputes status but does not silently rewrite goals." },
                 { label: "Review", value: "A regression candidate is still an explicit update; it is not auto-applied from the settings screen." },
+              ]}
+            />
+          </ProgressionInfoMiniSection>
+        ) : null}
+
+        {shouldRenderSessionInfoSection ? (
+          <ProgressionInfoMiniSection
+            title="Session Settings"
+            sectionKey="session_settings"
+            openSectionKey={openInfoMiniSectionKey}
+            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
+          >
+            <ProgressionInfoRows
+              rows={[
+                { label: "Purpose", value: "Controls measurement order, grouping, session count span, and direction for the measurements that can progress." },
+                { label: "Order", value: activeSessionMeasurementOrderLabel },
+                { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
+                { label: "Grouped sessions", value: "Active AND groups share one session count and one direction until the session flow advances." },
+                { label: "Empty inputs", value: "Blank measurements stay straight, do not show active direction behavior, and are omitted from active grouped session behavior." },
+                { label: "Cycle effect", value: "Session Settings drive how progression advances across the routine cycle and how the progression example sequences its session steps." },
+                { label: "Scope", value: "Session Settings affect progression order and qualification flow. They do not change within-session set sequencing." },
+              ]}
+            />
+          </ProgressionInfoMiniSection>
+        ) : null}
+
+        {shouldRenderDayAdjustmentInfoSection ? (
+          <ProgressionInfoMiniSection
+            title="Day Adjustment Settings"
+            sectionKey="day_settings"
+            openSectionKey={openInfoMiniSectionKey}
+            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
+          >
+            <ProgressionInfoRows
+              rows={[
+                { label: "Purpose", value: "Controls how the effective target adjusts for a cycle day before Session Settings and Set Settings continue the workout flow." },
+                { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
+                { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
+                { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
+              ]}
+            />
+          </ProgressionInfoMiniSection>
+        ) : null}
+
+        {shouldRenderSetSettingsInfoSection ? (
+          <ProgressionInfoMiniSection
+            title="Set Settings"
+            sectionKey="set_step_settings"
+            openSectionKey={openInfoMiniSectionKey}
+            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
+          >
+            <ProgressionInfoRows
+              rows={[
+                { label: "Purpose", value: "Controls within-session set order, grouping, set count span, and direction for the active set measurements." },
+                { label: "Order", value: activeSetMeasurementOrderLabel },
+                { label: "Active measurements", value: formatActiveMeasurementList(renderedSetFlowMeasurements as ProgressionMeasurementKey[]) },
+                {
+                  label: "Current flow",
+                  value: isCustomSetFlow
+                    ? "Custom order and grouping per measurement: each active metric can move independently or share grouped set behavior."
+                    : `${selectedSetFlowInfo.label}: ${selectedSetFlowInfo.shortExplanation}`,
+                },
+                { label: "Step", value: activeSetStepSummary },
+                { label: "Quick Log", value: "Quick Log uses these settings to suggest the next set target inside the current set sequence." },
+                { label: "Grouped sets", value: "Active AND groups share one set count and one direction until the set flow advances." },
+                { label: "Empty inputs", value: "Blank measurements stay straight and are omitted from active grouped set behavior." },
+                { label: SET_FLOW_DEFINITIONS.straight_sets.label, value: `${SET_FLOW_DEFINITIONS.straight_sets.shortExplanation} Best when every work set should hold the same active target.` },
+                { label: SET_FLOW_DEFINITIONS.ascending_ramp.label, value: `${SET_FLOW_DEFINITIONS.ascending_ramp.shortExplanation} Set Settings define the per-set measurement movement and count span.` },
+                { label: SET_FLOW_DEFINITIONS.descending_backoff.label, value: `${SET_FLOW_DEFINITIONS.descending_backoff.shortExplanation} Useful when the first set is heaviest and later sets back off across the active measurements.` },
+                { label: "Scope", value: "Set Settings affect the within-session example and session suggestions. They do not change post-session qualification or target updates." },
               ]}
             />
           </ProgressionInfoMiniSection>
@@ -5700,7 +5793,7 @@ export function ProgressionPlaybookEditor({
           </div>
         ) : null}
 
-        {renderRegressionAsSection && shouldRenderRegressionControls ? (
+        {resolvedRenderRegressionAsSection && shouldRenderRegressionControls ? (
           <ProgressionInfoMiniSection title="Regression Settings">
             <div className="space-y-3" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
               <div className="flex justify-center">
@@ -5728,7 +5821,7 @@ export function ProgressionPlaybookEditor({
           </ProgressionInfoMiniSection>
         ) : null}
 
-        {!hideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
+        {!resolvedHideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
           <ProgressionInfoMiniSection title="Day Adjustment Settings">
             <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
               <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
@@ -5738,7 +5831,7 @@ export function ProgressionPlaybookEditor({
           </ProgressionInfoMiniSection>
         ) : null}
 
-        {!hideSessionSettingsSection && shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0) ? (
+        {!resolvedHideSessionSettingsSection && shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0) ? (
           <ProgressionInfoMiniSection title="Session Settings">
             {isRoutineDefaultContext ? (
               <div className="space-y-3.5" {...getInfoSectionHandlers("session_settings")}>
@@ -5798,7 +5891,7 @@ export function ProgressionPlaybookEditor({
                       onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
                       onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
                       infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks))}
-                      showCountInput={!(context === "exercise" && hideExerciseSessionSuccessCount)}
+                      showCountInput={!(context === "exercise" && resolvedHideExerciseSessionSuccessCount)}
                     />
                   </div>
                 ) : null}
@@ -6328,7 +6421,7 @@ export function ProgressionPlaybookEditor({
           currentSectionSummary={activeInfoContent.summary}
           hasSelection={hasInfoSelection}
           reserveLayoutSpace={separateInfoReserveLayoutSpace}
-          dockPlacement={infoDockPlacement}
+          dockPlacement={resolvedInfoDockPlacement}
         >
           {progressionInfoBox}
         </ProgressionInfoAccordion>

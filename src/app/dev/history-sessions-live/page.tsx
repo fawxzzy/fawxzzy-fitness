@@ -88,6 +88,7 @@ export default async function DevHistorySessionsLivePage({
         <ContentRail className="pt-5">
           <HistorySessionsClient
             sessions={data.sessionItems}
+            thirtyDaySummary={data.thirtyDaySummary}
             weeklyProgress={data.weeklyProgress}
             weeklyProgressByWeek={data.weeklyProgressByWeek}
             initialViewMode={initialViewMode}
@@ -110,6 +111,7 @@ export default async function DevHistorySessionsLivePage({
     >
       <HistorySessionsClient
         sessions={data.sessionItems}
+        thirtyDaySummary={data.thirtyDaySummary}
         weeklyProgress={data.weeklyProgress}
         weeklyProgressByWeek={data.weeklyProgressByWeek}
         initialViewMode={initialViewMode}

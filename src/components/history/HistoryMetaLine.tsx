@@ -1,14 +1,15 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
 
-export function HistoryMetaLine({ items }: { items: string[] }) {
+export function HistoryMetaLine({ items, className }: { items: string[]; className?: string }) {
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <span className="inline-flex flex-wrap items-center justify-start gap-x-2 gap-y-1 text-[12px] font-medium leading-[1.2]">
+    <span className={cn("inline-flex flex-wrap items-center justify-start gap-x-2 gap-y-1 text-[12px] font-medium leading-[1.2]", className)}>
       {items.map((item, index) => (
         <span key={`${item}-${index}`} className="inline-flex min-w-0 items-center gap-2">
           {index > 0 ? <SignatureDot /> : null}

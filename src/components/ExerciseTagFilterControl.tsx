@@ -47,6 +47,7 @@ type ExerciseTagFilterControlProps = {
   showScrollEdgeFades?: boolean;
   viewportMode?: "scroll" | "auto-height";
   horizontalRailOverrideClassName?: string;
+  compactDensity?: "default" | "tight";
 };
 
 export function ExerciseTagFilterControl({
@@ -69,6 +70,7 @@ export function ExerciseTagFilterControl({
   showScrollEdgeFades = false,
   viewportMode = "scroll",
   horizontalRailOverrideClassName,
+  compactDensity = "default",
 }: ExerciseTagFilterControlProps) {
   const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(defaultOpen);
   const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
@@ -120,10 +122,71 @@ export function ExerciseTagFilterControl({
   }, [groups, selectedGroupKeys.length]);
 
   const compact = variant === "compact";
+  const useTightCompactDensity = compact && compactDensity === "tight";
   const useStackedTagLayout = tagLayout === "stacked";
   const horizontalRailClassName = compact
     ? "hide-scrollbar -mx-1 max-w-none overflow-x-auto overflow-y-visible px-1 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
     : "hide-scrollbar -mx-0.5 max-w-full overflow-x-auto overflow-y-visible px-0.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
+  const compactSectionStackClassName = useTightCompactDensity ? "space-y-1" : "space-y-1.5";
+  const compactHeaderWrapClassName = useTightCompactDensity
+    ? "w-fit max-w-full space-y-[2px] pl-[4px] pt-[2px]"
+    : "w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]";
+  const compactRailTopPaddingClassName = useTightCompactDensity ? "pt-0" : "pt-0.5";
+  const groupBySectionNode = groupByOptions.length > 1 ? (
+    <div className={compactSectionStackClassName}>
+      <div className={compactHeaderWrapClassName}>
+        <p
+          className={cn(
+            compact
+              ? appTokens.exercisePickerFilterGroupLabel
+              : "text-[11px] font-medium uppercase tracking-wide",
+          )}
+        >
+          Filter Categories
+        </p>
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      </div>
+      <div className={cn(horizontalRailClassName, horizontalRailOverrideClassName)}>
+        <div className={cn(compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1")}>
+          {showGroupByClearButton ? (
+            <button
+              type="button"
+              onClick={() => setSelectedGroupKeys(clearGroupBySelection())}
+              className={cn(
+                appTokens.exercisePickerFilterClearButton,
+                "!border-[rgb(var(--accent-yellow-on)/0.58)]",
+                "shrink-0 whitespace-nowrap",
+                compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
+              )}
+            >
+              Clear
+            </button>
+          ) : null}
+          {groupByOptions.map((option) => {
+            const isSelected = selectedGroupKeys.includes(option.key);
+            return (
+              <PillButton
+                key={option.key}
+                type="button"
+                active={isSelected}
+                className={cn(
+                  "shrink-0 whitespace-nowrap",
+                  compact ? "px-2 py-1 text-[10px]" : undefined,
+                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                )}
+                onClick={() => setSelectedGroupKeys((current) => toggleGroupBySelection(current, option.key))}
+              >
+                {option.label}
+              </PillButton>
+            );
+          })}
+        </div>
+      </div>
+      <div className="px-[4px] pt-0.5">
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div className={className ?? "space-y-2"}>
@@ -171,71 +234,17 @@ export function ExerciseTagFilterControl({
             panelClassName,
           )}
         >
-          {groupByOptions.length > 1 ? (
-            <div className="space-y-1.5">
-              <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
-                <p
-                  className={cn(
-                    compact
-                      ? appTokens.exercisePickerFilterGroupLabel
-                      : "text-[11px] font-medium uppercase tracking-wide",
-                  )}
-                >
-                  Filter Categories
-                </p>
-                <MetricAccentBar variant="thin" className="w-full opacity-80" />
-              </div>
-              <div className={cn(horizontalRailClassName, horizontalRailOverrideClassName)}>
-                <div className={cn(compact ? "flex min-w-max flex-nowrap gap-1.5" : "flex min-w-max flex-nowrap gap-1")}>
-                  {showGroupByClearButton ? (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGroupKeys(clearGroupBySelection())}
-                      className={cn(
-                        appTokens.exercisePickerFilterClearButton,
-                        "!border-[rgb(var(--accent-yellow-on)/0.58)]",
-                        "shrink-0 whitespace-nowrap",
-                        compact ? "mr-2.5 px-2 py-1 text-[10px]" : "mr-2",
-                      )}
-                    >
-                      Clear
-                    </button>
-                  ) : null}
-                  {groupByOptions.map((option) => {
-                    const isSelected = selectedGroupKeys.includes(option.key);
-                    return (
-                      <PillButton
-                        key={option.key}
-                        type="button"
-                        active={isSelected}
-                        className={cn(
-                          "shrink-0 whitespace-nowrap",
-                          compact ? "px-2 py-1 text-[10px]" : undefined,
-                          isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
-                        )}
-                        onClick={() => setSelectedGroupKeys((current) => toggleGroupBySelection(current, option.key))}
-                      >
-                        {option.label}
-                      </PillButton>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="px-[4px] pt-0.5">
-                <MetricAccentBar variant="thin" className="w-full opacity-80" />
-              </div>
-            </div>
-          ) : null}
           {viewportMode === "auto-height" ? (
             <div className="space-y-2">
+              {groupBySectionNode}
               {orderedGroups.map((group) => {
                 const selectedTagsForGroup = group.tags
                   .map((tag) => tag.value)
                   .filter((tagValue) => selectedTags.includes(tagValue));
 
                 return (
-                  <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
-                    <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
+                  <div key={group.key} className={compact ? compactSectionStackClassName : "space-y-1"}>
+                    <div className={compact ? compactHeaderWrapClassName : "w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]"}>
                       <p
                         className={cn(
                           compact
@@ -252,7 +261,7 @@ export function ExerciseTagFilterControl({
                         useStackedTagLayout
                           ? "px-0.5 pb-1"
                           : cn(horizontalRailClassName, horizontalRailOverrideClassName),
-                        compact ? "pt-0.5" : undefined,
+                        compact ? compactRailTopPaddingClassName : undefined,
                       )}
                     >
                       <div
@@ -320,14 +329,15 @@ export function ExerciseTagFilterControl({
               showEdgeFades={showScrollEdgeFades}
               viewportClassName={compact ? `${FILTER_OVERLAY_VIEWPORT_CLASS_NAME} pr-0` : "max-h-[min(48vh,24rem)] space-y-2"}
             >
+              {groupBySectionNode}
               {orderedGroups.map((group) => {
                 const selectedTagsForGroup = group.tags
                   .map((tag) => tag.value)
                   .filter((tagValue) => selectedTags.includes(tagValue));
 
                 return (
-                  <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
-                    <div className="w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]">
+                  <div key={group.key} className={compact ? compactSectionStackClassName : "space-y-1"}>
+                    <div className={compact ? compactHeaderWrapClassName : "w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]"}>
                       <p
                         className={cn(
                           compact
@@ -344,7 +354,7 @@ export function ExerciseTagFilterControl({
                         useStackedTagLayout
                           ? "px-0.5 pb-1"
                           : cn(horizontalRailClassName, horizontalRailOverrideClassName),
-                        compact ? "pt-0.5" : undefined,
+                        compact ? compactRailTopPaddingClassName : undefined,
                       )}
                     >
                       <div

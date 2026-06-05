@@ -13,7 +13,7 @@ export type HistoricalSetRow = {
   duration_seconds?: number | null;
   distance?: number | null;
   calories?: number | null;
-  distance_unit?: "mi" | "km" | "m" | null;
+  distance_unit?: "mi" | "km" | "m" | "steps" | null;
   session_exercise:
     | {
         session_id: string;
@@ -46,7 +46,7 @@ export type NormalizedHistoricalSet = {
   duration_seconds: number | null;
   distance: number | null;
   calories: number | null;
-  distance_unit: "mi" | "km" | "m" | null;
+  distance_unit: "mi" | "km" | "m" | "steps" | null;
 };
 
 export type AggregatedExerciseStats = {
@@ -69,7 +69,7 @@ export type CardioSessionAggregate = {
   setIndex: number;
   durationSeconds: number;
   distance: number;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: "mi" | "km" | "m" | "steps" | null;
   calories: number;
   setCount: number;
 };
@@ -196,16 +196,19 @@ export function hasMeaningfulCardioSet(measurementType: string | null | undefine
   const normalized = String(measurementType ?? "").trim().toLowerCase();
   const duration = positive(row.duration_seconds);
   const distance = positive(row.distance);
+  const calories = positive(row.calories);
   if (normalized === "time") return duration > 0;
   if (normalized === "distance") return distance > 0;
   if (normalized === "time_distance") return duration > 0 || distance > 0;
+  if (normalized === "calories") return calories > 0 || duration > 0 || distance > 0;
   return false;
 }
 
-export function fallbackDistanceUnit(defaultUnit: string | null | undefined): "mi" | "km" | "m" | null {
+export function fallbackDistanceUnit(defaultUnit: string | null | undefined): "mi" | "km" | "m" | "steps" | null {
   if (defaultUnit === "miles") return "mi";
   if (defaultUnit === "km") return "km";
   if (defaultUnit === "meters") return "m";
+  if (defaultUnit === "steps" || defaultUnit === "step") return "steps";
   if (defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m") return defaultUnit;
   return null;
 }
@@ -233,7 +236,7 @@ export function aggregateCardioSessions(args: {
 
       const durationSeconds = meaningfulRows.reduce((sum, row) => sum + positive(row.duration_seconds), 0);
       const calories = meaningfulRows.reduce((sum, row) => sum + positive(row.calories), 0);
-      const distanceByUnit = new Map<"mi" | "km" | "m", number>();
+      const distanceByUnit = new Map<"mi" | "km" | "m" | "steps", number>();
       for (const row of meaningfulRows) {
         if (!row.distance_unit) continue;
         const distance = positive(row.distance);
@@ -241,7 +244,7 @@ export function aggregateCardioSessions(args: {
         distanceByUnit.set(row.distance_unit, (distanceByUnit.get(row.distance_unit) ?? 0) + distance);
       }
 
-      const distanceUnit = (["mi", "km", "m"].find((candidate) => distanceByUnit.has(candidate as "mi" | "km" | "m")) as "mi" | "km" | "m" | undefined)
+      const distanceUnit = (["steps", "mi", "km", "m"].find((candidate) => distanceByUnit.has(candidate as "mi" | "km" | "m" | "steps")) as "mi" | "km" | "m" | "steps" | undefined)
         ?? fallbackDistanceUnit(args.defaultUnit);
 
       return {

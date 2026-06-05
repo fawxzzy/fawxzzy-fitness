@@ -32,16 +32,9 @@ export function CurrentSessionProgressionSurface({
       collapsible={false}
       separateInfoBox
       separateInfoReserveLayoutSpace={false}
-      infoDockPlacement="above-bottom-actions"
+      dropdownPreset="current-session"
       progressionStepPolicy={progressionStepPolicy}
       visiblePromotionStepFields={visiblePromotionStepFields ?? null}
-      hideProgressionMethodControl
-      renderRegressionAsSection
-      hideDayAdjustmentSettingsSection
-      hideSessionSettingsSection
-      hideExerciseSessionSuccessCount
-      hideExerciseSetSuccessCount
-      showProgressionSettingsRow={false}
     />
   );
 }

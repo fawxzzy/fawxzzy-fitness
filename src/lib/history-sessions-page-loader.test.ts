@@ -95,6 +95,24 @@ test("history sessions loader returns session content on the happy path", async 
         is_skipped: false,
       }],
     }),
+    progression_events: async () => ({
+      data: [{
+        id: "event-1",
+        user_id: "user-1",
+        routine_id: "routine-1",
+        routine_day_exercise_id: "rde-1",
+        exercise_id: "exercise-1",
+        event_type: "promotion_applied",
+        from_target: {},
+        to_target: {},
+        method: "double_progression",
+        vector: "reps",
+        step: null,
+        reason: "",
+        source_session_id: null,
+        created_at: "2026-04-20T12:30:00.000Z",
+      }],
+    }),
     sets: async (state) => {
       if (state.inFilters.some((entry) => entry.key === "session_exercise_id")) {
         return {
@@ -131,12 +149,14 @@ test("history sessions loader returns session content on the happy path", async 
     logger: { warn() {} },
   });
 
-  assert.equal(result.subtitle, "1 logged sessions");
+  assert.equal(result.subtitle, "1 completed sessions");
   assert.equal(result.selectedSessionId, "session-1");
   assert.equal(result.sessionItems.length, 1);
   assert.equal(result.sessionItems[0]?.dayTitle, "Primer");
   assert.equal(result.sessionItems[0]?.exerciseCount, 1);
   assert.equal(result.sessionItems[0]?.setCount, 1);
+  assert.equal(result.thirtyDaySummary.completedWorkoutCount, 1);
+  assert.equal(result.thirtyDaySummary.progressionSummary.promotionCount, 1);
   assert.equal(result.weeklyProgress.completedWorkoutCount, 1);
   assert.equal(result.weeklyProgressByWeek.length, 1);
 });
@@ -153,9 +173,11 @@ test("history sessions loader renders empty history without crashing", async () 
     logger: { warn() {} },
   });
 
-  assert.equal(result.subtitle, "0 logged sessions");
+  assert.equal(result.subtitle, "0 completed sessions");
   assert.equal(result.sessionItems.length, 0);
   assert.equal(result.nextCursor, null);
+  assert.equal(result.thirtyDaySummary.completedWorkoutCount, 0);
+  assert.equal(result.thirtyDaySummary.progressionSummary.totalEventCount, 0);
   assert.equal(result.weeklyProgress.completedWorkoutCount, 0);
   assert.equal(result.weeklyProgressByWeek.length, 0);
 });
@@ -224,6 +246,7 @@ test("history sessions loader degrades when enrichment queries fail", async () =
   assert.equal(result.sessionItems[0]?.routineTitle, "Fallback Routine");
   assert.equal(result.sessionItems[0]?.dayTitle, "Day 2");
   assert.equal(result.sessionItems[0]?.exerciseCount, 0);
+  assert.equal(result.thirtyDaySummary.completedWorkoutCount, 1);
   assert.equal(result.weeklyProgress.completedWorkoutCount, 1);
   assert.equal(result.weeklyProgressByWeek.length, 1);
   assert.equal(warnings.length, 3);

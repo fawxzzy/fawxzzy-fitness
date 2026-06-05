@@ -149,6 +149,7 @@ export type SessionExerciseFocusItem = {
   image_icon_path?: string | null;
   image_howto_path?: string | null;
   slug?: string | null;
+  caloriesEstimationMethod?: string | null;
 };
 
 function resolveSessionExerciseTone(args: {
@@ -679,6 +680,15 @@ export function SessionExerciseFocus({
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
                   visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}
                   progressionSelectedMetrics={exercise.progressionSelectedMetrics ?? []}
+                  calorieEstimationExercise={{
+                    name: exercise.name,
+                    slug: exercise.slug ?? null,
+                    equipment: exercise.equipment ?? null,
+                    movementPattern: exercise.movement_pattern ?? null,
+                    measurementType: exercise.measurementType ?? null,
+                    defaultUnit: exercise.defaultUnit ?? null,
+                    caloriesEstimationMethod: exercise.caloriesEstimationMethod ?? null,
+                  }}
                   showAllMeasurementInputs={!isStretchHub}
                   showFailureToggle={!isStretchHub}
                   showProgressionControls={!isStretchHub}

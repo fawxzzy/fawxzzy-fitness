@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCard";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
@@ -8,12 +10,38 @@ import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
+const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
+
 function renderMetaBadge(value: string) {
   return (
     <SignatureMetaTag>
       {value}
     </SignatureMetaTag>
   );
+}
+
+function RotatingMetaBadge({
+  items,
+}: {
+  items: string[];
+}) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (items.length <= 1) {
+      setIndex(0);
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % items.length);
+    }, 3200);
+
+    return () => window.clearInterval(timer);
+  }, [items]);
+
+  const current = items[index] ?? items[0] ?? null;
+  return current ? renderMetaBadge(current) : null;
 }
 
 function getAutoMetricSpanClassName(totalItems: number, index: number) {
@@ -62,7 +90,7 @@ function renderMetricValuePrefix(valuePrefix: string | null | undefined) {
   }
 
   if (valuePrefix === "\u2192" || valuePrefix === "â†’") {
-    return <span aria-hidden="true" className="inline-block h-[2px] w-[10px] rounded-full bg-current" />;
+    return <span aria-hidden="true" className="inline-block h-[2px] w-[10px] rounded-full bg-[rgb(var(--accent-yellow-on))]" />;
   }
 
   return <span aria-hidden="true">{valuePrefix}</span>;
@@ -121,14 +149,49 @@ function HistoryExerciseDetailedMetricGrid({ items }: { items: MetricDatum[] }) 
   );
 }
 
+function renderDetailedBulletSection({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
+      <div className="w-full space-y-1">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+          {title}
+        </p>
+        <div className="space-y-2 pl-px">
+          {items.map((item, index) => (
+            <div key={`${title}-${item}-${index}`} className="flex min-w-0 items-start gap-2.5">
+              <div className="flex h-[1.05rem] shrink-0 items-center">
+                <SignatureDot />
+              </div>
+              <span className={cn(appTokens.workoutCardDetailCompact, "min-w-0 flex-1 leading-[1.22] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function HistoryExerciseCard({
   exercise,
   title,
   summaryLabel,
   summary,
+  comparison,
   metadata,
   badgeText,
+  badgeItems = [],
   metrics,
+  detailSections = [],
   density,
   tone,
   onPress,
@@ -143,17 +206,27 @@ export function HistoryExerciseCard({
   title: string;
   summaryLabel: string;
   summary: string;
+  comparison?: string | null;
   metadata?: ReactNode;
   badgeText?: string;
+  badgeItems?: string[];
   metrics?: MetricDatum[];
+  detailSections?: Array<{
+    title: string;
+    items: string[];
+  }>;
   density: "compact" | "detailed";
   tone: CardSemanticTone;
   onPress: () => void;
 }) {
   const hasMetrics = density === "detailed" && (metrics?.length ?? 0) > 0;
   const resolvedExercise = exercise ?? { name: title };
-  const resolvedMetaBadge = badgeText ? renderMetaBadge(badgeText) : null;
+  const resolvedBadgeItems = badgeItems.length > 0 ? badgeItems : (badgeText ? [badgeText] : []);
+  const resolvedMetaBadge = resolvedBadgeItems.length > 0 ? <RotatingMetaBadge items={resolvedBadgeItems} /> : null;
   const topAccentBar = hasMetrics ? <MetricAccentBar variant="thin" /> : null;
+  const summaryText = comparison ? `${summary} | ${comparison}` : summary;
+  const resolvedSubtitleLabel = density === "detailed" ? undefined : summaryLabel;
+  const resolvedSubtitle = density === "detailed" ? undefined : summaryText;
 
   if (density === "detailed") {
     return (
@@ -165,7 +238,8 @@ export function HistoryExerciseCard({
         <ExerciseCard
           title={title}
           titleMeta={resolvedMetaBadge}
-          subtitle={metadata}
+          subtitleLabel={resolvedSubtitleLabel}
+          subtitle={resolvedSubtitle}
           onPress={onPress}
           className={appTokens.historyExerciseCardShell}
           variant="standard"
@@ -178,14 +252,46 @@ export function HistoryExerciseCard({
           contentClassName="pl-1.5"
           titleClassName="[text-wrap:pretty]"
           titleContainerClassName="pr-[2.35rem] space-y-0.5"
-          subtitleClassName="pt-1 text-[rgb(var(--text-secondary)/0.88)]"
           headerDivider={topAccentBar}
           disablePressScale
         >
           <div className={appTokens.historyExerciseCardDetailedStack}>
+            {metadata ? (
+              <div
+                className={cn(
+                  EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME,
+                  appTokens.historyExerciseCompactMetadata,
+                )}
+                data-history-card-metadata="true"
+              >
+                {metadata}
+              </div>
+            ) : null}
             {hasMetrics ? (
               <div className="space-y-2.5 pt-1">
                 <HistoryExerciseDetailedMetricGrid items={metrics ?? []} />
+              </div>
+            ) : null}
+            {detailSections.length > 0 ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_72px] items-stretch gap-x-0 pt-0.5">
+                <div className="min-w-0 pr-2.5">
+                  {detailSections.map((section) => (
+                    <div key={section.title}>
+                      {renderDetailedBulletSection(section)}
+                    </div>
+                  ))}
+                </div>
+                <div className="pointer-events-none -mb-[var(--exercise-row-shell-padding-y-detailed)] -mr-[var(--exercise-row-shell-padding-x)] self-stretch overflow-hidden rounded-tl-[0.95rem] border-l border-t border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.94)] shadow-none">
+                  <ExerciseThumb
+                    exercise={resolvedExercise}
+                    detailed={false}
+                    layout="rail"
+                    railWidth={72}
+                    sizes="72px"
+                    intent="row-card"
+                    className="h-full w-full rounded-none"
+                  />
+                </div>
               </div>
             ) : null}
           </div>
@@ -219,6 +325,9 @@ export function HistoryExerciseCard({
         semanticTone={tone}
         contentClassName="pl-1.5"
         titleClassName="[text-wrap:pretty]"
+        subtitleLabel={resolvedSubtitleLabel}
+        subtitle={resolvedSubtitle}
+        subtitleTone="plain"
       >
         <div className={cn(appTokens.historyExerciseCardCompactStack, "gap-1.5 pl-px")}>
           {metadata ? (
@@ -232,9 +341,9 @@ export function HistoryExerciseCard({
               {metadata}
             </div>
           ) : null}
-          {badgeText ? (
+          {resolvedBadgeItems.length > 0 ? (
             <div className="pt-[1px]">
-              <SignatureMetaTag>{badgeText}</SignatureMetaTag>
+              <RotatingMetaBadge items={resolvedBadgeItems} />
             </div>
           ) : null}
         </div>

@@ -663,7 +663,8 @@ export function LogAuditClient({
       const dockHeightValue = window.getComputedStyle(node).getPropertyValue("--app-mobile-bottom-dock-height");
       const dockHeight = Number.parseFloat(dockHeightValue) || 0;
       const topOffset = node.getBoundingClientRect().top;
-      const availableHeight = Math.max(260, Math.floor(nextViewportHeight - topOffset - Math.max(dockHeight - 8, 0) - 2));
+      const dockReserve = Math.max(dockHeight - 4, 0);
+      const availableHeight = Math.max(260, Math.floor(nextViewportHeight - topOffset - dockReserve - 4));
       setExerciseViewportHeight(availableHeight);
     };
 
@@ -684,13 +685,13 @@ export function LogAuditClient({
       return;
     }
 
-    const viewport = node.querySelector(".picker-scroll-viewport");
-    if (!(viewport instanceof HTMLElement)) {
+    const scrollRegion = node.querySelector("[data-history-exercise-scroll-region='true']");
+    if (!(scrollRegion instanceof HTMLElement)) {
       return;
     }
 
     const frame = window.requestAnimationFrame(() => {
-      viewport.scrollTo({ top: 0, behavior: "instant" });
+      scrollRegion.scrollTo({ top: 0, behavior: "instant" });
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -962,7 +963,7 @@ export function LogAuditClient({
         )
         : null}
 
-      {!isEditing ? (
+      {!isEditing && expandedExercise ? (
         <HistorySessionCard
           session={focusedSessionSummary}
           viewMode="detailed"
@@ -1017,16 +1018,38 @@ export function LogAuditClient({
               viewportClassName={cn(
                 "hide-scrollbar h-full min-h-0 overscroll-contain !pr-0",
                 expandedExercise ? "px-0 pb-1" : "px-0 pb-2",
-                expandedExercise ? "overflow-hidden" : "overflow-y-scroll",
+                "overflow-hidden",
               )}
             >
-              <div className={cn(expandedExercise ? "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1" : "min-h-full space-y-[0.5rem] px-0 pb-3")}>
-                {displayExercises.length === 0 ? (
-                  <p className={appTokens.historyEmptyState}>
-                    No exercises logged for this session yet.
-                  </p>
+              <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1">
+                {!isEditing && !expandedExercise ? (
+                  <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
+                    <HistorySessionCard
+                      session={focusedSessionSummary}
+                      viewMode="detailed"
+                      rightIcon={null}
+                      className="mt-0"
+                      prExerciseNames={exerciseViewportMeta.prNames}
+                      detailedMetrics={focusedDetailedMetrics}
+                      detailedHeaderMode="hidden"
+                      showDetailedDivider={false}
+                    />
+                  </div>
                 ) : null}
-                {visibleExercises.map((exercise) => {
+                <div
+                  data-history-exercise-scroll-region="true"
+                  className={cn(
+                    "min-h-0",
+                    expandedExercise ? undefined : "overflow-y-auto overscroll-contain px-0 pb-3 pt-1",
+                  )}
+                >
+                  {!expandedExercise && displayExercises.length === 0 ? (
+                    <p className={appTokens.historyEmptyState}>
+                      No exercises logged for this session yet.
+                    </p>
+                  ) : null}
+                  <div className={cn(expandedExercise ? undefined : "space-y-[0.5rem] px-0")}>
+                  {visibleExercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const notesValue = exerciseNotes[exercise.id] ?? "";
           const setsForExercise = editableSets[exercise.id] ?? [];
@@ -1126,7 +1149,10 @@ export function LogAuditClient({
                   ) : null}
 
                   <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+                    <div
+                      data-history-exercise-scroll-region="true"
+                      className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+                    >
                       {expandedSet && isEditing ? (
                         <div className="px-0 pb-0 pt-2">
                           <ModifyMeasurements
@@ -1237,6 +1263,8 @@ export function LogAuditClient({
             </article>
           );
         })}
+                  </div>
+                </div>
               </div>
             </PickerListViewport>
           </div>

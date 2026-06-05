@@ -123,6 +123,28 @@ test("cardio planned target keeps duration and distance context", () => {
   assert.equal(hint.suggestedValues.distanceUnit, "mi");
 });
 
+test("cardio planned target keeps calorie context when present", () => {
+  const hint = deriveSessionTargetHint({
+    measurementType: "time_distance",
+    fallbackWeightUnit: "lbs",
+    stats: null,
+    plan: {
+      measurementType: "time_distance",
+      durationSeconds: 900,
+      distance: 2,
+      distanceUnit: "mi",
+      calories: 129,
+    },
+  });
+
+  assert.equal(hint.source, "manual_target");
+  assert.equal(hint.shortLabel, "15:00 s | 2 mi | 129 cal");
+  assert.equal(hint.suggestedValues.durationSeconds, 900);
+  assert.equal(hint.suggestedValues.distance, 2);
+  assert.equal(hint.suggestedValues.distanceUnit, "mi");
+  assert.equal(hint.suggestedValues.calories, 129);
+});
+
 test("no history and no plan returns explicit fallback", () => {
   const hint = deriveSessionTargetHint({
     measurementType: "none",

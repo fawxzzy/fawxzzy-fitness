@@ -87,6 +87,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="history">
       <ScrollScreenWithBottomActions
+        className={props.mode === "detail" ? "!overflow-y-hidden" : undefined}
         topChrome={showTopChrome ? <AppNav mode="topChrome" /> : undefined}
         floatingHeader={floatingHeader}
       >
@@ -99,7 +100,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
           {props.mode === "detail" ? (
             <ScreenScaffold
               recipe="historyDetail"
-              className={cn(appTokens.historyDetailScreen, props.contentClassName)}
+              className={cn("flex min-h-0 flex-1 flex-col", appTokens.historyDetailScreen, props.contentClassName)}
             >
               {props.children}
             </ScreenScaffold>

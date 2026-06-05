@@ -11,9 +11,15 @@ import {
   buildStrengthDeltaFromBest as buildStrengthDeltaFromBestShared,
   formatSignedDelta as formatSignedDeltaShared,
 } from "@/lib/exercise-analytics";
+import {
+  mapExerciseAnalyticsFamilyToPresentationKind,
+  resolveExerciseAnalyticsFamily,
+  type ExerciseAnalyticsFamily,
+} from "@/lib/exercise-analytics-family";
 import { listExercises, listExercisesForUser } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
-import { formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
+import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
+import { isStepDistanceUnit } from "@/lib/fitness-distance-units";
 import { chooseCardioBestMetric, getDisplayPace, isCardioMeasurementType, resolveEffectiveKind, shouldShowCardioBest } from "@/lib/cardio-best";
 import { aggregateCardioSessions, groupNormalizedSetsByExercise, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
 import { formatWeight } from "@/lib/formatting";
@@ -56,6 +62,8 @@ export type ExerciseBrowserRow = {
   image_icon_path: string | null;
   image_howto_path: string | null;
   how_to_short: string | null;
+  measurement_type?: string | null;
+  default_unit?: string | null;
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
@@ -80,8 +88,13 @@ export type ExerciseBrowserRow = {
   sessionsLast30Days?: number;
   activityRank?: number | null;
   detailedMetrics?: MetricDatum[];
+  detailSections?: Array<{
+    title: string;
+    items: string[];
+  }>;
   deltaFromBest: string | null;
   tagsSummary: string | null;
+  analyticsFamily?: ExerciseAnalyticsFamily;
 };
 
 function formatCompact(value: number) {
@@ -101,12 +114,46 @@ function formatStrengthSummary(weight: number | null, reps: number | null, unit:
   return null;
 }
 
-function formatCardioSummary(args: { durationSeconds?: number | null; distance?: number | null; paceSecondsPerUnit?: number | null; distanceUnit?: string | null }) {
-  const parts = [
-    formatDurationShort(args.durationSeconds),
-    formatDistance(args.distance, args.distanceUnit),
-    formatPace(args.paceSecondsPerUnit, args.distanceUnit),
-  ].filter((value): value is string => Boolean(value));
+function resolveStrengthPresentationKind(args: {
+  last_weight?: number | null;
+  actual_pr_weight?: number | null;
+  last_reps?: number | null;
+  actual_pr_reps?: number | null;
+}) {
+  const hasWeightedSignal = positive(args.last_weight) > 0 || positive(args.actual_pr_weight) > 0;
+  const hasRepSignal = positive(args.last_reps) > 0 || positive(args.actual_pr_reps) > 0;
+
+  if (!hasWeightedSignal && hasRepSignal) {
+    return "bodyweight" as const;
+  }
+
+  return "strength" as const;
+}
+
+function formatCardioSummary(args: {
+  family?: ExerciseAnalyticsFamily | null;
+  durationSeconds?: number | null;
+  distance?: number | null;
+  calories?: number | null;
+  paceSecondsPerUnit?: number | null;
+  distanceUnit?: string | null;
+}) {
+  const family = args.family ?? null;
+  const durationLabel = formatDurationShort(args.durationSeconds);
+  const distanceLabel = formatDistance(args.distance, args.distanceUnit);
+  const paceLabel = formatPace(args.paceSecondsPerUnit, args.distanceUnit);
+  const caloriesLabel = formatCalories(args.calories);
+  const parts = (
+    family === "timed-hold"
+      ? [durationLabel]
+      : family === "cardio-calories"
+        ? [caloriesLabel, durationLabel, distanceLabel, paceLabel]
+        : family === "cardio-distance"
+          ? [distanceLabel, paceLabel, durationLabel, caloriesLabel]
+          : family === "cardio-steps"
+            ? [durationLabel, distanceLabel, caloriesLabel]
+            : [durationLabel, distanceLabel, paceLabel, caloriesLabel]
+  ).filter((value): value is string => Boolean(value));
   return parts.length ? parts.join(" | ") : null;
 }
 
@@ -161,7 +208,7 @@ type CardioSessionSummary = {
   performedAt: string;
   durationSeconds: number;
   distance: number;
-  distanceUnit: "mi" | "km" | "m" | null;
+  distanceUnit: "mi" | "km" | "m" | "steps" | null;
   calories: number;
   setCount: number;
 };
@@ -217,7 +264,7 @@ function buildStrengthSessionSummaries(rows: Array<{
     .sort((left, right) => right.performedAt.localeCompare(left.performedAt));
 }
 
-function buildStrengthRepTrendMetric(latest: StrengthSessionSummary | null, previous: StrengthSessionSummary | null): MetricDatum | null {
+function buildStrengthProgressMetric(latest: StrengthSessionSummary | null, previous: StrengthSessionSummary | null): MetricDatum | null {
   const latestWeightedReps = positive(latest?.weight) > 0 ? positive(latest?.reps) : 0;
   const previousWeightedReps = positive(previous?.weight) > 0 ? positive(previous?.reps) : 0;
   const latestBodyweightReps = positive(latest?.weight) === 0 ? positive(latest?.bodyweightReps) : 0;
@@ -231,81 +278,11 @@ function buildStrengthRepTrendMetric(latest: StrengthSessionSummary | null, prev
 
   const delta = latestReps - previousReps;
   return {
-    label: "REPS",
-    value: `${Math.abs(delta)}`,
+    label: "Vs Previous",
+    value: delta === 0 ? "Matched" : `${Math.abs(delta)} reps`,
     valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
     valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
   };
-}
-
-function buildStrengthWeightTrendMetric(latest: StrengthSessionSummary | null, previous: StrengthSessionSummary | null): MetricDatum | null {
-  const latestWeight = positive(latest?.weight);
-  const previousWeight = positive(previous?.weight);
-  const unit = latest?.unit ?? previous?.unit ?? null;
-
-  if (latestWeight <= 0 || previousWeight <= 0) {
-    return null;
-  }
-
-  if (latestWeight === previousWeight) {
-    return {
-      label: "Weight",
-      value: unit === "kg" ? "0 kg" : unit === "lb" || unit === "lbs" ? "0 lbs" : "0",
-      valuePrefix: "\u2192",
-      valueTone: "muted",
-    };
-  }
-
-  const delta = latestWeight - previousWeight;
-  return {
-    label: "Weight",
-    value: formatWeight(Math.abs(delta), unit) ?? `${Math.round(Math.abs(delta))}`,
-    valuePrefix: delta > 0 ? "\u2191" : "\u2193",
-    valueTone: delta > 0 ? "success" : "danger",
-  };
-}
-
-function buildCardioProgressMetric(
-  latest: CardioSessionSummary | null,
-  previous: CardioSessionSummary | null,
-  measurementType: string | null,
-): MetricDatum | null {
-  if (!latest || !previous) {
-    return null;
-  }
-
-  const primaryMetric = resolveCardioPrimaryMetric(measurementType);
-  if (primaryMetric === "distance" && positive(latest.distance) > 0 && positive(previous.distance) > 0) {
-    const delta = latest.distance - previous.distance;
-    return {
-      label: "Vs Previous",
-      value: formatDistance(Math.abs(delta), latest.distanceUnit ?? previous.distanceUnit) ?? `${Math.abs(delta)}`,
-      valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
-      valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
-    };
-  }
-
-  if (primaryMetric === "duration" && positive(latest.durationSeconds) > 0 && positive(previous.durationSeconds) > 0) {
-    const delta = latest.durationSeconds - previous.durationSeconds;
-    return {
-      label: "Vs Previous",
-      value: formatDurationShort(Math.abs(delta)) ?? `${Math.abs(delta)}s`,
-      valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
-      valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
-    };
-  }
-
-  if (primaryMetric === "calories" && positive(latest.calories) > 0 && positive(previous.calories) > 0) {
-    const delta = latest.calories - previous.calories;
-    return {
-      label: "Vs Previous",
-      value: `${Math.abs(Math.round(delta))} cal`,
-      valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
-      valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
-    };
-  }
-
-  return null;
 }
 
 function buildStrengthDetailedMetrics(args: {
@@ -329,7 +306,7 @@ function buildStrengthDetailedMetrics(args: {
     ? formatWeight(Math.round(positive(args.prEst1rm)), args.unit) ?? `${Math.round(positive(args.prEst1rm))}`
     : null;
   if (estimatedMax) {
-    metrics.push({ label: "Max Est.", value: estimatedMax });
+    metrics.push({ label: "Max Estimate", value: estimatedMax });
   }
 
   metrics.push(
@@ -338,18 +315,13 @@ function buildStrengthDetailedMetrics(args: {
     { label: "PRs", value: `${args.prCount}` },
   );
 
-  const repTrend = buildStrengthRepTrendMetric(args.latestSession, args.previousSession);
+  const repTrend = buildStrengthProgressMetric(args.latestSession, args.previousSession);
   if (repTrend) {
     metrics.push(repTrend);
   }
 
-  const weightTrend = buildStrengthWeightTrendMetric(args.latestSession, args.previousSession);
-  if (weightTrend) {
-    metrics.push(weightTrend);
-  }
-
   metrics.push({
-    label: "30 Days",
+    label: "Recent Activity",
     value: `${args.sessionsLast30Days} ${args.sessionsLast30Days === 1 ? "session" : "sessions"}`,
   });
 
@@ -357,44 +329,192 @@ function buildStrengthDetailedMetrics(args: {
 }
 
 function buildCardioDetailedMetrics(args: {
-  lastSummary: string | null;
-  bestSummary: string | null;
+  family: ExerciseAnalyticsFamily;
   sessionCount: number;
   setCount: number;
   sessionsLast30Days: number;
-  measurementType: string | null;
+  trackingLabel: string;
+}) {
+  const recentLabel = args.family === "timed-hold" ? "Active" : "Recent";
+  return [
+    { label: "Sessions", value: `${args.sessionCount}` },
+    { label: "Sets", value: `${args.setCount}` },
+    {
+      label: recentLabel,
+      value: `${args.sessionsLast30Days}`,
+      timeframe: "recent window",
+      valueTone: args.sessionsLast30Days > 0 ? "default" : "muted",
+    },
+    {
+      label: "Tracked",
+      value: args.trackingLabel,
+      valueTone: "muted",
+    },
+  ] satisfies MetricDatum[];
+}
+
+function buildCardioTrackingLabel(session: CardioSessionSummary | null) {
+  const hasDuration = positive(session?.durationSeconds) > 0;
+  const hasDistance = positive(session?.distance) > 0;
+  const hasCalories = positive(session?.calories) > 0;
+  const distanceLabel = isStepDistanceUnit(session?.distanceUnit) ? "Steps" : "Dist";
+
+  if (hasDuration && hasDistance && hasCalories) return `Time + ${distanceLabel} + Cal`;
+  if (hasDuration && hasDistance) return `Time + ${distanceLabel}`;
+  if (hasDuration && hasCalories) return "Time + Cal";
+  if (hasDistance && hasCalories) return `${distanceLabel} + Cal`;
+  if (hasDuration) return "Time";
+  if (hasDistance) return distanceLabel === "Steps" ? "Steps" : "Distance";
+  if (hasCalories) return "Calories";
+  return "Cardio";
+}
+
+function buildFamilyTrackingLabel(args: {
+  family: ExerciseAnalyticsFamily;
+  session: CardioSessionSummary | null;
+}) {
+  if (args.family === "timed-hold") {
+    return "Time";
+  }
+
+  return buildCardioTrackingLabel(args.session);
+}
+
+function buildCardioSessionDetailItems(session: CardioSessionSummary | null, family: ExerciseAnalyticsFamily) {
+  if (!session) return [];
+
+  const pace = getDisplayPace(session.durationSeconds, session.distance, session.distanceUnit);
+  const distanceLabel = isStepDistanceUnit(session.distanceUnit) ? "Steps" : "Distance";
+  const timeItem = positive(session.durationSeconds) > 0 ? `Time: ${formatDurationShort(session.durationSeconds)}` : null;
+  const distanceItem = positive(session.distance) > 0 ? `${distanceLabel}: ${formatDistance(session.distance, session.distanceUnit)}` : null;
+  const paceItem = pace ? `Pace: ${formatPace(pace.paceSecondsPerUnit, pace.distanceUnit)}` : null;
+  const caloriesItem = positive(session.calories) > 0 ? `Calories: ${formatCalories(session.calories)}` : null;
+  return (
+    family === "timed-hold"
+      ? [timeItem]
+      : family === "cardio-calories"
+        ? [caloriesItem, timeItem, distanceItem, paceItem]
+        : family === "cardio-distance"
+          ? [distanceItem, paceItem, timeItem, caloriesItem]
+          : family === "cardio-steps"
+            ? [timeItem, distanceItem, caloriesItem]
+            : [timeItem, distanceItem, paceItem, caloriesItem]
+  ).filter((value): value is string => Boolean(value));
+}
+
+function buildCardioProgressDetailItems(args: {
+  family: ExerciseAnalyticsFamily;
+  latest: CardioSessionSummary | null;
+  previous: CardioSessionSummary | null;
+  deltaFromBest: string | null;
+}) {
+  const items: string[] = [];
+
+  if (args.deltaFromBest) {
+    items.push(args.deltaFromBest);
+  }
+
+  if (args.latest && args.previous) {
+    const distanceLabel = isStepDistanceUnit(args.latest.distanceUnit ?? args.previous.distanceUnit) ? "Steps" : "Distance";
+    const durationDelta = positive(args.latest.durationSeconds) > 0 && positive(args.previous.durationSeconds) > 0
+      ? args.latest.durationSeconds - args.previous.durationSeconds
+      : null;
+    const distanceDelta = positive(args.latest.distance) > 0 && positive(args.previous.distance) > 0
+      ? args.latest.distance - args.previous.distance
+      : null;
+    const caloriesDelta = positive(args.latest.calories) > 0 && positive(args.previous.calories) > 0
+      ? args.latest.calories - args.previous.calories
+      : null;
+
+    const currentPace = getDisplayPace(args.latest.durationSeconds, args.latest.distance, args.latest.distanceUnit);
+    const previousPace = getDisplayPace(args.previous.durationSeconds, args.previous.distance, args.previous.distanceUnit);
+    if (currentPace && previousPace && args.family !== "cardio-steps" && args.family !== "cardio-calories") {
+      const currentText = formatPace(currentPace.paceSecondsPerUnit, currentPace.distanceUnit);
+      const previousText = formatPace(previousPace.paceSecondsPerUnit, previousPace.distanceUnit);
+      if (currentText && previousText) {
+        items.push(currentText === previousText ? `Pace: Matched previous (${currentText})` : `Pace: ${currentText} vs ${previousText}`);
+      }
+    }
+
+    if (distanceDelta !== null) {
+      const distanceText = formatDistance(Math.abs(distanceDelta), args.latest.distanceUnit ?? args.previous.distanceUnit);
+      if (distanceText) {
+        items.push(distanceDelta === 0 ? `${distanceLabel}: Matched previous` : `${distanceLabel}: ${distanceDelta > 0 ? "+" : "-"}${distanceText} vs previous`);
+      }
+    }
+
+    if (durationDelta !== null) {
+      const durationText = formatDurationShort(Math.abs(durationDelta));
+      if (durationText) {
+        items.push(durationDelta === 0 ? "Time: Matched previous" : `Time: ${durationDelta > 0 ? "+" : "-"}${durationText} vs previous`);
+      }
+    }
+
+    if (caloriesDelta !== null) {
+      const caloriesText = formatCalories(Math.abs(caloriesDelta));
+      if (caloriesText) {
+        items.push(caloriesDelta === 0 ? "Calories: Matched previous" : `Calories: ${caloriesDelta > 0 ? "+" : "-"}${caloriesText} vs previous`);
+      }
+    }
+  }
+
+  const uniqueItems = Array.from(new Set(items));
+  const orderedItems = args.family === "cardio-calories"
+    ? [
+        ...uniqueItems.filter((item) => item.startsWith("Calories:")),
+        ...uniqueItems.filter((item) => item.startsWith("Time:")),
+        ...uniqueItems.filter((item) => item.startsWith("Distance:") || item.startsWith("Steps:")),
+        ...uniqueItems.filter((item) => !item.startsWith("Calories:") && !item.startsWith("Time:") && !item.startsWith("Distance:") && !item.startsWith("Steps:")),
+      ]
+    : args.family === "cardio-distance"
+      ? [
+          ...uniqueItems.filter((item) => item.startsWith("Distance:")),
+          ...uniqueItems.filter((item) => item.startsWith("Pace:")),
+          ...uniqueItems.filter((item) => item.startsWith("Time:")),
+          ...uniqueItems.filter((item) => !item.startsWith("Distance:") && !item.startsWith("Pace:") && !item.startsWith("Time:")),
+        ]
+      : args.family === "cardio-steps"
+        ? [
+            ...uniqueItems.filter((item) => item.startsWith("Steps:")),
+            ...uniqueItems.filter((item) => item.startsWith("Time:")),
+            ...uniqueItems.filter((item) => item.startsWith("Calories:")),
+            ...uniqueItems.filter((item) => !item.startsWith("Steps:") && !item.startsWith("Time:") && !item.startsWith("Calories:")),
+          ]
+        : uniqueItems;
+
+  return orderedItems.slice(0, 4);
+}
+
+function buildCardioDetailSections(args: {
+  family: ExerciseAnalyticsFamily;
   latestSession: CardioSessionSummary | null;
   previousSession: CardioSessionSummary | null;
   bestSession: CardioSessionSummary | null;
+  deltaFromBest: string | null;
 }) {
-  const metrics: MetricDatum[] = [
-    { label: "Last", value: args.lastSummary ?? "Not yet" },
-    { label: "Best", value: args.bestSummary?.replace(/^Best\s*\|\s*/i, "") ?? "Not yet" },
-    { label: "Sessions", value: `${args.sessionCount}` },
-    { label: "Sets", value: `${args.setCount}` },
-  ];
-
-  const bestPace = args.bestSession
-    ? formatPace(
-        getDisplayPace(args.bestSession.durationSeconds, args.bestSession.distance, args.bestSession.distanceUnit)?.paceSecondsPerUnit,
-        args.bestSession.distanceUnit,
-      )
-    : null;
-  if (bestPace) {
-    metrics.push({ label: "Best Pace", value: bestPace });
-  }
-
-  const trendMetric = buildCardioProgressMetric(args.latestSession, args.previousSession, args.measurementType);
-  if (trendMetric) {
-    metrics.push(trendMetric);
-  }
-
-  metrics.push({
-    label: "30 Days",
-    value: `${args.sessionsLast30Days} ${args.sessionsLast30Days === 1 ? "session" : "sessions"}`,
+  const lastItems = buildCardioSessionDetailItems(args.latestSession, args.family);
+  const bestItems = buildCardioSessionDetailItems(args.bestSession, args.family);
+  const progressItems = buildCardioProgressDetailItems({
+    family: args.family,
+    latest: args.latestSession,
+    previous: args.previousSession,
+    deltaFromBest: args.deltaFromBest,
   });
 
-  return metrics;
+  return [
+    {
+      title: "Last",
+      items: lastItems.length > 0 ? lastItems : [args.family === "timed-hold" ? "No timed effort logged yet." : "No cardio effort logged yet."],
+    },
+    {
+      title: "Best",
+      items: bestItems.length > 0 ? bestItems : [args.family === "timed-hold" ? "No best hold recorded yet." : "No best cardio effort recorded yet."],
+    },
+    {
+      title: "Progress",
+      items: progressItems.length > 0 ? progressItems : [args.family === "timed-hold" ? "No timed trend signal yet." : "No cardio trend signal yet."],
+    },
+  ];
 }
 
 function applyHistoryExerciseActivityRanks(rows: ExerciseBrowserRow[]) {
@@ -598,8 +718,12 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
         || sessionAggregates.some((row) => positive(row.durationSeconds) > 0);
       const hasDistanceSignal = positive(bestCardioSession?.distance) > 0
         || sessionAggregates.some((row) => positive(row.distance) > 0);
-      const kind = resolveEffectiveKind(exercise.measurement_type, hasDurationSignal, hasDistanceSignal);
-
+      const kind = resolveEffectiveKind(
+        exercise.measurement_type,
+        hasDurationSignal,
+        hasDistanceSignal,
+        sessionAggregates.some((row) => positive(row.calories) > 0),
+      );
       if (process.env.NODE_ENV === "development"
         && isCardioMeasurementType(exercise.measurement_type)
         && kind === "strength") {
@@ -634,19 +758,43 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
         .sort((left, right) => right.performedAt.localeCompare(left.performedAt));
       const latestCardioTrendSession = cardioSessions[0] ?? null;
       const previousCardioTrendSession = cardioSessions[1] ?? null;
+      const strengthPresentationKind = resolveStrengthPresentationKind({
+        last_weight: stats?.last_weight ?? null,
+        actual_pr_weight: stats?.actual_pr_weight ?? null,
+        last_reps: stats?.last_reps ?? null,
+        actual_pr_reps: stats?.actual_pr_reps ?? null,
+      });
+      const basePresentationKind = kind === "cardio"
+        ? (exercise.measurement_type === "time" || exercise.measurement_type === "duration" ? "timed" : "cardio")
+        : strengthPresentationKind;
+      const analyticsFamily = resolveExerciseAnalyticsFamily({
+        presentationKind: basePresentationKind,
+        measurement_type: exercise.measurement_type,
+        defaultUnit: exercise.default_unit,
+        distanceUnit: latestCardioTrendSession?.distanceUnit ?? bestCardioSession?.distanceUnit ?? null,
+        equipment: exercise.equipment,
+        movement_pattern: exercise.movement_pattern,
+        primary_muscle: exercise.primary_muscle,
+      });
+      const presentationKind = mapExerciseAnalyticsFamilyToPresentationKind(analyticsFamily);
 
-      const lastSummary = kind === "strength"
+      const lastSummary = presentationKind !== "cardio"
         ? (!hasWeightedBest && bodyweightPr > 0
           ? (lastBodyweightReps > 0 ? `${formatCompact(lastBodyweightReps)} reps` : null)
           : formatStrengthSummary(stats?.last_weight ?? null, stats?.last_reps ?? null, stats?.last_unit ?? null))
         : formatCardioSummary({
+          family: analyticsFamily,
           durationSeconds: latestCardioSession?.durationSeconds ?? null,
           distance: latestCardioSession?.distance ?? null,
+          calories: latestCardioSession?.calories ?? null,
           paceSecondsPerUnit: latestCardioSession
             ? getDisplayPace(latestCardioSession.durationSeconds, latestCardioSession.distance, latestCardioSession.distanceUnit)?.paceSecondsPerUnit
             : null,
           distanceUnit: latestCardioSession
-            ? getDisplayPace(latestCardioSession.durationSeconds, latestCardioSession.distance, latestCardioSession.distanceUnit)?.distanceUnit
+            ? (
+                getDisplayPace(latestCardioSession.durationSeconds, latestCardioSession.distance, latestCardioSession.distanceUnit)?.distanceUnit
+                ?? latestCardioSession.distanceUnit
+              )
             : null,
         });
 
@@ -656,11 +804,17 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
         distanceUnit: bestCardioSession?.distanceUnit ?? null,
       });
 
-      const bestSummary = kind === "strength"
+      const bestSummary = presentationKind !== "cardio"
         ? (!hasWeightedBest && bodyweightPr > 0
           ? `${formatCompact(bodyweightPr)} reps`
           : formatStrengthSummary(stats?.actual_pr_weight ?? null, stats?.actual_pr_reps ?? null, stats?.last_unit ?? null))
         : (() => {
+            if (analyticsFamily === "cardio-calories") {
+              return positive(bestCardioSession?.calories) > 0
+                ? `Best | ${formatCalories(bestCardioSession?.calories) ?? `${Math.round(positive(bestCardioSession?.calories))} cal`}`
+                : null;
+            }
+
             if (!shouldShowCardioBest({
               measurementType: exercise.measurement_type,
               bestDurationSeconds: bestCardioSession?.durationSeconds ?? null,
@@ -672,7 +826,7 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
             return selectedCardioBest ? `Best | ${selectedCardioBest.value}` : null;
           })();
 
-      const deltaFromBest = kind === "strength"
+      const deltaFromBest = presentationKind !== "cardio"
         ? buildStrengthDeltaFromBest({
             bestWeight: positive(stats?.actual_pr_weight),
             bestRepsAtBestWeight,
@@ -687,7 +841,7 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
             best: bestCardioSession,
             measurementType: exercise.measurement_type,
           });
-      const detailedMetrics = kind === "strength"
+      const detailedMetrics = presentationKind !== "cardio"
         ? buildStrengthDetailedMetrics({
             lastSummary,
             bestSummary,
@@ -701,12 +855,15 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
             previousSession: previousStrengthSession,
           })
         : buildCardioDetailedMetrics({
-            lastSummary,
-            bestSummary,
+            family: analyticsFamily,
             sessionCount,
             setCount,
             sessionsLast30Days,
-            measurementType: exercise.measurement_type,
+            trackingLabel: buildFamilyTrackingLabel({ family: analyticsFamily, session: latestCardioTrendSession ?? bestCardioSession }),
+          });
+      const detailSections = presentationKind === "cardio"
+        ? buildCardioDetailSections({
+            family: analyticsFamily,
             latestSession: latestCardioTrendSession,
             previousSession: previousCardioTrendSession,
             bestSession: bestCardioSession
@@ -719,7 +876,9 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
                   setCount: bestCardioSession.setCount,
                 }
               : null,
-          });
+            deltaFromBest,
+          })
+        : undefined;
 
       const nextRow: ExerciseBrowserRow = {
         exerciseId,
@@ -745,6 +904,8 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
         actual_pr_weight: stats?.actual_pr_weight ?? null,
         actual_pr_reps: stats?.actual_pr_reps ?? null,
         actual_pr_at: stats?.actual_pr_at ?? null,
+        measurement_type: exercise.measurement_type,
+        default_unit: exercise.default_unit,
         kind,
         lastSummary,
         bestSummary,
@@ -754,8 +915,10 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
         setCount,
         sessionsLast30Days,
         detailedMetrics,
+        detailSections,
         deltaFromBest,
         tagsSummary: formatTagSummary(exercise),
+        analyticsFamily,
       };
 
       runDevExerciseBrowserVerification(nextRow);

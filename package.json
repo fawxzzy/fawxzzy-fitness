@@ -38,6 +38,7 @@
     "discord:feedback:archive-completed-duplicates": "node scripts/archive-duplicate-completed-feedback-threads.mjs",
     "discord:feedback:worker": "node scripts/discord-feedback-gateway-worker.mjs",
     "discord:feedback:launcher:refresh": "node --import ./scripts/register-test-aliases.mjs scripts/refresh-discord-feedback-launcher.mjs",
+    "discord:thread:patch": "node scripts/patch-discord-thread.mjs",
     "discord:bugs:export": "node scripts/export-discord-bug-reports.mjs --markdown",
     "discord:bugs:prune": "node scripts/prune-discord-bug-reports.mjs",
     "discord:update:post": "node --import ./scripts/register-test-aliases.mjs scripts/post-discord-update.mjs",

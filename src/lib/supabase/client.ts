@@ -57,6 +57,32 @@ async function syncSessionCookies(session: { access_token: string; refresh_token
   }
 }
 
+export async function clearBrowserSupabaseSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const supabase = createBrowserSupabase();
+
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Ignore local session cleanup failures and still clear server-side cookie mirrors below.
+  }
+
+  lastSyncedSessionSignature = null;
+
+  try {
+    await fetch("/auth/session-sync", {
+      method: "DELETE",
+      credentials: "same-origin",
+      keepalive: true,
+    });
+  } catch {
+    // Ignore cookie sync cleanup failures; login can still continue with a fresh server action.
+  }
+}
+
 export function createBrowserSupabase() {
   if (!browserSupabase) {
     browserSupabase = createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {

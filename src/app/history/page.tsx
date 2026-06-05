@@ -129,6 +129,7 @@ export default async function HistoryPage({
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistorySessionsClient
           sessions={state.data.sessionItems}
+          thirtyDaySummary={state.data.thirtyDaySummary}
           weeklyProgress={state.data.weeklyProgress}
           weeklyProgressByWeek={state.data.weeklyProgressByWeek}
           selectedSessionId={state.data.selectedSessionId}

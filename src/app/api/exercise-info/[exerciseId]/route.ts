@@ -96,8 +96,7 @@ export async function GET(
     const stats = await runStep("payload:stats", () => getExerciseInfoStats(
       user.id,
       exercise.exercise_id,
-      exercise.measurement_type,
-      exercise.default_unit,
+      exercise,
       requestId,
     ));
 

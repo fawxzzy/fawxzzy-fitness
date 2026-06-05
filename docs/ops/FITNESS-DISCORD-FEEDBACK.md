@@ -530,6 +530,9 @@ Starter post formatting:
 
 Do not use custom emoji in the forum thread title. Keep titles text-only and searchable.
 - Forum tags and text prefixes are the reliable visual system.
+- Forum thread titles should use ASCII-safe punctuation by default.
+- If a forum thread title intentionally needs non-ASCII punctuation, patch it through `npm run discord:thread:patch -- --thread-id <id> --title-file <utf8-file> --allow-unicode-title --apply` and verify the exact Discord readback.
+- Do not patch forum thread titles through ad hoc shell-piped payloads when punctuation matters; the governed patch path must verify the stored title after the write.
 - Custom emoji env vars are optional display config only and must never be required for feedback intake.
 - Fitness should validate custom Bug and Feature emoji against the configured application emoji set first, then the configured guild as a fallback.
 - If validation fails, the flow must fall back to text-only surfaces without blocking intake.
@@ -735,6 +738,13 @@ Sync script rules:
 - supports `--report-id <id>`
 - skips rows that do not have `discord_forum_message_id`
 - never deletes anything
+
+Direct thread patch:
+- `npm run discord:thread:patch -- --thread-id <threadId> --title "<ascii-safe title>"`
+- `npm run discord:thread:patch -- --thread-id <threadId> --message-id <messageId> --body-file <utf8-file> --apply`
+- the script is dry-run by default
+- the script blocks non-ASCII titles unless `--allow-unicode-title` is passed intentionally
+- the script always verifies exact title readback after an applied title change
 
 Resolved reaction sync:
 - `npm run feedback:sync-resolved-reactions -- --dry-run`

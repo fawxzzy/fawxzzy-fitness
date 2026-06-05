@@ -562,29 +562,6 @@ export function EditableRoutineDayExerciseList({
     return JSON.stringify(snapshotPayload);
   }, []);
 
-  const flushAutosave = useCallback(() => {
-    if (!expandedId || !activeEditFormRef.current) return;
-    if (autosaveTimeoutRef.current) {
-      clearTimeout(autosaveTimeoutRef.current);
-      autosaveTimeoutRef.current = null;
-    }
-    const formData = new FormData(activeEditFormRef.current);
-    const snapshot = createDraftSnapshot(formData);
-    const lastSavedSnapshot = lastSavedSnapshotRef.current[expandedId] ?? null;
-    if (snapshot === lastSavedSnapshot) {
-      pendingSnapshotRef.current = null;
-      return;
-    }
-    pendingSnapshotRef.current = snapshot;
-    activeEditFormRef.current.requestSubmit();
-  }, [createDraftSnapshot, expandedId]);
-
-  useEffect(() => subscribeEditDayCloseExpandedCard(() => {
-    flushAutosave();
-    setSelectedExerciseId(null);
-    setExpandedId(null);
-  }), [flushAutosave]);
-
   useEffect(() => subscribeEditDayAutoProgressionVisibility(setIsDayAdjustmentVisible), []);
   useEffect(() => subscribeEditDayAdjustmentDirection(setDayAdjustmentDirection), []);
 
@@ -622,6 +599,119 @@ export function EditableRoutineDayExerciseList({
     },
     [buildExerciseDraft],
   );
+  const parseFormOptionalNumber = useCallback((value: FormDataEntryValue | null) => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, []);
+  const submitExerciseUpdate = useCallback((
+    exercise: EditableRoutineDayExerciseItem,
+    formData: FormData,
+    snapshotOverride?: string | null,
+  ) => {
+    startAutosaveTransition(() => {
+      void (async () => {
+        const result = await updateAction(formData);
+        if (!result.ok) {
+          const nextError = result.error ?? "Could not update exercise.";
+          toast.error(nextError);
+          return;
+        }
+
+        if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
+        const snapshot = snapshotOverride ?? pendingSnapshotRef.current ?? createDraftSnapshot(formData);
+        const submittedDraft = getExerciseDraft(exercise);
+        lastSavedSnapshotRef.current[exercise.id] = snapshot;
+        pendingSnapshotRef.current = null;
+        const targetSets = Number(formData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
+        const targetRepsMin = parseFormOptionalNumber(formData.get("targetRepsMin"));
+        const targetRepsMax = parseFormOptionalNumber(formData.get("targetRepsMax"));
+        const targetWeight = parseFormOptionalNumber(formData.get("targetWeight"));
+        const targetDuration = String(formData.get("targetDuration") ?? "");
+        const targetDistance = parseFormOptionalNumber(formData.get("targetDistance"));
+        const targetCalories = parseFormOptionalNumber(formData.get("targetCalories"));
+        const targetWeightUnit = String(formData.get("targetWeightUnit") ?? weightUnit);
+        const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? exercise.defaultDistanceUnit);
+        const measurementSelections = new Set(formData.getAll("measurementSelections").map((value) => String(value)));
+        const progression = parseProgressionPlaybookPayload(formData);
+        const durationRaw = targetDuration.trim();
+        const durationSeconds = durationRaw
+          ? (durationRaw.includes(":")
+            ? Number(durationRaw.split(":")[0]) * 60 + Number(durationRaw.split(":")[1])
+            : Number(durationRaw))
+          : null;
+        const summary = formatEditDayExerciseDraftSummary(submittedDraft);
+        updateLocalItem(exercise.id, (item) => ({
+          ...item,
+          targetSummary: summary,
+          defaults: {
+            ...item.defaults,
+            targetSets: Number.isFinite(targetSets) ? targetSets : null,
+            targetReps: measurementSelections.has("reps") ? targetRepsMin : null,
+            targetRepsMin: measurementSelections.has("reps") ? targetRepsMin : null,
+            targetRepsMax: measurementSelections.has("reps") ? targetRepsMax : null,
+            targetWeight: measurementSelections.has("weight") ? targetWeight : null,
+            targetWeightUnit: measurementSelections.has("weight") ? (targetWeightUnit === "kg" ? "kg" : "lbs") : null,
+            targetDurationSeconds: measurementSelections.has("time") && Number.isFinite(durationSeconds) ? durationSeconds : null,
+            targetDistance: measurementSelections.has("distance") ? targetDistance : null,
+            targetDistanceUnit: measurementSelections.has("distance")
+              ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi")
+              : null,
+            targetCalories: measurementSelections.has("calories") ? targetCalories : null,
+            progressionPlaybookId: progression.ok ? progression.playbookId : item.defaults.progressionPlaybookId ?? null,
+            progressionPlaybookConfig: progression.ok ? progression.config : item.defaults.progressionPlaybookConfig ?? null,
+          },
+        }));
+      })();
+    });
+  }, [
+    createDraftSnapshot,
+    getExerciseDraft,
+    parseFormOptionalNumber,
+    toast,
+    updateAction,
+    weightUnit,
+  ]);
+  const flushAutosave = useCallback((options?: { defer?: boolean }) => {
+    if (!expandedId || !activeEditFormRef.current || !activeExercise) return;
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+      autosaveTimeoutRef.current = null;
+    }
+
+    const form = activeEditFormRef.current;
+    const exercise = activeExercise;
+    const submit = () => {
+      const formData = new FormData(form);
+      const snapshot = createDraftSnapshot(formData);
+      const lastSavedSnapshot = lastSavedSnapshotRef.current[exercise.id] ?? null;
+      if (snapshot === lastSavedSnapshot) {
+        pendingSnapshotRef.current = null;
+        return;
+      }
+      pendingSnapshotRef.current = snapshot;
+      submitExerciseUpdate(exercise, formData, snapshot);
+    };
+
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && form.contains(activeElement)) {
+      activeElement.blur();
+    }
+
+    if (options?.defer) {
+      window.setTimeout(submit, 0);
+      return;
+    }
+
+    submit();
+  }, [activeExercise, createDraftSnapshot, expandedId, submitExerciseUpdate]);
+
+  useEffect(() => subscribeEditDayCloseExpandedCard(() => {
+    flushAutosave({ defer: true });
+    setSelectedExerciseId(null);
+    setExpandedId(null);
+  }), [flushAutosave]);
   const visibleItems = items;
   const hasVisibleAutoProgression = useMemo(
     () => items.some((exercise) => {
@@ -821,11 +911,11 @@ export function EditableRoutineDayExerciseList({
           onSelectItem={!modeViewModel.exerciseListInteractive ? undefined : (item) => {
             setExpandedId((current) => {
               if (current === item.id) {
-                flushAutosave();
+                flushAutosave({ defer: true });
                 return null;
               }
               if (current) {
-                flushAutosave();
+                flushAutosave({ defer: true });
               }
               return item.id;
             });
@@ -922,69 +1012,7 @@ export function EditableRoutineDayExerciseList({
                     onSubmit={(event) => {
                       event.preventDefault();
                       const formData = new FormData(event.currentTarget);
-                      startAutosaveTransition(() => {
-                        void (async () => {
-                          const result = await updateAction(formData);
-                          if (!result.ok) {
-                            const nextError = result.error ?? "Could not update exercise.";
-                            toast.error(nextError);
-                            return;
-                          }
-
-                          if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
-                          if (result.ok) {
-                            const snapshot = pendingSnapshotRef.current ?? createDraftSnapshot(formData);
-                            const submittedDraft = getExerciseDraft(exercise);
-                            lastSavedSnapshotRef.current[exercise.id] = snapshot;
-                            pendingSnapshotRef.current = null;
-                            const targetSets = Number(formData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
-                            const parseFormOptionalNumber = (value: FormDataEntryValue | null) => {
-                              const raw = String(value ?? "").trim();
-                              if (!raw) return null;
-                              const parsed = Number(raw);
-                              return Number.isFinite(parsed) ? parsed : null;
-                            };
-                            const targetRepsMin = parseFormOptionalNumber(formData.get("targetRepsMin"));
-                            const targetRepsMax = parseFormOptionalNumber(formData.get("targetRepsMax"));
-                            const targetWeight = parseFormOptionalNumber(formData.get("targetWeight"));
-                            const targetDuration = String(formData.get("targetDuration") ?? "");
-                            const targetDistance = parseFormOptionalNumber(formData.get("targetDistance"));
-                            const targetCalories = parseFormOptionalNumber(formData.get("targetCalories"));
-                            const targetWeightUnit = String(formData.get("targetWeightUnit") ?? weightUnit);
-                            const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? exercise.defaultDistanceUnit);
-                            const measurementSelections = new Set(formData.getAll("measurementSelections").map((value) => String(value)));
-                            const progression = parseProgressionPlaybookPayload(formData);
-                            const durationRaw = targetDuration.trim();
-                            const durationSeconds = durationRaw
-                              ? (durationRaw.includes(":")
-                                ? Number(durationRaw.split(":")[0]) * 60 + Number(durationRaw.split(":")[1])
-                                : Number(durationRaw))
-                              : null;
-                            const summary = formatEditDayExerciseDraftSummary(submittedDraft);
-                            updateLocalItem(exercise.id, (item) => ({
-                              ...item,
-                              targetSummary: summary,
-                              defaults: {
-                                ...item.defaults,
-                                targetSets: Number.isFinite(targetSets) ? targetSets : null,
-                                targetReps: measurementSelections.has("reps") ? targetRepsMin : null,
-                                targetRepsMin: measurementSelections.has("reps") ? targetRepsMin : null,
-                                targetRepsMax: measurementSelections.has("reps") ? targetRepsMax : null,
-                                targetWeight: measurementSelections.has("weight") ? targetWeight : null,
-                                targetWeightUnit: measurementSelections.has("weight") ? (targetWeightUnit === "kg" ? "kg" : "lbs") : null,
-                                targetDurationSeconds: measurementSelections.has("time") && Number.isFinite(durationSeconds) ? durationSeconds : null,
-                                targetDistance: measurementSelections.has("distance") ? targetDistance : null,
-                                targetDistanceUnit: measurementSelections.has("distance")
-                                  ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi")
-                                  : null,
-                                targetCalories: measurementSelections.has("calories") ? targetCalories : null,
-                                progressionPlaybookId: progression.ok ? progression.playbookId : item.defaults.progressionPlaybookId ?? null,
-                                progressionPlaybookConfig: progression.ok ? progression.config : item.defaults.progressionPlaybookConfig ?? null,
-                              },
-                            }));
-                          }
-                        })();
-                      });
+                      submitExerciseUpdate(exercise, formData);
                     }}
                     className={cn(appTokens.routineEditorCompactStack, "pt-[2px]")}
                   >
@@ -1040,10 +1068,8 @@ export function EditableRoutineDayExerciseList({
                             ),
                           }));
                         }}
-                        hideExerciseSetSuccessCount
-                        hideProgressionMethodControl
-                        renderRegressionAsSection
                         reserveInfoLayoutSpace={false}
+                        dropdownPreset="exercise-inline"
                         infoDockPlacement="above-bottom-actions"
                       />
                     ) : null}

@@ -97,7 +97,12 @@ function HistoryExerciseFilters({
       className={cn(appTokens.historyExerciseFilterStack, DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME)}
       filterClassName="space-y-1.5"
       filterButtonClassName={appTokens.historyExerciseFilterButton}
-      filterPanelClassName={appTokens.historyExerciseFilterPanel}
+      filterPanelClassName={cn(
+        appTokens.historyExerciseFilterPanel,
+        "!overflow-visible !bg-[rgb(var(--surface-1-rgb))] !backdrop-blur-none",
+      )}
+      filterHorizontalRailOverrideClassName="-mx-1.5 px-1.5"
+      filterCompactDensity="tight"
       searchInputClassName={appTokens.historyExerciseSearchInput}
       clearButtonClassName={appTokens.exercisePickerSearchClearButton}
       searchPlaceholder="Search exercises"
@@ -136,9 +141,12 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       title={displayName}
       summaryLabel={viewModel.summaryLabel}
       summary={viewModel.summary}
+      comparison={viewModel.comparison}
       metadata={metadata}
       badgeText={viewModel.badgeText}
+      badgeItems={viewModel.badgeItems}
       metrics={viewModel.detailedMetrics}
+      detailSections={viewModel.detailedSections}
       density={viewMode}
       tone={viewModel.semanticTone}
       onPress={() => onOpen(row.exerciseId)}
@@ -158,7 +166,7 @@ export function ExerciseBrowserClient({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const deferredQuery = useDeferredValue(query);
-  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
+  const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
 
   const applyViewMode = (nextMode: "compact" | "detailed") => {
     setViewMode(nextMode);
@@ -337,7 +345,7 @@ export function ExerciseBrowserClient({
             )}
             primary={(
               <BottomDockLink href="/history" intent="positive">
-                Sessions
+                View History
               </BottomDockLink>
             )}
           />

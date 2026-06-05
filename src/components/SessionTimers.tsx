@@ -52,6 +52,7 @@ import {
   buildProgressionPlaybookFormSnapshot,
   type ProgressionPlaybookFormState,
 } from "@/lib/progression-playbook-form-state";
+import { estimateCaloriesFromExerciseMetrics, resolveCaloriesEstimationMethod, type CalorieEstimationExerciseInput } from "@/lib/calorie-estimation";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { type PromotionStepFieldId } from "@/lib/session-progression-display";
 import type { ActionResult } from "@/lib/action-result";
@@ -301,6 +302,7 @@ export function SetLoggerCard({
   progressionStepPolicy,
   visiblePromotionStepFields,
   progressionSelectedMetrics,
+  calorieEstimationExercise,
   showAllMeasurementInputs = false,
   showFailureToggle = false,
   showProgressionControls = true,
@@ -347,6 +349,7 @@ export function SetLoggerCard({
   progressionStepPolicy?: ProgressionStepPolicy | null;
   visiblePromotionStepFields?: PromotionStepFieldId[] | null;
   progressionSelectedMetrics?: Array<"reps" | "weight" | "time" | "distance" | "calories">;
+  calorieEstimationExercise?: CalorieEstimationExerciseInput | null;
   showAllMeasurementInputs?: boolean;
   showFailureToggle?: boolean;
   showProgressionControls?: boolean;
@@ -367,6 +370,9 @@ export function SetLoggerCard({
   const [distance, setDistance] = useState("");
   const [distanceUnit, setDistanceUnit] = useState<FitnessDistanceUnit>(normalizeFitnessDistanceUnit(defaultDistanceUnit, "mi"));
   const [calories, setCalories] = useState("");
+  const lastAutoEstimatedCaloriesRef = useRef<string | null>(null);
+  const didDismissAutoEstimatedCaloriesRef = useRef(false);
+  const lastCaloriesAutoResetKeyRef = useRef<string | null>(null);
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
@@ -448,6 +454,45 @@ export function SetLoggerCard({
     distance: showAllMeasurementInputs ? liveSetInputOrder.visibleMetrics.includes("distance") : (liveSetInputOrder.visibleMetrics.includes("distance") || draftMetricPresence.distance),
     calories: showAllMeasurementInputs ? liveSetInputOrder.visibleMetrics.includes("calories") : (liveSetInputOrder.visibleMetrics.includes("calories") || draftMetricPresence.calories),
   }), [draftMetricPresence, liveSetInputOrder.visibleMetrics, showAllMeasurementInputs]);
+  const parsedDurationSeconds = useMemo(
+    () => parseDurationInput(durationInput),
+    [durationInput],
+  );
+  const parsedDistance = useMemo(() => {
+    const trimmedDistance = distance.trim();
+    if (!trimmedDistance) {
+      return null;
+    }
+
+    const parsedValue = Number(trimmedDistance);
+    return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null;
+  }, [distance]);
+  const resolvedCaloriesEstimationMethod = useMemo(
+    () => calorieEstimationExercise ? resolveCaloriesEstimationMethod(calorieEstimationExercise) : null,
+    [calorieEstimationExercise],
+  );
+  const caloriesAutoResetKey = useMemo(
+    () => JSON.stringify({
+      sessionExerciseId,
+      method: resolvedCaloriesEstimationMethod,
+    }),
+    [resolvedCaloriesEstimationMethod, sessionExerciseId],
+  );
+  const estimatedCalories = useMemo(
+    () => estimateCaloriesFromExerciseMetrics({
+      method: resolvedCaloriesEstimationMethod,
+      durationSeconds: parsedDurationSeconds,
+      distance: parsedDistance,
+      distanceUnit,
+      context: {
+        userProfile: {
+          bodyWeightKg: null,
+          bodyWeightLbs: null,
+        },
+      },
+    }),
+    [distanceUnit, parsedDistance, parsedDurationSeconds, resolvedCaloriesEstimationMethod],
+  );
 
   useEffect(() => {
     setIsMetricsExpanded(false);
@@ -476,6 +521,42 @@ export function SetLoggerCard({
     setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = nextDisplaySets.length;
   }, [initialSets, resetLoggerMeasurementInputs, sessionExerciseId, setWarmupValue]);
+
+  useEffect(() => {
+    if (lastCaloriesAutoResetKeyRef.current === caloriesAutoResetKey) {
+      return;
+    }
+
+    lastCaloriesAutoResetKeyRef.current = caloriesAutoResetKey;
+    didDismissAutoEstimatedCaloriesRef.current = false;
+  }, [caloriesAutoResetKey]);
+
+  useEffect(() => {
+    setCalories((current) => {
+      const currentCalories = current.trim();
+      const lastAutoEstimatedCalories = lastAutoEstimatedCaloriesRef.current;
+
+      if (estimatedCalories === null) {
+        if (currentCalories.length > 0 && currentCalories === lastAutoEstimatedCalories) {
+          lastAutoEstimatedCaloriesRef.current = null;
+          return "";
+        }
+
+        lastAutoEstimatedCaloriesRef.current = null;
+        return current;
+      }
+
+      const nextCalories = String(estimatedCalories);
+      const isAutoControlled = currentCalories.length === 0 || currentCalories === lastAutoEstimatedCalories;
+
+      lastAutoEstimatedCaloriesRef.current = nextCalories;
+      if (didDismissAutoEstimatedCaloriesRef.current || !isAutoControlled || currentCalories === nextCalories) {
+        return current;
+      }
+
+      return nextCalories;
+    });
+  }, [estimatedCalories]);
 
   useEffect(() => {
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
@@ -1666,7 +1747,26 @@ export function SetLoggerCard({
             if (patch.weight !== undefined) setWeight(patch.weight);
             if (patch.duration !== undefined) setDurationInput(patch.duration);
             if (patch.distance !== undefined) setDistance(patch.distance);
-            if (patch.calories !== undefined) setCalories(patch.calories);
+            if (patch.calories !== undefined) {
+              const nextCaloriesValue = patch.calories;
+              setCalories((current) => {
+                const currentCalories = current.trim();
+                const nextCalories = nextCaloriesValue.trim();
+                const lastAutoEstimatedCalories = lastAutoEstimatedCaloriesRef.current;
+
+                if (currentCalories !== nextCalories) {
+                  if (nextCalories === "" && currentCalories === lastAutoEstimatedCalories) {
+                    didDismissAutoEstimatedCaloriesRef.current = true;
+                  } else if (nextCalories.length > 0 && nextCalories !== lastAutoEstimatedCalories) {
+                    didDismissAutoEstimatedCaloriesRef.current = true;
+                  } else if (nextCalories === lastAutoEstimatedCalories) {
+                    didDismissAutoEstimatedCaloriesRef.current = false;
+                  }
+                }
+
+                return nextCaloriesValue;
+              });
+            }
             if (patch.weightUnit !== undefined) setSelectedWeightUnit(patch.weightUnit);
             if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
           }}

@@ -65,11 +65,12 @@ export function ExerciseProgressionEditorSurface({
   trainingFocusValue = "",
   trainingFocusCustomized = false,
   onTrainingFocusChange,
-  hideExerciseSetSuccessCount = false,
+  hideExerciseSetSuccessCount,
   reserveInfoLayoutSpace = true,
-  hideProgressionMethodControl = false,
-  renderRegressionAsSection = false,
-  infoDockPlacement = "default",
+  dropdownPreset = "default",
+  hideProgressionMethodControl,
+  renderRegressionAsSection,
+  infoDockPlacement,
 }: {
   draft: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -90,6 +91,7 @@ export function ExerciseProgressionEditorSurface({
   onTrainingFocusChange?: (goal: TrainingGoalId) => void;
   hideExerciseSetSuccessCount?: boolean;
   reserveInfoLayoutSpace?: boolean;
+  dropdownPreset?: "default" | "exercise-inline";
   hideProgressionMethodControl?: boolean;
   renderRegressionAsSection?: boolean;
   infoDockPlacement?: "default" | "above-bottom-actions";
@@ -188,6 +190,7 @@ export function ExerciseProgressionEditorSurface({
       trainingFocusValue={trainingFocusValue}
       trainingFocusCustomized={trainingFocusCustomized}
       onTrainingFocusChange={onTrainingFocusChange}
+      dropdownPreset={dropdownPreset}
       hideExerciseSetSuccessCount={hideExerciseSetSuccessCount}
       failureToggleInfoContent={failureToggleInfoContent}
       hideProgressionMethodControl={hideProgressionMethodControl}

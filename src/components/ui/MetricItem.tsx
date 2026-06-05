@@ -185,7 +185,7 @@ function renderMetricValuePrefix(valuePrefix: string | null | undefined) {
     return (
       <span
         aria-hidden="true"
-        className="inline-block h-[2px] w-[10px] rounded-full bg-current"
+        className="inline-block h-[2px] w-[10px] rounded-full bg-[rgb(var(--accent-yellow-on))]"
       />
     );
   }

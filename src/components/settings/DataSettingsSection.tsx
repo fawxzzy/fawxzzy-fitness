@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { updateQaLlelVisibilityAction } from "@/app/settings/actions";
+import { cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { MetricAccentBar, MetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { useToast } from "@/components/ui/ToastProvider";
+import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { buildAccountStorageSnapshot } from "@/lib/account-storage-model";
 import { cn } from "@/lib/cn";
 import { resolveShowQaLlelDataPreference } from "@/lib/qa-data-visibility";
 import type { ProfileRow } from "@/types/db";
@@ -35,7 +39,11 @@ type ExportPreview = {
   counts: {
     sessions: number;
     completedSessions: number;
+    visibleCompletedSessions?: number;
+    hiddenQaCompletedSessions?: number;
+    visibleSessionExercises?: number;
     sessionExercises: number;
+    visibleSets?: number;
     sets: number;
     routines: number;
     routineDays: number;
@@ -102,6 +110,47 @@ export function DataSettingsSection({
   const [exportPreviewError, setExportPreviewError] = useState<string | null>(null);
   const [isLoadingExportPreview, setIsLoadingExportPreview] = useState(true);
   const toast = useToast();
+
+  const storageSnapshot = useMemo(() => (
+    exportPreview ? buildAccountStorageSnapshot(exportPreview) : null
+  ), [exportPreview]);
+
+  const storageSections = useMemo(() => (
+    storageSnapshot?.sections.map((section) => ({
+      title: section.title,
+      metrics: section.metrics.map((item) => ({
+        label: item.label,
+        value: item.value,
+      }) satisfies MetricDatum),
+    })) ?? []
+  ), [storageSnapshot]);
+  const storageNoteItems = useMemo(() => {
+    if (!exportPreview || !storageSnapshot) {
+      return [] as string[];
+    }
+
+    if (exportPreview.scope === "history") {
+      return [
+        "History counts match visible History rules, while stored totals can include hidden QA/LLEL rows and in-progress sessions.",
+        "Progression entries are stored separately and do not always map 1:1 to a visible session.",
+        `Total stored history records: ${storageSnapshot.totalRecordCount}.`,
+      ];
+    }
+
+    if (exportPreview.scope === "routines") {
+      return [
+        "Routine metrics reflect your saved routine builds only.",
+        "Templates are not included yet and will join this scope when they exist.",
+        `Total stored routine records: ${storageSnapshot.totalRecordCount}.`,
+      ];
+    }
+
+    return [
+      "This snapshot combines visible history with stored routine totals.",
+      "Stored totals can still include hidden QA/LLEL rows, in-progress sessions, and progression entries that do not map 1:1 to a visible session.",
+      `Total stored records across both lanes: ${storageSnapshot.totalRecordCount}.`,
+    ];
+  }, [exportPreview, storageSnapshot]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -249,6 +298,86 @@ export function DataSettingsSection({
       </PublishBottomActions>
 
       <div className="space-y-3 rounded-[var(--radius-lg)] border border-transparent bg-[rgb(var(--surface-1-rgb)/0.22)] p-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.03)] sm:p-5">
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--success-rgb)/0.2)] bg-transparent",
+            cardShellToneClassNames.logged,
+          )}
+        >
+          <div className="px-5 pb-2 pt-4">
+            <div className="space-y-1 text-center">
+              <p className="text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
+                Stored Snapshot
+              </p>
+              <p className="text-[0.72rem] leading-5 text-[rgb(var(--text-muted)/0.82)]">
+                {exportPreview ? `${exportPreview.scopeLabel} scope | ${storageSnapshot?.historyRangeLabel ?? exportPreview.dateRange.label}` : "Scope-aware stored snapshot"}
+              </p>
+            </div>
+            <MetricAccentBar variant="compact" className="mt-3" />
+          </div>
+
+          <div className="space-y-4 px-4 pb-4 pt-2 sm:px-5 sm:pb-5">
+            {isLoadingExportPreview ? (
+              <p className="text-center text-sm text-[rgb(var(--text-secondary)/0.88)]">Loading stored snapshot...</p>
+            ) : exportPreviewError ? (
+              <p className="text-center text-sm text-[rgb(var(--danger-text-rgb)/0.96)]">{exportPreviewError}</p>
+            ) : storageSnapshot ? (
+              <>
+                <div className="space-y-4">
+                  {storageSections.map((section, index) => (
+                    <div key={section.title} className="space-y-2">
+                      {storageSections.length > 1 ? (
+                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+                          {section.title}
+                        </p>
+                      ) : null}
+                      <MetricGrid
+                        items={section.metrics}
+                        autoColumns
+                        compact
+                        itemClassName="min-h-[3.45rem]"
+                        labelClassName="!text-[rgb(var(--accent-divider-rgb)/0.92)]"
+                        accentBarVariant="compact"
+                      />
+                      {storageSections.length > 1 && index < storageSections.length - 1 ? (
+                        <MetricAccentBar variant="thin" className="mt-1" />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+                    Scope
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
+                    <span className="inline-flex items-center gap-2">
+                      <SignatureDot />
+                      <span>Current snapshot follows the selected <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{exportPreview?.scopeLabel ?? "selected"}</span> export scope.</span>
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <SignatureDot />
+                      <span>Snapshot range: <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{storageSnapshot.historyRangeLabel}</span>.</span>
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+                    Notes
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
+                    {storageNoteItems.map((entry, index) => (
+                      <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
+                        <SignatureDot />
+                        <span>{entry}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+
         <LabeledEditorField
           label="Name"
           className="mx-auto w-full max-w-[22rem] border-[rgb(var(--border-strong)/0.18)] !bg-transparent shadow-none"
@@ -357,7 +486,7 @@ export function DataSettingsSection({
           </div>
 
           {isLoadingExportPreview ? (
-            <p className="text-center text-sm text-[rgb(var(--text-secondary)/0.88)]">Loading preview…</p>
+            <p className="text-center text-sm text-[rgb(var(--text-secondary)/0.88)]">Loading preview...</p>
           ) : exportPreviewError ? (
             <p className="text-center text-sm text-[rgb(var(--danger-text-rgb)/0.96)]">{exportPreviewError}</p>
           ) : exportPreview ? (
@@ -401,7 +530,6 @@ export function DataSettingsSection({
             </div>
           ) : null}
         </div>
-
       </div>
     </div>
   );

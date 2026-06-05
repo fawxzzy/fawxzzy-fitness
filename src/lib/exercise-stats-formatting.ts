@@ -29,8 +29,16 @@ export function formatDurationShort(seconds?: number | null): string | null {
 export function formatDistance(distance?: number | null, unit?: string | null): string | null {
   const safeDistance = positive(distance);
   if (safeDistance <= 0) return null;
-  const normalizedUnit = unit === "mi" || unit === "km" || unit === "m" ? unit : null;
-  return normalizedUnit ? `${formatNumber(safeDistance)} ${normalizedUnit}` : formatNumber(safeDistance);
+  const normalizedUnit = unit === "mi" || unit === "km" || unit === "m" || unit === "steps" ? unit : null;
+  if (!normalizedUnit) {
+    return formatNumber(safeDistance);
+  }
+
+  if (normalizedUnit === "steps") {
+    return `${Math.round(safeDistance)} steps`;
+  }
+
+  return `${formatNumber(safeDistance)} ${normalizedUnit}`;
 }
 
 export function formatPace(paceSecondsPerUnit?: number | null, unit?: string | null): string | null {

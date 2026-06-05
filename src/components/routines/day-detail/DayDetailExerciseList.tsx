@@ -57,6 +57,8 @@ export function DayDetailExerciseList({
   const renderedItems = activeItemId
     ? items.filter((item) => item.id === activeItemId)
     : items;
+  const editableOverlayActionsClassName = "right-[3.15rem]";
+  const editableChevronOverlayClassName = "right-[0.45rem]";
 
   return (
     <ul className={cn("space-y-1.5", className)}>
@@ -94,14 +96,8 @@ export function DayDetailExerciseList({
                 hideEmptySummary={isStretchHub}
                 rightIconMode="overlay"
                 overlayActions={renderOverlayActions?.(item)}
-                overlayActionsClassName="right-[2.9rem]"
-                rightRailClassName={mode === "editable"
-                  ? (
-                    isActive
-                      ? "right-[0.8rem] top-1/2 -translate-y-1/2"
-                      : "right-[0.55rem] top-1/2 -translate-y-1/2"
-                  )
-                  : undefined}
+                overlayActionsClassName={editableOverlayActionsClassName}
+                rightRailClassName={mode === "editable" ? editableChevronOverlayClassName : undefined}
                 stickyHeaderWhenExpanded={mode === "editable"}
               >
                 {renderExpandedContent?.(item)}

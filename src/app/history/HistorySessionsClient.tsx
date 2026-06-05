@@ -5,15 +5,18 @@ import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
+import { ThirtyDayHistorySurface } from "@/components/history/ThirtyDayHistorySurface";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
+import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import type { SessionSummary } from "./session-summary";
 
 function normalizeSessionTagValue(prefix: string, value: string) {
@@ -68,7 +71,12 @@ function HistorySessionFilters({
       className={cn(appTokens.historyExerciseFilterStack, DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME)}
       filterClassName="space-y-1.5"
       filterButtonClassName={appTokens.historyExerciseFilterButton}
-      filterPanelClassName={appTokens.historyExerciseFilterPanel}
+      filterPanelClassName={cn(
+        appTokens.historyExerciseFilterPanel,
+        "!overflow-visible !bg-[rgb(var(--surface-1-rgb))] !backdrop-blur-none",
+      )}
+      filterHorizontalRailOverrideClassName="-mx-1.5 px-1.5"
+      filterCompactDensity="tight"
       searchInputClassName={appTokens.historyExerciseSearchInput}
       clearButtonClassName={appTokens.exercisePickerSearchClearButton}
       searchPlaceholder="Search sessions"
@@ -84,6 +92,7 @@ function HistorySessionFilters({
 
 export function HistorySessionsClient({
   sessions,
+  thirtyDaySummary,
   weeklyProgress,
   weeklyProgressByWeek = [],
   selectedSessionId,
@@ -94,6 +103,7 @@ export function HistorySessionsClient({
   showBottomActions = true,
 }: {
   sessions: SessionSummary[];
+  thirtyDaySummary: ThirtyDayHistorySummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek?: WeeklyProgressSummary[];
   selectedSessionId?: string;
@@ -107,7 +117,7 @@ export function HistorySessionsClient({
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const deferredQuery = useDeferredValue(query);
-  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
+  const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
   const sessionTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
 
@@ -229,6 +239,7 @@ export function HistorySessionsClient({
           </div>
         </div>
       ) : null}
+      <ThirtyDayHistorySurface summary={thirtyDaySummary} viewMode={viewMode} />
       <WeeklyProgressSurface summary={weeklyProgress} viewMode={viewMode} />
       {filteredSessions.length > 0 ? (
         <ul className={cn(
@@ -253,11 +264,19 @@ export function HistorySessionsClient({
                 className={cn(startsNewWeekGroup && historicalWeeklySummary ? "space-y-2.5 pt-6" : undefined)}
               >
                 {startsNewWeekGroup && historicalWeeklySummary ? (
-                  <WeeklyProgressSurface
-                    summary={historicalWeeklySummary}
-                    viewMode={viewMode}
-                    presentation="historical"
-                  />
+                  <>
+                    <div className="px-1 pb-0.5">
+                      <MetricAccentBar
+                        variant="thin"
+                        className="bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
+                      />
+                    </div>
+                    <WeeklyProgressSurface
+                      summary={historicalWeeklySummary}
+                      viewMode={viewMode}
+                      presentation="historical"
+                    />
+                  </>
                 ) : null}
                 <HistorySessionCard
                   session={session}
@@ -295,7 +314,7 @@ export function HistorySessionsClient({
             )}
             primary={(
               <BottomDockLink href="/history/exercises" intent="positive">
-                Exercises
+                View Exercises
               </BottomDockLink>
             )}
           />

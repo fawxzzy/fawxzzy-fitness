@@ -39,6 +39,9 @@ type ExerciseSearchFiltersProps = {
   clearSearchAriaLabel?: string;
   toggleFiltersAriaLabel?: string;
   chromeVariant?: "default" | "history";
+  filterViewportMode?: "scroll" | "auto-height";
+  filterHorizontalRailOverrideClassName?: string;
+  filterCompactDensity?: "default" | "tight";
 };
 
 export function ExerciseSearchFilters({
@@ -64,6 +67,9 @@ export function ExerciseSearchFilters({
   clearSearchAriaLabel = "Clear exercise search",
   toggleFiltersAriaLabel = "Toggle exercise filters",
   chromeVariant = "default",
+  filterViewportMode = "scroll",
+  filterHorizontalRailOverrideClassName,
+  filterCompactDensity = "default",
 }: ExerciseSearchFiltersProps) {
   void searchFirst;
   const [isFilterOpen, setIsFilterOpen] = useState(defaultFilterOpen);
@@ -169,6 +175,9 @@ export function ExerciseSearchFilters({
       buttonClassName={filterButtonClassName}
       panelClassName={filterPanelClassName}
       variant="compact"
+      viewportMode={filterViewportMode}
+      horizontalRailOverrideClassName={filterHorizontalRailOverrideClassName}
+      compactDensity={filterCompactDensity}
     />
   );
 

@@ -1,13 +1,13 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { SignatureDot, SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { AccentDotSeparatedText, SignatureDot } from "@/components/ui/app/SignatureSeparator";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
@@ -17,38 +17,13 @@ import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
 import { cn } from "@/lib/cn";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
+import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import { getRecoveryExerciseFallbackDescription } from "@/lib/exercise-metadata";
 import { STRETCH_HUB_GUIDE_COPY, STRETCH_HUB_HERO_SRC, isStretchHubExercise } from "@/lib/stretch-library";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 function toTitleCase(value: string) {
   return value.replace(/\b([a-z])/g, (match) => match.toUpperCase());
-}
-
-function mergeExerciseInfoSummaryMetrics(
-  quickMetrics: MetricDatum[],
-  performanceMetrics: MetricDatum[],
-) {
-  const redundantPerformanceLabels = new Set(["Top Set", "Last"]);
-  const seenSignatures = new Set(
-    quickMetrics.map((item) => `${item.label.toLowerCase()}::${item.value.toLowerCase()}`),
-  );
-
-  const uniquePerformanceMetrics = performanceMetrics.filter((item) => {
-    if (redundantPerformanceLabels.has(item.label)) {
-      return false;
-    }
-
-    const signature = `${item.label.toLowerCase()}::${item.value.toLowerCase()}`;
-    if (seenSignatures.has(signature)) {
-      return false;
-    }
-
-    seenSignatures.add(signature);
-    return true;
-  });
-
-  return [...quickMetrics, ...uniquePerformanceMetrics];
 }
 
 export type ExerciseInfoSheetExercise = {
@@ -100,8 +75,10 @@ export type ExerciseInfoSheetStats = {
   prCount: number;
   quickMetrics: MetricDatum[];
   performanceMetrics?: MetricDatum[];
+  surfaceMetrics?: MetricDatum[];
   progress: {
     metrics: MetricDatum[];
+    reviewSections?: ExerciseInfoReviewSection[];
     performances: Array<{
       label: string;
       value: string;
@@ -185,7 +162,7 @@ function renderMetricValuePrefix(valuePrefix: string | null | undefined) {
   }
 
   if (valuePrefix === "\u2192" || valuePrefix === "â†’") {
-    return <span aria-hidden="true" className="inline-block h-[2px] w-[10px] rounded-full bg-current" />;
+    return <span aria-hidden="true" className="inline-block h-[2px] w-[10px] rounded-full bg-[rgb(var(--accent-yellow-on))]" />;
   }
 
   return <span aria-hidden="true">{valuePrefix}</span>;
@@ -335,14 +312,77 @@ function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStat
             </span>
           </EyebrowText>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <SignatureInlineList
-              items={entry.value.split(" | ")}
-              separator="pipe"
-              itemClassName={cn(appTokens.detailBodyText, "whitespace-nowrap text-[13px] leading-[1.35] text-[rgb(var(--text-primary)/0.95)]")}
+            <AccentDotSeparatedText
+              text={entry.value}
+              className={cn(appTokens.detailBodyText, "inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[1.35] text-[rgb(var(--text-primary)/0.95)]")}
             />
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function ExerciseInfoProgressReview({
+  sections,
+}: {
+  sections: ExerciseInfoReviewSection[];
+}) {
+  if (sections.length === 0) {
+    return null;
+  }
+
+  const lastSection = sections.find((section) => section.title === "Last") ?? sections[0] ?? null;
+  const bestSection = sections.find((section) => section.title === "Best") ?? sections[1] ?? null;
+  const progressSection = sections.find((section) => section.title === "Progress") ?? sections[2] ?? null;
+  const stackedSections = [lastSection, bestSection].filter((section): section is ExerciseInfoReviewSection => Boolean(section));
+  const displayTitle = (title: string) => (title === "Progress" ? "Trend" : title);
+
+  const renderSection = (section: ExerciseInfoReviewSection, options?: { compactTitle?: boolean }) => (
+    <div
+      key={section.title}
+      className={cn(
+        appTokens.detailHistoryRow,
+        "flex flex-col gap-1.5 px-2 py-2",
+      )}
+    >
+      <h4
+        className={cn(
+          appTokens.detailSectionTitle,
+          options?.compactTitle ? "px-0.5 text-left text-[0.68rem] tracking-[0.15em]" : "px-0.5 text-left text-[0.72rem] tracking-[0.16em]",
+        )}
+      >
+        {displayTitle(section.title)}
+      </h4>
+      <div className="space-y-2 px-0.5">
+        {section.items.map((item, index) => (
+          <div key={`${section.title}-${index}-${item}`} className="flex min-w-0 items-start gap-2.5">
+            <div className="flex h-[1.05rem] shrink-0 items-center">
+              <SignatureDot />
+            </div>
+            <div className={cn(appTokens.detailBodyText, "min-w-0 flex-1 text-[12.5px] leading-[1.24] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
+              {section.title === "Last" && item.includes("|") ? (
+                <AccentDotSeparatedText text={item} />
+              ) : (
+                <p>{item}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-12 gap-2">
+      <div className="col-span-4 flex flex-col gap-2">
+        {stackedSections.map((section) => renderSection(section, { compactTitle: true }))}
+      </div>
+      {progressSection ? (
+        <div className="col-span-8 pl-0.5">
+          {renderSection(progressSection)}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -443,10 +483,8 @@ export function ExerciseInfoSheet({
 
   if (!open || !exercise || (!inline && !portalTarget)) return null;
   const resolvedPortalTarget = portalTarget;
-  const performanceMetrics = stats?.performanceMetrics ?? [];
-  const progressMetrics = stats?.progress.metrics ?? [];
-  const summaryMetrics = stats ? mergeExerciseInfoSummaryMetrics(stats.quickMetrics, performanceMetrics) : [];
-  const combinedMetrics = [...summaryMetrics, ...progressMetrics];
+  const surfaceMetrics = stats?.surfaceMetrics ?? [];
+  const reviewSections = stats?.progress.reviewSections ?? [];
 
   const sheetBody = (
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
@@ -478,7 +516,7 @@ export function ExerciseInfoSheet({
                       >
                         {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
                         {!statsLoading && stats ? (
-                          <ExerciseInfoDetailedMetricGrid items={combinedMetrics} />
+                          <ExerciseInfoDetailedMetricGrid items={surfaceMetrics} />
                         ) : null}
                         {!statsLoading && !stats ? (
                           <p className={appTokens.detailBodyMutedText}>
@@ -487,6 +525,13 @@ export function ExerciseInfoSheet({
                         ) : null}
                       </div>
                     </AppPanel>
+
+                    {statsLoading || reviewSections.length > 0 ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+                        <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Progress</h3>
+                        {statsLoading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview sections={reviewSections} />}
+                      </AppPanel>
+                    ) : null}
 
                     {statsLoading || stats ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>

@@ -365,11 +365,9 @@ export function ExerciseChooserAddFlowForm({
                   const nextProgressionDraft = createProgressionPlaybookFormStateForTrainingGoal(goal);
                   setProgressionDraft(seedProgressionDraftWithStepValue(nextProgressionDraft, progressionStepPolicy.defaultValue));
                 }}
-                hideExerciseSetSuccessCount
                 reserveInfoLayoutSpace={false}
-                hideProgressionMethodControl
+                dropdownPreset="exercise-inline"
                 infoDockPlacement="above-bottom-actions"
-                renderRegressionAsSection
               />
             );
           } : null}

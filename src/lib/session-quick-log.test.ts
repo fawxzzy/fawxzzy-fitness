@@ -99,6 +99,31 @@ test("formatQuickLogPreviewLabel preserves steps distance units", () => {
   assert.equal(label, "5000 steps");
 });
 
+test("resolveQuickLogFromTarget keeps estimated cardio calories in the payload", () => {
+  const result = resolveQuickLogFromTarget({
+    durationSeconds: 900,
+    distance: 2,
+    distanceUnit: "mi",
+    calories: 129,
+    measurementType: "time_distance",
+  }, "lbs");
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    throw new Error("Expected cardio quick log resolution to succeed.");
+  }
+
+  assert.deepEqual(result.payload, {
+    weight: 0,
+    reps: 0,
+    durationSeconds: 900,
+    distance: 2,
+    distanceUnit: "mi",
+    calories: 129,
+    weightUnit: "lbs",
+  });
+});
+
 test("measurement-optional quick log resolves without reps or time", () => {
   const result = resolveQuickLogFromTarget({ measurementType: "none" }, "lbs");
 

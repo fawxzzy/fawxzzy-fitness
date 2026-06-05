@@ -1,4 +1,5 @@
 import type { SessionSummary } from "@/app/history/session-summary";
+import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import type { HistorySessionsPageData } from "@/lib/history-sessions-page-loader";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import type { IncomingHistoryAuditExercise } from "@/lib/history-log-normalization";
@@ -191,6 +192,8 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
   timezone: "America/New_York",
   weekStart: "2026-04-20",
   weekEnd: "2026-04-26",
+  primaryRoutineTitle: "Atlas",
+  primaryRoutineTargetCount: 4,
   completedWorkoutCount: 1,
   previousWeekWorkoutCount: 2,
   activeDayCount: 1,
@@ -219,13 +222,61 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
   },
 };
 
+const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
+  timezone: "America/New_York",
+  windowStart: "2026-03-23",
+  windowEnd: "2026-04-21",
+  scopeLabel: "All Time",
+  primaryRoutineTitle: "Lower Rotation",
+  completedWorkoutCount: 3,
+  activeDayCount: 3,
+  exerciseCount: 7,
+  routineCount: 3,
+  prMomentCount: 3,
+  prExerciseNames: ["Back Squat", "Weighted Pull-Up"],
+  primaryRoutineCoverage: {
+    completedDayCount: 1,
+    targetDayCount: 4,
+  },
+  consistencyTrend: {
+    direction: "flat",
+    label: "Matched last week",
+    detail: "1 workout in each of the last two weeks.",
+    delta: 0,
+  },
+  progressionSummary: {
+    totalEventCount: 3,
+    promotionCount: 2,
+    deloadCount: 0,
+    manualChangeCount: 1,
+    revertCount: 0,
+    topProgressedExerciseNames: ["Back Squat", "Weighted Pull-Up"],
+    reviewItems: [
+      "3 progression events recorded across your history.",
+      "2 promotions landed across 2 exercises.",
+      "0 deloads, 1 manual change, and 0 reverts were recorded.",
+      "Most progressed: Back Squat, Weighted Pull-Up.",
+    ],
+    attentionItems: [],
+  },
+  reviewItems: [
+    "3 workouts across 3 workout days.",
+    "Lower Rotation led with 1 workout.",
+    "7 exercises trained across 3 routines.",
+    "1 workout in each of the last two weeks.",
+  ],
+  attentionItems: [],
+};
+
 const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
   historyPreviewWeeklyProgress,
-  {
-    timezone: "America/New_York",
-    weekStart: "2026-04-13",
-    weekEnd: "2026-04-19",
-    completedWorkoutCount: 2,
+    {
+      timezone: "America/New_York",
+      weekStart: "2026-04-13",
+      weekEnd: "2026-04-19",
+      primaryRoutineTitle: "Atlas",
+      primaryRoutineTargetCount: 4,
+      completedWorkoutCount: 2,
     previousWeekWorkoutCount: 0,
     activeDayCount: 2,
     prMomentCount: 1,
@@ -376,7 +427,8 @@ export function getHistoryPreviewSessionsPageData(args?: {
     nextCursor: null,
     selectedSessionId: getSelectedSessionId(args?.selected) ?? HISTORY_PREVIEW_PRIMARY_SESSION_ID,
     sessionItems: [...historyPreviewSessions],
-    subtitle: `${historyPreviewSessions.length} logged sessions`,
+    subtitle: `${historyPreviewSessions.length} completed sessions`,
+    thirtyDaySummary: historyPreviewThirtyDaySummary,
     weeklyProgress: historyPreviewWeeklyProgress,
     weeklyProgressByWeek: historyPreviewWeeklyProgressByWeek,
   };
