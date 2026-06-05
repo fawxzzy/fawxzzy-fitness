@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { AppSoftErrorBoundary } from "@/components/error/AppSoftErrorBoundary";
 import { AppAmbientBackdrop } from "@/components/layout/AppAmbientBackdrop";
 import { AppEdgeFrame } from "@/components/layout/AppEdgeFrame";
 import { cn } from "@/lib/cn";
@@ -50,7 +51,9 @@ export function AppShell({
       {shouldRenderLocalChrome ? <AppAmbientBackdrop preset={ambientPreset} /> : null}
       {shouldRenderLocalChrome && showEdgeFrame ? <AppEdgeFrame preset={ambientPreset} /> : null}
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
-        {children}
+        <AppSoftErrorBoundary area="app-shell">
+          {children}
+        </AppSoftErrorBoundary>
       </div>
     </div>
   );

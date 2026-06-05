@@ -1,4 +1,5 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { AppSoftErrorBoundary } from "@/components/error/AppSoftErrorBoundary";
 import {
   ACTION_CHROME_RAIL_CLASS_NAME,
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
@@ -38,22 +39,24 @@ export function AuthShell({
       </div>
 
       <div className={appTokens.authShellFrame}>
-        {topAction ? (
-          <div className={appTokens.authShellTopAction}>
-            {topAction}
+        <AppSoftErrorBoundary area="auth-shell">
+          {topAction ? (
+            <div className={appTokens.authShellTopAction}>
+              {topAction}
+            </div>
+          ) : null}
+          {header ? (
+            <div className="flex justify-center pt-4 text-center sm:pt-6">
+              {header}
+            </div>
+          ) : null}
+          <div
+            className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? appTokens.authShellContentOffset : "", appTokens.authShellContent, className)}
+            data-testid="auth-shell-content"
+          >
+            {children}
           </div>
-        ) : null}
-        {header ? (
-          <div className="flex justify-center pt-4 text-center sm:pt-6">
-            {header}
-          </div>
-        ) : null}
-        <div
-          className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? appTokens.authShellContentOffset : "", appTokens.authShellContent, className)}
-          data-testid="auth-shell-content"
-        >
-          {children}
-        </div>
+        </AppSoftErrorBoundary>
       </div>
     </main>
   );
