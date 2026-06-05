@@ -13,6 +13,7 @@ import { resolveWorkoutCardMediaRailWidth } from "@/lib/workout-card-surface-pol
 
 const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
 const HISTORY_EXERCISE_MEDIA_SIZE = resolveWorkoutCardMediaRailWidth("history-browser");
+const HISTORY_EXERCISE_DETAIL_MEDIA_SIZE = HISTORY_EXERCISE_MEDIA_SIZE + 18;
 const HISTORY_EXERCISE_SQUARE_MEDIA_CLASS_NAME = "!my-0 !min-h-0 !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]";
 
 function renderMetaBadge(value: string) {
@@ -177,9 +178,9 @@ export function HistoryExerciseCard({
             {detailSections.length > 0 ? (
               <div
                 className="grid items-start gap-x-0 pt-0.5"
-                style={{ gridTemplateColumns: `minmax(0,1fr) ${HISTORY_EXERCISE_MEDIA_SIZE}px` }}
+                style={{ gridTemplateColumns: `minmax(0,1fr) ${HISTORY_EXERCISE_DETAIL_MEDIA_SIZE}px` }}
               >
-                <div className="min-w-0 pr-2.5">
+                <div className="min-w-0 pr-1.5">
                   {detailSections.map((section) => (
                     <div key={section.title}>
                       {renderDetailedBulletSection(section)}
@@ -187,13 +188,13 @@ export function HistoryExerciseCard({
                   ))}
                 </div>
                 <div className="pointer-events-none ml-auto self-start overflow-hidden rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.94)] shadow-none">
-                  <div style={{ width: HISTORY_EXERCISE_MEDIA_SIZE, height: HISTORY_EXERCISE_MEDIA_SIZE }}>
+                  <div style={{ width: HISTORY_EXERCISE_DETAIL_MEDIA_SIZE, height: HISTORY_EXERCISE_DETAIL_MEDIA_SIZE }}>
                     <ExerciseThumb
                       exercise={resolvedExercise}
                       detailed={false}
                       layout="rail"
-                      railWidth={HISTORY_EXERCISE_MEDIA_SIZE}
-                      sizes={`${HISTORY_EXERCISE_MEDIA_SIZE}px`}
+                      railWidth={HISTORY_EXERCISE_DETAIL_MEDIA_SIZE}
+                      sizes={`${HISTORY_EXERCISE_DETAIL_MEDIA_SIZE}px`}
                       intent="row-card"
                       className="h-full w-full rounded-none"
                     />
