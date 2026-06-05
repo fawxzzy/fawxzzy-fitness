@@ -210,19 +210,10 @@ function renderPrExerciseList(exerciseNames: string[]) {
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
           PRs
         </p>
-        <div className="space-y-1.5 pl-px">
-          {exerciseNames.length > 0 ? exerciseNames.map((exerciseName, index) => (
-            <div key={`${exerciseName}-${index}`} className="inline-flex min-w-0 items-center gap-2">
-              <SignatureDot />
-              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{exerciseName}</span>
-            </div>
-          )) : (
-            <div className="inline-flex min-w-0 items-center gap-2">
-              <SignatureDot />
-              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-secondary)/0.9)]")}>No PRs recorded in this session.</span>
-            </div>
-          )}
-        </div>
+        {renderHistorySessionSectionItems(
+          exerciseNames.length > 0 ? exerciseNames : ["No PRs recorded in this session."],
+          exerciseNames.length > 0 ? "primary" : "muted",
+        )}
       </div>
     </div>
   );
@@ -239,14 +230,7 @@ function renderSessionExerciseRecap(exerciseNames: string[]) {
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
           Recap
         </p>
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 pl-px">
-          {exerciseNames.map((exerciseName, index) => (
-            <div key={`${exerciseName}-${index}`} className="inline-flex min-w-0 items-center gap-2">
-              <SignatureDot />
-              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{exerciseName}</span>
-            </div>
-          ))}
-        </div>
+        {renderHistorySessionSectionItems(exerciseNames)}
       </div>
     </div>
   );
@@ -259,23 +243,10 @@ function renderBestLift(bestLift: SessionSummary["bestLift"]) {
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
           Best
         </p>
-        <div className="space-y-1.5 pl-px">
-          {bestLift ? (
-            <div className="inline-flex min-w-0 items-center gap-2">
-              <SignatureDot />
-              <span className={cn(appTokens.workoutCardDetailCompact, "inline-flex min-w-0 items-center gap-2 text-[rgb(var(--text-primary)/0.95)]")}>
-                <span className="min-w-0">{bestLift.exerciseName}</span>
-                <SignatureMiniPipe className="w-[0.35rem] shrink-0" />
-                <span className="min-w-0">{bestLift.display}</span>
-              </span>
-            </div>
-          ) : (
-            <div className="inline-flex min-w-0 items-center gap-2">
-              <SignatureDot />
-              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-secondary)/0.9)]")}>No best lift recorded in this session.</span>
-            </div>
-          )}
-        </div>
+        {renderHistorySessionSectionItems(
+          bestLift ? [`${bestLift.exerciseName} | ${bestLift.display}`] : ["No best lift recorded in this session."],
+          bestLift ? "primary" : "muted",
+        )}
       </div>
     </div>
   );
@@ -303,14 +274,7 @@ function renderProgressionSummary(session: SessionSummary) {
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
           Progression
         </p>
-        <div className="space-y-1.5 pl-px">
-          {items.map((item, index) => (
-            <div key={`${item}-${index}`} className="inline-flex min-w-0 items-center gap-2">
-              <SignatureDot />
-              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{item}</span>
-            </div>
-          ))}
-        </div>
+        {renderHistorySessionSectionItems(items)}
       </div>
     </div>
   );
@@ -320,6 +284,32 @@ export type HistorySessionDetailSection = {
   title: string;
   items: string[];
 };
+
+function renderHistorySessionSectionItems(
+  items: string[],
+  tone: "primary" | "muted" = "primary",
+) {
+  return (
+    <div className="space-y-1.5 pl-px">
+      {items.map((item, index) => (
+        <div key={`${item}-${index}`} className="flex min-w-0 items-start gap-2.5">
+          <div className="flex h-[1.05rem] shrink-0 items-center pt-[0.08rem]">
+            <SignatureDot />
+          </div>
+          <span
+            className={cn(
+              appTokens.workoutCardDetailCompact,
+              "min-w-0 flex-1 text-[12.5px] leading-[1.28] [text-wrap:pretty]",
+              tone === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
+            )}
+          >
+            {item}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function renderHistorySessionDetailSections(sections: HistorySessionDetailSection[]) {
   return sections.map((section) => {
@@ -338,14 +328,7 @@ function renderHistorySessionDetailSections(sections: HistorySessionDetailSectio
           <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
             {section.title}
           </p>
-          <div className="space-y-1.5 pl-px">
-            {items.map((item, index) => (
-              <div key={`${section.title}-${item}-${index}`} className="inline-flex min-w-0 items-center gap-2">
-                <SignatureDot />
-                <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{item}</span>
-              </div>
-            ))}
-          </div>
+          {renderHistorySessionSectionItems(items)}
         </div>
       </div>
     );
