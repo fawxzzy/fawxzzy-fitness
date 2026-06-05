@@ -664,7 +664,9 @@ export function LogAuditClient({
       const shellHeight = contentShell instanceof HTMLElement ? contentShell.scrollHeight : 0;
       const dockGap = dockHeight > 0 ? 12 : 4;
       const availableHeight = Math.max(0, Math.floor(nextViewportHeight - topOffset - dockHeight - dockGap));
-      const nextHeight = shellHeight > 0 ? Math.min(shellHeight, availableHeight) : availableHeight;
+      const nextHeight = expandedExercise
+        ? availableHeight
+        : (shellHeight > 0 ? Math.min(shellHeight, availableHeight) : availableHeight);
       setExerciseViewportHeight(nextHeight > 0 ? nextHeight : null);
     };
 
