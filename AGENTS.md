@@ -1,7 +1,7 @@
 # Fawxzzy-Fitness Repo Rules
 
 Scope
-- Applies to `C:\ATLAS\repos\fawxzzy-fitness`.
+- Applies to `repos/fawxzzy-fitness`.
 
 Purpose
 - Use this file as the repo-local entrypoint required by ATLAS stack policy.

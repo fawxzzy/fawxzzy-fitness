@@ -5,7 +5,7 @@ Purpose: run a structured live-local-edit-loop pass across FIT-03 and FIT-04 wit
 ## Start
 
 ```powershell
-cd C:\ATLAS\repos\fawxzzy-fitness
+cd repos/fawxzzy-fitness
 npm run qa:fitness:ui-checkpoint
 ```
 

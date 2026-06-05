@@ -51,10 +51,10 @@ Per repo doctrine, this pass repaired history by restoring the exact remote vers
 
 Related refreshed runtime evidence:
 
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/report.json`
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/today-progression-status.png`
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/progression-history.png`
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/progression-history-filtered.png`
+- `runtime/fitness/llel-captures/latest/report.json`
+- `runtime/fitness/llel-captures/latest/today-progression-status.png`
+- `runtime/fitness/llel-captures/latest/progression-history.png`
+- `runtime/fitness/llel-captures/latest/progression-history-filtered.png`
 
 ## Exact Commands Run
 
@@ -212,4 +212,3 @@ Why this is the smallest honest blocker now:
 - release-readiness gate content checks: `green`
 - clean working tree gate: `not green while packet is in flight`
 - authenticated QA bootstrap: `not green`, secrets-bound
-

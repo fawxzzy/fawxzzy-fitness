@@ -2,9 +2,9 @@
 
 Date: 2026-05-01
 
-Canonical repo: `C:\ATLAS\repos\fawxzzy-fitness`
+Canonical repo: `repos/fawxzzy-fitness`
 
-Quarantine source: `C:\ATLAS\repos\fawxzzy-fitness-quarantine`
+Quarantine source: `<ATLAS_ROOT>/repos/fawxzzy-fitness-quarantine`
 
 Canonical baseline SHA before this wave: `e06e19fbe86ea224a7c6aad1ace4f14cb92af658`
 
@@ -114,8 +114,8 @@ Hard rules:
   - `/history` -> `200`
   - `/settings` -> `200`
 - Screenshot smoke captured through recovered QA tooling:
-  - `C:\ATLAS\tmp\recovery-login-smoke.png`
-  - `C:\ATLAS\tmp\recovery-entry-smoke.png`
+  - `<ATLAS_TMP>/recovery-login-smoke.png`
+  - `<ATLAS_TMP>/recovery-entry-smoke.png`
 - Browser-tool limitation:
   - the Codex Playwright MCP launcher still fails on this machine with Chrome `spawn UNKNOWN`, so local visual smoke used the repo’s recovered screenshot path instead
 
