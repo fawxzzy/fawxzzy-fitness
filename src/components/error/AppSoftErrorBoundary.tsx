@@ -10,6 +10,10 @@ import { usePathname } from "next/navigation";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordClientBootDiagnostic } from "@/lib/boot-diagnostics";
+import {
+  buildFreshRecoveryReloadHref,
+  clearClientRecoveryState,
+} from "@/lib/client-recovery-reset";
 
 type AppSoftErrorBoundaryProps = {
   children: ReactNode;
@@ -29,14 +33,19 @@ function AppSoftErrorFallback({
   area,
   error,
   onRetry,
+  onOpenToday,
+  onGoToLogin,
 }: {
   area: string;
   error: Error;
   onRetry: () => void;
+  onOpenToday: () => void;
+  onGoToLogin: () => void;
 }) {
   const handleReload = useCallback(() => {
     if (typeof window !== "undefined") {
-      window.location.reload();
+      clearClientRecoveryState(window.sessionStorage);
+      window.location.assign(buildFreshRecoveryReloadHref(window.location.href));
     }
   }, []);
 
@@ -81,6 +90,20 @@ function AppSoftErrorFallback({
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[rgb(var(--accent)/0.92)] px-4 text-[0.84rem] font-semibold text-white transition hover:bg-[rgb(var(--accent)/1)]"
           >
             Reload App
+          </button>
+          <button
+            type="button"
+            onClick={onOpenToday}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-4 text-[0.84rem] font-semibold text-[rgb(var(--text-primary)/0.96)] transition hover:bg-[rgb(var(--surface-2-rgb)/0.82)]"
+          >
+            Open Today
+          </button>
+          <button
+            type="button"
+            onClick={onGoToLogin}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-4 text-[0.84rem] font-semibold text-[rgb(var(--text-primary)/0.96)] transition hover:bg-[rgb(var(--surface-2-rgb)/0.82)]"
+          >
+            Go to Login
           </button>
         </div>
       </SurfaceCard>
@@ -135,10 +158,27 @@ class AppSoftErrorBoundaryInner extends Component<
   }
 
   private handleRetry = () => {
+    if (typeof window !== "undefined") {
+      clearClientRecoveryState(window.sessionStorage);
+    }
     this.setState((current) => ({
       error: null,
       retryNonce: current.retryNonce + 1,
     }));
+  };
+
+  private handleOpenToday = () => {
+    if (typeof window !== "undefined") {
+      clearClientRecoveryState(window.sessionStorage);
+      window.location.assign("/today");
+    }
+  };
+
+  private handleGoToLogin = () => {
+    if (typeof window !== "undefined") {
+      clearClientRecoveryState(window.sessionStorage);
+      window.location.assign("/login?error=session_expired");
+    }
   };
 
   render() {
@@ -148,6 +188,8 @@ class AppSoftErrorBoundaryInner extends Component<
           area={this.props.area ?? "app-content"}
           error={this.state.error}
           onRetry={this.handleRetry}
+          onOpenToday={this.handleOpenToday}
+          onGoToLogin={this.handleGoToLogin}
         />
       );
     }
