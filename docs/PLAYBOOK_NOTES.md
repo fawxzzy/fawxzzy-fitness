@@ -479,3 +479,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Recomputing promotion analytics separately on each screen creates drift in counts, wording, and target labels, and makes account/export summaries disagree with history or exercise detail surfaces.
 - Evidence: `src/lib/progression-lifeline-summary.ts`, `src/lib/history-sessions-page-loader.ts`, `src/lib/exercises-browser.ts`, `src/lib/exercise-info.ts`, `src/app/history/[sessionId]/page.tsx`
 - Status: Proposed
+
+## 2026-06-05 - Metric cards should render from one shared surface grid instead of screen-local copies
+- Type: Pattern
+- WHAT changed: History session cards, history exercise cards, history detail exercise cards, weekly and thirty-day history summaries, workout detail rows, exercise-surface grids, and the account storage snapshot now all render their compact detailed metrics through one shared `SurfaceMetricGrid` primitive in `src/components/ui/MetricItem.tsx`.
+- WHY it changed: The app had multiple nearly identical metric-grid implementations with slightly different label tones, spacing, accent bars, and value handling, which kept reintroducing visual drift any time one screen was tuned without the others.
+- Rule: When a screen needs the canonical compact metric-card treatment, start from the shared `SurfaceMetricGrid` before adding route-local metric markup.
+- Pattern: shared metric datum contract -> shared compact metric surface grid -> screen-specific metric selection only.
+- Failure Mode: Copying metric-card markup into individual screens guarantees recurring theme drift, spacing regressions, and mismatched metric affordances between collapsed, expanded, history, and account surfaces.
+- Evidence: `src/components/ui/MetricItem.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/history/HistoryExerciseCard.tsx`, `src/components/history/HistoryDetailExerciseCard.tsx`, `src/components/history/WeeklyProgressSurface.tsx`, `src/components/history/ThirtyDayHistorySurface.tsx`, `src/components/settings/DataSettingsSection.tsx`
+- Status: Proposed

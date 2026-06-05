@@ -3,7 +3,7 @@ import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCar
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { MetricAccentBar, MetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
+import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
@@ -130,12 +130,11 @@ export function HistoryDetailExerciseCard({
             ) : null}
             {hasMetrics ? (
               <>
-                <MetricGrid
+                <SurfaceMetricGrid
                   items={(metrics ?? []).slice(0, 4)}
-                  compact
+                  autoColumns={false}
                   className="sm:grid-cols-3"
-                  itemClassName="min-h-[2.8rem] px-2.5 py-1"
-                  accentBarVariant="thin"
+                  itemClassName="px-2.5 py-1"
                 />
               </>
             ) : null}

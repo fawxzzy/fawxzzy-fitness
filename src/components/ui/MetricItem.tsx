@@ -319,6 +319,38 @@ export function MetricGrid({
   );
 }
 
+export function SurfaceMetricGrid({
+  items,
+  className,
+  itemClassName,
+  labelClassName,
+  accentBarVariant = "thin",
+  autoColumns = true,
+}: {
+  items: MetricDatum[];
+  className?: string;
+  itemClassName?: string;
+  labelClassName?: string;
+  accentBarVariant?: MetricAccentBarVariant;
+  autoColumns?: boolean;
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <MetricGrid
+      items={items}
+      compact
+      autoColumns={autoColumns}
+      className={cn("min-w-0", autoColumns ? "gap-1.25" : undefined, className)}
+      itemClassName={cn("min-h-[2.8rem] px-2.75 py-1", itemClassName)}
+      labelClassName={cn("text-[rgb(var(--accent-divider-rgb)/0.92)]", labelClassName)}
+      accentBarVariant={accentBarVariant}
+    />
+  );
+}
+
 export function MetricStrip({
   items,
   className,

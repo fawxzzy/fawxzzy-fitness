@@ -4,9 +4,8 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { MetricAccentBar, MetricItem, type MetricDatum } from "@/components/ui/MetricItem";
+import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 
@@ -163,32 +162,7 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
 
 function CurrentWeeklyMetricGrid({ summary }: { summary: WeeklyProgressSummary }) {
   const metricItems = buildCurrentMetricItems(summary);
-  const metricLabelClassName = "!text-[rgb(var(--accent-divider-rgb)/0.92)]";
-
-  return (
-    <div className="grid grid-cols-6 gap-2">
-      {metricItems.map((item, index) => (
-        <MetricItem
-          key={`${item.label}-${item.value}`}
-          item={item}
-          className={cn(
-            "min-h-[3.55rem]",
-            "col-span-2",
-            metricItems.length % 3 === 1 && index === metricItems.length - 1
-              ? "col-start-3"
-              : metricItems.length % 3 === 2 && index === metricItems.length - 2
-                ? "col-start-2"
-                : metricItems.length % 3 === 2 && index === metricItems.length - 1
-                  ? "col-start-4"
-                  : undefined,
-          )}
-          valueClassName={appTokens.workoutMetricValueCompact}
-          labelClassName={metricLabelClassName}
-          accentBarVariant="compact"
-        />
-      ))}
-    </div>
-  );
+  return <SurfaceMetricGrid items={metricItems} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" />;
 }
 
 function WeeklyProgressBody({

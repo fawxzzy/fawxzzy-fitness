@@ -1,4 +1,4 @@
-import { MetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
+import { SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { WorkoutCardChipRow } from "@/components/workout/WorkoutCardChipRow";
 import { cn } from "@/lib/cn";
@@ -31,9 +31,9 @@ export function WorkoutExerciseCardDetails({
     >
       {visibleChips.length > 0 ? <WorkoutCardChipRow density={density} chips={visibleChips} /> : null}
       {visibleMetrics.length > 0 ? (
-        <MetricGrid
+        <SurfaceMetricGrid
           items={visibleMetrics.slice(0, 4)}
-          compact
+          autoColumns={false}
           className="min-w-0"
         />
       ) : null}

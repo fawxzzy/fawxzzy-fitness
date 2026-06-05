@@ -7,7 +7,7 @@ import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
-import { MetricAccentBar, MetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
+import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { useToast } from "@/components/ui/ToastProvider";
 import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -346,12 +346,9 @@ export function DataSettingsSection({
                           {section.title}
                         </p>
                       ) : null}
-                      <MetricGrid
+                      <SurfaceMetricGrid
                         items={section.metrics}
-                        autoColumns
-                        compact
                         itemClassName="min-h-[3.45rem]"
-                        labelClassName="!text-[rgb(var(--accent-divider-rgb)/0.92)]"
                         accentBarVariant="compact"
                       />
                       {storageSections.length > 1 && index < storageSections.length - 1 ? (
