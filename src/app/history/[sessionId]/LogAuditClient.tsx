@@ -31,12 +31,13 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HistoryDetailHeader, HistorySection } from "@/components/history/HistoryShared";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
-import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
+import { type MetricDatum } from "@/components/ui/MetricItem";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
 import { formatDistance, formatDurationShort as formatWorkoutDuration, formatPace } from "@/lib/exercise-stats-formatting";
@@ -580,68 +581,54 @@ function FocusedExerciseOverviewCard({
   )) : [];
 
   return (
-    <div className="space-y-2 rounded-[1.08rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-3">
-      <div className="space-y-2">
-        <p className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
-          This Session
-        </p>
+    <div className="space-y-2">
+      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+        <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>This Session</h3>
         <ExerciseSurfaceMetricGrid items={metrics} />
-      </div>
+      </AppPanel>
 
       {progressionMetrics.length > 0 || progressionItems.length > 0 ? (
-        <div className="space-y-1.5">
-          <MetricAccentBar variant="thin" className="opacity-85" />
-          <div className="space-y-2 px-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
-              Progression
-            </p>
-            {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} /> : null}
-            {progressionItems.length > 0 ? (
-              <ul className="space-y-2">
-                {progressionItems.map((item, index) => (
-                  <li
-                    key={`${item.label}-${item.value}-${index}`}
-                    className="rounded-[0.9rem] border border-[rgb(var(--accent-divider-rgb)/0.12)] bg-[rgb(var(--bg-app)/0.34)] px-2.5 py-2"
-                  >
-                    <div className="flex min-w-0 items-start gap-2.5">
-                      <div className="flex h-[1.05rem] shrink-0 items-center">
-                        <SignatureDot />
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-0.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.88)]">
-                          {item.label}
-                        </p>
-                        <p className="min-w-0 text-[12.5px] leading-[1.4] text-[rgb(var(--text-primary)/0.94)] [text-wrap:pretty]">
-                          {item.value}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        </div>
+        <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+          <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Progression</h3>
+          {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} /> : null}
+          {progressionItems.length > 0 ? (
+            <div className="space-y-2">
+              {progressionItems.map((item, index) => (
+                <div
+                  key={`${item.label}-${item.value}-${index}`}
+                  className={cn(appTokens.detailHistoryRow, "flex min-w-0 items-start gap-2.5 px-2 py-2")}
+                >
+                  <div className="flex h-[1.05rem] shrink-0 items-center">
+                    <SignatureDot />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <p className={cn(appTokens.detailSectionTitle, "px-0.5 text-left text-[0.68rem] tracking-[0.15em]")}>
+                      {item.label}
+                    </p>
+                    <p className={cn(appTokens.detailBodyText, "min-w-0 text-[12.5px] leading-[1.24] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
+                      {item.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </AppPanel>
       ) : null}
 
       {shouldRenderNotes ? (
-        <div className="space-y-1.5">
-          <MetricAccentBar variant="thin" className="opacity-85" />
-          <div className="space-y-1.5 px-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
-              Notes
-            </p>
-            <div className="rounded-[0.9rem] border border-[rgb(var(--accent-divider-rgb)/0.12)] bg-[rgb(var(--bg-app)/0.34)] px-2.5 py-2.5">
-              {isEditing
-                ? noteInput
-                : (
-                  <p className="whitespace-pre-wrap text-[12.5px] leading-[1.5] text-[rgb(var(--text-primary)/0.94)] [text-wrap:pretty]">
-                    {notesValue}
-                  </p>
-                )}
-            </div>
+        <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+          <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Notes</h3>
+          <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+            {isEditing
+              ? noteInput
+              : (
+                <p className={cn(appTokens.detailBodyText, "whitespace-pre-wrap text-[12.5px] leading-[1.5] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
+                  {notesValue}
+                </p>
+              )}
           </div>
-        </div>
+        </AppPanel>
       ) : null}
     </div>
   );
