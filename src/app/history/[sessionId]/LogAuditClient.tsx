@@ -677,6 +677,7 @@ export function LogAuditClient({
   }, [editableSets, expandedExercise]);
 
   const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
+  const isFocusedSetExpanded = Boolean(expandedSetId);
 
   const exerciseViewportMeta = useMemo(() => {
     if (expandedExercise) {
@@ -1079,7 +1080,7 @@ export function LogAuditClient({
                       metrics={focusedDetailedMetrics ?? []}
                       notesValue={focusedExerciseNotes}
                       isEditing={isEditing}
-                      canEditNotes={!expandedSet}
+                      canEditNotes={!isFocusedSetExpanded}
                       noteInput={(
                         <label className="block">
                           <LabeledEditorField label="Exercise notes">
