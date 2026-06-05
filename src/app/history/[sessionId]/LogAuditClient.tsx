@@ -660,30 +660,17 @@ export function LogAuditClient({
       const dockHeightValue = window.getComputedStyle(node).getPropertyValue("--app-mobile-bottom-dock-height");
       const dockHeight = Number.parseFloat(dockHeightValue) || 0;
       const topOffset = node.getBoundingClientRect().top;
-      const contentShell = node.querySelector("[data-history-exercise-shell='true']");
-      const shellHeight = contentShell instanceof HTMLElement ? contentShell.scrollHeight : 0;
       const dockGap = dockHeight > 0 ? 12 : 4;
       const availableHeight = Math.max(0, Math.floor(nextViewportHeight - topOffset - dockHeight - dockGap));
-      const nextHeight = expandedExercise
-        ? availableHeight
-        : (shellHeight > 0 ? Math.min(shellHeight, availableHeight) : availableHeight);
-      setExerciseViewportHeight(nextHeight > 0 ? nextHeight : null);
+      setExerciseViewportHeight(availableHeight > 0 ? availableHeight : null);
     };
 
     syncViewportHeight();
-
-    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncViewportHeight) : null;
-    resizeObserver?.observe(node);
-    const contentShell = node.querySelector("[data-history-exercise-shell='true']");
-    if (contentShell instanceof HTMLElement) {
-      resizeObserver?.observe(contentShell);
-    }
 
     window.addEventListener("resize", syncViewportHeight);
     window.visualViewport?.addEventListener("resize", syncViewportHeight);
 
     return () => {
-      resizeObserver?.disconnect();
       window.removeEventListener("resize", syncViewportHeight);
       window.visualViewport?.removeEventListener("resize", syncViewportHeight);
     };
