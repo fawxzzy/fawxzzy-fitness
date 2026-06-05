@@ -367,7 +367,7 @@ export function ExerciseCard({
               resolvedDensity === "detailed"
                 ? "-my-[var(--exercise-row-shell-padding-y-detailed)] min-h-[calc(var(--exercise-row-media-min-height-detailed)+(var(--exercise-row-shell-padding-y-detailed)*2))]"
                 : undefined,
-              showAccentRail ? "pl-[6px]" : undefined,
+              showAccentRail ? "pl-[8px]" : undefined,
               thumbStateClassNames[state],
               cardMediaToneClassNames[resolvedSemanticTone],
               mediaClassName,

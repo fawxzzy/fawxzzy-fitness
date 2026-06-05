@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { ExerciseInfoSheet, type ExerciseInfoSheetExercise, type ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
+import { ExerciseInfoSoftBoundary } from "@/components/ExerciseInfoSoftBoundary";
 import { useToast } from "@/components/ui/ToastProvider";
+import {
+  fetchExerciseInfoClientPayload,
+  normalizeExerciseInfoClientPayload,
+} from "@/lib/exercise-info-client";
 import {
   readExerciseInfoClientPayload,
   shouldFetchExerciseInfoClientPayload,
@@ -11,40 +16,6 @@ import {
 import { isKnownLegacyExerciseId, resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 
 const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-type ExerciseInfoResponse = {
-  ok: true;
-  payload: {
-    exercise: ExerciseInfoSheetExercise;
-    stats: ExerciseInfoSheetStats | null;
-  };
-};
-
-type ExerciseInfoErrorResponse = {
-  ok?: false;
-  message?: string;
-  error?: string;
-  code?: string;
-  details?: unknown;
-};
-
-function normalizeExerciseInfoStats(stats: ExerciseInfoSheetStats | null): ExerciseInfoSheetStats | null {
-  if (!stats) {
-    return null;
-  }
-
-  return {
-    ...stats,
-    quickMetrics: Array.isArray(stats.quickMetrics) ? stats.quickMetrics : [],
-    performanceMetrics: Array.isArray(stats.performanceMetrics) ? stats.performanceMetrics : [],
-    surfaceMetrics: Array.isArray(stats.surfaceMetrics) ? stats.surfaceMetrics : [],
-    progress: {
-      metrics: Array.isArray(stats.progress?.metrics) ? stats.progress.metrics : [],
-      reviewSections: Array.isArray(stats.progress?.reviewSections) ? stats.progress.reviewSections : [],
-      performances: Array.isArray(stats.progress?.performances) ? stats.progress.performances : [],
-    },
-  };
-}
 
 export function ExerciseInfo({
   exerciseId,
@@ -106,16 +77,20 @@ export function ExerciseInfo({
     let active = true;
     const controller = new AbortController();
     const cachedEntry = readExerciseInfoClientPayload(normalizedExerciseId);
-    const seedPayload = initialExercise
-      ? {
-          exercise: initialExercise,
-          stats: normalizeExerciseInfoStats(initialStats ?? null),
-        }
-      : null;
+    const cachedPayload = normalizeExerciseInfoClientPayload(cachedEntry?.payload ?? null);
+    const seedPayload = normalizeExerciseInfoClientPayload(
+      initialExercise
+        ? {
+            exercise: initialExercise,
+            stats: initialStats ?? null,
+          }
+        : null,
+    );
+    const hasSeededPayload = Boolean(cachedPayload ?? seedPayload);
 
-    if (cachedEntry?.payload.exercise) {
-      setExercise(cachedEntry.payload.exercise);
-      setStats(normalizeExerciseInfoStats(cachedEntry.payload.stats ?? null));
+    if (cachedPayload) {
+      setExercise(cachedPayload.exercise);
+      setStats(cachedPayload.stats);
       setStatsLoading(false);
     } else if (seedPayload) {
       setExercise(seedPayload.exercise);
@@ -128,61 +103,45 @@ export function ExerciseInfo({
 
     async function load() {
       try {
-        const response = await fetch(`/api/exercise-info/${normalizedExerciseId}`, { signal: controller.signal });
-        const payload = (await response.json().catch(() => null)) as ExerciseInfoResponse | ExerciseInfoErrorResponse | null;
-
-        if (!response.ok) {
+        const result = await fetchExerciseInfoClientPayload(normalizedExerciseId, controller.signal);
+        if (!result.ok) {
           if (!active) return;
-          const errorPayload = payload as ExerciseInfoErrorResponse | null;
-          const resolvedMessage = errorPayload?.message ?? errorPayload?.error ?? "Could not load exercise info.";
           console.error("[ExerciseInfo] failed to load payload", {
             exerciseId: normalizedExerciseId,
-            status: response.status,
-            code: errorPayload?.code,
-            payload: errorPayload,
+            status: result.status ?? "request-failed",
+            code: result.code,
+            details: result.details,
           });
-          toast.error(resolvedMessage);
-          setExercise(null);
-          setStats(null);
+          toast.error(result.message);
+          if (!hasSeededPayload) {
+            setExercise(null);
+            setStats(null);
+          }
           setStatsLoading(false);
           return;
         }
 
         if (!active) return;
-        const successPayload = payload as ExerciseInfoResponse | null;
-
-        if (!successPayload?.ok || !successPayload.payload) {
-          console.error("[ExerciseInfo] unexpected response payload", {
-            exerciseId: normalizedExerciseId,
-            status: response.status,
-            payload,
-          });
-          toast.error("Could not load exercise info.");
-          setExercise(null);
-          setStats(null);
-          setStatsLoading(false);
-          return;
-        }
-
-        const nextStats = normalizeExerciseInfoStats(successPayload.payload.stats ?? null);
-        setExercise(successPayload.payload.exercise);
-        setStats(nextStats);
+        setExercise(result.payload.exercise);
+        setStats(result.payload.stats);
         writeExerciseInfoClientPayload(normalizedExerciseId, {
-          exercise: successPayload.payload.exercise,
-          stats: nextStats,
+          exercise: result.payload.exercise,
+          stats: result.payload.stats,
         }, "server");
         setStatsLoading(false);
       } catch (error) {
         if (!active || controller.signal.aborted) return;
         console.error("[ExerciseInfo] request failed", { exerciseId: normalizedExerciseId, status: "request-failed", error });
         toast.error("Could not load exercise info.");
-        setExercise(null);
-        setStats(null);
+        if (!hasSeededPayload) {
+          setExercise(null);
+          setStats(null);
+        }
         setStatsLoading(false);
       }
     }
 
-    if (shouldFetchExerciseInfoClientPayload(cachedEntry)) {
+    if (shouldFetchExerciseInfoClientPayload(cachedEntry) || !cachedPayload) {
       void load();
     }
 
@@ -193,14 +152,16 @@ export function ExerciseInfo({
   }, [exerciseId, initialExercise, initialStats, open, sourceContext, toast]);
 
   return (
-    <ExerciseInfoSheet
-      exercise={exercise}
-      stats={stats}
-      statsLoading={statsLoading}
-      open={open}
-      onOpenChange={onOpenChange}
-      onClose={onClose}
-      sourceContext={sourceContext}
-    />
+    <ExerciseInfoSoftBoundary exerciseId={exerciseId} onClose={onClose}>
+      <ExerciseInfoSheet
+        exercise={exercise}
+        stats={stats}
+        statsLoading={statsLoading}
+        open={open}
+        onOpenChange={onOpenChange}
+        onClose={onClose}
+        sourceContext={sourceContext}
+      />
+    </ExerciseInfoSoftBoundary>
   );
 }

@@ -12,7 +12,7 @@ import {
   ROUTINE_DAY_CARD_TITLE_CLASS_NAME,
 } from "@/components/day-list/RoutineDayCardPresentation";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { StateChevron } from "@/components/ui/StateChevron";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import {
   formatProgressionReviewTargetLabel,
@@ -617,7 +617,7 @@ export function ProgressionReviewCard({
               "flex items-center justify-end transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]",
               isExpanded ? "text-[rgb(var(--accent-divider-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.84)]",
             )}>
-              {isExpanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+              <StateChevron expanded={isExpanded} className="h-4 w-4" />
             </span>
           </span>
           <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />

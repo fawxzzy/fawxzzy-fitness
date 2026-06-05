@@ -40,6 +40,7 @@ export type HistorySessionsPageData = {
   selectedSessionId?: string;
   sessionItems: SessionSummary[];
   subtitle: string;
+  activeRoutineTitle: string | null;
   thirtyDaySummary: ThirtyDayHistorySummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
@@ -284,6 +285,7 @@ function normalizeProfileSettingsRow(rows: unknown[], showQaLlelDataOverride: bo
   const record = asRecord(rows[0]);
   return {
     timezone: asTrimmedString(record?.timezone) ?? "America/New_York",
+    activeRoutineId: asTrimmedString(record?.active_routine_id),
     showQaLlelData: resolveShowQaLlelDataPreferenceWithOverride({
       show_qa_llel_data: record?.show_qa_llel_data === true ? true : record?.show_qa_llel_data === false ? false : null,
       user_kind: record?.user_kind === "human" || record?.user_kind === "automation" || record?.user_kind === "unknown"
@@ -522,7 +524,7 @@ export async function loadHistorySessionsPageData({
       label: "profile timezone",
       load: () => supabase
         .from("profiles")
-        .select("timezone, show_qa_llel_data, user_kind")
+        .select("timezone, active_routine_id, show_qa_llel_data, user_kind")
         .eq("id", userId),
       logger,
     }),
@@ -626,6 +628,9 @@ export async function loadHistorySessionsPageData({
   ]);
 
   const routineNameById = normalizeRoutineNames(routineRows);
+  const activeRoutineTitle = profileSettings.activeRoutineId
+    ? (routineNameById.get(profileSettings.activeRoutineId) ?? null)
+    : null;
   const routineDayNameByKey = normalizeRoutineDayNames(routineDayRows);
   const routineDayCountByRoutineId = normalizeRoutineDayCounts(routineDayRows);
   const exerciseNameById = normalizeExerciseNameRows(exerciseNameRows);
@@ -741,6 +746,7 @@ export async function loadHistorySessionsPageData({
     selectedSessionId: getSingleSearchParam(searchParams?.selected) ?? undefined,
     sessionItems: visibleSessionItems,
     subtitle: `${visibleSessionItems.length} completed sessions`,
+    activeRoutineTitle,
     thirtyDaySummary,
     weeklyProgress,
     weeklyProgressByWeek,

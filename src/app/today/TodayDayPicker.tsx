@@ -21,7 +21,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { StateChevron } from "@/components/ui/StateChevron";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
@@ -822,9 +822,14 @@ export function TodayDayPicker({
                             showAccentRail={!isStretchHub}
                             hideEmptySummary={isStretchHub}
                             progressFill={cardProgressFill.fill}
-                            rightIcon={isSelected
-                              ? <ChevronDownIcon className="h-5 w-5 text-[rgb(var(--success-rgb)/0.98)]" />
-                              : <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />}
+                            rightIcon={(
+                              <StateChevron
+                                expanded={isSelected}
+                                className="h-5 w-5"
+                                expandedClassName="text-[rgb(var(--success-rgb)/0.98)]"
+                                collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
+                              />
+                            )}
                             shellClassName={isSelected || cardProgressionAction ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
                             shellStyle={isSelected || cardProgressionAction ? ({
                               "--exercise-card-progress-fill-bottom-right-radius": "0px",

@@ -9,6 +9,10 @@ import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSe
 import { cn } from "@/lib/cn";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 
+const HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
+const HISTORY_YELLOW_CARD_BORDER_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.24)]";
+const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
+
 function formatDayKey(dayKey: string) {
   const date = new Date(`${dayKey}T12:00:00.000Z`);
   return new Intl.DateTimeFormat(undefined, {
@@ -26,13 +30,15 @@ function buildWeeklyHeaderTitle({
   summary,
   suffix,
   fallbackLabel,
+  routineTitleOverride,
 }: {
   summary: WeeklyProgressSummary;
   suffix: "Summary" | "Progression";
   fallbackLabel: string;
+  routineTitleOverride?: string | null;
 }) {
   const rangeLabel = formatWeekRangeLabel(summary);
-  const routineTitle = summary.primaryRoutineTitle?.trim();
+  const routineTitle = routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim();
   const leadingLabel = routineTitle ? `${routineTitle} ${suffix}` : fallbackLabel;
 
   return (
@@ -41,24 +47,26 @@ function buildWeeklyHeaderTitle({
       <span className="inline-flex items-center">
         <SignatureMiniPipe className="w-[0.38rem]" />
       </span>
-      <span className="text-[rgb(var(--success-rgb)/0.94)]">{rangeLabel}</span>
+      <span className="text-[rgb(var(--accent-yellow-on)/0.94)]">{rangeLabel}</span>
     </span>
   );
 }
 
-function buildHistoricalSummaryTitle(summary: WeeklyProgressSummary) {
+function buildHistoricalSummaryTitle(summary: WeeklyProgressSummary, routineTitleOverride?: string | null) {
   return buildWeeklyHeaderTitle({
     summary,
     suffix: "Summary",
     fallbackLabel: "Summary",
+    routineTitleOverride,
   });
 }
 
-function buildCurrentProgressionTitle(summary: WeeklyProgressSummary) {
+function buildCurrentProgressionTitle(summary: WeeklyProgressSummary, routineTitleOverride?: string | null) {
   return buildWeeklyHeaderTitle({
     summary,
     suffix: "Progression",
     fallbackLabel: "Cycle Progression",
+    routineTitleOverride,
   });
 }
 
@@ -238,6 +246,7 @@ function HistoryGroupCompactHeader({
       aria-controls={controlsId}
       onClick={onToggle}
       className="group block w-full appearance-none !border-0 !bg-transparent text-left shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
     >
       <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
         <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
@@ -275,7 +284,7 @@ function HistoryGroupCompactHeader({
             </div>
           </div>
           <div className="px-px pt-[1px]">
-            <MetricAccentBar variant="compact" />
+            <MetricAccentBar variant="compact" className={HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME} />
           </div>
         </div>
       </div>
@@ -290,8 +299,10 @@ function ExpandedWeeklySummaryCard({
 }) {
   return (
     <div
+      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--success-rgb)/0.22)] bg-transparent",
+        "relative overflow-hidden rounded-[var(--radius-lg)] border bg-transparent",
+        HISTORY_YELLOW_CARD_BORDER_CLASS_NAME,
         cardShellToneClassNames.logged,
       )}
     >
@@ -306,14 +317,16 @@ function HistoricalWeeklyProgressSurface({
   summary,
   viewMode,
   defaultExpanded = false,
+  titleRoutineOverride = null,
 }: {
   summary: WeeklyProgressSummary;
   viewMode: "compact" | "detailed";
   defaultExpanded?: boolean;
+  titleRoutineOverride?: string | null;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded || viewMode === "detailed");
   const panelId = useId();
-  const summaryTitle = buildHistoricalSummaryTitle(summary);
+  const summaryTitle = buildHistoricalSummaryTitle(summary, titleRoutineOverride);
 
   if (viewMode === "detailed") {
     return (
@@ -322,7 +335,7 @@ function HistoricalWeeklyProgressSurface({
           <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
             {summaryTitle}
           </div>
-          <MetricAccentBar variant="compact" className="mt-3" />
+          <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
         </div>
         <WeeklyProgressBody summary={summary} />
       </ExpandedWeeklySummaryCard>
@@ -352,18 +365,20 @@ export function WeeklyProgressSurface({
   summary,
   viewMode = "compact",
   presentation = "current",
+  titleRoutineOverride = null,
 }: {
   summary: WeeklyProgressSummary;
   viewMode?: "compact" | "detailed";
   presentation?: "current" | "historical";
+  titleRoutineOverride?: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
-  const progressionTitle = buildCurrentProgressionTitle(summary);
+  const progressionTitle = buildCurrentProgressionTitle(summary, titleRoutineOverride);
   const progressionPreview = buildCurrentProgressionPreview(summary);
 
   if (presentation === "historical") {
-    return <HistoricalWeeklyProgressSurface summary={summary} viewMode={viewMode} />;
+    return <HistoricalWeeklyProgressSurface summary={summary} viewMode={viewMode} titleRoutineOverride={titleRoutineOverride} />;
   }
 
   if (viewMode === "detailed") {
@@ -373,7 +388,7 @@ export function WeeklyProgressSurface({
           <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
             {progressionTitle}
           </div>
-          <MetricAccentBar variant="compact" className="mt-3" />
+          <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
         </div>
         <WeeklyProgressBody
           summary={summary}

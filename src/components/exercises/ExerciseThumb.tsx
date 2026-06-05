@@ -89,7 +89,7 @@ function RailAssetPanel({
           usesCover
             ? "object-cover"
             : usesRowCardContainLayout
-              ? "object-contain px-[4%] py-0"
+              ? "object-contain px-[2%] py-0"
               : "object-contain p-[12%]",
         )}
         sizes={sizes}

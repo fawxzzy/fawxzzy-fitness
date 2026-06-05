@@ -11,13 +11,13 @@ test("today cards stay text-first while detailed mode keeps the richer metric ro
     showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: false,
-    mediaRailWidth: 84,
+    mediaRailWidth: 96,
   });
   assert.deepEqual(detailed, {
     showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: true,
-    mediaRailWidth: 84,
+    mediaRailWidth: 96,
   });
 });
 
@@ -26,7 +26,7 @@ test("history browser restores compact media while preserving detail metrics", (
     showMedia: true,
     showIdentityChips: true,
     showDetailedMetrics: false,
-    mediaRailWidth: 84,
+    mediaRailWidth: 96,
   });
   assert.deepEqual(resolveWorkoutCardSurfacePolicy("history-browser", "detailed"), {
     showMedia: false,
@@ -41,7 +41,7 @@ test("history detail rows keep media active for logged-set cards", () => {
     showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: false,
-    mediaRailWidth: 84,
+    mediaRailWidth: 96,
   });
 });
 
@@ -50,19 +50,19 @@ test("current session and edit day keep shared compact media rails without re-en
     showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: false,
-    mediaRailWidth: 84,
+    mediaRailWidth: 96,
   });
   assert.deepEqual(resolveWorkoutCardSurfacePolicy("edit-day", "compact"), {
     showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: false,
-    mediaRailWidth: 84,
+    mediaRailWidth: 96,
   });
   assert.deepEqual(resolveWorkoutCardSurfacePolicy("reorder", "compact"), {
     showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: false,
-    mediaRailWidth: 84,
+    mediaRailWidth: 96,
   });
 });
 

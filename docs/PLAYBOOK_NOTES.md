@@ -493,10 +493,20 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## 2026-06-05 - Core exercise cards should use a full-height, accent-safe media rail
 - Type: Pattern
-- WHAT changed: Core exercise-card surfaces now share one wider `84px` media rail, the rail itself keeps a small left inset so the accent strip stays visible, and row-card exercise art no longer gets extra vertical contain padding that shrinks it away from the top and bottom edges.
+- WHAT changed: Core exercise-card surfaces now share one wider `96px` media rail, the rail itself keeps a small left inset so the accent strip stays visible, row-card exercise art no longer gets extra contain padding that shrinks it away from the top and bottom edges, history cards no longer override that rail back into a centered square inset, and detailed history cards now let the lower-right image stretch square to the full lower-section height instead of pinning it to a fixed box.
 - WHY it changed: History compact cards had drifted into visibly undersized exercise art, and inconsistent per-surface rail widths made the same exercise-card family feel unrelated across Today, history, current-session, and edit-day surfaces. The added inset preserves the accent strip without forcing history-only wrapper hacks.
 - Rule: If an exercise card is part of the core row-card family, its image should fill the rail vertically and derive width from the shared surface policy instead of a surface-local square inset treatment.
-- Pattern: shared row-card shell -> shared `84px` rail -> accent-safe left inset -> top-to-bottom exercise art -> text column shifted only by the shared rail width.
+- Pattern: shared row-card shell -> shared `96px` rail -> accent-safe left inset -> top-to-bottom exercise art, and if a detailed history card uses a lower-right image block, that block anchors to the bottom-right corner below the chevron lane and reserves its square footprint before the text column claims the remaining width.
 - Failure Mode: Inset square media treatments make history cards feel smaller than the rest of the app, waste left-side card space, and cause repeated one-off fixes whenever image scale changes.
-- Evidence: `src/components/ExerciseCard.tsx`, `src/components/exercises/ExerciseThumb.tsx`, `src/lib/workout-card-surface-policy.ts`
+- Evidence: `src/components/ExerciseCard.tsx`, `src/components/exercises/ExerciseThumb.tsx`, `src/components/history/HistoryExerciseCard.tsx`, `src/lib/workout-card-surface-policy.ts`
+- Status: Proposed
+
+## 2026-06-05 - Disclosure chevrons should share one state wrapper
+- Type: Pattern
+- WHAT changed: Repeated expanded/collapsed chevron branches now flow through one shared `StateChevron` wrapper instead of each surface hand-picking `ChevronRightIcon` versus `ChevronDownIcon`.
+- WHY it changed: Today rows, history detail rows, routine-day cards, workout disclosure rows, settings accordions, and progression review panels had started duplicating the same direction-switch logic with small color and spacing drift.
+- Rule: If a surface is just expressing collapsed-versus-expanded chevron state, use the shared wrapper and pass local styling through classes instead of re-implementing icon selection inline.
+- Pattern: shared `StateChevron` direction logic -> surface-local size/color classes -> only special-purpose arrows keep bespoke logic.
+- Failure Mode: Hand-written chevron ternaries drift in direction, tone, and alignment and make disclosure interactions harder to normalize across page families.
+- Evidence: `src/components/ui/StateChevron.tsx`, `src/components/workout/ExerciseDisclosureCard.tsx`, `src/components/history/HistoryDetailExerciseCard.tsx`, `src/app/today/TodayExerciseRows.tsx`, `src/app/today/TodayDayPicker.tsx`
 - Status: Proposed

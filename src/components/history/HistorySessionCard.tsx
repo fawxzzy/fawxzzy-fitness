@@ -369,6 +369,7 @@ type HistorySessionCardProps = {
   tone?: CardSemanticTone;
   rightIcon?: ReactNode;
   className?: string;
+  metricAccentRgb?: string | null;
 };
 
 export function HistorySessionCard({
@@ -388,6 +389,7 @@ export function HistorySessionCard({
   tone,
   rightIcon,
   className,
+  metricAccentRgb,
 }: HistorySessionCardProps) {
   const viewModel = buildHistorySessionCardViewModel(session, previousSession);
   const styles = densityStyles[viewMode];
@@ -404,6 +406,9 @@ export function HistorySessionCard({
   const resolvedPrExerciseNames = prExerciseNames ?? session.prExerciseNames ?? [];
   const resolvedDetailedSections = detailedSections ?? buildDefaultHistorySessionDetailSections(session, resolvedPrExerciseNames);
   const usesHeaderlessDetailedLayout = viewMode === "detailed" && detailedHeaderMode === "hidden";
+  const accentStyle = metricAccentRgb
+    ? { ["--metric-accent-rgb" as string]: metricAccentRgb }
+    : undefined;
   const resolvedCompactMetaItems = viewModel.compactChips.map((chip) => chip.label).filter(Boolean);
   const resolvedSubtitleItems = [viewModel.outcome, viewModel.progress].filter((item): item is string => Boolean(item));
   const resolvedDetailedSubtitle = viewMode === "detailed" ? undefined : (
@@ -422,6 +427,7 @@ export function HistorySessionCard({
           "relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]",
           className,
         )}
+        style={accentStyle}
       >
         <div
           className={cn(
@@ -461,6 +467,7 @@ export function HistorySessionCard({
         className={appTokens.historySessionLink}
         data-history-card="session"
         data-history-density={viewMode}
+        style={accentStyle}
       >
         {compactContent}
       </Link>
@@ -489,6 +496,7 @@ export function HistorySessionCard({
           appTokens.historyExerciseCardShell,
           className,
         )}
+        style={accentStyle}
       >
         <div className="relative px-[0.92rem] py-[0.88rem]">
           <span
@@ -515,6 +523,7 @@ export function HistorySessionCard({
         className={appTokens.historySessionLink}
         data-history-card="session"
         data-history-density={viewMode}
+        style={accentStyle}
       >
         {headerlessContent}
       </Link>
@@ -541,6 +550,7 @@ export function HistorySessionCard({
         selected ? appTokens.historySessionSelected : undefined,
         className,
       )}
+      style={accentStyle}
       titleClassName="line-clamp-none [text-wrap:pretty]"
       subtitleClassName="pt-px [text-wrap:pretty] text-[rgb(var(--text-secondary)/0.9)]"
     >

@@ -23,7 +23,7 @@ export default function GlobalError({
           digest={error.digest}
           errorName={error.name}
           onReopen={reset}
-          topMessage="The full app shell did not complete, so recovery is running in minimal mode."
+          topMessage="The full app shell did not complete, so a minimal safe shell is active."
         />
       </body>
     </html>

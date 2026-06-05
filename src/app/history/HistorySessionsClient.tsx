@@ -29,6 +29,19 @@ function formatSessionTagLabel(value: string) {
   return value.trim();
 }
 
+const HISTORY_CYCLE_SEPARATOR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
+
+function HistoryCycleSectionSeparator({ className }: { className?: string }) {
+  return (
+    <div className={cn("px-1.5 pt-2 pb-1.5", className)}>
+      <MetricAccentBar
+        variant="thin"
+        className={HISTORY_CYCLE_SEPARATOR_CLASS_NAME}
+      />
+    </div>
+  );
+}
+
 function buildSessionSearchText(session: SessionSummary) {
   return [
     session.routineTitle,
@@ -96,6 +109,7 @@ function HistorySessionFilters({
 
 export function HistorySessionsClient({
   sessions,
+  activeRoutineTitle = null,
   thirtyDaySummary,
   weeklyProgress,
   weeklyProgressByWeek = [],
@@ -107,6 +121,7 @@ export function HistorySessionsClient({
   showBottomActions = true,
 }: {
   sessions: SessionSummary[];
+  activeRoutineTitle?: string | null;
   thirtyDaySummary: ThirtyDayHistorySummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek?: WeeklyProgressSummary[];
@@ -261,8 +276,9 @@ export function HistorySessionsClient({
           </div>
         </div>
       ) : null}
-      <ThirtyDayHistorySurface summary={thirtyDaySummary} viewMode={viewMode} />
-      <WeeklyProgressSurface summary={weeklyProgress} viewMode={viewMode} />
+      <ThirtyDayHistorySurface summary={thirtyDaySummary} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
+      <WeeklyProgressSurface summary={weeklyProgress} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
+      {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (
         <ul className={cn(
           viewMode === "compact"
@@ -287,17 +303,12 @@ export function HistorySessionsClient({
               >
                 {startsNewWeekGroup && historicalWeeklySummary ? (
                   <>
-                    <div className="px-1 pb-0.5">
-                      <MetricAccentBar
-                        variant="thin"
-                        className="bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
-                      />
-                    </div>
                     <WeeklyProgressSurface
                       summary={historicalWeeklySummary}
                       viewMode={viewMode}
                       presentation="historical"
                     />
+                    <HistoryCycleSectionSeparator />
                   </>
                 ) : null}
                 <HistorySessionCard

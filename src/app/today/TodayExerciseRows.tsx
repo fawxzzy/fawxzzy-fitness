@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { StateChevron } from "@/components/ui/StateChevron";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { deriveLoggedSetCountProgressFill } from "@/lib/exercise-card-progress-fill";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
@@ -59,14 +59,12 @@ function renderProgressChevron(progressLabel?: string, completed = false, expand
           {progressLabel}
         </span>
       ) : null}
-      {expanded ? (
-        <ChevronDownIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--success-rgb)/0.98)]" />
-      ) : (
-        <ChevronRightIcon className={[
-          "h-5 w-5 shrink-0 self-center",
-          completed ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]",
-        ].join(" ")} />
-      )}
+      <StateChevron
+        expanded={expanded}
+        className="h-5 w-5 shrink-0 self-center"
+        expandedClassName="text-[rgb(var(--success-rgb)/0.98)]"
+        collapsedClassName={completed ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]"}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { StateChevron } from "@/components/ui/StateChevron";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
@@ -164,9 +164,12 @@ export function ExerciseDisclosureCard({
           contentVerticalAlign={contentVerticalAlign}
           progressFill={progressFill}
           rightIcon={(
-            expanded
-              ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
-              : <ChevronRightIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />
+            <StateChevron
+              expanded={expanded}
+              className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
+              expandedClassName={isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]"}
+              collapsedClassName={isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]"}
+            />
           )}
           badgeText={badgeText}
         />

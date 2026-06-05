@@ -6,6 +6,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -13,9 +14,8 @@ import { resolveWorkoutCardMediaRailWidth } from "@/lib/workout-card-surface-pol
 
 const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
 const HISTORY_EXERCISE_MEDIA_SIZE = resolveWorkoutCardMediaRailWidth("history-browser");
-const HISTORY_EXERCISE_DETAIL_MEDIA_SIZE = HISTORY_EXERCISE_MEDIA_SIZE + 18;
-const HISTORY_EXERCISE_SQUARE_MEDIA_CLASS_NAME = "!my-0 !min-h-0 !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]";
-
+const HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH = HISTORY_EXERCISE_MEDIA_SIZE + 92;
+const HISTORY_EXERCISE_DETAIL_CHEVRON_ROW_HEIGHT = "1rem";
 function renderMetaBadge(value: string) {
   return (
     <SignatureMetaTag>
@@ -148,10 +148,8 @@ export function HistoryExerciseCard({
           variant="standard"
           density="detailed"
           semanticTone={tone}
+          rightIcon={null}
           subtitleTone="plain"
-          rightIconMode="overlay"
-          rightRailClassName="right-[0.85rem] top-1/2 -translate-y-1/2"
-          trailingStackClassName="h-4.5 w-4.5"
           contentClassName="pl-1.5"
           titleClassName="[text-wrap:pretty]"
           titleContainerClassName="pr-[2.35rem] space-y-0.5"
@@ -177,27 +175,42 @@ export function HistoryExerciseCard({
             ) : null}
             {detailSections.length > 0 ? (
               <div
-                className="grid items-start gap-x-0 pt-0.5"
-                style={{ gridTemplateColumns: `minmax(0,1fr) ${HISTORY_EXERCISE_DETAIL_MEDIA_SIZE}px` }}
+                className="grid items-stretch gap-2 pt-0.5"
+                style={{ gridTemplateColumns: `minmax(0,1fr) ${HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}px` }}
               >
-                <div className="min-w-0 pr-1.5">
+                <div className="min-w-0 pr-0.5">
                   {detailSections.map((section) => (
                     <div key={section.title}>
                       {renderDetailedBulletSection(section)}
                     </div>
                   ))}
                 </div>
-                <div className="pointer-events-none ml-auto self-start overflow-hidden rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.94)] shadow-none">
-                  <div style={{ width: HISTORY_EXERCISE_DETAIL_MEDIA_SIZE, height: HISTORY_EXERCISE_DETAIL_MEDIA_SIZE }}>
-                    <ExerciseThumb
-                      exercise={resolvedExercise}
-                      detailed={false}
-                      layout="rail"
-                      railWidth={HISTORY_EXERCISE_DETAIL_MEDIA_SIZE}
-                      sizes={`${HISTORY_EXERCISE_DETAIL_MEDIA_SIZE}px`}
-                      intent="row-card"
-                      className="h-full w-full rounded-none"
-                    />
+                <div
+                  className="pointer-events-none flex flex-col"
+                  style={{
+                    minHeight: `calc(${HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}px + ${HISTORY_EXERCISE_DETAIL_CHEVRON_ROW_HEIGHT})`,
+                    marginRight: "calc((var(--exercise-row-shell-padding-x) + 2px) * -1)",
+                    marginBottom: "calc((var(--exercise-row-shell-padding-y-detailed) + 2px) * -1)",
+                  }}
+                >
+                  <div
+                    className="flex items-start justify-end pr-0"
+                    style={{ height: HISTORY_EXERCISE_DETAIL_CHEVRON_ROW_HEIGHT }}
+                  >
+                    <ChevronRightIcon className={cn(appTokens.historyChevronIcon, "mr-[-1px]")} />
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-hidden rounded-tl-[1rem] rounded-tr-none rounded-bl-none rounded-br-[calc(var(--card-radius)-2px)] bg-transparent shadow-none">
+                    <div className="h-full" style={{ width: HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH }}>
+                      <ExerciseThumb
+                        exercise={resolvedExercise}
+                        detailed={false}
+                        layout="rail"
+                        railWidth={HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}
+                        sizes={`${HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}px`}
+                        intent="row-card"
+                        className="h-full w-full rounded-none border-0 bg-transparent"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -232,7 +245,6 @@ export function HistoryExerciseCard({
         density="compact"
         semanticTone={tone}
         mediaRailWidth={HISTORY_EXERCISE_MEDIA_SIZE}
-        mediaClassName={HISTORY_EXERCISE_SQUARE_MEDIA_CLASS_NAME}
         contentClassName="pl-1.5"
         titleClassName="[text-wrap:pretty]"
         subtitleLabel={resolvedSubtitleLabel}

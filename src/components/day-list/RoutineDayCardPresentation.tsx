@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { DayCard, resolveDayCardState } from "@/components/day-list/DayList";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { StateChevron } from "@/components/ui/StateChevron";
 import { cn } from "@/lib/cn";
 import { formatRoutineDayStableDisplayName, getRoutineDayWeekdayLabel } from "@/lib/routines";
 import {
@@ -284,18 +284,24 @@ export function RoutineOverviewDayCard({
         ? (
             <span className="inline-flex items-center gap-3">
               {selectedTag}
-              {isExpanded
-                ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
-                : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />}
+              <StateChevron
+                expanded={Boolean(isExpanded)}
+                className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
+                expandedClassName="text-[rgb(var(--accent)/0.92)]"
+                collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
+              />
             </span>
           )
         : (
             <span className="inline-flex items-center gap-3">
               {selectedTag}
               {statusTag}
-              {isExpanded
-                ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
-                : <ChevronRightIcon className={cn("h-5 w-5 shrink-0 text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />}
+              <StateChevron
+                expanded={Boolean(isExpanded)}
+                className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
+                expandedClassName="text-[rgb(var(--accent)/0.92)]"
+                collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
+              />
             </span>
           )}
       state={resolveDayCardState({

@@ -17,6 +17,7 @@ import { EyebrowText } from "@/components/ui/text-roles";
 import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
 import { cn } from "@/lib/cn";
+import { formatDateShort } from "@/lib/formatting";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import { getRecoveryExerciseFallbackDescription } from "@/lib/exercise-metadata";
@@ -92,10 +93,30 @@ export type ExerciseInfoSheetStats = {
 
 function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | undefined) {
   const progress = stats?.progress;
+  const metrics = Array.isArray(progress?.metrics)
+    ? progress.metrics.filter((item): item is MetricDatum => Boolean(item && typeof item.label === "string" && typeof item.value === "string"))
+    : [];
+  const reviewSections = Array.isArray(progress?.reviewSections)
+    ? progress.reviewSections
+        .filter((section): section is ExerciseInfoReviewSection => Boolean(section && typeof section.title === "string" && Array.isArray(section.items)))
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item): item is string => typeof item === "string" && item.trim().length > 0),
+        }))
+        .filter((section) => section.items.length > 0)
+    : [];
+  const performances = Array.isArray(progress?.performances)
+    ? progress.performances.filter((entry): entry is NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number] => (
+      Boolean(entry)
+      && typeof entry.label === "string"
+      && typeof entry.value === "string"
+    ))
+    : [];
+
   return {
-    metrics: Array.isArray(progress?.metrics) ? progress.metrics : [],
-    reviewSections: Array.isArray(progress?.reviewSections) ? progress.reviewSections : [],
-    performances: Array.isArray(progress?.performances) ? progress.performances : [],
+    metrics,
+    reviewSections,
+    performances,
   };
 }
 
@@ -547,7 +568,9 @@ export function ExerciseInfoSheet({
 
   if (!open || !exercise || (!inline && !portalTarget)) return null;
   const resolvedPortalTarget = portalTarget;
-  const surfaceMetrics = stats?.surfaceMetrics ?? [];
+  const surfaceMetrics = Array.isArray(stats?.surfaceMetrics)
+    ? stats.surfaceMetrics.filter((item): item is MetricDatum => Boolean(item && typeof item.label === "string" && typeof item.value === "string"))
+    : [];
   const progressState = getExerciseInfoProgressState(stats);
   const reviewSections = progressState.reviewSections;
   const progression = stats?.progression ?? null;

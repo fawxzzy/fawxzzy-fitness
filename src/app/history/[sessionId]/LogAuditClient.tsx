@@ -1265,6 +1265,7 @@ export function LogAuditClient({
                       viewMode="detailed"
                       rightIcon={null}
                       className="mt-0"
+                      metricAccentRgb="var(--accent-yellow-on)"
                       prExerciseNames={focusedSessionSummary.prExerciseNames}
                       detailedMetrics={focusedDetailedMetrics}
                       detailedSections={focusedDetailedSections}
@@ -1279,6 +1280,7 @@ export function LogAuditClient({
                       viewMode="detailed"
                       rightIcon={null}
                       className="mt-0"
+                      metricAccentRgb="var(--accent-yellow-on)"
                       prExerciseNames={exerciseViewportMeta.prNames}
                       detailedMetrics={focusedDetailedMetrics}
                       detailedHeaderMode="hidden"

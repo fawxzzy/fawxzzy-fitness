@@ -7,7 +7,7 @@ import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettin
 import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
 
 type SettingsSectionMeta = {
@@ -59,7 +59,7 @@ export function SettingsAccordionTrigger({
           ) : null}
         </span>
         <span className="flex items-center justify-end text-[rgb(var(--text-muted)/0.84)] transition-colors group-hover:text-[rgb(var(--text-secondary)/0.96)]">
-          {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+          <StateChevron expanded={expanded} className="h-4 w-4" />
         </span>
       </span>
       <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />

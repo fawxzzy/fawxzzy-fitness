@@ -1,11 +1,6 @@
 "use client";
 
-import type { ExerciseInfoSheetExercise, ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
-
-type ExerciseInfoClientPayload = {
-  exercise: ExerciseInfoSheetExercise;
-  stats: ExerciseInfoSheetStats | null;
-};
+import type { ExerciseInfoClientPayload } from "@/lib/exercise-info-client";
 
 type ExerciseInfoClientCacheEntry = {
   payload: ExerciseInfoClientPayload;

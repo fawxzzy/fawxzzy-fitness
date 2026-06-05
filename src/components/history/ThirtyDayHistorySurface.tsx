@@ -8,6 +8,8 @@ import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSe
 import { cn } from "@/lib/cn";
 import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 
+const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
+
 function formatDayKey(dayKey: string) {
   const date = new Date(`${dayKey}T12:00:00.000Z`);
   return new Intl.DateTimeFormat(undefined, {
@@ -17,11 +19,12 @@ function formatDayKey(dayKey: string) {
   }).format(date);
 }
 
-function buildThirtyDayTitle(summary: ThirtyDayHistorySummary) {
+function buildThirtyDayTitle(summary: ThirtyDayHistorySummary, routineTitleOverride?: string | null) {
   const rangeLabel = summary.scopeLabel?.trim()
     ? summary.scopeLabel.trim()
     : `${formatDayKey(summary.windowStart)} - ${formatDayKey(summary.windowEnd)}`;
-  const leadingLabel = summary.primaryRoutineTitle?.trim() ? `${summary.primaryRoutineTitle} Summary` : "History Summary";
+  const resolvedRoutineTitle = routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim() || "";
+  const leadingLabel = resolvedRoutineTitle ? `${resolvedRoutineTitle} Summary` : "History Summary";
 
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
@@ -159,6 +162,7 @@ function CompactHeader({
       aria-controls={controlsId}
       onClick={onToggle}
       className="group block w-full appearance-none !border-0 !bg-transparent text-left shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
     >
       <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
         <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
@@ -189,6 +193,7 @@ function CompactHeader({
 function ExpandedCard({ children }: { children: ReactNode }) {
   return (
     <div
+      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
       className={cn(
         "relative overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--accent-yellow-on)/0.24)] bg-transparent",
         cardShellToneClassNames.logged,
@@ -202,13 +207,15 @@ function ExpandedCard({ children }: { children: ReactNode }) {
 export function ThirtyDayHistorySurface({
   summary,
   viewMode = "compact",
+  titleRoutineOverride = null,
 }: {
   summary: ThirtyDayHistorySummary;
   viewMode?: "compact" | "detailed";
+  titleRoutineOverride?: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
-  const title = buildThirtyDayTitle(summary);
+  const title = buildThirtyDayTitle(summary, titleRoutineOverride);
 
   if (viewMode === "detailed") {
     return (
