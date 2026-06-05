@@ -17,12 +17,17 @@ export type AccountStorageSnapshot = {
   totalRecordCount: number;
 };
 
-export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPreview, "counts" | "dateRange" | "scope">): AccountStorageSnapshot {
+export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPreview, "counts" | "dateRange" | "scope" | "progressionSummary">): AccountStorageSnapshot {
   const inProgressSessions = Math.max(0, preview.counts.sessions - preview.counts.completedSessions);
   const visibleCompletedSessions = Math.max(0, preview.counts.visibleCompletedSessions ?? preview.counts.completedSessions);
   const hiddenQaCompletedSessions = Math.max(0, preview.counts.hiddenQaCompletedSessions ?? (preview.counts.completedSessions - visibleCompletedSessions));
   const visibleSessionExercises = Math.max(0, preview.counts.visibleSessionExercises ?? preview.counts.sessionExercises);
   const visibleSets = Math.max(0, preview.counts.visibleSets ?? preview.counts.sets);
+  const progressionMetrics = [
+    { label: "Stored Progression Events", value: String(preview.counts.progressionEvents) },
+    { label: "Applied Promotions", value: String(preview.progressionSummary.promotionCount) },
+    { label: "Progressed Exercises", value: String(preview.progressionSummary.distinctExerciseCount) },
+  ];
   const historyRecordCount =
     preview.counts.sessions
     + preview.counts.sessionExercises
@@ -49,7 +54,7 @@ export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPr
         { label: "Stored Exercise Rows", value: String(preview.counts.sessionExercises) },
         { label: "History Sets", value: String(visibleSets) },
         { label: "Stored Sets", value: String(preview.counts.sets) },
-        { label: "Stored Progression Events", value: String(preview.counts.progressionEvents) },
+        ...progressionMetrics,
       ],
     }];
     totalRecordCount = historyRecordCount;
@@ -77,7 +82,7 @@ export function buildAccountStorageSnapshot(preview: Pick<AccountWorkoutExportPr
           { label: "Stored Exercise Rows", value: String(preview.counts.sessionExercises) },
           { label: "History Sets", value: String(visibleSets) },
           { label: "Stored Sets", value: String(preview.counts.sets) },
-          { label: "Stored Progression Events", value: String(preview.counts.progressionEvents) },
+          ...progressionMetrics,
         ],
       },
       {

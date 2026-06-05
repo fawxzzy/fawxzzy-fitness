@@ -25,11 +25,26 @@ const allTimeRange = {
   label: "All time",
 } as const;
 
+const progressionSummary = {
+  eventCount: 16,
+  promotionCount: 9,
+  deloadCount: 3,
+  manualChangeCount: 2,
+  revertCount: 1,
+  lockInCount: 1,
+  linkedSessionCount: 12,
+  distinctExerciseCount: 7,
+  firstChangeAt: "2026-01-01T00:00:00.000Z",
+  latestChangeAt: "2026-05-01T00:00:00.000Z",
+  lastPromotionAt: "2026-05-01T00:00:00.000Z",
+} as const;
+
 test("account storage snapshot uses history metrics for history scope", () => {
   const snapshot = buildAccountStorageSnapshot({
     scope: "history",
     counts: baseCounts,
     dateRange: allTimeRange,
+    progressionSummary,
   });
 
   assert.deepEqual(snapshot.metrics, [
@@ -43,6 +58,8 @@ test("account storage snapshot uses history metrics for history scope", () => {
     { label: "History Sets", value: "455" },
     { label: "Stored Sets", value: "488" },
     { label: "Stored Progression Events", value: "16" },
+    { label: "Applied Promotions", value: "9" },
+    { label: "Progressed Exercises", value: "7" },
   ]);
   assert.deepEqual(snapshot.sections.map((section) => section.title), ["History"]);
   assert.equal(snapshot.historyRangeLabel, "All time");
@@ -54,6 +71,7 @@ test("account storage snapshot switches to routine metrics for routine scope", (
     scope: "routines",
     counts: baseCounts,
     dateRange: allTimeRange,
+    progressionSummary,
   });
 
   assert.deepEqual(snapshot.metrics, [
@@ -71,6 +89,7 @@ test("account storage snapshot combines history and routine metrics for all scop
     scope: "all",
     counts: baseCounts,
     dateRange: allTimeRange,
+    progressionSummary,
   });
 
   assert.deepEqual(snapshot.metrics, [
@@ -84,6 +103,8 @@ test("account storage snapshot combines history and routine metrics for all scop
     { label: "History Sets", value: "455" },
     { label: "Stored Sets", value: "488" },
     { label: "Stored Progression Events", value: "16" },
+    { label: "Applied Promotions", value: "9" },
+    { label: "Progressed Exercises", value: "7" },
     { label: "Routines", value: "4" },
     { label: "Routine Days", value: "18" },
     { label: "Routine Exercises", value: "71" },

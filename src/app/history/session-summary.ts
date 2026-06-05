@@ -2,6 +2,7 @@ import type { SessionRow } from "@/types/db";
 import { formatSetDisplay } from "@/lib/formatting";
 import { formatPrBreakdown, type PrCountByCategory } from "@/lib/pr-evaluator";
 import { deriveSessionAnalytics } from "@/lib/session-analytics";
+import type { SessionProgressionSummary } from "@/lib/progression-lifeline-summary";
 
 export type SessionSummary = {
   id: string;
@@ -30,6 +31,7 @@ export type SessionSummary = {
   completionRate?: number;
   hasNote: boolean;
   hasSetData: boolean;
+  progressionSummary?: SessionProgressionSummary | null;
 };
 
 type SessionExerciseSummaryRow = {

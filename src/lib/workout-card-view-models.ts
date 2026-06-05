@@ -413,6 +413,31 @@ export function buildPlannedExerciseDetailMetrics(args: ExerciseIdentityChipArgs
 }
 
 function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily): MetricDatum[] {
+  if (row.progressionSummary?.eventCount) {
+    return [
+      {
+        label: "Sessions",
+        value: formatIntegerValue(row.sessionCount),
+        valueTone: row.sessionCount > 0 ? "default" : "muted",
+      },
+      {
+        label: "Sets",
+        value: formatIntegerValue(row.setCount ?? 0),
+        valueTone: positive(row.setCount) > 0 ? "default" : "muted",
+      },
+      {
+        label: "Promoted",
+        value: formatIntegerValue(row.progressionSummary.promotionCount),
+        valueTone: row.progressionSummary.promotionCount > 0 ? "success" : "muted",
+      },
+      {
+        label: "Current",
+        value: row.progressionSummary.currentTargetLabel ?? "No target",
+        valueTone: row.progressionSummary.currentTargetLabel ? "default" : "muted",
+      },
+    ];
+  }
+
   const recentLabel = family === "timed-hold" ? "Active" : "Recent";
   const trackingValue = family === "timed-hold" ? "Time" : "Review";
 
@@ -462,6 +487,10 @@ function buildHistoryExerciseBadgeItems(row: ExerciseBrowserRow) {
     items.push(`${formatIntegerValue(row.sessionsLast30Days ?? 0)} recent`);
   }
 
+  if (row.progressionSummary?.promotionCount) {
+    items.push(formatProgressionCountLabel(row.progressionSummary.promotionCount));
+  }
+
   if (row.prCount > 0) {
     items.push(`${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"}`);
   }
@@ -479,17 +508,29 @@ function buildHistoryExerciseBadgeItems(row: ExerciseBrowserRow) {
 
 function buildHistoryExerciseDetailedSections(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily) {
   if (row.detailSections && row.detailSections.length > 0) {
-    return row.detailSections;
+    if (!row.progressionSummary?.eventCount) {
+      return row.detailSections;
+    }
+
+    return row.detailSections.map((section) => (
+      section.title === "Progress"
+        ? {
+            title: "Progression",
+            items: [...section.items, ...(row.progressionSummary?.lifelineItems ?? [])]
+              .filter((value, index, values) => Boolean(value) && values.indexOf(value) === index)
+              .slice(0, 4),
+          }
+        : section
+    ));
   }
 
   const cleanedBest = row.bestSummary?.replace(/^Best\s*[:|]\s*/i, "").trim() || null;
-  const progressItems = row.deltaFromBest
-    ? [row.deltaFromBest]
-    : row.prCount > 0
-      ? [row.prLabel || `${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"} recorded`]
-      : row.last_performed_at
-        ? [`Last trained ${formatDateShort(row.last_performed_at)}`]
-        : ["No progression signal yet."];
+  const progressItems = [
+    row.deltaFromBest,
+    ...(row.progressionSummary?.lifelineItems ?? []),
+    row.prCount > 0 ? (row.prLabel || `${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"} recorded`) : null,
+    row.last_performed_at ? `Last trained ${formatDateShort(row.last_performed_at)}` : null,
+  ].filter((value, index, items): value is string => Boolean(value) && items.indexOf(value) === index);
 
   return [
     {
@@ -501,8 +542,8 @@ function buildHistoryExerciseDetailedSections(row: ExerciseBrowserRow, family: E
       items: [cleanedBest ?? (family === "timed-hold" ? "No best hold recorded yet." : "No best effort recorded yet.")],
     },
     {
-      title: "Progress",
-      items: progressItems,
+      title: row.progressionSummary?.eventCount ? "Progression" : "Progress",
+      items: progressItems.length > 0 ? progressItems.slice(0, 4) : ["No progression signal yet."],
     },
   ];
 }
@@ -510,6 +551,10 @@ function buildHistoryExerciseDetailedSections(row: ExerciseBrowserRow, family: E
 function buildHistoryExerciseComparison(row: ExerciseBrowserRow) {
   if (row.deltaFromBest) {
     return row.deltaFromBest;
+  }
+
+  if (row.progressionSummary?.latestChangeSummary) {
+    return row.progressionSummary.latestChangeSummary;
   }
 
   if (row.prCount > 0 && row.prLabel) {
@@ -521,6 +566,10 @@ function buildHistoryExerciseComparison(row: ExerciseBrowserRow) {
   }
 
   return null;
+}
+
+function formatProgressionCountLabel(count: number) {
+  return `${formatIntegerValue(count)} ${count === 1 ? "promotion" : "promotions"}`;
 }
 
 export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): HistoryExerciseCardViewModel {
@@ -583,7 +632,9 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
     }),
     badgeItems,
     badgeText: badgeItems[0],
-    detailedMetrics: row.detailedMetrics ?? buildHistoryExerciseDetailedMetrics(row, family),
+    detailedMetrics: row.progressionSummary?.eventCount
+      ? buildHistoryExerciseDetailedMetrics(row, family)
+      : (row.detailedMetrics ?? buildHistoryExerciseDetailedMetrics(row, family)),
     detailedSections: buildHistoryExerciseDetailedSections(row, family),
     semanticTone,
   };
@@ -606,6 +657,14 @@ function buildSessionOutcome(session: SessionSummary) {
 }
 
 function buildSessionProgress(session: SessionSummary, previousSession?: SessionSummary | null) {
+  if (session.progressionSummary?.promotionCount) {
+    return session.progressionSummary.headline ?? formatProgressionCountLabel(session.progressionSummary.promotionCount);
+  }
+
+  if (session.progressionSummary?.eventCount) {
+    return session.progressionSummary.headline ?? `${formatIntegerValue(session.progressionSummary.eventCount)} target updates`;
+  }
+
   if (session.prCounts.total > 0) {
     return `${session.prCounts.total} ${session.prCounts.total === 1 ? "PR" : "PRs"} this session`;
   }
@@ -634,7 +693,11 @@ function buildSessionCompactChips(session: SessionSummary, progress: string | nu
     chips.push({ label: duration, tone: "default" });
   }
 
-  chips.push({ label: formatCount(session.setCount, "set") });
+  if (session.progressionSummary?.promotionCount) {
+    chips.push({ label: formatProgressionCountLabel(session.progressionSummary.promotionCount), tone: "success" });
+  } else {
+    chips.push({ label: formatCount(session.setCount, "set") });
+  }
 
   if (progress) {
     chips.push({
@@ -649,6 +712,28 @@ function buildSessionCompactChips(session: SessionSummary, progress: string | nu
 }
 
 function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
+  if (session.progressionSummary?.eventCount) {
+    return [
+      {
+        label: "Exercises",
+        value: formatIntegerValue(session.exerciseCount),
+      },
+      {
+        label: "Sets",
+        value: formatIntegerValue(session.setCount),
+      },
+      {
+        label: "Updates",
+        value: formatIntegerValue(session.progressionSummary.eventCount),
+        valueTone: session.progressionSummary.promotionCount > 0 ? "success" : "default",
+      },
+      {
+        label: "Completion",
+        value: session.completionRate !== undefined ? formatPercent(session.completionRate) : (session.hasSetData ? "Logged" : "Open"),
+      },
+    ].slice(0, 4);
+  }
+
   return [
     {
       label: "Exercises",

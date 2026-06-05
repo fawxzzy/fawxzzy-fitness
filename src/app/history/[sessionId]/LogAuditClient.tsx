@@ -46,6 +46,7 @@ import { formatMeasurementSummaryItems, formatMeasurementSummaryText, formatSetP
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { cn } from "@/lib/cn";
 import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
 import type { SessionSummary } from "../session-summary";
 
@@ -80,6 +81,7 @@ type AuditExercise = {
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
   sets: AuditSet[];
 };
 
@@ -543,12 +545,14 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
 
 function FocusedExerciseOverviewCard({
   metrics,
+  progressionSummary,
   notesValue,
   isEditing,
   canEditNotes,
   noteInput,
 }: {
   metrics: MetricDatum[];
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
   notesValue: string;
   isEditing: boolean;
   canEditNotes: boolean;
@@ -556,6 +560,21 @@ function FocusedExerciseOverviewCard({
 }) {
   const hasNotes = notesValue.trim().length > 0;
   const shouldRenderNotes = isEditing ? canEditNotes && Boolean(noteInput) : hasNotes;
+  const progressionMetrics: MetricDatum[] = progressionSummary ? [
+    progressionSummary.currentTargetLabel ? { label: "Current", value: progressionSummary.currentTargetLabel } : null,
+    progressionSummary.firstTargetLabel ? { label: "Started", value: progressionSummary.firstTargetLabel } : null,
+    { label: "Promoted", value: `${progressionSummary.promotionCount}`, valueTone: progressionSummary.promotionCount > 0 ? "success" : "muted" },
+    progressionSummary.latestEventLabel ? {
+      label: "Latest",
+      value: progressionSummary.latestEventLabel,
+      timeframe: progressionSummary.latestChangeAt ? formatDateShort(progressionSummary.latestChangeAt) : null,
+    } : null,
+  ].filter((item): item is MetricDatum => Boolean(item)).slice(0, 4) : [];
+  const progressionItems = progressionSummary ? [
+    progressionSummary.latestChangeSummary ? `Latest change: ${progressionSummary.latestChangeSummary}` : null,
+    progressionSummary.timelineSummary ? `Lifeline: ${progressionSummary.timelineSummary}` : null,
+    progressionSummary.lastPromotionAt ? `Last promotion: ${formatDateShort(progressionSummary.lastPromotionAt)}` : null,
+  ].filter((item, index, values): item is string => Boolean(item) && values.indexOf(item) === index) : [];
 
   return (
     <div className="space-y-2 rounded-[1.08rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-3">
@@ -565,6 +584,32 @@ function FocusedExerciseOverviewCard({
         </p>
         <ExerciseSurfaceMetricGrid items={metrics} />
       </div>
+
+      {progressionMetrics.length > 0 || progressionItems.length > 0 ? (
+        <div className="space-y-1.5">
+          <MetricAccentBar variant="thin" className="opacity-85" />
+          <div className="space-y-2 px-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
+              Progression
+            </p>
+            {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} /> : null}
+            {progressionItems.length > 0 ? (
+              <div className="space-y-1.5">
+                {progressionItems.map((item, index) => (
+                  <div key={`${item}-${index}`} className="flex min-w-0 items-start gap-2.5">
+                    <div className="flex h-[1.05rem] shrink-0 items-center">
+                      <SignatureDot />
+                    </div>
+                    <p className="min-w-0 flex-1 text-[12.5px] leading-[1.35] text-[rgb(var(--text-primary)/0.94)] [text-wrap:pretty]">
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {shouldRenderNotes ? (
         <div className="space-y-1.5">
@@ -1078,6 +1123,7 @@ export function LogAuditClient({
                   <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
                     <FocusedExerciseOverviewCard
                       metrics={focusedDetailedMetrics ?? []}
+                      progressionSummary={expandedExercise.progressionSummary ?? null}
                       notesValue={focusedExerciseNotes}
                       isEditing={isEditing}
                       canEditNotes={!isFocusedSetExpanded}

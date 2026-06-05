@@ -23,6 +23,7 @@ import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/lib/exercise-stats";
 import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
 import { formatDateShort, formatWeight } from "@/lib/formatting";
+import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
@@ -33,6 +34,7 @@ import {
   formatEstimatedOneRepMax,
   type WorkoutCardPresentationKind,
 } from "@/lib/workout-card-view-models";
+import type { ProgressionEventRow } from "@/types/db";
 
 export type ExerciseInfoExercise = {
   id: string;
@@ -102,6 +104,7 @@ export type ExerciseStatsVM = {
     reviewSections: ExerciseInfoReviewSection[];
     performances: ExerciseProgressEntry[];
   };
+  progression?: ExerciseProgressionLifelineSummary | null;
 };
 
 export type ExerciseInfoPayload = {
@@ -479,6 +482,16 @@ async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string
     .eq("session_exercise.session.status", "completed");
 }
 
+async function loadExerciseProgressionEvents(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
+  const supabase = client ?? supabaseServer();
+
+  return supabase
+    .from("progression_events")
+    .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+    .eq("user_id", userId)
+    .eq("exercise_id", canonicalExerciseId);
+}
+
 async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string, client?: SupabaseClient): Promise<void> {
   const supabase = client ?? supabaseServer();
   const { data: orphanRows, error: orphanError } = await supabase
@@ -697,6 +710,34 @@ function buildQuickMetrics(args: {
       value: `${args.totalSets}`,
     },
   ] satisfies MetricDatum[];
+}
+
+function buildExerciseProgressionReviewItems(summary: ExerciseProgressionLifelineSummary | null) {
+  if (!summary) {
+    return [] as string[];
+  }
+
+  return [
+    summary.latestChangeSummary ? `Latest change: ${summary.latestChangeSummary}` : null,
+    summary.timelineSummary ? `Lifeline: ${summary.timelineSummary}` : null,
+    summary.promotionCount > 0 ? `${summary.promotionCount} ${summary.promotionCount === 1 ? "promotion" : "promotions"} applied.` : null,
+    summary.lastPromotionAt ? `Last promotion: ${formatDateShort(summary.lastPromotionAt)}` : null,
+  ].filter((item, index, items): item is string => Boolean(item) && items.indexOf(item) === index).slice(0, 4);
+}
+
+function appendProgressionReviewItems(
+  sections: ExerciseInfoReviewSection[],
+  progressionItems: string[],
+): ExerciseInfoReviewSection[] {
+  if (progressionItems.length === 0) {
+    return sections;
+  }
+
+  return sections.map((section) => (
+    section.title === "Progress"
+      ? { ...section, items: [...section.items, ...progressionItems].slice(0, 6) }
+      : section
+  ));
 }
 
 function buildStrengthPerformanceMetrics(args: {
@@ -1031,9 +1072,10 @@ export async function getExerciseInfoStats(
   client?: SupabaseClient,
 ): Promise<ExerciseStatsVM | null> {
   try {
-    const [statsLookup, historicalSetRows] = await Promise.all([
+    const [statsLookup, historicalSetRows, progressionEventRows] = await Promise.all([
       getExerciseStatsForExercise(userId, canonicalExerciseId, client),
       loadHistoricalSetRows(userId, canonicalExerciseId, client),
+      loadExerciseProgressionEvents(userId, canonicalExerciseId, client),
     ]);
 
     const statsLookupError: ExerciseStatsLookupError | null = statsLookup.error;
@@ -1046,6 +1088,9 @@ export async function getExerciseInfoStats(
     }
 
     let historicalRows = historicalSetRows.data ?? [];
+    const progressionSummary = buildExerciseProgressionLifelineSummary(
+      ((progressionEventRows.data ?? []) as ProgressionEventRow[]),
+    );
     if (!historicalRows.length) {
       await repairMissingExerciseIdLinks(userId, canonicalExerciseId, client);
       const repairedRows = await loadHistoricalSetRows(userId, canonicalExerciseId, client);
@@ -1214,6 +1259,7 @@ export async function getExerciseInfoStats(
         prCount: prCounts.total,
         progressMetrics,
       });
+      const progressionReviewItems = buildExerciseProgressionReviewItems(progressionSummary);
 
       return {
         exercise_id: canonicalExerciseId,
@@ -1241,9 +1287,10 @@ export async function getExerciseInfoStats(
         surfaceMetrics,
         progress: {
           metrics: progressMetrics,
-          reviewSections,
+          reviewSections: appendProgressionReviewItems(reviewSections, progressionReviewItems),
           performances: buildProgressEntries(performances),
         },
+        progression: progressionSummary,
       };
     }
 
@@ -1383,6 +1430,7 @@ export async function getExerciseInfoStats(
       prCount: 0,
       progressMetrics,
     });
+    const progressionReviewItems = buildExerciseProgressionReviewItems(progressionSummary);
 
     return {
       exercise_id: canonicalExerciseId,
@@ -1423,9 +1471,10 @@ export async function getExerciseInfoStats(
       surfaceMetrics,
       progress: {
         metrics: progressMetrics,
-        reviewSections,
+        reviewSections: appendProgressionReviewItems(reviewSections, progressionReviewItems),
         performances: buildProgressEntries(performances),
       },
+      progression: progressionSummary,
     };
   } catch (error) {
     console.warn("[exercise-info] non-fatal stats failure", {

@@ -1,4 +1,5 @@
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 
 export type HistoryAuditSet = {
   id: string;
@@ -23,6 +24,7 @@ export type HistoryAuditExercise = {
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
   sets: HistoryAuditSet[];
 };
 
@@ -103,6 +105,7 @@ export function normalizeHistoryAuditExercise(exercise: IncomingHistoryAuditExer
     notes: exercise.notes ?? null,
     measurement_type: exercise.measurement_type ?? "reps",
     default_unit: exercise.default_unit ?? null,
+    progressionSummary: exercise.progressionSummary ?? null,
     sets: rawSets
       .filter((set): set is IncomingHistoryAuditSet => isRecord(set))
       .map((set, setIndex) => normalizeHistoryAuditSet(set, setIndex)),

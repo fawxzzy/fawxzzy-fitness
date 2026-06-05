@@ -241,7 +241,7 @@ test("buildHistoryExerciseCardViewModel keeps bodyweight history cards on the sh
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Bodyweight", "Pull Up Bar", "Vertical Pull"]);
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Recent", "PRs"]);
   assert.deepEqual(viewModel.detailedSections.map((section) => section.title), ["Last", "Best", "Progress"]);
-  assert.deepEqual(viewModel.detailedSections[2]?.items, ["-3 reps vs best"]);
+  assert.deepEqual(viewModel.detailedSections[2]?.items, ["-3 reps vs best", "Rep PR", "Last trained Apr 8"]);
 });
 
 test("buildHistoryExerciseCardViewModel keeps cardio history cards on the shared identity and metric contract", () => {
@@ -396,6 +396,48 @@ test("buildHistoryExerciseCardViewModel falls back to the last-performed marker 
   assert.deepEqual(viewModel.detailedSections[2]?.items, ["Last trained Apr 10"]);
 });
 
+test("buildHistoryExerciseCardViewModel surfaces progression lifeline analytics when available", () => {
+  const viewModel = buildHistoryExerciseCardViewModel(makeExerciseBrowserRow({
+    name: "Back Squat",
+    equipment: "Barbell",
+    movement_pattern: "Squat",
+    primary_muscle: "Quads",
+    lastSummary: "225 lbs x 5",
+    bestSummary: "Best: 245 lbs x 3",
+    sessionCount: 14,
+    setCount: 58,
+    progressionSummary: {
+      eventCount: 3,
+      promotionCount: 2,
+      deloadCount: 0,
+      manualChangeCount: 1,
+      revertCount: 0,
+      lockInCount: 0,
+      linkedSessionCount: 3,
+      distinctExerciseCount: 1,
+      firstChangeAt: "2026-04-01T12:00:00.000Z",
+      latestChangeAt: "2026-05-01T12:00:00.000Z",
+      lastPromotionAt: "2026-05-01T12:00:00.000Z",
+      firstTargetLabel: "8 reps • 225 lbs",
+      currentTargetLabel: "12 reps • 235 lbs",
+      latestChangeSummary: "10 reps • 230 lbs -> 12 reps • 235 lbs",
+      latestEventLabel: "Promotion",
+      timelineSummary: "8 reps • 225 lbs -> 12 reps • 235 lbs",
+      lifelineItems: ["Latest: 10 reps • 230 lbs -> 12 reps • 235 lbs", "Lifeline: 8 reps • 225 lbs -> 12 reps • 235 lbs"],
+    },
+  }));
+
+  assert.equal(viewModel.comparison, "10 reps • 230 lbs -> 12 reps • 235 lbs");
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Promoted", "Current"]);
+  assert.equal(viewModel.detailedMetrics[2]?.value, "2");
+  assert.equal(viewModel.detailedMetrics[3]?.value, "12 reps • 235 lbs");
+  assert.equal(viewModel.detailedSections[2]?.title, "Progression");
+  assert.deepEqual(viewModel.detailedSections[2]?.items, [
+    "Latest: 10 reps • 230 lbs -> 12 reps • 235 lbs",
+    "Lifeline: 8 reps • 225 lbs -> 12 reps • 235 lbs",
+  ]);
+});
+
 test("buildHistoryExerciseCardViewModel promotes the top activity badge into plain language", () => {
   const viewModel = buildHistoryExerciseCardViewModel(makeExerciseBrowserRow({
     name: "Treadmill Run",
@@ -443,4 +485,30 @@ test("buildHistorySessionCardViewModel falls back to completion delta when there
 
   assert.equal(viewModel.progress, "+10% completion");
   assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "6 sets", "+10% completion"]);
+});
+
+test("buildHistorySessionCardViewModel prioritizes progression updates when a session applies promotions", () => {
+  const viewModel = buildHistorySessionCardViewModel(makeSessionSummary({
+    progressionSummary: {
+      eventCount: 2,
+      promotionCount: 2,
+      deloadCount: 0,
+      manualChangeCount: 0,
+      revertCount: 0,
+      lockInCount: 0,
+      linkedSessionCount: 1,
+      distinctExerciseCount: 2,
+      firstChangeAt: "2026-05-01T12:00:00.000Z",
+      latestChangeAt: "2026-05-01T12:00:00.000Z",
+      lastPromotionAt: "2026-05-01T12:00:00.000Z",
+      affectedExerciseNames: ["Back Squat", "Bench Press"],
+      headline: "2 promotions applied",
+      detail: "Back Squat, Bench Press",
+    },
+  }));
+
+  assert.equal(viewModel.progress, "2 promotions applied");
+  assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "2 promotions", "2 promotions applied"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Exercises", "Sets", "Updates", "Completion"]);
+  assert.equal(viewModel.detailedMetrics[2]?.value, "2");
 });

@@ -36,6 +36,19 @@ type ExportPreview = {
     empty: boolean;
   }>;
   includesProgressionEvents: boolean;
+  progressionSummary: {
+    eventCount: number;
+    promotionCount: number;
+    deloadCount: number;
+    manualChangeCount: number;
+    revertCount: number;
+    lockInCount: number;
+    linkedSessionCount: number;
+    distinctExerciseCount: number;
+    firstChangeAt: string | null;
+    latestChangeAt: string | null;
+    lastPromotionAt: string | null;
+  };
   counts: {
     sessions: number;
     completedSessions: number;
@@ -132,6 +145,7 @@ export function DataSettingsSection({
     if (exportPreview.scope === "history") {
       return [
         "History counts match visible History rules, while stored totals can include hidden QA/LLEL rows and in-progress sessions.",
+        `Progression lane: ${exportPreview.progressionSummary.promotionCount} promotions across ${exportPreview.progressionSummary.distinctExerciseCount} exercises.`,
         "Progression entries are stored separately and do not always map 1:1 to a visible session.",
         `Total stored history records: ${storageSnapshot.totalRecordCount}.`,
       ];
@@ -147,6 +161,7 @@ export function DataSettingsSection({
 
     return [
       "This snapshot combines visible history with stored routine totals.",
+      `Progression lane: ${exportPreview.progressionSummary.promotionCount} promotions across ${exportPreview.progressionSummary.distinctExerciseCount} exercises.`,
       "Stored totals can still include hidden QA/LLEL rows, in-progress sessions, and progression entries that do not map 1:1 to a visible session.",
       `Total stored records across both lanes: ${storageSnapshot.totalRecordCount}.`,
     ];

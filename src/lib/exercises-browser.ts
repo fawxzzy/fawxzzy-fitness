@@ -23,6 +23,8 @@ import { isStepDistanceUnit } from "@/lib/fitness-distance-units";
 import { chooseCardioBestMetric, getDisplayPace, isCardioMeasurementType, resolveEffectiveKind, shouldShowCardioBest } from "@/lib/cardio-best";
 import { aggregateCardioSessions, groupNormalizedSetsByExercise, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
 import { formatWeight } from "@/lib/formatting";
+import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
+import type { ProgressionEventRow } from "@/types/db";
 
 type ExerciseCatalogRow = {
   id: string;
@@ -95,6 +97,7 @@ export type ExerciseBrowserRow = {
   deltaFromBest: string | null;
   tagsSummary: string | null;
   analyticsFamily?: ExerciseAnalyticsFamily;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
 };
 
 function formatCompact(value: number) {
@@ -622,7 +625,7 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
     return [];
   }
 
-  const [{ data: statsRows, error: statsError }, { data: historySetRows, error: historySetError }] = await Promise.all([
+  const [{ data: statsRows, error: statsError }, { data: historySetRows, error: historySetError }, { data: progressionEventRows, error: progressionEventsError }] = await Promise.all([
     supabase
       .from("exercise_stats")
       .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, actual_pr_weight, actual_pr_reps, actual_pr_at")
@@ -635,6 +638,11 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
       .eq("session_exercise.user_id", userId)
       .in("session_exercise.exercise_id", canonicalIds)
       .eq("session_exercise.session.status", "completed"),
+    supabase
+      .from("progression_events")
+      .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+      .eq("user_id", userId)
+      .in("exercise_id", canonicalIds),
   ]);
 
   if (statsError) {
@@ -651,9 +659,18 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
   if (historySetError && !isRelationOrColumnMissing(historySetError)) {
     throw new Error(`failed to load exercise history sets: ${historySetError.message}`);
   }
+  if (progressionEventsError && !isRelationOrColumnMissing(progressionEventsError)) {
+    throw new Error(`failed to load exercise progression history: ${progressionEventsError.message}`);
+  }
 
   const statsByExerciseId = new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
   const setRowsByExerciseId = groupNormalizedSetsByExercise((historySetRows ?? []) as HistoricalSetRow[]);
+  const progressionEventsByExerciseId = new Map<string, ProgressionEventRow[]>();
+  for (const event of (progressionEventRows ?? []) as ProgressionEventRow[]) {
+    const current = progressionEventsByExerciseId.get(event.exercise_id) ?? [];
+    current.push(event);
+    progressionEventsByExerciseId.set(event.exercise_id, current);
+  }
   const prSets = [...setRowsByExerciseId.entries()].flatMap(([exerciseId, rows]) => (
     rows.map((row) => ({
       exerciseId,
@@ -919,6 +936,7 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
         deltaFromBest,
         tagsSummary: formatTagSummary(exercise),
         analyticsFamily,
+        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? []),
       };
 
       runDevExerciseBrowserVerification(nextRow);

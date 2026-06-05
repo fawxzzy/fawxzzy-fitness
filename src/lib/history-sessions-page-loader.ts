@@ -15,6 +15,7 @@ import {
   filterQaLlelRows,
   resolveShowQaLlelDataPreferenceWithOverride,
 } from "@/lib/qa-data-visibility";
+import { buildSessionProgressionSummary } from "@/lib/progression-lifeline-summary";
 import type { ProgressionEventRow, SessionExerciseRow, SessionRow } from "@/types/db";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
@@ -575,6 +576,15 @@ export async function loadHistorySessionsPageData({
   const progressionEvents = progressionEventRows
     .map(normalizeProgressionEventRow)
     .filter((row): row is ProgressionEventSummaryRow => Boolean(row));
+  const progressionEventsBySessionId = new Map<string, ProgressionEventSummaryRow[]>();
+  for (const event of progressionEvents) {
+    if (!event.source_session_id) {
+      continue;
+    }
+    const current = progressionEventsBySessionId.get(event.source_session_id) ?? [];
+    current.push(event);
+    progressionEventsBySessionId.set(event.source_session_id, current);
+  }
   const sessionExerciseIds = sessionExercises.map((row) => row.id);
   const exerciseIds = Array.from(new Set([
     ...sessionExercises.map((row) => row.exercise_id),
@@ -665,7 +675,7 @@ export async function loadHistorySessionsPageData({
       || (session.routine_day_index !== null ? `Day ${session.routine_day_index}` : null);
     const routineTitle = (session.routine_id ? routineNameById.get(session.routine_id) : null) ?? session.name;
 
-    return buildSessionSummary({
+    const baseSummary = buildSessionSummary({
       sessionRow: session,
       routineTitle,
       dayTitle,
@@ -677,6 +687,14 @@ export async function loadHistorySessionsPageData({
         .map((exerciseId) => exerciseNameById.get(exerciseId) ?? "")
         .filter(Boolean),
     });
+
+    return {
+      ...baseSummary,
+      progressionSummary: buildSessionProgressionSummary(
+        progressionEventsBySessionId.get(session.id) ?? [],
+        exerciseNameById,
+      ),
+    } satisfies SessionSummary;
   });
   const visibleSessionItems = profileSettings.showQaLlelData
     ? sessionItems

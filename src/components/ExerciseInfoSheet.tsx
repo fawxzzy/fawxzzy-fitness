@@ -20,6 +20,7 @@ import { cn } from "@/lib/cn";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import { getRecoveryExerciseFallbackDescription } from "@/lib/exercise-metadata";
+import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import { STRETCH_HUB_GUIDE_COPY, STRETCH_HUB_HERO_SRC, isStretchHubExercise } from "@/lib/stretch-library";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
@@ -86,6 +87,7 @@ export type ExerciseInfoSheetStats = {
       context?: string | null;
     }>;
   };
+  progression?: ExerciseProgressionLifelineSummary | null;
 };
 
 function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
@@ -388,6 +390,56 @@ function ExerciseInfoProgressReview({
   );
 }
 
+function ExerciseInfoProgressionPanel({
+  progression,
+}: {
+  progression: ExerciseProgressionLifelineSummary;
+}) {
+  const metrics: MetricDatum[] = [
+    progression.currentTargetLabel ? { label: "Current", value: progression.currentTargetLabel } : null,
+    progression.firstTargetLabel ? { label: "Started", value: progression.firstTargetLabel } : null,
+    { label: "Promoted", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
+    progression.latestEventLabel ? {
+      label: "Latest",
+      value: progression.latestEventLabel,
+      timeframe: progression.latestChangeAt ? formatDateShort(progression.latestChangeAt) : null,
+    } : null,
+  ].filter((item): item is MetricDatum => Boolean(item)).slice(0, 4);
+  const items = [
+    progression.latestChangeSummary ? `Latest change: ${progression.latestChangeSummary}` : null,
+    progression.timelineSummary ? `Lifeline: ${progression.timelineSummary}` : null,
+    progression.lastPromotionAt ? `Last promotion: ${formatDateShort(progression.lastPromotionAt)}` : null,
+  ].filter((item, index, values): item is string => Boolean(item) && values.indexOf(item) === index);
+
+  if (metrics.length === 0 && items.length === 0) {
+    return null;
+  }
+
+  return (
+    <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+      <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Progression</h3>
+      {metrics.length > 0 ? <ExerciseSurfaceMetricGrid items={metrics} /> : null}
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div
+              key={`${item}-${index}`}
+              className={cn(appTokens.detailHistoryRow, "flex min-w-0 items-start gap-2.5 px-2 py-2")}
+            >
+              <div className="flex h-[1.05rem] shrink-0 items-center">
+                <SignatureDot />
+              </div>
+              <p className={cn(appTokens.detailBodyText, "min-w-0 flex-1 text-[12.5px] leading-[1.24] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
+                {item}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </AppPanel>
+  );
+}
+
 export function ExerciseInfoSheet({
   exercise,
   stats,
@@ -486,6 +538,7 @@ export function ExerciseInfoSheet({
   const resolvedPortalTarget = portalTarget;
   const surfaceMetrics = stats?.surfaceMetrics ?? [];
   const reviewSections = stats?.progress.reviewSections ?? [];
+  const progression = stats?.progression ?? null;
 
   const sheetBody = (
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
@@ -532,6 +585,10 @@ export function ExerciseInfoSheet({
                         <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Progress</h3>
                         {statsLoading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview sections={reviewSections} />}
                       </AppPanel>
+                    ) : null}
+
+                    {!statsLoading && progression ? (
+                      <ExerciseInfoProgressionPanel progression={progression} />
                     ) : null}
 
                     {statsLoading || stats ? (

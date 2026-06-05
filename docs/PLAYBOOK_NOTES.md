@@ -469,3 +469,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Dropping zero-set or partially legacy exercises from detail makes the exercise count disagree with History, removes cards the user actually logged, and poisons recap or metric totals built from the reduced list.
 - Evidence: `src/app/history/[sessionId]/LogAuditClient.tsx`, `src/lib/history-session-detail-loader.ts`, `src/lib/history-session-detail-loader.test.ts`
 - Status: Proposed
+
+## 2026-06-05 - Progression analytics should be summarized once and reused across history-family surfaces
+- Type: Pattern
+- WHAT changed: Session history cards, exercise history cards, the exercise info sheet, logged-session exercise focus, and the account storage snapshot now all consume one shared progression lifeline summary built from `progression_events`, exposing promotion counts, target lifelines, latest target changes, and progressed-exercise rollups without each route inventing its own wording or counting rules.
+- WHY it changed: The app already stored progression events, but most history-family surfaces only showed performance metrics or readiness state, which made promotion history feel invisible and forced users to mentally reconstruct target changes from raw workouts instead of seeing a clean “started here -> moved here -> latest change” story.
+- Rule: When a surface needs promotion or target-evolution analytics, derive them from a shared progression-event summary layer before adding route-local counters or copy.
+- Pattern: load scoped progression events -> build shared session or exercise lifeline summary -> feed cards, detail panels, and account storage metrics from that same summary.
+- Failure Mode: Recomputing promotion analytics separately on each screen creates drift in counts, wording, and target labels, and makes account/export summaries disagree with history or exercise detail surfaces.
+- Evidence: `src/lib/progression-lifeline-summary.ts`, `src/lib/history-sessions-page-loader.ts`, `src/lib/exercises-browser.ts`, `src/lib/exercise-info.ts`, `src/app/history/[sessionId]/page.tsx`
+- Status: Proposed

@@ -21,8 +21,12 @@ import {
 } from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import {
+  buildExerciseProgressionLifelineSummary,
+  buildSessionProgressionSummary,
+} from "@/lib/progression-lifeline-summary";
 import { buildWorkoutRecapArtifact } from "@/lib/workout-recap";
-import type { SessionRow, SetRow } from "@/types/db";
+import type { ProgressionEventRow, SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
@@ -217,8 +221,22 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       }];
     });
     const { sessionCountsById, sessionPrExerciseIdsById } = evaluatePrSummaries(prEvaluationSets);
+    const { data: progressionEventRows } = exerciseIds.length
+      ? await supabase
+        .from("progression_events")
+        .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+        .eq("user_id", user.id)
+        .in("exercise_id", exerciseIds)
+      : { data: [] };
+    const progressionEvents = (progressionEventRows ?? []) as ProgressionEventRow[];
+    const progressionEventsByExerciseId = new Map<string, ProgressionEventRow[]>();
+    for (const event of progressionEvents) {
+      const current = progressionEventsByExerciseId.get(event.exercise_id) ?? [];
+      current.push(event);
+      progressionEventsByExerciseId.set(event.exercise_id, current);
+    }
 
-    const sessionSummary = buildSessionSummary({
+    const sessionSummaryBase = buildSessionSummary({
       sessionRow,
       routineTitle,
       dayTitle: effectiveDayName,
@@ -234,6 +252,13 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         .map((exerciseId) => exerciseNameMap.get(exerciseId) ?? "")
         .filter(Boolean),
     });
+    const sessionSummary = {
+      ...sessionSummaryBase,
+      progressionSummary: buildSessionProgressionSummary(
+        progressionEvents.filter((event) => event.source_session_id === sessionRow.id),
+        exerciseNameMap,
+      ),
+    };
     const clientExercises = toClientPlainObject(orderedSessionExercises.map((exercise) => {
       const exerciseId = String(exercise.exercise_id);
       const metadata = exerciseMetadataById.get(exerciseId);
@@ -254,6 +279,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         notes: exercise.notes,
         measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
         default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
+        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? []),
         sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
           id: set.id,
           set_index: set.set_index,

@@ -176,6 +176,7 @@ test("preview includes progression events and clean section labels", () => {
   });
 
   assert.equal(preview.includesProgressionEvents, true);
+  assert.equal(preview.progressionSummary.promotionCount, 1);
   assert.deepEqual(
     preview.tables.map((table) => table.name),
     [
@@ -268,5 +269,6 @@ test("preview reports exact payload counts without mutating export truth", () =>
   });
 
   assert.equal(preview.counts.progressionEvents, 1);
+  assert.equal(preview.progressionSummary.distinctExerciseCount, 1);
   assert.deepEqual(payload, before);
 });

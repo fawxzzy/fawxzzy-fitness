@@ -35,6 +35,8 @@ function buildSessionSearchText(session: SessionSummary) {
     session.bestLift?.exerciseName,
     session.bestLift?.display,
     session.prLabel,
+    session.progressionSummary?.headline,
+    session.progressionSummary?.detail,
     ...(session.exerciseNames ?? []),
   ]
     .filter((value): value is string => Boolean(value?.trim()))
@@ -137,6 +139,9 @@ export function HistorySessionsClient({
       if (session.prCounts.total > 0) {
         tags.add("highlight:prs");
       }
+      if (session.progressionSummary?.promotionCount) {
+        tags.add("highlight:progressed");
+      }
       if (session.hasNote) {
         tags.add("highlight:notes");
       }
@@ -169,6 +174,9 @@ export function HistorySessionsClient({
       }
       if (session.prCounts.total > 0) {
         highlights.set("highlight:prs", "PRs");
+      }
+      if (session.progressionSummary?.promotionCount) {
+        highlights.set("highlight:progressed", "Progressed");
       }
       if (session.hasNote) {
         highlights.set("highlight:notes", "Notes");

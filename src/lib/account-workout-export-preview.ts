@@ -8,6 +8,7 @@ import {
   type AccountWorkoutExportScope,
   type AccountWorkoutExportSectionKey,
 } from "@/lib/account-workout-export";
+import { buildProgressionAnalyticsDigest, type ProgressionAnalyticsDigest } from "@/lib/progression-lifeline-summary";
 
 export type AccountWorkoutExportPreviewTable = {
   key: AccountWorkoutExportSectionKey;
@@ -28,6 +29,7 @@ export type AccountWorkoutExportPreview = {
   };
   tables: AccountWorkoutExportPreviewTable[];
   includesProgressionEvents: boolean;
+  progressionSummary: ProgressionAnalyticsDigest;
   counts: AccountWorkoutExportPayload["metadata"]["counts"] & {
     visibleCompletedSessions?: number;
     hiddenQaCompletedSessions?: number;
@@ -99,6 +101,7 @@ export function buildAccountWorkoutExportPreview(args: {
     },
     tables,
     includesProgressionEvents: sections.some((section) => section.key === "historyProgressionEvents"),
+    progressionSummary: buildProgressionAnalyticsDigest(payload.progressionEvents),
     counts: payload.metadata.counts,
   };
 }

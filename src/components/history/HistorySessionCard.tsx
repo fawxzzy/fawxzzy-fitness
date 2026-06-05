@@ -281,6 +281,41 @@ function renderBestLift(bestLift: SessionSummary["bestLift"]) {
   );
 }
 
+function renderProgressionSummary(session: SessionSummary) {
+  const summary = session.progressionSummary;
+  if (!summary || summary.eventCount === 0) {
+    return null;
+  }
+
+  const items = [
+    summary.headline,
+    summary.detail && summary.detail !== summary.headline ? summary.detail : null,
+    summary.lastPromotionAt ? `Last promotion ${formatDateShort(summary.lastPromotionAt)}` : null,
+  ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
+      <div className="w-full space-y-1">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+          Progression
+        </p>
+        <div className="space-y-1.5 pl-px">
+          {items.map((item, index) => (
+            <div key={`${item}-${index}`} className="inline-flex min-w-0 items-center gap-2">
+              <SignatureDot />
+              <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatDateBadgeText(session: SessionSummary) {
   return formatDateShort(session.startedAt).toUpperCase();
 }
@@ -412,6 +447,7 @@ export function HistorySessionCard({
           <div className={cn("pt-[0.45rem]", showDetailedDivider ? THIN_SECTION_TOP_DIVIDER_CLASS_NAME : undefined)}>
             <HistorySessionDetailedMetricGrid items={resolvedDetailedMetrics} />
           </div>
+          {renderProgressionSummary(session)}
           {renderSessionExerciseRecap(session.exerciseNames ?? [])}
           {renderPrExerciseList(resolvedPrExerciseNames)}
           {renderBestLift(session.bestLift)}
