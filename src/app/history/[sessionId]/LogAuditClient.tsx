@@ -657,8 +657,10 @@ export function LogAuditClient({
 
     const syncViewportHeight = () => {
       const nextViewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const dockHeightValue = window.getComputedStyle(node).getPropertyValue("--app-mobile-bottom-dock-height");
-      const dockHeight = Number.parseFloat(dockHeightValue) || 0;
+      const computedStyle = window.getComputedStyle(node);
+      const dockHeightValue = computedStyle.getPropertyValue("--bottom-actions-height");
+      const fallbackDockHeightValue = computedStyle.getPropertyValue("--app-mobile-bottom-dock-height");
+      const dockHeight = Number.parseFloat(dockHeightValue) || Number.parseFloat(fallbackDockHeightValue) || 0;
       const topOffset = node.getBoundingClientRect().top;
       const dockGap = dockHeight > 0 ? 12 : 4;
       const availableHeight = Math.max(0, Math.floor(nextViewportHeight - topOffset - dockHeight - dockGap));
@@ -669,10 +671,23 @@ export function LogAuditClient({
 
     window.addEventListener("resize", syncViewportHeight);
     window.visualViewport?.addEventListener("resize", syncViewportHeight);
+    const layoutObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(() => {
+          syncViewportHeight();
+        });
+
+    if (layoutObserver) {
+      layoutObserver.observe(node);
+      if (node.parentElement) {
+        layoutObserver.observe(node.parentElement);
+      }
+    }
 
     return () => {
       window.removeEventListener("resize", syncViewportHeight);
       window.visualViewport?.removeEventListener("resize", syncViewportHeight);
+      layoutObserver?.disconnect();
     };
   }, [displayExercises.length, expandedExercise, expandedExerciseId, expandedSetId, isEditing, sessionNotes]);
 
@@ -986,7 +1001,7 @@ export function LogAuditClient({
       <div
         ref={exerciseViewportRef}
         className={cn(
-          "relative left-1/2 w-[calc(100vw-22px)] max-w-[calc(100vw-22px)] -translate-x-1/2 md:left-auto md:w-auto md:max-w-none md:translate-x-0",
+          "sticky left-1/2 w-[calc(100vw-22px)] max-w-[calc(100vw-22px)] -translate-x-1/2 bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.75rem)] md:static md:left-auto md:w-auto md:max-w-none md:translate-x-0",
           isEditing ? "mt-5" : undefined,
         )}
       >
