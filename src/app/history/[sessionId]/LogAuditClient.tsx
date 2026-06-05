@@ -687,7 +687,7 @@ export function LogAuditClient({
       window.removeEventListener("resize", syncViewportHeight);
       window.visualViewport?.removeEventListener("resize", syncViewportHeight);
     };
-  }, [displayExercises.length, expandedExerciseId, expandedSetId, isEditing, sessionNotes]);
+  }, [displayExercises.length, expandedExercise, expandedExerciseId, expandedSetId, isEditing, sessionNotes]);
 
   useEffect(() => {
     const node = exerciseViewportRef.current;
