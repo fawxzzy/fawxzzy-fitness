@@ -450,6 +450,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Letting users create messages or threads in `#verify` turns access setup into clutter and makes the server feel unpolished.
 - Status: Proposed
 
+<<<<<<< HEAD
 ## 2026-06-05 - Logged session exercise lanes should reuse the progression scroll-box shell
 - Type: Pattern
 - WHAT changed: The history/logged-session detail route now wraps the lower exercise-card lane in the same bounded glass scroll-box treatment used by progression measurement panels, sizes that viewport from a stable wrapper in normal page flow, keeps the sticky shell pinned above the bottom action dock, swaps the expanded state to a focused exercise overview card that reuses the exercise-info metric grid styling for session-specific stats, and folds exercise notes into that same overview card instead of a separate footer lane.
@@ -490,12 +491,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: `src/components/ui/MetricItem.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/history/HistoryExerciseCard.tsx`, `src/components/history/HistoryDetailExerciseCard.tsx`, `src/components/history/WeeklyProgressSurface.tsx`, `src/components/history/ThirtyDayHistorySurface.tsx`, `src/components/settings/DataSettingsSection.tsx`
 - Status: Proposed
 
-## 2026-06-05 - Exercise-card media should use one shared rail size across core workout surfaces
+## 2026-06-05 - Core exercise cards should use a full-height, accent-safe media rail
 - Type: Pattern
-- WHAT changed: Today, current-session, view-day, edit-day, reorder, history-browser, and history-detail exercise cards now resolve their media rail width from one shared standard `68px` card-media size instead of mixing smaller Today rails with oversized history-specific image blocks, while history-detail-only inset imagery can still scale separately when the layout explicitly gives it room.
-- WHY it changed: The app had drifted into multiple image scales for the same exercise-card family, which made logged-session and history cards feel visually off even though they shared the same underlying row primitive. A larger shared rail also made compact history rows feel image-heavy and squeezed the text lane, so the normalized family needed a tighter default and a separate opt-in for detail-only enlargement.
-- Rule: If a surface is part of the core exercise-card family, derive image size from the shared workout-card surface policy before introducing a route-local media width.
-- Pattern: shared exercise-card primitive -> shared surface media policy -> route-specific data only.
-- Failure Mode: Hardcoding history-only image rails makes cards look like different products, weakens shared-card maintenance, and turns simple media tweaks into per-screen patchwork.
-- Evidence: `src/lib/workout-card-surface-policy.ts`, `src/components/history/HistoryExerciseCard.tsx`, `src/components/history/HistoryDetailExerciseCard.tsx`, `src/app/history/[sessionId]/LogAuditClient.tsx`
+- WHAT changed: Core exercise-card surfaces now share one wider `84px` media rail, the rail itself keeps a small left inset so the accent strip stays visible, and row-card exercise art no longer gets extra vertical contain padding that shrinks it away from the top and bottom edges.
+- WHY it changed: History compact cards had drifted into visibly undersized exercise art, and inconsistent per-surface rail widths made the same exercise-card family feel unrelated across Today, history, current-session, and edit-day surfaces. The added inset preserves the accent strip without forcing history-only wrapper hacks.
+- Rule: If an exercise card is part of the core row-card family, its image should fill the rail vertically and derive width from the shared surface policy instead of a surface-local square inset treatment.
+- Pattern: shared row-card shell -> shared `84px` rail -> accent-safe left inset -> top-to-bottom exercise art -> text column shifted only by the shared rail width.
+- Failure Mode: Inset square media treatments make history cards feel smaller than the rest of the app, waste left-side card space, and cause repeated one-off fixes whenever image scale changes.
+- Evidence: `src/components/ExerciseCard.tsx`, `src/components/exercises/ExerciseThumb.tsx`, `src/lib/workout-card-surface-policy.ts`
 - Status: Proposed

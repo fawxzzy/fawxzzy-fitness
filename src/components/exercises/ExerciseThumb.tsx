@@ -59,14 +59,17 @@ function RailAssetPanel({
   asset,
   alt,
   sizes,
+  intent,
   className,
 }: {
   asset: ExerciseThumbRailAsset;
   alt: string;
   sizes: string;
+  intent: ExerciseThumbIntent;
   className?: string;
 }) {
   const usesCover = asset.fit === "cover";
+  const usesRowCardContainLayout = !usesCover && intent === "row-card";
 
   return (
     <div
@@ -83,7 +86,11 @@ function RailAssetPanel({
         className="h-full w-full"
         imageClassName={cn(
           "absolute inset-0 h-full w-full object-center",
-          usesCover ? "object-cover" : "object-contain p-[12%]",
+          usesCover
+            ? "object-cover"
+            : usesRowCardContainLayout
+              ? "object-contain px-[4%] py-0"
+              : "object-contain p-[12%]",
         )}
         sizes={sizes}
         fit={asset.fit}
@@ -145,11 +152,12 @@ export function ExerciseThumb({
     if (railSpec.layout === "dual" && railSpec.assets.length > 1) {
       return (
         <div className={cn(wrapperClassName, "grid grid-rows-2 bg-[rgb(var(--surface-2-rgb)/0.92)]")}>
-          <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} />
+          <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} intent={intent} />
           <RailAssetPanel
             asset={railSpec.assets[1]}
             alt={alt ?? ""}
             sizes={sizes ?? `${resolvedRailWidth}px`}
+            intent={intent}
             className="border-t border-[rgb(var(--accent-divider-rgb)/0.18)]"
           />
         </div>
@@ -158,7 +166,7 @@ export function ExerciseThumb({
 
     return (
       <div className={cn(wrapperClassName, "bg-[rgb(var(--surface-2-rgb)/0.92)]")}>
-        <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} />
+        <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} intent={intent} />
       </div>
     );
   }
