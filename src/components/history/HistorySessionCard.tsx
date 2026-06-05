@@ -323,6 +323,10 @@ export type HistorySessionDetailSection = {
 
 function renderHistorySessionDetailSections(sections: HistorySessionDetailSection[]) {
   return sections.map((section) => {
+    if (!section || typeof section.title !== "string" || !Array.isArray(section.items)) {
+      return null;
+    }
+
     const items = section.items.filter(Boolean);
     if (items.length === 0) {
       return null;
@@ -370,18 +374,18 @@ function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExe
           items: session.exerciseNames,
         }]
       : []),
-    [{
+    {
       title: "PRs",
       items: prExerciseNames.length > 0
         ? prExerciseNames
         : ["No PRs recorded in this session."],
-    }],
-    [{
+    },
+    {
       title: "Best",
       items: session.bestLift
         ? [`${session.bestLift.exerciseName} | ${session.bestLift.display}`]
         : ["No best lift recorded in this session."],
-    }],
+    },
   ];
 }
 
