@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BackButton } from "@/components/ui/BackButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
@@ -117,14 +118,28 @@ export function HistoryControlPanel({ children, className }: { children: ReactNo
 export function HistoryRouteErrorShell({
   title,
   caption,
+  backHref,
+  backLabel = "Back",
 }: {
   title: string;
   caption: string;
+  backHref?: string;
+  backLabel?: string;
 }) {
   return (
     <AppPanel className={appTokens.historyRouteMessage}>
       <p className={appTokens.historyRouteMessageTitle}>{title}</p>
       <p className={appTokens.historyRouteMessageCaption}>{caption}</p>
+      {backHref ? (
+        <div className="pt-3">
+          <BackButton
+            href={backHref}
+            label={backLabel}
+            ariaLabel={backLabel}
+            historyBehavior="fallback-only"
+          />
+        </div>
+      ) : null}
     </AppPanel>
   );
 }

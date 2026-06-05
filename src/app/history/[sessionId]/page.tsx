@@ -117,11 +117,13 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       notFound();
     }
 
+    const sessionRow = session;
+
     const historyDetailRowsPromise = loadHistoryDetailRows({
       supabase,
-      sessionId: session.id,
+      sessionId: sessionRow.id,
       userId: user.id,
-      sessionFound: Boolean(session),
+      sessionFound: true,
     });
     const routineDayPromise = sessionRow.routine_id && typeof sessionRow.routine_day_index === "number"
       ? supabase
@@ -164,8 +166,6 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       current.push(set);
       setsByExercise.set(set.session_exercise_id, current);
     }
-
-    const sessionRow = session;
 
     const exerciseNameRecord = Object.fromEntries(exerciseNameMap.entries());
     const routineTitle = routineName ?? "Session";
@@ -351,6 +351,8 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         <HistoryRouteErrorShell
           title="Unable to load this session right now."
           caption="Please go back to History and try again in a moment."
+          backHref="/history?tab=sessions"
+          backLabel="Back to History"
         />
       </HistoryRouteScaffold>
     );
