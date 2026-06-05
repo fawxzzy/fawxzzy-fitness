@@ -39,6 +39,8 @@ type HistoryDetailExerciseCardProps = {
   showLeadingVisual?: boolean;
 };
 
+const HISTORY_DETAIL_SQUARE_MEDIA_CLASS_NAME = "!my-0 !h-[88px] !min-h-0 !w-[88px] !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]";
+
 export function HistoryDetailExerciseCard({
   exercise,
   summary,
@@ -106,7 +108,7 @@ export function HistoryDetailExerciseCard({
         titleContainerClassName={density === "compact" ? "pr-[5.3rem]" : "pr-[2.35rem] space-y-0.5"}
         rightRailClassName={density === "compact" ? "right-[0.78rem] bottom-[0.58rem] top-auto translate-y-0" : "right-[0.85rem] top-1/2 -translate-y-1/2"}
         trailingStackClassName={density === "compact" ? "items-end justify-end" : "h-4.5 w-4.5"}
-        mediaClassName={mediaClassName}
+        mediaClassName={cn(HISTORY_DETAIL_SQUARE_MEDIA_CLASS_NAME, mediaClassName)}
         contentClassName="pl-1.5"
         titleClassName="max-[380px]:line-clamp-3 [text-wrap:pretty]"
         subtitleClassName="[text-wrap:pretty] text-[rgb(var(--text-secondary)/0.9)]"

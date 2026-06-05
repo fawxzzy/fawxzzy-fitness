@@ -11,6 +11,8 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
+const HISTORY_EXERCISE_MEDIA_SIZE = 88;
+const HISTORY_EXERCISE_SQUARE_MEDIA_CLASS_NAME = "!my-0 !h-[88px] !min-h-0 !w-[88px] !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]";
 
 function renderMetaBadge(value: string) {
   return (
@@ -273,7 +275,7 @@ export function HistoryExerciseCard({
               </div>
             ) : null}
             {detailSections.length > 0 ? (
-              <div className="grid grid-cols-[minmax(0,1fr)_72px] items-stretch gap-x-0 pt-0.5">
+              <div className="grid grid-cols-[minmax(0,1fr)_88px] items-start gap-x-0 pt-0.5">
                 <div className="min-w-0 pr-2.5">
                   {detailSections.map((section) => (
                     <div key={section.title}>
@@ -281,15 +283,15 @@ export function HistoryExerciseCard({
                     </div>
                   ))}
                 </div>
-                <div className="pointer-events-none -mb-[var(--exercise-row-shell-padding-y-detailed)] -mr-[var(--exercise-row-shell-padding-x)] self-stretch overflow-hidden rounded-tl-[0.95rem] border-l border-t border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.94)] shadow-none">
+                <div className="pointer-events-none ml-auto self-start overflow-hidden rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.94)] shadow-none">
                   <ExerciseThumb
                     exercise={resolvedExercise}
                     detailed={false}
                     layout="rail"
-                    railWidth={72}
-                    sizes="72px"
+                    railWidth={HISTORY_EXERCISE_MEDIA_SIZE}
+                    sizes={`${HISTORY_EXERCISE_MEDIA_SIZE}px`}
                     intent="row-card"
-                    className="h-full w-full rounded-none"
+                    className="h-[88px] w-[88px] rounded-none"
                   />
                 </div>
               </div>
@@ -313,8 +315,8 @@ export function HistoryExerciseCard({
             exercise={resolvedExercise}
             detailed={false}
             layout="rail"
-            railWidth={72}
-            sizes="72px"
+            railWidth={HISTORY_EXERCISE_MEDIA_SIZE}
+            sizes={`${HISTORY_EXERCISE_MEDIA_SIZE}px`}
             intent="row-card"
           />
         }
@@ -323,6 +325,8 @@ export function HistoryExerciseCard({
         variant="interactive"
         density="compact"
         semanticTone={tone}
+        mediaRailWidth={HISTORY_EXERCISE_MEDIA_SIZE}
+        mediaClassName={HISTORY_EXERCISE_SQUARE_MEDIA_CLASS_NAME}
         contentClassName="pl-1.5"
         titleClassName="[text-wrap:pretty]"
         subtitleLabel={resolvedSubtitleLabel}
