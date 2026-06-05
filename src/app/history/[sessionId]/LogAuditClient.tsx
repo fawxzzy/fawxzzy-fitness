@@ -1062,7 +1062,7 @@ export function LogAuditClient({
                       data-history-exercise-scroll-region="true"
                       className={cn(
                         "hide-scrollbar min-h-0 flex-1 overscroll-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                        expandedExercise ? "overflow-hidden" : "overflow-y-auto px-0 pb-1 pt-0.5",
+                        expandedExercise ? "h-full overflow-hidden" : "overflow-y-auto px-0 pb-1 pt-0.5",
                       )}
                     >
                       {!expandedExercise && displayExercises.length === 0 ? (
@@ -1170,10 +1170,10 @@ export function LogAuditClient({
                     </div>
                   ) : null}
 
-                  <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+                  <div className="grid h-full min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
                     <div
                       data-history-exercise-scroll-region="true"
-                      className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+                      className="min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
                     >
                       {expandedSet && isEditing ? (
                         <div className="px-0 pb-0 pt-2">
@@ -1253,7 +1253,7 @@ export function LogAuditClient({
                     </div>
 
                     {isEditing ? (
-                      <div className="-mx-4 mt-auto shrink-0 bg-transparent px-4 pb-1 pt-0.5">
+                      <div className="-mx-4 row-start-2 shrink-0 self-end bg-transparent px-4 pb-1 pt-0.5">
                         {!expandedSet ? (
                           <label className="block">
                             <LabeledEditorField label="Exercise notes">
@@ -1275,7 +1275,7 @@ export function LogAuditClient({
                         ) : null}
                       </div>
                     ) : notesValue.trim() ? (
-                      <div className="mt-auto shrink-0 px-4 pb-1 pt-0.5">
+                      <div className="row-start-2 shrink-0 self-end px-4 pb-1 pt-0.5">
                         <p className={appTokens.historyNotesCaption}>Notes: {notesValue}</p>
                       </div>
                     ) : null}
