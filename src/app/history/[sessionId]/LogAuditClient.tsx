@@ -663,21 +663,32 @@ export function LogAuditClient({
       const dockHeightValue = window.getComputedStyle(node).getPropertyValue("--app-mobile-bottom-dock-height");
       const dockHeight = Number.parseFloat(dockHeightValue) || 0;
       const topOffset = node.getBoundingClientRect().top;
-      const dockReserve = Math.max(dockHeight - 4, 0);
-      const availableHeight = Math.max(260, Math.floor(nextViewportHeight - topOffset - dockReserve - 4));
-      setExerciseViewportHeight(availableHeight);
+      const contentShell = node.querySelector("[data-history-exercise-shell='true']");
+      const shellHeight = contentShell instanceof HTMLElement ? contentShell.scrollHeight : 0;
+      const dockGap = dockHeight > 0 ? 12 : 4;
+      const availableHeight = Math.max(0, Math.floor(nextViewportHeight - topOffset - dockHeight - dockGap));
+      const nextHeight = shellHeight > 0 ? Math.min(shellHeight, availableHeight) : availableHeight;
+      setExerciseViewportHeight(nextHeight > 0 ? nextHeight : null);
     };
 
     syncViewportHeight();
+
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncViewportHeight) : null;
+    resizeObserver?.observe(node);
+    const contentShell = node.querySelector("[data-history-exercise-shell='true']");
+    if (contentShell instanceof HTMLElement) {
+      resizeObserver?.observe(contentShell);
+    }
 
     window.addEventListener("resize", syncViewportHeight);
     window.visualViewport?.addEventListener("resize", syncViewportHeight);
 
     return () => {
+      resizeObserver?.disconnect();
       window.removeEventListener("resize", syncViewportHeight);
       window.visualViewport?.removeEventListener("resize", syncViewportHeight);
     };
-  }, [displayExercises.length, expandedExerciseId, isEditing, sessionNotes]);
+  }, [displayExercises.length, expandedExerciseId, expandedSetId, isEditing, sessionNotes]);
 
   useEffect(() => {
     const node = exerciseViewportRef.current;
@@ -994,7 +1005,7 @@ export function LogAuditClient({
         )}
       >
         <div
-          className="relative flex min-h-[18rem] w-full flex-col overflow-hidden border-0 bg-transparent md:rounded-[1.5rem]"
+          className="relative flex min-h-0 w-full flex-col overflow-hidden border-0 bg-transparent md:rounded-[1.5rem]"
           style={exerciseViewportHeight ? { height: `${exerciseViewportHeight}px` } : undefined}
         >
           {exerciseViewportMeta.caption ? (
@@ -1021,7 +1032,10 @@ export function LogAuditClient({
                 "overflow-hidden",
               )}
             >
-              <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1">
+              <div
+                data-history-exercise-shell="true"
+                className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1"
+              >
                 {!isEditing && !expandedExercise ? (
                   <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
                     <HistorySessionCard
