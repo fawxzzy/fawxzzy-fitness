@@ -975,19 +975,6 @@ export function LogAuditClient({
         )
         : null}
 
-      {!isEditing && expandedExercise ? (
-        <HistorySessionCard
-          session={focusedSessionSummary}
-          viewMode="detailed"
-          rightIcon={null}
-          className="mt-1.5"
-          prExerciseNames={exerciseViewportMeta.prNames}
-          detailedMetrics={focusedDetailedMetrics}
-          detailedHeaderMode="hidden"
-          showDetailedDivider={false}
-        />
-      ) : null}
-
       {!isEditing && recapArtifact ? (
         <WorkoutRecapCard recap={recapArtifact} />
       ) : null}
@@ -1001,12 +988,12 @@ export function LogAuditClient({
       <div
         ref={exerciseViewportRef}
         className={cn(
-          "sticky left-1/2 w-[calc(100vw-22px)] max-w-[calc(100vw-22px)] -translate-x-1/2 bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.75rem)] md:static md:left-auto md:w-auto md:max-w-none md:translate-x-0",
+          "relative left-1/2 w-[calc(100vw-22px)] max-w-[calc(100vw-22px)] -translate-x-1/2 md:left-auto md:w-auto md:max-w-none md:translate-x-0",
           isEditing ? "mt-5" : undefined,
         )}
       >
         <div
-          className="relative flex min-h-0 w-full flex-col overflow-hidden border-0 bg-transparent md:rounded-[1.5rem]"
+          className="sticky bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))+0.75rem)] relative flex min-h-0 w-full flex-col overflow-hidden border-0 bg-transparent md:static md:rounded-[1.5rem]"
           style={exerciseViewportHeight ? { height: `${exerciseViewportHeight}px` } : undefined}
         >
           {exerciseViewportMeta.caption ? (
@@ -1037,7 +1024,7 @@ export function LogAuditClient({
                 data-history-exercise-shell="true"
                 className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1"
               >
-                {!isEditing && !expandedExercise ? (
+                {!isEditing ? (
                   <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
                     <HistorySessionCard
                       session={focusedSessionSummary}
