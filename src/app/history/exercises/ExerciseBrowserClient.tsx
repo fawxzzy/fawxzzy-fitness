@@ -22,6 +22,7 @@ import {
   buildScopedExerciseCurationTagValue,
 } from "@/lib/exercise-curation";
 import { getStretchHubMetaItems, isStretchHubExercise } from "@/lib/stretch-library";
+import { buildExerciseInfoSeedFromHistoryRow } from "@/lib/exercise-info-history-seed";
 import { buildExerciseMetricTagGroup, buildExerciseMetricTagValues } from "@/lib/history-metric-filters";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
 
@@ -268,6 +269,10 @@ export function ExerciseBrowserClient({
     () => (selectedExerciseId ? rows.find((row) => row.exerciseId === selectedExerciseId) ?? null : null),
     [rows, selectedExerciseId],
   );
+  const selectedExerciseInfoSeed = useMemo(
+    () => (selectedRow ? buildExerciseInfoSeedFromHistoryRow(selectedRow) : null),
+    [selectedRow],
+  );
   const [floatingHeaderContainer, setFloatingHeaderContainer] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -325,6 +330,8 @@ export function ExerciseBrowserClient({
 
       <ExerciseInfo
         exerciseId={selectedRow?.exerciseId ?? null}
+        initialExercise={selectedExerciseInfoSeed?.exercise ?? null}
+        initialStats={selectedExerciseInfoSeed?.stats ?? null}
         open={Boolean(selectedRow)}
         onOpenChange={(open) => {
           if (!open) {

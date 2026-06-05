@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { ExerciseInfoSheet, type ExerciseInfoSheetExercise, type ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
 import { useToast } from "@/components/ui/ToastProvider";
+import {
+  readExerciseInfoClientPayload,
+  shouldFetchExerciseInfoClientPayload,
+  writeExerciseInfoClientPayload,
+} from "@/lib/exercise-info-client-cache";
 import { isKnownLegacyExerciseId, resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 
 const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -47,12 +52,16 @@ export function ExerciseInfo({
   onOpenChange,
   onClose,
   sourceContext,
+  initialExercise,
+  initialStats,
 }: {
   exerciseId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onClose?: () => void;
   sourceContext?: string;
+  initialExercise?: ExerciseInfoSheetExercise | null;
+  initialStats?: ExerciseInfoSheetStats | null;
 }) {
   const [exercise, setExercise] = useState<ExerciseInfoSheetExercise | null>(null);
   const [stats, setStats] = useState<ExerciseInfoSheetStats | null>(null);
@@ -96,7 +105,26 @@ export function ExerciseInfo({
 
     let active = true;
     const controller = new AbortController();
-    setStatsLoading(true);
+    const cachedEntry = readExerciseInfoClientPayload(normalizedExerciseId);
+    const seedPayload = initialExercise
+      ? {
+          exercise: initialExercise,
+          stats: normalizeExerciseInfoStats(initialStats ?? null),
+        }
+      : null;
+
+    if (cachedEntry?.payload.exercise) {
+      setExercise(cachedEntry.payload.exercise);
+      setStats(normalizeExerciseInfoStats(cachedEntry.payload.stats ?? null));
+      setStatsLoading(false);
+    } else if (seedPayload) {
+      setExercise(seedPayload.exercise);
+      setStats(seedPayload.stats);
+      writeExerciseInfoClientPayload(normalizedExerciseId, seedPayload, "seed");
+      setStatsLoading(false);
+    } else {
+      setStatsLoading(true);
+    }
 
     async function load() {
       try {
@@ -136,8 +164,13 @@ export function ExerciseInfo({
           return;
         }
 
+        const nextStats = normalizeExerciseInfoStats(successPayload.payload.stats ?? null);
         setExercise(successPayload.payload.exercise);
-        setStats(normalizeExerciseInfoStats(successPayload.payload.stats ?? null));
+        setStats(nextStats);
+        writeExerciseInfoClientPayload(normalizedExerciseId, {
+          exercise: successPayload.payload.exercise,
+          stats: nextStats,
+        }, "server");
         setStatsLoading(false);
       } catch (error) {
         if (!active || controller.signal.aborted) return;
@@ -149,13 +182,15 @@ export function ExerciseInfo({
       }
     }
 
-    void load();
+    if (shouldFetchExerciseInfoClientPayload(cachedEntry)) {
+      void load();
+    }
 
     return () => {
       active = false;
       controller.abort();
     };
-  }, [exerciseId, open, sourceContext, toast]);
+  }, [exerciseId, initialExercise, initialStats, open, sourceContext, toast]);
 
   return (
     <ExerciseInfoSheet

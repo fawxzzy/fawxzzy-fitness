@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
@@ -18,6 +18,7 @@ import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import { buildSessionMetricTagGroup, buildSessionMetricTagValues } from "@/lib/history-metric-filters";
+import { rememberHistorySessionSummary } from "@/lib/history-session-summary-cache";
 import type { SessionSummary } from "./session-summary";
 
 function normalizeSessionTagValue(prefix: string, value: string) {
@@ -121,6 +122,13 @@ export function HistorySessionsClient({
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const deferredQuery = useDeferredValue(query);
   const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
+
+  useEffect(() => {
+    for (const session of sessions) {
+      rememberHistorySessionSummary(session);
+    }
+  }, [sessions]);
+
   const sessionTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
 

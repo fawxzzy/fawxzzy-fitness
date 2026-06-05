@@ -52,19 +52,21 @@ export async function loadHistoryDetailRows({
 }) {
   const baseSessionExerciseSelect = "id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit";
 
-  const strictSessionExerciseQuery = await supabase
-    .from("session_exercises")
-    .select(baseSessionExerciseSelect)
-    .eq("session_id", sessionId)
-    .eq("user_id", userId)
-    .order("position", { ascending: true });
+  const [strictSessionExerciseQuery, relaxedSessionExerciseQuery] = await Promise.all([
+    supabase
+      .from("session_exercises")
+      .select(baseSessionExerciseSelect)
+      .eq("session_id", sessionId)
+      .eq("user_id", userId)
+      .order("position", { ascending: true }),
+    supabase
+      .from("session_exercises")
+      .select(baseSessionExerciseSelect)
+      .eq("session_id", sessionId)
+      .order("position", { ascending: true }),
+  ]);
 
   const strictSessionExercises = (strictSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
-  const relaxedSessionExerciseQuery = await supabase
-    .from("session_exercises")
-    .select(baseSessionExerciseSelect)
-    .eq("session_id", sessionId)
-    .order("position", { ascending: true });
   const relaxedSessionExercises = (relaxedSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
   let sessionExercises = strictSessionExercises;
   let relaxedSessionExercisesCount = relaxedSessionExercises.length;
@@ -105,21 +107,22 @@ export async function loadHistoryDetailRows({
   let relaxedSetsCount = 0;
 
   if (sessionExerciseIds.length) {
-    const strictSetsQuery = await supabase
-      .from("sets")
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
-      .in("session_exercise_id", sessionExerciseIds)
-      .eq("user_id", userId)
-      .order("set_index", { ascending: true });
+    const [strictSetsQuery, relaxedSetsQuery] = await Promise.all([
+      supabase
+        .from("sets")
+        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+        .in("session_exercise_id", sessionExerciseIds)
+        .eq("user_id", userId)
+        .order("set_index", { ascending: true }),
+      supabase
+        .from("sets")
+        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+        .in("session_exercise_id", sessionExerciseIds)
+        .order("set_index", { ascending: true }),
+    ]);
 
     sets = (strictSetsQuery.data ?? []) as SetRow[];
     strictSetsCount = sets.length;
-
-    const relaxedSetsQuery = await supabase
-      .from("sets")
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
-      .in("session_exercise_id", sessionExerciseIds)
-      .order("set_index", { ascending: true });
 
     const relaxedSets = (relaxedSetsQuery.data ?? []) as SetRow[];
     relaxedSetsCount = relaxedSets.length;

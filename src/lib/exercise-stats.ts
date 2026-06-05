@@ -316,35 +316,40 @@ export async function getExerciseStatsForExercise(
   userId: string,
   exerciseId: string,
   client?: SupabaseClient,
+  options?: {
+    skipCanonicalValidation?: boolean;
+  },
 ): Promise<ExerciseStatsLookupResult> {
   noStore();
 
   const supabase = client ?? supabaseServer();
 
-  const { data: canonicalExercise, error: canonicalExerciseError } = await supabase
-    .from("exercises")
-    .select("id")
-    .eq("id", exerciseId)
-    .or(`user_id.is.null,user_id.eq.${userId}`)
-    .maybeSingle();
+  if (!options?.skipCanonicalValidation) {
+    const { data: canonicalExercise, error: canonicalExerciseError } = await supabase
+      .from("exercises")
+      .select("id")
+      .eq("id", exerciseId)
+      .or(`user_id.is.null,user_id.eq.${userId}`)
+      .maybeSingle();
 
-  if (canonicalExerciseError) {
-    throw new Error(`failed to validate exercise id for stats lookup: ${canonicalExerciseError.message}`);
-  }
+    if (canonicalExerciseError) {
+      throw new Error(`failed to validate exercise id for stats lookup: ${canonicalExerciseError.message}`);
+    }
 
-  if (!canonicalExercise?.id) {
-    console.warn("[exercise-stats] non-canonical exercise id", {
-      exerciseId,
-    });
-
-    return {
-      row: null,
-      error: {
-        code: "NON_CANONICAL_EXERCISE_ID",
-        message: "non-canonical exerciseId passed",
+    if (!canonicalExercise?.id) {
+      console.warn("[exercise-stats] non-canonical exercise id", {
         exerciseId,
-      },
-    };
+      });
+
+      return {
+        row: null,
+        error: {
+          code: "NON_CANONICAL_EXERCISE_ID",
+          message: "non-canonical exerciseId passed",
+          exerciseId,
+        },
+      };
+    }
   }
 
   const { data } = await supabase

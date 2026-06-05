@@ -117,18 +117,41 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       notFound();
     }
 
-    const {
-      orderedSessionExercises,
-      exerciseMetadataById,
-      sessionExerciseIds,
-      sets,
-      summary: loaderSummary,
-    } = await loadHistoryDetailRows({
+    const historyDetailRowsPromise = loadHistoryDetailRows({
       supabase,
       sessionId: session.id,
       userId: user.id,
       sessionFound: Boolean(session),
     });
+    const routineDayPromise = sessionRow.routine_id && typeof sessionRow.routine_day_index === "number"
+      ? supabase
+        .from("routine_days")
+        .select("name")
+        .eq("routine_id", sessionRow.routine_id)
+        .eq("day_index", sessionRow.routine_day_index)
+        .eq("user_id", user.id)
+        .maybeSingle()
+      : Promise.resolve({ data: null });
+    const exerciseNameMapPromise = diagnostics.measure("history.detail.exercise-names.fetch", () => getExerciseNameMap(), {
+      blockingReason: "Waiting for exercise names for history detail.",
+      metadata: {
+        sessionId: params.sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    });
+
+    const [{
+      orderedSessionExercises,
+      exerciseMetadataById,
+      sessionExerciseIds,
+      sets,
+      summary: loaderSummary,
+    }, { data: routineDay }, exerciseNameMap] = await Promise.all([
+      historyDetailRowsPromise,
+      routineDayPromise,
+      exerciseNameMapPromise,
+    ]);
 
     if (process.env.NODE_ENV !== "production") {
       console.info("[history-detail-loader]", loaderSummary);
@@ -144,24 +167,6 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
     const sessionRow = session;
 
-    const { data: routineDay } = sessionRow.routine_id && sessionRow.routine_day_index
-      ? await supabase
-        .from("routine_days")
-        .select("name")
-        .eq("routine_id", sessionRow.routine_id)
-        .eq("day_index", sessionRow.routine_day_index)
-        .eq("user_id", user.id)
-        .maybeSingle()
-      : { data: null };
-
-    const exerciseNameMap = await diagnostics.measure("history.detail.exercise-names.fetch", () => getExerciseNameMap(), {
-      blockingReason: "Waiting for exercise names for history detail.",
-      metadata: {
-        sessionId: params.sessionId,
-        userId: user.id,
-      },
-      timeoutMs: 7000,
-    });
     const exerciseNameRecord = Object.fromEntries(exerciseNameMap.entries());
     const routineTitle = routineName ?? "Session";
     const unitLabel = Array.isArray(routineField)
@@ -174,15 +179,22 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     const backHref = `/history?tab=sessions&selected=${sessionRow.id}`;
 
     const exerciseIds = orderedSessionExercises.map((exercise) => exercise.exercise_id);
-    const { data: historicalSetRows } = exerciseIds.length
-      ? await supabase
-        .from("sets")
-        .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
-        .eq("user_id", user.id)
-        .eq("session_exercise.user_id", user.id)
-        .eq("session_exercise.session.status", "completed")
-        .in("session_exercise.exercise_id", exerciseIds)
-      : { data: [] };
+    const [{ data: historicalSetRows }, { data: progressionEventRows }] = exerciseIds.length
+      ? await Promise.all([
+        supabase
+          .from("sets")
+          .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
+          .eq("user_id", user.id)
+          .eq("session_exercise.user_id", user.id)
+          .eq("session_exercise.session.status", "completed")
+          .in("session_exercise.exercise_id", exerciseIds),
+        supabase
+          .from("progression_events")
+          .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+          .eq("user_id", user.id)
+          .in("exercise_id", exerciseIds),
+      ])
+      : [{ data: [] }, { data: [] }];
 
     const prEvaluationSets: PrEvaluationSet[] = ((historicalSetRows ?? []) as Array<{
       set_index: number;
@@ -221,13 +233,6 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       }];
     });
     const { sessionCountsById, sessionPrExerciseIdsById } = evaluatePrSummaries(prEvaluationSets);
-    const { data: progressionEventRows } = exerciseIds.length
-      ? await supabase
-        .from("progression_events")
-        .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
-        .eq("user_id", user.id)
-        .in("exercise_id", exerciseIds)
-      : { data: [] };
     const progressionEvents = (progressionEventRows ?? []) as ProgressionEventRow[];
     const progressionEventsByExerciseId = new Map<string, ProgressionEventRow[]>();
     for (const event of progressionEvents) {

@@ -1073,7 +1073,7 @@ export async function getExerciseInfoStats(
 ): Promise<ExerciseStatsVM | null> {
   try {
     const [statsLookup, historicalSetRows, progressionEventRows] = await Promise.all([
-      getExerciseStatsForExercise(userId, canonicalExerciseId, client),
+      getExerciseStatsForExercise(userId, canonicalExerciseId, client, { skipCanonicalValidation: true }),
       loadHistoricalSetRows(userId, canonicalExerciseId, client),
       loadExerciseProgressionEvents(userId, canonicalExerciseId, client),
     ]);
