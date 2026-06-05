@@ -19,7 +19,7 @@ export type WorkoutCardSurfacePolicy = {
 };
 
 const DEFAULT_MEDIA_RAIL_WIDTH = 72;
-const STANDARD_EXERCISE_MEDIA_RAIL_WIDTH = 74;
+const STANDARD_EXERCISE_MEDIA_RAIL_WIDTH = 68;
 
 export function resolveWorkoutCardMediaRailWidth(surface: WorkoutCardSurface): number {
   switch (surface) {

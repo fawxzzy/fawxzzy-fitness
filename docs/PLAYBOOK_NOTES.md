@@ -492,8 +492,8 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## 2026-06-05 - Exercise-card media should use one shared rail size across core workout surfaces
 - Type: Pattern
-- WHAT changed: Today, current-session, view-day, edit-day, reorder, history-browser, and history-detail exercise cards now resolve their media rail width from one shared standard card-media size instead of mixing smaller Today rails with oversized history-specific image blocks.
-- WHY it changed: The app had drifted into multiple image scales for the same exercise-card family, which made logged-session and history cards feel visually off even though they shared the same underlying row primitive.
+- WHAT changed: Today, current-session, view-day, edit-day, reorder, history-browser, and history-detail exercise cards now resolve their media rail width from one shared standard `68px` card-media size instead of mixing smaller Today rails with oversized history-specific image blocks, while history-detail-only inset imagery can still scale separately when the layout explicitly gives it room.
+- WHY it changed: The app had drifted into multiple image scales for the same exercise-card family, which made logged-session and history cards feel visually off even though they shared the same underlying row primitive. A larger shared rail also made compact history rows feel image-heavy and squeezed the text lane, so the normalized family needed a tighter default and a separate opt-in for detail-only enlargement.
 - Rule: If a surface is part of the core exercise-card family, derive image size from the shared workout-card surface policy before introducing a route-local media width.
 - Pattern: shared exercise-card primitive -> shared surface media policy -> route-specific data only.
 - Failure Mode: Hardcoding history-only image rails makes cards look like different products, weakens shared-card maintenance, and turns simple media tweaks into per-screen patchwork.
