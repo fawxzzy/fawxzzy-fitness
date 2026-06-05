@@ -289,10 +289,25 @@ function renderHistorySessionSectionItems(
   items: string[],
   tone: "primary" | "muted" = "primary",
 ) {
+  const shouldUseTwoColumnGrid = items.length > 1;
+
   return (
-    <div className="space-y-1.5 pl-px">
-      {items.map((item, index) => (
-        <div key={`${item}-${index}`} className="flex min-w-0 items-start gap-2.5">
+    <div className={cn(shouldUseTwoColumnGrid ? "grid grid-cols-2 gap-x-3 gap-y-1.5 pl-px" : "space-y-1.5 pl-px")}>
+      {items.map((item, index) => {
+        const normalizedItem = item.trim();
+        const shouldSpanFullWidth = !shouldUseTwoColumnGrid
+          || normalizedItem.length > 30
+          || normalizedItem.includes("|")
+          || normalizedItem.includes(":");
+
+        return (
+        <div
+          key={`${item}-${index}`}
+          className={cn(
+            "flex min-w-0 items-start gap-2.5",
+            shouldSpanFullWidth ? "col-span-2" : "col-span-1",
+          )}
+        >
           <div className="flex h-[1.05rem] shrink-0 items-center pt-[0.08rem]">
             <SignatureDot />
           </div>
@@ -306,7 +321,7 @@ function renderHistorySessionSectionItems(
             {item}
           </span>
         </div>
-      ))}
+      )})}
     </div>
   );
 }
