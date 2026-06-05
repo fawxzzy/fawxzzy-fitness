@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AccentDotSeparatedText, SignatureDot } from "@/components/ui/app/SignatureSeparator";
@@ -516,7 +517,7 @@ export function ExerciseInfoSheet({
                       >
                         {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
                         {!statsLoading && stats ? (
-                          <ExerciseInfoDetailedMetricGrid items={surfaceMetrics} />
+                          <ExerciseSurfaceMetricGrid items={surfaceMetrics} />
                         ) : null}
                         {!statsLoading && !stats ? (
                           <p className={appTokens.detailBodyMutedText}>

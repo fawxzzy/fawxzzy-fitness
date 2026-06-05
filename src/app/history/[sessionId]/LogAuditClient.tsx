@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import {
   updateLogMetaAction,
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
@@ -540,6 +541,52 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
   );
 }
 
+function FocusedExerciseOverviewCard({
+  metrics,
+  notesValue,
+  isEditing,
+  canEditNotes,
+  noteInput,
+}: {
+  metrics: MetricDatum[];
+  notesValue: string;
+  isEditing: boolean;
+  canEditNotes: boolean;
+  noteInput?: ReactNode;
+}) {
+  const hasNotes = notesValue.trim().length > 0;
+  const shouldRenderNotes = isEditing ? canEditNotes && Boolean(noteInput) : hasNotes;
+
+  return (
+    <div className="space-y-2 rounded-[1.08rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.34)] px-3 py-3">
+      <div className="space-y-2">
+        <p className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
+          This Session
+        </p>
+        <ExerciseSurfaceMetricGrid items={metrics} />
+      </div>
+
+      {shouldRenderNotes ? (
+        <div className="space-y-1.5">
+          <MetricAccentBar variant="thin" className="opacity-85" />
+          <div className="space-y-1.5 px-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">
+              Notes
+            </p>
+            {isEditing
+              ? noteInput
+              : (
+                <p className="text-[12.5px] leading-[1.45] text-[rgb(var(--text-primary)/0.94)] [text-wrap:pretty]">
+                  {notesValue}
+                </p>
+              )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function LogAuditClient({
   logId,
   initialDayName,
@@ -628,6 +675,8 @@ export function LogAuditClient({
       defaultUnit: expandedExercise.default_unit,
     }) ?? undefined;
   }, [editableSets, expandedExercise]);
+
+  const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
 
   const exerciseViewportMeta = useMemo(() => {
     if (expandedExercise) {
@@ -1024,7 +1073,40 @@ export function LogAuditClient({
                 data-history-exercise-shell="true"
                 className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1"
               >
-                {!isEditing ? (
+                {expandedExercise ? (
+                  <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
+                    <FocusedExerciseOverviewCard
+                      metrics={focusedDetailedMetrics ?? []}
+                      notesValue={focusedExerciseNotes}
+                      isEditing={isEditing}
+                      canEditNotes={!expandedSet}
+                      noteInput={(
+                        <label className="block">
+                          <LabeledEditorField label="Exercise notes">
+                            <textarea
+                              ref={(element) => {
+                                if (expandedExercise) {
+                                  exerciseNoteRefs.current[expandedExercise.id] = element;
+                                }
+                              }}
+                              value={focusedExerciseNotes}
+                              onChange={(event) => {
+                                const nextValue = event.target.value;
+                                if (!expandedExercise) {
+                                  return;
+                                }
+                                setExerciseNotes((current) => ({ ...current, [expandedExercise.id]: nextValue }));
+                                autoSizeTextarea(event.currentTarget);
+                              }}
+                              rows={1}
+                              className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
+                            />
+                          </LabeledEditorField>
+                        </label>
+                      )}
+                    />
+                  </div>
+                ) : !isEditing ? (
                   <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
                     <HistorySessionCard
                       session={focusedSessionSummary}
@@ -1060,7 +1142,6 @@ export function LogAuditClient({
                       <div className={cn(expandedExercise ? "flex h-full min-h-0 flex-col" : "space-y-[0.5rem] px-0")}>
                   {visibleExercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
-          const notesValue = exerciseNotes[exercise.id] ?? "";
           const setsForExercise = editableSets[exercise.id] ?? [];
           const isExpanded = expandedExerciseId === exercise.id;
           const bestSet = findBestEditableSet(setsForExercise);
@@ -1157,10 +1238,10 @@ export function LogAuditClient({
                     </div>
                   ) : null}
 
-                  <div className="grid h-full min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
+                  <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
                     <div
                       data-history-exercise-scroll-region="true"
-                      className="min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+                      className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
                     >
                       {expandedSet && isEditing ? (
                         <div className="px-0 pb-0 pt-2">
@@ -1238,34 +1319,6 @@ export function LogAuditClient({
                         </p>
                       ) : null}
                     </div>
-
-                    {isEditing ? (
-                      <div className="-mx-4 row-start-2 shrink-0 self-end bg-transparent px-4 pb-1 pt-0.5">
-                        {!expandedSet ? (
-                          <label className="block">
-                            <LabeledEditorField label="Exercise notes">
-                              <textarea
-                                ref={(element) => {
-                                  exerciseNoteRefs.current[exercise.id] = element;
-                                }}
-                                value={notesValue}
-                                onChange={(event) => {
-                                  const nextValue = event.target.value;
-                                  setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
-                                  autoSizeTextarea(event.currentTarget);
-                                }}
-                                rows={1}
-                                className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
-                              />
-                            </LabeledEditorField>
-                          </label>
-                        ) : null}
-                      </div>
-                    ) : notesValue.trim() ? (
-                      <div className="row-start-2 shrink-0 self-end px-4 pb-1 pt-0.5">
-                        <p className={appTokens.historyNotesCaption}>Notes: {notesValue}</p>
-                      </div>
-                    ) : null}
                   </div>
                 </div>
               ) : null}
