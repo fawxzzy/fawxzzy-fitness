@@ -7,7 +7,6 @@ import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/componen
 import { appTokens } from "@/components/ui/app/tokens";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
-import { resolveWorkoutCardMediaRailWidth } from "@/lib/workout-card-surface-policy";
 
 function renderMetaBadge(value: string) {
   return (
@@ -40,8 +39,7 @@ type HistoryDetailExerciseCardProps = {
   showLeadingVisual?: boolean;
 };
 
-const HISTORY_DETAIL_MEDIA_SIZE = resolveWorkoutCardMediaRailWidth("history-detail");
-const HISTORY_DETAIL_SQUARE_MEDIA_CLASS_NAME = `!my-0 !h-[${HISTORY_DETAIL_MEDIA_SIZE}px] !min-h-0 !w-[${HISTORY_DETAIL_MEDIA_SIZE}px] !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]`;
+const HISTORY_DETAIL_SQUARE_MEDIA_CLASS_NAME = "!my-0 !min-h-0 !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]";
 
 export function HistoryDetailExerciseCard({
   exercise,
