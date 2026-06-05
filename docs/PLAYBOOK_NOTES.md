@@ -489,3 +489,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Copying metric-card markup into individual screens guarantees recurring theme drift, spacing regressions, and mismatched metric affordances between collapsed, expanded, history, and account surfaces.
 - Evidence: `src/components/ui/MetricItem.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/history/HistoryExerciseCard.tsx`, `src/components/history/HistoryDetailExerciseCard.tsx`, `src/components/history/WeeklyProgressSurface.tsx`, `src/components/history/ThirtyDayHistorySurface.tsx`, `src/components/settings/DataSettingsSection.tsx`
 - Status: Proposed
+
+## 2026-06-05 - Exercise-card media should use one shared rail size across core workout surfaces
+- Type: Pattern
+- WHAT changed: Today, current-session, view-day, edit-day, reorder, history-browser, and history-detail exercise cards now resolve their media rail width from one shared standard card-media size instead of mixing smaller Today rails with oversized history-specific image blocks.
+- WHY it changed: The app had drifted into multiple image scales for the same exercise-card family, which made logged-session and history cards feel visually off even though they shared the same underlying row primitive.
+- Rule: If a surface is part of the core exercise-card family, derive image size from the shared workout-card surface policy before introducing a route-local media width.
+- Pattern: shared exercise-card primitive -> shared surface media policy -> route-specific data only.
+- Failure Mode: Hardcoding history-only image rails makes cards look like different products, weakens shared-card maintenance, and turns simple media tweaks into per-screen patchwork.
+- Evidence: `src/lib/workout-card-surface-policy.ts`, `src/components/history/HistoryExerciseCard.tsx`, `src/components/history/HistoryDetailExerciseCard.tsx`, `src/app/history/[sessionId]/LogAuditClient.tsx`
+- Status: Proposed

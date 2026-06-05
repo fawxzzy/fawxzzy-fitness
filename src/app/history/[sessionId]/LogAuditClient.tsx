@@ -1223,7 +1223,7 @@ export function LogAuditClient({
         ref={exerciseViewportRef}
         className={cn(
           "relative left-1/2 w-[calc(100vw-22px)] max-w-[calc(100vw-22px)] -translate-x-1/2 md:left-auto md:w-auto md:max-w-none md:translate-x-0",
-          isEditing ? "mt-5" : undefined,
+          isEditing ? "mt-5" : "mt-3",
         )}
       >
         <div

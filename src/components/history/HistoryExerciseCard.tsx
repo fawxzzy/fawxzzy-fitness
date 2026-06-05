@@ -9,10 +9,11 @@ import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSep
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import { resolveWorkoutCardMediaRailWidth } from "@/lib/workout-card-surface-policy";
 
 const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
-const HISTORY_EXERCISE_MEDIA_SIZE = 88;
-const HISTORY_EXERCISE_SQUARE_MEDIA_CLASS_NAME = "!my-0 !h-[88px] !min-h-0 !w-[88px] !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]";
+const HISTORY_EXERCISE_MEDIA_SIZE = resolveWorkoutCardMediaRailWidth("history-browser");
+const HISTORY_EXERCISE_SQUARE_MEDIA_CLASS_NAME = `!my-0 !h-[${HISTORY_EXERCISE_MEDIA_SIZE}px] !min-h-0 !w-[${HISTORY_EXERCISE_MEDIA_SIZE}px] !self-center aspect-square rounded-[1rem] border border-[rgb(var(--accent-divider-rgb)/0.16)]`;
 
 function renderMetaBadge(value: string) {
   return (
@@ -174,7 +175,10 @@ export function HistoryExerciseCard({
               </div>
             ) : null}
             {detailSections.length > 0 ? (
-              <div className="grid grid-cols-[minmax(0,1fr)_88px] items-start gap-x-0 pt-0.5">
+              <div
+                className="grid items-start gap-x-0 pt-0.5"
+                style={{ gridTemplateColumns: `minmax(0,1fr) ${HISTORY_EXERCISE_MEDIA_SIZE}px` }}
+              >
                 <div className="min-w-0 pr-2.5">
                   {detailSections.map((section) => (
                     <div key={section.title}>
@@ -190,7 +194,8 @@ export function HistoryExerciseCard({
                     railWidth={HISTORY_EXERCISE_MEDIA_SIZE}
                     sizes={`${HISTORY_EXERCISE_MEDIA_SIZE}px`}
                     intent="row-card"
-                    className="h-[88px] w-[88px] rounded-none"
+                    className="rounded-none"
+                    imageClassName={`h-[${HISTORY_EXERCISE_MEDIA_SIZE}px] w-[${HISTORY_EXERCISE_MEDIA_SIZE}px]`}
                   />
                 </div>
               </div>
