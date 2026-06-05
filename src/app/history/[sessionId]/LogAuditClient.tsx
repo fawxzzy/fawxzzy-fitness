@@ -20,7 +20,7 @@ import { getBottomActionButtonClassName } from "@/components/layout/bottomAction
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
 import { markProgressionAppliedPinsSourceDeletedInStorage } from "@/lib/progression-applied-pins";
-import { HistorySessionCard } from "@/components/history/HistorySessionCard";
+import { HistorySessionCard, type HistorySessionDetailSection } from "@/components/history/HistorySessionCard";
 import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
 import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -347,8 +347,11 @@ function resolveFocusedDistanceUnit(sets: EditableSet[], defaultUnit: string | n
 
 function buildFocusedExerciseDetailedMetrics(args: {
   exercise: AuditExercise;
+  exerciseName: string;
   sets: EditableSet[];
   defaultUnit: string | null;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
+  hasPrInSession: boolean;
 }): MetricDatum[] | null {
   const bestSet = findBestEditableSet(args.sets);
   const bestDisplay = bestSet ? buildMeasurementSummary(bestSet, args.defaultUnit) : null;
@@ -369,11 +372,9 @@ function buildFocusedExerciseDetailedMetrics(args: {
   const pace = totalDurationSeconds > 0 && totalDistance > 0 && distanceUnit
     ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
     : null;
+  const completionLabel = completionRate !== undefined ? `${Math.round(completionRate * 100)}%` : (args.sets.length > 0 ? "Logged" : "Open");
+
   const summaryMetrics: MetricDatum[] = [
-    {
-      label: "Exercise",
-      value: "1",
-    },
     {
       label: "Sets",
       value: formatMetricCount(args.sets.length),
@@ -427,10 +428,29 @@ function buildFocusedExerciseDetailedMetrics(args: {
     });
   }
 
-  const completionMetric: MetricDatum = {
-    label: "Completion",
-    value: completionRate !== undefined ? `${Math.round(completionRate * 100)}%` : (args.sets.length > 0 ? "Logged" : "Open"),
-  };
+  if (args.progressionSummary?.currentTargetLabel) {
+    summaryMetrics.push({
+      label: "Current",
+      value: args.progressionSummary.currentTargetLabel,
+    });
+  } else if (args.progressionSummary?.promotionCount) {
+    summaryMetrics.push({
+      label: "Promoted",
+      value: formatMetricCount(args.progressionSummary.promotionCount),
+      valueTone: "success",
+    });
+  }
+
+  summaryMetrics.push(args.hasPrInSession
+    ? {
+        label: "PR",
+        value: "Hit",
+        valueTone: "success",
+      }
+    : {
+        label: "Completion",
+        value: completionLabel,
+      });
 
   if (args.exercise.measurement_type === "reps") {
     return [
@@ -443,11 +463,109 @@ function buildFocusedExerciseDetailedMetrics(args: {
         label: "Volume",
         value: formatFocusedVolume(totalVolume, volumeUnit),
       },
-      completionMetric,
     ].slice(0, 6);
   }
 
-  return [...summaryMetrics, ...detailMetrics.slice(0, 2), completionMetric].slice(0, 6);
+  return [...summaryMetrics, ...detailMetrics.slice(0, 3)].slice(0, 6);
+}
+
+function buildFocusedExerciseTrackingItems(args: {
+  exercise: AuditExercise;
+  sets: EditableSet[];
+  defaultUnit: string | null;
+}) {
+  const setCount = args.sets.length;
+  const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
+  const totalDurationSeconds = args.sets.reduce((sum, set) => sum + (parseDurationInput(set.values.duration) ?? 0), 0);
+  const totalDistance = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.distance), 0);
+  const totalCalories = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.calories), 0);
+  const totalVolume = args.sets.reduce((sum, set) => {
+    const reps = parsePositiveNumber(set.values.reps);
+    const weight = parsePositiveNumber(set.values.weight);
+    return reps > 0 && weight > 0 ? sum + (weight * reps) : sum;
+  }, 0);
+  const volumeUnit = args.sets.find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit ?? null;
+  const distanceUnit = resolveFocusedDistanceUnit(args.sets, args.defaultUnit);
+  const pace = totalDurationSeconds > 0 && totalDistance > 0 && distanceUnit
+    ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
+    : null;
+
+  const items = [`${formatMetricCount(setCount)} ${setCount === 1 ? "set" : "sets"} logged`];
+
+  if (args.exercise.measurement_type === "reps") {
+    items.push(`${formatMetricCount(totalReps)} reps across ${formatFocusedVolume(totalVolume, volumeUnit)}`);
+  } else if (args.exercise.measurement_type === "time") {
+    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} total time`);
+    if (totalCalories > 0) {
+      items.push(`${formatMetricCount(totalCalories)} calories logged`);
+    }
+  } else if (args.exercise.measurement_type === "distance") {
+    items.push(`${formatDistance(totalDistance, distanceUnit) ?? "0"} total distance`);
+    if (totalCalories > 0) {
+      items.push(`${formatMetricCount(totalCalories)} calories logged`);
+    }
+  } else if (args.exercise.measurement_type === "time_distance") {
+    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} over ${formatDistance(totalDistance, distanceUnit) ?? "0"}`);
+    if (pace) {
+      items.push(`Pace held at ${pace}`);
+    }
+  } else if (totalCalories > 0) {
+    items.push(`${formatMetricCount(totalCalories)} calories logged`);
+  }
+
+  return items.filter((value, index, values) => Boolean(value) && values.indexOf(value) === index).slice(0, 3);
+}
+
+function buildFocusedExerciseDetailedSections(args: {
+  exercise: AuditExercise;
+  exerciseName: string;
+  sets: EditableSet[];
+  defaultUnit: string | null;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
+  bestDisplay: string | null;
+  hasPrInSession: boolean;
+  sessionHasOtherPrs: boolean;
+}): HistorySessionDetailSection[] {
+  const progressionItems = args.progressionSummary
+    ? [
+        args.progressionSummary.currentTargetLabel ? `Current target: ${args.progressionSummary.currentTargetLabel}` : null,
+        args.progressionSummary.latestChangeSummary ? `Latest change: ${args.progressionSummary.latestChangeSummary}` : null,
+        args.progressionSummary.lastPromotionAt ? `Last promotion: ${formatDateShort(args.progressionSummary.lastPromotionAt)}` : null,
+      ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
+    : ["No target updates recorded for this exercise yet."];
+
+  const prItems = args.hasPrInSession
+    ? ["A PR was recorded for this exercise in this logged session."]
+    : args.sessionHasOtherPrs
+      ? ["Session PRs landed on other exercises, not this one."]
+      : ["No PR was recorded for this exercise in this session."];
+
+  const bestItems = args.bestDisplay && args.bestDisplay !== "No measurements"
+    ? [`Top set in this session: ${args.bestDisplay}`]
+    : ["No standout set was logged for this exercise yet."];
+
+  return [
+    {
+      title: "Tracking",
+      items: buildFocusedExerciseTrackingItems({
+        exercise: args.exercise,
+        sets: args.sets,
+        defaultUnit: args.defaultUnit,
+      }),
+    },
+    {
+      title: "Progression",
+      items: progressionItems,
+    },
+    {
+      title: "PRs",
+      items: prItems,
+    },
+    {
+      title: "Best",
+      items: bestItems,
+    },
+  ];
 }
 
 function buildLoggedSetSummaryItems(set: EditableSet, defaultUnit: string | null) {
@@ -709,12 +827,38 @@ export function LogAuditClient({
       return undefined;
     }
 
+    const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
     return buildFocusedExerciseDetailedMetrics({
       exercise: expandedExercise,
+      exerciseName,
       sets: editableSets[expandedExercise.id] ?? [],
       defaultUnit: expandedExercise.default_unit,
+      progressionSummary: expandedExercise.progressionSummary ?? null,
+      hasPrInSession: (focusedSessionSummary.prExerciseNames ?? []).includes(exerciseName),
     }) ?? undefined;
-  }, [editableSets, expandedExercise]);
+  }, [editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary.prExerciseNames]);
+
+  const focusedDetailedSections = useMemo(() => {
+    if (!expandedExercise) {
+      return undefined;
+    }
+
+    const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
+    const sets = editableSets[expandedExercise.id] ?? [];
+    const bestSet = findBestEditableSet(sets);
+    const bestDisplay = bestSet ? buildMeasurementSummary(bestSet, expandedExercise.default_unit) : null;
+
+    return buildFocusedExerciseDetailedSections({
+      exercise: expandedExercise,
+      exerciseName,
+      sets,
+      defaultUnit: expandedExercise.default_unit,
+      progressionSummary: expandedExercise.progressionSummary ?? null,
+      bestDisplay,
+      hasPrInSession: (focusedSessionSummary.prExerciseNames ?? []).includes(exerciseName),
+      sessionHasOtherPrs: (sessionSummary.prExerciseNames ?? []).some((name) => name !== exerciseName),
+    });
+  }, [editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary.prExerciseNames, sessionSummary.prExerciseNames]);
 
   const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
   const isFocusedSetExpanded = Boolean(expandedSetId);
@@ -1123,6 +1267,7 @@ export function LogAuditClient({
                       className="mt-0"
                       prExerciseNames={focusedSessionSummary.prExerciseNames}
                       detailedMetrics={focusedDetailedMetrics}
+                      detailedSections={focusedDetailedSections}
                       detailedHeaderMode="hidden"
                       showDetailedDivider={false}
                     />

@@ -316,6 +316,75 @@ function renderProgressionSummary(session: SessionSummary) {
   );
 }
 
+export type HistorySessionDetailSection = {
+  title: string;
+  items: string[];
+};
+
+function renderHistorySessionDetailSections(sections: HistorySessionDetailSection[]) {
+  return sections.map((section) => {
+    const items = section.items.filter(Boolean);
+    if (items.length === 0) {
+      return null;
+    }
+
+    return (
+      <div key={section.title} className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
+        <div className="w-full space-y-1">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+            {section.title}
+          </p>
+          <div className="space-y-1.5 pl-px">
+            {items.map((item, index) => (
+              <div key={`${section.title}-${item}-${index}`} className="inline-flex min-w-0 items-center gap-2">
+                <SignatureDot />
+                <span className={cn(appTokens.workoutCardDetailCompact, "text-[rgb(var(--text-primary)/0.95)]")}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  });
+}
+
+function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExerciseNames: string[]) {
+  return [
+    ...(
+      session.progressionSummary?.eventCount
+        ? [{
+            title: "Progression",
+            items: [
+              session.progressionSummary.headline,
+              session.progressionSummary.detail && session.progressionSummary.detail !== session.progressionSummary.headline
+                ? session.progressionSummary.detail
+                : null,
+              session.progressionSummary.lastPromotionAt ? `Last promotion ${formatDateShort(session.progressionSummary.lastPromotionAt)}` : null,
+            ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index),
+          }]
+        : []
+    ),
+    ...(session.exerciseNames?.length
+      ? [{
+          title: "Recap",
+          items: session.exerciseNames,
+        }]
+      : []),
+    [{
+      title: "PRs",
+      items: prExerciseNames.length > 0
+        ? prExerciseNames
+        : ["No PRs recorded in this session."],
+    }],
+    [{
+      title: "Best",
+      items: session.bestLift
+        ? [`${session.bestLift.exerciseName} | ${session.bestLift.display}`]
+        : ["No best lift recorded in this session."],
+    }],
+  ];
+}
+
 function formatDateBadgeText(session: SessionSummary) {
   return formatDateShort(session.startedAt).toUpperCase();
 }
@@ -339,6 +408,7 @@ type HistorySessionCardProps = {
   badgeText?: string;
   detailedMetrics?: Parameters<typeof MetricGrid>[0]["items"];
   prExerciseNames?: string[];
+  detailedSections?: HistorySessionDetailSection[];
   detailedHeaderMode?: "default" | "hidden";
   showDetailedDivider?: boolean;
   tone?: CardSemanticTone;
@@ -376,6 +446,7 @@ export function HistorySessionCard({
     : rightIcon;
   const resolvedDetailedMetrics = detailedMetrics ?? viewModel.detailedMetrics;
   const resolvedPrExerciseNames = prExerciseNames ?? session.prExerciseNames ?? [];
+  const resolvedDetailedSections = detailedSections ?? buildDefaultHistorySessionDetailSections(session, resolvedPrExerciseNames);
   const usesHeaderlessDetailedLayout = viewMode === "detailed" && detailedHeaderMode === "hidden";
   const resolvedCompactMetaItems = viewModel.compactChips.map((chip) => chip.label).filter(Boolean);
   const resolvedSubtitleItems = [viewModel.outcome, viewModel.progress].filter((item): item is string => Boolean(item));
@@ -447,10 +518,7 @@ export function HistorySessionCard({
           <div className={cn("pt-[0.45rem]", showDetailedDivider ? THIN_SECTION_TOP_DIVIDER_CLASS_NAME : undefined)}>
             <HistorySessionDetailedMetricGrid items={resolvedDetailedMetrics} />
           </div>
-          {renderProgressionSummary(session)}
-          {renderSessionExerciseRecap(session.exerciseNames ?? [])}
-          {renderPrExerciseList(resolvedPrExerciseNames)}
-          {renderBestLift(session.bestLift)}
+          {renderHistorySessionDetailSections(resolvedDetailedSections)}
         </>
       ) : null}
     </div>
