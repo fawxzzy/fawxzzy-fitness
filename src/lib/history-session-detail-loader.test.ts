@@ -192,6 +192,77 @@ test("falls back to session-id boundary when legacy rows miss user_id, preservin
   assert.equal(result.summary.setsCount, 1);
 });
 
+test("prefers relaxed detail rows when legacy ownership drift would only partially match strict user filters", async () => {
+  const supabase = createSupabaseStub({
+    sessionExercises: [
+      {
+        id: "se-owned",
+        session_id: "session-partial-legacy",
+        user_id: "user-1",
+        exercise_id: "exercise-owned",
+        position: 1,
+        performed_index: 0,
+        notes: null,
+        is_skipped: false,
+      },
+      {
+        id: "se-legacy",
+        session_id: "session-partial-legacy",
+        user_id: null,
+        exercise_id: "exercise-legacy",
+        position: 2,
+        performed_index: 1,
+        notes: null,
+        is_skipped: false,
+      },
+    ],
+    sets: [
+      {
+        id: "set-owned",
+        session_exercise_id: "se-owned",
+        user_id: "user-1",
+        set_index: 0,
+        weight: 135,
+        reps: 8,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: null,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: null,
+        weight_unit: "lbs",
+      },
+      {
+        id: "set-legacy",
+        session_exercise_id: "se-legacy",
+        user_id: null,
+        set_index: 0,
+        weight: 95,
+        reps: 12,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: null,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: null,
+        weight_unit: "lbs",
+      },
+    ],
+  });
+
+  const result = await loadHistoryDetailRows({ supabase, sessionId: "session-partial-legacy", userId: "user-1", sessionFound: true });
+
+  assert.equal(result.orderedSessionExercises.length, 2);
+  assert.equal(result.sets.length, 2);
+  assert.equal(result.summary.strictSessionExercisesCount, 1);
+  assert.equal(result.summary.relaxedSessionExercisesCount, 2);
+  assert.equal(result.summary.strictSetsCount, 1);
+  assert.equal(result.summary.relaxedSetsCount, 2);
+  assert.equal(result.summary.fallbackPathUsed, true);
+});
+
 test("keeps non-zero detail rows even when exercise metadata is absent", async () => {
   const supabase = createSupabaseStub({
     sessionExercises: [{

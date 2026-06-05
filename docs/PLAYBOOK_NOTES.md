@@ -459,3 +459,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Letting logged-session cards scroll on the raw page background makes the lower section feel structurally disconnected from the rest of the app and weakens footer-safe affordance.
 - Evidence: `src/app/history/[sessionId]/LogAuditClient.tsx`
 - Status: Proposed
+
+## 2026-06-05 - History detail must keep every logged exercise even when sets or legacy ownership rows are sparse
+- Type: Guardrail
+- WHAT changed: The history detail route now keeps zero-set logged exercises visible in the client instead of filtering them out, and the detail loader now prefers the fuller relaxed `session_exercises` and `sets` result set when strict `user_id` filters only return a partial legacy subset.
+- WHY it changed: Some completed sessions were showing more exercises in the history list than in the detail page because the detail client hid logged exercises with no sets and the loader could silently undercount legacy rows when only some child records still carried `user_id`, which also corrupted the detail metrics derived from that reduced set.
+- Rule: A completed history detail page must render the same logged exercise inventory the session summary was built from, even when an exercise has zero sets or some legacy child rows only survive the session-id query path.
+- Pattern: load strict history detail rows -> compare with relaxed session-id rows -> keep the fuller bounded result -> render every logged exercise card -> let empty-set exercises show an empty measurement state instead of disappearing.
+- Failure Mode: Dropping zero-set or partially legacy exercises from detail makes the exercise count disagree with History, removes cards the user actually logged, and poisons recap or metric totals built from the reduced list.
+- Evidence: `src/app/history/[sessionId]/LogAuditClient.tsx`, `src/lib/history-session-detail-loader.ts`, `src/lib/history-session-detail-loader.test.ts`
+- Status: Proposed

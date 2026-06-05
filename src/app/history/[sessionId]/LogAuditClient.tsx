@@ -589,10 +589,7 @@ export function LogAuditClient({
     setFloatingHeaderContainer(document.getElementById("history-log-floating-header"));
   }, []);
 
-  const displayExercises = useMemo(
-    () => exercises.filter((exercise) => (editableSets[exercise.id] ?? []).length > 0),
-    [editableSets, exercises],
-  );
+  const displayExercises = exercises;
 
   const expandedExercise = useMemo(
     () => displayExercises.find((exercise) => exercise.id === expandedExerciseId) ?? null,

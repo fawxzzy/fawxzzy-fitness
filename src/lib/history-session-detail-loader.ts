@@ -60,20 +60,19 @@ export async function loadHistoryDetailRows({
     .order("position", { ascending: true });
 
   const strictSessionExercises = (strictSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
+  const relaxedSessionExerciseQuery = await supabase
+    .from("session_exercises")
+    .select(baseSessionExerciseSelect)
+    .eq("session_id", sessionId)
+    .order("position", { ascending: true });
+  const relaxedSessionExercises = (relaxedSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
   let sessionExercises = strictSessionExercises;
-  let relaxedSessionExercisesCount = 0;
+  let relaxedSessionExercisesCount = relaxedSessionExercises.length;
   let fallbackPathUsed = false;
 
-  if (sessionExercises.length === 0) {
-    const relaxedSessionExerciseQuery = await supabase
-      .from("session_exercises")
-      .select(baseSessionExerciseSelect)
-      .eq("session_id", sessionId)
-      .order("position", { ascending: true });
-
-    sessionExercises = (relaxedSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
-    relaxedSessionExercisesCount = sessionExercises.length;
-    fallbackPathUsed = sessionExercises.length > 0;
+  if (relaxedSessionExercises.length > strictSessionExercises.length) {
+    sessionExercises = relaxedSessionExercises;
+    fallbackPathUsed = true;
   }
 
   const orderedSessionExercises = (() => {
@@ -116,19 +115,17 @@ export async function loadHistoryDetailRows({
     sets = (strictSetsQuery.data ?? []) as SetRow[];
     strictSetsCount = sets.length;
 
-    if (sets.length === 0) {
-      const relaxedSetsQuery = await supabase
-        .from("sets")
-        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
-        .in("session_exercise_id", sessionExerciseIds)
-        .order("set_index", { ascending: true });
+    const relaxedSetsQuery = await supabase
+      .from("sets")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+      .in("session_exercise_id", sessionExerciseIds)
+      .order("set_index", { ascending: true });
 
-      const relaxedSets = (relaxedSetsQuery.data ?? []) as SetRow[];
-      relaxedSetsCount = relaxedSets.length;
-      if (relaxedSets.length > 0) {
-        sets = relaxedSets;
-        fallbackPathUsed = true;
-      }
+    const relaxedSets = (relaxedSetsQuery.data ?? []) as SetRow[];
+    relaxedSetsCount = relaxedSets.length;
+    if (relaxedSets.length > strictSetsCount) {
+      sets = relaxedSets;
+      fallbackPathUsed = true;
     }
   }
 
