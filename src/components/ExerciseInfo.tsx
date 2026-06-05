@@ -23,6 +23,24 @@ type ExerciseInfoErrorResponse = {
   details?: unknown;
 };
 
+function normalizeExerciseInfoStats(stats: ExerciseInfoSheetStats | null): ExerciseInfoSheetStats | null {
+  if (!stats) {
+    return null;
+  }
+
+  return {
+    ...stats,
+    quickMetrics: Array.isArray(stats.quickMetrics) ? stats.quickMetrics : [],
+    performanceMetrics: Array.isArray(stats.performanceMetrics) ? stats.performanceMetrics : [],
+    surfaceMetrics: Array.isArray(stats.surfaceMetrics) ? stats.surfaceMetrics : [],
+    progress: {
+      metrics: Array.isArray(stats.progress?.metrics) ? stats.progress.metrics : [],
+      reviewSections: Array.isArray(stats.progress?.reviewSections) ? stats.progress.reviewSections : [],
+      performances: Array.isArray(stats.progress?.performances) ? stats.progress.performances : [],
+    },
+  };
+}
+
 export function ExerciseInfo({
   exerciseId,
   open,
@@ -119,7 +137,7 @@ export function ExerciseInfo({
         }
 
         setExercise(successPayload.payload.exercise);
-        setStats(successPayload.payload.stats ?? null);
+        setStats(normalizeExerciseInfoStats(successPayload.payload.stats ?? null));
         setStatsLoading(false);
       } catch (error) {
         if (!active || controller.signal.aborted) return;

@@ -78,10 +78,10 @@ export type ExerciseInfoSheetStats = {
   quickMetrics: MetricDatum[];
   performanceMetrics?: MetricDatum[];
   surfaceMetrics?: MetricDatum[];
-  progress: {
-    metrics: MetricDatum[];
+  progress?: {
+    metrics?: MetricDatum[];
     reviewSections?: ExerciseInfoReviewSection[];
-    performances: Array<{
+    performances?: Array<{
       label: string;
       value: string;
       context?: string | null;
@@ -89,6 +89,15 @@ export type ExerciseInfoSheetStats = {
   };
   progression?: ExerciseProgressionLifelineSummary | null;
 };
+
+function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | undefined) {
+  const progress = stats?.progress;
+  return {
+    metrics: Array.isArray(progress?.metrics) ? progress.metrics : [],
+    reviewSections: Array.isArray(progress?.reviewSections) ? progress.reviewSections : [],
+    performances: Array.isArray(progress?.performances) ? progress.performances : [],
+  };
+}
 
 function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
   return [
@@ -292,13 +301,15 @@ function ExerciseInfoOverviewMedia({
 }
 
 function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
-  if (stats.progress.performances.length === 0) {
+  const performances = getExerciseInfoProgressState(stats).performances;
+
+  if (performances.length === 0) {
     return <p className={appTokens.detailBodyMutedText}>No recent performances logged yet.</p>;
   }
 
   return (
     <div className="space-y-2">
-      {stats.progress.performances.map((entry) => (
+      {performances.map((entry) => (
         <div
           key={`${entry.label}-${entry.value}`}
           className={cn(appTokens.detailHistoryRow, "px-2.5 py-2")}
@@ -537,7 +548,8 @@ export function ExerciseInfoSheet({
   if (!open || !exercise || (!inline && !portalTarget)) return null;
   const resolvedPortalTarget = portalTarget;
   const surfaceMetrics = stats?.surfaceMetrics ?? [];
-  const reviewSections = stats?.progress.reviewSections ?? [];
+  const progressState = getExerciseInfoProgressState(stats);
+  const reviewSections = progressState.reviewSections;
   const progression = stats?.progression ?? null;
 
   const sheetBody = (
