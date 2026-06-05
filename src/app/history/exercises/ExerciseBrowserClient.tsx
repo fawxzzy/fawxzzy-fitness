@@ -22,6 +22,7 @@ import {
   buildScopedExerciseCurationTagValue,
 } from "@/lib/exercise-curation";
 import { getStretchHubMetaItems, isStretchHubExercise } from "@/lib/stretch-library";
+import { buildExerciseMetricTagGroup, buildExerciseMetricTagValues } from "@/lib/history-metric-filters";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
 
 const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
@@ -181,6 +182,9 @@ export function ExerciseBrowserClient({
       for (const raw of [...toTagArray(row.primary_muscle), ...toTagArray(row.movement_pattern), ...toTagArray(row.equipment)]) {
         tags.add(raw.toLowerCase());
       }
+      for (const metricTag of buildExerciseMetricTagValues(row)) {
+        tags.add(metricTag);
+      }
       for (const raw of flattenExerciseCurationTagValues(normalizeExerciseCurationTags(row.curation_tags))) {
         tags.add(raw);
       }
@@ -197,6 +201,7 @@ export function ExerciseBrowserClient({
     const curationGroups = new Map(
       EXERCISE_CURATION_GROUPS.map((group) => [group.key, { label: group.label, tags: new Map<string, string>() }]),
     );
+    const metricGroup = buildExerciseMetricTagGroup(rows);
 
     for (const row of rows) {
       for (const item of toTagArray(row.primary_muscle)) muscles.set(item.toLowerCase(), formatExerciseTagLabel(item));
@@ -225,6 +230,7 @@ export function ExerciseBrowserClient({
       { key: "muscle", label: "Muscle", tags: Array.from(muscles, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
       { key: "movement", label: "Movement", tags: Array.from(movements, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
       { key: "equipment", label: "Equipment", tags: Array.from(equipment, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
+      metricGroup,
       ...EXERCISE_CURATION_GROUPS.map((group) => {
         const targetGroup = curationGroups.get(group.key);
         return {
@@ -233,7 +239,7 @@ export function ExerciseBrowserClient({
           tags: Array.from(targetGroup?.tags ?? [], ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)),
         };
       }),
-    ].filter((group) => group.tags.length > 0);
+    ].filter((group): group is ExerciseTagGroup => group !== null && group.tags.length > 0);
   }, [rows]);
 
   const filteredRows = useMemo(() => {

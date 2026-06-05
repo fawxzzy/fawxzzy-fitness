@@ -17,6 +17,7 @@ import { getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/hi
 import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
+import { buildSessionMetricTagGroup, buildSessionMetricTagValues } from "@/lib/history-metric-filters";
 import type { SessionSummary } from "./session-summary";
 
 function normalizeSessionTagValue(prefix: string, value: string) {
@@ -139,6 +140,9 @@ export function HistorySessionsClient({
       if (session.prCounts.total > 0) {
         tags.add("highlight:prs");
       }
+      for (const metricTag of buildSessionMetricTagValues(session)) {
+        tags.add(metricTag);
+      }
       if (session.progressionSummary?.promotionCount) {
         tags.add("highlight:progressed");
       }
@@ -159,6 +163,7 @@ export function HistorySessionsClient({
     const days = new Map<string, string>();
     const exercises = new Map<string, string>();
     const highlights = new Map<string, string>();
+    const metricGroup = buildSessionMetricTagGroup(sessions);
 
     for (const session of sessions) {
       if (session.routineTitle?.trim()) {
@@ -190,8 +195,9 @@ export function HistorySessionsClient({
       { key: "routine", label: "Routine", tags: Array.from(routines, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
       { key: "exercise", label: "Exercise", tags: Array.from(exercises, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
       { key: "day", label: "Day", tags: Array.from(days, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
+      metricGroup,
       { key: "highlight", label: "Highlight", tags: Array.from(highlights, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
-    ].filter((group) => group.tags.length > 0);
+    ].filter((group): group is ExerciseTagGroup => group !== null && group.tags.length > 0);
   }, [sessions]);
 
   const filteredSessions = useMemo(() => {
