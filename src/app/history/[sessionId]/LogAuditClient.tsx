@@ -1068,7 +1068,7 @@ export function LogAuditClient({
                           No exercises logged for this session yet.
                         </p>
                       ) : null}
-                      <div className={cn(expandedExercise ? undefined : "space-y-[0.5rem] px-0")}>
+                      <div className={cn(expandedExercise ? "flex h-full min-h-0 flex-col" : "space-y-[0.5rem] px-0")}>
                   {visibleExercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const notesValue = exerciseNotes[exercise.id] ?? "";
