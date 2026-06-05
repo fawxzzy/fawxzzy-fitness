@@ -544,15 +544,13 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
   );
 }
 
-function FocusedExerciseOverviewCard({
-  metrics,
+function FocusedExerciseContextPanels({
   progressionSummary,
   notesValue,
   isEditing,
   canEditNotes,
   noteInput,
 }: {
-  metrics: MetricDatum[];
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   notesValue: string;
   isEditing: boolean;
@@ -582,11 +580,6 @@ function FocusedExerciseOverviewCard({
 
   return (
     <div className="space-y-2">
-      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-        <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>This Session</h3>
-        <ExerciseSurfaceMetricGrid items={metrics} />
-      </AppPanel>
-
       {progressionMetrics.length > 0 || progressionItems.length > 0 ? (
         <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
           <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Progression</h3>
@@ -1123,36 +1116,15 @@ export function LogAuditClient({
               >
                 {expandedExercise ? (
                   <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
-                    <FocusedExerciseOverviewCard
-                      metrics={focusedDetailedMetrics ?? []}
-                      progressionSummary={expandedExercise.progressionSummary ?? null}
-                      notesValue={focusedExerciseNotes}
-                      isEditing={isEditing}
-                      canEditNotes={!isFocusedSetExpanded}
-                      noteInput={(
-                        <label className="block">
-                          <LabeledEditorField label="Exercise notes">
-                            <textarea
-                              ref={(element) => {
-                                if (expandedExercise) {
-                                  exerciseNoteRefs.current[expandedExercise.id] = element;
-                                }
-                              }}
-                              value={focusedExerciseNotes}
-                              onChange={(event) => {
-                                const nextValue = event.target.value;
-                                if (!expandedExercise) {
-                                  return;
-                                }
-                                setExerciseNotes((current) => ({ ...current, [expandedExercise.id]: nextValue }));
-                                autoSizeTextarea(event.currentTarget);
-                              }}
-                              rows={1}
-                              className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
-                            />
-                          </LabeledEditorField>
-                        </label>
-                      )}
+                    <HistorySessionCard
+                      session={focusedSessionSummary}
+                      viewMode="detailed"
+                      rightIcon={null}
+                      className="mt-0"
+                      prExerciseNames={focusedSessionSummary.prExerciseNames}
+                      detailedMetrics={focusedDetailedMetrics}
+                      detailedHeaderMode="hidden"
+                      showDetailedDivider={false}
                     />
                   </div>
                 ) : !isEditing ? (
@@ -1292,6 +1264,41 @@ export function LogAuditClient({
                       data-history-exercise-scroll-region="true"
                       className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
                     >
+                      {expandedExercise && !expandedSet ? (
+                        <div className="px-0 pb-2 pt-2">
+                          <FocusedExerciseContextPanels
+                            progressionSummary={expandedExercise.progressionSummary ?? null}
+                            notesValue={focusedExerciseNotes}
+                            isEditing={isEditing}
+                            canEditNotes={!isFocusedSetExpanded}
+                            noteInput={(
+                              <label className="block">
+                                <LabeledEditorField label="Exercise notes">
+                                  <textarea
+                                    ref={(element) => {
+                                      if (expandedExercise) {
+                                        exerciseNoteRefs.current[expandedExercise.id] = element;
+                                      }
+                                    }}
+                                    value={focusedExerciseNotes}
+                                    onChange={(event) => {
+                                      const nextValue = event.target.value;
+                                      if (!expandedExercise) {
+                                        return;
+                                      }
+                                      setExerciseNotes((current) => ({ ...current, [expandedExercise.id]: nextValue }));
+                                      autoSizeTextarea(event.currentTarget);
+                                    }}
+                                    rows={1}
+                                    className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
+                                  />
+                                </LabeledEditorField>
+                              </label>
+                            )}
+                          />
+                        </div>
+                      ) : null}
+
                       {expandedSet && isEditing ? (
                         <div className="px-0 pb-0 pt-2">
                           <ModifyMeasurements
