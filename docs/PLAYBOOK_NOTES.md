@@ -449,3 +449,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Pattern: locked channel -> Fawx Security verify/rules panel -> verification button -> role grant.
 - Failure Mode: Letting users create messages or threads in `#verify` turns access setup into clutter and makes the server feel unpolished.
 - Status: Proposed
+
+## 2026-06-05 - Logged session exercise lanes should reuse the progression scroll-box shell
+- Type: Pattern
+- WHAT changed: The history/logged-session detail route now wraps the lower exercise-card lane in the same bounded glass scroll-box treatment used by progression measurement panels, while keeping the summary card above that scroll region and the exercise cards scrolling inside the boxed lane instead of against the raw page background.
+- WHY it changed: Logged session cards needed the same footer-safe, bounded scrolling behavior already proven on progression measurement input screens so the bottom exercise lane stays visually connected to the app’s shared surface system and naturally clears the bottom button bar without drifting up into the metrics card.
+- Rule: When a lower content lane needs its own footer-safe scrolling, reuse the established progression scroll-box shell before inventing a route-local container.
+- Pattern: sticky summary or metrics card -> bounded glass scroll box -> internal exercise-card or set-list scrolling above the bottom dock.
+- Failure Mode: Letting logged-session cards scroll on the raw page background makes the lower section feel structurally disconnected from the rest of the app and weakens footer-safe affordance.
+- Evidence: `src/app/history/[sessionId]/LogAuditClient.tsx`
+- Status: Proposed

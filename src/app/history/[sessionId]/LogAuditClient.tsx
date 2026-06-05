@@ -1036,19 +1036,26 @@ export function LogAuditClient({
                     />
                   </div>
                 ) : null}
-                <div
-                  data-history-exercise-scroll-region="true"
-                  className={cn(
-                    "min-h-0",
-                    expandedExercise ? undefined : "overflow-y-auto overscroll-contain px-0 pb-3 pt-1",
-                  )}
-                >
-                  {!expandedExercise && displayExercises.length === 0 ? (
-                    <p className={appTokens.historyEmptyState}>
-                      No exercises logged for this session yet.
-                    </p>
-                  ) : null}
-                  <div className={cn(expandedExercise ? undefined : "space-y-[0.5rem] px-0")}>
+                <div className="mx-1 min-h-0 overflow-hidden px-1 pb-2">
+                  <div
+                    className={cn(
+                      appTokens.exercisePickerFilterPanel,
+                      "flex h-full min-h-0 flex-col p-2",
+                    )}
+                  >
+                    <div
+                      data-history-exercise-scroll-region="true"
+                      className={cn(
+                        "hide-scrollbar min-h-0 flex-1 overscroll-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                        expandedExercise ? "overflow-hidden" : "overflow-y-auto px-0 pb-1 pt-0.5",
+                      )}
+                    >
+                      {!expandedExercise && displayExercises.length === 0 ? (
+                        <p className={appTokens.historyEmptyState}>
+                          No exercises logged for this session yet.
+                        </p>
+                      ) : null}
+                      <div className={cn(expandedExercise ? undefined : "space-y-[0.5rem] px-0")}>
                   {visibleExercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const notesValue = exerciseNotes[exercise.id] ?? "";
@@ -1263,6 +1270,8 @@ export function LogAuditClient({
             </article>
           );
         })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
