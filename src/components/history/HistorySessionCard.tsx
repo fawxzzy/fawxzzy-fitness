@@ -431,6 +431,7 @@ export function HistorySessionCard({
   badgeText,
   detailedMetrics,
   prExerciseNames,
+  detailedSections,
   detailedHeaderMode = "default",
   showDetailedDivider = true,
   tone,
