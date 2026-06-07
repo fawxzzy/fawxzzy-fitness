@@ -270,7 +270,7 @@ export function ExerciseBrowserClient({
         };
       }),
     ].filter((group): group is ExerciseTagGroup => group !== null && group.tags.length > 0);
-  }, [scopedRows]);
+  }, [rows, scopedRows]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
