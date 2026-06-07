@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getExerciseInfoBase, getExerciseInfoStats, resolveExerciseInfoImages } from "@/lib/exercise-info";
 import { isKnownLegacyExerciseId, resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
+import { isExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 import { optionalEnv } from "@/lib/env";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -41,6 +42,9 @@ export async function GET(
 ) {
   const exerciseId = params.exerciseId;
   const canonicalExerciseId = resolveCanonicalExerciseId(exerciseId);
+  const requestUrl = new URL(request.url);
+  const requestedScope = requestUrl.searchParams.get("scope");
+  const analyticsScope = isExerciseInfoAnalyticsScope(requestedScope) ? requestedScope : "all_time";
   const requestId = `ei_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   let step: ExerciseInfoStep = "validate";
   let userId: string | null = null;
@@ -98,6 +102,7 @@ export async function GET(
       exercise.exercise_id,
       exercise,
       requestId,
+      { analyticsScope },
     ));
 
     let exerciseWithImages = exercise;

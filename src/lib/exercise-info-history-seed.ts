@@ -1,25 +1,6 @@
 import type { ExerciseInfoSheetExercise, ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
-import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
-import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import { mapExerciseAnalyticsFamilyToPresentationKind, resolveExerciseAnalyticsFamily } from "@/lib/exercise-analytics-family";
-
-function sanitizeMetrics(metrics: MetricDatum[] | undefined) {
-  return Array.isArray(metrics) ? metrics.slice(0, 4) : [];
-}
-
-function sanitizeReviewSections(sections: Array<{ title: string; items: string[] }> | undefined): ExerciseInfoReviewSection[] {
-  if (!Array.isArray(sections)) {
-    return [];
-  }
-
-  return sections
-    .filter((section) => Boolean(section?.title) && Array.isArray(section?.items) && section.items.length > 0)
-    .map((section) => ({
-      title: section.title,
-      items: section.items.slice(0, 4),
-    }));
-}
 
 function resolvePresentationKind(row: ExerciseBrowserRow) {
   const family = row.analyticsFamily ?? resolveExerciseAnalyticsFamily({
@@ -43,9 +24,13 @@ export function buildExerciseInfoSeedFromHistoryRow(row: ExerciseBrowserRow): {
   exercise: ExerciseInfoSheetExercise;
   stats: ExerciseInfoSheetStats | null;
 } {
-  const { family, presentationKind } = resolvePresentationKind(row);
-  const metrics = sanitizeMetrics(row.detailedMetrics);
-  const reviewSections = sanitizeReviewSections(row.detailSections);
+  const { presentationKind } = resolvePresentationKind(row);
+  const surfaceMetrics = [
+    { label: "Sessions", value: String(row.sessionCount) },
+    { label: "Sets", value: String(row.setCount ?? 0) },
+    { label: "Last", value: row.lastSummary ?? "Not yet" },
+    { label: "Best", value: row.bestSummary ?? "Not yet" },
+  ];
 
   return {
     exercise: {
@@ -59,13 +44,10 @@ export function buildExerciseInfoSeedFromHistoryRow(row: ExerciseBrowserRow): {
       how_to_short: row.how_to_short,
       image_icon_path: row.image_icon_path,
       slug: row.slug,
-      measurement_type: row.measurement_type ?? null,
-      default_unit: row.default_unit ?? null,
     },
     stats: {
       exercise_id: row.exerciseId,
       kind: row.kind,
-      analyticsFamily: family,
       presentationKind,
       recent: {
         lastPerformedAt: row.last_performed_at,
@@ -80,12 +62,12 @@ export function buildExerciseInfoSeedFromHistoryRow(row: ExerciseBrowserRow): {
       },
       prLabel: row.prLabel,
       prCount: row.prCount,
-      quickMetrics: metrics,
-      performanceMetrics: metrics,
-      surfaceMetrics: metrics,
+      quickMetrics: surfaceMetrics,
+      performanceMetrics: [],
+      surfaceMetrics,
       progress: {
-        metrics: metrics,
-        reviewSections,
+        metrics: [],
+        reviewSections: [],
         performances: [],
       },
       progression: row.progressionSummary ?? null,

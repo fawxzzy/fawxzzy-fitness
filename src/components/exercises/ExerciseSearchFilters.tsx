@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
@@ -42,6 +43,7 @@ type ExerciseSearchFiltersProps = {
   filterViewportMode?: "scroll" | "auto-height";
   filterHorizontalRailOverrideClassName?: string;
   filterCompactDensity?: "default" | "tight";
+  trailingControls?: ReactNode;
 };
 
 export function ExerciseSearchFilters({
@@ -70,6 +72,7 @@ export function ExerciseSearchFilters({
   filterViewportMode = "scroll",
   filterHorizontalRailOverrideClassName,
   filterCompactDensity = "default",
+  trailingControls,
 }: ExerciseSearchFiltersProps) {
   void searchFirst;
   const [isFilterOpen, setIsFilterOpen] = useState(defaultFilterOpen);
@@ -119,7 +122,9 @@ export function ExerciseSearchFilters({
         placeholder={searchPlaceholderText}
         className={cn(
           appTokens.exercisePickerSearchInput,
-          query ? "pr-[10.1rem]" : "pr-[7.5rem]",
+          trailingControls
+            ? (query ? "pr-[18.5rem]" : "pr-[16rem]")
+            : (query ? "pr-[10.1rem]" : "pr-[7.5rem]"),
           searchInputClassName,
         )}
       />
@@ -137,6 +142,7 @@ export function ExerciseSearchFilters({
             &times;
           </button>
         ) : null}
+        {trailingControls}
         <button
           type="button"
           onClick={() => updateFilterOpen((previous) => !previous)}

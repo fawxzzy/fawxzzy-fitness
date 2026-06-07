@@ -1,6 +1,7 @@
 "use client";
 
 import type { ExerciseInfoClientPayload } from "@/lib/exercise-info-client";
+import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 
 type ExerciseInfoClientCacheEntry = {
   payload: ExerciseInfoClientPayload;
@@ -8,7 +9,7 @@ type ExerciseInfoClientCacheEntry = {
   source: "seed" | "server";
 };
 
-const STORAGE_KEY = "fawxzzy:exercise-info-cache:v1";
+const STORAGE_KEY = "fawxzzy:exercise-info-cache:v3";
 const MAX_ENTRIES = 36;
 const SERVER_TTL_MS = 5 * 60 * 1000;
 const SEED_TTL_MS = 45 * 1000;
@@ -20,6 +21,14 @@ function canUseBrowser() {
 
 function normalizeExerciseId(exerciseId: string | null | undefined) {
   return typeof exerciseId === "string" ? exerciseId.trim() : "";
+}
+
+function normalizeScope(scope: ExerciseInfoAnalyticsScope | null | undefined) {
+  return scope === "current_routine" ? "current_routine" : "all_time";
+}
+
+function buildCacheKey(exerciseId: string, scope: ExerciseInfoAnalyticsScope | null | undefined) {
+  return `${exerciseId}::${normalizeScope(scope)}`;
 }
 
 function getFreshnessTtl(entry: ExerciseInfoClientCacheEntry) {
@@ -80,7 +89,10 @@ function mergeStoredEntries() {
   }
 }
 
-export function readExerciseInfoClientPayload(exerciseId: string | null | undefined) {
+export function readExerciseInfoClientPayload(
+  exerciseId: string | null | undefined,
+  scope: ExerciseInfoAnalyticsScope | null | undefined = "all_time",
+) {
   const normalizedExerciseId = normalizeExerciseId(exerciseId);
   if (!normalizedExerciseId) {
     return null;
@@ -93,20 +105,22 @@ export function readExerciseInfoClientPayload(exerciseId: string | null | undefi
     memoryCache.set(entryId, entry);
   }
 
-  return memoryCache.get(normalizedExerciseId) ?? null;
+  return memoryCache.get(buildCacheKey(normalizedExerciseId, scope)) ?? null;
 }
 
 export function writeExerciseInfoClientPayload(
   exerciseId: string | null | undefined,
   payload: ExerciseInfoClientPayload,
   source: "seed" | "server",
+  scope: ExerciseInfoAnalyticsScope | null | undefined = "all_time",
 ) {
   const normalizedExerciseId = normalizeExerciseId(exerciseId);
   if (!normalizedExerciseId) {
     return null;
   }
 
-  const current = readExerciseInfoClientPayload(normalizedExerciseId);
+  const cacheKey = buildCacheKey(normalizedExerciseId, scope);
+  const current = readExerciseInfoClientPayload(normalizedExerciseId, scope);
   if (
     current
     && current.source === "server"
@@ -121,7 +135,7 @@ export function writeExerciseInfoClientPayload(
     source,
   };
 
-  memoryCache.set(normalizedExerciseId, nextEntry);
+  memoryCache.set(cacheKey, nextEntry);
   writeStorageEntries(memoryCache);
   return nextEntry;
 }

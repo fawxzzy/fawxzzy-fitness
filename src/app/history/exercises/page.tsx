@@ -5,7 +5,7 @@ import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold"
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
-import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
+import { getExerciseBrowserScopePayloadForUser } from "@/lib/exercises-browser";
 import { getHistoryPreviewExerciseRows } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
@@ -34,12 +34,16 @@ export default async function HistoryExercisesPage() {
   const initialViewMode = resolveInitialViewMode();
 
   try {
-    const rows = isHistoryPreviewActiveForRequest()
-      ? getHistoryPreviewExerciseRows()
-      : await diagnostics.measure("history.exercises.fetch", () => getExercisesWithStatsForUser(), {
-        blockingReason: "Waiting for exercise history stats.",
-        timeoutMs: 7000,
-      });
+    const browserPayload = isHistoryPreviewActiveForRequest()
+      ? {
+          allTimeRows: getHistoryPreviewExerciseRows(),
+          currentRoutineRows: getHistoryPreviewExerciseRows(),
+          activeRoutineTitle: null,
+        }
+      : await diagnostics.measure("history.exercises.fetch", () => getExerciseBrowserScopePayloadForUser(), {
+          blockingReason: "Waiting for exercise history stats.",
+          timeoutMs: 7000,
+        });
 
     return (
       <HistoryRouteScaffold
@@ -50,7 +54,12 @@ export default async function HistoryExercisesPage() {
         floatingHeaderSlot={<div id="history-exercises-floating-header" />}
       >
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-        <ExerciseBrowserClient rows={rows} initialViewMode={initialViewMode} />
+        <ExerciseBrowserClient
+          rows={browserPayload.allTimeRows}
+          currentRoutineRows={browserPayload.currentRoutineRows}
+          activeRoutineTitle={browserPayload.activeRoutineTitle}
+          initialViewMode={initialViewMode}
+        />
       </HistoryRouteScaffold>
     );
   } catch (error) {

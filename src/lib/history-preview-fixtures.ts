@@ -116,7 +116,7 @@ const historyPreviewExerciseRows: ExerciseBrowserRow[] = [
     prLabel: "Load PR",
     prCount: 1,
     sessionCount: 2,
-    deltaFromBest: "Matched best",
+    deltaFromBest: "Matched | best",
     tagsSummary: "Quads | Squat | Barbell",
   },
   {
@@ -424,6 +424,7 @@ export function getHistoryPreviewSessionsPageData(args?: {
   selected?: string | string[] | null;
 }): HistorySessionsPageData {
   return {
+    activeRoutineTitle: "Atlas",
     nextCursor: null,
     selectedSessionId: getSelectedSessionId(args?.selected) ?? HISTORY_PREVIEW_PRIMARY_SESSION_ID,
     sessionItems: [...historyPreviewSessions],

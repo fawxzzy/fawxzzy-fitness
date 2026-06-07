@@ -11,9 +11,12 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { HistoryMetaLine } from "@/components/history/HistoryMetaLine";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { PillButton } from "@/components/ui/Pill";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
+import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import { getExerciseInfoAnalyticsScopeDisplayLabel } from "@/lib/exercise-info-scope";
 import {
   EXERCISE_CURATION_GROUPS,
   flattenExerciseCurationTagValues,
@@ -30,6 +33,8 @@ const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
 
 type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
+  currentRoutineRows?: ExerciseBrowserRow[];
+  activeRoutineTitle?: string | null;
   showBottomActions?: boolean;
 };
 
@@ -77,6 +82,9 @@ function HistoryExerciseFilters({
   groups,
   resultCount,
   initialOpen = false,
+  analyticsScope,
+  activeRoutineTitle,
+  onAnalyticsScopeToggle,
 }: {
   query: string;
   onQueryChange: (next: string) => void;
@@ -85,7 +93,12 @@ function HistoryExerciseFilters({
   groups: ExerciseTagGroup[];
   resultCount: number;
   initialOpen?: boolean;
+  analyticsScope: ExerciseInfoAnalyticsScope;
+  activeRoutineTitle?: string | null;
+  onAnalyticsScopeToggle: () => void;
 }) {
+  const scopeLabel = getExerciseInfoAnalyticsScopeDisplayLabel(analyticsScope, activeRoutineTitle);
+
   return (
     <ExerciseSearchFilters
       query={query}
@@ -113,6 +126,18 @@ function HistoryExerciseFilters({
       clearSearchAriaLabel="Clear exercise search"
       toggleFiltersAriaLabel="Toggle exercise filters"
       chromeVariant="history"
+      trailingControls={(
+        <PillButton
+          active
+          type="button"
+          onClick={onAnalyticsScopeToggle}
+          className="inline-flex h-8 max-w-[12.75rem] items-center justify-center whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none"
+          title={scopeLabel}
+          aria-label={`Toggle exercise history metric scope. Current scope: ${scopeLabel}`}
+        >
+          <span className="block max-w-full truncate">{scopeLabel}</span>
+        </PillButton>
+      )}
     />
   );
 }
@@ -158,6 +183,8 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
 
 export function ExerciseBrowserClient({
   rows = [],
+  currentRoutineRows = [],
+  activeRoutineTitle = null,
   inlineHeaderControls = false,
   initialViewMode = "compact",
   initialFiltersOpen = false,
@@ -167,8 +194,10 @@ export function ExerciseBrowserClient({
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
+  const [analyticsScope, setAnalyticsScope] = useState<ExerciseInfoAnalyticsScope>("all_time");
   const deferredQuery = useDeferredValue(query);
   const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
+  const scopedRows = analyticsScope === "current_routine" ? currentRoutineRows : rows;
 
   const applyViewMode = (nextMode: "compact" | "detailed") => {
     setViewMode(nextMode);
@@ -178,7 +207,7 @@ export function ExerciseBrowserClient({
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
 
-    for (const row of rows) {
+    for (const row of scopedRows) {
       const tags = new Set<string>();
       for (const raw of [...toTagArray(row.primary_muscle), ...toTagArray(row.movement_pattern), ...toTagArray(row.equipment)]) {
         tags.add(raw.toLowerCase());
@@ -193,7 +222,7 @@ export function ExerciseBrowserClient({
     }
 
     return tagsById;
-  }, [rows]);
+  }, [scopedRows]);
 
   const availableTagGroups = useMemo<ExerciseTagGroup[]>(() => {
     const muscles = new Map<string, string>();
@@ -204,7 +233,7 @@ export function ExerciseBrowserClient({
     );
     const metricGroup = buildExerciseMetricTagGroup(rows);
 
-    for (const row of rows) {
+    for (const row of scopedRows) {
       for (const item of toTagArray(row.primary_muscle)) muscles.set(item.toLowerCase(), formatExerciseTagLabel(item));
       for (const item of toTagArray(row.movement_pattern)) movements.set(item.toLowerCase(), formatExerciseTagLabel(item));
       for (const item of toTagArray(row.equipment)) equipment.set(item.toLowerCase(), formatExerciseTagLabel(item));
@@ -241,12 +270,12 @@ export function ExerciseBrowserClient({
         };
       }),
     ].filter((group): group is ExerciseTagGroup => group !== null && group.tags.length > 0);
-  }, [rows]);
+  }, [scopedRows]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-    return rows.filter((row) => {
+    return scopedRows.filter((row) => {
       if (selectedTags.length > 0) {
         const tags = exerciseTagsById.get(row.exerciseId);
         if (!tags || !selectedTags.every((tag) => tags.has(tag))) {
@@ -263,11 +292,11 @@ export function ExerciseBrowserClient({
       const slugMatch = row.slug?.toLowerCase().includes(normalizedQuery) ?? false;
       return nameMatch || slugMatch;
     });
-  }, [deferredQuery, exerciseTagsById, rows, selectedTags]);
+  }, [deferredQuery, exerciseTagsById, scopedRows, selectedTags]);
 
   const selectedRow = useMemo(
-    () => (selectedExerciseId ? rows.find((row) => row.exerciseId === selectedExerciseId) ?? null : null),
-    [rows, selectedExerciseId],
+    () => (selectedExerciseId ? scopedRows.find((row) => row.exerciseId === selectedExerciseId) ?? null : null),
+    [scopedRows, selectedExerciseId],
   );
   const selectedExerciseInfoSeed = useMemo(
     () => (selectedRow ? buildExerciseInfoSeedFromHistoryRow(selectedRow) : null),
@@ -295,6 +324,9 @@ export function ExerciseBrowserClient({
             groups={availableTagGroups}
             resultCount={filteredRows.length}
             initialOpen={initialFiltersOpen}
+            analyticsScope={analyticsScope}
+            activeRoutineTitle={activeRoutineTitle}
+            onAnalyticsScopeToggle={() => setAnalyticsScope((current) => current === "all_time" ? "current_routine" : "all_time")}
           />
         </HistoryTitleControlShell>
       ) : floatingHeaderContainer
@@ -312,6 +344,9 @@ export function ExerciseBrowserClient({
                 groups={availableTagGroups}
                 resultCount={filteredRows.length}
                 initialOpen={initialFiltersOpen}
+                analyticsScope={analyticsScope}
+                activeRoutineTitle={activeRoutineTitle}
+                onAnalyticsScopeToggle={() => setAnalyticsScope((current) => current === "all_time" ? "current_routine" : "all_time")}
               />
             </HistoryTitleControlShell>,
             floatingHeaderContainer,

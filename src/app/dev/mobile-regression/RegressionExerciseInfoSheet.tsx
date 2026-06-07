@@ -35,7 +35,16 @@ export function RegressionExerciseInfoSheet({
   return (
     <>
       <div hidden data-mobile-regression-id={scenarioId} data-mobile-regression-screen="exercise-detail" />
-      <ExerciseInfoSheet exercise={exercise} stats={stats} statsLoading={false} open onOpenChange={() => {}} inline />
+      <ExerciseInfoSheet
+        exercise={exercise}
+        statsByScope={{ all_time: stats, current_routine: stats }}
+        statsLoadingByScope={{ all_time: false, current_routine: false }}
+        analyticsScope="all_time"
+        onAnalyticsScopeChange={() => {}}
+        open
+        onOpenChange={() => {}}
+        inline
+      />
     </>
   );
 }

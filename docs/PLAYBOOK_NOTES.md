@@ -510,3 +510,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Failure Mode: Hand-written chevron ternaries drift in direction, tone, and alignment and make disclosure interactions harder to normalize across page families.
 - Evidence: `src/components/ui/StateChevron.tsx`, `src/components/workout/ExerciseDisclosureCard.tsx`, `src/components/history/HistoryDetailExerciseCard.tsx`, `src/app/today/TodayExerciseRows.tsx`, `src/app/today/TodayDayPicker.tsx`
 - Status: Proposed
+
+## 2026-06-05 - Detail recap sections should share one bullet-list renderer across history and exercise info
+- Type: Pattern
+- WHAT changed: History session detail cards and the exercise info `Progress` and `Progression` panels now render recap bullets through one shared detailed-section renderer instead of each screen carrying its own bullet spacing, divider, and wrap logic.
+- WHY it changed: Exercise info had drifted into a softer local recap style while history cards had already locked in the more stable section rhythm, so copy, spacing, and wrapped bullet behavior kept diverging even when the screens were supposed to feel like the same metric-card family.
+- Rule: If a detail surface needs the canonical bullet recap treatment under a metric grid, use the shared detailed-section renderer before adding route-local bullet markup.
+- Pattern: shared thin divider -> shared uppercase section title -> shared wrap-safe two-column bullet list -> screen-specific section selection only.
+- Failure Mode: Rebuilding recap bullets per screen reintroduces text-touching-dot bugs, spacing drift, and inconsistent progress/progression panels across exercise info, history, and logged-session detail.
+- Evidence: `src/components/ui/DetailSectionList.tsx`, `src/components/history/HistorySessionCard.tsx`, `src/components/ExerciseInfoSheet.tsx`
+- Status: Proposed

@@ -21,10 +21,11 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
 import { isStepDistanceUnit } from "@/lib/fitness-distance-units";
 import { chooseCardioBestMetric, getDisplayPace, isCardioMeasurementType, resolveEffectiveKind, shouldShowCardioBest } from "@/lib/cardio-best";
-import { aggregateCardioSessions, groupNormalizedSetsByExercise, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
+import { aggregateCardioSessions, aggregateExerciseStatsFromSets, groupNormalizedSetsByExercise, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
 import { formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { ProgressionEventRow } from "@/types/db";
+import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 
 type ExerciseCatalogRow = {
   id: string;
@@ -98,6 +99,17 @@ export type ExerciseBrowserRow = {
   tagsSummary: string | null;
   analyticsFamily?: ExerciseAnalyticsFamily;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
+};
+
+export type ExerciseBrowserScopePayload = {
+  allTimeRows: ExerciseBrowserRow[];
+  currentRoutineRows: ExerciseBrowserRow[];
+  activeRoutineTitle: string | null;
+};
+
+type ExerciseBrowserScopeContext = {
+  activeRoutineId: string | null;
+  activeRoutineTitle: string | null;
 };
 
 function formatCompact(value: number) {
@@ -435,28 +447,28 @@ function buildCardioProgressDetailItems(args: {
       const currentText = formatPace(currentPace.paceSecondsPerUnit, currentPace.distanceUnit);
       const previousText = formatPace(previousPace.paceSecondsPerUnit, previousPace.distanceUnit);
       if (currentText && previousText) {
-        items.push(currentText === previousText ? `Pace: Matched previous (${currentText})` : `Pace: ${currentText} vs ${previousText}`);
+        items.push(currentText === previousText ? `Pace | Matched previous (${currentText})` : `Pace | ${currentText} vs ${previousText}`);
       }
     }
 
     if (distanceDelta !== null) {
       const distanceText = formatDistance(Math.abs(distanceDelta), args.latest.distanceUnit ?? args.previous.distanceUnit);
       if (distanceText) {
-        items.push(distanceDelta === 0 ? `${distanceLabel}: Matched previous` : `${distanceLabel}: ${distanceDelta > 0 ? "+" : "-"}${distanceText} vs previous`);
+        items.push(distanceDelta === 0 ? `${distanceLabel} | Matched previous` : `${distanceLabel} | ${distanceDelta > 0 ? "+" : "-"}${distanceText} vs previous`);
       }
     }
 
     if (durationDelta !== null) {
       const durationText = formatDurationShort(Math.abs(durationDelta));
       if (durationText) {
-        items.push(durationDelta === 0 ? "Time: Matched previous" : `Time: ${durationDelta > 0 ? "+" : "-"}${durationText} vs previous`);
+        items.push(durationDelta === 0 ? "Time | Matched previous" : `Time | ${durationDelta > 0 ? "+" : "-"}${durationText} vs previous`);
       }
     }
 
     if (caloriesDelta !== null) {
       const caloriesText = formatCalories(Math.abs(caloriesDelta));
       if (caloriesText) {
-        items.push(caloriesDelta === 0 ? "Calories: Matched previous" : `Calories: ${caloriesDelta > 0 ? "+" : "-"}${caloriesText} vs previous`);
+        items.push(caloriesDelta === 0 ? "Calories | Matched previous" : `Calories | ${caloriesDelta > 0 ? "+" : "-"}${caloriesText} vs previous`);
       }
     }
   }
@@ -560,6 +572,35 @@ function isRelationOrColumnMissing(error: PostgrestError | null) {
   return error?.code === "42P01" || error?.code === "42703";
 }
 
+async function loadRoutineTitle(routineId: string, userId: string, supabase: SupabaseClient) {
+  const { data } = await supabase
+    .from("routines")
+    .select("name")
+    .eq("id", routineId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return typeof data?.name === "string" && data.name.trim().length > 0 ? data.name.trim() : null;
+}
+
+async function resolveExerciseBrowserScopeContext(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserScopeContext> {
+  const supabase = client ?? supabaseServer();
+  const { data } = await supabase
+    .from("profiles")
+    .select("active_routine_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const activeRoutineId = typeof data?.active_routine_id === "string" && data.active_routine_id.trim().length > 0
+    ? data.active_routine_id
+    : null;
+
+  return {
+    activeRoutineId,
+    activeRoutineTitle: activeRoutineId ? await loadRoutineTitle(activeRoutineId, userId, supabase) : null,
+  };
+}
+
 function runDevExerciseBrowserVerification(row: ExerciseBrowserRow) {
   if (process.env.NODE_ENV !== "development") return;
   const name = row.name.trim().toLowerCase();
@@ -596,9 +637,19 @@ function runDevExerciseBrowserVerification(row: ExerciseBrowserRow) {
   }
 }
 
-async function getExercisesWithStats(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserRow[]> {
+async function getExercisesWithStats(
+  userId: string,
+  client?: SupabaseClient,
+  options?: {
+    analyticsScope?: ExerciseInfoAnalyticsScope;
+    activeRoutineId?: string | null;
+  },
+): Promise<ExerciseBrowserRow[]> {
   noStore();
   const supabase = client ?? supabaseServer();
+  const analyticsScope = options?.analyticsScope === "current_routine" ? "current_routine" : "all_time";
+  const shouldScopeToCurrentRoutine = analyticsScope === "current_routine";
+  const activeRoutineId = shouldScopeToCurrentRoutine ? (options?.activeRoutineId ?? null) : null;
 
   const exerciseRows = client ? await listExercisesForUser(userId, client) : await listExercises();
 
@@ -625,24 +676,52 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
     return [];
   }
 
+  const statsPromise = shouldScopeToCurrentRoutine
+    ? Promise.resolve({ data: [] as ExerciseStatsRow[], error: null as PostgrestError | null })
+    : supabase
+        .from("exercise_stats")
+        .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, actual_pr_weight, actual_pr_reps, actual_pr_at")
+        .eq("user_id", userId)
+        .in("exercise_id", canonicalIds);
+
+  const historySetPromise = shouldScopeToCurrentRoutine
+    ? activeRoutineId
+      ? supabase
+          .from("sets")
+          .select("set_index, weight, reps, weight_unit, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(status, performed_at, routine_id))")
+          .eq("user_id", userId)
+          .eq("session_exercise.user_id", userId)
+          .in("session_exercise.exercise_id", canonicalIds)
+          .eq("session_exercise.session.status", "completed")
+          .eq("session_exercise.session.routine_id", activeRoutineId)
+      : Promise.resolve({ data: [] as HistoricalSetRow[], error: null as PostgrestError | null })
+    : supabase
+        .from("sets")
+        .select("set_index, weight, reps, weight_unit, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(status, performed_at, routine_id))")
+        .eq("user_id", userId)
+        .eq("session_exercise.user_id", userId)
+        .in("session_exercise.exercise_id", canonicalIds)
+        .eq("session_exercise.session.status", "completed");
+
+  const progressionEventsPromise = shouldScopeToCurrentRoutine
+    ? activeRoutineId
+      ? supabase
+          .from("progression_events")
+          .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+          .eq("user_id", userId)
+          .in("exercise_id", canonicalIds)
+          .eq("routine_id", activeRoutineId)
+      : Promise.resolve({ data: [] as ProgressionEventRow[], error: null as PostgrestError | null })
+    : supabase
+        .from("progression_events")
+        .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+        .eq("user_id", userId)
+        .in("exercise_id", canonicalIds);
+
   const [{ data: statsRows, error: statsError }, { data: historySetRows, error: historySetError }, { data: progressionEventRows, error: progressionEventsError }] = await Promise.all([
-    supabase
-      .from("exercise_stats")
-      .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, actual_pr_weight, actual_pr_reps, actual_pr_at")
-      .eq("user_id", userId)
-      .in("exercise_id", canonicalIds),
-    supabase
-      .from("sets")
-      .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(status, performed_at))")
-      .eq("user_id", userId)
-      .eq("session_exercise.user_id", userId)
-      .in("session_exercise.exercise_id", canonicalIds)
-      .eq("session_exercise.session.status", "completed"),
-    supabase
-      .from("progression_events")
-      .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
-      .eq("user_id", userId)
-      .in("exercise_id", canonicalIds),
+    statsPromise,
+    historySetPromise,
+    progressionEventsPromise,
   ]);
 
   if (statsError) {
@@ -663,7 +742,12 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
     throw new Error(`failed to load exercise progression history: ${progressionEventsError.message}`);
   }
 
-  const statsByExerciseId = new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
+  const scopedStatsByExerciseId = shouldScopeToCurrentRoutine
+    ? aggregateExerciseStatsFromSets((historySetRows ?? []) as HistoricalSetRow[])
+    : null;
+  const statsByExerciseId = shouldScopeToCurrentRoutine
+    ? new Map<string, ExerciseStatsRow>()
+    : new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
   const setRowsByExerciseId = groupNormalizedSetsByExercise((historySetRows ?? []) as HistoricalSetRow[]);
   const progressionEventsByExerciseId = new Map<string, ProgressionEventRow[]>();
   for (const event of (progressionEventRows ?? []) as ProgressionEventRow[]) {
@@ -686,7 +770,9 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
   const rows = exercises
     .map((exercise) => {
       const exerciseId = exercise.id;
-      const stats = statsByExerciseId.get(exerciseId);
+      const stats = shouldScopeToCurrentRoutine
+        ? (scopedStatsByExerciseId?.get(exerciseId) ?? null)
+        : (statsByExerciseId.get(exerciseId) ?? null);
       const setRows = setRowsByExerciseId.get(exerciseId) ?? [];
       const prSummary = exerciseSummaryById.get(exerciseId);
       const sessionCount = new Set(setRows.map((row) => row.sessionId)).size;
@@ -735,22 +821,15 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
         || sessionAggregates.some((row) => positive(row.durationSeconds) > 0);
       const hasDistanceSignal = positive(bestCardioSession?.distance) > 0
         || sessionAggregates.some((row) => positive(row.distance) > 0);
-      const kind = resolveEffectiveKind(
+      let kind = resolveEffectiveKind(
         exercise.measurement_type,
         hasDurationSignal,
         hasDistanceSignal,
         sessionAggregates.some((row) => positive(row.calories) > 0),
       );
-      if (process.env.NODE_ENV === "development"
-        && isCardioMeasurementType(exercise.measurement_type)
-        && kind === "strength") {
-        console.warn("[history/exercises] cardio measurement_type resolved to strength due to missing cardio signal", {
-          exerciseId,
-          name: exercise.name,
-          measurement_type: exercise.measurement_type,
-        });
+      if (kind === "strength" && isCardioMeasurementType(exercise.measurement_type)) {
+        kind = "cardio";
       }
-
       const hasWeightedBest = positive(stats?.actual_pr_weight) > 0;
       const bodyweightPr = setRows.reduce((max, row) => Math.max(max, positive(row.weight) === 0 ? positive(row.reps) : 0), 0);
       const lastBodyweightReps = latestSession ? latestSession.sets.reduce((max, row) => Math.max(max, positive(row.weight) === 0 ? positive(row.reps) : 0), 0) : 0;
@@ -950,6 +1029,24 @@ async function getExercisesWithStats(userId: string, client?: SupabaseClient): P
 export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow[]> {
   const user = await requireUser();
   return getExercisesWithStats(user.id);
+}
+
+export async function getExerciseBrowserScopePayloadForUser(): Promise<ExerciseBrowserScopePayload> {
+  const user = await requireUser();
+  const scopeContext = await resolveExerciseBrowserScopeContext(user.id);
+  const [allTimeRows, currentRoutineRows] = await Promise.all([
+    getExercisesWithStats(user.id),
+    getExercisesWithStats(user.id, undefined, {
+      analyticsScope: "current_routine",
+      activeRoutineId: scopeContext.activeRoutineId,
+    }),
+  ]);
+
+  return {
+    allTimeRows,
+    currentRoutineRows,
+    activeRoutineTitle: scopeContext.activeRoutineTitle,
+  };
 }
 
 export async function getExercisesWithStatsForExplicitUser(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserRow[]> {

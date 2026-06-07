@@ -76,7 +76,7 @@ export default async function DevExerciseInfoLivePage({
     return <ErrorState message="Missing access token or user id." />;
   }
 
-  const payload = await getExerciseInfoPayload(exerciseId, explicitUserId, supabaseAdmin());
+  const payload = await getExerciseInfoPayload(exerciseId, explicitUserId, undefined, supabaseAdmin());
   if (!payload?.exercise) {
     return <ErrorState message="Exercise not found for this user." />;
   }

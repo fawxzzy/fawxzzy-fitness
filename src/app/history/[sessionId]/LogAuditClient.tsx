@@ -677,7 +677,7 @@ function FocusedExerciseContextPanels({
 }) {
   const hasNotes = notesValue.trim().length > 0;
   const shouldRenderNotes = isEditing ? canEditNotes && Boolean(noteInput) : hasNotes;
-  const progressionMetrics: MetricDatum[] = progressionSummary ? [
+  const progressionMetricCandidates: Array<MetricDatum | null> = progressionSummary ? [
     progressionSummary.currentTargetLabel ? { label: "Current", value: progressionSummary.currentTargetLabel } : null,
     progressionSummary.firstTargetLabel ? { label: "Started", value: progressionSummary.firstTargetLabel } : null,
     { label: "Promoted", value: `${progressionSummary.promotionCount}`, valueTone: progressionSummary.promotionCount > 0 ? "success" : "muted" },
@@ -686,7 +686,10 @@ function FocusedExerciseContextPanels({
       value: progressionSummary.latestEventLabel,
       timeframe: progressionSummary.latestChangeAt ? formatDateShort(progressionSummary.latestChangeAt) : null,
     } : null,
-  ].filter((item): item is MetricDatum => Boolean(item)).slice(0, 4) : [];
+  ] : [];
+  const progressionMetrics: MetricDatum[] = progressionMetricCandidates
+    .filter((item): item is MetricDatum => item !== null)
+    .slice(0, 4);
   const progressionItems = progressionSummary ? [
     progressionSummary.latestChangeSummary ? { label: "Latest change", value: progressionSummary.latestChangeSummary } : null,
     progressionSummary.timelineSummary ? { label: "Lifeline", value: progressionSummary.timelineSummary } : null,

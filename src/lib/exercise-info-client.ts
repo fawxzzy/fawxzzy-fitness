@@ -1,6 +1,7 @@
 import type { ExerciseInfoSheetExercise, ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
+import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 
 export type ExerciseInfoClientPayload = {
@@ -213,9 +214,12 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
 
   const progress = isRecord(value.progress) ? value.progress : null;
   const progression = normalizeProgression(value.progression);
+  const bestSetSummary = readOptionalString(value.bests.bestSetSummary);
+  const bestDistanceUnit = readOptionalString(value.bests.bestDistanceUnit);
 
   return {
     ...(readOptionalString(value.exercise_id) ? { exercise_id: readOptionalString(value.exercise_id) ?? undefined } : {}),
+    ...(readOptionalString(value.activeRoutineTitle) !== null ? { activeRoutineTitle: readOptionalString(value.activeRoutineTitle) } : {}),
     kind,
     ...(presentationKind ? { presentationKind } : {}),
     recent: {
@@ -239,11 +243,11 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
       ...(readOptionalNumber(value.bests.bestBodyweightReps) !== undefined ? { bestBodyweightReps: readOptionalNumber(value.bests.bestBodyweightReps) } : {}),
       ...(readOptionalNumber(value.bests.bestWeight) !== undefined ? { bestWeight: readOptionalNumber(value.bests.bestWeight) } : {}),
       ...(readOptionalNumber(value.bests.bestRepsAtBestWeight) !== undefined ? { bestRepsAtBestWeight: readOptionalNumber(value.bests.bestRepsAtBestWeight) } : {}),
-      ...(readOptionalString(value.bests.bestSetSummary) ? { bestSetSummary: readOptionalString(value.bests.bestSetSummary) } : {}),
+      ...(bestSetSummary ? { bestSetSummary } : {}),
       ...(readOptionalNumber(value.bests.bestDurationSeconds) !== undefined ? { bestDurationSeconds: readOptionalNumber(value.bests.bestDurationSeconds) } : {}),
       ...(readOptionalNumber(value.bests.bestDistance) !== undefined ? { bestDistance: readOptionalNumber(value.bests.bestDistance) } : {}),
       ...(readOptionalNumber(value.bests.bestPace) !== undefined ? { bestPace: readOptionalNumber(value.bests.bestPace) } : {}),
-      ...(readOptionalString(value.bests.bestDistanceUnit) ? { bestDistanceUnit: readOptionalString(value.bests.bestDistanceUnit) } : {}),
+      ...(bestDistanceUnit ? { bestDistanceUnit } : {}),
       ...(readOptionalNumber(value.bests.bestCalories) !== undefined ? { bestCalories: readOptionalNumber(value.bests.bestCalories) } : {}),
     },
     prLabel: readPrimitiveText(value.prLabel) ?? "",
@@ -290,9 +294,10 @@ export function normalizeExerciseInfoClientPayload(value: unknown): ExerciseInfo
 
 export async function fetchExerciseInfoClientPayload(
   exerciseId: string,
+  scope: ExerciseInfoAnalyticsScope,
   signal?: AbortSignal,
 ): Promise<ExerciseInfoClientFetchResult> {
-  const response = await fetch(`/api/exercise-info/${exerciseId}`, { signal });
+  const response = await fetch(`/api/exercise-info/${exerciseId}?scope=${scope}`, { signal });
   const payload = (await response.json().catch(() => null)) as ExerciseInfoApiSuccess | ExerciseInfoApiFailure | null;
 
   if (!response.ok) {

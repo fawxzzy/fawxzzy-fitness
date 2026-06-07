@@ -95,8 +95,10 @@ export function LiveExerciseInfoPreview({
   return (
     <ExerciseInfoSheet
       exercise={exercise}
-      stats={stats}
-      statsLoading={false}
+      statsByScope={{ all_time: stats, current_routine: stats }}
+      statsLoadingByScope={{ all_time: false, current_routine: false }}
+      analyticsScope="all_time"
+      onAnalyticsScopeChange={() => {}}
       open
       inline
       onOpenChange={() => {}}

@@ -7,6 +7,7 @@ import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCar
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { DetailSectionBlock, DetailSectionBlocks, THIN_SECTION_TOP_DIVIDER_CLASS_NAME } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, type MetricDatum, MetricGrid, SurfaceMetricGrid } from "@/components/ui/MetricItem";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -27,8 +28,6 @@ const densityStyles = {
     variant: "standard" as ExerciseCardVariant,
   },
 };
-
-const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
 
 function HistorySessionDetailedMetricGrid({ items }: { items: MetricDatum[] }) {
   return <SurfaceMetricGrid items={items} />;
@@ -158,17 +157,11 @@ function SessionTitleFlow({
 
 function renderPrExerciseList(exerciseNames: string[]) {
   return (
-    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
-      <div className="w-full space-y-1">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-          PRs
-        </p>
-        {renderHistorySessionSectionItems(
-          exerciseNames.length > 0 ? exerciseNames : ["No PRs recorded in this session."],
-          exerciseNames.length > 0 ? "primary" : "muted",
-        )}
-      </div>
-    </div>
+    <DetailSectionBlock
+      title="PRs"
+      items={exerciseNames.length > 0 ? exerciseNames : ["No PRs recorded in this session."]}
+      tone={exerciseNames.length > 0 ? "primary" : "muted"}
+    />
   );
 }
 
@@ -178,30 +171,17 @@ function renderSessionExerciseRecap(exerciseNames: string[]) {
   }
 
   return (
-    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
-      <div className="w-full space-y-1">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-          Recap
-        </p>
-        {renderHistorySessionSectionItems(exerciseNames)}
-      </div>
-    </div>
+    <DetailSectionBlock title="Recap" items={exerciseNames} />
   );
 }
 
 function renderBestLift(bestLift: SessionSummary["bestLift"]) {
   return (
-    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
-      <div className="w-full space-y-1">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-          Best
-        </p>
-        {renderHistorySessionSectionItems(
-          bestLift ? [`${bestLift.exerciseName} | ${bestLift.display}`] : ["No best lift recorded in this session."],
-          bestLift ? "primary" : "muted",
-        )}
-      </div>
-    </div>
+    <DetailSectionBlock
+      title="Best"
+      items={bestLift ? [`${bestLift.exerciseName} | ${bestLift.display}`] : ["No best lift recorded in this session."]}
+      tone={bestLift ? "primary" : "muted"}
+    />
   );
 }
 
@@ -222,14 +202,7 @@ function renderProgressionSummary(session: SessionSummary) {
   }
 
   return (
-    <div className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
-      <div className="w-full space-y-1">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-          Progression
-        </p>
-        {renderHistorySessionSectionItems(items)}
-      </div>
-    </div>
+    <DetailSectionBlock title="Progression" items={items} />
   );
 }
 
@@ -238,69 +211,8 @@ export type HistorySessionDetailSection = {
   items: string[];
 };
 
-function renderHistorySessionSectionItems(
-  items: string[],
-  tone: "primary" | "muted" = "primary",
-) {
-  const shouldUseTwoColumnGrid = items.length > 1;
-
-  return (
-    <div className={cn(shouldUseTwoColumnGrid ? "grid grid-cols-2 gap-x-3 gap-y-1.5 pl-px" : "space-y-1.5 pl-px")}>
-      {items.map((item, index) => {
-        const normalizedItem = item.trim();
-        const shouldSpanFullWidth = !shouldUseTwoColumnGrid
-          || normalizedItem.length > 30
-          || normalizedItem.includes("|")
-          || normalizedItem.includes(":");
-
-        return (
-        <div
-          key={`${item}-${index}`}
-          className={cn(
-            "flex min-w-0 items-start gap-2.5",
-            shouldSpanFullWidth ? "col-span-2" : "col-span-1",
-          )}
-        >
-          <div className="flex h-[1.05rem] shrink-0 items-center pt-[0.08rem]">
-            <SignatureDot />
-          </div>
-          <span
-            className={cn(
-              appTokens.workoutCardDetailCompact,
-              "min-w-0 flex-1 text-[12.5px] leading-[1.28] [text-wrap:pretty]",
-              tone === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
-            )}
-          >
-            {item}
-          </span>
-        </div>
-      )})}
-    </div>
-  );
-}
-
 function renderHistorySessionDetailSections(sections: HistorySessionDetailSection[]) {
-  return sections.map((section) => {
-    if (!section || typeof section.title !== "string" || !Array.isArray(section.items)) {
-      return null;
-    }
-
-    const items = section.items.filter(Boolean);
-    if (items.length === 0) {
-      return null;
-    }
-
-    return (
-      <div key={section.title} className={cn("w-full space-y-1.5 pt-[0.45rem]", THIN_SECTION_TOP_DIVIDER_CLASS_NAME)}>
-        <div className="w-full space-y-1">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            {section.title}
-          </p>
-          {renderHistorySessionSectionItems(items)}
-        </div>
-      </div>
-    );
-  });
+  return <DetailSectionBlocks sections={sections} />;
 }
 
 function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExerciseNames: string[]) {
@@ -550,7 +462,7 @@ export function HistorySessionCard({
         selected ? appTokens.historySessionSelected : undefined,
         className,
       )}
-      style={accentStyle}
+      shellStyle={accentStyle}
       titleClassName="line-clamp-none [text-wrap:pretty]"
       subtitleClassName="pt-px [text-wrap:pretty] text-[rgb(var(--text-secondary)/0.9)]"
     >

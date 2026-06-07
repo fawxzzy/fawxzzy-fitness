@@ -53,7 +53,7 @@ test("buildProgressionAnalyticsDigest counts event families and linked sessions"
   assert.equal(digest.latestChangeAt, "2026-05-05T12:00:00.000Z");
 });
 
-test("buildExerciseProgressionLifelineSummary formats the target lifeline", () => {
+test("buildExerciseProgressionLifelineSummary formats the target path", () => {
   const summary = buildExerciseProgressionLifelineSummary([
     buildEvent(),
     buildEvent({
@@ -70,6 +70,31 @@ test("buildExerciseProgressionLifelineSummary formats the target lifeline", () =
   assert.match(summary?.currentTargetLabel ?? "", /12 reps/i);
   assert.match(summary?.latestChangeSummary ?? "", /140 lbs/i);
   assert.equal(summary?.lifelineItems[0]?.startsWith("Latest:"), true);
+  assert.equal(summary?.lifelineItems[1]?.startsWith("Target Path:"), true);
+});
+
+test("buildExerciseProgressionLifelineSummary condenses shared cardio target segments in latest change", () => {
+  const summary = buildExerciseProgressionLifelineSummary([
+    buildEvent({
+      event_type: "manual_target_change",
+      from_target: { measurementType: "time_distance", durationSeconds: 180, distance: 1, distanceUnit: "mi" },
+      to_target: { measurementType: "time", durationSeconds: 180 },
+    }),
+  ]);
+
+  assert.equal(summary?.latestChangeSummary, "Distance removed");
+});
+
+test("buildExerciseProgressionLifelineSummary labels single-measurement reductions clearly", () => {
+  const summary = buildExerciseProgressionLifelineSummary([
+    buildEvent({
+      event_type: "manual_target_change",
+      from_target: { measurementType: "time_distance", durationSeconds: 180, distance: 2, distanceUnit: "mi" },
+      to_target: { measurementType: "time_distance", durationSeconds: 180, distance: 1, distanceUnit: "mi" },
+    }),
+  ]);
+
+  assert.equal(summary?.latestChangeSummary, "Distance reduced | 2 mi → 1 mi");
 });
 
 test("buildSessionProgressionSummary rolls session updates into a session headline", () => {

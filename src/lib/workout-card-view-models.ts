@@ -713,7 +713,7 @@ function buildSessionCompactChips(session: SessionSummary, progress: string | nu
 
 function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
   if (session.progressionSummary?.eventCount) {
-    return [
+    const metrics: MetricDatum[] = [
       {
         label: "Exercises",
         value: formatIntegerValue(session.exerciseCount),
@@ -731,7 +731,8 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
         label: "Completion",
         value: session.completionRate !== undefined ? formatPercent(session.completionRate) : (session.hasSetData ? "Logged" : "Open"),
       },
-    ].slice(0, 4);
+    ];
+    return metrics.slice(0, 4);
   }
 
   return [

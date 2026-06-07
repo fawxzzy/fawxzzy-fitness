@@ -56,15 +56,19 @@ function makeExerciseBrowserRow(overrides: Partial<ExerciseBrowserRow> = {}): Ex
   };
 }
 
-test("buildExerciseInfoSeedFromHistoryRow reuses history row metrics and review sections", () => {
+test("buildExerciseInfoSeedFromHistoryRow seeds only stable summary metrics", () => {
   const seed = buildExerciseInfoSeedFromHistoryRow(makeExerciseBrowserRow());
 
   assert.equal(seed.exercise.exercise_id, "exercise-1");
   assert.equal(seed.exercise.name, "Back Squat");
   assert.equal(seed.stats?.exercise_id, "exercise-1");
   assert.equal(seed.stats?.presentationKind, "strength");
-  assert.deepEqual(seed.stats?.surfaceMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Recent", "PRs"]);
-  assert.deepEqual(seed.stats?.progress.reviewSections.map((section) => section.title), ["Last", "Best", "Progress"]);
+  assert.deepEqual(seed.stats?.surfaceMetrics?.map((metric) => metric.label), ["Sessions", "Sets", "Last", "Best"]);
+  assert.deepEqual(seed.stats?.quickMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Last", "Best"]);
+  assert.deepEqual(seed.stats?.performanceMetrics, []);
+  assert.deepEqual(seed.stats?.progress?.metrics, []);
+  assert.deepEqual(seed.stats?.progress?.reviewSections, []);
+  assert.deepEqual(seed.stats?.progress?.performances, []);
   assert.equal(seed.stats?.recent.lastSummary, "225 lbs x 5");
   assert.equal(seed.stats?.prCount, 1);
 });

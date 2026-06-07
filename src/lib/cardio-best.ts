@@ -10,7 +10,7 @@ type CardioBestInput = {
 
 export type CardioBestMetric = {
   kind: "pace" | "duration" | "distance";
-  label: "Best pace" | "Best duration" | "Best distance";
+  label: "Best pace" | "Best time" | "Best distance";
   value: string;
 };
 
@@ -76,7 +76,7 @@ export function chooseCardioBestMetric(args: CardioBestInput): CardioBestMetric 
 
   if (duration > 0) {
     const value = formatDurationShort(duration);
-    return value ? { kind: "duration", label: "Best duration", value } : null;
+    return value ? { kind: "duration", label: "Best time", value } : null;
   }
 
   if (distance > 0) {

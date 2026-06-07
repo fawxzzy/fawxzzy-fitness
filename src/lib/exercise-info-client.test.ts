@@ -37,7 +37,7 @@ test("normalizeExerciseInfoStats strips malformed nested analytics entries", () 
         { label: "Broken", value: { raw: "bad" } },
       ],
       reviewSections: [
-        { title: "Progress", items: ["Matched best", { raw: "bad" }, "1 Rep PR"] },
+        { title: "Progress", items: ["Matched | best", { raw: "bad" }, "1 Rep PR"] },
       ],
       performances: [
         { label: "Wed", value: "225 lbs x 5", context: "4 sets" },
@@ -58,7 +58,7 @@ test("normalizeExerciseInfoStats strips malformed nested analytics entries", () 
   assert.deepEqual(stats.progress?.reviewSections, [
     {
       title: "Progress",
-      items: ["Matched best", "1 Rep PR"],
+      items: ["Matched | best", "1 Rep PR"],
     },
   ]);
   assert.deepEqual(stats.progress?.performances, [

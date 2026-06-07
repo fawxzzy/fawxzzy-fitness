@@ -2210,7 +2210,6 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
           { label: "Best Reps", value: "12 reps" },
           { label: "Added Load", value: "25 lbs" },
           { label: "28D Reps", value: "94 reps" },
-          { label: "Last Best", value: "9 reps", timeframe: "Tue, Apr 8" },
         ],
         progress: {
           metrics: [
@@ -2265,10 +2264,10 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
         { label: "Sessions", value: "14", timeframe: "42 sets logged" },
       ],
       performanceMetrics: [
+          { label: "Best Weight", value: "275 lbs" },
+          { label: "Best Reps", value: "10 reps" },
           { label: "Top Set", value: "275 lbs x 3" },
-          { label: "e1RM", value: "303 lbs" },
-          { label: "4W Load", value: "9,240 lbs" },
-          { label: "Last", value: "Wed, Apr 9", timeframe: "225 lbs x 5" },
+          { label: "Max Estimate", value: "303 lbs" },
       ],
       progress: {
         metrics: [
