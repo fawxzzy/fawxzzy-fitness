@@ -39,11 +39,15 @@ export type HistorySessionsPageData = {
   nextCursor: string | null;
   selectedSessionId?: string;
   sessionItems: SessionSummary[];
+  currentRoutineSessionItems: SessionSummary[];
   subtitle: string;
   activeRoutineTitle: string | null;
   thirtyDaySummary: ThirtyDayHistorySummary;
+  currentRoutineThirtyDaySummary: ThirtyDayHistorySummary;
   weeklyProgress: WeeklyProgressSummary;
+  currentRoutineWeeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
+  currentRoutineWeeklyProgressByWeek: WeeklyProgressSummary[];
 };
 
 export type HistorySessionsRouteState<TData, TFallback> =
@@ -704,9 +708,24 @@ export async function loadHistorySessionsPageData({
   const visibleSessionItems = profileSettings.showQaLlelData
     ? sessionItems
     : filterQaLlelRows(sessionItems, (session) => [session.routineTitle, session.dayTitle]);
+  const currentRoutineSessionItems = profileSettings.activeRoutineId
+    ? visibleSessionItems.filter((session) => session.routineId === profileSettings.activeRoutineId)
+    : [];
+  const currentRoutineProgressionEvents = profileSettings.activeRoutineId
+    ? progressionEvents.filter((event) => event.routine_id === profileSettings.activeRoutineId)
+    : [];
 
   const weeklyProgress = buildWeeklyProgressSummary({
     sessions: visibleSessionItems,
+    sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
+    setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
+    exerciseMetaById,
+    routineDayCountByRoutineId,
+    timezone: profileTimezone,
+    now,
+  });
+  const currentRoutineWeeklyProgress = buildWeeklyProgressSummary({
+    sessions: currentRoutineSessionItems,
     sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
     setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
     exerciseMetaById,
@@ -732,6 +751,24 @@ export async function loadHistorySessionsPageData({
       now,
       weekStart,
     }));
+  const currentRoutineWeeklyProgressByWeek = Array.from(
+    new Set(
+      currentRoutineSessionItems
+        .map((session) => getWeeklyProgressWeekStart(session.startedAt, profileTimezone))
+        .filter((weekStart): weekStart is string => Boolean(weekStart)),
+    ),
+  )
+    .sort((left, right) => right.localeCompare(left))
+    .map((weekStart) => buildWeeklyProgressSummary({
+      sessions: currentRoutineSessionItems,
+      sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
+      setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
+      exerciseMetaById,
+      routineDayCountByRoutineId,
+      timezone: profileTimezone,
+      now,
+      weekStart,
+    }));
   const thirtyDaySummary = buildThirtyDayHistorySummary({
     sessions: visibleSessionItems,
     progressionEvents,
@@ -740,15 +777,30 @@ export async function loadHistorySessionsPageData({
     timezone: profileTimezone,
     now,
   });
+  const currentRoutineThirtyDaySummary = buildThirtyDayHistorySummary({
+    sessions: currentRoutineSessionItems,
+    progressionEvents: currentRoutineProgressionEvents,
+    exerciseNameById,
+    routineDayCountByRoutineId,
+    timezone: profileTimezone,
+    now,
+    scopeLabel: activeRoutineTitle?.trim()
+      ? `Current Routine: ${activeRoutineTitle.trim()}`
+      : "Current Routine",
+  });
 
   return {
     nextCursor,
     selectedSessionId: getSingleSearchParam(searchParams?.selected) ?? undefined,
     sessionItems: visibleSessionItems,
+    currentRoutineSessionItems,
     subtitle: `${visibleSessionItems.length} completed sessions`,
     activeRoutineTitle,
     thirtyDaySummary,
+    currentRoutineThirtyDaySummary,
     weeklyProgress,
+    currentRoutineWeeklyProgress,
     weeklyProgressByWeek,
+    currentRoutineWeeklyProgressByWeek,
   };
 }

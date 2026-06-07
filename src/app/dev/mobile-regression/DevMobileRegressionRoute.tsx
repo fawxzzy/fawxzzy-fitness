@@ -1961,8 +1961,18 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient
             sessions={[...mockHistorySessions]}
+            currentRoutineSessions={[...mockHistorySessions]}
+            activeRoutineTitle={mockHistoryWeeklyProgress.primaryRoutineTitle}
             thirtyDaySummary={mockHistoryThirtyDaySummary}
+            currentRoutineThirtyDaySummary={{
+              ...mockHistoryThirtyDaySummary,
+              scopeLabel: mockHistoryWeeklyProgress.primaryRoutineTitle
+                ? `Current Routine: ${mockHistoryWeeklyProgress.primaryRoutineTitle}`
+                : "Current Routine",
+            }}
             weeklyProgress={mockHistoryWeeklyProgress}
+            currentRoutineWeeklyProgress={mockHistoryWeeklyProgress}
+            weeklyProgressByWeek={[mockHistoryWeeklyProgress]}
             selectedSessionId="history-session-2"
             initialViewMode={initialViewMode}
           />

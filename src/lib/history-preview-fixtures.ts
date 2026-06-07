@@ -428,10 +428,17 @@ export function getHistoryPreviewSessionsPageData(args?: {
     nextCursor: null,
     selectedSessionId: getSelectedSessionId(args?.selected) ?? HISTORY_PREVIEW_PRIMARY_SESSION_ID,
     sessionItems: [...historyPreviewSessions],
+    currentRoutineSessionItems: [...historyPreviewSessions],
     subtitle: `${historyPreviewSessions.length} completed sessions`,
     thirtyDaySummary: historyPreviewThirtyDaySummary,
+    currentRoutineThirtyDaySummary: {
+      ...historyPreviewThirtyDaySummary,
+      scopeLabel: "Current Routine: Atlas",
+    },
     weeklyProgress: historyPreviewWeeklyProgress,
+    currentRoutineWeeklyProgress: historyPreviewWeeklyProgress,
     weeklyProgressByWeek: historyPreviewWeeklyProgressByWeek,
+    currentRoutineWeeklyProgressByWeek: historyPreviewWeeklyProgressByWeek,
   };
 }
 

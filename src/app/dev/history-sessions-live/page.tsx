@@ -88,9 +88,14 @@ export default async function DevHistorySessionsLivePage({
         <ContentRail className="pt-5">
           <HistorySessionsClient
             sessions={data.sessionItems}
+            currentRoutineSessions={data.currentRoutineSessionItems}
+            activeRoutineTitle={data.activeRoutineTitle}
             thirtyDaySummary={data.thirtyDaySummary}
+            currentRoutineThirtyDaySummary={data.currentRoutineThirtyDaySummary}
             weeklyProgress={data.weeklyProgress}
+            currentRoutineWeeklyProgress={data.currentRoutineWeeklyProgress}
             weeklyProgressByWeek={data.weeklyProgressByWeek}
+            currentRoutineWeeklyProgressByWeek={data.currentRoutineWeeklyProgressByWeek}
             initialViewMode={initialViewMode}
             initialFiltersOpen={initialFiltersOpen}
             initialQuery={initialQuery}
@@ -111,9 +116,14 @@ export default async function DevHistorySessionsLivePage({
     >
       <HistorySessionsClient
         sessions={data.sessionItems}
+        currentRoutineSessions={data.currentRoutineSessionItems}
+        activeRoutineTitle={data.activeRoutineTitle}
         thirtyDaySummary={data.thirtyDaySummary}
+        currentRoutineThirtyDaySummary={data.currentRoutineThirtyDaySummary}
         weeklyProgress={data.weeklyProgress}
+        currentRoutineWeeklyProgress={data.currentRoutineWeeklyProgress}
         weeklyProgressByWeek={data.weeklyProgressByWeek}
+        currentRoutineWeeklyProgressByWeek={data.currentRoutineWeeklyProgressByWeek}
         initialViewMode={initialViewMode}
         initialFiltersOpen={initialFiltersOpen}
         initialQuery={initialQuery}

@@ -50,6 +50,7 @@ type BuildThirtyDayHistorySummaryOptions = {
   routineDayCountByRoutineId?: Map<string, number>;
   timezone?: string | null;
   now?: string;
+  scopeLabel?: string;
 };
 
 const DEFAULT_TIMEZONE = "America/New_York";
@@ -140,6 +141,7 @@ export function buildThirtyDayHistorySummary({
   routineDayCountByRoutineId = new Map<string, number>(),
   timezone = DEFAULT_TIMEZONE,
   now = new Date().toISOString(),
+  scopeLabel = "All Time",
 }: BuildThirtyDayHistorySummaryOptions): ThirtyDayHistorySummary {
   const safeTimezone = typeof timezone === "string" && timezone.trim().length > 0 ? timezone : DEFAULT_TIMEZONE;
   const currentDayKey = getWeeklyProgressDayKey(now, safeTimezone)
@@ -261,7 +263,7 @@ export function buildThirtyDayHistorySummary({
     timezone: safeTimezone,
     windowStart,
     windowEnd,
-    scopeLabel: "All Time",
+    scopeLabel,
     primaryRoutineTitle,
     completedWorkoutCount: sessions.length,
     activeDayCount: activeDays.size,

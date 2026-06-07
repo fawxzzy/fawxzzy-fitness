@@ -9,6 +9,7 @@ import { ThirtyDayHistorySurface } from "@/components/history/ThirtyDayHistorySu
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { PillButton } from "@/components/ui/Pill";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -19,6 +20,8 @@ import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurfac
 import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import { buildSessionMetricTagGroup, buildSessionMetricTagValues } from "@/lib/history-metric-filters";
 import { rememberHistorySessionSummary } from "@/lib/history-session-summary-cache";
+import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import { getExerciseInfoAnalyticsScopeDisplayLabel } from "@/lib/exercise-info-scope";
 import type { SessionSummary } from "./session-summary";
 
 function normalizeSessionTagValue(prefix: string, value: string) {
@@ -67,6 +70,9 @@ function HistorySessionFilters({
   groups,
   resultCount,
   initialOpen = false,
+  analyticsScope,
+  activeRoutineTitle,
+  onAnalyticsScopeToggle,
 }: {
   query: string;
   onQueryChange: (next: string) => void;
@@ -75,7 +81,12 @@ function HistorySessionFilters({
   groups: ExerciseTagGroup[];
   resultCount: number;
   initialOpen?: boolean;
+  analyticsScope: ExerciseInfoAnalyticsScope;
+  activeRoutineTitle?: string | null;
+  onAnalyticsScopeToggle: () => void;
 }) {
+  const scopeLabel = getExerciseInfoAnalyticsScopeDisplayLabel(analyticsScope, activeRoutineTitle);
+
   return (
     <ExerciseSearchFilters
       query={query}
@@ -103,16 +114,32 @@ function HistorySessionFilters({
       toggleFiltersAriaLabel="Toggle session filters"
       defaultFilterOpen={initialOpen}
       chromeVariant="history"
+      trailingControls={(
+        <PillButton
+          active
+          type="button"
+          onClick={onAnalyticsScopeToggle}
+          className="inline-flex h-8 max-w-[12.75rem] items-center justify-center whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none"
+          title={scopeLabel}
+          aria-label={`Toggle session history metric scope. Current scope: ${scopeLabel}`}
+        >
+          <span className="block max-w-full truncate">{scopeLabel}</span>
+        </PillButton>
+      )}
     />
   );
 }
 
 export function HistorySessionsClient({
   sessions,
+  currentRoutineSessions = [],
   activeRoutineTitle = null,
   thirtyDaySummary,
+  currentRoutineThirtyDaySummary,
   weeklyProgress,
+  currentRoutineWeeklyProgress,
   weeklyProgressByWeek = [],
+  currentRoutineWeeklyProgressByWeek = [],
   selectedSessionId,
   initialViewMode = "compact",
   initialFiltersOpen = false,
@@ -121,10 +148,14 @@ export function HistorySessionsClient({
   showBottomActions = true,
 }: {
   sessions: SessionSummary[];
+  currentRoutineSessions?: SessionSummary[];
   activeRoutineTitle?: string | null;
   thirtyDaySummary: ThirtyDayHistorySummary;
+  currentRoutineThirtyDaySummary: ThirtyDayHistorySummary;
   weeklyProgress: WeeklyProgressSummary;
+  currentRoutineWeeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek?: WeeklyProgressSummary[];
+  currentRoutineWeeklyProgressByWeek?: WeeklyProgressSummary[];
   selectedSessionId?: string;
   initialViewMode?: "compact" | "detailed";
   initialFiltersOpen?: boolean;
@@ -135,19 +166,24 @@ export function HistorySessionsClient({
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
+  const [analyticsScope, setAnalyticsScope] = useState<ExerciseInfoAnalyticsScope>("all_time");
   const deferredQuery = useDeferredValue(query);
   const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
+  const scopedSessions = analyticsScope === "current_routine" ? currentRoutineSessions : sessions;
+  const scopedThirtyDaySummary = analyticsScope === "current_routine" ? currentRoutineThirtyDaySummary : thirtyDaySummary;
+  const scopedWeeklyProgress = analyticsScope === "current_routine" ? currentRoutineWeeklyProgress : weeklyProgress;
+  const scopedWeeklyProgressByWeek = analyticsScope === "current_routine" ? currentRoutineWeeklyProgressByWeek : weeklyProgressByWeek;
 
   useEffect(() => {
-    for (const session of sessions) {
+    for (const session of [...sessions, ...currentRoutineSessions]) {
       rememberHistorySessionSummary(session);
     }
-  }, [sessions]);
+  }, [currentRoutineSessions, sessions]);
 
   const sessionTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
 
-    for (const session of sessions) {
+    for (const session of scopedSessions) {
       const tags = new Set<string>();
       if (session.routineTitle?.trim()) {
         tags.add(normalizeSessionTagValue("routine", session.routineTitle));
@@ -179,16 +215,16 @@ export function HistorySessionsClient({
     }
 
     return tagsById;
-  }, [sessions]);
+  }, [scopedSessions]);
 
   const availableTagGroups = useMemo<ExerciseTagGroup[]>(() => {
     const routines = new Map<string, string>();
     const days = new Map<string, string>();
     const exercises = new Map<string, string>();
     const highlights = new Map<string, string>();
-    const metricGroup = buildSessionMetricTagGroup(sessions);
+    const metricGroup = buildSessionMetricTagGroup(scopedSessions);
 
-    for (const session of sessions) {
+    for (const session of scopedSessions) {
       if (session.routineTitle?.trim()) {
         routines.set(normalizeSessionTagValue("routine", session.routineTitle), formatSessionTagLabel(session.routineTitle));
       }
@@ -221,12 +257,12 @@ export function HistorySessionsClient({
       metricGroup,
       { key: "highlight", label: "Highlight", tags: Array.from(highlights, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
     ].filter((group): group is ExerciseTagGroup => group !== null && group.tags.length > 0);
-  }, [sessions]);
+  }, [scopedSessions]);
 
   const filteredSessions = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-    return sessions.filter((session) => {
+    return scopedSessions.filter((session) => {
       if (selectedTags.length > 0) {
         const tags = sessionTagsById.get(session.id);
         if (!tags || !selectedTags.every((tag) => tags.has(tag))) {
@@ -240,15 +276,15 @@ export function HistorySessionsClient({
 
       return buildSessionSearchText(session).includes(normalizedQuery);
     });
-  }, [deferredQuery, selectedTags, sessionTagsById, sessions]);
+  }, [deferredQuery, scopedSessions, selectedTags, sessionTagsById]);
 
   const sessionWeekStarts = useMemo(
-    () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, weeklyProgress.timezone)])),
-    [filteredSessions, weeklyProgress.timezone],
+    () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, scopedWeeklyProgress.timezone)])),
+    [filteredSessions, scopedWeeklyProgress.timezone],
   );
   const weeklyProgressByWeekStart = useMemo(
-    () => new Map(weeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
-    [weeklyProgressByWeek],
+    () => new Map(scopedWeeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
+    [scopedWeeklyProgressByWeek],
   );
 
   return (
@@ -270,14 +306,17 @@ export function HistorySessionsClient({
                   groups={availableTagGroups}
                   resultCount={filteredSessions.length}
                   initialOpen={initialFiltersOpen}
+                  analyticsScope={analyticsScope}
+                  activeRoutineTitle={activeRoutineTitle}
+                  onAnalyticsScopeToggle={() => setAnalyticsScope((current) => current === "all_time" ? "current_routine" : "all_time")}
                 />
               </HistoryTitleControlShell>
             </div>
           </div>
         </div>
       ) : null}
-      <ThirtyDayHistorySurface summary={thirtyDaySummary} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
-      <WeeklyProgressSurface summary={weeklyProgress} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
+      <ThirtyDayHistorySurface summary={scopedThirtyDaySummary} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
+      <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
       {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (
         <ul className={cn(
@@ -286,14 +325,14 @@ export function HistorySessionsClient({
             : appTokens.historyBrowserList,
         )}>
           {filteredSessions.map((session, filteredIndex) => {
-            const index = sessions.findIndex((entry) => entry.id === session.id);
+            const index = scopedSessions.findIndex((entry) => entry.id === session.id);
             const previousFilteredSession = filteredIndex > 0 ? filteredSessions[filteredIndex - 1] : null;
             const sessionWeekStart = sessionWeekStarts.get(session.id) ?? null;
             const previousWeekStart = previousFilteredSession
               ? (sessionWeekStarts.get(previousFilteredSession.id) ?? null)
               : null;
             const startsNewWeekGroup = filteredIndex === 0 || sessionWeekStart !== previousWeekStart;
-            const historicalWeeklySummary = sessionWeekStart && sessionWeekStart !== weeklyProgress.weekStart
+            const historicalWeeklySummary = sessionWeekStart && sessionWeekStart !== scopedWeeklyProgress.weekStart
               ? (weeklyProgressByWeekStart.get(sessionWeekStart) ?? null)
               : null;
             return (
@@ -313,7 +352,7 @@ export function HistorySessionsClient({
                 ) : null}
                 <HistorySessionCard
                   session={session}
-                  previousSession={index >= 0 ? (sessions[index + 1] ?? null) : null}
+                  previousSession={index >= 0 ? (scopedSessions[index + 1] ?? null) : null}
                   selected={session.id === selectedSessionId}
                   viewMode={viewMode}
                   href={`/history/${session.id}?returnTab=sessions`}
@@ -327,7 +366,7 @@ export function HistorySessionsClient({
           recipe="historyDetail"
           listState={(
             <p className={appTokens.historyBrowserEmptyState}>
-              {sessions.length > 0 ? "No matching sessions." : "No completed sessions yet."}
+              {scopedSessions.length > 0 ? "No matching sessions." : analyticsScope === "current_routine" ? "No completed sessions in the current routine yet." : "No completed sessions yet."}
             </p>
           )}
         />
