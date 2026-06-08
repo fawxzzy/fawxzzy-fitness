@@ -118,6 +118,12 @@ type DisplaySet = SetRow & {
   queueStatus?: SetLogQueueItem["status"];
 };
 type AnimatedDisplaySet = DisplaySet & { isLeaving?: boolean };
+export type SetLoggerSeedSet = SetRow & {
+  stableId?: string;
+  queueItemId?: string;
+  pending?: boolean;
+  queueStatus?: SetLogQueueItem["status"];
+};
 
 function mergeDisplaySets(baseSets: DisplaySet[], incomingSets: DisplaySet[]) {
   return sortSetsByIndex(mergeByStableSetId(incomingSets, baseSets));
@@ -282,6 +288,7 @@ export function SetLoggerCard({
   syncQueuedSetLogsAction,
   unitLabel,
   initialSets,
+  onSetsChange,
   onSetCountChange,
   prefill,
   setFlowQuickLogTargets,
@@ -317,7 +324,8 @@ export function SetLoggerCard({
     items: SetLogQueueItem[];
   }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
   unitLabel: string;
-  initialSets: SetRow[];
+  initialSets: SetLoggerSeedSet[];
+  onSetsChange?: (sets: DisplaySet[]) => void;
   onSetCountChange?: (count: number) => void;
   prefill?: {
     weight?: number;
@@ -406,6 +414,7 @@ export function SetLoggerCard({
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
   const draftStorageWriteTimeoutRef = useRef<number | null>(null);
+  const draftStorageIdleCallbackRef = useRef<number | null>(null);
   const draftStorageSnapshotRef = useRef<{ key: string; payload: string } | null>(null);
   const lastQueueStatusByStableIdRef = useRef<Record<string, SetLogQueueItem["status"] | undefined>>({});
   const locallyDeletedSetIdentityKeysRef = useRef<Set<string>>(new Set());
@@ -578,6 +587,10 @@ export function SetLoggerCard({
   }, [onSetCountChange, sets.length]);
 
   useEffect(() => {
+    onSetsChange?.(sets);
+  }, [onSetsChange, sets]);
+
+  useEffect(() => {
     const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
     const raw = window.localStorage.getItem(storageKey);
     if (!raw) {
@@ -675,21 +688,42 @@ export function SetLoggerCard({
     if (draftStorageWriteTimeoutRef.current !== null) {
       window.clearTimeout(draftStorageWriteTimeoutRef.current);
     }
+    if (draftStorageIdleCallbackRef.current !== null && "cancelIdleCallback" in window) {
+      window.cancelIdleCallback(draftStorageIdleCallbackRef.current);
+      draftStorageIdleCallbackRef.current = null;
+    }
     draftStorageWriteTimeoutRef.current = window.setTimeout(() => {
       const pendingWrite = draftStorageSnapshotRef.current;
       if (!pendingWrite) {
         return;
       }
-      window.localStorage.setItem(pendingWrite.key, pendingWrite.payload);
-      if (draftStorageSnapshotRef.current?.key === pendingWrite.key && draftStorageSnapshotRef.current?.payload === pendingWrite.payload) {
-        draftStorageSnapshotRef.current = null;
+
+      const writePendingSnapshot = () => {
+        window.localStorage.setItem(pendingWrite.key, pendingWrite.payload);
+        if (draftStorageSnapshotRef.current?.key === pendingWrite.key && draftStorageSnapshotRef.current?.payload === pendingWrite.payload) {
+          draftStorageSnapshotRef.current = null;
+        }
+        draftStorageIdleCallbackRef.current = null;
+      };
+
+      if ("requestIdleCallback" in window) {
+        draftStorageIdleCallbackRef.current = window.requestIdleCallback(() => {
+          writePendingSnapshot();
+        }, { timeout: 320 });
+      } else {
+        writePendingSnapshot();
       }
+
       draftStorageWriteTimeoutRef.current = null;
-    }, 180);
+    }, 260);
 
     return () => {
       if (draftStorageWriteTimeoutRef.current !== null) {
         window.clearTimeout(draftStorageWriteTimeoutRef.current);
+      }
+      if (draftStorageIdleCallbackRef.current !== null && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(draftStorageIdleCallbackRef.current);
+        draftStorageIdleCallbackRef.current = null;
       }
     };
   }, [calories, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
@@ -697,6 +731,10 @@ export function SetLoggerCard({
   useEffect(() => () => {
     if (draftStorageWriteTimeoutRef.current !== null) {
       window.clearTimeout(draftStorageWriteTimeoutRef.current);
+    }
+    if (draftStorageIdleCallbackRef.current !== null && "cancelIdleCallback" in window) {
+      window.cancelIdleCallback(draftStorageIdleCallbackRef.current);
+      draftStorageIdleCallbackRef.current = null;
     }
     const pendingWrite = draftStorageSnapshotRef.current;
     if (pendingWrite) {

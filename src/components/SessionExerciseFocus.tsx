@@ -1,7 +1,7 @@
 "use client";
 
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { SetLoggerCard } from "@/components/SessionTimers";
+import { SetLoggerCard, type SetLoggerSeedSet } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -214,6 +214,7 @@ export function SessionExerciseFocus({
   const [rowClientStateBySessionExerciseId, setRowClientStateBySessionExerciseId] = useState<Record<string, SessionRowClientState>>(() =>
     buildInitialSessionRowClientState(exercises),
   );
+  const [setSnapshotsBySessionExerciseId, setSetSnapshotsBySessionExerciseId] = useState<Record<string, SetLoggerSeedSet[]>>({});
   const [warmupDraft, setWarmupDraft] = useState(false);
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const rowViewModelBySessionExerciseId = useMemo(() => {
@@ -344,6 +345,16 @@ export function SessionExerciseFocus({
         rows: exercises,
         mergedLoggedSetCount: mergedCountState,
       });
+    });
+  }, [exercises]);
+
+  useEffect(() => {
+    setSetSnapshotsBySessionExerciseId((current) => {
+      const next: Record<string, SetLoggerSeedSet[]> = {};
+      for (const exercise of exercises) {
+        next[exercise.id] = current[exercise.id] ?? exercise.initialSets;
+      }
+      return next;
     });
   }, [exercises]);
 
@@ -660,7 +671,19 @@ export function SessionExerciseFocus({
                   addSetAction={addSetAction}
                   syncQueuedSetLogsAction={syncQueuedSetLogsAction}
                   unitLabel={unitLabel}
-                  initialSets={exercise.initialSets}
+                  initialSets={setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets}
+                  onSetsChange={(nextSets) => {
+                    setSetSnapshotsBySessionExerciseId((current) => {
+                      const previous = current[exercise.id];
+                      if (previous === nextSets) {
+                        return current;
+                      }
+                      return {
+                        ...current,
+                        [exercise.id]: nextSets,
+                      };
+                    });
+                  }}
                   prefill={setLoggerPrefill}
                   setFlowQuickLogTargets={exercise.setFlowQuickLogTargets}
                   defaultDistanceUnit={exercise.defaultUnit}
