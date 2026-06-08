@@ -74,7 +74,7 @@ function MetricValueLine({
     && !normalizedValue.includes("â€¢")
     && !normalizedValue.includes("Ã¢â‚¬Â¢")
   ) {
-    return <span>{value}</span>;
+    return <span className={normalizedValue.length <= 22 ? "whitespace-nowrap" : undefined}>{value}</span>;
   }
 
   return (
@@ -174,7 +174,7 @@ function getAdaptiveMetricWidthClassName(item: MetricDatum, totalItems: number) 
     case "wide":
       return "basis-[6.9rem]";
     default:
-      return "basis-full";
+      return "basis-[8rem]";
   }
 }
 

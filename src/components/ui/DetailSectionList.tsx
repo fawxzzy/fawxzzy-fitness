@@ -1,6 +1,7 @@
 "use client";
 
-import { AccentDotSeparatedText, SignatureDot } from "@/components/ui/app/SignatureSeparator";
+import { Fragment } from "react";
+import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
@@ -13,6 +14,81 @@ export type DetailSectionListSection = {
   items: string[];
   tone?: DetailSectionTone;
 };
+
+function getArrowToneClassName(item: string) {
+  const normalized = item.toLowerCase();
+  if (/\b(reduced|removed|regression|deload)\b/.test(normalized)) {
+    return "text-[rgb(255,116,116)]";
+  }
+
+  if (/\b(increased|added|promotion|promoted)\b/.test(normalized)) {
+    return "text-[rgb(var(--success-rgb)/0.94)]";
+  }
+
+  const transitionMatch = normalized.match(/(.+?)(?:->|→|â†’)(.+)/);
+  if (transitionMatch) {
+    const leftScore = (transitionMatch[1].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
+    const rightScore = (transitionMatch[2].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
+    if (Number.isFinite(leftScore) && Number.isFinite(rightScore) && rightScore !== leftScore) {
+      return rightScore > leftScore ? "text-[rgb(var(--success-rgb)/0.94)]" : "text-[rgb(255,116,116)]";
+    }
+  }
+
+  return "text-[rgb(var(--text-primary)/0.95)]";
+}
+
+function renderDetailSectionItemContent(item: string) {
+  const normalized = String(item)
+    .replaceAll("Ã¢â‚¬Â¢", "\u2022")
+    .replaceAll("â€¢", "\u2022")
+    .trim();
+  const tokens = normalized
+    .split(/(\s+\|\s+|\s+\u2022\s+)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (tokens.length === 0) {
+    return null;
+  }
+
+  const arrowToneClassName = getArrowToneClassName(normalized);
+
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
+      {tokens.map((part, index) => {
+        if (part === "|") {
+          return <SignatureMiniPipe key={`pipe-${index}`} />;
+        }
+
+        if (part === "\u2022") {
+          const priorTextToken = [...tokens.slice(0, index)].reverse().find((token) => token !== "|" && token !== "\u2022");
+          const shouldUsePipe = !tokens.includes("|")
+            && typeof priorTextToken === "string"
+            && /^\d+\s+set(s)?$/i.test(priorTextToken.trim());
+          return shouldUsePipe
+            ? <SignatureMiniPipe key={`pipe-${index}`} />
+            : <SignatureDot key={`dot-${index}`} />;
+        }
+
+        if (part.includes("\u2192") || part.includes("->") || part.includes("â†’")) {
+          const arrowParts = part.split(/(?:\u2192|->|â†’)/);
+          return (
+            <span key={`${part}-${index}`} className="min-w-0">
+              {arrowParts.map((arrowPart, arrowIndex) => (
+                <Fragment key={`${arrowPart}-${arrowIndex}`}>
+                  {arrowIndex > 0 ? <span className={cn("px-1", arrowToneClassName)}>&rarr;</span> : null}
+                  {arrowPart ? <span>{arrowPart.trim()}</span> : null}
+                </Fragment>
+              ))}
+            </span>
+          );
+        }
+
+        return <span key={`${part}-${index}`} className="min-w-0">{part}</span>;
+      })}
+    </span>
+  );
+}
 
 export function DetailSectionItems({
   items,
@@ -62,11 +138,9 @@ export function DetailSectionItems({
                 tone === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
               )}
             >
-              {item.includes("|") ? (
-                <AccentDotSeparatedText text={item} />
-              ) : (
-                item
-              )}
+              {(item.includes("|") || item.includes("\u2022") || item.includes("â€¢") || item.includes("\u2192") || item.includes("->") || item.includes("â†’"))
+                ? renderDetailSectionItemContent(item)
+                : item}
             </span>
           </div>
         );

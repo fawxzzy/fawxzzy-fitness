@@ -39,6 +39,7 @@ export type ThirtyDayHistorySummary = {
     delta: number;
   };
   progressionSummary: ThirtyDayProgressionSummary;
+  hotspotItems: string[];
   reviewItems: string[];
   attentionItems: string[];
 };
@@ -81,6 +82,54 @@ function resolvePrimaryRoutineTitle(sessions: SessionSummary[]) {
   }
 
   return primaryTitle;
+}
+
+function resolveMostFrequentExerciseName(sessions: SessionSummary[], excludedNames = new Set<string>()) {
+  const counts = new Map<string, { count: number; lastStartedAt: string }>();
+
+  for (const session of sessions) {
+    for (const exerciseName of session.exerciseNames ?? []) {
+      const normalizedName = exerciseName.trim();
+      if (!normalizedName || excludedNames.has(normalizedName)) {
+        continue;
+      }
+      const current = counts.get(normalizedName);
+      counts.set(normalizedName, {
+        count: (current?.count ?? 0) + 1,
+        lastStartedAt: current && current.lastStartedAt > session.startedAt ? current.lastStartedAt : session.startedAt,
+      });
+    }
+  }
+
+  let topExerciseName: string | null = null;
+  let topCount = -1;
+  let topLastStartedAt = "";
+
+  for (const [exerciseName, entry] of counts.entries()) {
+    if (
+      entry.count > topCount
+      || (entry.count === topCount && entry.lastStartedAt > topLastStartedAt)
+      || (
+        entry.count === topCount
+        && entry.lastStartedAt === topLastStartedAt
+        && topExerciseName
+        && exerciseName.localeCompare(topExerciseName) < 0
+      )
+    ) {
+      topExerciseName = exerciseName;
+      topCount = entry.count;
+      topLastStartedAt = entry.lastStartedAt;
+    }
+  }
+
+  if (!topExerciseName || topCount <= 0) {
+    return null;
+  }
+
+  return {
+    exerciseName: topExerciseName,
+    count: topCount,
+  };
 }
 
 function buildHistoryProgressionSummary(args: {
@@ -258,6 +307,20 @@ export function buildThirtyDayHistorySummary({
     events: progressionEvents,
     exerciseNameById,
   });
+  const excludedStalledNames = new Set<string>([
+    ...prExerciseNames,
+    ...progressionSummary.topProgressedExerciseNames,
+  ]);
+  const stalledExercise = resolveMostFrequentExerciseName(sessions, excludedStalledNames);
+  const hotspotItems = [
+    progressionSummary.topProgressedExerciseNames[0] ? `Most improved: ${progressionSummary.topProgressedExerciseNames[0]}.` : null,
+    progressionSummary.deloadCount > progressionSummary.promotionCount && progressionSummary.deloadCount > 0
+      ? "Net progress: regressions outpaced promotions."
+      : progressionSummary.promotionCount > 0
+        ? `Net progress: ${toPluralLabel(progressionSummary.promotionCount, "promotion")} landed in this window.`
+        : null,
+    stalledExercise ? `Stalled: ${stalledExercise.exerciseName} showed up in ${toPluralLabel(stalledExercise.count, "session")} without a PR or promotion signal.` : null,
+  ].filter((value): value is string => Boolean(value));
 
   return {
     timezone: safeTimezone,
@@ -282,6 +345,7 @@ export function buildThirtyDayHistorySummary({
       delta: consistencyDelta,
     },
     progressionSummary,
+    hotspotItems,
     reviewItems,
     attentionItems,
   };

@@ -135,6 +135,11 @@ test("history summary counts all stored workouts, routines, exercises, and pr mo
     "5 exercises trained across 3 routines.",
     "2 workouts in the last 7 days after an empty week before that.",
   ]);
+  assert.deepEqual(summary.hotspotItems, [
+    "Most improved: Back Squat.",
+    "Net progress: 1 promotion landed in this window.",
+    "Stalled: Walking Lunge showed up in 1 session without a PR or promotion signal.",
+  ]);
   assert.deepEqual(summary.primaryRoutineCoverage, {
     completedDayCount: 2,
     targetDayCount: 4,
@@ -208,6 +213,10 @@ test("history summary raises plain-language attention flags for inactivity and m
   assert.deepEqual(summary.attentionItems, [
     "No workouts were logged in the last 7 days.",
     "No PR moments were recorded yet.",
+  ]);
+  assert.deepEqual(summary.hotspotItems, [
+    "Net progress: regressions outpaced promotions.",
+    "Stalled: Back Squat showed up in 1 session without a PR or promotion signal.",
   ]);
   assert.equal(summary.consistencyTrend.direction, "down");
   assert.deepEqual(summary.progressionSummary.attentionItems, [

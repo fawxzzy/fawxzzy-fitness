@@ -48,6 +48,11 @@ test("normalizeExerciseInfoStats strips malformed nested analytics entries", () 
       promotionCount: 2,
       currentTargetLabel: "3:00",
       latestChangeSummary: "Promoted by 15s",
+      recentWindowDays: 30,
+      recentEventCount: 2,
+      recentPromotionCount: 2,
+      recentActivitySummary: "2 updates | 2 promotions",
+      recentFocusSummary: "2 promotions led recent changes",
       timelineSummary: { raw: "bad" },
     },
   });
@@ -71,6 +76,9 @@ test("normalizeExerciseInfoStats strips malformed nested analytics entries", () 
   assert.equal(stats.progression?.promotionCount, 2);
   assert.equal(stats.progression?.currentTargetLabel, "3:00");
   assert.equal(stats.progression?.timelineSummary, null);
+  assert.equal(stats.progression?.recentEventCount, 2);
+  assert.equal(stats.progression?.recentActivitySummary, "2 updates | 2 promotions");
+  assert.equal(stats.progression?.recentFocusSummary, "2 promotions led recent changes");
 });
 
 test("normalizeExerciseInfoClientPayload rejects incomplete exercise payloads", () => {

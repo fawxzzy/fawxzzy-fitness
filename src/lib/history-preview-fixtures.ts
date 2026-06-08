@@ -220,6 +220,14 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
     ],
     summary: "1/4 workouts • 2/3 prs",
   },
+  hotspotItems: [
+    "Hotspot: Back Squat showed up in 1 session.",
+    "Most improved: Back Squat.",
+  ],
+  attentionItems: [
+    "Needs attention: 3 planned sessions still open this cycle.",
+    "Momentum slipped vs last week.",
+  ],
 };
 
 const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
@@ -259,6 +267,11 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
     ],
     attentionItems: [],
   },
+  hotspotItems: [
+    "Most improved: Back Squat.",
+    "Net progress: 2 promotions landed in this window.",
+    "Stalled: Incline Walk showed up in 1 session without a PR or promotion signal.",
+  ],
   reviewItems: [
     "3 workouts across 3 workout days.",
     "Lower Rotation led with 1 workout.",
@@ -270,13 +283,13 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
 
 const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
   historyPreviewWeeklyProgress,
-    {
-      timezone: "America/New_York",
-      weekStart: "2026-04-13",
-      weekEnd: "2026-04-19",
-      primaryRoutineTitle: "Atlas",
-      primaryRoutineTargetCount: 4,
-      completedWorkoutCount: 2,
+  {
+    timezone: "America/New_York",
+    weekStart: "2026-04-13",
+    weekEnd: "2026-04-19",
+    primaryRoutineTitle: "Atlas",
+    primaryRoutineTargetCount: 4,
+    completedWorkoutCount: 2,
     previousWeekWorkoutCount: 0,
     activeDayCount: 2,
     prMomentCount: 1,
@@ -302,6 +315,14 @@ const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
       ],
       summary: "2/4 workouts • 1/3 prs • 2/2 consistency",
     },
+    hotspotItems: [
+      "Hotspot: Weighted Pull-Up showed up in 1 session.",
+      "Most improved: Weighted Pull-Up.",
+      "Net progress: 2 extra workouts vs last week.",
+    ],
+    attentionItems: [
+      "Needs attention: 2 planned sessions still open this cycle.",
+    ],
   },
 ];
 

@@ -96,6 +96,14 @@ test("weekly progress treats one workout in an otherwise empty comparison week a
   assert.equal(summary.prMomentCount, 1);
   assert.deepEqual(summary.prExerciseNames, ["Back Squat"]);
   assert.equal(summary.progressScore.value, 3);
+  assert.deepEqual(summary.hotspotItems, [
+    "Hotspot: Back Squat showed up in 1 session.",
+    "Most improved: Back Squat.",
+    "Net progress: 1 extra workout vs last week.",
+  ]);
+  assert.deepEqual(summary.attentionItems, [
+    "Needs attention: 2 planned sessions still open this cycle.",
+  ]);
 });
 
 test("weekly progress aggregates workouts, PR moments, and category volume inside the current week only", () => {
@@ -170,6 +178,14 @@ test("weekly progress aggregates workouts, PR moments, and category volume insid
     ],
   );
   assert.equal(summary.progressScore.value, 6);
+  assert.deepEqual(summary.hotspotItems, [
+    "Hotspot: Back Squat showed up in 2 sessions.",
+    "Most improved: Back Squat.",
+    "Net progress: 1 extra workout vs last week.",
+  ]);
+  assert.deepEqual(summary.attentionItems, [
+    "Needs attention: 1 planned session still open this cycle.",
+  ]);
 });
 
 test("weekly progress keeps previous-week sessions out of current-week PR and score totals", () => {
@@ -214,6 +230,11 @@ test("weekly progress keeps previous-week sessions out of current-week PR and sc
   assert.equal(summary.prMomentCount, 0);
   assert.equal(summary.consistencyTrend.direction, "down");
   assert.equal(summary.progressScore.value, 3);
+  assert.deepEqual(summary.attentionItems, [
+    "Needs attention: 2 planned sessions still open this cycle.",
+    "Stalled: Bench Press carried work this week without a PR moment yet.",
+    "Momentum slipped vs last week.",
+  ]);
 });
 
 test("weekly progress resolves week boundaries in the supplied timezone", () => {

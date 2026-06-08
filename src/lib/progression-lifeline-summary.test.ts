@@ -71,6 +71,11 @@ test("buildExerciseProgressionLifelineSummary formats the target path", () => {
   assert.match(summary?.latestChangeSummary ?? "", /140 lbs/i);
   assert.equal(summary?.lifelineItems[0]?.startsWith("Latest:"), true);
   assert.equal(summary?.lifelineItems[1]?.startsWith("Target Path:"), true);
+  assert.equal(summary?.recentWindowDays, 30);
+  assert.equal(summary?.recentEventCount, 2);
+  assert.equal(summary?.recentPromotionCount, 2);
+  assert.equal(summary?.recentActivitySummary, "2 updates | 2 promotions");
+  assert.equal(summary?.recentFocusSummary, "2 promotions led recent changes");
 });
 
 test("buildExerciseProgressionLifelineSummary condenses shared cardio target segments in latest change", () => {
@@ -116,4 +121,26 @@ test("buildSessionProgressionSummary rolls session updates into a session headli
   assert.equal(summary?.promotionCount, 2);
   assert.equal(summary?.headline, "2 promotions applied");
   assert.equal(summary?.affectedExerciseNames.length, 2);
+});
+
+test("buildExerciseProgressionLifelineSummary reports mixed recent activity when no event type dominates", () => {
+  const summary = buildExerciseProgressionLifelineSummary([
+    buildEvent(),
+    buildEvent({
+      id: "event-2",
+      event_type: "manual_target_change",
+      created_at: "2026-05-12T12:00:00.000Z",
+    }),
+    buildEvent({
+      id: "event-3",
+      event_type: "deload_applied",
+      created_at: "2026-05-14T12:00:00.000Z",
+    }),
+  ]);
+
+  assert.equal(summary?.recentEventCount, 3);
+  assert.equal(summary?.recentPromotionCount, 1);
+  assert.equal(summary?.recentDeloadCount, 1);
+  assert.equal(summary?.recentManualChangeCount, 1);
+  assert.equal(summary?.recentFocusSummary, "Recent changes were mixed");
 });

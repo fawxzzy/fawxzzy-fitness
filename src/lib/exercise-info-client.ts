@@ -189,6 +189,13 @@ function normalizeProgression(value: unknown): ExerciseProgressionLifelineSummar
     latestChangeSummary: readOptionalString(value.latestChangeSummary),
     latestEventLabel: readOptionalString(value.latestEventLabel),
     timelineSummary: readOptionalString(value.timelineSummary),
+    recentWindowDays: typeof value.recentWindowDays === "number" && Number.isFinite(value.recentWindowDays) ? value.recentWindowDays : 30,
+    recentEventCount: typeof value.recentEventCount === "number" && Number.isFinite(value.recentEventCount) ? value.recentEventCount : 0,
+    recentPromotionCount: typeof value.recentPromotionCount === "number" && Number.isFinite(value.recentPromotionCount) ? value.recentPromotionCount : 0,
+    recentDeloadCount: typeof value.recentDeloadCount === "number" && Number.isFinite(value.recentDeloadCount) ? value.recentDeloadCount : 0,
+    recentManualChangeCount: typeof value.recentManualChangeCount === "number" && Number.isFinite(value.recentManualChangeCount) ? value.recentManualChangeCount : 0,
+    recentActivitySummary: readOptionalString(value.recentActivitySummary),
+    recentFocusSummary: readOptionalString(value.recentFocusSummary),
     lifelineItems: Array.isArray(value.lifelineItems)
       ? value.lifelineItems.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
       : [],

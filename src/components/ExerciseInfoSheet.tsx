@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DetailHeader } from "@/components/DetailSurface";
@@ -8,7 +8,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AccentDotSeparatedText, SignatureDot } from "@/components/ui/app/SignatureSeparator";
+import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
 import { DetailSectionBlock, DetailSectionBlocks, DetailSectionItems } from "@/components/ui/DetailSectionList";
@@ -157,10 +157,10 @@ function hasPromotedMetricValue(items: MetricDatum[]) {
 }
 
 function shouldUseCompactProgressionStrip(sections: ExerciseInfoReviewSection[]) {
-  return sections.length >= 2 && sections.length <= 3 && sections.every((section) => (
+  return sections.length >= 2 && sections.length <= 4 && sections.every((section) => (
     section.items.length === 1
-    && isCompactSingleLineValue(section.title, 18)
-    && isCompactSingleLineValue(section.items[0], 28)
+    && isCompactSingleLineValue(section.title, 20)
+    && isCompactSingleLineValue(section.items[0], 34)
   ));
 }
 
@@ -283,6 +283,17 @@ function ExerciseInfoDetailedMetricGrid({ items: _items }: { items: MetricDatum[
   return null;
 }
 
+function compactProgressionMetricValue(value: string | null | undefined) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) {
+    return normalized;
+  }
+
+  return normalized
+    .replace(/\s*[•|]\s*/g, " | ")
+    .replace(/\s+\|\s+/g, " | ");
+}
+
 const exerciseInfoSectionTitleClassName = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const exerciseInfoSubsectionTitleClassName = "text-[rgb(var(--accent-divider-rgb)/0.92)]";
 const exerciseInfoHeaderTitleClassName = "pl-[4px] pt-[5px] pr-3 text-[1.02rem] leading-[1.12] text-[rgb(var(--accent-divider-rgb)/0.98)]";
@@ -290,15 +301,106 @@ const exerciseInfoSectionTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 
 const exerciseInfoHeaderTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.98)" } as const;
 const exerciseInfoTightLabelSlotClassName = "min-h-[1.45rem]";
 const exerciseInfoDenseLabelClassName = "text-[9px] tracking-[0.11em]";
-const exerciseInfoStatsTightWidthClassName = "!basis-[5.55rem] !px-1.5";
-const exerciseInfoStatsDenseWidthClassName = "!basis-[4.05rem] !px-1.5";
-const exerciseInfoProgressSoloWidthClassName = "!basis-[5.35rem] !px-1.4";
-const exerciseInfoProgressTightWidthClassName = "!px-1.2";
-const exerciseInfoProgressDenseWidthClassName = "!basis-[min(4.35rem,calc(25%-0.48rem))] !px-1.5";
-const exerciseInfoProgressionTightWidthClassName = "!basis-[4.85rem] !px-1.35";
-const exerciseInfoRecentHistorySoloWidthClassName = "!basis-[10.8rem] !px-1.3";
-const exerciseInfoRecentHistoryDenseWidthClassName = "!basis-[4.3rem] !px-1";
 const exerciseInfoScopeChipClassName = "min-h-[1.85rem] min-w-[5.4rem] justify-center px-2 py-[4px] text-[9px] tracking-[0.16em]";
+const exerciseInfoProgressionMetricWidthClassName = "!basis-[5.45rem] !px-1.35";
+
+type ExerciseInfoMetricGridVariant = "default" | "progression";
+
+function getCompactMetricArrowToneClassName(value: string) {
+  const normalized = value.toLowerCase();
+  if (/\b(reduced|removed|regression|deload)\b/.test(normalized)) {
+    return "text-[rgb(255,116,116)]";
+  }
+
+  if (/\b(increased|added|promotion|promoted)\b/.test(normalized)) {
+    return "text-[rgb(var(--success-rgb)/0.94)]";
+  }
+
+  const transitionMatch = normalized.match(/(.+?)(?:->|→|â†’|Ã¢â€ â€™)(.+)/);
+  if (transitionMatch) {
+    const leftScore = (transitionMatch[1].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
+    const rightScore = (transitionMatch[2].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
+    if (Number.isFinite(leftScore) && Number.isFinite(rightScore) && rightScore !== leftScore) {
+      return rightScore > leftScore ? "text-[rgb(var(--success-rgb)/0.94)]" : "text-[rgb(255,116,116)]";
+    }
+  }
+
+  return "text-[rgb(var(--text-primary)/0.95)]";
+}
+
+function buildCompactMetricValueNode(value: string) {
+  const normalized = String(value)
+    .replaceAll("ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢", "•")
+    .replaceAll("Ã¢â‚¬Â¢", "•")
+    .trim();
+  const tokens = normalized
+    .split(/(\s+\|\s+|\s+•\s+)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (tokens.length === 0) {
+    return null;
+  }
+
+  const arrowToneClassName = getCompactMetricArrowToneClassName(normalized);
+
+  return (
+    <span
+      className={cn(
+        "inline-flex min-w-0 items-center gap-x-2 gap-y-1 [text-wrap:pretty]",
+        normalized.length <= 32 ? "flex-nowrap whitespace-nowrap" : "flex-wrap",
+      )}
+    >
+      {tokens.map((part, index) => {
+        if (part === "|" || part === "•") {
+          return <SignatureMiniPipe key={`pipe-${index}`} />;
+        }
+
+        if (part.includes("→") || part.includes("->") || part.includes("â†’") || part.includes("Ã¢â€ â€™")) {
+          const arrowParts = part.split(/(?:→|->|â†’|Ã¢â€ â€™)/);
+          return (
+            <span key={`${part}-${index}`} className="min-w-0">
+              {arrowParts.map((arrowPart, arrowIndex) => (
+                <Fragment key={`${arrowPart}-${arrowIndex}`}>
+                  {arrowIndex > 0 ? <span className={cn("px-1", arrowToneClassName)}>&rarr;</span> : null}
+                  {arrowPart ? <span className="whitespace-nowrap">{arrowPart.trim()}</span> : null}
+                </Fragment>
+              ))}
+            </span>
+          );
+        }
+
+        return <span key={`${part}-${index}`} className="min-w-0 whitespace-nowrap">{part}</span>;
+      })}
+    </span>
+  );
+}
+
+function shouldUseDenseExerciseInfoMetricLabels(items: MetricDatum[]) {
+  return items.length >= 4 || items.some((item) => item.label.trim().length >= 14);
+}
+
+function getExerciseInfoMetricGridGapClassName(count: number) {
+  if (count <= 1) {
+    return "!gap-[0.55rem]";
+  }
+
+  if (count === 2) {
+    return "!gap-[0.45rem]";
+  }
+
+  return "!gap-[0.55rem]";
+}
+
+function getExerciseInfoMetricGridProps(items: MetricDatum[], variant: ExerciseInfoMetricGridVariant = "default") {
+  return {
+    className: items.length > 0 ? getExerciseInfoMetricGridGapClassName(items.length) : undefined,
+    itemClassName: variant === "progression" && items.length >= 3 ? exerciseInfoProgressionMetricWidthClassName : undefined,
+    labelClassName: shouldUseDenseExerciseInfoMetricLabels(items) ? exerciseInfoDenseLabelClassName : undefined,
+    labelSlotClassName: exerciseInfoTightLabelSlotClassName,
+    autoColumns: true as const,
+  };
+}
 
 function getExerciseInfoSectionScopeLabel(
   section: ExerciseInfoSectionScopeKey,
@@ -322,17 +424,19 @@ function ExerciseInfoSectionHeader({
   onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className="relative flex min-h-[2.1rem] items-center justify-center">
+      <div className="absolute left-0 top-1/2 -translate-y-1/2">
+        <PillButton
+          active
+          className={exerciseInfoScopeChipClassName}
+          onClick={() => onScopeClick(section)}
+        >
+          {getExerciseInfoSectionScopeLabel(section, analyticsScope, activeRoutineTitle)}
+        </PillButton>
+      </div>
       <h3 className={cn(appTokens.detailSectionTitle, exerciseInfoSectionTitleClassName)} style={exerciseInfoSectionTitleStyle}>
         {title}
       </h3>
-      <PillButton
-        active
-        className={exerciseInfoScopeChipClassName}
-        onClick={() => onScopeClick(section)}
-      >
-        {getExerciseInfoSectionScopeLabel(section, analyticsScope, activeRoutineTitle)}
-      </PillButton>
     </div>
   );
 }
@@ -415,10 +519,7 @@ function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStat
     return (
       <ExerciseSurfaceMetricGrid
         items={performanceMetrics}
-        className={performances.length === 1 ? "!gap-0" : "!gap-[0.55rem]"}
-        itemClassName={performances.length === 1 ? exerciseInfoRecentHistorySoloWidthClassName : exerciseInfoRecentHistoryDenseWidthClassName}
-        labelSlotClassName={exerciseInfoTightLabelSlotClassName}
-        autoColumns
+        {...getExerciseInfoMetricGridProps(performanceMetrics)}
       />
     );
   }
@@ -460,23 +561,11 @@ function ExerciseInfoProgressReview({
   metrics: MetricDatum[];
   sections: ExerciseInfoReviewSection[];
 }) {
-  const hasPromotedMetric = hasPromotedMetricValue(metrics);
-
   if (sections.length === 0) {
     return metrics.length > 0 ? (
       <ExerciseSurfaceMetricGrid
         items={metrics}
-        className={metrics.length === 1 ? "!gap-[0.55rem]" : metrics.length === 2 ? "!gap-[0.4rem]" : metrics.length === 3 ? "!gap-[0.5rem]" : metrics.length === 4 ? "!gap-[0.55rem]" : undefined}
-        itemClassName={metrics.length === 1
-          ? exerciseInfoProgressSoloWidthClassName
-          : metrics.length === 2
-            ? exerciseInfoProgressTightWidthClassName
-            : metrics.length === 4 && !hasPromotedMetric
-              ? exerciseInfoProgressDenseWidthClassName
-              : undefined}
-        itemStyle={metrics.length === 2 ? { flexBasis: "6.6rem", width: "6.6rem" } : undefined}
-        labelClassName={metrics.length === 2 ? exerciseInfoDenseLabelClassName : undefined}
-        autoColumns={metrics.length >= 1 && metrics.length <= 4}
+        {...getExerciseInfoMetricGridProps(metrics)}
       />
     ) : null;
   }
@@ -503,7 +592,7 @@ function ExerciseInfoProgressReview({
 
     return (
       <div className="space-y-2">
-        <ExerciseSurfaceMetricGrid items={summaryMetrics} />
+        <ExerciseSurfaceMetricGrid items={summaryMetrics} {...getExerciseInfoMetricGridProps(summaryMetrics)} />
         <div
           className={cn(
             appTokens.detailHistoryRow,
@@ -517,31 +606,25 @@ function ExerciseInfoProgressReview({
   }
 
   if (!progressSection) {
-    const summaryMetrics = stackedSections.map((section) => ({
-      label: section.title,
-      value: section.items[0]!,
-    }));
-    const combinedMetrics = [...metrics, ...summaryMetrics];
+    const summaryMetrics = [
+      ...metrics,
+      ...stackedSections.map((section) => ({
+        label: section.title,
+        value: section.items[0]!,
+      })),
+      ...(prSection && prSection.items.length === 1 ? [{ label: prSection.title, value: prSection.items[0]! }] : []),
+    ];
+    const combinedMetrics = filterUniqueMetricItems(summaryMetrics);
 
     return (
       <div className="space-y-2">
         {combinedMetrics.length > 0 ? (
           <ExerciseSurfaceMetricGrid
             items={combinedMetrics}
-            className={combinedMetrics.length === 1 ? "!gap-[0.55rem]" : combinedMetrics.length === 2 ? "!gap-[0.4rem]" : combinedMetrics.length === 3 ? "!gap-[0.5rem]" : combinedMetrics.length === 4 ? "!gap-[0.55rem]" : undefined}
-            itemClassName={combinedMetrics.length === 1
-              ? exerciseInfoProgressSoloWidthClassName
-              : combinedMetrics.length === 2
-              ? exerciseInfoProgressTightWidthClassName
-              : combinedMetrics.length === 4 && !hasPromotedMetricValue(combinedMetrics)
-                ? exerciseInfoProgressDenseWidthClassName
-                : undefined}
-            itemStyle={combinedMetrics.length === 2 ? { flexBasis: "6.6rem", width: "6.6rem" } : undefined}
-            labelClassName={combinedMetrics.length === 2 ? exerciseInfoDenseLabelClassName : undefined}
-            autoColumns={combinedMetrics.length >= 1 && combinedMetrics.length <= 4}
+            {...getExerciseInfoMetricGridProps(combinedMetrics)}
           />
         ) : null}
-        {prSection ? (
+        {prSection && prSection.items.length > 1 ? (
           <div
             className={cn(
               appTokens.detailHistoryRow,
@@ -564,39 +647,29 @@ function ExerciseInfoProgressReview({
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-12 gap-2">
-        <div className="col-span-4 flex flex-col gap-2">
-          {stackedSections.map((section) => (
-            <div
-              key={section.title}
-              className={cn(
-                appTokens.detailHistoryRow,
-                "px-2 py-2",
-              )}
-            >
-              <DetailSectionBlock
-                title={section.title}
-                items={section.items}
-                divider={false}
-                titleClassName={cn("px-0.5 text-left text-[0.68rem] tracking-[0.15em]", exerciseInfoSubsectionTitleClassName)}
-              />
-            </div>
-          ))}
-        </div>
-        {progressSection ? (
-          <div className="col-span-8 pl-0.5">
-            <div
-              className={cn(
-                appTokens.detailHistoryRow,
-                "px-2 py-2",
-              )}
-            >
-              <DetailSectionItems items={progressSection.items} className="pl-0.5" showBullets={false} />
-            </div>
-          </div>
-        ) : null}
+      {(() => {
+        const summaryMetrics = filterUniqueMetricItems([
+          ...metrics,
+          ...stackedSections.map((section) => ({
+            label: section.title,
+            value: section.items[0]!,
+          })),
+          ...(prSection && prSection.items.length === 1 ? [{ label: prSection.title, value: prSection.items[0]! }] : []),
+        ]);
+
+        return summaryMetrics.length > 0 ? (
+          <ExerciseSurfaceMetricGrid items={summaryMetrics} {...getExerciseInfoMetricGridProps(summaryMetrics)} />
+        ) : null;
+      })()}
+      <div
+        className={cn(
+          appTokens.detailHistoryRow,
+          "px-2 py-2",
+        )}
+      >
+        <DetailSectionItems items={progressSection.items} className="pl-0.5" showBullets={false} />
       </div>
-      {prSection ? (
+      {prSection && prSection.items.length > 1 ? (
         <div
           className={cn(
             appTokens.detailHistoryRow,
@@ -633,14 +706,26 @@ function ExerciseInfoProgressionPanel({
   onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
 }) {
   const usedMetricKeys = new Set(excludedMetricKeys.map((key) => normalizeMetricKey(key)));
+  const recentWindowDays = progression.recentWindowDays ?? 30;
+  const recentEventCount = progression.recentEventCount ?? 0;
+  const recentPromotionCount = progression.recentPromotionCount ?? 0;
+  const recentDeloadCount = progression.recentDeloadCount ?? 0;
   const progressionMetricCandidates: Array<MetricDatum | null> = [
-    progression.currentTargetLabel ? { label: "Current", value: progression.currentTargetLabel } : null,
-    progression.firstTargetLabel ? { label: "Started", value: progression.firstTargetLabel } : null,
+    progression.currentTargetLabel ? (() => {
+      const value = compactProgressionMetricValue(progression.currentTargetLabel);
+      return { label: "Current", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
+    })() : null,
+    progression.firstTargetLabel ? (() => {
+      const value = compactProgressionMetricValue(progression.firstTargetLabel);
+      return { label: "Started", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
+    })() : null,
     { label: "Promoted", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
-    progression.latestEventLabel ? {
-      label: "Latest",
-      value: progression.latestEventLabel,
-      timeframe: progression.latestChangeAt ? formatDateShort(progression.latestChangeAt) : null,
+    recentEventCount > 0 ? {
+      label: "Recent",
+      value: recentEventCount === 1 ? "1 update" : `${recentEventCount} updates`,
+      valueNode: buildCompactMetricValueNode(recentEventCount === 1 ? "1 update" : `${recentEventCount} updates`),
+      timeframe: `${recentWindowDays}d`,
+      valueTone: recentPromotionCount > 0 ? "success" : recentDeloadCount > 0 ? "danger" : "default",
     } : null,
   ];
   const metrics = filterUniqueMetricItems(
@@ -649,12 +734,15 @@ function ExerciseInfoProgressionPanel({
   ).slice(0, 4);
   const sections = [
     progression.latestChangeSummary ? { title: "Latest Change", items: [progression.latestChangeSummary] } : null,
+    progression.recentActivitySummary ? { title: `${recentWindowDays} Day Activity`, items: [progression.recentActivitySummary] } : null,
+    progression.recentFocusSummary ? { title: "Recent Focus", items: [progression.recentFocusSummary] } : null,
     progression.lastPromotionAt ? { title: "Last Promotion", items: [formatDateShort(progression.lastPromotionAt)] } : null,
   ].filter((section): section is ExerciseInfoReviewSection => Boolean(section));
   const compactSectionMetrics = shouldUseCompactProgressionStrip(sections)
     ? sections.map((section) => ({
         label: section.title,
         value: section.items[0]!,
+        valueNode: buildCompactMetricValueNode(section.items[0]!),
       }))
     : [];
 
@@ -671,14 +759,11 @@ function ExerciseInfoProgressionPanel({
         activeRoutineTitle={activeRoutineTitle}
         onScopeClick={onScopeClick}
       />
-      {metrics.length > 0 ? <ExerciseSurfaceMetricGrid items={metrics} labelSlotClassName={exerciseInfoTightLabelSlotClassName} /> : null}
+      {metrics.length > 0 ? <ExerciseSurfaceMetricGrid items={metrics} {...getExerciseInfoMetricGridProps(metrics, "progression")} /> : null}
       {compactSectionMetrics.length > 0 ? (
         <ExerciseSurfaceMetricGrid
           items={compactSectionMetrics}
-          className={compactSectionMetrics.length === 2 ? "!gap-[0.55rem]" : undefined}
-          itemClassName={compactSectionMetrics.length === 2 ? exerciseInfoProgressionTightWidthClassName : undefined}
-          labelSlotClassName={exerciseInfoTightLabelSlotClassName}
-          autoColumns={compactSectionMetrics.length === 2}
+          {...getExerciseInfoMetricGridProps(compactSectionMetrics)}
         />
       ) : null}
       {sections.length > 0 && compactSectionMetrics.length === 0 ? (
@@ -881,7 +966,6 @@ export function ExerciseInfoSheet({
   const prHistoryState = getExerciseInfoProgressState(prHistorySectionState.stats);
   const prHistorySection = prHistoryState.reviewSections.find((section) => section.title === "PR History") ?? null;
   const progression = progressionSectionState.stats?.progression ?? null;
-  const hasPromotedSurfaceMetric = hasPromotedMetricValue(surfaceMetrics);
 
   const sheetBody = (
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
@@ -922,15 +1006,7 @@ export function ExerciseInfoSheet({
                         {!statsSectionState.loading && statsSectionState.stats ? (
                           <ExerciseSurfaceMetricGrid
                             items={surfaceMetrics}
-                            className={surfaceMetrics.length === 2 ? "!gap-[0.55rem]" : surfaceMetrics.length === 4 ? "!gap-2" : undefined}
-                            itemClassName={surfaceMetrics.length === 2
-                              ? exerciseInfoStatsTightWidthClassName
-                              : surfaceMetrics.length === 4 && !hasPromotedSurfaceMetric
-                                ? exerciseInfoStatsDenseWidthClassName
-                                : undefined}
-                            labelClassName={surfaceMetrics.length === 4 ? exerciseInfoDenseLabelClassName : undefined}
-                            labelSlotClassName={exerciseInfoTightLabelSlotClassName}
-                            autoColumns={surfaceMetrics.length === 2 || surfaceMetrics.length === 4}
+                            {...getExerciseInfoMetricGridProps(surfaceMetrics)}
                           />
                         ) : null}
                         {!statsSectionState.loading && !statsSectionState.stats ? (
@@ -950,7 +1026,7 @@ export function ExerciseInfoSheet({
                           activeRoutineTitle={activeRoutineTitle}
                           onScopeClick={handleSectionScopeToggle}
                         />
-                        <ExerciseSurfaceMetricGrid items={performanceMetrics} />
+                        <ExerciseSurfaceMetricGrid items={performanceMetrics} {...getExerciseInfoMetricGridProps(performanceMetrics)} />
                       </AppPanel>
                     ) : null}
 

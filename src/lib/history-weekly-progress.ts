@@ -56,6 +56,8 @@ export type WeeklyProgressSummary = {
     }>;
     summary: string;
   };
+  hotspotItems: string[];
+  attentionItems: string[];
 };
 
 type BuildWeeklyProgressSummaryOptions = {
@@ -157,6 +159,31 @@ function resolveVolumeCategory(
 
 function toPluralLabel(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function resolveTopExerciseByCount(
+  exerciseCounts: Map<string, number>,
+  exerciseMetaById: Map<string, WeeklyProgressExerciseMeta>,
+) {
+  let topExerciseId: string | null = null;
+  let topCount = -1;
+
+  for (const [exerciseId, count] of exerciseCounts.entries()) {
+    if (count > topCount || (count === topCount && topExerciseId && exerciseId.localeCompare(topExerciseId) < 0)) {
+      topExerciseId = exerciseId;
+      topCount = count;
+    }
+  }
+
+  if (!topExerciseId || topCount <= 0) {
+    return null;
+  }
+
+  return {
+    exerciseId: topExerciseId,
+    exerciseName: exerciseMetaById.get(topExerciseId)?.name?.trim() || "Exercise",
+    count: topCount,
+  };
 }
 
 function resolvePrimaryRoutineTargetCount(
@@ -277,6 +304,7 @@ export function buildWeeklyProgressSummary({
     WeeklyProgressVolumeCategoryKey,
     { setCount: number; exerciseIds: Set<string> }
   >();
+  const exerciseCounts = new Map<string, number>();
 
   for (const session of currentWeekSessions) {
     const sessionExercises = sessionExercisesBySessionId.get(session.id) ?? [];
@@ -296,6 +324,7 @@ export function buildWeeklyProgressSummary({
       bucket.setCount += sets.length;
       bucket.exerciseIds.add(sessionExercise.exerciseId);
       volumeCategoryState.set(categoryKey, bucket);
+      exerciseCounts.set(sessionExercise.exerciseId, (exerciseCounts.get(sessionExercise.exerciseId) ?? 0) + 1);
     }
   }
 
@@ -347,6 +376,28 @@ export function buildWeeklyProgressSummary({
     consistencyDetail = `${toPluralLabel(completedWorkoutCount, "workout")} this week after ${toPluralLabel(previousWeekWorkoutCount, "workout")} last week.`;
   }
 
+  const topExercise = resolveTopExerciseByCount(exerciseCounts, exerciseMetaById);
+  const hotspotItems = [
+    topExercise ? `Hotspot: ${topExercise.exerciseName} showed up in ${toPluralLabel(topExercise.count, "session")}.` : null,
+    prExerciseNames[0] ? `Most improved: ${prExerciseNames[0]}.` : null,
+    completedWorkoutCount > previousWeekWorkoutCount
+      ? `Net progress: ${toPluralLabel(completedWorkoutCount - previousWeekWorkoutCount, "extra workout")} vs last week.`
+      : completedWorkoutCount === previousWeekWorkoutCount && completedWorkoutCount > 0
+        ? "Net progress: matched last week's workout pace."
+        : null,
+  ].filter((value): value is string => Boolean(value));
+  const attentionItems = [
+    primaryRoutineTargetCount > 0 && completedWorkoutCount < primaryRoutineTargetCount
+      ? `Needs attention: ${primaryRoutineTargetCount - completedWorkoutCount} planned ${primaryRoutineTargetCount - completedWorkoutCount === 1 ? "session" : "sessions"} still open this cycle.`
+      : null,
+    completedWorkoutCount > 0 && prMomentCount === 0 && topExercise
+      ? `Stalled: ${topExercise.exerciseName} carried work this week without a PR moment yet.`
+      : null,
+    consistencyDirection === "down"
+      ? "Momentum slipped vs last week."
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
   const scoreBreakdown = [
     { label: "Sessions", value: workoutPoints, max: 4 },
     { label: "Consistency", value: consistencyPoints, max: 3 },
@@ -382,5 +433,7 @@ export function buildWeeklyProgressSummary({
       breakdown: scoreBreakdown,
       summary: scoreSummary || "No score inputs yet",
     },
+    hotspotItems,
+    attentionItems,
   };
 }

@@ -860,12 +860,12 @@ const mockHistorySessions = [
 ];
 
 const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
-    timezone: "America/New_York",
-    weekStart: "2026-04-06",
-    weekEnd: "2026-04-12",
-    primaryRoutineTitle: "Atlas",
-    primaryRoutineTargetCount: 4,
-    completedWorkoutCount: 3,
+  timezone: "America/New_York",
+  weekStart: "2026-04-06",
+  weekEnd: "2026-04-12",
+  primaryRoutineTitle: "Atlas",
+  primaryRoutineTargetCount: 4,
+  completedWorkoutCount: 3,
   previousWeekWorkoutCount: 2,
   activeDayCount: 3,
   prMomentCount: 4,
@@ -891,6 +891,14 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
     ],
     summary: "3/4 workouts • 3/3 prs • 2/2 consistency",
   },
+  hotspotItems: [
+    "Hotspot: Back Squat showed up in 2 sessions.",
+    "Most improved: Back Squat.",
+    "Net progress: 1 extra workout vs last week.",
+  ],
+  attentionItems: [
+    "Needs attention: 1 planned session still open this cycle.",
+  ],
 };
 
 const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
@@ -930,6 +938,11 @@ const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
     ],
     attentionItems: [],
   },
+  hotspotItems: [
+    "Most improved: Back Squat.",
+    "Net progress: 2 promotions landed in this window.",
+    "Stalled: Incline Walk showed up in 1 session without a PR or promotion signal.",
+  ],
   reviewItems: [
     "3 workouts across 3 workout days.",
     `${PREVIEW_ROUTINE_NAME} led with 1 workout.`,

@@ -199,6 +199,46 @@ function WeeklyProgressBody({
         </div>
         <div className="space-y-1.5">
           <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+            Hotspots
+          </p>
+          {summary.hotspotItems.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.84rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
+              {summary.hotspotItems.map((entry, index) => (
+                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
+                  <SignatureDot />
+                  <span className={cn("min-w-0")}>{entry}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+              <SignatureDot />
+              <span>No hotspots stand out in this cycle yet.</span>
+            </div>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+            Watch
+          </p>
+          {summary.attentionItems.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
+              {summary.attentionItems.map((entry, index) => (
+                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
+                  <SignatureDot />
+                  <span>{entry}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+              <SignatureDot />
+              <span>Nothing needs attention in this cycle right now.</span>
+            </div>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
             PR Moments
           </p>
           {summary.prExerciseNames.length > 0 ? (
@@ -246,7 +286,6 @@ function HistoryGroupCompactHeader({
       aria-controls={controlsId}
       onClick={onToggle}
       className="group block w-full appearance-none !border-0 !bg-transparent text-left shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
     >
       <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
         <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
@@ -283,7 +322,7 @@ function HistoryGroupCompactHeader({
               )}
             </div>
           </div>
-          <div className="px-px pt-[1px]">
+          <div className="px-px pt-[1px]" style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
             <MetricAccentBar variant="compact" className={HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME} />
           </div>
         </div>
@@ -299,7 +338,6 @@ function ExpandedWeeklySummaryCard({
 }) {
   return (
     <div
-      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
       className={cn(
         "relative overflow-hidden rounded-[var(--radius-lg)] border bg-transparent",
         HISTORY_YELLOW_CARD_BORDER_CLASS_NAME,
@@ -335,7 +373,9 @@ function HistoricalWeeklyProgressSurface({
           <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
             {summaryTitle}
           </div>
-          <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
+          <div style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
+            <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
+          </div>
         </div>
         <WeeklyProgressBody summary={summary} />
       </ExpandedWeeklySummaryCard>
@@ -388,7 +428,9 @@ export function WeeklyProgressSurface({
           <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
             {progressionTitle}
           </div>
-          <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
+          <div style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
+            <MetricAccentBar variant="compact" className={cn("mt-3", HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME)} />
+          </div>
         </div>
         <WeeklyProgressBody
           summary={summary}

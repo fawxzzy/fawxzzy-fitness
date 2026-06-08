@@ -88,6 +88,26 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHis
         </div>
         <div className="space-y-1.5">
           <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+            Hotspots
+          </p>
+          {summary.hotspotItems.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
+              {summary.hotspotItems.map((entry, index) => (
+                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
+                  <SignatureDot />
+                  <span>{entry}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+              <SignatureDot />
+              <span>No hotspots stand out yet.</span>
+            </div>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
             Watch
           </p>
           {summary.attentionItems.length > 0 ? (
@@ -162,7 +182,6 @@ function CompactHeader({
       aria-controls={controlsId}
       onClick={onToggle}
       className="group block w-full appearance-none !border-0 !bg-transparent text-left shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
     >
       <div className="relative w-full max-w-none overflow-hidden rounded-[1rem] bg-transparent px-[3px] py-[2px]">
         <div className="relative rounded-[0.9rem] px-[13px] py-[3px] transition-colors">
@@ -178,7 +197,7 @@ function CompactHeader({
               </span>
             </div>
           </div>
-          <div className="px-px pt-[1px]">
+          <div className="px-px pt-[1px]" style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
             <MetricAccentBar
               variant="compact"
               className="bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
@@ -193,7 +212,6 @@ function CompactHeader({
 function ExpandedCard({ children }: { children: ReactNode }) {
   return (
     <div
-      style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}
       className={cn(
         "relative overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--accent-yellow-on)/0.24)] bg-transparent",
         cardShellToneClassNames.logged,
@@ -224,10 +242,12 @@ export function ThirtyDayHistorySurface({
           <div className="min-w-0 text-[0.98rem] font-semibold leading-tight tracking-[0.01em] text-[rgb(var(--text-primary)/0.98)]">
             {title}
           </div>
-          <MetricAccentBar
-            variant="compact"
-            className="mt-3 bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
-          />
+          <div style={HISTORY_YELLOW_METRIC_ACCENT_STYLE}>
+            <MetricAccentBar
+              variant="compact"
+              className="mt-3 bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]"
+            />
+          </div>
         </div>
         <Body summary={summary} />
       </ExpandedCard>

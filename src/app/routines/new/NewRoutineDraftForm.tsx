@@ -449,9 +449,10 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
             ) : null}
             context="routine-default"
             title=""
-            defaultExpanded
+            defaultExpanded={false}
             collapsible={false}
             separateInfoBox
+            infoDockPlacement="above-bottom-actions"
             trainingFocusValue={selectedTrainingGoal}
             trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
             onTrainingFocusChange={(goal) => {

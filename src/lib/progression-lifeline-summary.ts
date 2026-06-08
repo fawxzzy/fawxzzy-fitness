@@ -25,6 +25,13 @@ export type ExerciseProgressionLifelineSummary = ProgressionAnalyticsDigest & {
   latestChangeSummary: string | null;
   latestEventLabel: string | null;
   timelineSummary: string | null;
+  recentWindowDays?: number;
+  recentEventCount?: number;
+  recentPromotionCount?: number;
+  recentDeloadCount?: number;
+  recentManualChangeCount?: number;
+  recentActivitySummary?: string | null;
+  recentFocusSummary?: string | null;
   lifelineItems: string[];
 };
 
@@ -297,6 +304,81 @@ function buildLatestChangeSummary(event: ProgressionEventRow) {
   return toTargetLabel ?? fromTargetLabel ?? formatEventTypeLabel(event.event_type);
 }
 
+const RECENT_ACTIVITY_WINDOW_DAYS = 30;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function countEventLabel(count: number) {
+  return countLabel(count, "update");
+}
+
+function buildRecentEventWindow(events: ProgressionEventRow[], windowDays = RECENT_ACTIVITY_WINDOW_DAYS) {
+  const latestEvent = events.at(-1) ?? null;
+  if (!latestEvent) {
+    return {
+      recentWindowDays: windowDays,
+      recentEvents: [] as ProgressionEventRow[],
+      recentEventCount: 0,
+      recentPromotionCount: 0,
+      recentDeloadCount: 0,
+      recentManualChangeCount: 0,
+      recentActivitySummary: null as string | null,
+      recentFocusSummary: null as string | null,
+    };
+  }
+
+  const latestTimestamp = Date.parse(latestEvent.created_at);
+  if (!Number.isFinite(latestTimestamp)) {
+    return {
+      recentWindowDays: windowDays,
+      recentEvents: [] as ProgressionEventRow[],
+      recentEventCount: 0,
+      recentPromotionCount: 0,
+      recentDeloadCount: 0,
+      recentManualChangeCount: 0,
+      recentActivitySummary: null as string | null,
+      recentFocusSummary: null as string | null,
+    };
+  }
+
+  const windowStart = latestTimestamp - ((windowDays - 1) * ONE_DAY_MS);
+  const recentEvents = events.filter((event) => {
+    const eventTimestamp = Date.parse(event.created_at);
+    return Number.isFinite(eventTimestamp) && eventTimestamp >= windowStart;
+  });
+  const recentPromotionCount = recentEvents.filter((event) => event.event_type === "promotion_applied").length;
+  const recentDeloadCount = recentEvents.filter((event) => event.event_type === "deload_applied").length;
+  const recentManualChangeCount = recentEvents.filter((event) => event.event_type === "manual_target_change").length;
+  const recentEventCount = recentEvents.length;
+  const recentActivityParts = [
+    recentEventCount > 0 ? countEventLabel(recentEventCount) : null,
+    recentPromotionCount > 0 ? countLabel(recentPromotionCount, "promotion") : null,
+    recentDeloadCount > 0 ? countLabel(recentDeloadCount, "regression") : null,
+    recentManualChangeCount > 0 ? countLabel(recentManualChangeCount, "manual change") : null,
+  ].filter((value): value is string => Boolean(value));
+
+  let recentFocusSummary: string | null = null;
+  if (recentPromotionCount > recentDeloadCount && recentPromotionCount > recentManualChangeCount) {
+    recentFocusSummary = `${countLabel(recentPromotionCount, "promotion")} led recent changes`;
+  } else if (recentDeloadCount > recentPromotionCount && recentDeloadCount > recentManualChangeCount) {
+    recentFocusSummary = `${countLabel(recentDeloadCount, "regression")} led recent changes`;
+  } else if (recentManualChangeCount > recentPromotionCount && recentManualChangeCount > recentDeloadCount) {
+    recentFocusSummary = `${countLabel(recentManualChangeCount, "manual change")} led recent changes`;
+  } else if (recentEventCount > 0) {
+    recentFocusSummary = "Recent changes were mixed";
+  }
+
+  return {
+    recentWindowDays: windowDays,
+    recentEvents,
+    recentEventCount,
+    recentPromotionCount,
+    recentDeloadCount,
+    recentManualChangeCount,
+    recentActivitySummary: recentActivityParts.length > 0 ? recentActivityParts.join(" | ") : null,
+    recentFocusSummary,
+  };
+}
+
 export function buildProgressionAnalyticsDigest(events: ProgressionEventRow[]): ProgressionAnalyticsDigest {
   const ordered = sortEventsAscending(events);
   const linkedSessionIds = new Set(
@@ -344,9 +426,11 @@ export function buildExerciseProgressionLifelineSummary(events: ProgressionEvent
   const latestChangeSummary = latestEvent ? buildLatestChangeSummary(latestEvent) : null;
   const timelineSummary = buildTimelineSummary(firstTargetLabel, currentTargetLabel);
   const latestEventLabel = latestEvent ? formatEventTypeLabel(latestEvent.event_type) : null;
+  const recentWindow = buildRecentEventWindow(ordered);
   const lifelineItems = [
     latestChangeSummary ? `Latest: ${latestChangeSummary}` : null,
     timelineSummary ? `Target Path: ${timelineSummary}` : null,
+    recentWindow.recentActivitySummary ? `Recent activity: ${recentWindow.recentActivitySummary}` : null,
     digest.promotionCount > 0 ? `${countLabel(digest.promotionCount, "promotion")} applied` : null,
     digest.deloadCount > 0 ? `${countLabel(digest.deloadCount, "regression")} logged` : null,
     digest.manualChangeCount > 0 ? `${countLabel(digest.manualChangeCount, "manual change")} recorded` : null,
@@ -359,6 +443,13 @@ export function buildExerciseProgressionLifelineSummary(events: ProgressionEvent
     latestChangeSummary,
     latestEventLabel,
     timelineSummary,
+    recentWindowDays: recentWindow.recentWindowDays,
+    recentEventCount: recentWindow.recentEventCount,
+    recentPromotionCount: recentWindow.recentPromotionCount,
+    recentDeloadCount: recentWindow.recentDeloadCount,
+    recentManualChangeCount: recentWindow.recentManualChangeCount,
+    recentActivitySummary: recentWindow.recentActivitySummary,
+    recentFocusSummary: recentWindow.recentFocusSummary,
     lifelineItems: Array.from(new Set(lifelineItems)).slice(0, 4),
   };
 }
