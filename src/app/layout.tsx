@@ -136,6 +136,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       data-ambient-theme={bootPreferences?.ambientTheme ?? undefined}
       data-display-mode={bootPreferences?.displayMode ?? undefined}
       data-app-theme-ready={bootTheme ? "true" : undefined}
