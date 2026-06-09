@@ -57,6 +57,8 @@ const expectedScenarioIds = [
   "exercise-detail-strength",
   "exercise-detail-cardio",
   "exercise-detail-bodyweight",
+  "exercise-detail-weighted-strength",
+  "exercise-detail-weighted-strength-long-target",
   "exercise-detail-long-scroll",
 ] as const;
 
@@ -110,6 +112,8 @@ const expectedScenarioFamilies = [
   ["exercise-detail-strength", "Settings / detail"],
   ["exercise-detail-cardio", "Settings / detail"],
   ["exercise-detail-bodyweight", "Settings / detail"],
+  ["exercise-detail-weighted-strength", "Settings / detail"],
+  ["exercise-detail-weighted-strength-long-target", "Settings / detail"],
   ["exercise-detail-long-scroll", "Settings / detail"],
 ] as const;
 
@@ -195,6 +199,8 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-strength");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "cardio" })?.id, "exercise-detail-cardio");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "bodyweight" })?.id, "exercise-detail-bodyweight");
+  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "weighted-strength" })?.id, "exercise-detail-weighted-strength");
+  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "weighted-strength-long-target" })?.id, "exercise-detail-weighted-strength-long-target");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "long-scroll" })?.id, "exercise-detail-long-scroll");
   assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");
   assert.equal(resolveMobileRegressionScenario({ screen: "settings", fixture: "data-export" })?.id, "settings-data-export");

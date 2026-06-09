@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 
 export const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]";
 
@@ -25,7 +26,7 @@ function getArrowToneClassName(item: string) {
     return "text-[rgb(var(--success-rgb)/0.94)]";
   }
 
-  const transitionMatch = normalized.match(/(.+?)(?:->|→|â†’)(.+)/);
+  const transitionMatch = normalized.match(/(.+?)(?:->|\u2192)(.+)/);
   if (transitionMatch) {
     const leftScore = (transitionMatch[1].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
     const rightScore = (transitionMatch[2].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
@@ -38,10 +39,7 @@ function getArrowToneClassName(item: string) {
 }
 
 function renderDetailSectionItemContent(item: string) {
-  const normalized = String(item)
-    .replaceAll("Ã¢â‚¬Â¢", "\u2022")
-    .replaceAll("â€¢", "\u2022")
-    .trim();
+  const normalized = normalizeDecoratedText(item);
   const tokens = normalized
     .split(/(\s+\|\s+|\s+\u2022\s+)/)
     .map((part) => part.trim())
@@ -70,8 +68,8 @@ function renderDetailSectionItemContent(item: string) {
             : <SignatureDot key={`dot-${index}`} />;
         }
 
-        if (part.includes("\u2192") || part.includes("->") || part.includes("â†’")) {
-          const arrowParts = part.split(/(?:\u2192|->|â†’)/);
+        if (part.includes("\u2192") || part.includes("->")) {
+          const arrowParts = part.split(/(?:\u2192|->)/);
           return (
             <span key={`${part}-${index}`} className="min-w-0">
               {arrowParts.map((arrowPart, arrowIndex) => (
@@ -106,7 +104,7 @@ export function DetailSectionItems({
   return (
     <div className={cn(shouldUseTwoColumnGrid ? "grid grid-cols-2 gap-x-3 gap-y-1.5 pl-px" : "space-y-1.5 pl-px", className)}>
       {items.map((item, index) => {
-        const normalizedItem = item.trim();
+        const normalizedItem = normalizeDecoratedText(item);
         const pipeSegments = normalizedItem
           .split("|")
           .map((segment) => segment.trim())
@@ -116,6 +114,10 @@ export function DetailSectionItems({
           || normalizedItem.includes(":")
           || pipeSegments.length > 3
           || pipeSegments.some((segment) => segment.length > 16);
+        const shouldRenderDecoratedContent = normalizedItem.includes("|")
+          || normalizedItem.includes("\u2022")
+          || normalizedItem.includes("\u2192")
+          || normalizedItem.includes("->");
 
         return (
           <div
@@ -138,9 +140,7 @@ export function DetailSectionItems({
                 tone === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
               )}
             >
-              {(item.includes("|") || item.includes("\u2022") || item.includes("â€¢") || item.includes("\u2192") || item.includes("->") || item.includes("â†’"))
-                ? renderDetailSectionItemContent(item)
-                : item}
+              {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}
             </span>
           </div>
         );

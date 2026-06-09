@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 
 export function SignatureMiniPipe({
   className,
@@ -109,10 +110,7 @@ export function AccentDotSeparatedText({
   pipeClassName?: string;
   pipeBarClassName?: string;
 }) {
-  const normalized = String(text)
-    .replaceAll("â€¢", "\u2022")
-    .replaceAll("•", "\u2022")
-    .trim();
+  const normalized = normalizeDecoratedText(text);
   const tokens = normalized
     .split(/(\s+\|\s+|\s+\u2022\s+)/)
     .map((part) => part.trim())

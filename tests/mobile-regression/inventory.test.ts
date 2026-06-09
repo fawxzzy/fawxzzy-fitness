@@ -22,7 +22,7 @@ test("fixture inventory covers the current canonical mobile screen set", () => {
   assert.equal(byRoute.get("historyExercises"), 5);
   assert.equal(byRoute.get("historyDetail"), 1);
   assert.equal(byRoute.get("settings"), 2);
-  assert.equal(byRoute.get("exerciseDetail"), 4);
+  assert.equal(byRoute.get("exerciseDetail"), 6);
 });
 
 test("major mobile routes declare floatingHeader usage", () => {
@@ -70,4 +70,9 @@ test("hardening fixtures keep long Exercise Info scroll and day-card parity cove
   const bodyweightDetail = mobileRegressionScenarios.find((scenario) => scenario.id === "exercise-detail-bodyweight");
   assert.ok(bodyweightDetail);
   assert.equal(bodyweightDetail.route, "exerciseDetail");
+
+  const weightedStrengthLongTarget = mobileRegressionScenarios.find((scenario) => scenario.id === "exercise-detail-weighted-strength-long-target");
+  assert.ok(weightedStrengthLongTarget);
+  assert.equal(weightedStrengthLongTarget.route, "exerciseDetail");
+  assert.equal(weightedStrengthLongTarget.fixture, "weighted-strength-long-target");
 });

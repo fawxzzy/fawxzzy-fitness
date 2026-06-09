@@ -145,36 +145,36 @@ function getAdaptiveMetricWidthClassName(item: MetricDatum, totalItems: number) 
     || (pipeSegments.length >= 3 && item.value.trim().length >= 24)
     || pipeSegments.some((segment) => segment.length >= 14)
   ) {
-    return "basis-full";
+    return "basis-full min-w-0";
   }
 
-  if (totalItems <= 1) return "basis-full";
+  if (totalItems <= 1) return "basis-full min-w-0";
   if (totalItems === 2) {
     switch (tier) {
       case "micro":
-        return "basis-[5.1rem]";
+        return "basis-auto min-w-[5.1rem] max-w-full grow-0";
       case "compact":
-        return "basis-[5.9rem]";
+        return "basis-auto min-w-[5.9rem] max-w-full grow-0";
       case "standard":
-        return "basis-[6.85rem]";
+        return "basis-auto min-w-[6.85rem] max-w-full grow-0";
       case "wide":
-        return "basis-[7.7rem]";
+        return "basis-auto min-w-[7.7rem] max-w-full grow-0";
       default:
-        return "basis-full";
+        return "basis-full min-w-0";
     }
   }
 
   switch (tier) {
     case "micro":
-      return "basis-[4.35rem]";
+      return "basis-auto min-w-[4.35rem] max-w-full grow-0";
     case "compact":
-      return "basis-[5rem]";
+      return "basis-auto min-w-[5rem] max-w-full grow-0";
     case "standard":
-      return "basis-[5.9rem]";
+      return "basis-auto min-w-[5.9rem] max-w-full grow-0";
     case "wide":
-      return "basis-[6.9rem]";
+      return "basis-auto min-w-[6.9rem] max-w-full grow-0";
     default:
-      return "basis-[8rem]";
+      return "basis-auto min-w-[8rem] max-w-full grow-0";
   }
 }
 

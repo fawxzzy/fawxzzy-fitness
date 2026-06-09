@@ -2367,7 +2367,9 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
     };
   }
 
-  if (scenario.id === "exercise-detail-weighted-strength") {
+  if (scenario.id === "exercise-detail-weighted-strength" || scenario.id === "exercise-detail-weighted-strength-long-target") {
+    const isLongTargetStressScenario = scenario.id === "exercise-detail-weighted-strength-long-target";
+
     return {
       exercise: {
         id: MOCK_EXERCISE_IDS.bench,
@@ -2446,22 +2448,34 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
           firstChangeAt: "2026-05-14T11:00:00.000Z",
           latestChangeAt: "2026-06-08T13:00:00.000Z",
           lastPromotionAt: "2026-06-08T13:00:00.000Z",
-          firstTargetLabel: "4 reps | 225 lbs",
-          currentTargetLabel: "5 reps | 225 lbs",
-          latestChangeSummary: "Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs",
+          firstTargetLabel: isLongTargetStressScenario ? "4 reps | 225 lbs | 2 sec pause" : "4 reps | 225 lbs",
+          currentTargetLabel: isLongTargetStressScenario ? "5 reps | 225 lbs | 2 sec pause" : "5 reps | 225 lbs",
+          latestChangeSummary: isLongTargetStressScenario
+            ? "Reps increased | 4 reps | 225 lbs | 2 sec pause -> 5 reps | 225 lbs | 2 sec pause"
+            : "Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs",
           latestEventLabel: "Promotion applied",
-          timelineSummary: "4 reps | 225 lbs -> 5 reps | 225 lbs",
+          timelineSummary: isLongTargetStressScenario
+            ? "4 reps | 225 lbs | 2 sec pause -> 5 reps | 225 lbs | 2 sec pause"
+            : "4 reps | 225 lbs -> 5 reps | 225 lbs",
           recentWindowDays: 30,
           recentEventCount: 2,
           recentPromotionCount: 1,
           recentDeloadCount: 0,
           recentManualChangeCount: 1,
-          recentActivitySummary: "2 updates | 1 promotion | 1 manual change",
+          recentActivitySummary: isLongTargetStressScenario
+            ? "2 updates | 1 promotion | 1 manual pause-target change"
+            : "2 updates | 1 promotion | 1 manual change",
           recentFocusSummary: "1 promotion led recent changes",
           lifelineItems: [
-            "Latest: Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs",
-            "Target Path: 4 reps | 225 lbs -> 5 reps | 225 lbs",
-            "Recent activity: 2 updates | 1 promotion | 1 manual change",
+            isLongTargetStressScenario
+              ? "Latest: Reps increased | 4 reps | 225 lbs | 2 sec pause -> 5 reps | 225 lbs | 2 sec pause"
+              : "Latest: Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs",
+            isLongTargetStressScenario
+              ? "Target Path: 4 reps | 225 lbs | 2 sec pause -> 5 reps | 225 lbs | 2 sec pause"
+              : "Target Path: 4 reps | 225 lbs -> 5 reps | 225 lbs",
+            isLongTargetStressScenario
+              ? "Recent activity: 2 updates | 1 promotion | 1 manual pause-target change"
+              : "Recent activity: 2 updates | 1 promotion | 1 manual change",
           ],
           activityDays: [
             {
@@ -2474,7 +2488,9 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
               deloadCount: 0,
               manualChangeCount: 0,
               revertCount: 0,
-              items: ["Promotion applied | Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs"],
+              items: [isLongTargetStressScenario
+                ? "Promotion applied | Reps increased | 4 reps | 225 lbs | 2 sec pause -> 5 reps | 225 lbs | 2 sec pause"
+                : "Promotion applied | Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs"],
             },
             {
               id: "2026-05-28",
@@ -2486,7 +2502,9 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
               deloadCount: 0,
               manualChangeCount: 1,
               revertCount: 0,
-              items: ["Manual target change | Load adjusted | 4 reps | 220 lbs -> 4 reps | 225 lbs"],
+              items: [isLongTargetStressScenario
+                ? "Manual target change | Pause target adjusted | 4 reps | 225 lbs | 1 sec pause -> 4 reps | 225 lbs | 2 sec pause"
+                : "Manual target change | Load adjusted | 4 reps | 220 lbs -> 4 reps | 225 lbs"],
             },
           ],
         },

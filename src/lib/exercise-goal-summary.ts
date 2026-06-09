@@ -1,11 +1,9 @@
+import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
+
 export type ExerciseGoalSummaryValue = string | null | undefined;
 
 function normalizeExerciseGoalSummaryText(summary: string) {
-  return summary
-    .replaceAll("â€¢", "\u2022")
-    .replaceAll("Â·", "\u2022")
-    .replaceAll("â€“", "\u2013")
-    .trim();
+  return normalizeDecoratedText(summary);
 }
 
 export function hasMeaningfulExerciseGoalSummary(summary: ExerciseGoalSummaryValue) {
