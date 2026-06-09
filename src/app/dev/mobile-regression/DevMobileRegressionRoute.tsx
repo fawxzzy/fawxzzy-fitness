@@ -891,6 +891,68 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
     ],
     summary: "3/4 workouts • 3/3 prs • 2/2 consistency",
   },
+  progressionSummary: {
+    totalEventCount: 4,
+    promotionCount: 2,
+    deloadCount: 1,
+    manualChangeCount: 1,
+    chartSections: [
+      {
+        id: "progression-activity",
+        title: "Progression Activity",
+        description: "How progression changes stacked across the current week.",
+        emptyTitle: "No progression activity yet.",
+        emptyCaption: "Applied changes will start the timeline once the first progression event lands.",
+        bars: [
+          { id: "2026-04-07", label: "Apr 7", value: 1, valueLabel: "1 event", detail: "1 change landed." },
+          { id: "2026-04-08", label: "Apr 8", value: 2, valueLabel: "2 events", detail: "2 changes landed." },
+          { id: "2026-04-10", label: "Apr 10", value: 1, valueLabel: "1 event", detail: "1 change landed." },
+        ],
+      },
+      {
+        id: "progression-event-mix",
+        title: "Change Mix",
+        description: "Which change types are driving the visible progression slice.",
+        emptyTitle: "No change mix yet.",
+        emptyCaption: "The mix appears after the first progression event is recorded.",
+        bars: [
+          { id: "promotion_applied", label: "Promotion applied", value: 2, valueLabel: "2 events", detail: null },
+          { id: "deload_applied", label: "Deload applied", value: 1, valueLabel: "1 event", detail: null },
+          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+        ],
+      },
+      {
+        id: "progression-hotspots",
+        title: "Promotion Hotspots",
+        description: "Exercises with the most promotions in the visible progression slice.",
+        emptyTitle: "No promotion hotspots yet.",
+        emptyCaption: "Promotion hotspots appear after the first applied promotion lands.",
+        bars: [
+          { id: "back-squat", label: "Back Squat", value: 1, valueLabel: "1 promotion", detail: null },
+          { id: "bench-press", label: "Bench Press", value: 1, valueLabel: "1 promotion", detail: null },
+        ],
+      },
+    ],
+    topProgressedExerciseNames: ["Back Squat", "Bench Press"],
+    topDeloadExerciseNames: ["Bench Press"],
+    topAdjustedExerciseNames: ["Incline Walk"],
+    reviewItems: [
+      "4 progression events landed this week.",
+      "2 promotions applied across 2 exercises.",
+      "1 regression and 1 manual change were recorded.",
+    ],
+    hotspotItems: [
+      "Promotion hotspot: Back Squat.",
+      "Regression hotspot: Bench Press.",
+      "Manual-change hotspot: Incline Walk.",
+    ],
+    timelineItems: [
+      "Active progression days: 3 days.",
+      "Busiest day: Apr 10 (2 events).",
+      "Latest progression: Bench Press on Apr 10.",
+    ],
+    attentionItems: [],
+  },
   hotspotItems: [
     "Hotspot: Back Squat showed up in 2 sessions.",
     "Most improved: Back Squat.",
@@ -929,12 +991,60 @@ const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
     deloadCount: 1,
     manualChangeCount: 1,
     revertCount: 0,
+    chartSections: [
+      {
+        id: "progression-activity",
+        title: "Progression Timeline",
+        description: "How progression changes stacked across recent weekly buckets.",
+        emptyTitle: "No progression activity yet.",
+        emptyCaption: "Applied changes will start the timeline once the first progression event lands.",
+        bars: [
+          { id: "2026-03-30", label: "Mar 30 - Apr 5", value: 1, valueLabel: "1 event", detail: "1 change landed." },
+          { id: "2026-04-06", label: "Apr 6 - Apr 12", value: 3, valueLabel: "3 events", detail: "3 changes landed." },
+        ],
+      },
+      {
+        id: "progression-event-mix",
+        title: "Change Mix",
+        description: "Which change types are driving the visible progression slice.",
+        emptyTitle: "No change mix yet.",
+        emptyCaption: "The mix appears after the first progression event is recorded.",
+        bars: [
+          { id: "promotion_applied", label: "Promotion applied", value: 2, valueLabel: "2 events", detail: null },
+          { id: "deload_applied", label: "Deload applied", value: 1, valueLabel: "1 event", detail: null },
+          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+        ],
+      },
+      {
+        id: "progression-hotspots",
+        title: "Promotion Hotspots",
+        description: "Exercises with the most promotions in the visible progression slice.",
+        emptyTitle: "No promotion hotspots yet.",
+        emptyCaption: "Promotion hotspots appear after the first applied promotion lands.",
+        bars: [
+          { id: "back-squat", label: "Back Squat", value: 1, valueLabel: "1 promotion", detail: null },
+          { id: "bench-press", label: "Bench Press", value: 1, valueLabel: "1 promotion", detail: null },
+        ],
+      },
+    ],
     topProgressedExerciseNames: ["Back Squat", "Bench Press"],
+    topDeloadExerciseNames: ["Bench Press"],
+    topAdjustedExerciseNames: ["Incline Walk"],
     reviewItems: [
       "4 progression events recorded across your history.",
       "2 promotions landed across 2 exercises.",
       "1 deload, 1 manual change, and 0 reverts were recorded.",
       "Most progressed: Back Squat, Bench Press.",
+    ],
+    hotspotItems: [
+      "Promotion hotspot: Back Squat.",
+      "Regression hotspot: Bench Press.",
+      "Manual-change hotspot: Incline Walk.",
+    ],
+    timelineItems: [
+      "Active weeks: 3 weeks.",
+      "Busiest week: Apr 7 (2 events).",
+      "Latest progression: Bench Press on Apr 9.",
     ],
     attentionItems: [],
   },
@@ -1975,6 +2085,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
           <HistorySessionsClient
             sessions={[...mockHistorySessions]}
             currentRoutineSessions={[...mockHistorySessions]}
+            currentCycleSessions={[...mockHistorySessions]}
             activeRoutineTitle={mockHistoryWeeklyProgress.primaryRoutineTitle}
             thirtyDaySummary={mockHistoryThirtyDaySummary}
             currentRoutineThirtyDaySummary={{
@@ -1983,9 +2094,16 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
                 ? `Current Routine: ${mockHistoryWeeklyProgress.primaryRoutineTitle}`
                 : "Current Routine",
             }}
+            currentCycleThirtyDaySummary={{
+              ...mockHistoryThirtyDaySummary,
+              scopeLabel: "Current Cycle: Apr 6 - Apr 12",
+            }}
             weeklyProgress={mockHistoryWeeklyProgress}
             currentRoutineWeeklyProgress={mockHistoryWeeklyProgress}
+            currentCycleWeeklyProgress={mockHistoryWeeklyProgress}
             weeklyProgressByWeek={[mockHistoryWeeklyProgress]}
+            currentRoutineWeeklyProgressByWeek={[mockHistoryWeeklyProgress]}
+            currentCycleWeeklyProgressByWeek={[mockHistoryWeeklyProgress]}
             selectedSessionId="history-session-2"
             initialViewMode={initialViewMode}
           />
@@ -2243,6 +2361,133 @@ function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
             { label: "Tue, Apr 8", value: "9 reps", context: "4 sets" },
             { label: "Sat, Apr 5", value: "8 reps", context: "4 sets" },
             { label: "Tue, Apr 1", value: "12 reps", context: "5 sets" },
+          ],
+        },
+      },
+    };
+  }
+
+  if (scenario.id === "exercise-detail-weighted-strength") {
+    return {
+      exercise: {
+        id: MOCK_EXERCISE_IDS.bench,
+        name: "Dumbbell Bench Press",
+        primary_muscle: "Chest",
+        equipment: "Dumbbell",
+        movement_pattern: "Horizontal Push",
+        image_howto_path: "/missing/howto-bench.png",
+        image_icon_path: "/missing/icon-bench.png",
+        slug: "dumbbell-bench-press",
+        how_to_short: "Set the shoulder blades, keep the forearms stacked, and press both dumbbells through the same bar path every rep.",
+      },
+      stats: {
+        kind: "strength" as const,
+        presentationKind: "strength" as const,
+        recent: {
+          lastPerformedAt: "2026-06-08T13:00:00.000Z",
+          lastSummary: "225 lbs x 5",
+        },
+        totals: {
+          sessions: 22,
+          sets: 66,
+          reps: 318,
+        },
+        bests: {
+          bestWeight: 245,
+          bestRepsAtBestWeight: 4,
+          bestSetSummary: "245 lbs x 4",
+        },
+        prLabel: "Load PR",
+        prCount: 3,
+        quickMetrics: [
+          { label: "Last", value: "Sun, Jun 8", timeframe: "225 lbs x 5" },
+          { label: "Best Set", value: "245 lbs x 4" },
+          { label: "PRs", value: "3", timeframe: "Load PRs" },
+          { label: "Sessions", value: "22", timeframe: "66 sets logged" },
+        ],
+        surfaceMetrics: [
+          { label: "Sessions", value: "22" },
+          { label: "Sets", value: "66" },
+          { label: "Last", value: "5 reps | 225 lbs" },
+          { label: "Best", value: "4 reps | 245 lbs" },
+        ],
+        performanceMetrics: [
+          { label: "Best Weight", value: "245 lbs" },
+          { label: "Best Reps", value: "11 reps" },
+          { label: "Top Set", value: "245 lbs x 4" },
+          { label: "Max Estimate", value: "278 lbs" },
+        ],
+        progress: {
+          metrics: [
+            { label: "Vs Previous", value: "+1 rep" },
+            { label: "30D", value: "6 sessions" },
+            { label: "Last", value: "5 reps | 225 lbs" },
+            { label: "Best", value: "11 reps | 225 lbs" },
+          ],
+          reviewSections: [
+            { title: "Progress", items: ["Matched target load.", "1 Rep PR landed this week."] },
+            { title: "PR History", items: ["Rep PR | 225 lbs | Jun 8", "Load PR | 245 lbs | May 17"] },
+          ],
+          performances: [
+            { label: "Jun 8", value: "225 lbs x 5", context: "3 sets" },
+            { label: "Jun 4", value: "225 lbs x 4", context: "3 sets" },
+            { label: "May 29", value: "245 lbs x 4", context: "4 sets" },
+          ],
+        },
+        progression: {
+          eventCount: 3,
+          promotionCount: 1,
+          deloadCount: 0,
+          manualChangeCount: 1,
+          revertCount: 0,
+          lockInCount: 1,
+          linkedSessionCount: 2,
+          distinctExerciseCount: 1,
+          firstChangeAt: "2026-05-14T11:00:00.000Z",
+          latestChangeAt: "2026-06-08T13:00:00.000Z",
+          lastPromotionAt: "2026-06-08T13:00:00.000Z",
+          firstTargetLabel: "4 reps | 225 lbs",
+          currentTargetLabel: "5 reps | 225 lbs",
+          latestChangeSummary: "Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs",
+          latestEventLabel: "Promotion applied",
+          timelineSummary: "4 reps | 225 lbs -> 5 reps | 225 lbs",
+          recentWindowDays: 30,
+          recentEventCount: 2,
+          recentPromotionCount: 1,
+          recentDeloadCount: 0,
+          recentManualChangeCount: 1,
+          recentActivitySummary: "2 updates | 1 promotion | 1 manual change",
+          recentFocusSummary: "1 promotion led recent changes",
+          lifelineItems: [
+            "Latest: Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs",
+            "Target Path: 4 reps | 225 lbs -> 5 reps | 225 lbs",
+            "Recent activity: 2 updates | 1 promotion | 1 manual change",
+          ],
+          activityDays: [
+            {
+              id: "2026-06-08",
+              label: "Jun 8",
+              detail: "1 change landed.",
+              valueLabel: "1 event",
+              eventCount: 1,
+              promotionCount: 1,
+              deloadCount: 0,
+              manualChangeCount: 0,
+              revertCount: 0,
+              items: ["Promotion applied | Reps increased | 4 reps | 225 lbs -> 5 reps | 225 lbs"],
+            },
+            {
+              id: "2026-05-28",
+              label: "May 28",
+              detail: "1 change landed.",
+              valueLabel: "1 event",
+              eventCount: 1,
+              promotionCount: 0,
+              deloadCount: 0,
+              manualChangeCount: 1,
+              revertCount: 0,
+              items: ["Manual target change | Load adjusted | 4 reps | 220 lbs -> 4 reps | 225 lbs"],
+            },
           ],
         },
       },

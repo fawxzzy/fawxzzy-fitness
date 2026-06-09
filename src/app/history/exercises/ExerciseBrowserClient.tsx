@@ -16,7 +16,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
-import { getExerciseInfoAnalyticsScopeDisplayLabel } from "@/lib/exercise-info-scope";
+import { getExerciseInfoAnalyticsScopeDisplayLabel, getNextExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 import {
   EXERCISE_CURATION_GROUPS,
   flattenExerciseCurationTagValues,
@@ -34,6 +34,7 @@ const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
 type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
   currentRoutineRows?: ExerciseBrowserRow[];
+  currentCycleRows?: ExerciseBrowserRow[];
   activeRoutineTitle?: string | null;
   showBottomActions?: boolean;
 };
@@ -184,6 +185,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
 export function ExerciseBrowserClient({
   rows = [],
   currentRoutineRows = [],
+  currentCycleRows = [],
   activeRoutineTitle = null,
   inlineHeaderControls = false,
   initialViewMode = "compact",
@@ -197,7 +199,11 @@ export function ExerciseBrowserClient({
   const [analyticsScope, setAnalyticsScope] = useState<ExerciseInfoAnalyticsScope>("all_time");
   const deferredQuery = useDeferredValue(query);
   const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
-  const scopedRows = analyticsScope === "current_routine" ? currentRoutineRows : rows;
+  const scopedRows = analyticsScope === "current_routine"
+    ? currentRoutineRows
+    : analyticsScope === "current_cycle"
+      ? currentCycleRows
+      : rows;
 
   const applyViewMode = (nextMode: "compact" | "detailed") => {
     setViewMode(nextMode);
@@ -326,7 +332,7 @@ export function ExerciseBrowserClient({
             initialOpen={initialFiltersOpen}
             analyticsScope={analyticsScope}
             activeRoutineTitle={activeRoutineTitle}
-            onAnalyticsScopeToggle={() => setAnalyticsScope((current) => current === "all_time" ? "current_routine" : "all_time")}
+            onAnalyticsScopeToggle={() => setAnalyticsScope((current) => getNextExerciseInfoAnalyticsScope(current))}
           />
         </HistoryTitleControlShell>
       ) : floatingHeaderContainer
@@ -346,7 +352,7 @@ export function ExerciseBrowserClient({
                 initialOpen={initialFiltersOpen}
                 analyticsScope={analyticsScope}
                 activeRoutineTitle={activeRoutineTitle}
-                onAnalyticsScopeToggle={() => setAnalyticsScope((current) => current === "all_time" ? "current_routine" : "all_time")}
+                onAnalyticsScopeToggle={() => setAnalyticsScope((current) => getNextExerciseInfoAnalyticsScope(current))}
               />
             </HistoryTitleControlShell>,
             floatingHeaderContainer,

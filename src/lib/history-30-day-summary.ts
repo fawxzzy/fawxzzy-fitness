@@ -1,9 +1,13 @@
 import type { SessionSummary } from "@/app/history/session-summary";
 import {
+  bucketProgressionEventsByTime,
+  sortProgressionEventsNewestFirst,
   summarizeProgressionEventAnalytics,
   type ProgressionAnalyticsEvent,
 } from "@/lib/progression-event-analytics";
 import { getWeeklyProgressDayKey, shiftWeeklyProgressDay, type WeeklyProgressTrendDirection } from "@/lib/history-weekly-progress";
+import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
+import { buildProgressionSummaryChartSections } from "@/lib/progression-summary-charts";
 
 export type ThirtyDayProgressionSummary = {
   totalEventCount: number;
@@ -11,8 +15,13 @@ export type ThirtyDayProgressionSummary = {
   deloadCount: number;
   manualChangeCount: number;
   revertCount: number;
+  chartSections: ProgressionHistoryChartSection[];
   topProgressedExerciseNames: string[];
+  topDeloadExerciseNames: string[];
+  topAdjustedExerciseNames: string[];
   reviewItems: string[];
+  hotspotItems: string[];
+  timelineItems: string[];
   attentionItems: string[];
 };
 
@@ -58,6 +67,15 @@ const DEFAULT_TIMEZONE = "America/New_York";
 
 function toPluralLabel(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatDayKey(dayKey: string) {
+  const date = new Date(`${dayKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 function resolvePrimaryRoutineTitle(sessions: SessionSummary[]) {
@@ -135,11 +153,33 @@ function resolveMostFrequentExerciseName(sessions: SessionSummary[], excludedNam
 function buildHistoryProgressionSummary(args: {
   events: ProgressionAnalyticsEvent[];
   exerciseNameById?: Map<string, string>;
+  timezone?: string | null;
 }) {
   const analytics = summarizeProgressionEventAnalytics(args.events);
   const topProgressedExerciseNames = analytics.topProgressedExercises
     .slice(0, 3)
     .map((entry) => args.exerciseNameById?.get(entry.exerciseId)?.trim() || "Exercise");
+  const topDeloadExerciseNames = analytics.deloadFrequencyByExercise
+    .slice(0, 3)
+    .map((entry) => args.exerciseNameById?.get(entry.exerciseId)?.trim() || "Exercise");
+  const topAdjustedExerciseNames = analytics.manualChangeFrequencyByExercise
+    .slice(0, 3)
+    .map((entry) => args.exerciseNameById?.get(entry.exerciseId)?.trim() || "Exercise");
+  const weeklyBuckets = bucketProgressionEventsByTime({
+    events: args.events,
+    granularity: "week",
+    timeZone: args.timezone,
+  });
+  const busiestBucket = [...weeklyBuckets].sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count;
+    }
+    return right.bucket.localeCompare(left.bucket);
+  })[0] ?? null;
+  const latestEvent = sortProgressionEventsNewestFirst(args.events)[0] ?? null;
+  const latestExerciseName = latestEvent
+    ? (args.exerciseNameById?.get(latestEvent.exercise_id)?.trim() || "Exercise")
+    : null;
 
   const promotedExerciseCount = analytics.topProgressedExercises.length;
   const reviewItems = [
@@ -155,6 +195,18 @@ function buildHistoryProgressionSummary(args: {
   if (topProgressedExerciseNames.length > 0) {
     reviewItems.push(`Most progressed: ${topProgressedExerciseNames.join(", ")}.`);
   }
+
+  const hotspotItems = [
+    topProgressedExerciseNames[0] ? `Promotion hotspot: ${topProgressedExerciseNames[0]}.` : null,
+    topDeloadExerciseNames[0] ? `Regression hotspot: ${topDeloadExerciseNames[0]}.` : null,
+    topAdjustedExerciseNames[0] ? `Manual-change hotspot: ${topAdjustedExerciseNames[0]}.` : null,
+  ].filter((value): value is string => Boolean(value));
+
+  const timelineItems = [
+    weeklyBuckets.length > 0 ? `Active weeks: ${toPluralLabel(weeklyBuckets.length, "week")}.` : null,
+    busiestBucket ? `Busiest week: ${formatDayKey(busiestBucket.bucket)} (${toPluralLabel(busiestBucket.count, "event")}).` : null,
+    latestEvent && latestExerciseName ? `Latest progression: ${latestExerciseName} on ${formatDayKey(getWeeklyProgressDayKey(latestEvent.created_at, args.timezone ?? DEFAULT_TIMEZONE) ?? latestEvent.created_at.slice(0, 10))}.` : null,
+  ].filter((value): value is string => Boolean(value));
 
   const attentionItems: string[] = [];
   if (analytics.totalEvents === 0) {
@@ -177,8 +229,18 @@ function buildHistoryProgressionSummary(args: {
     deloadCount: analytics.deloadsAppliedCount,
     manualChangeCount: analytics.manualTargetChangesCount,
     revertCount: analytics.revertsCount,
+    chartSections: buildProgressionSummaryChartSections({
+      events: args.events,
+      exerciseNameById: args.exerciseNameById,
+      timeZone: args.timezone,
+      activityGranularity: "week",
+    }),
     topProgressedExerciseNames,
+    topDeloadExerciseNames,
+    topAdjustedExerciseNames,
     reviewItems,
+    hotspotItems,
+    timelineItems,
     attentionItems,
   } satisfies ThirtyDayProgressionSummary;
 }
@@ -306,6 +368,7 @@ export function buildThirtyDayHistorySummary({
   const progressionSummary = buildHistoryProgressionSummary({
     events: progressionEvents,
     exerciseNameById,
+    timezone: safeTimezone,
   });
   const excludedStalledNames = new Set<string>([
     ...prExerciseNames,

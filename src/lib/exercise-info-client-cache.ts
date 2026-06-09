@@ -9,7 +9,7 @@ type ExerciseInfoClientCacheEntry = {
   source: "seed" | "server";
 };
 
-const STORAGE_KEY = "fawxzzy:exercise-info-cache:v3";
+const STORAGE_KEY = "fawxzzy:exercise-info-cache:v5";
 const MAX_ENTRIES = 36;
 const SERVER_TTL_MS = 5 * 60 * 1000;
 const SEED_TTL_MS = 45 * 1000;
@@ -24,7 +24,15 @@ function normalizeExerciseId(exerciseId: string | null | undefined) {
 }
 
 function normalizeScope(scope: ExerciseInfoAnalyticsScope | null | undefined) {
-  return scope === "current_routine" ? "current_routine" : "all_time";
+  if (scope === "current_routine") {
+    return "current_routine";
+  }
+
+  if (scope === "current_cycle") {
+    return "current_cycle";
+  }
+
+  return "all_time";
 }
 
 function buildCacheKey(exerciseId: string, scope: ExerciseInfoAnalyticsScope | null | undefined) {

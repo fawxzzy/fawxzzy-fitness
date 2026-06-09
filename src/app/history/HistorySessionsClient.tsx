@@ -21,7 +21,7 @@ import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import { buildSessionMetricTagGroup, buildSessionMetricTagValues } from "@/lib/history-metric-filters";
 import { rememberHistorySessionSummary } from "@/lib/history-session-summary-cache";
 import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
-import { getExerciseInfoAnalyticsScopeDisplayLabel } from "@/lib/exercise-info-scope";
+import { getExerciseInfoAnalyticsScopeDisplayLabel, getNextExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 import type { SessionSummary } from "./session-summary";
 
 function normalizeSessionTagValue(prefix: string, value: string) {
@@ -133,13 +133,17 @@ function HistorySessionFilters({
 export function HistorySessionsClient({
   sessions,
   currentRoutineSessions = [],
+  currentCycleSessions = [],
   activeRoutineTitle = null,
   thirtyDaySummary,
   currentRoutineThirtyDaySummary,
+  currentCycleThirtyDaySummary,
   weeklyProgress,
   currentRoutineWeeklyProgress,
+  currentCycleWeeklyProgress,
   weeklyProgressByWeek = [],
   currentRoutineWeeklyProgressByWeek = [],
+  currentCycleWeeklyProgressByWeek = [],
   selectedSessionId,
   initialViewMode = "compact",
   initialFiltersOpen = false,
@@ -149,13 +153,17 @@ export function HistorySessionsClient({
 }: {
   sessions: SessionSummary[];
   currentRoutineSessions?: SessionSummary[];
+  currentCycleSessions?: SessionSummary[];
   activeRoutineTitle?: string | null;
   thirtyDaySummary: ThirtyDayHistorySummary;
   currentRoutineThirtyDaySummary: ThirtyDayHistorySummary;
+  currentCycleThirtyDaySummary: ThirtyDayHistorySummary;
   weeklyProgress: WeeklyProgressSummary;
   currentRoutineWeeklyProgress: WeeklyProgressSummary;
+  currentCycleWeeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek?: WeeklyProgressSummary[];
   currentRoutineWeeklyProgressByWeek?: WeeklyProgressSummary[];
+  currentCycleWeeklyProgressByWeek?: WeeklyProgressSummary[];
   selectedSessionId?: string;
   initialViewMode?: "compact" | "detailed";
   initialFiltersOpen?: boolean;
@@ -169,16 +177,32 @@ export function HistorySessionsClient({
   const [analyticsScope, setAnalyticsScope] = useState<ExerciseInfoAnalyticsScope>("all_time");
   const deferredQuery = useDeferredValue(query);
   const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
-  const scopedSessions = analyticsScope === "current_routine" ? currentRoutineSessions : sessions;
-  const scopedThirtyDaySummary = analyticsScope === "current_routine" ? currentRoutineThirtyDaySummary : thirtyDaySummary;
-  const scopedWeeklyProgress = analyticsScope === "current_routine" ? currentRoutineWeeklyProgress : weeklyProgress;
-  const scopedWeeklyProgressByWeek = analyticsScope === "current_routine" ? currentRoutineWeeklyProgressByWeek : weeklyProgressByWeek;
+  const scopedSessions = analyticsScope === "current_routine"
+    ? currentRoutineSessions
+    : analyticsScope === "current_cycle"
+      ? currentCycleSessions
+      : sessions;
+  const scopedThirtyDaySummary = analyticsScope === "current_routine"
+    ? currentRoutineThirtyDaySummary
+    : analyticsScope === "current_cycle"
+      ? currentCycleThirtyDaySummary
+      : thirtyDaySummary;
+  const scopedWeeklyProgress = analyticsScope === "current_routine"
+    ? currentRoutineWeeklyProgress
+    : analyticsScope === "current_cycle"
+      ? currentCycleWeeklyProgress
+      : weeklyProgress;
+  const scopedWeeklyProgressByWeek = analyticsScope === "current_routine"
+    ? currentRoutineWeeklyProgressByWeek
+    : analyticsScope === "current_cycle"
+      ? currentCycleWeeklyProgressByWeek
+      : weeklyProgressByWeek;
 
   useEffect(() => {
-    for (const session of [...sessions, ...currentRoutineSessions]) {
+    for (const session of [...sessions, ...currentRoutineSessions, ...currentCycleSessions]) {
       rememberHistorySessionSummary(session);
     }
-  }, [currentRoutineSessions, sessions]);
+  }, [currentCycleSessions, currentRoutineSessions, sessions]);
 
   const sessionTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -308,7 +332,7 @@ export function HistorySessionsClient({
                   initialOpen={initialFiltersOpen}
                   analyticsScope={analyticsScope}
                   activeRoutineTitle={activeRoutineTitle}
-                  onAnalyticsScopeToggle={() => setAnalyticsScope((current) => current === "all_time" ? "current_routine" : "all_time")}
+                  onAnalyticsScopeToggle={() => setAnalyticsScope((current) => getNextExerciseInfoAnalyticsScope(current))}
                 />
               </HistoryTitleControlShell>
             </div>
@@ -366,7 +390,13 @@ export function HistorySessionsClient({
           recipe="historyDetail"
           listState={(
             <p className={appTokens.historyBrowserEmptyState}>
-              {scopedSessions.length > 0 ? "No matching sessions." : analyticsScope === "current_routine" ? "No completed sessions in the current routine yet." : "No completed sessions yet."}
+              {scopedSessions.length > 0
+                ? "No matching sessions."
+                : analyticsScope === "current_routine"
+                  ? "No completed sessions in the current routine yet."
+                  : analyticsScope === "current_cycle"
+                    ? "No completed sessions in the current cycle yet."
+                    : "No completed sessions yet."}
             </p>
           )}
         />

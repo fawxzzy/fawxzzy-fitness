@@ -2,8 +2,11 @@ import type { ProgressionEventRow } from "@/types/db";
 import { formatCalories, formatDistance } from "@/lib/exercise-stats-formatting";
 import { formatDurationClock } from "@/lib/duration";
 import { formatWeight } from "@/lib/formatting";
+import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
 import type { ProgressionTargetPlan } from "@/lib/progression-playbooks";
+import { buildProgressionSummaryChartSections } from "@/lib/progression-summary-charts";
+import { getProgressionEventBucketKey } from "@/lib/progression-event-analytics";
 
 export type ProgressionAnalyticsDigest = {
   eventCount: number;
@@ -32,7 +35,22 @@ export type ExerciseProgressionLifelineSummary = ProgressionAnalyticsDigest & {
   recentManualChangeCount?: number;
   recentActivitySummary?: string | null;
   recentFocusSummary?: string | null;
+  chartSections?: ProgressionHistoryChartSection[];
+  activityDays?: ExerciseProgressionActivityDay[];
   lifelineItems: string[];
+};
+
+export type ExerciseProgressionActivityDay = {
+  id: string;
+  label: string;
+  detail: string | null;
+  valueLabel: string;
+  eventCount: number;
+  promotionCount: number;
+  deloadCount: number;
+  manualChangeCount: number;
+  revertCount: number;
+  items: string[];
 };
 
 export type SessionProgressionSummary = ProgressionAnalyticsDigest & {
@@ -304,6 +322,74 @@ function buildLatestChangeSummary(event: ProgressionEventRow) {
   return toTargetLabel ?? fromTargetLabel ?? formatEventTypeLabel(event.event_type);
 }
 
+function formatProgressionActivityDayLabel(dayKey: string) {
+  const date = new Date(`${dayKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function buildProgressionActivityItemLabel(event: ProgressionEventRow) {
+  const eventLabel = formatEventTypeLabel(event.event_type);
+  const changeSummary = buildLatestChangeSummary(event)?.trim() ?? "";
+  if (!changeSummary) {
+    return eventLabel;
+  }
+
+  return changeSummary.toLowerCase() === eventLabel.toLowerCase()
+    ? eventLabel
+    : `${eventLabel} | ${changeSummary}`;
+}
+
+function buildProgressionActivityDays(events: ProgressionEventRow[]): ExerciseProgressionActivityDay[] {
+  const eventsByDayKey = new Map<string, ProgressionEventRow[]>();
+
+  for (const event of sortEventsAscending(events)) {
+    const dayKey = getProgressionEventBucketKey({
+      createdAt: event.created_at,
+      granularity: "day",
+    });
+    if (!dayKey) {
+      continue;
+    }
+
+    const current = eventsByDayKey.get(dayKey) ?? [];
+    current.push(event);
+    eventsByDayKey.set(dayKey, current);
+  }
+
+  return [...eventsByDayKey.entries()]
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .slice(-7)
+    .map(([dayKey, dayEvents]) => {
+      const orderedDayEvents = [...dayEvents].sort((left, right) => {
+        if (left.created_at === right.created_at) {
+          return right.id.localeCompare(left.id);
+        }
+        return right.created_at.localeCompare(left.created_at);
+      });
+      const promotionCount = orderedDayEvents.filter((event) => event.event_type === "promotion_applied").length;
+      const deloadCount = orderedDayEvents.filter((event) => event.event_type === "deload_applied").length;
+      const manualChangeCount = orderedDayEvents.filter((event) => event.event_type === "manual_target_change").length;
+      const revertCount = orderedDayEvents.filter((event) => event.event_type === "promotion_reverted").length;
+
+      return {
+        id: dayKey,
+        label: formatProgressionActivityDayLabel(dayKey),
+        detail: `${countLabel(dayEvents.length, "change")} landed.`,
+        valueLabel: countLabel(dayEvents.length, "event"),
+        eventCount: dayEvents.length,
+        promotionCount,
+        deloadCount,
+        manualChangeCount,
+        revertCount,
+        items: orderedDayEvents.map((event) => buildProgressionActivityItemLabel(event)),
+      } satisfies ExerciseProgressionActivityDay;
+    });
+}
+
 const RECENT_ACTIVITY_WINDOW_DAYS = 30;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -356,15 +442,31 @@ function buildRecentEventWindow(events: ProgressionEventRow[], windowDays = RECE
     recentManualChangeCount > 0 ? countLabel(recentManualChangeCount, "manual change") : null,
   ].filter((value): value is string => Boolean(value));
 
+  const activeRecentSignalCount = [
+    recentPromotionCount > 0,
+    recentDeloadCount > 0,
+    recentManualChangeCount > 0,
+  ].filter(Boolean).length;
+
   let recentFocusSummary: string | null = null;
-  if (recentPromotionCount > recentDeloadCount && recentPromotionCount > recentManualChangeCount) {
+  if (
+    activeRecentSignalCount >= 2
+    && recentPromotionCount > recentDeloadCount
+    && recentPromotionCount > recentManualChangeCount
+  ) {
     recentFocusSummary = `${countLabel(recentPromotionCount, "promotion")} led recent changes`;
-  } else if (recentDeloadCount > recentPromotionCount && recentDeloadCount > recentManualChangeCount) {
+  } else if (
+    activeRecentSignalCount >= 2
+    && recentDeloadCount > recentPromotionCount
+    && recentDeloadCount > recentManualChangeCount
+  ) {
     recentFocusSummary = `${countLabel(recentDeloadCount, "regression")} led recent changes`;
-  } else if (recentManualChangeCount > recentPromotionCount && recentManualChangeCount > recentDeloadCount) {
+  } else if (
+    activeRecentSignalCount >= 2
+    && recentManualChangeCount > recentPromotionCount
+    && recentManualChangeCount > recentDeloadCount
+  ) {
     recentFocusSummary = `${countLabel(recentManualChangeCount, "manual change")} led recent changes`;
-  } else if (recentEventCount > 0) {
-    recentFocusSummary = "Recent changes were mixed";
   }
 
   return {
@@ -427,6 +529,11 @@ export function buildExerciseProgressionLifelineSummary(events: ProgressionEvent
   const timelineSummary = buildTimelineSummary(firstTargetLabel, currentTargetLabel);
   const latestEventLabel = latestEvent ? formatEventTypeLabel(latestEvent.event_type) : null;
   const recentWindow = buildRecentEventWindow(ordered);
+  const chartSections = buildProgressionSummaryChartSections({
+    events: ordered,
+    activityGranularity: "day",
+  }).filter((section) => section.id !== "progression-hotspots");
+  const activityDays = buildProgressionActivityDays(ordered);
   const lifelineItems = [
     latestChangeSummary ? `Latest: ${latestChangeSummary}` : null,
     timelineSummary ? `Target Path: ${timelineSummary}` : null,
@@ -450,6 +557,8 @@ export function buildExerciseProgressionLifelineSummary(events: ProgressionEvent
     recentManualChangeCount: recentWindow.recentManualChangeCount,
     recentActivitySummary: recentWindow.recentActivitySummary,
     recentFocusSummary: recentWindow.recentFocusSummary,
+    chartSections,
+    activityDays,
     lifelineItems: Array.from(new Set(lifelineItems)).slice(0, 4),
   };
 }

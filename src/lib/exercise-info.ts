@@ -24,6 +24,14 @@ import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/li
 import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
 import { formatDateShort, formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
+import {
+  buildProgressionHistorySessions,
+  deriveProgressionReviewCandidate,
+  type ProgressionHistorySetRow,
+  type ProgressionTargetPlan,
+} from "@/lib/progression-playbooks";
+import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
+import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
@@ -37,6 +45,7 @@ import { buildObservedMeasurementMetrics } from "@/lib/exercise-info-measurement
 import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 import { buildStrengthPerformanceMetrics } from "@/lib/exercise-info-strength-performance";
 import { buildStrengthProgressMetrics } from "@/lib/exercise-info-strength-progress";
+import { buildCurrentCycleWindow, type CurrentCycleWindow } from "@/lib/current-cycle-window";
 
 export type ExerciseInfoExercise = {
   id: string;
@@ -62,6 +71,18 @@ export type ExerciseProgressEntry = {
 };
 
 type MetricValueTone = "default" | "success" | "danger" | "muted";
+
+export type ExerciseDerivedProgressionSummary = {
+  signalLabel: string;
+  signalTone: MetricValueTone;
+  methodLabel: string;
+  currentTargetLabel: string | null;
+  nextTargetLabel: string | null;
+  reason: string;
+  historySessionCount: number;
+  historySetCount: number;
+  sourcePerformedAt: string | null;
+};
 
 export type ExerciseStatsVM = {
   exercise_id: string;
@@ -108,6 +129,7 @@ export type ExerciseStatsVM = {
     performances: ExerciseProgressEntry[];
   };
   progression?: ExerciseProgressionLifelineSummary | null;
+  progressionDerived?: ExerciseDerivedProgressionSummary | null;
 };
 
 export type ExerciseInfoPayload = {
@@ -155,6 +177,7 @@ type ExerciseInfoScopeContext = {
   analyticsScope: ExerciseInfoAnalyticsScope;
   activeRoutineId: string | null;
   activeRoutineTitle: string | null;
+  currentCycleWindow: CurrentCycleWindow | null;
 };
 
 type StrengthSessionPerformance = {
@@ -181,6 +204,175 @@ type CardioSessionPerformance = {
   paceSecondsPerUnit: number | null;
   setCount: number;
 };
+
+function normalizeProgressionMeasurementType(
+  value: unknown,
+): ProgressionTargetPlan["measurementType"] {
+  return value === "time" || value === "distance" || value === "time_distance" || value === "none"
+    ? value
+    : "reps";
+}
+
+function resolveRoutineExerciseRepTargetFromPlan(plan: ProgressionTargetPlan | null) {
+  if (!plan) {
+    return null;
+  }
+
+  return plan.repsTarget ?? plan.repsMax ?? plan.repsMin ?? null;
+}
+
+function buildProgressionTargetPlanFromStatsRow(
+  statsRow: Awaited<ReturnType<typeof getExerciseStatsForExercise>>["row"],
+  exerciseMetadata?: Pick<ExerciseInfoExercise, "measurement_type" | "default_unit"> | null,
+): ProgressionTargetPlan | null {
+  if (!statsRow) {
+    return null;
+  }
+
+  const hasConfiguredTarget = [
+    statsRow.last_configured_target_sets,
+    statsRow.last_configured_target_reps_min,
+    statsRow.last_configured_target_reps_max,
+    statsRow.last_configured_target_weight,
+    statsRow.last_configured_target_duration_seconds,
+    statsRow.last_configured_target_distance,
+    statsRow.last_configured_target_calories,
+  ].some((value) => typeof value === "number" && Number.isFinite(value) && value > 0);
+  const measurementType = normalizeProgressionMeasurementType(
+    statsRow.last_configured_measurement_type ?? exerciseMetadata?.measurement_type ?? null,
+  );
+
+  if (!hasConfiguredTarget && !statsRow.last_progression_playbook_id && measurementType === "none") {
+    return null;
+  }
+
+  return {
+    measurementType,
+    setsMin: statsRow.last_configured_target_sets ?? null,
+    setsMax: statsRow.last_configured_target_sets ?? null,
+    repsMin: statsRow.last_configured_target_reps_min ?? null,
+    repsMax: statsRow.last_configured_target_reps_max ?? null,
+    repsTarget: statsRow.last_configured_target_reps_max ?? statsRow.last_configured_target_reps_min ?? null,
+    weightMin: statsRow.last_configured_target_weight ?? null,
+    weightMax: statsRow.last_configured_target_weight ?? null,
+    weightUnit: statsRow.last_configured_target_weight_unit ?? null,
+    durationSeconds: statsRow.last_configured_target_duration_seconds ?? null,
+    distance: statsRow.last_configured_target_distance ?? null,
+    distanceUnit: (statsRow.last_configured_target_distance_unit as ProgressionTargetPlan["distanceUnit"]) ?? null,
+    calories: statsRow.last_configured_target_calories ?? null,
+  };
+}
+
+function buildProgressionHistoryRows(rows: NormalizedSet[]): ProgressionHistorySetRow[] {
+  return rows.map((row) => ({
+    sessionId: row.sessionId,
+    sessionRecordId: row.sessionId,
+    performedAt: row.performedAt,
+    setIndex: row.setIndex,
+    weight: row.weight,
+    reps: row.reps,
+    weightUnit: row.weightUnit === "kg" ? "kg" : row.weightUnit ? "lbs" : null,
+    durationSeconds: row.durationSeconds,
+    distance: row.distance,
+    distanceUnit: row.distanceUnit ?? null,
+    calories: row.calories,
+    isWarmup: false,
+  }));
+}
+
+function resolveDerivedProgressionSignal(args: {
+  candidateType: "none" | "promote" | "review" | "deload";
+  hasPlaybook: boolean;
+  historySessionCount: number;
+}) {
+  if (args.candidateType === "promote") {
+    return { label: "Promote Ready", tone: "success" as const };
+  }
+
+  if (args.candidateType === "review") {
+    return { label: "Review Ready", tone: "default" as const };
+  }
+
+  if (args.candidateType === "deload") {
+    return { label: "Regression Ready", tone: "danger" as const };
+  }
+
+  if (!args.hasPlaybook) {
+    return { label: "Manual Target", tone: "muted" as const };
+  }
+
+  if (args.historySessionCount === 0) {
+    return { label: "Awaiting History", tone: "muted" as const };
+  }
+
+  return { label: "Building", tone: "default" as const };
+}
+
+function buildExerciseDerivedProgressionSummary(args: {
+  statsRow: Awaited<ReturnType<typeof getExerciseStatsForExercise>>["row"];
+  activeRows: NormalizedSet[];
+  exerciseMetadata?: Pick<ExerciseInfoExercise, "measurement_type" | "default_unit" | "equipment" | "movement_pattern"> | null;
+  fallbackWeightUnit: "lbs" | "kg";
+}): ExerciseDerivedProgressionSummary | null {
+  const plan = buildProgressionTargetPlanFromStatsRow(args.statsRow, args.exerciseMetadata);
+  const playbookId = args.statsRow?.last_progression_playbook_id ?? null;
+  const playbookConfig = args.statsRow?.last_progression_playbook_config ?? null;
+
+  if (!plan && !playbookId) {
+    return null;
+  }
+
+  const historyRows = buildProgressionHistoryRows(args.activeRows);
+  const history = buildProgressionHistorySessions({
+    rows: historyRows,
+    targetSetCount: plan?.setsMax ?? plan?.setsMin ?? null,
+    topRepTarget: resolveRoutineExerciseRepTargetFromPlan(plan),
+    limit: 8,
+  });
+  const progressionStepPolicy = playbookId && plan
+    ? inferProgressionStepPolicy({
+        measurementType: plan.measurementType,
+        equipment: args.exerciseMetadata?.equipment ?? null,
+        movementPattern: args.exerciseMetadata?.movement_pattern ?? null,
+        defaultUnit: args.exerciseMetadata?.default_unit ?? null,
+        weightUnit: plan.weightUnit ?? args.fallbackWeightUnit,
+        distanceUnit: plan.distanceUnit === "km" ? "km" : "mi",
+        targetWeight: plan.weightMax ?? plan.weightMin ?? null,
+        exerciseOverrideValue: typeof playbookConfig?.loadIncrement === "number" ? playbookConfig.loadIncrement : null,
+        stepOverrides: typeof playbookConfig?.stepOverrides === "object" && playbookConfig.stepOverrides
+          ? playbookConfig.stepOverrides as Record<string, unknown>
+          : null,
+      })
+    : null;
+  const candidate = deriveProgressionReviewCandidate({
+    playbookId,
+    config: playbookConfig,
+    plan,
+    history,
+    historyRows,
+    fallbackWeightUnit: args.fallbackWeightUnit,
+    progressionStepPolicy,
+  });
+  const signal = resolveDerivedProgressionSignal({
+    candidateType: candidate.type,
+    hasPlaybook: Boolean(playbookId),
+    historySessionCount: history.length,
+  });
+  const currentTargetLabel = formatProgressionReviewTargetLabel(candidate.currentTarget ?? plan);
+  const proposedTargetLabel = formatProgressionReviewTargetLabel(candidate.proposedTarget ?? null);
+
+  return {
+    signalLabel: signal.label,
+    signalTone: signal.tone,
+    methodLabel: candidate.label ?? "Manual",
+    currentTargetLabel,
+    nextTargetLabel: proposedTargetLabel && proposedTargetLabel !== currentTargetLabel ? proposedTargetLabel : null,
+    reason: candidate.reason,
+    historySessionCount: history.length,
+    historySetCount: historyRows.length,
+    sourcePerformedAt: candidate.sourceSession?.performedAt ?? null,
+  };
+}
 
 function resolveStrengthPresentationKind(args: {
   bestWeight: number;
@@ -449,6 +641,26 @@ async function loadHistoricalSetRowsForRoutine(
     .eq("session_exercise.session.routine_id", routineId);
 }
 
+async function loadHistoricalSetRowsForCycle(
+  userId: string,
+  canonicalExerciseId: string,
+  routineId: string,
+  cycleWindow: CurrentCycleWindow,
+  client?: SupabaseClient,
+) {
+  const supabase = client ?? supabaseServer();
+  return supabase
+    .from("sets")
+    .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status, routine_id))")
+    .eq("user_id", userId)
+    .eq("session_exercise.user_id", userId)
+    .eq("session_exercise.exercise_id", canonicalExerciseId)
+    .eq("session_exercise.session.status", "completed")
+    .eq("session_exercise.session.routine_id", routineId)
+    .gte("session_exercise.session.performed_at", cycleWindow.queryStartIso)
+    .lt("session_exercise.session.performed_at", cycleWindow.queryEndExclusiveIso);
+}
+
 async function loadExerciseProgressionEvents(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
   const supabase = client ?? supabaseServer();
 
@@ -475,59 +687,89 @@ async function loadExerciseProgressionEventsForRoutine(
     .eq("routine_id", routineId);
 }
 
+async function loadExerciseProgressionEventsForCycle(
+  userId: string,
+  canonicalExerciseId: string,
+  routineId: string,
+  cycleWindow: CurrentCycleWindow,
+  client?: SupabaseClient,
+) {
+  const supabase = client ?? supabaseServer();
+
+  return supabase
+    .from("progression_events")
+    .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+    .eq("user_id", userId)
+    .eq("exercise_id", canonicalExerciseId)
+    .eq("routine_id", routineId)
+    .gte("created_at", cycleWindow.queryStartIso)
+    .lt("created_at", cycleWindow.queryEndExclusiveIso);
+}
+
+async function loadExerciseAnalyticsScopeContext(userId: string, client?: SupabaseClient) {
+  const supabase = client ?? supabaseServer();
+  const { data } = await supabase
+    .from("profiles")
+    .select("timezone, active_routine_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const activeRoutineId = typeof data?.active_routine_id === "string" && data.active_routine_id.trim().length > 0
+    ? data.active_routine_id.trim()
+    : null;
+  const profileTimeZone = typeof data?.timezone === "string" && data.timezone.trim().length > 0
+    ? data.timezone.trim()
+    : "America/New_York";
+
+  if (!activeRoutineId) {
+    return {
+      activeRoutineId: null,
+      activeRoutineTitle: null,
+      currentCycleWindow: null,
+    };
+  }
+
+  const { data: routineData } = await supabase
+    .from("routines")
+    .select("name, cycle_length_days, start_date, timezone")
+    .eq("id", activeRoutineId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const activeRoutineTitle = typeof routineData?.name === "string" && routineData.name.trim().length > 0
+    ? routineData.name.trim()
+    : null;
+  const routineTimeZone = typeof routineData?.timezone === "string" && routineData.timezone.trim().length > 0
+    ? routineData.timezone.trim()
+    : profileTimeZone;
+
+  return {
+    activeRoutineId,
+    activeRoutineTitle,
+    currentCycleWindow: buildCurrentCycleWindow({
+      cycleLengthDays: typeof routineData?.cycle_length_days === "number" ? routineData.cycle_length_days : null,
+      startDate: typeof routineData?.start_date === "string" ? routineData.start_date : null,
+      profileTimeZone: routineTimeZone,
+    }),
+  };
+}
+
 async function resolveExerciseInfoScopeContext(
   userId: string,
   analyticsScope: ExerciseInfoAnalyticsScope | null | undefined,
   client?: SupabaseClient,
 ): Promise<ExerciseInfoScopeContext> {
-  if (analyticsScope !== "current_routine") {
-    const supabase = client ?? supabaseServer();
-    const { data } = await supabase
-      .from("profiles")
-      .select("active_routine_id")
-      .eq("id", userId)
-      .maybeSingle();
-    const activeRoutineId = typeof data?.active_routine_id === "string" && data.active_routine_id.trim().length > 0
-      ? data.active_routine_id
-      : null;
-    const activeRoutineTitle = activeRoutineId
-      ? await loadRoutineTitle(activeRoutineId, userId, supabase)
-      : null;
-    return {
-      analyticsScope: "all_time",
-      activeRoutineId,
-      activeRoutineTitle,
-    };
-  }
-
-  const supabase = client ?? supabaseServer();
-  const { data } = await supabase
-    .from("profiles")
-    .select("active_routine_id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  const activeRoutineId = typeof data?.active_routine_id === "string" && data.active_routine_id.trim().length > 0
-    ? data.active_routine_id
-    : null;
-
+  const baseContext = await loadExerciseAnalyticsScopeContext(userId, client);
   return {
-    analyticsScope: "current_routine",
-    activeRoutineId,
-    activeRoutineTitle: activeRoutineId
-      ? await loadRoutineTitle(activeRoutineId, userId, supabase)
-      : null,
+    analyticsScope: analyticsScope === "current_routine"
+      ? "current_routine"
+      : analyticsScope === "current_cycle"
+        ? "current_cycle"
+        : "all_time",
+    activeRoutineId: baseContext.activeRoutineId,
+    activeRoutineTitle: baseContext.activeRoutineTitle,
+    currentCycleWindow: baseContext.currentCycleWindow,
   };
-}
-
-async function loadRoutineTitle(routineId: string, userId: string, supabase: SupabaseClient) {
-  const { data } = await supabase
-    .from("routines")
-    .select("name")
-    .eq("id", routineId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return typeof data?.name === "string" && data.name.trim().length > 0 ? data.name.trim() : null;
 }
 
 async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string, client?: SupabaseClient): Promise<void> {
@@ -651,12 +893,28 @@ function buildFrequencyMetric(performedAtValues: string[]): MetricDatum {
   };
 }
 
+function summarizeRecentPerformanceValues(summary: string | null, setSummaries: string[]) {
+  const uniqueSetSummaries = Array.from(new Set(
+    setSummaries
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0),
+  ));
+
+  if (uniqueSetSummaries.length === 0) {
+    return summary ?? "Logged";
+  }
+
+  if (uniqueSetSummaries.length === 1) {
+    return uniqueSetSummaries[0]!;
+  }
+
+  return uniqueSetSummaries.join(" | ");
+}
+
 function buildProgressEntries<T extends { performedAt: string; summary: string | null; setCount: number; setSummaries: string[] }>(performances: T[]) {
   return performances.slice(0, 3).map((performance) => ({
     label: formatDateShort(performance.performedAt),
-    value: performance.setSummaries.length > 0
-      ? performance.setSummaries.join(" | ")
-      : (performance.summary ?? "Logged"),
+    value: summarizeRecentPerformanceValues(performance.summary ?? null, performance.setSummaries),
     context: `${performance.setCount} ${performance.setCount === 1 ? "set" : "sets"}`,
   }));
 }
@@ -822,6 +1080,52 @@ function buildQuickMetrics(args: {
       value: `${args.totalSets}`,
     },
   ] satisfies MetricDatum[];
+}
+
+function normalizeExerciseInfoMetricComparisonValue(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+export function curateExerciseInfoPerformanceMetrics(args: {
+  metrics: MetricDatum[];
+  lastSummary: string | null;
+  bestSummary: string | null;
+}) {
+  const deduped: MetricDatum[] = [];
+  const seen = new Set<string>();
+
+  for (const metric of args.metrics) {
+    const signature = `${metric.label.trim().toLowerCase()}::${normalizeExerciseInfoMetricComparisonValue(metric.value)}`;
+    if (seen.has(signature)) {
+      continue;
+    }
+    seen.add(signature);
+    deduped.push(metric);
+  }
+
+  const normalizedLastSummary = normalizeExerciseInfoMetricComparisonValue(args.lastSummary);
+  const normalizedBestSummary = normalizeExerciseInfoMetricComparisonValue(args.bestSummary);
+  const curated = deduped.filter((metric) => {
+    const normalizedValue = normalizeExerciseInfoMetricComparisonValue(metric.value);
+    if (!normalizedValue) {
+      return false;
+    }
+
+    if (normalizedLastSummary && normalizedValue === normalizedLastSummary) {
+      return false;
+    }
+
+    if (normalizedBestSummary && normalizedValue === normalizedBestSummary) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return curated.length > 0 ? curated : deduped;
 }
 
 function buildCardioPerformanceMetrics(args: {
@@ -1084,12 +1388,16 @@ export async function getExerciseInfoStats(
       getExerciseStatsForExercise(userId, canonicalExerciseId, client, { skipCanonicalValidation: true }),
       loadHistoricalSetRows(userId, canonicalExerciseId, client),
       loadExerciseProgressionEvents(userId, canonicalExerciseId, client),
-      scopeContext.activeRoutineId
+      scopeContext.analyticsScope === "current_routine" && scopeContext.activeRoutineId
         ? loadHistoricalSetRowsForRoutine(userId, canonicalExerciseId, scopeContext.activeRoutineId, client)
-        : Promise.resolve({ data: [], error: null }),
-      scopeContext.activeRoutineId
+        : scopeContext.analyticsScope === "current_cycle" && scopeContext.activeRoutineId && scopeContext.currentCycleWindow
+          ? loadHistoricalSetRowsForCycle(userId, canonicalExerciseId, scopeContext.activeRoutineId, scopeContext.currentCycleWindow, client)
+          : Promise.resolve({ data: [], error: null }),
+      scopeContext.analyticsScope === "current_routine" && scopeContext.activeRoutineId
         ? loadExerciseProgressionEventsForRoutine(userId, canonicalExerciseId, scopeContext.activeRoutineId, client)
-        : Promise.resolve({ data: [], error: null }),
+        : scopeContext.analyticsScope === "current_cycle" && scopeContext.activeRoutineId && scopeContext.currentCycleWindow
+          ? loadExerciseProgressionEventsForCycle(userId, canonicalExerciseId, scopeContext.activeRoutineId, scopeContext.currentCycleWindow, client)
+          : Promise.resolve({ data: [], error: null }),
     ]);
 
     const statsLookupError: ExerciseStatsLookupError | null = statsLookup.error;
@@ -1109,9 +1417,9 @@ export async function getExerciseInfoStats(
     }
 
     const normalizedRows = normalizeRows(historicalRows as HistoricalSetRow[]);
-    const routineScopedRows = normalizeRows((scopedHistoricalSetRows.data ?? []) as HistoricalSetRow[]);
+    const scopedRows = normalizeRows((scopedHistoricalSetRows.data ?? []) as HistoricalSetRow[]);
     const progressionSummary = buildExerciseProgressionLifelineSummary(
-      ((scopeContext.analyticsScope === "current_routine"
+      ((scopeContext.analyticsScope !== "all_time"
         ? scopedProgressionEventRows.data
         : progressionEventRows.data) ?? []) as ProgressionEventRow[],
     );
@@ -1121,7 +1429,7 @@ export async function getExerciseInfoStats(
       if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
       return b.setIndex - a.setIndex;
     });
-    const activeRows = scopeContext.analyticsScope === "current_routine" ? routineScopedRows : normalizedRows;
+    const activeRows = scopeContext.analyticsScope === "all_time" ? normalizedRows : scopedRows;
     const activeSortedRows = [...activeRows].sort((a, b) => {
       if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
       return b.setIndex - a.setIndex;
@@ -1132,11 +1440,20 @@ export async function getExerciseInfoStats(
       sessions: new Set(activeRows.map((row) => row.sessionId)).size,
       sets: activeRows.length,
     };
+    const derivedProgressionSummary = buildExerciseDerivedProgressionSummary({
+      statsRow: statsLookup.row,
+      activeRows,
+      exerciseMetadata,
+      fallbackWeightUnit: (
+        statsLookup.row?.last_configured_target_weight_unit === "kg"
+        || statsLookup.row?.last_unit === "kg"
+      ) ? "kg" : "lbs",
+    });
 
     const meaningfulRows = normalizedRows.filter((row) => hasMeaningfulCardioSet(exerciseMetadata?.measurement_type, row));
-    const routineMeaningfulRows = routineScopedRows.filter((row) => hasMeaningfulCardioSet(exerciseMetadata?.measurement_type, row));
+    const scopedMeaningfulRows = scopedRows.filter((row) => hasMeaningfulCardioSet(exerciseMetadata?.measurement_type, row));
     const { rowsBySessionId, sessionAggregates } = buildCardioSessionAggregates(meaningfulRows, exerciseMetadata?.default_unit);
-    const { rowsBySessionId: routineRowsBySessionId, sessionAggregates: routineSessionAggregates } = buildCardioSessionAggregates(routineMeaningfulRows, exerciseMetadata?.default_unit);
+    const { rowsBySessionId: scopedRowsBySessionId, sessionAggregates: scopedSessionAggregates } = buildCardioSessionAggregates(scopedMeaningfulRows, exerciseMetadata?.default_unit);
 
     const hasDurationSignal = sessionAggregates.some((row) => positive(row.durationSeconds) > 0);
     const hasDistanceSignal = sessionAggregates.some((row) => positive(row.distance) > 0);
@@ -1222,21 +1539,25 @@ export async function getExerciseInfoStats(
         bestWeightedReps,
         bestBodyweightReps,
       });
-      const reflectedPerformanceMetrics = [
-        ...performanceMetrics,
-        ...buildObservedMeasurementMetrics({
-          rows: activeRows.map((row) => ({
-            reps: row.reps,
-            weight: row.weight,
-            weightUnit: row.weightUnit,
-            durationSeconds: row.durationSeconds,
-            distance: row.distance,
-            distanceUnit: row.distanceUnit,
-            calories: row.calories,
-          })),
-          existingMetrics: performanceMetrics,
-        }),
-      ];
+      const reflectedPerformanceMetrics = curateExerciseInfoPerformanceMetrics({
+        metrics: [
+          ...performanceMetrics,
+          ...buildObservedMeasurementMetrics({
+            rows: activeRows.map((row) => ({
+              reps: row.reps,
+              weight: row.weight,
+              weightUnit: row.weightUnit,
+              durationSeconds: row.durationSeconds,
+              distance: row.distance,
+              distanceUnit: row.distanceUnit,
+              calories: row.calories,
+            })),
+            existingMetrics: performanceMetrics,
+          }),
+        ],
+        lastSummary,
+        bestSummary: bestSetSummary,
+      });
       const progressMetrics = [
         ...(trendMetric ? [trendMetric] : []),
         ...strengthProgressMetrics.slice(trendMetric ? 1 : 0),
@@ -1292,12 +1613,13 @@ export async function getExerciseInfoStats(
           performances: buildProgressEntries(performances),
         },
         progression: progressionSummary,
+        progressionDerived: derivedProgressionSummary,
       };
     }
 
-    const activeMeaningfulRows = scopeContext.analyticsScope === "current_routine" ? routineMeaningfulRows : meaningfulRows;
-    const activeRowsBySessionId = scopeContext.analyticsScope === "current_routine" ? routineRowsBySessionId : rowsBySessionId;
-    const activeSessionAggregates = scopeContext.analyticsScope === "current_routine" ? routineSessionAggregates : sessionAggregates;
+    const activeMeaningfulRows = scopeContext.analyticsScope === "all_time" ? meaningfulRows : scopedMeaningfulRows;
+    const activeRowsBySessionId = scopeContext.analyticsScope === "all_time" ? rowsBySessionId : scopedRowsBySessionId;
+    const activeSessionAggregates = scopeContext.analyticsScope === "all_time" ? sessionAggregates : scopedSessionAggregates;
     const totalDuration = activeMeaningfulRows.reduce((sum, row) => sum + positive(row.durationSeconds), 0);
     const totalCalories = activeMeaningfulRows.reduce((sum, row) => sum + positive(row.calories), 0);
     const latestSessionAggregate = [...activeSessionAggregates].sort((a, b) => (b.performedAt ?? "").localeCompare(a.performedAt ?? ""))[0] ?? null;
@@ -1407,21 +1729,25 @@ export async function getExerciseInfoStats(
         calories: performance.calories,
       })),
     });
-    const reflectedPerformanceMetrics = [
-      ...performanceMetrics,
-      ...buildObservedMeasurementMetrics({
-        rows: activeRows.map((row) => ({
-          reps: row.reps,
-          weight: row.weight,
-          weightUnit: row.weightUnit,
-          durationSeconds: row.durationSeconds,
-          distance: row.distance,
-          distanceUnit: row.distanceUnit,
-          calories: row.calories,
-        })),
-        existingMetrics: performanceMetrics,
-      }),
-    ];
+    const reflectedPerformanceMetrics = curateExerciseInfoPerformanceMetrics({
+      metrics: [
+        ...performanceMetrics,
+        ...buildObservedMeasurementMetrics({
+          rows: activeRows.map((row) => ({
+            reps: row.reps,
+            weight: row.weight,
+            weightUnit: row.weightUnit,
+            durationSeconds: row.durationSeconds,
+            distance: row.distance,
+            distanceUnit: row.distanceUnit,
+            calories: row.calories,
+          })),
+          existingMetrics: performanceMetrics,
+        }),
+      ],
+      lastSummary,
+      bestSummary: bestSetSummary,
+    });
     const prReviewItems = buildCardioPrReviewItems({
       family,
       sessionAggregates: activeSessionAggregates,
@@ -1493,6 +1819,7 @@ export async function getExerciseInfoStats(
         performances: buildProgressEntries(performances),
       },
       progression: progressionSummary,
+      progressionDerived: derivedProgressionSummary,
     };
   } catch (error) {
     console.warn("[exercise-info] non-fatal stats failure", {

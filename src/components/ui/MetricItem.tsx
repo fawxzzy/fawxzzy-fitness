@@ -367,6 +367,7 @@ export function MetricItem({
   labelSlotClassName,
   labelPlacement = "top",
   accentBarVariant = "metric",
+  fullWidthUnderline = false,
 }: {
   item: MetricDatum;
   className?: string;
@@ -376,11 +377,20 @@ export function MetricItem({
   labelSlotClassName?: string;
   labelPlacement?: MetricLabelPlacement;
   accentBarVariant?: MetricAccentBarVariant;
+  fullWidthUnderline?: boolean;
 }) {
   const metaParts = [item.delta, item.timeframe, item.trend].filter((part): part is string => Boolean(part));
   const valueToneClassName = resolveMetricValueToneClassName(item.valueTone);
   const contentUnderline = accentBarVariant === "thin"
     ? <MetricAccentBar variant="thin" className="mt-1.5 w-full self-center" />
+    : null;
+  const inlineUnderline = contentUnderline && !fullWidthUnderline ? contentUnderline : null;
+  const blockUnderline = contentUnderline && fullWidthUnderline
+    ? (
+        <div className="mt-1.5 flex w-full justify-stretch self-stretch">
+          <MetricAccentBar variant="thin" className="w-full" />
+        </div>
+      )
     : null;
   const valueNode = (
     <span className={cn("inline-flex flex-wrap items-center gap-1.5", valueToneClassName)}>
@@ -407,9 +417,10 @@ export function MetricItem({
                 className={cn(appTokens.workoutMetricMeta, "mt-px px-px pb-px leading-[1.25]")}
               />
             ) : null}
-            {contentUnderline}
+            {inlineUnderline}
           </div>
         </div>
+        {blockUnderline}
         <p className={cn(appTokens.workoutMetricLabel, "mt-1 block self-end px-px pb-px text-right leading-[1.08]", labelClassName)}>
           {item.label}
         </p>
@@ -439,9 +450,10 @@ export function MetricItem({
               className={cn(appTokens.workoutMetricMeta, "mt-0 justify-center px-px leading-[1.02]")}
             />
           ) : null}
-          {contentUnderline}
+          {inlineUnderline}
         </div>
       </div>
+      {blockUnderline}
     </MetricChrome>
   );
 }
@@ -457,6 +469,7 @@ export function MetricGrid({
   itemClassName,
   itemStyle,
   accentBarVariant = "metric",
+  fullWidthUnderline = false,
 }: {
   items: MetricDatum[];
   className?: string;
@@ -468,6 +481,7 @@ export function MetricGrid({
   itemClassName?: string;
   itemStyle?: CSSProperties;
   accentBarVariant?: MetricAccentBarVariant;
+  fullWidthUnderline?: boolean;
 }) {
   if (items.length === 0) return null;
 
@@ -489,6 +503,7 @@ export function MetricGrid({
             labelPlacement={labelPlacement}
             style={itemStyle}
             accentBarVariant={accentBarVariant}
+            fullWidthUnderline={fullWidthUnderline}
           />
         ))}
       </div>
@@ -512,6 +527,7 @@ export function MetricGrid({
           labelPlacement={labelPlacement}
           style={itemStyle}
           accentBarVariant={accentBarVariant}
+          fullWidthUnderline={fullWidthUnderline}
         />
       ))}
     </div>
@@ -527,6 +543,7 @@ export function SurfaceMetricGrid({
   labelSlotClassName,
   accentBarVariant = "thin",
   autoColumns = true,
+  fullWidthUnderline = false,
 }: {
   items: MetricDatum[];
   className?: string;
@@ -536,6 +553,7 @@ export function SurfaceMetricGrid({
   labelSlotClassName?: string;
   accentBarVariant?: MetricAccentBarVariant;
   autoColumns?: boolean;
+  fullWidthUnderline?: boolean;
 }) {
   if (items.length === 0) {
     return null;
@@ -552,6 +570,7 @@ export function SurfaceMetricGrid({
       labelClassName={cn("text-[rgb(var(--accent-divider-rgb)/0.92)]", labelClassName)}
       labelSlotClassName={labelSlotClassName}
       accentBarVariant={accentBarVariant}
+      fullWidthUnderline={fullWidthUnderline}
     />
   );
 }

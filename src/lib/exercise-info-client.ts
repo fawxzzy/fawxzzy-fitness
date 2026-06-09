@@ -2,7 +2,8 @@ import type { ExerciseInfoSheetExercise, ExerciseInfoSheetStats } from "@/compon
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
-import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
+import type { ExerciseProgressionActivityDay, ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
+import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
 
 export type ExerciseInfoClientPayload = {
   exercise: ExerciseInfoSheetExercise;
@@ -167,6 +168,99 @@ function normalizePerformanceEntries(value: unknown) {
     .filter((entry): entry is NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number] => Boolean(entry));
 }
 
+function normalizeProgressionChartSections(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [] as ProgressionHistoryChartSection[];
+  }
+
+  const sections: ProgressionHistoryChartSection[] = [];
+
+  for (const section of value) {
+      if (!isRecord(section)) {
+        continue;
+      }
+
+      const id = readPrimitiveText(section.id);
+      const title = readPrimitiveText(section.title);
+      const description = readPrimitiveText(section.description);
+      const emptyTitle = readPrimitiveText(section.emptyTitle);
+      const emptyCaption = readPrimitiveText(section.emptyCaption);
+      if (!id || !title || !description || !emptyTitle || !emptyCaption || !Array.isArray(section.bars)) {
+        continue;
+      }
+
+      const bars: ProgressionHistoryChartSection["bars"] = [];
+      for (const bar of section.bars) {
+        if (!isRecord(bar)) {
+          continue;
+        }
+
+        const barId = readPrimitiveText(bar.id);
+        const label = readPrimitiveText(bar.label);
+        const value = readOptionalNumber(bar.value);
+        const valueLabel = readPrimitiveText(bar.valueLabel);
+        if (!barId || !label || typeof value !== "number" || !Number.isFinite(value) || !valueLabel) {
+          continue;
+        }
+
+        bars.push({
+          id: barId,
+          label,
+          value,
+          valueLabel,
+          ...(readOptionalString(bar.detail) !== null ? { detail: readOptionalString(bar.detail) } : {}),
+        });
+      }
+
+      sections.push({
+        id,
+        title,
+        description,
+        emptyTitle,
+        emptyCaption,
+        bars,
+      });
+  }
+
+  return sections;
+}
+
+function normalizeProgressionActivityDays(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [] as ExerciseProgressionActivityDay[];
+  }
+
+  const days: ExerciseProgressionActivityDay[] = [];
+
+  for (const day of value) {
+    if (!isRecord(day)) {
+      continue;
+    }
+
+    const id = readPrimitiveText(day.id);
+    const label = readPrimitiveText(day.label);
+    const valueLabel = readPrimitiveText(day.valueLabel);
+    if (!id || !label || !valueLabel || !Array.isArray(day.items)) {
+      continue;
+    }
+
+    days.push({
+      id,
+      label,
+      valueLabel,
+      detail: readOptionalString(day.detail),
+      eventCount: typeof day.eventCount === "number" && Number.isFinite(day.eventCount) ? day.eventCount : 0,
+      promotionCount: typeof day.promotionCount === "number" && Number.isFinite(day.promotionCount) ? day.promotionCount : 0,
+      deloadCount: typeof day.deloadCount === "number" && Number.isFinite(day.deloadCount) ? day.deloadCount : 0,
+      manualChangeCount: typeof day.manualChangeCount === "number" && Number.isFinite(day.manualChangeCount) ? day.manualChangeCount : 0,
+      revertCount: typeof day.revertCount === "number" && Number.isFinite(day.revertCount) ? day.revertCount : 0,
+      items: day.items.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item)),
+    });
+  }
+
+  return days;
+}
+
 function normalizeProgression(value: unknown): ExerciseProgressionLifelineSummary | null {
   if (!isRecord(value)) {
     return null;
@@ -196,9 +290,43 @@ function normalizeProgression(value: unknown): ExerciseProgressionLifelineSummar
     recentManualChangeCount: typeof value.recentManualChangeCount === "number" && Number.isFinite(value.recentManualChangeCount) ? value.recentManualChangeCount : 0,
     recentActivitySummary: readOptionalString(value.recentActivitySummary),
     recentFocusSummary: readOptionalString(value.recentFocusSummary),
+    chartSections: normalizeProgressionChartSections(value.chartSections),
+    activityDays: normalizeProgressionActivityDays(value.activityDays),
     lifelineItems: Array.isArray(value.lifelineItems)
       ? value.lifelineItems.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
       : [],
+  };
+}
+
+function normalizeDerivedProgression(value: unknown) {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const signalLabel = readOptionalString(value.signalLabel);
+  const methodLabel = readOptionalString(value.methodLabel);
+  const reason = readOptionalString(value.reason);
+  if (!signalLabel || !methodLabel || !reason) {
+    return null;
+  }
+
+  const signalTone: "default" | "success" | "danger" | "muted" = value.signalTone === "success"
+    || value.signalTone === "danger"
+    || value.signalTone === "muted"
+    || value.signalTone === "default"
+    ? value.signalTone
+    : "default";
+
+  return {
+    signalLabel,
+    signalTone,
+    methodLabel,
+    currentTargetLabel: readOptionalString(value.currentTargetLabel),
+    nextTargetLabel: readOptionalString(value.nextTargetLabel),
+    reason,
+    historySessionCount: readOptionalNumber(value.historySessionCount) ?? 0,
+    historySetCount: readOptionalNumber(value.historySetCount) ?? 0,
+    sourcePerformedAt: readOptionalString(value.sourcePerformedAt),
   };
 }
 
@@ -221,6 +349,7 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
 
   const progress = isRecord(value.progress) ? value.progress : null;
   const progression = normalizeProgression(value.progression);
+  const progressionDerived = normalizeDerivedProgression(value.progressionDerived);
   const bestSetSummary = readOptionalString(value.bests.bestSetSummary);
   const bestDistanceUnit = readOptionalString(value.bests.bestDistanceUnit);
 
@@ -268,6 +397,7 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
       performances: normalizePerformanceEntries(progress?.performances),
     },
     progression,
+    ...(progressionDerived ? { progressionDerived } : {}),
   };
 }
 

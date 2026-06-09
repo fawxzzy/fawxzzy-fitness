@@ -49,7 +49,7 @@ function RotatingMetaBadge({
 }
 
 function HistoryExerciseDetailedMetricGrid({ items }: { items: MetricDatum[] }) {
-  return <SurfaceMetricGrid items={items} />;
+  return <SurfaceMetricGrid items={items} fullWidthUnderline />;
 }
 
 function renderDetailedBulletSection({

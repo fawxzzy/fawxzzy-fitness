@@ -75,7 +75,18 @@ test("buildExerciseProgressionLifelineSummary formats the target path", () => {
   assert.equal(summary?.recentEventCount, 2);
   assert.equal(summary?.recentPromotionCount, 2);
   assert.equal(summary?.recentActivitySummary, "2 updates | 2 promotions");
-  assert.equal(summary?.recentFocusSummary, "2 promotions led recent changes");
+  assert.equal(summary?.recentFocusSummary, null);
+  assert.deepEqual((summary?.chartSections ?? []).map((section) => section.title), [
+    "Progression Activity",
+    "Change Mix",
+  ]);
+  assert.deepEqual(summary?.activityDays?.map((day) => `${day.label}:${day.eventCount}`), [
+    "May 1:1",
+    "May 10:1",
+  ]);
+  assert.deepEqual(summary?.activityDays?.[1]?.items, [
+    "Promotion | Weight increased | 135 lbs → 140 lbs",
+  ]);
 });
 
 test("buildExerciseProgressionLifelineSummary condenses shared cardio target segments in latest change", () => {
@@ -142,5 +153,25 @@ test("buildExerciseProgressionLifelineSummary reports mixed recent activity when
   assert.equal(summary?.recentPromotionCount, 1);
   assert.equal(summary?.recentDeloadCount, 1);
   assert.equal(summary?.recentManualChangeCount, 1);
-  assert.equal(summary?.recentFocusSummary, "Recent changes were mixed");
+  assert.equal(summary?.recentFocusSummary, null);
+});
+
+test("buildExerciseProgressionLifelineSummary keeps recent focus only when one signal leads a mixed window", () => {
+  const summary = buildExerciseProgressionLifelineSummary([
+    buildEvent(),
+    buildEvent({
+      id: "event-2",
+      created_at: "2026-05-10T12:00:00.000Z",
+    }),
+    buildEvent({
+      id: "event-3",
+      event_type: "manual_target_change",
+      created_at: "2026-05-14T12:00:00.000Z",
+    }),
+  ]);
+
+  assert.equal(summary?.recentEventCount, 3);
+  assert.equal(summary?.recentPromotionCount, 2);
+  assert.equal(summary?.recentManualChangeCount, 1);
+  assert.equal(summary?.recentFocusSummary, "2 promotions led recent changes");
 });

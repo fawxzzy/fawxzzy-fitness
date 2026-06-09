@@ -296,3 +296,86 @@ test("weekly progress can build a historical week summary from an explicit week 
   assert.equal(summary.previousWeekWorkoutCount, 0);
   assert.equal(summary.consistencyTrend.direction, "new");
 });
+
+test("weekly progress builds explicit progression recap, hotspots, and timeline from weekly events", () => {
+  const summary = buildWeeklyProgressSummary({
+    sessions: [
+      createSession({
+        id: "session-1",
+        startedAt: "2026-05-05T12:00:00.000Z",
+        routineId: "routine-1",
+      }),
+    ],
+    progressionEvents: [
+      {
+        id: "event-1",
+        user_id: "user-1",
+        routine_id: "routine-1",
+        routine_day_exercise_id: "rde-1",
+        exercise_id: "exercise-strength",
+        event_type: "promotion_applied",
+        from_target: {},
+        to_target: {},
+        method: "double_progression",
+        vector: "reps",
+        step: null,
+        reason: "",
+        source_session_id: "session-1",
+        created_at: "2026-05-05T12:30:00.000Z",
+      },
+      {
+        id: "event-2",
+        user_id: "user-1",
+        routine_id: "routine-1",
+        routine_day_exercise_id: "rde-2",
+        exercise_id: "exercise-cardio",
+        event_type: "manual_target_change",
+        from_target: {},
+        to_target: {},
+        method: "manual",
+        vector: "none",
+        step: null,
+        reason: "",
+        source_session_id: "session-1",
+        created_at: "2026-05-07T12:30:00.000Z",
+      },
+    ],
+    sessionExercisesBySessionId: new Map([
+      ["session-1", [{ id: "se-1", sessionId: "session-1", exerciseId: "exercise-strength" }]],
+    ]),
+    setsBySessionExerciseId: new Map([
+      ["se-1", [{ weight: 225, reps: 5 }]],
+    ]),
+    exerciseMetaById: createExerciseMeta({
+      "exercise-strength": { name: "Back Squat", measurementType: "reps" },
+      "exercise-cardio": { name: "Incline Walk", measurementType: "time_distance" },
+    }),
+    timezone: "America/New_York",
+    now: "2026-05-08T14:00:00.000Z",
+  });
+
+  assert.equal(summary.progressionSummary.totalEventCount, 2);
+  assert.equal(summary.progressionSummary.promotionCount, 1);
+  assert.equal(summary.progressionSummary.manualChangeCount, 1);
+  assert.deepEqual(summary.progressionSummary.topProgressedExerciseNames, ["Back Squat"]);
+  assert.deepEqual(summary.progressionSummary.topAdjustedExerciseNames, ["Incline Walk"]);
+  assert.deepEqual(summary.progressionSummary.hotspotItems, [
+    "Promotion hotspot: Back Squat.",
+    "Manual-change hotspot: Incline Walk.",
+  ]);
+  assert.deepEqual(summary.progressionSummary.timelineItems, [
+    "Active progression days: 2 days.",
+    "Busiest day: May 7 (1 event).",
+    "Latest progression: Incline Walk on May 7.",
+  ]);
+  assert.deepEqual(summary.progressionSummary.attentionItems, []);
+  assert.deepEqual(summary.progressionSummary.chartSections.map((section) => section.title), [
+    "Progression Activity",
+    "Change Mix",
+    "Promotion Hotspots",
+  ]);
+  assert.deepEqual(summary.progressionSummary.chartSections[0]?.bars.map((bar) => `${bar.label}:${bar.value}`), [
+    "May 5:1",
+    "May 7:1",
+  ]);
+});

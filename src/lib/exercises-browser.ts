@@ -26,6 +26,7 @@ import { formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { ProgressionEventRow } from "@/types/db";
 import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import { buildCurrentCycleWindow, type CurrentCycleWindow } from "@/lib/current-cycle-window";
 
 type ExerciseCatalogRow = {
   id: string;
@@ -104,12 +105,14 @@ export type ExerciseBrowserRow = {
 export type ExerciseBrowserScopePayload = {
   allTimeRows: ExerciseBrowserRow[];
   currentRoutineRows: ExerciseBrowserRow[];
+  currentCycleRows: ExerciseBrowserRow[];
   activeRoutineTitle: string | null;
 };
 
 type ExerciseBrowserScopeContext = {
   activeRoutineId: string | null;
   activeRoutineTitle: string | null;
+  currentCycleWindow: CurrentCycleWindow | null;
 };
 
 function formatCompact(value: number) {
@@ -587,17 +590,44 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Supab
   const supabase = client ?? supabaseServer();
   const { data } = await supabase
     .from("profiles")
-    .select("active_routine_id")
+    .select("timezone, active_routine_id")
     .eq("id", userId)
     .maybeSingle();
 
   const activeRoutineId = typeof data?.active_routine_id === "string" && data.active_routine_id.trim().length > 0
     ? data.active_routine_id
     : null;
+  const profileTimeZone = typeof data?.timezone === "string" && data.timezone.trim().length > 0
+    ? data.timezone.trim()
+    : "America/New_York";
+
+  if (!activeRoutineId) {
+    return {
+      activeRoutineId: null,
+      activeRoutineTitle: null,
+      currentCycleWindow: null,
+    };
+  }
+
+  const { data: routineData } = await supabase
+    .from("routines")
+    .select("name, cycle_length_days, start_date, timezone")
+    .eq("id", activeRoutineId)
+    .eq("user_id", userId)
+    .maybeSingle();
 
   return {
     activeRoutineId,
-    activeRoutineTitle: activeRoutineId ? await loadRoutineTitle(activeRoutineId, userId, supabase) : null,
+    activeRoutineTitle: typeof routineData?.name === "string" && routineData.name.trim().length > 0
+      ? routineData.name.trim()
+      : null,
+    currentCycleWindow: buildCurrentCycleWindow({
+      cycleLengthDays: typeof routineData?.cycle_length_days === "number" ? routineData.cycle_length_days : null,
+      startDate: typeof routineData?.start_date === "string" ? routineData.start_date : null,
+      profileTimeZone: typeof routineData?.timezone === "string" && routineData.timezone.trim().length > 0
+        ? routineData.timezone.trim()
+        : profileTimeZone,
+    }),
   };
 }
 
@@ -642,14 +672,23 @@ async function getExercisesWithStats(
   client?: SupabaseClient,
   options?: {
     analyticsScope?: ExerciseInfoAnalyticsScope;
-    activeRoutineId?: string | null;
+    scopeContext?: ExerciseBrowserScopeContext | null;
   },
 ): Promise<ExerciseBrowserRow[]> {
   noStore();
   const supabase = client ?? supabaseServer();
-  const analyticsScope = options?.analyticsScope === "current_routine" ? "current_routine" : "all_time";
-  const shouldScopeToCurrentRoutine = analyticsScope === "current_routine";
-  const activeRoutineId = shouldScopeToCurrentRoutine ? (options?.activeRoutineId ?? null) : null;
+  const analyticsScope = options?.analyticsScope === "current_routine"
+    ? "current_routine"
+    : options?.analyticsScope === "current_cycle"
+      ? "current_cycle"
+      : "all_time";
+  const shouldUseDerivedHistory = analyticsScope !== "all_time";
+  const activeRoutineId = analyticsScope !== "all_time"
+    ? (options?.scopeContext?.activeRoutineId ?? null)
+    : null;
+  const currentCycleWindow = analyticsScope === "current_cycle"
+    ? (options?.scopeContext?.currentCycleWindow ?? null)
+    : null;
 
   const exerciseRows = client ? await listExercisesForUser(userId, client) : await listExercises();
 
@@ -676,7 +715,7 @@ async function getExercisesWithStats(
     return [];
   }
 
-  const statsPromise = shouldScopeToCurrentRoutine
+  const statsPromise = shouldUseDerivedHistory
     ? Promise.resolve({ data: [] as ExerciseStatsRow[], error: null as PostgrestError | null })
     : supabase
         .from("exercise_stats")
@@ -684,7 +723,7 @@ async function getExercisesWithStats(
         .eq("user_id", userId)
         .in("exercise_id", canonicalIds);
 
-  const historySetPromise = shouldScopeToCurrentRoutine
+  const historySetPromise = analyticsScope === "current_routine"
     ? activeRoutineId
       ? supabase
           .from("sets")
@@ -695,6 +734,19 @@ async function getExercisesWithStats(
           .eq("session_exercise.session.status", "completed")
           .eq("session_exercise.session.routine_id", activeRoutineId)
       : Promise.resolve({ data: [] as HistoricalSetRow[], error: null as PostgrestError | null })
+    : analyticsScope === "current_cycle"
+      ? activeRoutineId && currentCycleWindow
+        ? supabase
+            .from("sets")
+            .select("set_index, weight, reps, weight_unit, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(status, performed_at, routine_id))")
+            .eq("user_id", userId)
+            .eq("session_exercise.user_id", userId)
+            .in("session_exercise.exercise_id", canonicalIds)
+            .eq("session_exercise.session.status", "completed")
+            .eq("session_exercise.session.routine_id", activeRoutineId)
+            .gte("session_exercise.session.performed_at", currentCycleWindow.queryStartIso)
+            .lt("session_exercise.session.performed_at", currentCycleWindow.queryEndExclusiveIso)
+        : Promise.resolve({ data: [] as HistoricalSetRow[], error: null as PostgrestError | null })
     : supabase
         .from("sets")
         .select("set_index, weight, reps, weight_unit, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(status, performed_at, routine_id))")
@@ -703,7 +755,7 @@ async function getExercisesWithStats(
         .in("session_exercise.exercise_id", canonicalIds)
         .eq("session_exercise.session.status", "completed");
 
-  const progressionEventsPromise = shouldScopeToCurrentRoutine
+  const progressionEventsPromise = analyticsScope === "current_routine"
     ? activeRoutineId
       ? supabase
           .from("progression_events")
@@ -712,6 +764,17 @@ async function getExercisesWithStats(
           .in("exercise_id", canonicalIds)
           .eq("routine_id", activeRoutineId)
       : Promise.resolve({ data: [] as ProgressionEventRow[], error: null as PostgrestError | null })
+    : analyticsScope === "current_cycle"
+      ? activeRoutineId && currentCycleWindow
+        ? supabase
+            .from("progression_events")
+            .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+            .eq("user_id", userId)
+            .in("exercise_id", canonicalIds)
+            .eq("routine_id", activeRoutineId)
+            .gte("created_at", currentCycleWindow.queryStartIso)
+            .lt("created_at", currentCycleWindow.queryEndExclusiveIso)
+        : Promise.resolve({ data: [] as ProgressionEventRow[], error: null as PostgrestError | null })
     : supabase
         .from("progression_events")
         .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
@@ -742,10 +805,10 @@ async function getExercisesWithStats(
     throw new Error(`failed to load exercise progression history: ${progressionEventsError.message}`);
   }
 
-  const scopedStatsByExerciseId = shouldScopeToCurrentRoutine
+  const scopedStatsByExerciseId = shouldUseDerivedHistory
     ? aggregateExerciseStatsFromSets((historySetRows ?? []) as HistoricalSetRow[])
     : null;
-  const statsByExerciseId = shouldScopeToCurrentRoutine
+  const statsByExerciseId = shouldUseDerivedHistory
     ? new Map<string, ExerciseStatsRow>()
     : new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
   const setRowsByExerciseId = groupNormalizedSetsByExercise((historySetRows ?? []) as HistoricalSetRow[]);
@@ -770,7 +833,7 @@ async function getExercisesWithStats(
   const rows = exercises
     .map((exercise) => {
       const exerciseId = exercise.id;
-      const stats = shouldScopeToCurrentRoutine
+      const stats = shouldUseDerivedHistory
         ? (scopedStatsByExerciseId?.get(exerciseId) ?? null)
         : (statsByExerciseId.get(exerciseId) ?? null);
       const setRows = setRowsByExerciseId.get(exerciseId) ?? [];
@@ -1034,17 +1097,22 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 export async function getExerciseBrowserScopePayloadForUser(): Promise<ExerciseBrowserScopePayload> {
   const user = await requireUser();
   const scopeContext = await resolveExerciseBrowserScopeContext(user.id);
-  const [allTimeRows, currentRoutineRows] = await Promise.all([
+  const [allTimeRows, currentRoutineRows, currentCycleRows] = await Promise.all([
     getExercisesWithStats(user.id),
     getExercisesWithStats(user.id, undefined, {
       analyticsScope: "current_routine",
-      activeRoutineId: scopeContext.activeRoutineId,
+      scopeContext,
+    }),
+    getExercisesWithStats(user.id, undefined, {
+      analyticsScope: "current_cycle",
+      scopeContext,
     }),
   ]);
 
   return {
     allTimeRows,
     currentRoutineRows,
+    currentCycleRows,
     activeRoutineTitle: scopeContext.activeRoutineTitle,
   };
 }

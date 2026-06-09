@@ -129,6 +129,7 @@ export function HistoryDetailExerciseCard({
                   autoColumns={false}
                   className="sm:grid-cols-3"
                   itemClassName="px-2.5 py-1"
+                  fullWidthUnderline
                 />
               </>
             ) : null}

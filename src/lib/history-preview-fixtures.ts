@@ -220,6 +220,63 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
     ],
     summary: "1/4 workouts • 2/3 prs",
   },
+  progressionSummary: {
+    totalEventCount: 2,
+    promotionCount: 1,
+    deloadCount: 0,
+    manualChangeCount: 1,
+    chartSections: [
+      {
+        id: "progression-activity",
+        title: "Progression Activity",
+        description: "How progression changes stacked across the current week.",
+        emptyTitle: "No progression activity yet.",
+        emptyCaption: "Applied changes will start the timeline once the first progression event lands.",
+        bars: [
+          { id: "2026-04-21", label: "Apr 21", value: 2, valueLabel: "2 events", detail: "2 changes landed." },
+        ],
+      },
+      {
+        id: "progression-event-mix",
+        title: "Change Mix",
+        description: "Which change types are driving the visible progression slice.",
+        emptyTitle: "No change mix yet.",
+        emptyCaption: "The mix appears after the first progression event is recorded.",
+        bars: [
+          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+          { id: "promotion_applied", label: "Promotion applied", value: 1, valueLabel: "1 event", detail: null },
+        ],
+      },
+      {
+        id: "progression-hotspots",
+        title: "Promotion Hotspots",
+        description: "Exercises with the most promotions in the visible progression slice.",
+        emptyTitle: "No promotion hotspots yet.",
+        emptyCaption: "Promotion hotspots appear after the first applied promotion lands.",
+        bars: [
+          { id: "back-squat", label: "Back Squat", value: 1, valueLabel: "1 promotion", detail: null },
+        ],
+      },
+    ],
+    topProgressedExerciseNames: ["Back Squat"],
+    topDeloadExerciseNames: [],
+    topAdjustedExerciseNames: ["Walking Lunge"],
+    reviewItems: [
+      "2 progression events landed this week.",
+      "1 promotion applied across 1 exercise.",
+      "0 regressions and 1 manual change were recorded.",
+    ],
+    hotspotItems: [
+      "Promotion hotspot: Back Squat.",
+      "Manual-change hotspot: Walking Lunge.",
+    ],
+    timelineItems: [
+      "Active progression days: 1 day.",
+      "Busiest day: Apr 21 (2 events).",
+      "Latest progression: Back Squat on Apr 21.",
+    ],
+    attentionItems: [],
+  },
   hotspotItems: [
     "Hotspot: Back Squat showed up in 1 session.",
     "Most improved: Back Squat.",
@@ -258,12 +315,58 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
     deloadCount: 0,
     manualChangeCount: 1,
     revertCount: 0,
+    chartSections: [
+      {
+        id: "progression-activity",
+        title: "Progression Timeline",
+        description: "How progression changes stacked across recent weekly buckets.",
+        emptyTitle: "No progression activity yet.",
+        emptyCaption: "Applied changes will start the timeline once the first progression event lands.",
+        bars: [
+          { id: "2026-04-14", label: "Apr 14 - Apr 20", value: 1, valueLabel: "1 event", detail: "1 change landed." },
+          { id: "2026-04-21", label: "Apr 21 - Apr 27", value: 2, valueLabel: "2 events", detail: "2 changes landed." },
+        ],
+      },
+      {
+        id: "progression-event-mix",
+        title: "Change Mix",
+        description: "Which change types are driving the visible progression slice.",
+        emptyTitle: "No change mix yet.",
+        emptyCaption: "The mix appears after the first progression event is recorded.",
+        bars: [
+          { id: "promotion_applied", label: "Promotion applied", value: 2, valueLabel: "2 events", detail: null },
+          { id: "manual_target_change", label: "Manual target change", value: 1, valueLabel: "1 event", detail: null },
+        ],
+      },
+      {
+        id: "progression-hotspots",
+        title: "Promotion Hotspots",
+        description: "Exercises with the most promotions in the visible progression slice.",
+        emptyTitle: "No promotion hotspots yet.",
+        emptyCaption: "Promotion hotspots appear after the first applied promotion lands.",
+        bars: [
+          { id: "back-squat", label: "Back Squat", value: 1, valueLabel: "1 promotion", detail: null },
+          { id: "weighted-pull-up", label: "Weighted Pull-Up", value: 1, valueLabel: "1 promotion", detail: null },
+        ],
+      },
+    ],
     topProgressedExerciseNames: ["Back Squat", "Weighted Pull-Up"],
+    topDeloadExerciseNames: [],
+    topAdjustedExerciseNames: ["Incline Walk"],
     reviewItems: [
       "3 progression events recorded across your history.",
       "2 promotions landed across 2 exercises.",
       "0 deloads, 1 manual change, and 0 reverts were recorded.",
       "Most progressed: Back Squat, Weighted Pull-Up.",
+    ],
+    hotspotItems: [
+      "Promotion hotspot: Back Squat.",
+      "Manual-change hotspot: Incline Walk.",
+    ],
+    timelineItems: [
+      "Active weeks: 2 weeks.",
+      "Busiest week: Apr 20 (2 events).",
+      "Latest progression: Back Squat on Apr 21.",
     ],
     attentionItems: [],
   },
@@ -314,6 +417,61 @@ const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
         { label: "Coverage", value: 0, max: 1 },
       ],
       summary: "2/4 workouts • 1/3 prs • 2/2 consistency",
+    },
+    progressionSummary: {
+      totalEventCount: 1,
+      promotionCount: 1,
+      deloadCount: 0,
+      manualChangeCount: 0,
+      chartSections: [
+        {
+          id: "progression-activity",
+          title: "Progression Activity",
+          description: "How progression changes stacked across the current week.",
+          emptyTitle: "No progression activity yet.",
+          emptyCaption: "Applied changes will start the timeline once the first progression event lands.",
+          bars: [
+            { id: "2026-04-16", label: "Apr 16", value: 1, valueLabel: "1 event", detail: "1 change landed." },
+          ],
+        },
+        {
+          id: "progression-event-mix",
+          title: "Change Mix",
+          description: "Which change types are driving the visible progression slice.",
+          emptyTitle: "No change mix yet.",
+          emptyCaption: "The mix appears after the first progression event is recorded.",
+          bars: [
+            { id: "promotion_applied", label: "Promotion applied", value: 1, valueLabel: "1 event", detail: null },
+          ],
+        },
+        {
+          id: "progression-hotspots",
+          title: "Promotion Hotspots",
+          description: "Exercises with the most promotions in the visible progression slice.",
+          emptyTitle: "No promotion hotspots yet.",
+          emptyCaption: "Promotion hotspots appear after the first applied promotion lands.",
+          bars: [
+            { id: "weighted-pull-up", label: "Weighted Pull-Up", value: 1, valueLabel: "1 promotion", detail: null },
+          ],
+        },
+      ],
+      topProgressedExerciseNames: ["Weighted Pull-Up"],
+      topDeloadExerciseNames: [],
+      topAdjustedExerciseNames: [],
+      reviewItems: [
+        "1 progression event landed this week.",
+        "1 promotion applied across 1 exercise.",
+        "No regressions or manual target changes were recorded.",
+      ],
+      hotspotItems: [
+        "Promotion hotspot: Weighted Pull-Up.",
+      ],
+      timelineItems: [
+        "Active progression days: 1 day.",
+        "Busiest day: Apr 16 (1 event).",
+        "Latest progression: Weighted Pull-Up on Apr 16.",
+      ],
+      attentionItems: [],
     },
     hotspotItems: [
       "Hotspot: Weighted Pull-Up showed up in 1 session.",
@@ -450,16 +608,23 @@ export function getHistoryPreviewSessionsPageData(args?: {
     selectedSessionId: getSelectedSessionId(args?.selected) ?? HISTORY_PREVIEW_PRIMARY_SESSION_ID,
     sessionItems: [...historyPreviewSessions],
     currentRoutineSessionItems: [...historyPreviewSessions],
+    currentCycleSessionItems: [...historyPreviewSessions],
     subtitle: `${historyPreviewSessions.length} completed sessions`,
     thirtyDaySummary: historyPreviewThirtyDaySummary,
     currentRoutineThirtyDaySummary: {
       ...historyPreviewThirtyDaySummary,
       scopeLabel: "Current Routine: Atlas",
     },
+    currentCycleThirtyDaySummary: {
+      ...historyPreviewThirtyDaySummary,
+      scopeLabel: "Current Cycle: Apr 20 - Apr 26",
+    },
     weeklyProgress: historyPreviewWeeklyProgress,
     currentRoutineWeeklyProgress: historyPreviewWeeklyProgress,
+    currentCycleWeeklyProgress: historyPreviewWeeklyProgress,
     weeklyProgressByWeek: historyPreviewWeeklyProgressByWeek,
     currentRoutineWeeklyProgressByWeek: historyPreviewWeeklyProgressByWeek,
+    currentCycleWeeklyProgressByWeek: [historyPreviewWeeklyProgress],
   };
 }
 

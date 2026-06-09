@@ -7,6 +7,7 @@ import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { ContentRail } from "@/components/layout/ContentRail";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
@@ -23,6 +24,7 @@ import { formatDateShort } from "@/lib/formatting";
 import {
   EXERCISE_INFO_SECTION_SCOPE_KEYS,
   getExerciseInfoAnalyticsScopeDisplayLabel,
+  getNextExerciseInfoAnalyticsScope,
   type ExerciseInfoAnalyticsScope,
   type ExerciseInfoSectionScopeKey,
 } from "@/lib/exercise-info-scope";
@@ -98,6 +100,17 @@ export type ExerciseInfoSheetStats = {
     }>;
   };
   progression?: ExerciseProgressionLifelineSummary | null;
+  progressionDerived?: {
+    signalLabel: string;
+    signalTone?: "default" | "success" | "danger" | "muted";
+    methodLabel: string;
+    currentTargetLabel?: string | null;
+    nextTargetLabel?: string | null;
+    reason: string;
+    historySessionCount: number;
+    historySetCount: number;
+    sourcePerformedAt?: string | null;
+  } | null;
 };
 
 type ExerciseInfoPerformanceEntry = NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number];
@@ -294,6 +307,21 @@ function compactProgressionMetricValue(value: string | null | undefined) {
     .replace(/\s+\|\s+/g, " | ");
 }
 
+function normalizeCompactProgressionComparisonValue(value: string | null | undefined) {
+  return compactProgressionMetricValue(value)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSameCalendarDay(left: string | null | undefined, right: string | null | undefined) {
+  if (!left || !right) {
+    return false;
+  }
+
+  return left.slice(0, 10) === right.slice(0, 10);
+}
+
 const exerciseInfoSectionTitleClassName = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const exerciseInfoSubsectionTitleClassName = "text-[rgb(var(--accent-divider-rgb)/0.92)]";
 const exerciseInfoHeaderTitleClassName = "pl-[4px] pt-[5px] pr-3 text-[1.02rem] leading-[1.12] text-[rgb(var(--accent-divider-rgb)/0.98)]";
@@ -302,7 +330,7 @@ const exerciseInfoHeaderTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0
 const exerciseInfoTightLabelSlotClassName = "min-h-[1.45rem]";
 const exerciseInfoDenseLabelClassName = "text-[9px] tracking-[0.11em]";
 const exerciseInfoScopeChipClassName = "min-h-[1.85rem] min-w-[5.4rem] justify-center px-2 py-[4px] text-[9px] tracking-[0.16em]";
-const exerciseInfoProgressionMetricWidthClassName = "!basis-[5.45rem] !px-1.35";
+const exerciseInfoSubsectionHeadingClassName = "px-2 text-center text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
 
 type ExerciseInfoMetricGridVariant = "default" | "progression";
 
@@ -395,7 +423,7 @@ function getExerciseInfoMetricGridGapClassName(count: number) {
 function getExerciseInfoMetricGridProps(items: MetricDatum[], variant: ExerciseInfoMetricGridVariant = "default") {
   return {
     className: items.length > 0 ? getExerciseInfoMetricGridGapClassName(items.length) : undefined,
-    itemClassName: variant === "progression" && items.length >= 3 ? exerciseInfoProgressionMetricWidthClassName : undefined,
+    itemClassName: undefined,
     labelClassName: shouldUseDenseExerciseInfoMetricLabels(items) ? exerciseInfoDenseLabelClassName : undefined,
     labelSlotClassName: exerciseInfoTightLabelSlotClassName,
     autoColumns: true as const,
@@ -490,12 +518,13 @@ function ExerciseInfoOverviewMedia({
         />
       </div>
       <MetricAccentBar variant="thin" className="mx-3 mt-1.5" />
+      <p className={cn(exerciseInfoSubsectionHeadingClassName, "pt-2")}>How To</p>
       {overviewCopy ? (
-        <p className={cn(appTokens.detailBodyText, "px-3 pb-2 pt-1.5 text-center text-[13px] leading-[1.55] [text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
+        <p className={cn(appTokens.detailBodyText, "px-3 pb-2 pt-1 text-center text-[13px] leading-[1.55] [text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
           {overviewCopy}
         </p>
       ) : (
-        <p className={cn(appTokens.detailBodyMutedText, "px-3 pb-2 pt-1.5 text-center text-[13px] leading-[1.5]")}>
+        <p className={cn(appTokens.detailBodyMutedText, "px-3 pb-2 pt-1 text-center text-[13px] leading-[1.5]")}>
           Log a few sessions to unlock more specific cues and trends for this exercise.
         </p>
       )}
@@ -692,6 +721,153 @@ function ExerciseInfoProgressReview({
   );
 }
 
+function buildProgressionChangeMixMetrics(args: {
+  promotionCount: number;
+  deloadCount: number;
+  manualChangeCount: number;
+  revertCount: number;
+}) {
+  return [
+    {
+      label: "Promotions",
+      value: String(args.promotionCount),
+      valueTone: args.promotionCount > 0 ? "success" : "muted",
+    },
+    {
+      label: "Regressed",
+      value: String(args.deloadCount),
+      valueTone: args.deloadCount > 0 ? "danger" : "muted",
+    },
+    {
+      label: "Manual",
+      value: String(args.manualChangeCount),
+      valueTone: args.manualChangeCount > 0 ? "default" : "muted",
+    },
+    {
+      label: "Reverted",
+      value: String(args.revertCount),
+      valueTone: args.revertCount > 0 ? "default" : "muted",
+    },
+  ] satisfies MetricDatum[];
+}
+
+function ExerciseInfoProgressionActivityPanel({
+  progression,
+  analyticsScope,
+}: {
+  progression: ExerciseProgressionLifelineSummary;
+  analyticsScope: ExerciseInfoAnalyticsScope;
+}) {
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const activityDays = progression.activityDays ?? [];
+
+  useEffect(() => {
+    setSelectedDayId(null);
+  }, [analyticsScope, progression.latestChangeAt]);
+
+  const selectedDay = activityDays.find((day) => day.id === selectedDayId) ?? null;
+  const maxEventCount = activityDays.reduce((current, day) => Math.max(current, day.eventCount), 0);
+  const changeMixMetrics = buildProgressionChangeMixMetrics({
+    promotionCount: selectedDay?.promotionCount ?? progression.promotionCount,
+    deloadCount: selectedDay?.deloadCount ?? progression.deloadCount,
+    manualChangeCount: selectedDay?.manualChangeCount ?? progression.manualChangeCount,
+    revertCount: selectedDay?.revertCount ?? progression.revertCount,
+  });
+  const activityTitle = analyticsScope === "current_cycle" ? "Cycle Activity" : "Progression Activity";
+  const changeTitle = selectedDay ? `${selectedDay.label} Changes` : "Changes";
+
+  if (activityDays.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2 px-1 pb-1">
+      <MetricAccentBar variant="thin" className="mx-1" />
+      <div className="space-y-2">
+        <div className="relative min-h-[1.9rem] px-2">
+          <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0 pt-0.5")}>
+            {activityTitle}
+          </p>
+          {selectedDay ? (
+            <PillButton
+              active
+              type="button"
+              onClick={() => setSelectedDayId(null)}
+              className="absolute right-0 top-1/2 min-h-[1.7rem] -translate-y-1/2 px-2 py-[3px] text-[9px] tracking-[0.14em]"
+            >
+              <ChevronRightIcon className="h-3.5 w-3.5 rotate-180 text-[rgb(var(--accent-divider-rgb)/0.96)]" />
+              Back
+            </PillButton>
+          ) : null}
+        </div>
+        {selectedDay ? (
+          <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+            <div className="space-y-2">
+              <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0.5 pt-0.5")}>
+                {selectedDay.label}
+              </p>
+              <DetailSectionItems items={selectedDay.items} className="pl-0.5" />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {activityDays.map((day) => {
+              const widthPercent = maxEventCount > 0
+                ? Math.max((day.eventCount / maxEventCount) * 100, day.eventCount > 0 ? 8 : 0)
+                : 0;
+
+              return (
+                <button
+                  key={day.id}
+                  type="button"
+                  onClick={() => setSelectedDayId(day.id)}
+                  className="w-full rounded-[1rem] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-3.5 py-3 text-left transition-colors hover:border-[rgb(var(--accent-strong)/0.45)] hover:bg-[rgb(var(--surface-2-rgb)/0.22)]"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="truncate text-sm font-semibold text-[rgb(var(--text-primary)/0.95)]">
+                          {day.label}
+                        </p>
+                        {day.detail ? (
+                          <p className="text-[0.75rem] leading-5 text-[rgb(var(--text-muted)/0.88)]">
+                            {day.detail}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <p className="text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.86)]">
+                          {day.valueLabel}
+                        </p>
+                        <ChevronRightIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.92)]" />
+                      </div>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-[rgb(var(--surface-3-rgb)/0.42)]">
+                      <div
+                        className="h-full rounded-full bg-[rgb(var(--accent-strong)/0.72)] transition-[width] duration-300"
+                        style={{ width: `${widthPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        <p className={exerciseInfoSubsectionHeadingClassName}>
+          {changeTitle}
+        </p>
+        <ExerciseSurfaceMetricGrid
+          items={changeMixMetrics}
+          {...getExerciseInfoMetricGridProps(changeMixMetrics)}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ExerciseInfoProgressionPanel({
   progression,
   excludedMetricKeys = [],
@@ -706,27 +882,25 @@ function ExerciseInfoProgressionPanel({
   onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
 }) {
   const usedMetricKeys = new Set(excludedMetricKeys.map((key) => normalizeMetricKey(key)));
+  const isCycleScope = analyticsScope === "current_cycle";
   const recentWindowDays = progression.recentWindowDays ?? 30;
-  const recentEventCount = progression.recentEventCount ?? 0;
-  const recentPromotionCount = progression.recentPromotionCount ?? 0;
-  const recentDeloadCount = progression.recentDeloadCount ?? 0;
+  const currentTargetValue = compactProgressionMetricValue(progression.currentTargetLabel);
+  const startedTargetValue = compactProgressionMetricValue(progression.firstTargetLabel);
+  const startedMatchesCurrent = Boolean(startedTargetValue)
+    && normalizeCompactProgressionComparisonValue(startedTargetValue) === normalizeCompactProgressionComparisonValue(currentTargetValue);
+  const latestChangeWasPromotion = progression.latestEventLabel === "Promotion applied";
+  const shouldHideLastPromotion = latestChangeWasPromotion
+    && isSameCalendarDay(progression.lastPromotionAt, progression.latestChangeAt);
   const progressionMetricCandidates: Array<MetricDatum | null> = [
     progression.currentTargetLabel ? (() => {
-      const value = compactProgressionMetricValue(progression.currentTargetLabel);
+      const value = currentTargetValue;
       return { label: "Current", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
     })() : null,
-    progression.firstTargetLabel ? (() => {
-      const value = compactProgressionMetricValue(progression.firstTargetLabel);
+    progression.firstTargetLabel && !startedMatchesCurrent ? (() => {
+      const value = startedTargetValue;
       return { label: "Started", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
     })() : null,
-    { label: "Promoted", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
-    recentEventCount > 0 ? {
-      label: "Recent",
-      value: recentEventCount === 1 ? "1 update" : `${recentEventCount} updates`,
-      valueNode: buildCompactMetricValueNode(recentEventCount === 1 ? "1 update" : `${recentEventCount} updates`),
-      timeframe: `${recentWindowDays}d`,
-      valueTone: recentPromotionCount > 0 ? "success" : recentDeloadCount > 0 ? "danger" : "default",
-    } : null,
+    { label: "Promotions", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
   ];
   const metrics = filterUniqueMetricItems(
     progressionMetricCandidates.filter((item): item is MetricDatum => item !== null),
@@ -734,19 +908,13 @@ function ExerciseInfoProgressionPanel({
   ).slice(0, 4);
   const sections = [
     progression.latestChangeSummary ? { title: "Latest Change", items: [progression.latestChangeSummary] } : null,
-    progression.recentActivitySummary ? { title: `${recentWindowDays} Day Activity`, items: [progression.recentActivitySummary] } : null,
     progression.recentFocusSummary ? { title: "Recent Focus", items: [progression.recentFocusSummary] } : null,
-    progression.lastPromotionAt ? { title: "Last Promotion", items: [formatDateShort(progression.lastPromotionAt)] } : null,
+    progression.lastPromotionAt && !shouldHideLastPromotion
+      ? { title: "Last Promotion", items: [formatDateShort(progression.lastPromotionAt)] }
+      : null,
   ].filter((section): section is ExerciseInfoReviewSection => Boolean(section));
-  const compactSectionMetrics = shouldUseCompactProgressionStrip(sections)
-    ? sections.map((section) => ({
-        label: section.title,
-        value: section.items[0]!,
-        valueNode: buildCompactMetricValueNode(section.items[0]!),
-      }))
-    : [];
 
-  if (metrics.length === 0 && sections.length === 0) {
+  if (metrics.length === 0 && sections.length === 0 && (progression.activityDays?.length ?? 0) === 0) {
     return null;
   }
 
@@ -760,17 +928,118 @@ function ExerciseInfoProgressionPanel({
         onScopeClick={onScopeClick}
       />
       {metrics.length > 0 ? <ExerciseSurfaceMetricGrid items={metrics} {...getExerciseInfoMetricGridProps(metrics, "progression")} /> : null}
-      {compactSectionMetrics.length > 0 ? (
-        <ExerciseSurfaceMetricGrid
-          items={compactSectionMetrics}
-          {...getExerciseInfoMetricGridProps(compactSectionMetrics)}
-        />
-      ) : null}
-      {sections.length > 0 && compactSectionMetrics.length === 0 ? (
+      {sections.length > 0 ? (
         <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
           <DetailSectionBlocks sections={sections} titleClassName={exerciseInfoSubsectionTitleClassName} />
         </div>
       ) : null}
+      <ExerciseInfoProgressionActivityPanel
+        progression={progression}
+        analyticsScope={analyticsScope}
+      />
+    </AppPanel>
+  );
+}
+
+function buildDerivedProgressionMetrics(
+  derived: NonNullable<ExerciseInfoSheetStats["progressionDerived"]>,
+): MetricDatum[] {
+  return [
+    {
+      label: "Signal",
+      value: derived.signalLabel,
+      valueTone: derived.signalTone ?? "default",
+    },
+    {
+      label: "Method",
+      value: derived.methodLabel,
+      valueTone: derived.methodLabel === "Manual" ? "muted" : "default",
+    },
+    {
+      label: "History",
+      value: derived.historySessionCount === 1 ? "1 session" : `${derived.historySessionCount} sessions`,
+      valueTone: derived.historySessionCount > 0 ? "default" : "muted",
+    },
+  ];
+}
+
+function buildDerivedProgressionSections(
+  derived: NonNullable<ExerciseInfoSheetStats["progressionDerived"]>,
+): ExerciseInfoReviewSection[] {
+  return [
+    derived.currentTargetLabel ? {
+      title: "Current Target",
+      items: [derived.currentTargetLabel],
+    } : null,
+    derived.nextTargetLabel ? {
+      title: "Next Update",
+      items: [derived.nextTargetLabel],
+    } : null,
+    {
+      title: "Readiness",
+      items: [derived.reason],
+    },
+    {
+      title: "Basis",
+      items: [
+        derived.historySessionCount === 1 ? "1 scoped session reviewed." : `${derived.historySessionCount} scoped sessions reviewed.`,
+        derived.sourcePerformedAt ? `Source session ${formatDateShort(derived.sourcePerformedAt)}` : null,
+      ].filter((item): item is string => Boolean(item)),
+    },
+  ].filter((section): section is ExerciseInfoReviewSection => Boolean(section));
+}
+
+function getExerciseInfoProgressionEmptyStateCopy(scope: ExerciseInfoAnalyticsScope) {
+  if (scope === "current_cycle") {
+    return "No progression changes have been recorded in this cycle yet. This lane only fills after promotions, regressions, reverts, or manual target edits.";
+  }
+
+  if (scope === "current_routine") {
+    return "No progression changes have been recorded for this routine yet. Logged sets alone do not create progression activity until a target actually changes.";
+  }
+
+  return "No progression changes have been recorded for this exercise yet. Logged history can exist without progression activity until a target changes.";
+}
+
+function ExerciseInfoProgressionEmptyPanel({
+  analyticsScope,
+  activeRoutineTitle,
+  derivedProgression,
+  onScopeClick,
+}: {
+  analyticsScope: ExerciseInfoAnalyticsScope;
+  activeRoutineTitle?: string | null;
+  derivedProgression?: ExerciseInfoSheetStats["progressionDerived"];
+  onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
+}) {
+  const fallbackMetrics = derivedProgression ? buildDerivedProgressionMetrics(derivedProgression) : [];
+  const fallbackSections = derivedProgression ? buildDerivedProgressionSections(derivedProgression) : [];
+
+  return (
+    <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+      <ExerciseInfoSectionHeader
+        title="Progression"
+        section="progression"
+        analyticsScope={analyticsScope}
+        activeRoutineTitle={activeRoutineTitle}
+        onScopeClick={onScopeClick}
+      />
+      {fallbackMetrics.length > 0 ? (
+        <ExerciseSurfaceMetricGrid
+          items={fallbackMetrics}
+          {...getExerciseInfoMetricGridProps(fallbackMetrics, "progression")}
+        />
+      ) : null}
+      {fallbackSections.length > 0 ? (
+        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+          <DetailSectionBlocks sections={fallbackSections} titleClassName={exerciseInfoSubsectionTitleClassName} />
+        </div>
+      ) : null}
+      <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+        <p className={appTokens.detailBodyMutedText}>
+          {getExerciseInfoProgressionEmptyStateCopy(analyticsScope)}
+        </p>
+      </div>
     </AppPanel>
   );
 }
@@ -829,7 +1098,7 @@ export function ExerciseInfoSheet({
 
   const handleSectionScopeToggle = useCallback((section: ExerciseInfoSectionScopeKey) => {
     const currentScope = getSectionScope(section);
-    const nextScope: ExerciseInfoAnalyticsScope = currentScope === "all_time" ? "current_routine" : "all_time";
+    const nextScope = getNextExerciseInfoAnalyticsScope(currentScope);
     setSectionScopeOverrides((current) => {
       const nextOverrides = { ...current };
       if (nextScope === analyticsScope) {
@@ -882,7 +1151,7 @@ export function ExerciseInfoSheet({
   const activeScopeLabel = getExerciseInfoAnalyticsScopeDisplayLabel(analyticsScope, activeRoutineTitle);
   const detailHeader = (
     <div className="sticky top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.25rem)] z-30">
-      <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10 flex items-center justify-start px-1">
+      <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10 flex items-center justify-start px-2">
         <div className="pointer-events-auto">
           <PillButton
             active
@@ -893,7 +1162,7 @@ export function ExerciseInfoSheet({
                 handleScopeResync();
                 return;
               }
-              onAnalyticsScopeChange(analyticsScope === "all_time" ? "current_routine" : "all_time");
+              onAnalyticsScopeChange(getNextExerciseInfoAnalyticsScope(analyticsScope));
             }}
           >
             {hasUnsyncedSections ? "Re-Sync" : activeScopeLabel}
@@ -966,6 +1235,7 @@ export function ExerciseInfoSheet({
   const prHistoryState = getExerciseInfoProgressState(prHistorySectionState.stats);
   const prHistorySection = prHistoryState.reviewSections.find((section) => section.title === "PR History") ?? null;
   const progression = progressionSectionState.stats?.progression ?? null;
+  const derivedProgression = progressionSectionState.stats?.progressionDerived ?? null;
 
   const sheetBody = (
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
@@ -1017,42 +1287,6 @@ export function ExerciseInfoSheet({
                       </div>
                     </AppPanel>
 
-                    {!performanceSectionState.loading && performanceMetrics.length > 0 ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="Performance"
-                          section="performance"
-                          analyticsScope={performanceSectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                        />
-                        <ExerciseSurfaceMetricGrid items={performanceMetrics} {...getExerciseInfoMetricGridProps(performanceMetrics)} />
-                      </AppPanel>
-                    ) : null}
-
-                    {progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0 ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="Progress"
-                          section="progress"
-                          analyticsScope={progressSectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                        />
-                        {progressSectionState.loading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview metrics={progressMetrics} sections={reviewSections} />}
-                      </AppPanel>
-                    ) : null}
-
-                    {!progressionSectionState.loading && progression ? (
-                      <ExerciseInfoProgressionPanel
-                        progression={progression}
-                        excludedMetricKeys={[...usedMetricKeys]}
-                        analyticsScope={progressionSectionState.scope}
-                        activeRoutineTitle={activeRoutineTitle}
-                        onScopeClick={handleSectionScopeToggle}
-                      />
-                    ) : null}
-
                     {!prHistorySectionState.loading && prHistorySection ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
                         <ExerciseInfoSectionHeader
@@ -1081,6 +1315,60 @@ export function ExerciseInfoSheet({
                         />
                         {recentHistorySectionState.loading ? <ExerciseInfoLoadingRows /> : recentHistorySectionState.stats ? <ExerciseInfoRecentHistoryList stats={recentHistorySectionState.stats} /> : null}
                       </AppPanel>
+                    ) : null}
+
+                    {!performanceSectionState.loading && performanceMetrics.length > 0 ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
+                        <ExerciseInfoSectionHeader
+                          title="Performance"
+                          section="performance"
+                          analyticsScope={performanceSectionState.scope}
+                          activeRoutineTitle={activeRoutineTitle}
+                          onScopeClick={handleSectionScopeToggle}
+                        />
+                        <ExerciseSurfaceMetricGrid items={performanceMetrics} {...getExerciseInfoMetricGridProps(performanceMetrics)} />
+                      </AppPanel>
+                    ) : null}
+
+                    {progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0 ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+                        <ExerciseInfoSectionHeader
+                          title="Progress"
+                          section="progress"
+                          analyticsScope={progressSectionState.scope}
+                          activeRoutineTitle={activeRoutineTitle}
+                          onScopeClick={handleSectionScopeToggle}
+                        />
+                        {progressSectionState.loading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview metrics={progressMetrics} sections={reviewSections} />}
+                      </AppPanel>
+                    ) : null}
+
+                    {progressionSectionState.loading ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+                        <ExerciseInfoSectionHeader
+                          title="Progression"
+                          section="progression"
+                          analyticsScope={progressionSectionState.scope}
+                          activeRoutineTitle={activeRoutineTitle}
+                          onScopeClick={handleSectionScopeToggle}
+                        />
+                        <ExerciseInfoLoadingRows />
+                      </AppPanel>
+                    ) : progression ? (
+                      <ExerciseInfoProgressionPanel
+                        progression={progression}
+                        excludedMetricKeys={[...usedMetricKeys]}
+                        analyticsScope={progressionSectionState.scope}
+                        activeRoutineTitle={activeRoutineTitle}
+                        onScopeClick={handleSectionScopeToggle}
+                      />
+                    ) : progressionSectionState.stats ? (
+                      <ExerciseInfoProgressionEmptyPanel
+                        analyticsScope={progressionSectionState.scope}
+                        activeRoutineTitle={activeRoutineTitle}
+                        derivedProgression={derivedProgression}
+                        onScopeClick={handleSectionScopeToggle}
+                      />
                     ) : null}
                   </>
                 )}

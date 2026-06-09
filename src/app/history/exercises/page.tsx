@@ -38,6 +38,7 @@ export default async function HistoryExercisesPage() {
       ? {
           allTimeRows: getHistoryPreviewExerciseRows(),
           currentRoutineRows: getHistoryPreviewExerciseRows(),
+          currentCycleRows: getHistoryPreviewExerciseRows(),
           activeRoutineTitle: null,
         }
       : await diagnostics.measure("history.exercises.fetch", () => getExerciseBrowserScopePayloadForUser(), {
@@ -57,6 +58,7 @@ export default async function HistoryExercisesPage() {
         <ExerciseBrowserClient
           rows={browserPayload.allTimeRows}
           currentRoutineRows={browserPayload.currentRoutineRows}
+          currentCycleRows={browserPayload.currentCycleRows}
           activeRoutineTitle={browserPayload.activeRoutineTitle}
           initialViewMode={initialViewMode}
         />

@@ -25,10 +25,7 @@ function buildStrengthRepProgressMetric(args: {
   }
 
   if (previousReps <= 0) {
-    return {
-      label: "Reps",
-      value: `${latestReps}`,
-    };
+    return null;
   }
 
   const delta = latestReps - previousReps;
@@ -53,10 +50,7 @@ function buildStrengthWeightProgressMetric(args: {
   }
 
   if (previousWeight <= 0) {
-    return {
-      label: "Weight",
-      value: formatWeight(latestWeight, normalizedUnit) ?? `${Math.round(latestWeight)}`,
-    };
+    return null;
   }
 
   const zeroWeightLabel = normalizedUnit === "kg"

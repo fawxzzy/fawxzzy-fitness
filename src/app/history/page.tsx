@@ -130,13 +130,17 @@ export default async function HistoryPage({
         <HistorySessionsClient
           sessions={state.data.sessionItems}
           currentRoutineSessions={state.data.currentRoutineSessionItems}
+          currentCycleSessions={state.data.currentCycleSessionItems}
           activeRoutineTitle={state.data.activeRoutineTitle}
           thirtyDaySummary={state.data.thirtyDaySummary}
           currentRoutineThirtyDaySummary={state.data.currentRoutineThirtyDaySummary}
+          currentCycleThirtyDaySummary={state.data.currentCycleThirtyDaySummary}
           weeklyProgress={state.data.weeklyProgress}
           currentRoutineWeeklyProgress={state.data.currentRoutineWeeklyProgress}
+          currentCycleWeeklyProgress={state.data.currentCycleWeeklyProgress}
           weeklyProgressByWeek={state.data.weeklyProgressByWeek}
           currentRoutineWeeklyProgressByWeek={state.data.currentRoutineWeeklyProgressByWeek}
+          currentCycleWeeklyProgressByWeek={state.data.currentCycleWeeklyProgressByWeek}
           selectedSessionId={state.data.selectedSessionId}
           initialViewMode={initialViewMode}
           initialFiltersOpen={initialFiltersOpen}

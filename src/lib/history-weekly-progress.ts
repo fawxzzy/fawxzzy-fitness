@@ -1,4 +1,12 @@
 import type { SessionSummary } from "@/app/history/session-summary";
+import {
+  bucketProgressionEventsByTime,
+  sortProgressionEventsNewestFirst,
+  summarizeProgressionEventAnalytics,
+  type ProgressionAnalyticsEvent,
+} from "@/lib/progression-event-analytics";
+import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
+import { buildProgressionSummaryChartSections } from "@/lib/progression-summary-charts";
 
 export type WeeklyProgressExerciseMeta = {
   name: string;
@@ -56,12 +64,27 @@ export type WeeklyProgressSummary = {
     }>;
     summary: string;
   };
+  progressionSummary: {
+    totalEventCount: number;
+    promotionCount: number;
+    deloadCount: number;
+    manualChangeCount: number;
+    chartSections: ProgressionHistoryChartSection[];
+    topProgressedExerciseNames: string[];
+    topDeloadExerciseNames: string[];
+    topAdjustedExerciseNames: string[];
+    reviewItems: string[];
+    hotspotItems: string[];
+    timelineItems: string[];
+    attentionItems: string[];
+  };
   hotspotItems: string[];
   attentionItems: string[];
 };
 
 type BuildWeeklyProgressSummaryOptions = {
   sessions: SessionSummary[];
+  progressionEvents?: ProgressionAnalyticsEvent[];
   sessionExercisesBySessionId: Map<string, WeeklyProgressSessionExercise[]>;
   setsBySessionExerciseId: Map<string, WeeklyProgressSet[]>;
   exerciseMetaById: Map<string, WeeklyProgressExerciseMeta>;
@@ -161,6 +184,15 @@ function toPluralLabel(count: number, singular: string, plural = `${singular}s`)
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+function formatWeeklyProgressDayKey(dayKey: string) {
+  const date = new Date(`${dayKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 function resolveTopExerciseByCount(
   exerciseCounts: Map<string, number>,
   exerciseMetaById: Map<string, WeeklyProgressExerciseMeta>,
@@ -246,6 +278,7 @@ function resolvePrimaryRoutineTitle(sessions: Array<SessionSummary & { dayKey: s
 
 export function buildWeeklyProgressSummary({
   sessions,
+  progressionEvents = [],
   sessionExercisesBySessionId,
   setsBySessionExerciseId,
   exerciseMetaById,
@@ -266,6 +299,7 @@ export function buildWeeklyProgressSummary({
   const previousWeekEnd = shiftWeeklyProgressDay(previousWeekStart, 6);
 
   const currentWeekSessions: Array<SessionSummary & { dayKey: string }> = [];
+  const currentWeekProgressionEvents: ProgressionAnalyticsEvent[] = [];
   let previousWeekWorkoutCount = 0;
 
   for (const session of sessions) {
@@ -282,6 +316,14 @@ export function buildWeeklyProgressSummary({
     if (dayKey >= previousWeekStart && dayKey <= previousWeekEnd) {
       previousWeekWorkoutCount += 1;
     }
+  }
+
+  for (const event of progressionEvents) {
+    const dayKey = getWeeklyProgressDayKey(event.created_at, safeTimezone);
+    if (!dayKey || dayKey < weekStart || dayKey > weekEnd) {
+      continue;
+    }
+    currentWeekProgressionEvents.push(event);
   }
 
   const activeDayCount = new Set(currentWeekSessions.map((session) => session.dayKey)).size;
@@ -377,6 +419,79 @@ export function buildWeeklyProgressSummary({
   }
 
   const topExercise = resolveTopExerciseByCount(exerciseCounts, exerciseMetaById);
+  const progressionAnalytics = summarizeProgressionEventAnalytics(currentWeekProgressionEvents);
+  const progressionTopProgressedExerciseNames = progressionAnalytics.topProgressedExercises
+    .slice(0, 3)
+    .map((entry) => exerciseMetaById.get(entry.exerciseId)?.name?.trim() || "Exercise");
+  const progressionTopDeloadExerciseNames = progressionAnalytics.deloadFrequencyByExercise
+    .slice(0, 3)
+    .map((entry) => exerciseMetaById.get(entry.exerciseId)?.name?.trim() || "Exercise");
+  const progressionTopAdjustedExerciseNames = progressionAnalytics.manualChangeFrequencyByExercise
+    .slice(0, 3)
+    .map((entry) => exerciseMetaById.get(entry.exerciseId)?.name?.trim() || "Exercise");
+  const progressionDayBuckets = bucketProgressionEventsByTime({
+    events: currentWeekProgressionEvents,
+    granularity: "day",
+    timeZone: safeTimezone,
+  });
+  const busiestProgressionDay = [...progressionDayBuckets].sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count;
+    }
+    return right.bucket.localeCompare(left.bucket);
+  })[0] ?? null;
+  const latestProgressionEvent = sortProgressionEventsNewestFirst(currentWeekProgressionEvents)[0] ?? null;
+  const latestProgressionExerciseName = latestProgressionEvent
+    ? (exerciseMetaById.get(latestProgressionEvent.exercise_id)?.name?.trim() || "Exercise")
+    : null;
+  const progressionSummary = {
+    totalEventCount: progressionAnalytics.totalEvents,
+    promotionCount: progressionAnalytics.promotionsAppliedCount,
+    deloadCount: progressionAnalytics.deloadsAppliedCount,
+    manualChangeCount: progressionAnalytics.manualTargetChangesCount,
+    chartSections: buildProgressionSummaryChartSections({
+      events: currentWeekProgressionEvents,
+      exerciseNameById: new Map(
+        [...exerciseMetaById.entries()].map(([exerciseId, meta]) => [exerciseId, meta.name]),
+      ),
+      timeZone: safeTimezone,
+      activityGranularity: "day",
+    }),
+    topProgressedExerciseNames: progressionTopProgressedExerciseNames,
+    topDeloadExerciseNames: progressionTopDeloadExerciseNames,
+    topAdjustedExerciseNames: progressionTopAdjustedExerciseNames,
+    reviewItems: [
+      `${toPluralLabel(progressionAnalytics.totalEvents, "progression event")} landed this week.`,
+      progressionAnalytics.promotionsAppliedCount > 0
+        ? `${toPluralLabel(progressionAnalytics.promotionsAppliedCount, "promotion")} applied across ${toPluralLabel(progressionAnalytics.topProgressedExercises.length, "exercise")}.`
+        : "No promotions landed this week.",
+      progressionAnalytics.deloadsAppliedCount > 0 || progressionAnalytics.manualTargetChangesCount > 0
+        ? `${toPluralLabel(progressionAnalytics.deloadsAppliedCount, "regression")} and ${toPluralLabel(progressionAnalytics.manualTargetChangesCount, "manual change")} were recorded.`
+        : "No regressions or manual target changes were recorded.",
+    ],
+    hotspotItems: [
+      progressionTopProgressedExerciseNames[0] ? `Promotion hotspot: ${progressionTopProgressedExerciseNames[0]}.` : null,
+      progressionTopDeloadExerciseNames[0] ? `Regression hotspot: ${progressionTopDeloadExerciseNames[0]}.` : null,
+      progressionTopAdjustedExerciseNames[0] ? `Manual-change hotspot: ${progressionTopAdjustedExerciseNames[0]}.` : null,
+    ].filter((value): value is string => Boolean(value)),
+    timelineItems: [
+      progressionDayBuckets.length > 0 ? `Active progression days: ${toPluralLabel(progressionDayBuckets.length, "day")}.` : null,
+      busiestProgressionDay ? `Busiest day: ${formatWeeklyProgressDayKey(busiestProgressionDay.bucket)} (${toPluralLabel(busiestProgressionDay.count, "event")}).` : null,
+      latestProgressionEvent && latestProgressionExerciseName
+        ? `Latest progression: ${latestProgressionExerciseName} on ${formatWeeklyProgressDayKey(getWeeklyProgressDayKey(latestProgressionEvent.created_at, safeTimezone) ?? latestProgressionEvent.created_at.slice(0, 10))}.`
+        : null,
+    ].filter((value): value is string => Boolean(value)),
+    attentionItems: [
+      progressionAnalytics.totalEvents === 0 ? "No progression events were recorded this week." : null,
+      progressionAnalytics.totalEvents > 0 && progressionAnalytics.promotionsAppliedCount === 0 ? "Progression changes landed without a promotion this week." : null,
+      progressionAnalytics.deloadsAppliedCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
+        ? "Regressions outpaced promotions this week."
+        : null,
+      progressionAnalytics.manualTargetChangesCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
+        ? "Manual target changes outpaced promotions this week."
+        : null,
+    ].filter((value): value is string => Boolean(value)),
+  };
   const hotspotItems = [
     topExercise ? `Hotspot: ${topExercise.exerciseName} showed up in ${toPluralLabel(topExercise.count, "session")}.` : null,
     prExerciseNames[0] ? `Most improved: ${prExerciseNames[0]}.` : null,
@@ -433,6 +548,7 @@ export function buildWeeklyProgressSummary({
       breakdown: scoreBreakdown,
       summary: scoreSummary || "No score inputs yet",
     },
+    progressionSummary,
     hotspotItems,
     attentionItems,
   };

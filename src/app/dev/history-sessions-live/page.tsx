@@ -89,13 +89,17 @@ export default async function DevHistorySessionsLivePage({
           <HistorySessionsClient
             sessions={data.sessionItems}
             currentRoutineSessions={data.currentRoutineSessionItems}
+            currentCycleSessions={data.currentCycleSessionItems}
             activeRoutineTitle={data.activeRoutineTitle}
             thirtyDaySummary={data.thirtyDaySummary}
             currentRoutineThirtyDaySummary={data.currentRoutineThirtyDaySummary}
+            currentCycleThirtyDaySummary={data.currentCycleThirtyDaySummary}
             weeklyProgress={data.weeklyProgress}
             currentRoutineWeeklyProgress={data.currentRoutineWeeklyProgress}
+            currentCycleWeeklyProgress={data.currentCycleWeeklyProgress}
             weeklyProgressByWeek={data.weeklyProgressByWeek}
             currentRoutineWeeklyProgressByWeek={data.currentRoutineWeeklyProgressByWeek}
+            currentCycleWeeklyProgressByWeek={data.currentCycleWeeklyProgressByWeek}
             initialViewMode={initialViewMode}
             initialFiltersOpen={initialFiltersOpen}
             initialQuery={initialQuery}
@@ -117,13 +121,17 @@ export default async function DevHistorySessionsLivePage({
       <HistorySessionsClient
         sessions={data.sessionItems}
         currentRoutineSessions={data.currentRoutineSessionItems}
+        currentCycleSessions={data.currentCycleSessionItems}
         activeRoutineTitle={data.activeRoutineTitle}
         thirtyDaySummary={data.thirtyDaySummary}
         currentRoutineThirtyDaySummary={data.currentRoutineThirtyDaySummary}
+        currentCycleThirtyDaySummary={data.currentCycleThirtyDaySummary}
         weeklyProgress={data.weeklyProgress}
         currentRoutineWeeklyProgress={data.currentRoutineWeeklyProgress}
+        currentCycleWeeklyProgress={data.currentCycleWeeklyProgress}
         weeklyProgressByWeek={data.weeklyProgressByWeek}
         currentRoutineWeeklyProgressByWeek={data.currentRoutineWeeklyProgressByWeek}
+        currentCycleWeeklyProgressByWeek={data.currentCycleWeeklyProgressByWeek}
         initialViewMode={initialViewMode}
         initialFiltersOpen={initialFiltersOpen}
         initialQuery={initialQuery}

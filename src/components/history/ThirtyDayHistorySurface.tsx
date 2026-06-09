@@ -7,6 +7,7 @@ import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/componen
 import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
 import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
+import { ProgressionHistoryCharts } from "./ProgressionHistoryCharts";
 
 const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
 
@@ -138,6 +139,52 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHis
               </span>
             ))}
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+            Progression Hotspots
+          </p>
+          {summary.progressionSummary.hotspotItems.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
+              {summary.progressionSummary.hotspotItems.map((entry, index) => (
+                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
+                  <SignatureDot />
+                  <span>{entry}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+              <SignatureDot />
+              <span>No progression hotspots stand out yet.</span>
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+            Progression Graphs
+          </p>
+          <ProgressionHistoryCharts sections={summary.progressionSummary.chartSections} />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+            Progression Timeline
+          </p>
+          {summary.progressionSummary.timelineItems.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
+              {summary.progressionSummary.timelineItems.map((entry, index) => (
+                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
+                  <SignatureDot />
+                  <span>{entry}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
+              <SignatureDot />
+              <span>No progression timeline is available yet.</span>
+            </div>
+          )}
         </div>
         <div className="space-y-1.5">
           <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">

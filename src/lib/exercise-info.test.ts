@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildCardioPrReviewItems } from "@/lib/cardio-pr-history";
+import { curateExerciseInfoPerformanceMetrics } from "@/lib/exercise-info";
 import { buildObservedMeasurementMetrics } from "@/lib/exercise-info-measurement-metrics";
 import { buildExerciseInfoReviewSections, buildExerciseInfoSurfaceMetrics } from "@/lib/exercise-info-presentation";
 import { buildStrengthPerformanceMetrics } from "@/lib/exercise-info-strength-performance";
@@ -47,8 +48,28 @@ test("exercise info review sections explain progression in plain language", () =
     {
       title: "PR History",
       items: [
-        "Weight PR | 225 lbs x 5 | Jun 4",
-        "Rep PR | 12 reps | Jun 1",
+        "Jun 4 | Weight PR 225 lbs x 5",
+        "Jun 1 | Rep PR 12 reps",
+      ],
+    },
+  ]);
+});
+
+test("exercise info review sections group same-day PR items into a single dated row", () => {
+  const sections = buildExerciseInfoReviewSections({
+    prLabel: "Time PR + Distance PR",
+    prCount: 2,
+    prItems: [
+      "Distance PR | 2 mi | May 30",
+      "Time PR | 9:00 | May 30",
+    ],
+  });
+
+  assert.deepEqual(sections, [
+    {
+      title: "PR History",
+      items: [
+        "May 30 | Distance PR 2 mi | Time PR 9:00",
       ],
     },
   ]);
@@ -58,6 +79,15 @@ test("exercise info review sections omit duplicate trend recap rows", () => {
   const sections = buildExerciseInfoReviewSections({
     prLabel: "",
     prCount: 0,
+  });
+
+  assert.deepEqual(sections, []);
+});
+
+test("exercise info review sections omit generic PR fallback rows when no dated PR history exists", () => {
+  const sections = buildExerciseInfoReviewSections({
+    prLabel: "1 PR",
+    prCount: 1,
   });
 
   assert.deepEqual(sections, []);
@@ -152,7 +182,7 @@ test("loaded strength performance metrics keep summary metrics after dimension m
   ]);
 });
 
-test("loaded strength progress metrics fall back to current weight and reps when no previous session exists", () => {
+test("loaded strength progress metrics omit raw current values when no previous session exists", () => {
   const metrics = buildStrengthProgressMetrics({
     latest: {
       weight: 80,
@@ -163,10 +193,7 @@ test("loaded strength progress metrics fall back to current weight and reps when
     previous: null,
   });
 
-  assert.deepEqual(metrics, [
-    { label: "Reps", value: "8" },
-    { label: "Weight", value: "80 lbs" },
-  ]);
+  assert.deepEqual(metrics, []);
 });
 
 test("loaded strength progress metrics show deltas when previous weighted session exists", () => {
@@ -191,7 +218,7 @@ test("loaded strength progress metrics show deltas when previous weighted sessio
   ]);
 });
 
-test("bodyweight strength progress metrics still surface reps with only one logged session", () => {
+test("bodyweight strength progress metrics stay empty with only one logged session", () => {
   const metrics = buildStrengthProgressMetrics({
     latest: {
       weight: 0,
@@ -202,9 +229,7 @@ test("bodyweight strength progress metrics still surface reps with only one logg
     previous: null,
   });
 
-  assert.deepEqual(metrics, [
-    { label: "Reps", value: "8" },
-  ]);
+  assert.deepEqual(metrics, []);
 });
 
 test("observed measurement metrics surface logged auxiliary measurements that family metrics do not cover", () => {
@@ -230,5 +255,38 @@ test("observed measurement metrics surface logged auxiliary measurements that fa
     { label: "Best Weight", value: "40 lbs" },
     { label: "Best Reps", value: "10 reps" },
     { label: "Best Calories", value: "120 cal" },
+  ]);
+});
+
+test("exercise info performance metrics drop summary duplicates when unique metrics remain", () => {
+  const metrics = curateExerciseInfoPerformanceMetrics({
+    metrics: [
+      { label: "Best Weight", value: "225 lbs" },
+      { label: "Best Reps", value: "10 reps" },
+      { label: "Top Set", value: "225 lbs x 6" },
+      { label: "Max Estimate", value: "270 lbs" },
+    ],
+    lastSummary: "205 lbs x 5",
+    bestSummary: "225 lbs x 6",
+  });
+
+  assert.deepEqual(metrics, [
+    { label: "Best Weight", value: "225 lbs" },
+    { label: "Best Reps", value: "10 reps" },
+    { label: "Max Estimate", value: "270 lbs" },
+  ]);
+});
+
+test("exercise info performance metrics keep duplicate summary values when they are the only signal", () => {
+  const metrics = curateExerciseInfoPerformanceMetrics({
+    metrics: [
+      { label: "Best Reps", value: "8 reps" },
+    ],
+    lastSummary: "7 reps",
+    bestSummary: "8 reps",
+  });
+
+  assert.deepEqual(metrics, [
+    { label: "Best Reps", value: "8 reps" },
   ]);
 });

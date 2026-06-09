@@ -4,11 +4,6 @@ export type ExerciseInfoReviewSection = {
   items: string[];
 };
 
-function isMeaningfulMetricValue(value: string | null | undefined) {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  return normalized.length > 0 && normalized !== "0" && normalized !== "0 reps" && normalized !== "0 lbs" && normalized !== "0 kg";
-}
-
 function dedupeMetricList(items: MetricDatum[]) {
   const seen = new Set<string>();
   const deduped: MetricDatum[] = [];
@@ -61,15 +56,53 @@ export function buildExerciseInfoSurfaceMetrics(args: {
   return dedupeMetricList(metrics).slice(0, 4);
 }
 
+function groupPrHistoryItems(items: string[]) {
+  const groups = new Map<string, string[]>();
+  const orderedDates: string[] = [];
+
+  for (const rawItem of items) {
+    const parts = rawItem.split("|").map((part) => part.trim()).filter(Boolean);
+    if (parts.length < 3) {
+      const fallbackDateKey = `__raw__:${rawItem}`;
+      orderedDates.push(fallbackDateKey);
+      groups.set(fallbackDateKey, [rawItem.trim()]);
+      continue;
+    }
+
+    const date = parts.at(-1) ?? "";
+    const headline = parts.slice(0, -1).join(" | ").replace(/\s+\|\s+/g, " ").trim();
+    if (!groups.has(date)) {
+      orderedDates.push(date);
+      groups.set(date, []);
+    }
+    const entries = groups.get(date) ?? [];
+    if (!entries.includes(headline)) {
+      entries.push(headline);
+    }
+    groups.set(date, entries);
+  }
+
+  return orderedDates
+    .map((date) => {
+      const entries = groups.get(date) ?? [];
+      if (date.startsWith("__raw__:")) {
+        return entries[0] ?? "";
+      }
+      if (entries.length === 0) {
+        return "";
+      }
+      return [date, ...entries].join(" | ");
+    })
+    .filter((item) => item.length > 0);
+}
+
 export function buildExerciseInfoReviewSections(args: {
   prLabel: string;
   prCount: number;
   prItems?: string[];
 }) {
   const prItems = args.prItems && args.prItems.length > 0
-    ? args.prItems
-    : args.prCount > 0
-      ? [args.prLabel || `${args.prCount} ${args.prCount === 1 ? "PR" : "PRs"} recorded`]
+    ? groupPrHistoryItems(args.prItems)
     : [];
 
   return [

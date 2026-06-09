@@ -147,6 +147,24 @@ test("history summary counts all stored workouts, routines, exercises, and pr mo
   assert.equal(summary.progressionSummary.totalEventCount, 2);
   assert.equal(summary.progressionSummary.promotionCount, 1);
   assert.deepEqual(summary.progressionSummary.topProgressedExerciseNames, ["Back Squat"]);
+  assert.deepEqual(summary.progressionSummary.topAdjustedExerciseNames, ["Bench Press"]);
+  assert.deepEqual(summary.progressionSummary.hotspotItems, [
+    "Promotion hotspot: Back Squat.",
+    "Manual-change hotspot: Bench Press.",
+  ]);
+  assert.deepEqual(summary.progressionSummary.timelineItems, [
+    "Active weeks: 1 week.",
+    "Busiest week: Apr 28 (2 events).",
+    "Latest progression: Back Squat on Apr 29.",
+  ]);
+  assert.deepEqual(summary.progressionSummary.chartSections.map((section) => section.title), [
+    "Progression Timeline",
+    "Change Mix",
+    "Promotion Hotspots",
+  ]);
+  assert.deepEqual(summary.progressionSummary.chartSections[0]?.bars.map((bar) => `${bar.label}:${bar.value}`), [
+    "Apr 28 - May 4:2",
+  ]);
 });
 
 test("history summary raises plain-language attention flags for inactivity and missed routine coverage", () => {
@@ -221,5 +239,9 @@ test("history summary raises plain-language attention flags for inactivity and m
   assert.equal(summary.consistencyTrend.direction, "down");
   assert.deepEqual(summary.progressionSummary.attentionItems, [
     "No promotions landed yet.",
+  ]);
+  assert.deepEqual(summary.progressionSummary.hotspotItems, [
+    "Regression hotspot: Exercise.",
+    "Manual-change hotspot: Exercise.",
   ]);
 });

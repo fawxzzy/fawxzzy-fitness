@@ -40,6 +40,7 @@ export function ExerciseInfo({
   const [statsLoadingByScope, setStatsLoadingByScope] = useState<Record<ExerciseInfoAnalyticsScope, boolean>>({
     all_time: false,
     current_routine: false,
+    current_cycle: false,
   });
   const [analyticsScope, setAnalyticsScope] = useState<ExerciseInfoAnalyticsScope>("all_time");
   const toast = useToast();
@@ -51,6 +52,7 @@ export function ExerciseInfo({
       setStatsLoadingByScope({
         all_time: false,
         current_routine: false,
+        current_cycle: false,
       });
       return;
     }
@@ -77,6 +79,7 @@ export function ExerciseInfo({
       setStatsLoadingByScope({
         all_time: false,
         current_routine: false,
+        current_cycle: false,
       });
       return;
     }
@@ -99,6 +102,7 @@ export function ExerciseInfo({
     const nextStatsLoadingByScope: Record<ExerciseInfoAnalyticsScope, boolean> = {
       all_time: false,
       current_routine: false,
+      current_cycle: false,
     };
     let nextExercise: ExerciseInfoSheetExercise | null = null;
 
