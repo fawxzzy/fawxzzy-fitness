@@ -775,6 +775,9 @@ function ExerciseInfoProgressionActivityPanel({
   });
   const activityTitle = analyticsScope === "current_cycle" ? "Cycle Activity" : "Progression Activity";
   const changeTitle = selectedDay ? `${selectedDay.label} Changes` : "Changes";
+  const selectedDaySummaryParts = selectedDay
+    ? [selectedDay.detail, selectedDay.valueLabel].filter((part): part is string => Boolean(part?.trim()))
+    : [];
 
   if (activityDays.length === 0) {
     return null;
@@ -788,24 +791,29 @@ function ExerciseInfoProgressionActivityPanel({
           <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0 pt-0.5")}>
             {activityTitle}
           </p>
-          {selectedDay ? (
-            <PillButton
-              active
-              type="button"
-              onClick={() => setSelectedDayId(null)}
-              className="absolute right-0 top-1/2 min-h-[1.7rem] -translate-y-1/2 px-2 py-[3px] text-[9px] tracking-[0.14em]"
-            >
-              <ChevronRightIcon className="h-3.5 w-3.5 rotate-180 text-[rgb(var(--accent-divider-rgb)/0.96)]" />
-              Back
-            </PillButton>
-          ) : null}
         </div>
         {selectedDay ? (
           <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-            <div className="space-y-2">
-              <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0.5 pt-0.5")}>
-                {selectedDay.label}
-              </p>
+            <div className="space-y-2.5">
+              <div className="relative min-h-[1.9rem] px-0.5">
+                <PillButton
+                  active
+                  type="button"
+                  onClick={() => setSelectedDayId(null)}
+                  className="absolute left-0 top-1/2 min-h-[1.7rem] -translate-y-1/2 px-2 py-[3px] text-[9px] tracking-[0.14em]"
+                >
+                  <ChevronRightIcon className="h-3.5 w-3.5 rotate-180 text-[rgb(var(--accent-divider-rgb)/0.96)]" />
+                  Back
+                </PillButton>
+                <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-8 pt-0.5 text-center")}>
+                  {selectedDay.label}
+                </p>
+              </div>
+              {selectedDaySummaryParts.length > 0 ? (
+                <div className="px-0.5">
+                  {renderMetricMetaLine(selectedDaySummaryParts)}
+                </div>
+              ) : null}
               <DetailSectionItems items={selectedDay.items} className="pl-0.5" />
             </div>
           </div>
