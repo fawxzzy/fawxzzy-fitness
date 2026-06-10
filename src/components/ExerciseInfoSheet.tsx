@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ExerciseProgressionActivityPanel } from "@/components/ExerciseProgressionActivityPanel";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -12,7 +13,7 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
-import { DetailSectionBlock, DetailSectionBlocks, DetailSectionItems } from "@/components/ui/DetailSectionList";
+import { DetailSectionBlock, DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem, type DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -125,7 +126,10 @@ function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | und
         .filter((section): section is ExerciseInfoReviewSection => Boolean(section && typeof section.title === "string" && Array.isArray(section.items)))
         .map((section) => ({
           ...section,
-          items: section.items.filter((item): item is string => typeof item === "string" && item.trim().length > 0),
+          items: section.items.filter((item): item is DetailSectionListItemInput => (
+            (typeof item === "string" && item.trim().length > 0)
+            || (isDetailSectionListItem(item) && item.primary.trim().length > 0)
+          )),
         }))
         .filter((section) => section.items.length > 0)
     : [];
@@ -146,6 +150,18 @@ function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | und
 
 function normalizeMetricKey(label: string | null | undefined) {
   return String(label ?? "").trim().toLowerCase();
+}
+
+function isDetailSectionListItem(value: DetailSectionListItemInput): value is DetailSectionListItem {
+  return typeof value === "object" && value !== null && typeof value.primary === "string";
+}
+
+function getDetailSectionItemText(value: DetailSectionListItemInput) {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return [value.primary, value.value].filter((part): part is string => Boolean(part?.trim())).join(" | ");
 }
 
 function isCompactSingleLineValue(value: string | null | undefined, maxLength: number) {
@@ -173,7 +189,7 @@ function shouldUseCompactProgressionStrip(sections: ExerciseInfoReviewSection[])
   return sections.length >= 2 && sections.length <= 4 && sections.every((section) => (
     section.items.length === 1
     && isCompactSingleLineValue(section.title, 20)
-    && isCompactSingleLineValue(section.items[0], 34)
+    && isCompactSingleLineValue(getDetailSectionItemText(section.items[0]!), 34)
   ));
 }
 
@@ -199,16 +215,16 @@ function shouldUseCompactProgressReviewLayout(args: {
   const leftFits = leftSections.every((section) => (
     section.items.length === 1
     && isCompactSingleLineValue(section.title, 12)
-    && isCompactSingleLineValue(section.items[0], 18)
+    && isCompactSingleLineValue(getDetailSectionItemText(section.items[0]!), 18)
   ));
   const progressFits = args.progressSection.items.length > 0
     && args.progressSection.items.length <= 3
     && isCompactSingleLineValue(args.progressSection.title, 12)
-    && args.progressSection.items.every((item) => isCompactSingleLineValue(item, 28));
+    && args.progressSection.items.every((item) => isCompactSingleLineValue(getDetailSectionItemText(item), 28));
   const prFits = !args.prSection || (
     args.prSection.items.length === 1
     && isCompactSingleLineValue(args.prSection.title, 12)
-    && isCompactSingleLineValue(args.prSection.items[0], 24)
+    && isCompactSingleLineValue(getDetailSectionItemText(args.prSection.items[0]!), 24)
   );
 
   return leftFits && progressFits && prFits;
@@ -224,6 +240,13 @@ function filterUniqueMetricItems(items: MetricDatum[], usedKeys?: Set<string>) {
     seen.add(key);
     return true;
   });
+}
+
+function normalizeExerciseInfoComparisonValue(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
 }
 
 function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
@@ -387,11 +410,11 @@ function buildCompactMetricValueNode(value: string) {
         if (part.includes("→") || part.includes("->") || part.includes("â†’") || part.includes("Ã¢â€ â€™")) {
           const arrowParts = part.split(/(?:→|->|â†’|Ã¢â€ â€™)/);
           return (
-            <span key={`${part}-${index}`} className="min-w-0">
+            <span key={`${part}-${index}`} className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
               {arrowParts.map((arrowPart, arrowIndex) => (
                 <Fragment key={`${arrowPart}-${arrowIndex}`}>
                   {arrowIndex > 0 ? <span className={cn("px-1", arrowToneClassName)}>&rarr;</span> : null}
-                  {arrowPart ? <span className="whitespace-nowrap">{arrowPart.trim()}</span> : null}
+                  {arrowPart ? <span className="min-w-0 whitespace-nowrap">{arrowPart.trim()}</span> : null}
                 </Fragment>
               ))}
             </span>
@@ -534,17 +557,45 @@ function ExerciseInfoOverviewMedia({
 
 function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
   const performances = getExerciseInfoProgressState(stats).performances;
-  const performanceMetrics = performances.map((entry) => ({
+  const latestLabel = stats.recent.lastPerformedAt ? formatDateShort(stats.recent.lastPerformedAt) : null;
+  const latestValue = normalizeExerciseInfoComparisonValue(stats.recent.lastSummary);
+  let removedLatestEcho = false;
+  const curatedPerformances = performances.filter((entry) => {
+    if (
+      removedLatestEcho
+      || !latestLabel
+      || !latestValue
+      || entry.label !== latestLabel
+      || normalizeExerciseInfoComparisonValue(entry.value) !== latestValue
+    ) {
+      return true;
+    }
+
+    removedLatestEcho = true;
+    return false;
+  });
+  const performanceMetrics = curatedPerformances.map((entry) => ({
     label: entry.label,
     value: entry.value,
     timeframe: entry.context ?? null,
+  }));
+  const recentItems = curatedPerformances.map((entry, index) => ({
+    id: `recent-history-${entry.label}-${index}`,
+    primary: entry.value,
+    meta: [entry.label, entry.context].filter((part): part is string => Boolean(part?.trim())).join(" | "),
+    tagLabels: index === 0 ? ["LAST"] : null,
+    layout: "single-column" as const,
   }));
 
   if (performances.length === 0) {
     return <p className={appTokens.detailBodyMutedText}>No recent performances logged yet.</p>;
   }
 
-  if (shouldUseCompactRecentHistoryStrip(performances) && !hasPromotedMetricValue(performanceMetrics)) {
+  if (curatedPerformances.length === 0) {
+    return <p className={appTokens.detailBodyMutedText}>The latest result is already reflected in Stats above.</p>;
+  }
+
+  if (shouldUseCompactRecentHistoryStrip(curatedPerformances) && !hasPromotedMetricValue(performanceMetrics)) {
     return (
       <ExerciseSurfaceMetricGrid
         items={performanceMetrics}
@@ -554,31 +605,10 @@ function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStat
   }
 
   return (
-    <div className="space-y-2">
-      {performances.map((entry) => (
-        <div
-          key={`${entry.label}-${entry.value}`}
-          className={cn(appTokens.detailHistoryRow, "px-2.5 py-2")}
-        >
-          <EyebrowText as="p" className="min-w-0 px-px pt-px text-[10px] text-[rgb(var(--text-muted)/0.88)]">
-            <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              <span>{entry.label}</span>
-              {entry.context ? (
-                <>
-                  <SignatureDot />
-                  <span>{entry.context}</span>
-                </>
-              ) : null}
-            </span>
-          </EyebrowText>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <AccentDotSeparatedText
-              text={entry.value}
-              className={cn(appTokens.detailBodyText, "inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[1.35] text-[rgb(var(--text-primary)/0.95)]")}
-            />
-          </div>
-        </div>
-      ))}
+    <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+      <div className="w-full">
+        <DetailSectionItems items={recentItems} className="pl-0.5" />
+      </div>
     </div>
   );
 }
@@ -616,7 +646,7 @@ function ExerciseInfoProgressReview({
       .filter((section): section is ExerciseInfoReviewSection => Boolean(section))
       .map((section) => ({
         label: section.title,
-        value: section.items[0]!,
+        value: getDetailSectionItemText(section.items[0]!),
       }));
 
     return (
@@ -635,14 +665,14 @@ function ExerciseInfoProgressReview({
   }
 
   if (!progressSection) {
-    const summaryMetrics = [
-      ...metrics,
-      ...stackedSections.map((section) => ({
-        label: section.title,
-        value: section.items[0]!,
-      })),
-      ...(prSection && prSection.items.length === 1 ? [{ label: prSection.title, value: prSection.items[0]! }] : []),
-    ];
+      const summaryMetrics = [
+        ...metrics,
+        ...stackedSections.map((section) => ({
+          label: section.title,
+          value: getDetailSectionItemText(section.items[0]!),
+        })),
+        ...(prSection && prSection.items.length === 1 ? [{ label: prSection.title, value: getDetailSectionItemText(prSection.items[0]!) }] : []),
+      ];
     const combinedMetrics = filterUniqueMetricItems(summaryMetrics);
 
     return (
@@ -681,9 +711,9 @@ function ExerciseInfoProgressReview({
           ...metrics,
           ...stackedSections.map((section) => ({
             label: section.title,
-            value: section.items[0]!,
+            value: getDetailSectionItemText(section.items[0]!),
           })),
-          ...(prSection && prSection.items.length === 1 ? [{ label: prSection.title, value: prSection.items[0]! }] : []),
+          ...(prSection && prSection.items.length === 1 ? [{ label: prSection.title, value: getDetailSectionItemText(prSection.items[0]!) }] : []),
         ]);
 
         return summaryMetrics.length > 0 ? (
@@ -721,161 +751,6 @@ function ExerciseInfoProgressReview({
   );
 }
 
-function buildProgressionChangeMixMetrics(args: {
-  promotionCount: number;
-  deloadCount: number;
-  manualChangeCount: number;
-  revertCount: number;
-}) {
-  return [
-    {
-      label: "Promotions",
-      value: String(args.promotionCount),
-      valueTone: args.promotionCount > 0 ? "success" : "muted",
-    },
-    {
-      label: "Regressed",
-      value: String(args.deloadCount),
-      valueTone: args.deloadCount > 0 ? "danger" : "muted",
-    },
-    {
-      label: "Manual",
-      value: String(args.manualChangeCount),
-      valueTone: args.manualChangeCount > 0 ? "default" : "muted",
-    },
-    {
-      label: "Reverted",
-      value: String(args.revertCount),
-      valueTone: args.revertCount > 0 ? "default" : "muted",
-    },
-  ] satisfies MetricDatum[];
-}
-
-function ExerciseInfoProgressionActivityPanel({
-  progression,
-  analyticsScope,
-}: {
-  progression: ExerciseProgressionLifelineSummary;
-  analyticsScope: ExerciseInfoAnalyticsScope;
-}) {
-  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
-  const activityDays = progression.activityDays ?? [];
-
-  useEffect(() => {
-    setSelectedDayId(null);
-  }, [analyticsScope, progression.latestChangeAt]);
-
-  const selectedDay = activityDays.find((day) => day.id === selectedDayId) ?? null;
-  const maxEventCount = activityDays.reduce((current, day) => Math.max(current, day.eventCount), 0);
-  const changeMixMetrics = buildProgressionChangeMixMetrics({
-    promotionCount: selectedDay?.promotionCount ?? progression.promotionCount,
-    deloadCount: selectedDay?.deloadCount ?? progression.deloadCount,
-    manualChangeCount: selectedDay?.manualChangeCount ?? progression.manualChangeCount,
-    revertCount: selectedDay?.revertCount ?? progression.revertCount,
-  });
-  const activityTitle = analyticsScope === "current_cycle" ? "Cycle Activity" : "Progression Activity";
-  const changeTitle = selectedDay ? `${selectedDay.label} Changes` : "Changes";
-  const selectedDaySummaryParts = selectedDay
-    ? [selectedDay.detail, selectedDay.valueLabel].filter((part): part is string => Boolean(part?.trim()))
-    : [];
-
-  if (activityDays.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="space-y-2 px-1 pb-1">
-      <MetricAccentBar variant="thin" className="mx-1" />
-      <div className="space-y-2">
-        <div className="relative min-h-[1.9rem] px-2">
-          <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0 pt-0.5")}>
-            {activityTitle}
-          </p>
-        </div>
-        {selectedDay ? (
-          <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-            <div className="space-y-2.5">
-              <div className="relative min-h-[1.9rem] px-0.5">
-                <PillButton
-                  active
-                  type="button"
-                  onClick={() => setSelectedDayId(null)}
-                  className="absolute left-0 top-1/2 min-h-[1.7rem] -translate-y-1/2 px-2 py-[3px] text-[9px] tracking-[0.14em]"
-                >
-                  <ChevronRightIcon className="h-3.5 w-3.5 rotate-180 text-[rgb(var(--accent-divider-rgb)/0.96)]" />
-                  Back
-                </PillButton>
-                <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-8 pt-0.5 text-center")}>
-                  {selectedDay.label}
-                </p>
-              </div>
-              {selectedDaySummaryParts.length > 0 ? (
-                <div className="px-0.5">
-                  {renderMetricMetaLine(selectedDaySummaryParts)}
-                </div>
-              ) : null}
-              <DetailSectionItems items={selectedDay.items} className="pl-0.5" />
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {activityDays.map((day) => {
-              const widthPercent = maxEventCount > 0
-                ? Math.max((day.eventCount / maxEventCount) * 100, day.eventCount > 0 ? 8 : 0)
-                : 0;
-
-              return (
-                <button
-                  key={day.id}
-                  type="button"
-                  onClick={() => setSelectedDayId(day.id)}
-                  className="w-full rounded-[1rem] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-3.5 py-3 text-left transition-colors hover:border-[rgb(var(--accent-strong)/0.45)] hover:bg-[rgb(var(--surface-2-rgb)/0.22)]"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 space-y-0.5">
-                        <p className="truncate text-sm font-semibold text-[rgb(var(--text-primary)/0.95)]">
-                          {day.label}
-                        </p>
-                        {day.detail ? (
-                          <p className="text-[0.75rem] leading-5 text-[rgb(var(--text-muted)/0.88)]">
-                            {day.detail}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <p className="text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.86)]">
-                          {day.valueLabel}
-                        </p>
-                        <ChevronRightIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.92)]" />
-                      </div>
-                    </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-[rgb(var(--surface-3-rgb)/0.42)]">
-                      <div
-                        className="h-full rounded-full bg-[rgb(var(--accent-strong)/0.72)] transition-[width] duration-300"
-                        style={{ width: `${widthPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      <div className="space-y-1.5">
-        <p className={exerciseInfoSubsectionHeadingClassName}>
-          {changeTitle}
-        </p>
-        <ExerciseSurfaceMetricGrid
-          items={changeMixMetrics}
-          {...getExerciseInfoMetricGridProps(changeMixMetrics)}
-        />
-      </div>
-    </div>
-  );
-}
-
 function ExerciseInfoProgressionPanel({
   progression,
   excludedMetricKeys = [],
@@ -890,8 +765,6 @@ function ExerciseInfoProgressionPanel({
   onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
 }) {
   const usedMetricKeys = new Set(excludedMetricKeys.map((key) => normalizeMetricKey(key)));
-  const isCycleScope = analyticsScope === "current_cycle";
-  const recentWindowDays = progression.recentWindowDays ?? 30;
   const currentTargetValue = compactProgressionMetricValue(progression.currentTargetLabel);
   const startedTargetValue = compactProgressionMetricValue(progression.firstTargetLabel);
   const startedMatchesCurrent = Boolean(startedTargetValue)
@@ -914,15 +787,13 @@ function ExerciseInfoProgressionPanel({
     progressionMetricCandidates.filter((item): item is MetricDatum => item !== null),
     usedMetricKeys,
   ).slice(0, 4);
-  const sections = [
-    progression.latestChangeSummary ? { title: "Latest Change", items: [progression.latestChangeSummary] } : null,
-    progression.recentFocusSummary ? { title: "Recent Focus", items: [progression.recentFocusSummary] } : null,
-    progression.lastPromotionAt && !shouldHideLastPromotion
-      ? { title: "Last Promotion", items: [formatDateShort(progression.lastPromotionAt)] }
-      : null,
-  ].filter((section): section is ExerciseInfoReviewSection => Boolean(section));
-
-  if (metrics.length === 0 && sections.length === 0 && (progression.activityDays?.length ?? 0) === 0) {
+  if (
+    metrics.length === 0
+    && (progression.activityDays?.length ?? 0) === 0
+    && !progression.latestChangeSummary
+    && !progression.recentActivitySummary
+    && !progression.lastPromotionAt
+  ) {
     return null;
   }
 
@@ -936,14 +807,19 @@ function ExerciseInfoProgressionPanel({
         onScopeClick={onScopeClick}
       />
       {metrics.length > 0 ? <ExerciseSurfaceMetricGrid items={metrics} {...getExerciseInfoMetricGridProps(metrics, "progression")} /> : null}
-      {sections.length > 0 ? (
-        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-          <DetailSectionBlocks sections={sections} titleClassName={exerciseInfoSubsectionTitleClassName} />
-        </div>
-      ) : null}
-      <ExerciseInfoProgressionActivityPanel
+      <ExerciseProgressionActivityPanel
         progression={progression}
-        analyticsScope={analyticsScope}
+        activityTitle={analyticsScope === "current_cycle" ? "Cycle Activity" : "Progression Activity"}
+        headingClassName={cn(exerciseInfoSubsectionHeadingClassName, "px-0 pt-0.5")}
+        subsectionTitleClassName={exerciseInfoSubsectionTitleClassName}
+        renderMetaLine={renderMetricMetaLine}
+        metricGridProps={getExerciseInfoMetricGridProps([
+          { label: "Promotions", value: "0" },
+          { label: "Regressed", value: "0" },
+          { label: "Manual", value: "0" },
+          { label: "Reverted", value: "0" },
+        ])}
+        topDividerClassName="mx-1"
       />
     </AppPanel>
   );
@@ -1244,6 +1120,13 @@ export function ExerciseInfoSheet({
   const prHistorySection = prHistoryState.reviewSections.find((section) => section.title === "PR History") ?? null;
   const progression = progressionSectionState.stats?.progression ?? null;
   const derivedProgression = progressionSectionState.stats?.progressionDerived ?? null;
+  const hasPerformancePanel = !performanceSectionState.loading && performanceMetrics.length > 0;
+  const hasProgressPanel = progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0;
+  const hasProgressionLoadingPanel = progressionSectionState.loading;
+  const hasProgressionPanel = Boolean(progression);
+  const hasProgressionEmptyPanel = !progressionSectionState.loading && !progression && Boolean(progressionSectionState.stats);
+  const hasPrHistoryPanel = !prHistorySectionState.loading && Boolean(prHistorySection);
+  const hasRecentHistoryPanel = recentHistorySectionState.loading || Boolean(recentHistorySectionState.stats);
 
   const sheetBody = (
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
@@ -1266,6 +1149,36 @@ export function ExerciseInfoSheet({
                     <AppPanel className={cn(appTokens.detailSection, "border-0 bg-transparent p-0 shadow-none")}>
                       <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
                     </AppPanel>
+
+                    {hasPrHistoryPanel ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+                        <ExerciseInfoSectionHeader
+                          title="PR History"
+                          section="pr-history"
+                          analyticsScope={prHistorySectionState.scope}
+                          activeRoutineTitle={activeRoutineTitle}
+                          onScopeClick={handleSectionScopeToggle}
+                        />
+                        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+                          <div className="w-full">
+                            <DetailSectionItems items={prHistorySection!.items} className="pl-0.5" />
+                          </div>
+                        </div>
+                      </AppPanel>
+                    ) : null}
+
+                    {hasRecentHistoryPanel ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
+                        <ExerciseInfoSectionHeader
+                          title="Recent History"
+                          section="recent-history"
+                          analyticsScope={recentHistorySectionState.scope}
+                          activeRoutineTitle={activeRoutineTitle}
+                          onScopeClick={handleSectionScopeToggle}
+                        />
+                        {recentHistorySectionState.loading ? <ExerciseInfoLoadingRows /> : recentHistorySectionState.stats ? <ExerciseInfoRecentHistoryList stats={recentHistorySectionState.stats} /> : null}
+                      </AppPanel>
+                    ) : null}
 
                     <AppPanel className={cn(appTokens.detailSection, "p-2.5")}>
                       <div
@@ -1295,37 +1208,7 @@ export function ExerciseInfoSheet({
                       </div>
                     </AppPanel>
 
-                    {!prHistorySectionState.loading && prHistorySection ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="PR History"
-                          section="pr-history"
-                          analyticsScope={prHistorySectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                        />
-                        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-                          <div className="w-full">
-                            <DetailSectionItems items={prHistorySection.items} className="pl-0.5" />
-                          </div>
-                        </div>
-                      </AppPanel>
-                    ) : null}
-
-                    {recentHistorySectionState.loading || recentHistorySectionState.stats ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="Recent History"
-                          section="recent-history"
-                          analyticsScope={recentHistorySectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                        />
-                        {recentHistorySectionState.loading ? <ExerciseInfoLoadingRows /> : recentHistorySectionState.stats ? <ExerciseInfoRecentHistoryList stats={recentHistorySectionState.stats} /> : null}
-                      </AppPanel>
-                    ) : null}
-
-                    {!performanceSectionState.loading && performanceMetrics.length > 0 ? (
+                    {hasPerformancePanel ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
                         <ExerciseInfoSectionHeader
                           title="Performance"
@@ -1338,7 +1221,7 @@ export function ExerciseInfoSheet({
                       </AppPanel>
                     ) : null}
 
-                    {progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0 ? (
+                    {hasProgressPanel ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
                         <ExerciseInfoSectionHeader
                           title="Progress"
@@ -1351,7 +1234,7 @@ export function ExerciseInfoSheet({
                       </AppPanel>
                     ) : null}
 
-                    {progressionSectionState.loading ? (
+                    {hasProgressionLoadingPanel ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
                         <ExerciseInfoSectionHeader
                           title="Progression"
@@ -1362,15 +1245,15 @@ export function ExerciseInfoSheet({
                         />
                         <ExerciseInfoLoadingRows />
                       </AppPanel>
-                    ) : progression ? (
+                    ) : hasProgressionPanel ? (
                       <ExerciseInfoProgressionPanel
-                        progression={progression}
+                        progression={progression!}
                         excludedMetricKeys={[...usedMetricKeys]}
                         analyticsScope={progressionSectionState.scope}
                         activeRoutineTitle={activeRoutineTitle}
                         onScopeClick={handleSectionScopeToggle}
                       />
-                    ) : progressionSectionState.stats ? (
+                    ) : hasProgressionEmptyPanel ? (
                       <ExerciseInfoProgressionEmptyPanel
                         analyticsScope={progressionSectionState.scope}
                         activeRoutineTitle={activeRoutineTitle}
@@ -1378,6 +1261,7 @@ export function ExerciseInfoSheet({
                         onScopeClick={handleSectionScopeToggle}
                       />
                     ) : null}
+
                   </>
                 )}
               </div>

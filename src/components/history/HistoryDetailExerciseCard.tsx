@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCard";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
@@ -28,6 +28,7 @@ type HistoryDetailExerciseCardProps = {
   summaryLabel: string;
   metadata?: ReactNode;
   badgeText?: string;
+  badgeItems?: string[];
   metrics?: MetricDatum[];
   density?: "compact" | "detailed";
   tone?: CardSemanticTone;
@@ -35,7 +36,7 @@ type HistoryDetailExerciseCardProps = {
   mediaClassName?: string;
   shellStyle?: CSSProperties;
   expanded: boolean;
-  onPress: () => void;
+  onPress?: () => void;
   showLeadingVisual?: boolean;
 };
 
@@ -45,6 +46,7 @@ export function HistoryDetailExerciseCard({
   summaryLabel,
   metadata,
   badgeText,
+  badgeItems = [],
   metrics,
   density = "compact",
   tone = "neutral",
@@ -55,18 +57,41 @@ export function HistoryDetailExerciseCard({
   onPress,
   showLeadingVisual = true,
 }: HistoryDetailExerciseCardProps) {
+  const isInteractive = typeof onPress === "function";
   const hasMetrics = density === "detailed" && (metrics?.length ?? 0) > 0;
   const shouldRenderTopAccentBar = density === "detailed" ? hasMetrics : expanded;
-  const resolvedMetaBadge = density === "compact" ? null : (badgeText ? renderMetaBadge(badgeText) : null);
-  const compactTrailingMeta = density === "compact" && badgeText
-    ? <SignatureMetaTag className="text-[10.5px] tracking-[0.14em]">{badgeText}</SignatureMetaTag>
+  const rotatingBadgeItems = useMemo(
+    () => (badgeItems.length > 0 ? badgeItems : (badgeText ? [badgeText] : [])),
+    [badgeItems, badgeText],
+  );
+  const [badgeIndex, setBadgeIndex] = useState(0);
+
+  useEffect(() => {
+    if (rotatingBadgeItems.length <= 1) {
+      setBadgeIndex(0);
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setBadgeIndex((current) => (current + 1) % rotatingBadgeItems.length);
+    }, 3200);
+
+    return () => window.clearInterval(timer);
+  }, [rotatingBadgeItems]);
+
+  const activeBadge = rotatingBadgeItems[badgeIndex] ?? rotatingBadgeItems[0] ?? null;
+  const resolvedMetaBadge = density === "compact" ? null : (activeBadge ? renderMetaBadge(activeBadge) : null);
+  const compactTrailingMeta = density === "compact" && activeBadge
+    ? <SignatureMetaTag className="text-[10.5px] tracking-[0.14em]">{activeBadge}</SignatureMetaTag>
     : null;
   const resolvedSummary = density === "compact" && summaryLabel.trim().length > 0
     ? `${summaryLabel} | ${summary}`
     : summary;
   const topAccentBar = shouldRenderTopAccentBar ? <MetricAccentBar variant="thin" /> : null;
   const hasSupportingStack = Boolean(metadata) || hasMetrics;
-  const resolvedRightIcon = density === "compact" && compactTrailingMeta
+  const resolvedRightIcon = !isInteractive
+    ? compactTrailingMeta
+    : density === "compact" && compactTrailingMeta
     ? (
         <div className="flex items-center justify-end gap-2">
           {compactTrailingMeta}
@@ -91,7 +116,7 @@ export function HistoryDetailExerciseCard({
         className={cn("w-full", appTokens.historyExerciseCardShell, className)}
         shellStyle={shellStyle}
         rightIcon={resolvedRightIcon}
-        variant="interactive"
+        variant={isInteractive ? "interactive" : "compact"}
         density={density}
         state={expanded ? "selected" : "default"}
         semanticTone={tone}

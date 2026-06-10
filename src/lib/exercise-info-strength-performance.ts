@@ -2,7 +2,7 @@ import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { ExerciseAnalyticsFamily } from "@/lib/exercise-analytics-family";
 import { positive } from "@/lib/exercise-stats-formatting";
 import { formatWeight } from "@/lib/formatting";
-import { buildBodyweightRepMetric, formatEstimatedOneRepMax } from "@/lib/workout-card-view-models";
+import { formatEstimatedOneRepMax } from "@/lib/workout-card-view-models";
 
 export type StrengthPerformanceMetricRow = {
   performedAt: string;
@@ -35,14 +35,6 @@ export function buildStrengthPerformanceMetrics(args: {
       metrics.push({
         label: "Added Load",
         value: formatWeight(args.bestWeight, args.unit) ?? `${Math.round(positive(args.bestWeight))}`,
-      });
-    }
-
-    const recentReps = buildBodyweightRepMetric(args.rows, 28);
-    if (recentReps) {
-      metrics.push({
-        label: "28 Day Reps",
-        value: recentReps,
       });
     }
 

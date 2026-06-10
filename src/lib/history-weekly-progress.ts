@@ -6,6 +6,8 @@ import {
   type ProgressionAnalyticsEvent,
 } from "@/lib/progression-event-analytics";
 import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
+import type { ProgressionSummaryActivityBucket } from "@/lib/progression-summary-activity";
+import { buildProgressionSummaryActivityBuckets } from "@/lib/progression-summary-activity";
 import { buildProgressionSummaryChartSections } from "@/lib/progression-summary-charts";
 
 export type WeeklyProgressExerciseMeta = {
@@ -70,6 +72,7 @@ export type WeeklyProgressSummary = {
     deloadCount: number;
     manualChangeCount: number;
     chartSections: ProgressionHistoryChartSection[];
+    activityBuckets: ProgressionSummaryActivityBucket[];
     topProgressedExerciseNames: string[];
     topDeloadExerciseNames: string[];
     topAdjustedExerciseNames: string[];
@@ -456,6 +459,19 @@ export function buildWeeklyProgressSummary({
       ),
       timeZone: safeTimezone,
       activityGranularity: "day",
+    }),
+    activityBuckets: buildProgressionSummaryActivityBuckets({
+      events: currentWeekProgressionEvents,
+      exerciseNameById: new Map(
+        [...exerciseMetaById.entries()].map(([exerciseId, meta]) => [exerciseId, meta.name]),
+      ),
+      routineTitleById: new Map(
+        currentWeekSessions
+          .map((session) => [session.routineId ?? "", session.routineTitle] as const)
+          .filter(([routineId]) => Boolean(routineId)),
+      ),
+      granularity: "day",
+      limit: 7,
     }),
     topProgressedExerciseNames: progressionTopProgressedExerciseNames,
     topDeloadExerciseNames: progressionTopDeloadExerciseNames,

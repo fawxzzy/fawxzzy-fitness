@@ -79,7 +79,7 @@ function formatSetEffort(set: WorkoutRecapSetInput) {
     return `${weight} x ${reps.replace(" reps", "")}`;
   }
 
-  return [reps, duration, distance, calories].filter(Boolean).join(" · ") || null;
+  return [reps, duration, distance, calories].filter(Boolean).join(" | ") || null;
 }
 
 function scoreSet(set: WorkoutRecapSetInput) {
@@ -114,7 +114,7 @@ function buildShareText(args: {
   topEfforts: Array<{ exerciseName: string; value: string }>;
   prMoments: string[];
 }) {
-  const metricLine = args.metrics.map((metric) => `${metric.label}: ${metric.value}`).join(" · ");
+  const metricLine = args.metrics.map((metric) => `${metric.label}: ${metric.value}`).join(" | ");
   const effortLines = args.topEfforts.map((effort) => `- ${effort.exerciseName}: ${effort.value}`);
   const prLine = args.prMoments.length > 0 ? `PRs: ${args.prMoments.join(", ")}` : null;
 
@@ -143,7 +143,7 @@ export function buildWorkoutRecapArtifact(args: {
   ].filter((metric): metric is { label: string; value: string } => metric !== null);
   const topEfforts = buildTopEfforts(args.exercises);
   const prMoments = summary.prExerciseNames ?? [];
-  const day = summary.dayTitle ? ` · ${summary.dayTitle}` : "";
+  const day = summary.dayTitle ? ` | ${summary.dayTitle}` : "";
   const title = `${summary.routineTitle}${day} recap`;
 
   return {

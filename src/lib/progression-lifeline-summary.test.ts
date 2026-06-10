@@ -84,9 +84,12 @@ test("buildExerciseProgressionLifelineSummary formats the target path", () => {
     "May 1:1",
     "May 10:1",
   ]);
-  assert.deepEqual(summary?.activityDays?.[1]?.items, [
-    "Promotion | Weight increased | 135 lbs → 140 lbs",
-  ]);
+  assert.deepEqual(
+    summary?.activityDays?.[1]?.items.map((item) => `${item.primary}|${item.value ?? ""}|${item.signals ?? ""}`),
+    [
+      "Weight|135 lbs → 140 lbs|promotion",
+    ],
+  );
 });
 
 test("buildExerciseProgressionLifelineSummary condenses shared cardio target segments in latest change", () => {

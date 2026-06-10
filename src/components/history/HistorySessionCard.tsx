@@ -7,7 +7,7 @@ import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCar
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
-import { DetailSectionBlock, DetailSectionBlocks, THIN_SECTION_TOP_DIVIDER_CLASS_NAME } from "@/components/ui/DetailSectionList";
+import { DetailSectionBlock, DetailSectionBlocks, THIN_SECTION_TOP_DIVIDER_CLASS_NAME, type DetailSectionListSection, type DetailSectionSignalMap } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, type MetricDatum, MetricGrid, SurfaceMetricGrid } from "@/components/ui/MetricItem";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -206,16 +206,28 @@ function renderProgressionSummary(session: SessionSummary) {
   );
 }
 
-export type HistorySessionDetailSection = {
-  title: string;
-  items: string[];
-};
+export type HistorySessionDetailSection = DetailSectionListSection;
 
 function renderHistorySessionDetailSections(sections: HistorySessionDetailSection[]) {
   return <DetailSectionBlocks sections={sections} />;
 }
 
 function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExerciseNames: string[]) {
+  const prExerciseNameSet = new Set(prExerciseNames.map((name) => name.trim()).filter(Boolean));
+  const recapItemSignals: DetailSectionSignalMap | undefined = session.exerciseNames?.some((name) => prExerciseNameSet.has(name.trim()))
+    ? Object.fromEntries(
+        (session.exerciseNames ?? [])
+          .filter((name) => prExerciseNameSet.has(name.trim()))
+          .map((name) => [name, "pr"]),
+      )
+    : undefined;
+  const bestItem = session.bestLift
+    ? `${session.bestLift.exerciseName} | ${session.bestLift.display}`
+    : "No best lift recorded in this session.";
+  const bestItemSignals: DetailSectionSignalMap | undefined = session.bestLift && prExerciseNameSet.has(session.bestLift.exerciseName.trim())
+    ? { [bestItem]: "pr" }
+    : undefined;
+
   return [
     ...(
       session.progressionSummary?.eventCount
@@ -228,6 +240,7 @@ function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExe
                 : null,
               session.progressionSummary.lastPromotionAt ? `Last promotion ${formatDateShort(session.progressionSummary.lastPromotionAt)}` : null,
             ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index),
+            sectionSignal: session.progressionSummary.promotionCount > 0 ? "promotion" : undefined,
           }]
         : []
     ),
@@ -235,6 +248,7 @@ function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExe
       ? [{
           title: "Recap",
           items: session.exerciseNames,
+          itemSignals: recapItemSignals,
         }]
       : []),
     {
@@ -242,12 +256,12 @@ function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExe
       items: prExerciseNames.length > 0
         ? prExerciseNames
         : ["No PRs recorded in this session."],
+      sectionSignal: prExerciseNames.length > 0 ? "pr" : undefined,
     },
     {
       title: "Best",
-      items: session.bestLift
-        ? [`${session.bestLift.exerciseName} | ${session.bestLift.display}`]
-        : ["No best lift recorded in this session."],
+      items: [bestItem],
+      itemSignals: bestItemSignals,
     },
   ];
 }

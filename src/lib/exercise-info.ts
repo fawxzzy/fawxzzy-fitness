@@ -1144,16 +1144,6 @@ function buildCardioPerformanceMetrics(args: {
   }>;
 }) {
   const metrics: MetricDatum[] = [];
-  const weeklyDistance = buildCardioRecentTotal({ rows: args.rows, recentDays: 7 });
-  const weeklyDurationSeconds = args.rows.reduce((sum, row) => sum + positive(row.durationSeconds), 0);
-  const weeklyDuration = formatDurationShort(weeklyDurationSeconds);
-  const weeklyCalories = args.rows.reduce((sum, row) => sum + positive(row.calories), 0);
-  const weeklySteps = args.family === "cardio-steps"
-    ? formatDistance(
-        args.rows.reduce((sum, row) => sum + (row.distanceUnit === "steps" ? positive(row.distance) : 0), 0),
-        "steps",
-      )
-    : null;
 
   if (args.family === "timed-hold") {
     return buildTimedHoldPerformanceMetrics({
@@ -1172,18 +1162,6 @@ function buildCardioPerformanceMetrics(args: {
         value: formatCalories(bestCalories) ?? `${Math.round(bestCalories)}`,
       });
     }
-    if (weeklyCalories > 0) {
-      metrics.push({
-        label: "7 Day Calories",
-        value: formatCalories(weeklyCalories) ?? `${Math.round(weeklyCalories)}`,
-      });
-    }
-    if (weeklyDuration) {
-      metrics.push({
-        label: "7 Day Time",
-        value: weeklyDuration,
-      });
-    }
     return metrics.slice(0, 4);
   }
 
@@ -1200,12 +1178,6 @@ function buildCardioPerformanceMetrics(args: {
       metrics.push({
         label: "Longest Time",
         value: longestDuration,
-      });
-    }
-    if (weeklySteps) {
-      metrics.push({
-        label: "7 Day Steps",
-        value: weeklySteps,
       });
     }
     return metrics.slice(0, 4);

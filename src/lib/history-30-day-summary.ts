@@ -7,6 +7,8 @@ import {
 } from "@/lib/progression-event-analytics";
 import { getWeeklyProgressDayKey, shiftWeeklyProgressDay, type WeeklyProgressTrendDirection } from "@/lib/history-weekly-progress";
 import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
+import type { ProgressionSummaryActivityBucket } from "@/lib/progression-summary-activity";
+import { buildProgressionSummaryActivityBuckets } from "@/lib/progression-summary-activity";
 import { buildProgressionSummaryChartSections } from "@/lib/progression-summary-charts";
 
 export type ThirtyDayProgressionSummary = {
@@ -16,6 +18,7 @@ export type ThirtyDayProgressionSummary = {
   manualChangeCount: number;
   revertCount: number;
   chartSections: ProgressionHistoryChartSection[];
+  activityBuckets: ProgressionSummaryActivityBucket[];
   topProgressedExerciseNames: string[];
   topDeloadExerciseNames: string[];
   topAdjustedExerciseNames: string[];
@@ -153,6 +156,7 @@ function resolveMostFrequentExerciseName(sessions: SessionSummary[], excludedNam
 function buildHistoryProgressionSummary(args: {
   events: ProgressionAnalyticsEvent[];
   exerciseNameById?: Map<string, string>;
+  routineTitleById?: Map<string, string>;
   timezone?: string | null;
 }) {
   const analytics = summarizeProgressionEventAnalytics(args.events);
@@ -234,6 +238,13 @@ function buildHistoryProgressionSummary(args: {
       exerciseNameById: args.exerciseNameById,
       timeZone: args.timezone,
       activityGranularity: "week",
+    }),
+    activityBuckets: buildProgressionSummaryActivityBuckets({
+      events: args.events,
+      exerciseNameById: args.exerciseNameById,
+      routineTitleById: args.routineTitleById,
+      granularity: "week",
+      limit: 6,
     }),
     topProgressedExerciseNames,
     topDeloadExerciseNames,
@@ -368,6 +379,11 @@ export function buildThirtyDayHistorySummary({
   const progressionSummary = buildHistoryProgressionSummary({
     events: progressionEvents,
     exerciseNameById,
+    routineTitleById: new Map(
+      sessions
+        .map((session) => [session.routineId ?? "", session.routineTitle] as const)
+        .filter(([routineId]) => Boolean(routineId)),
+    ),
     timezone: safeTimezone,
   });
   const excludedStalledNames = new Set<string>([

@@ -264,3 +264,21 @@ test("history detail stays on explicit history wrappers instead of raw generic c
   assert.doesNotMatch(source, /<SessionSummaryCard/);
   assert.doesNotMatch(source, /<StandardExerciseRow/);
 });
+
+test("history detail progression uses the shared activity and chart lane", () => {
+  const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
+
+  assert.match(source, /ExerciseProgressionActivityPanel/);
+  assert.match(source, /headingClassName=\{FOCUSED_SUBSECTION_HEADING_CLASS_NAME\}/);
+  assert.doesNotMatch(source, /timelineSummary/);
+  assert.doesNotMatch(source, /Progression Graphs/);
+});
+
+test("history detail compact exercise rows keep the session-native summary rhythm", () => {
+  const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
+
+  assert.match(source, /summaryLabel=\{bestSet \? "Top Set" : "Session"\}/);
+  assert.match(source, /metadata=\{renderMetaTags\(collapsedCardBadgeItems\.signalItems\)\}/);
+  assert.match(source, /buildCollapsedExerciseCardBadgeItems/);
+  assert.match(source, /badgeItems=\{\[collapsedCardBadgeItems\.countLabel\]\}/);
+});

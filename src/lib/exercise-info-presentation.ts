@@ -1,7 +1,11 @@
+import type { DetailSectionListItemInput, DetailSectionSignalMap, DetailSectionSignalTone } from "@/components/ui/DetailSectionList";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 export type ExerciseInfoReviewSection = {
   title: string;
-  items: string[];
+  items: DetailSectionListItemInput[];
+  sectionSignal?: DetailSectionSignalTone;
+  itemSignals?: DetailSectionSignalMap;
+  legendSignals?: DetailSectionSignalTone[];
 };
 
 function dedupeMetricList(items: MetricDatum[]) {
@@ -102,7 +106,13 @@ export function buildExerciseInfoReviewSections(args: {
   prItems?: string[];
 }) {
   const prItems = args.prItems && args.prItems.length > 0
-    ? groupPrHistoryItems(args.prItems)
+    ? groupPrHistoryItems(args.prItems).map((item, index) => ({
+        id: `pr-history-${index}`,
+        primary: item,
+        signals: "pr" satisfies DetailSectionSignalTone,
+        tagLabels: ["PR"],
+        layout: "single-column" as const,
+      }))
     : [];
 
   return [
@@ -110,6 +120,8 @@ export function buildExerciseInfoReviewSections(args: {
       ? [{
           title: "PR History",
           items: prItems,
+          sectionSignal: "pr",
+          legendSignals: ["pr"],
         } satisfies ExerciseInfoReviewSection]
       : []),
   ] satisfies ExerciseInfoReviewSection[];

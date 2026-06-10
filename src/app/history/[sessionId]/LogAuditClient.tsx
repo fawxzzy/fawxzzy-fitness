@@ -12,6 +12,7 @@ import {
   updateLogExerciseSetAction,
   updateLogMetaAction,
 } from "@/app/actions/history";
+import { ExerciseProgressionActivityPanel } from "@/components/ExerciseProgressionActivityPanel";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -25,7 +26,6 @@ import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBl
 import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
-import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
@@ -34,7 +34,9 @@ import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSumm
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HistoryDetailHeader, HistorySection } from "@/components/history/HistoryShared";
+import { DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem } from "@/components/ui/DetailSectionList";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { PillButton } from "@/components/ui/Pill";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type MetricDatum } from "@/components/ui/MetricItem";
@@ -82,6 +84,8 @@ type AuditExercise = {
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
+  target_sets_min?: number | null;
+  target_sets_max?: number | null;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   sets: AuditSet[];
 };
@@ -99,6 +103,10 @@ const DELETE_ACTION_BUTTON_CLASS_NAME = getBottomActionButtonClassName({
 
 const SESSION_HEADER_TITLE_CLASS_NAME = "text-[0.79rem] font-semibold leading-[1.12] tracking-[-0.01em]";
 const SET_CARD_SHELL_CLASS_NAME = "w-full overflow-hidden rounded-[1.05rem] border-0 bg-[rgb(var(--surface-1-rgb)/0.88)] bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0] shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0] [--glass-shadow:none]";
+const FOCUSED_PANEL_TITLE_CLASS_NAME = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
+const FOCUSED_PANEL_TITLE_STYLE = { color: "rgb(var(--accent-divider-rgb) / 0.96)" } as const;
+const FOCUSED_SUBSECTION_HEADING_CLASS_NAME = "px-2 pt-0.5 text-center text-[0.82rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)]";
+const FOCUSED_SUBSECTION_TITLE_CLASS_NAME = "text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 
 function formatWeekdayShort(value: string) {
   const date = new Date(value);
@@ -246,7 +254,7 @@ function buildFocusedExerciseSessionSummary(args: {
   sets: EditableSet[];
   defaultUnit: string | null;
 }) {
-  const meaningfulSetCount = args.sets.filter(hasMeaningfulSetData).length;
+  const meaningfulSetCount = countMeaningfulSetData(args.sets);
   const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
   const totalDurationSeconds = args.sets.reduce((sum, set) => sum + (parseDurationInput(set.values.duration) ?? 0), 0);
   const totalVolume = args.sets.reduce((sum, set) => {
@@ -345,6 +353,96 @@ function resolveFocusedDistanceUnit(sets: EditableSet[], defaultUnit: string | n
     ?? resolveDistanceUnit(defaultUnit);
 }
 
+function resolveExerciseTargetSetCount(exercise: AuditExercise, loggedSetCount: number) {
+  if (typeof exercise.target_sets_max === "number" && exercise.target_sets_max > 0) {
+    return exercise.target_sets_max;
+  }
+
+  if (typeof exercise.target_sets_min === "number" && exercise.target_sets_min > 0) {
+    return exercise.target_sets_min;
+  }
+
+  return loggedSetCount;
+}
+
+function buildLoggedSetCountBadge(loggedSetCount: number, targetSetCount: number) {
+  if (targetSetCount > 0) {
+    return `${loggedSetCount}/${targetSetCount}`;
+  }
+
+  return String(loggedSetCount);
+}
+
+function buildSignalTagItems(args: {
+  hasPrInSession?: boolean;
+  isBest?: boolean;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
+}) {
+  return [
+    args.hasPrInSession ? "PR" : null,
+    args.isBest ? "BEST" : null,
+    (args.progressionSummary?.promotionCount ?? 0) > 0 ? "PROMO" : null,
+    (args.progressionSummary?.deloadCount ?? 0) > 0 ? "REGRESS" : null,
+    ((args.progressionSummary?.manualChangeCount ?? 0) > 0 || (args.progressionSummary?.revertCount ?? 0) > 0) ? "WATCH" : null,
+  ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+}
+
+function renderMetaTags(items: string[]) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {items.map((item) => (
+        <SignatureMetaTag key={item} className="text-[9px] tracking-[0.14em]">
+          {item}
+        </SignatureMetaTag>
+      ))}
+    </div>
+  );
+}
+
+function buildLoggedSessionRecapSections(session: SessionSummary): HistorySessionDetailSection[] {
+  const prExerciseNameSet = new Set((session.prExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
+  const progressionSummary = session.progressionSummary ?? null;
+  const progressionExerciseNameSet = new Set((progressionSummary?.affectedExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
+  const bestExerciseName = session.bestLift?.exerciseName?.trim() || null;
+  const recapItems: DetailSectionListItem[] = (session.exerciseNames ?? [])
+    .map((name, index) => {
+      const normalizedName = name.trim();
+      if (!normalizedName) {
+        return null;
+      }
+
+      const signals = [
+        prExerciseNameSet.has(normalizedName) ? "pr" : null,
+        progressionExerciseNameSet.has(normalizedName) && (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
+        progressionExerciseNameSet.has(normalizedName) && (progressionSummary?.deloadCount ?? 0) > 0 ? "regression" : null,
+        progressionExerciseNameSet.has(normalizedName) && ((progressionSummary?.manualChangeCount ?? 0) > 0 || (progressionSummary?.revertCount ?? 0) > 0) ? "watch" : null,
+      ].filter((value, signalIndex, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === signalIndex);
+      const tagLabels = [
+        bestExerciseName === normalizedName ? "BEST" : null,
+      ].filter((value): value is string => Boolean(value));
+
+      return {
+        id: `session-recap-${index}`,
+        primary: normalizedName,
+        signals,
+        tagLabels,
+        layout: signals.length > 1 ? "single-column" : "auto",
+      } satisfies DetailSectionListItem;
+    })
+    .filter((item): item is DetailSectionListItem => Boolean(item));
+
+  return recapItems.length > 0
+    ? [{
+        title: "Recap",
+        items: recapItems,
+      }]
+    : [];
+}
+
 function buildFocusedExerciseDetailedMetrics(args: {
   exercise: AuditExercise;
   exerciseName: string;
@@ -353,6 +451,7 @@ function buildFocusedExerciseDetailedMetrics(args: {
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   hasPrInSession: boolean;
 }): MetricDatum[] | null {
+  const meaningfulSetCount = countMeaningfulSetData(args.sets);
   const bestSet = findBestEditableSet(args.sets);
   const bestDisplay = bestSet ? buildMeasurementSummary(bestSet, args.defaultUnit) : null;
   const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
@@ -366,13 +465,22 @@ function buildFocusedExerciseDetailedMetrics(args: {
   }, 0);
   const volumeUnit = args.sets.find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit ?? null;
   const completionRate = args.sets.length > 0
-    ? args.sets.filter(hasMeaningfulSetData).length / args.sets.length
+    ? meaningfulSetCount / args.sets.length
     : undefined;
   const distanceUnit = resolveFocusedDistanceUnit(args.sets, args.defaultUnit);
   const pace = totalDurationSeconds > 0 && totalDistance > 0 && distanceUnit
     ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
     : null;
   const completionLabel = completionRate !== undefined ? `${Math.round(completionRate * 100)}%` : (args.sets.length > 0 ? "Logged" : "Open");
+
+  if (
+    meaningfulSetCount === 0
+    && !args.hasPrInSession
+    && !(args.progressionSummary?.currentTargetLabel?.trim())
+    && (args.progressionSummary?.promotionCount ?? 0) === 0
+  ) {
+    return null;
+  }
 
   const summaryMetrics: MetricDatum[] = [
     {
@@ -392,7 +500,7 @@ function buildFocusedExerciseDetailedMetrics(args: {
 
   if (args.exercise.measurement_type === "time" || args.exercise.measurement_type === "time_distance") {
     detailMetrics.push({
-      label: "Duration",
+      label: "Time",
       value: formatWorkoutDuration(totalDurationSeconds) ?? "0:00",
     });
   }
@@ -413,15 +521,22 @@ function buildFocusedExerciseDetailedMetrics(args: {
 
   if (args.exercise.measurement_type === "time") {
     detailMetrics.push({
-      label: "Mode",
-      value: totalCalories > 0 ? `${formatMetricCount(totalCalories)} cal` : "Timed",
+      label: "Tracking",
+      value: "Time-based",
     });
   } else if (args.exercise.measurement_type === "distance") {
     detailMetrics.push({
-      label: "Mode",
-      value: totalCalories > 0 ? `${formatMetricCount(totalCalories)} cal` : "Distance",
+      label: "Tracking",
+      value: "Distance-based",
     });
-  } else if (args.exercise.measurement_type === "time_distance" && totalCalories > 0) {
+  } else if (args.exercise.measurement_type === "time_distance") {
+    detailMetrics.push({
+      label: "Tracking",
+      value: "Time + Distance",
+    });
+  }
+
+  if ((args.exercise.measurement_type === "time" || args.exercise.measurement_type === "distance" || args.exercise.measurement_type === "time_distance") && totalCalories > 0) {
     detailMetrics.push({
       label: "Calories",
       value: `${formatMetricCount(totalCalories)} cal`,
@@ -435,7 +550,7 @@ function buildFocusedExerciseDetailedMetrics(args: {
     });
   } else if (args.progressionSummary?.promotionCount) {
     summaryMetrics.push({
-      label: "Promoted",
+      label: "Promotions",
       value: formatMetricCount(args.progressionSummary.promotionCount),
       valueTone: "success",
     });
@@ -453,8 +568,11 @@ function buildFocusedExerciseDetailedMetrics(args: {
       });
 
   if (args.exercise.measurement_type === "reps") {
-    return [
-      ...summaryMetrics,
+    const orderedSummaryMetrics = [
+      summaryMetrics.find((metric) => metric.label === "Best"),
+      summaryMetrics.find((metric) => metric.label === "Current"),
+      summaryMetrics.find((metric) => metric.label === "Sets"),
+      summaryMetrics.find((metric) => metric.label === "Completion" || metric.label === "PR"),
       {
         label: "Reps",
         value: formatMetricCount(totalReps),
@@ -463,18 +581,21 @@ function buildFocusedExerciseDetailedMetrics(args: {
         label: "Volume",
         value: formatFocusedVolume(totalVolume, volumeUnit),
       },
-    ].slice(0, 6);
+    ].filter((item): item is MetricDatum => Boolean(item));
+
+    return orderedSummaryMetrics.slice(0, 6);
   }
 
   return [...summaryMetrics, ...detailMetrics.slice(0, 3)].slice(0, 6);
 }
 
-function buildFocusedExerciseTrackingItems(args: {
+function buildFocusedExerciseSessionRecapItems(args: {
   exercise: AuditExercise;
   sets: EditableSet[];
   defaultUnit: string | null;
 }) {
   const setCount = args.sets.length;
+  const meaningfulSetCount = countMeaningfulSetData(args.sets);
   const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
   const totalDurationSeconds = args.sets.reduce((sum, set) => sum + (parseDurationInput(set.values.duration) ?? 0), 0);
   const totalDistance = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.distance), 0);
@@ -490,81 +611,60 @@ function buildFocusedExerciseTrackingItems(args: {
     ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
     : null;
 
-  const items = [`${formatMetricCount(setCount)} ${setCount === 1 ? "set" : "sets"} logged`];
-
-  if (args.exercise.measurement_type === "reps") {
-    items.push(`${formatMetricCount(totalReps)} reps across ${formatFocusedVolume(totalVolume, volumeUnit)}`);
-  } else if (args.exercise.measurement_type === "time") {
-    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} total time`);
-    if (totalCalories > 0) {
-      items.push(`${formatMetricCount(totalCalories)} calories logged`);
-    }
-  } else if (args.exercise.measurement_type === "distance") {
-    items.push(`${formatDistance(totalDistance, distanceUnit) ?? "0"} total distance`);
-    if (totalCalories > 0) {
-      items.push(`${formatMetricCount(totalCalories)} calories logged`);
-    }
-  } else if (args.exercise.measurement_type === "time_distance") {
-    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} over ${formatDistance(totalDistance, distanceUnit) ?? "0"}`);
-    if (pace) {
-      items.push(`Pace held at ${pace}`);
-    }
-  } else if (totalCalories > 0) {
-    items.push(`${formatMetricCount(totalCalories)} calories logged`);
+  if (meaningfulSetCount === 0) {
+    return [];
   }
 
-  return items.filter((value, index, values) => Boolean(value) && values.indexOf(value) === index).slice(0, 3);
+  const items = [`${formatMetricCount(setCount)} ${setCount === 1 ? "set" : "sets"} logged in this session.`];
+
+  if (args.exercise.measurement_type === "reps") {
+    items.push(`${formatMetricCount(totalReps)} reps across ${formatFocusedVolume(totalVolume, volumeUnit)}.`);
+  } else if (args.exercise.measurement_type === "time") {
+    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} total time.`);
+    if (totalCalories > 0) {
+      items.push(`${formatMetricCount(totalCalories)} calories logged.`);
+    }
+  } else if (args.exercise.measurement_type === "distance") {
+    items.push(`${formatDistance(totalDistance, distanceUnit) ?? "0"} total distance.`);
+    if (totalCalories > 0) {
+      items.push(`${formatMetricCount(totalCalories)} calories logged.`);
+    }
+  } else if (args.exercise.measurement_type === "time_distance") {
+    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} over ${formatDistance(totalDistance, distanceUnit) ?? "0"}.`);
+    if (pace) {
+      items.push(`Pace held at ${pace}.`);
+    }
+  } else if (totalCalories > 0) {
+    items.push(`${formatMetricCount(totalCalories)} calories logged.`);
+  }
+
+  return items.filter((value, index, values) => Boolean(value) && values.indexOf(value) === index).slice(0, 2);
 }
 
 function buildFocusedExerciseDetailedSections(args: {
   exercise: AuditExercise;
-  exerciseName: string;
   sets: EditableSet[];
   defaultUnit: string | null;
-  progressionSummary?: ExerciseProgressionLifelineSummary | null;
-  bestDisplay: string | null;
   hasPrInSession: boolean;
-  sessionHasOtherPrs: boolean;
 }): HistorySessionDetailSection[] {
-  const progressionItems = args.progressionSummary
-    ? [
-        args.progressionSummary.currentTargetLabel ? `Current target: ${args.progressionSummary.currentTargetLabel}` : null,
-        args.progressionSummary.latestChangeSummary ? `Latest change: ${args.progressionSummary.latestChangeSummary}` : null,
-        args.progressionSummary.lastPromotionAt ? `Last promotion: ${formatDateShort(args.progressionSummary.lastPromotionAt)}` : null,
-      ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
-    : ["No target updates recorded for this exercise yet."];
-
-  const prItems = args.hasPrInSession
-    ? ["A PR was recorded for this exercise in this logged session."]
-    : args.sessionHasOtherPrs
-      ? ["Session PRs landed on other exercises, not this one."]
-      : ["No PR was recorded for this exercise in this session."];
-
-  const bestItems = args.bestDisplay && args.bestDisplay !== "No measurements"
-    ? [`Top set in this session: ${args.bestDisplay}`]
-    : ["No standout set was logged for this exercise yet."];
+  const sessionItems = buildFocusedExerciseSessionRecapItems({
+    exercise: args.exercise,
+    sets: args.sets,
+    defaultUnit: args.defaultUnit,
+  });
 
   return [
-    {
-      title: "Tracking",
-      items: buildFocusedExerciseTrackingItems({
-        exercise: args.exercise,
-        sets: args.sets,
-        defaultUnit: args.defaultUnit,
-      }),
-    },
-    {
-      title: "Progression",
-      items: progressionItems,
-    },
-    {
-      title: "PRs",
-      items: prItems,
-    },
-    {
-      title: "Best",
-      items: bestItems,
-    },
+    ...(sessionItems.length > 0
+      ? [{
+          title: "Recap",
+          items: sessionItems.map((item, index) => ({
+            id: `focused-recap-${index}`,
+            primary: item,
+            signals: args.hasPrInSession ? ["pr"] : undefined,
+            layout: "single-column",
+          })),
+        }]
+      : []),
   ];
 }
 
@@ -621,7 +721,62 @@ function renderSignatureMeta(parts: string[]) {
   );
 }
 
+function countMeaningfulSetData(sets: EditableSet[]) {
+  return sets.filter(hasMeaningfulSetData).length;
+}
+
+function hasExpandableExerciseContent(args: {
+  sets: EditableSet[];
+  notesValue: string;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
+  isEditing: boolean;
+}) {
+  if (args.isEditing) {
+    return true;
+  }
+
+  return (
+    countMeaningfulSetData(args.sets) > 0
+    || (args.progressionSummary?.eventCount ?? 0) > 0
+    || (args.progressionSummary?.promotionCount ?? 0) > 0
+  );
+}
+
+function buildFocusedExerciseSetListMeta(args: {
+  setCount: number;
+  targetSetCount: number;
+  isEditing: boolean;
+}) {
+  if (args.setCount <= 0) {
+    return null;
+  }
+
+  if (args.isEditing) {
+    return `${buildLoggedSetCountBadge(args.setCount, args.targetSetCount)} sets | Tap a set to edit`;
+  }
+
+  return `${buildLoggedSetCountBadge(args.setCount, args.targetSetCount)} sets logged`;
+}
+
+function buildCollapsedExerciseCardBadgeItems(args: {
+  badgeCountLabel: string;
+  hasPrInSession: boolean;
+  isBest: boolean;
+  progressionSummary?: ExerciseProgressionLifelineSummary | null;
+}) {
+  return {
+    countLabel: args.badgeCountLabel,
+    signalItems: buildSignalTagItems({
+      hasPrInSession: args.hasPrInSession,
+      isBest: args.isBest,
+      progressionSummary: args.progressionSummary,
+    }),
+  };
+}
+
 function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
+  const prExerciseNames = new Set(recap.prMoments.map((name) => name.trim()).filter(Boolean));
+
   return (
     <HistorySection title="Recap">
       <div className="space-y-3 rounded-[1.05rem] border border-[rgb(var(--accent-divider-rgb)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.32)] px-3 py-3">
@@ -639,11 +794,34 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
 
         {recap.topEfforts.length > 0 ? (
           <div className="space-y-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.9)]">Top efforts</p>
+              {prExerciseNames.size > 0 ? (
+                <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
+                  <span>Legend</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[rgb(var(--success-rgb)/0.2)] bg-[rgb(var(--success-rgb)/0.08)] px-2 py-0.5 text-[rgb(var(--success-rgb)/0.94)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--success-rgb)/0.96)]" />
+                    PR
+                  </span>
+                </div>
+              ) : null}
+            </div>
             {recap.topEfforts.map((effort) => (
               <p key={`${effort.exerciseName}-${effort.value}`} className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.96)]">
-                <span className="font-semibold text-[rgb(var(--text-primary)/0.94)]">{effort.exerciseName}</span>
-                {" · "}
+                <span
+                  className={cn(
+                    "font-semibold text-[rgb(var(--text-primary)/0.94)]",
+                    prExerciseNames.has(effort.exerciseName.trim()) ? "text-[rgb(var(--success-rgb)/0.96)]" : undefined,
+                  )}
+                >
+                  {effort.exerciseName}
+                </span>
+                {prExerciseNames.has(effort.exerciseName.trim()) ? (
+                  <span className="ml-2 inline-flex items-center rounded-full border border-[rgb(var(--success-rgb)/0.18)] bg-[rgb(var(--success-rgb)/0.08)] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--success-rgb)/0.94)]">
+                    PR
+                  </span>
+                ) : null}
+                {" | "}
                 {effort.value}
               </p>
             ))}
@@ -663,76 +841,80 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
 }
 
 function FocusedExerciseContextPanels({
+  overviewMetrics,
+  overviewSections,
   progressionSummary,
   notesValue,
   isEditing,
   canEditNotes,
+  canShowNotes,
   noteInput,
+  showOverview = true,
+  showProgression = true,
+  showNotes = true,
 }: {
+  overviewMetrics?: MetricDatum[];
+  overviewSections?: HistorySessionDetailSection[];
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   notesValue: string;
   isEditing: boolean;
   canEditNotes: boolean;
+  canShowNotes: boolean;
   noteInput?: ReactNode;
+  showOverview?: boolean;
+  showProgression?: boolean;
+  showNotes?: boolean;
 }) {
   const hasNotes = notesValue.trim().length > 0;
-  const shouldRenderNotes = isEditing ? canEditNotes && Boolean(noteInput) : hasNotes;
+  const shouldRenderNotes = showNotes && canShowNotes && (isEditing ? canEditNotes && Boolean(noteInput) : hasNotes);
+  const resolvedOverviewMetrics = (overviewMetrics ?? []).filter((item) => item.value.trim().length > 0);
+  const resolvedOverviewSections = (overviewSections ?? []).filter((section) => section.items.length > 0);
   const progressionMetricCandidates: Array<MetricDatum | null> = progressionSummary ? [
     progressionSummary.currentTargetLabel ? { label: "Current", value: progressionSummary.currentTargetLabel } : null,
     progressionSummary.firstTargetLabel ? { label: "Started", value: progressionSummary.firstTargetLabel } : null,
-    { label: "Promoted", value: `${progressionSummary.promotionCount}`, valueTone: progressionSummary.promotionCount > 0 ? "success" : "muted" },
+    { label: "Promotions", value: `${progressionSummary.promotionCount}`, valueTone: progressionSummary.promotionCount > 0 ? "success" : "muted" },
     progressionSummary.latestEventLabel ? {
       label: "Latest",
       value: progressionSummary.latestEventLabel,
-      timeframe: progressionSummary.latestChangeAt ? formatDateShort(progressionSummary.latestChangeAt) : null,
     } : null,
   ] : [];
   const progressionMetrics: MetricDatum[] = progressionMetricCandidates
     .filter((item): item is MetricDatum => item !== null)
     .slice(0, 4);
-  const progressionItems = progressionSummary ? [
-    progressionSummary.latestChangeSummary ? { label: "Latest change", value: progressionSummary.latestChangeSummary } : null,
-    progressionSummary.timelineSummary ? { label: "Lifeline", value: progressionSummary.timelineSummary } : null,
-    progressionSummary.lastPromotionAt ? { label: "Last promotion", value: formatDateShort(progressionSummary.lastPromotionAt) } : null,
-  ].filter((item, index, values): item is { label: string; value: string } => (
-    Boolean(item)
-    && values.findIndex((entry) => entry?.label === item?.label && entry?.value === item?.value) === index
-  )) : [];
 
   return (
     <div className="space-y-2">
-      {progressionMetrics.length > 0 || progressionItems.length > 0 ? (
+      {showOverview && (resolvedOverviewMetrics.length > 0 || resolvedOverviewSections.length > 0) ? (
         <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-          <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Progression</h3>
-          {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} /> : null}
-          {progressionItems.length > 0 ? (
-            <div className="space-y-2">
-              {progressionItems.map((item, index) => (
-                <div
-                  key={`${item.label}-${item.value}-${index}`}
-                  className={cn(appTokens.detailHistoryRow, "flex min-w-0 items-start gap-2.5 px-2 py-2")}
-                >
-                  <div className="flex h-[1.05rem] shrink-0 items-center">
-                    <SignatureDot />
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <p className={cn(appTokens.detailSectionTitle, "px-0.5 text-left text-[0.68rem] tracking-[0.15em]")}>
-                      {item.label}
-                    </p>
-                    <p className={cn(appTokens.detailBodyText, "min-w-0 text-[12.5px] leading-[1.24] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
-                      {item.value}
-                    </p>
-                  </div>
-                </div>
-              ))}
+          <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Overview</h3>
+          {resolvedOverviewMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={resolvedOverviewMetrics} className="justify-center" /> : null}
+          {resolvedOverviewSections.length > 0 ? (
+            <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+              <DetailSectionBlocks sections={resolvedOverviewSections} titleClassName={FOCUSED_SUBSECTION_TITLE_CLASS_NAME} />
             </div>
+          ) : null}
+        </AppPanel>
+      ) : null}
+
+      {showProgression && (progressionMetrics.length > 0 || progressionSummary) ? (
+        <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+          <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Progression</h3>
+          {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} className="justify-center" /> : null}
+          {progressionSummary ? (
+            <ExerciseProgressionActivityPanel
+              progression={progressionSummary}
+              headingClassName={FOCUSED_SUBSECTION_HEADING_CLASS_NAME}
+              subsectionTitleClassName={FOCUSED_SUBSECTION_TITLE_CLASS_NAME}
+              renderMetaLine={renderSignatureMeta}
+              hideLastPromotionOverview
+            />
           ) : null}
         </AppPanel>
       ) : null}
 
       {shouldRenderNotes ? (
         <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-          <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Notes</h3>
+          <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Notes</h3>
           <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
             {isEditing
               ? noteInput
@@ -843,28 +1025,25 @@ export function LogAuditClient({
 
   const focusedDetailedSections = useMemo(() => {
     if (!expandedExercise) {
-      return undefined;
+      return buildLoggedSessionRecapSections(focusedSessionSummary);
     }
 
     const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
     const sets = editableSets[expandedExercise.id] ?? [];
-    const bestSet = findBestEditableSet(sets);
-    const bestDisplay = bestSet ? buildMeasurementSummary(bestSet, expandedExercise.default_unit) : null;
 
     return buildFocusedExerciseDetailedSections({
       exercise: expandedExercise,
-      exerciseName,
       sets,
       defaultUnit: expandedExercise.default_unit,
-      progressionSummary: expandedExercise.progressionSummary ?? null,
-      bestDisplay,
       hasPrInSession: (focusedSessionSummary.prExerciseNames ?? []).includes(exerciseName),
-      sessionHasOtherPrs: (sessionSummary.prExerciseNames ?? []).some((name) => name !== exerciseName),
     });
-  }, [editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary.prExerciseNames, sessionSummary.prExerciseNames]);
+  }, [editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary]);
 
   const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
   const isFocusedSetExpanded = Boolean(expandedSetId);
+  const focusedHasMeaningfulSetData = expandedExercise
+    ? countMeaningfulSetData(editableSets[expandedExercise.id] ?? []) > 0
+    : false;
 
   const exerciseViewportMeta = useMemo(() => {
     if (expandedExercise) {
@@ -1261,21 +1440,8 @@ export function LogAuditClient({
                 data-history-exercise-shell="true"
                 className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1"
               >
-                {expandedExercise ? (
-                  <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
-                    <HistorySessionCard
-                      session={focusedSessionSummary}
-                      viewMode="detailed"
-                      rightIcon={null}
-                      className="mt-0"
-                      metricAccentRgb="var(--accent-yellow-on)"
-                      prExerciseNames={focusedSessionSummary.prExerciseNames}
-                      detailedMetrics={focusedDetailedMetrics}
-                      detailedSections={focusedDetailedSections}
-                      detailedHeaderMode="hidden"
-                      showDetailedDivider={false}
-                    />
-                  </div>
+              {expandedExercise ? (
+                  null
                 ) : !isEditing ? (
                   <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
                     <HistorySessionCard
@@ -1283,11 +1449,12 @@ export function LogAuditClient({
                       viewMode="detailed"
                       rightIcon={null}
                       className="mt-0"
-                      metricAccentRgb="var(--accent-yellow-on)"
                       prExerciseNames={exerciseViewportMeta.prNames}
                       detailedMetrics={focusedDetailedMetrics}
+                      detailedSections={focusedDetailedSections}
                       detailedHeaderMode="hidden"
                       showDetailedDivider={false}
+                      metricAccentRgb="var(--accent-divider-rgb)"
                     />
                   </div>
                 ) : null}
@@ -1314,10 +1481,32 @@ export function LogAuditClient({
                   {visibleExercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const setsForExercise = editableSets[exercise.id] ?? [];
+          const notesValue = exerciseNotes[exercise.id] ?? exercise.notes ?? "";
           const isExpanded = expandedExerciseId === exercise.id;
           const bestSet = findBestEditableSet(setsForExercise);
+          const isSessionBestExercise = focusedSessionSummary.bestLift?.exerciseName?.trim() === name;
           const bestSummary = bestSet ? buildMeasurementSummary(bestSet, exercise.default_unit) : "No measurements";
           const expandedSet = setsForExercise.find((set) => set.id === expandedSetId) ?? null;
+          const hasPrInSession = (sessionSummary.prExerciseNames ?? []).includes(name);
+          const targetSetCount = resolveExerciseTargetSetCount(exercise, setsForExercise.length);
+          const countBadgeLabel = buildLoggedSetCountBadge(setsForExercise.length, targetSetCount);
+          const canExpandExercise = hasExpandableExerciseContent({
+            sets: setsForExercise,
+            notesValue,
+            progressionSummary: exercise.progressionSummary ?? null,
+            isEditing,
+          });
+          const setListMeta = buildFocusedExerciseSetListMeta({
+            setCount: setsForExercise.length,
+            targetSetCount,
+            isEditing,
+          });
+          const collapsedCardBadgeItems = buildCollapsedExerciseCardBadgeItems({
+            badgeCountLabel: countBadgeLabel,
+            hasPrInSession,
+            isBest: isSessionBestExercise,
+            progressionSummary: exercise.progressionSummary ?? null,
+          });
           return (
             <article
               key={exercise.id}
@@ -1335,9 +1524,11 @@ export function LogAuditClient({
                     image_howto_path: exercise.exercise_image_howto_path ?? null,
                   }}
                   summary={bestSummary}
-                  summaryLabel="Best"
-                  badgeText={`${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`}
-                  onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
+                  summaryLabel={bestSet ? "Top Set" : "Session"}
+                  metadata={renderMetaTags(collapsedCardBadgeItems.signalItems)}
+                  badgeText={collapsedCardBadgeItems.countLabel}
+                  badgeItems={[collapsedCardBadgeItems.countLabel]}
+                  onPress={canExpandExercise ? () => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id)) : undefined}
                   expanded={isExpanded}
                   showLeadingVisual={surfacePolicy.showMedia}
                   className={cn(
@@ -1417,10 +1608,15 @@ export function LogAuditClient({
                       {expandedExercise && !expandedSet ? (
                         <div className="px-0 pb-2 pt-2">
                           <FocusedExerciseContextPanels
+                            overviewMetrics={focusedDetailedMetrics}
+                            overviewSections={focusedDetailedSections}
                             progressionSummary={expandedExercise.progressionSummary ?? null}
                             notesValue={focusedExerciseNotes}
                             isEditing={isEditing}
                             canEditNotes={!isFocusedSetExpanded}
+                            canShowNotes={focusedHasMeaningfulSetData}
+                            showProgression={false}
+                            showNotes={false}
                             noteInput={(
                               <label className="block">
                                 <LabeledEditorField label="Exercise notes">
@@ -1484,33 +1680,58 @@ export function LogAuditClient({
                         </div>
                       ) : (
                         <div className={cn(appTokens.currentSessionLoggerSetList, "min-h-full overflow-hidden rounded-none border-0 bg-transparent px-0 py-2")}>
+                          {setsForExercise.length > 0 ? (
+                            <div className={appTokens.currentSessionLoggerSetListHeader}>
+                              <p className={appTokens.currentSessionLoggerSetListTitle}>Logged Sets</p>
+                              {setListMeta ? (
+                                <p className={cn(appTokens.currentSessionLoggerSetListMeta, "text-right")}>{setListMeta}</p>
+                              ) : null}
+                            </div>
+                          ) : null}
                           <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
                             {setsForExercise.map((set, index) => {
                               const setSummaryText = buildMeasurementSummary(set, exercise.default_unit);
                               const setLabel = formatSetPositionLabel(index + 1);
                               const setSummaryItems = buildLoggedSetSummaryItems(set, exercise.default_unit);
+                              const setTagItems = buildSignalTagItems({
+                                hasPrInSession: hasPrInSession && bestSet?.id === set.id,
+                                isBest: bestSet?.id === set.id,
+                                progressionSummary: null,
+                              });
+                              const setAction = isEditing
+                                ? (expandedSetId === set.id
+                                  ? <div className="flex h-full items-end justify-end pb-0.5"><ChevronDownIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>
+                                  : <div className="flex h-full items-end justify-end pb-0.5"><ChevronRightIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>)
+                                : renderMetaTags(setTagItems);
+                              const rowNode = (
+                                <LoggedSetSummaryRow
+                                  label={setLabel}
+                                  summary={setSummaryText}
+                                  summaryItems={setSummaryItems}
+                                  contentAlign="center"
+                                  action={setAction}
+                                  actionClassName="self-stretch items-end justify-end"
+                                  className={cn(
+                                    isEditing ? appTokens.historySetSummaryInteractive : undefined,
+                                    "rounded-none border-0 bg-transparent shadow-none",
+                                  )}
+                                />
+                              );
 
                               return (
                                 <li key={set.id}>
                                   <div className={SET_CARD_SHELL_CLASS_NAME}>
-                                    <button type="button" className="block w-full text-left" onClick={() => isEditing ? setExpandedSetId((current) => (current === set.id ? null : set.id)) : undefined}>
-                                      <LoggedSetSummaryRow
-                                        label={setLabel}
-                                        summary={setSummaryText}
-                                        summaryItems={setSummaryItems}
-                                        contentAlign="center"
-                                        action={isEditing
-                                          ? (expandedSetId === set.id
-                                            ? <div className="flex h-full items-end justify-end pb-0.5"><ChevronDownIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>
-                                            : <div className="flex h-full items-end justify-end pb-0.5"><ChevronRightIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>)
-                                          : undefined}
-                                        actionClassName="self-stretch items-end justify-end"
-                                        className={cn(
-                                          isEditing ? appTokens.historySetSummaryInteractive : undefined,
-                                          "rounded-none border-0 bg-transparent shadow-none",
-                                        )}
-                                      />
-                                    </button>
+                                    {isEditing ? (
+                                      <button
+                                        type="button"
+                                        className="block w-full text-left"
+                                        onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}
+                                      >
+                                        {rowNode}
+                                      </button>
+                                    ) : (
+                                      <div>{rowNode}</div>
+                                    )}
                                   </div>
                                 </li>
                               );
@@ -1519,9 +1740,48 @@ export function LogAuditClient({
                         </div>
                       )}
 
+                      {expandedExercise && !expandedSet ? (
+                        <div className="px-0 pb-2 pt-1.5">
+                          <FocusedExerciseContextPanels
+                            overviewMetrics={focusedDetailedMetrics}
+                            overviewSections={focusedDetailedSections}
+                            progressionSummary={expandedExercise.progressionSummary ?? null}
+                            notesValue={focusedExerciseNotes}
+                            isEditing={isEditing}
+                            canEditNotes={!isFocusedSetExpanded}
+                            canShowNotes={focusedHasMeaningfulSetData}
+                            showOverview={false}
+                            noteInput={(
+                              <label className="block">
+                                <LabeledEditorField label="Exercise notes">
+                                  <textarea
+                                    ref={(element) => {
+                                      if (expandedExercise) {
+                                        exerciseNoteRefs.current[expandedExercise.id] = element;
+                                      }
+                                    }}
+                                    value={focusedExerciseNotes}
+                                    onChange={(event) => {
+                                      const nextValue = event.target.value;
+                                      if (!expandedExercise) {
+                                        return;
+                                      }
+                                      setExerciseNotes((current) => ({ ...current, [expandedExercise.id]: nextValue }));
+                                      autoSizeTextarea(event.currentTarget);
+                                    }}
+                                    rows={1}
+                                    className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
+                                  />
+                                </LabeledEditorField>
+                              </label>
+                            )}
+                          />
+                        </div>
+                      ) : null}
+
                       {setsForExercise.length === 0 ? (
                         <p className={appTokens.historyEmptyState}>
-                          No sets logged yet
+                          No sets logged for this exercise yet.
                         </p>
                       ) : null}
                     </div>

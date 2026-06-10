@@ -4,11 +4,12 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { DetailSectionBlock } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
-import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
-import { ProgressionHistoryCharts } from "./ProgressionHistoryCharts";
+import { ProgressionSummaryActivityPanel } from "./ProgressionSummaryActivityPanel";
 
 const HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
 const HISTORY_YELLOW_CARD_BORDER_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.24)]";
@@ -73,13 +74,13 @@ function buildCurrentProgressionTitle(summary: WeeklyProgressSummary, routineTit
 
 function buildCurrentProgressionPreview(summary: WeeklyProgressSummary) {
   const coverageLabel = summary.primaryRoutineTargetCount > 0
-    ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount} planned`
+    ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount} completed`
     : `${summary.activeDayCount} ${summary.activeDayCount === 1 ? "active day" : "active days"}`;
   const prLabel = summary.prMomentCount > 0
     ? `${summary.prMomentCount} ${summary.prMomentCount === 1 ? "PR" : "PRs"}`
     : "No PRs yet";
 
-  return [coverageLabel, summary.consistencyTrend.label, prLabel].join(" • ");
+  return [coverageLabel, summary.consistencyTrend.label, prLabel].join(" | ");
 }
 
 function getTrendTone(direction: WeeklyProgressSummary["consistencyTrend"]["direction"]): MetricDatum["valueTone"] {
@@ -138,6 +139,10 @@ function buildCoverageDetail(summary: WeeklyProgressSummary) {
 }
 
 function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] {
+  const projectedActiveDayCount = summary.primaryRoutineTargetCount > 0
+    ? summary.primaryRoutineTargetCount
+    : summary.activeDayCount;
+
   return [
     {
       label: "Sessions",
@@ -145,8 +150,8 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
     },
     {
       label: "Active Days",
-      value: String(summary.activeDayCount),
-      valueTone: summary.activeDayCount > 0 ? "default" : "muted",
+      value: String(projectedActiveDayCount),
+      valueTone: projectedActiveDayCount > 0 ? "default" : "muted",
     },
     {
       label: "Coverage",
@@ -185,158 +190,47 @@ function WeeklyProgressBody({
     <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
       <CurrentWeeklyMetricGrid summary={summary} />
       <div className="space-y-3">
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Cycle Review
-          </p>
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
-            {[summary.consistencyTrend.detail, buildCoverageDetail(summary)].map((entry, index) => (
-              <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                <SignatureDot />
-                <span>{entry}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Hotspots
-          </p>
-          {summary.hotspotItems.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.84rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
-              {summary.hotspotItems.map((entry, index) => (
-                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                  <SignatureDot />
-                  <span className={cn("min-w-0")}>{entry}</span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-              <SignatureDot />
-              <span>No hotspots stand out in this cycle yet.</span>
-            </div>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Watch
-          </p>
-          {summary.attentionItems.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
-              {summary.attentionItems.map((entry, index) => (
-                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                  <SignatureDot />
-                  <span>{entry}</span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-              <SignatureDot />
-              <span>Nothing needs attention in this cycle right now.</span>
-            </div>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            PR Moments
-          </p>
-          {summary.prExerciseNames.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.84rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
-              {summary.prExerciseNames.slice(0, 4).map((name) => (
-                <span key={name} className="inline-flex items-center gap-2">
-                  <SignatureDot />
-                  <span className={cn("min-w-0")}>{name}</span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-              <SignatureDot />
-              <span>No PR moments recorded in the current cycle.</span>
-            </div>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Progression
-          </p>
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
-            {summary.progressionSummary.reviewItems.map((entry, index) => (
-              <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                <SignatureDot />
-                <span>{entry}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Progression Hotspots
-          </p>
-          {summary.progressionSummary.hotspotItems.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
-              {summary.progressionSummary.hotspotItems.map((entry, index) => (
-                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                  <SignatureDot />
-                  <span>{entry}</span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-              <SignatureDot />
-              <span>No progression hotspots stand out this week.</span>
-            </div>
-          )}
-        </div>
-        <div className="space-y-2">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Progression Graphs
-          </p>
-          <ProgressionHistoryCharts sections={summary.progressionSummary.chartSections} />
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Progression Timeline
-          </p>
-          {summary.progressionSummary.timelineItems.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.92)]">
-              {summary.progressionSummary.timelineItems.map((entry, index) => (
-                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                  <SignatureDot />
-                  <span>{entry}</span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-              <SignatureDot />
-              <span>No progression timeline is available for this week yet.</span>
-            </div>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
-            Progression Watch
-          </p>
-          {summary.progressionSummary.attentionItems.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.82rem] leading-5 text-[rgb(var(--text-primary)/0.94)]">
-              {summary.progressionSummary.attentionItems.map((entry, index) => (
-                <span key={`${entry}-${index}`} className="inline-flex items-center gap-2">
-                  <SignatureDot />
-                  <span>{entry}</span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 text-[0.82rem] leading-5 text-[rgb(var(--text-secondary)/0.9)]">
-              <SignatureDot />
-              <span>Nothing stands out in progression this week.</span>
-            </div>
-          )}
-        </div>
+        <DetailSectionBlock
+          title="Cycle Review"
+          items={[summary.consistencyTrend.detail, buildCoverageDetail(summary)]}
+          tone="muted"
+          divider={false}
+        />
+        <DetailSectionBlock
+          title="Hotspots"
+          items={summary.hotspotItems.length > 0 ? summary.hotspotItems : ["No hotspots stand out in this cycle yet."]}
+          divider={false}
+        />
+        <DetailSectionBlock
+          title="Watch"
+          items={summary.attentionItems.length > 0 ? summary.attentionItems : ["Nothing needs attention in this cycle right now."]}
+          divider={false}
+          sectionSignal="watch"
+        />
+        <DetailSectionBlock
+          title="PR Moments"
+          items={summary.prExerciseNames.length > 0 ? summary.prExerciseNames.slice(0, 4) : ["No PR moments recorded in the current cycle."]}
+          divider={false}
+          sectionSignal={summary.prExerciseNames.length > 0 ? "pr" : undefined}
+        />
+        <DetailSectionBlock
+          title="Progression"
+          items={summary.progressionSummary.reviewItems}
+          tone="muted"
+          divider={false}
+          sectionSignal={summary.progressionSummary.promotionCount > 0 ? "promotion" : undefined}
+        />
+        <ProgressionSummaryActivityPanel
+          activityBuckets={summary.progressionSummary.activityBuckets}
+          hotspotItems={summary.progressionSummary.hotspotItems}
+          emptyHotspotCopy="No progression hotspots stand out this week."
+        />
+        <DetailSectionBlock
+          title="Progression Watch"
+          items={summary.progressionSummary.attentionItems.length > 0 ? summary.progressionSummary.attentionItems : ["Nothing stands out in progression this week."]}
+          divider={false}
+          sectionSignal="watch"
+        />
       </div>
     </div>
   );

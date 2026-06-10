@@ -24,6 +24,8 @@ export type HistoryAuditExercise = {
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
+  target_sets_min?: number | null;
+  target_sets_max?: number | null;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   sets: HistoryAuditSet[];
 };
@@ -50,6 +52,8 @@ export type IncomingHistoryAuditExercise = Omit<Partial<HistoryAuditExercise>, "
     image_icon_path?: string | null;
     image_howto_path?: string | null;
   } | null;
+  target_sets_min?: number | null;
+  target_sets_max?: number | null;
   logged_sets?: IncomingHistoryAuditSet[] | null;
   sets?: IncomingHistoryAuditSet[] | null;
 };
@@ -105,6 +109,8 @@ export function normalizeHistoryAuditExercise(exercise: IncomingHistoryAuditExer
     notes: exercise.notes ?? null,
     measurement_type: exercise.measurement_type ?? "reps",
     default_unit: exercise.default_unit ?? null,
+    target_sets_min: typeof exercise.target_sets_min === "number" ? exercise.target_sets_min : null,
+    target_sets_max: typeof exercise.target_sets_max === "number" ? exercise.target_sets_max : null,
     progressionSummary: exercise.progressionSummary ?? null,
     sets: rawSets
       .filter((set): set is IncomingHistoryAuditSet => isRecord(set))

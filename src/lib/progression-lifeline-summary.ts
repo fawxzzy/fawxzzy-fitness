@@ -1,4 +1,5 @@
 import type { ProgressionEventRow } from "@/types/db";
+import type { DetailSectionListItem } from "@/components/ui/DetailSectionList";
 import { formatCalories, formatDistance } from "@/lib/exercise-stats-formatting";
 import { formatDurationClock } from "@/lib/duration";
 import { formatWeight } from "@/lib/formatting";
@@ -50,7 +51,7 @@ export type ExerciseProgressionActivityDay = {
   deloadCount: number;
   manualChangeCount: number;
   revertCount: number;
-  items: string[];
+  items: DetailSectionListItem[];
 };
 
 export type SessionProgressionSummary = ProgressionAnalyticsDigest & {
@@ -142,6 +143,20 @@ function toProgressionTargetPlan(snapshot: Record<string, unknown> | null | unde
 
 function formatTarget(snapshot: Record<string, unknown> | null | undefined) {
   return formatProgressionReviewTargetLabel(toProgressionTargetPlan(snapshot ?? null));
+}
+
+function getProgressionEventSignal(eventType: ProgressionEventRow["event_type"]) {
+  switch (eventType) {
+    case "promotion_applied":
+      return "promotion" as const;
+    case "deload_applied":
+      return "regression" as const;
+    case "manual_target_change":
+    case "promotion_reverted":
+      return "watch" as const;
+    default:
+      return null;
+  }
 }
 
 const PROGRESSION_FLOW_ARROW = "\u2192";
@@ -322,7 +337,7 @@ function buildLatestChangeSummary(event: ProgressionEventRow) {
   return toTargetLabel ?? fromTargetLabel ?? formatEventTypeLabel(event.event_type);
 }
 
-function formatProgressionActivityDayLabel(dayKey: string) {
+export function formatProgressionActivityDayLabel(dayKey: string) {
   const date = new Date(`${dayKey}T12:00:00.000Z`);
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -331,7 +346,7 @@ function formatProgressionActivityDayLabel(dayKey: string) {
   }).format(date);
 }
 
-function buildProgressionActivityItemLabel(event: ProgressionEventRow) {
+export function buildProgressionActivityItemLabel(event: ProgressionEventRow) {
   const eventLabel = formatEventTypeLabel(event.event_type);
   const changeSummary = buildLatestChangeSummary(event)?.trim() ?? "";
   if (!changeSummary) {
@@ -343,10 +358,43 @@ function buildProgressionActivityItemLabel(event: ProgressionEventRow) {
     : `${eventLabel} | ${changeSummary}`;
 }
 
-function buildProgressionActivityDays(events: ProgressionEventRow[]): ExerciseProgressionActivityDay[] {
+function buildStructuredProgressionActivityItem(args: {
+  event: ProgressionEventRow;
+  exerciseName?: string | null;
+  routineTitle?: string | null;
+}): DetailSectionListItem {
+  const eventLabel = formatEventTypeLabel(args.event.event_type);
+  const changeSummary = buildLatestChangeSummary(args.event)?.trim() ?? eventLabel;
+  const [headlineRaw, transitionRaw] = changeSummary.split(/\s+\|\s+/, 2);
+  const headline = headlineRaw?.trim() || eventLabel;
+  const hasTransition = typeof transitionRaw === "string" && transitionRaw.includes(PROGRESSION_FLOW_ARROW);
+  const primary = hasTransition
+    ? headline.replace(/\b(increased|reduced|updated)\b/gi, "").replace(/\s{2,}/g, " ").trim() || headline
+    : changeSummary;
+  const value = hasTransition ? transitionRaw.trim() : null;
+  const metaParts = [
+    args.exerciseName?.trim() || null,
+    args.routineTitle?.trim() || null,
+  ].filter((part): part is string => Boolean(part));
+
+  return {
+    id: args.event.id,
+    primary,
+    value,
+    meta: metaParts.join(" | ") || null,
+    signals: getProgressionEventSignal(args.event.event_type) ?? undefined,
+    layout: "single-column",
+  };
+}
+
+function buildProgressionActivityDays(args: {
+  events: ProgressionEventRow[];
+  exerciseNameById?: Map<string, string>;
+  routineTitleById?: Map<string, string>;
+}): ExerciseProgressionActivityDay[] {
   const eventsByDayKey = new Map<string, ProgressionEventRow[]>();
 
-  for (const event of sortEventsAscending(events)) {
+  for (const event of sortEventsAscending(args.events)) {
     const dayKey = getProgressionEventBucketKey({
       createdAt: event.created_at,
       granularity: "day",
@@ -385,7 +433,11 @@ function buildProgressionActivityDays(events: ProgressionEventRow[]): ExercisePr
         deloadCount,
         manualChangeCount,
         revertCount,
-        items: orderedDayEvents.map((event) => buildProgressionActivityItemLabel(event)),
+        items: orderedDayEvents.map((event) => buildStructuredProgressionActivityItem({
+          event,
+          exerciseName: args.exerciseNameById?.get(event.exercise_id) ?? null,
+          routineTitle: args.routineTitleById?.get(event.routine_id) ?? null,
+        })),
       } satisfies ExerciseProgressionActivityDay;
     });
 }
@@ -510,7 +562,13 @@ export function buildProgressionAnalyticsDigest(events: ProgressionEventRow[]): 
   };
 }
 
-export function buildExerciseProgressionLifelineSummary(events: ProgressionEventRow[]): ExerciseProgressionLifelineSummary | null {
+export function buildExerciseProgressionLifelineSummary(
+  events: ProgressionEventRow[],
+  options?: {
+    exerciseNameById?: Map<string, string>;
+    routineTitleById?: Map<string, string>;
+  },
+): ExerciseProgressionLifelineSummary | null {
   const ordered = sortEventsAscending(events);
   if (ordered.length === 0) {
     return null;
@@ -533,7 +591,11 @@ export function buildExerciseProgressionLifelineSummary(events: ProgressionEvent
     events: ordered,
     activityGranularity: "day",
   }).filter((section) => section.id !== "progression-hotspots");
-  const activityDays = buildProgressionActivityDays(ordered);
+  const activityDays = buildProgressionActivityDays({
+    events: ordered,
+    exerciseNameById: options?.exerciseNameById,
+    routineTitleById: options?.routineTitleById,
+  });
   const lifelineItems = [
     latestChangeSummary ? `Latest: ${latestChangeSummary}` : null,
     timelineSummary ? `Target Path: ${timelineSummary}` : null,

@@ -182,6 +182,37 @@ test("loaded strength performance metrics keep summary metrics after dimension m
   ]);
 });
 
+test("bodyweight performance metrics stay on ceilings instead of recent volume totals", () => {
+  const metrics = buildStrengthPerformanceMetrics({
+    family: "strength-bodyweight",
+    rows: [
+      {
+        performedAt: "2026-06-02T00:00:33.323414+00:00",
+        weight: 25,
+        reps: 5,
+        weightUnit: "lbs",
+      },
+      {
+        performedAt: "2026-05-28T03:58:18.808350+00:00",
+        weight: 0,
+        reps: 12,
+        weightUnit: "lbs",
+      },
+    ],
+    bestWeight: 25,
+    bestWeightedReps: 5,
+    bestBodyweightReps: 12,
+    bestSetSummary: "12 reps",
+    prEst1rm: null,
+    unit: "lbs",
+  });
+
+  assert.deepEqual(metrics, [
+    { label: "Best Reps", value: "12 reps" },
+    { label: "Added Load", value: "25 lbs" },
+  ]);
+});
+
 test("loaded strength progress metrics omit raw current values when no previous session exists", () => {
   const metrics = buildStrengthProgressMetrics({
     latest: {

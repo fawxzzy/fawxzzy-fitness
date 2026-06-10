@@ -258,6 +258,27 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
         ],
       },
     ],
+    activityBuckets: [
+      {
+        id: "2026-04-21",
+        label: "Apr 21",
+        detail: "2 changes landed.",
+        valueLabel: "2 events",
+        eventCount: 2,
+        promotionCount: 1,
+        deloadCount: 0,
+        manualChangeCount: 1,
+        revertCount: 0,
+        items: [
+          "Back Squat promoted | 6 reps -> 7 reps",
+          "Walking Lunge manual target change | 10 reps -> 12 reps",
+        ],
+        hotspotItems: [
+          "Promotion hotspot: Back Squat.",
+          "Manual-change hotspot: Walking Lunge.",
+        ],
+      },
+    ],
     topProgressedExerciseNames: ["Back Squat"],
     topDeloadExerciseNames: [],
     topAdjustedExerciseNames: ["Walking Lunge"],
@@ -347,6 +368,44 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
         bars: [
           { id: "back-squat", label: "Back Squat", value: 1, valueLabel: "1 promotion", detail: null },
           { id: "weighted-pull-up", label: "Weighted Pull-Up", value: 1, valueLabel: "1 promotion", detail: null },
+        ],
+      },
+    ],
+    activityBuckets: [
+      {
+        id: "2026-04-14",
+        label: "Apr 14 - Apr 20",
+        detail: "1 change landed.",
+        valueLabel: "1 event",
+        eventCount: 1,
+        promotionCount: 1,
+        deloadCount: 0,
+        manualChangeCount: 0,
+        revertCount: 0,
+        items: [
+          "Weighted Pull-Up promoted | 6 reps -> 7 reps",
+        ],
+        hotspotItems: [
+          "Promotion hotspot: Weighted Pull-Up.",
+        ],
+      },
+      {
+        id: "2026-04-21",
+        label: "Apr 21 - Apr 27",
+        detail: "2 changes landed.",
+        valueLabel: "2 events",
+        eventCount: 2,
+        promotionCount: 1,
+        deloadCount: 0,
+        manualChangeCount: 1,
+        revertCount: 0,
+        items: [
+          "Back Squat promoted | 6 reps -> 7 reps",
+          "Incline Walk manual target change | 12:00 -> 15:00",
+        ],
+        hotspotItems: [
+          "Promotion hotspot: Back Squat.",
+          "Manual-change hotspot: Incline Walk.",
         ],
       },
     ],
@@ -452,6 +511,25 @@ const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
           emptyCaption: "Promotion hotspots appear after the first applied promotion lands.",
           bars: [
             { id: "weighted-pull-up", label: "Weighted Pull-Up", value: 1, valueLabel: "1 promotion", detail: null },
+          ],
+        },
+      ],
+      activityBuckets: [
+        {
+          id: "2026-04-16",
+          label: "Apr 16",
+          detail: "1 change landed.",
+          valueLabel: "1 event",
+          eventCount: 1,
+          promotionCount: 1,
+          deloadCount: 0,
+          manualChangeCount: 0,
+          revertCount: 0,
+          items: [
+            "Weighted Pull-Up promoted | 5 reps -> 6 reps",
+          ],
+          hotspotItems: [
+            "Promotion hotspot: Weighted Pull-Up.",
           ],
         },
       ],

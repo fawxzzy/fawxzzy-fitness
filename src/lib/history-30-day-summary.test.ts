@@ -153,8 +153,8 @@ test("history summary counts all stored workouts, routines, exercises, and pr mo
     "Manual-change hotspot: Bench Press.",
   ]);
   assert.deepEqual(summary.progressionSummary.timelineItems, [
-    "Active weeks: 1 week.",
-    "Busiest week: Apr 28 (2 events).",
+    "Active weeks: 2 weeks.",
+    "Busiest week: Apr 27 (1 event).",
     "Latest progression: Back Squat on Apr 29.",
   ]);
   assert.deepEqual(summary.progressionSummary.chartSections.map((section) => section.title), [
@@ -163,7 +163,12 @@ test("history summary counts all stored workouts, routines, exercises, and pr mo
     "Promotion Hotspots",
   ]);
   assert.deepEqual(summary.progressionSummary.chartSections[0]?.bars.map((bar) => `${bar.label}:${bar.value}`), [
-    "Apr 28 - May 4:2",
+    "Apr 20 - Apr 26:1",
+    "Apr 27 - May 3:1",
+  ]);
+  assert.deepEqual(summary.progressionSummary.activityBuckets.map((bucket) => `${bucket.label}:${bucket.eventCount}`), [
+    "Apr 20 - Apr 26:1",
+    "Apr 27 - May 3:1",
   ]);
 });
 
@@ -244,4 +249,14 @@ test("history summary raises plain-language attention flags for inactivity and m
     "Regression hotspot: Exercise.",
     "Manual-change hotspot: Exercise.",
   ]);
+  assert.deepEqual(summary.progressionSummary.activityBuckets.map((bucket) => `${bucket.label}:${bucket.eventCount}`), [
+    "Apr 20 - Apr 26:2",
+  ]);
+  assert.deepEqual(
+    summary.progressionSummary.activityBuckets[0]?.items.map((item) => `${item.primary}|${item.meta ?? ""}|${item.signals ?? ""}`),
+    [
+      "Manual change|Atlas|watch",
+      "Regression|Atlas|regression",
+    ],
+  );
 });

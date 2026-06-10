@@ -378,4 +378,11 @@ test("weekly progress builds explicit progression recap, hotspots, and timeline 
     "May 5:1",
     "May 7:1",
   ]);
+  assert.deepEqual(summary.progressionSummary.activityBuckets.map((bucket) => `${bucket.label}:${bucket.eventCount}`), [
+    "May 5:1",
+    "May 7:1",
+  ]);
+  assert.deepEqual(summary.progressionSummary.activityBuckets[1]?.hotspotItems, [
+    "Manual-change hotspot: Incline Walk.",
+  ]);
 });

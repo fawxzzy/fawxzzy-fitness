@@ -50,7 +50,7 @@ export async function loadHistoryDetailRows({
   userId: string;
   sessionFound: boolean;
 }) {
-  const baseSessionExerciseSelect = "id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit";
+  const baseSessionExerciseSelect = "id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit, target_sets_min, target_sets_max";
 
   const [strictSessionExerciseQuery, relaxedSessionExerciseQuery] = await Promise.all([
     supabase

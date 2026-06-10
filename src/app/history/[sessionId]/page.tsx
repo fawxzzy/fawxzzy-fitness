@@ -284,7 +284,12 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         notes: exercise.notes,
         measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
         default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
-        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? []),
+        target_sets_min: exercise.target_sets_min ?? null,
+        target_sets_max: exercise.target_sets_max ?? null,
+        progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? [], {
+          exerciseNameById: exerciseNameMap,
+          routineTitleById: sessionRow.routine_id ? new Map([[sessionRow.routine_id, routineTitle]]) : undefined,
+        }),
         sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
           id: set.id,
           set_index: set.set_index,

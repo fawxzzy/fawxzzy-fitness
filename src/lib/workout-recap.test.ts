@@ -50,10 +50,10 @@ test("workout recap builds deterministic metrics and share text", () => {
   });
 
   assert.equal(recap.id, "recap:session-1");
-  assert.equal(recap.title, "Atlas · Hunt recap");
+  assert.equal(recap.title, "Atlas | Hunt recap");
   assert.deepEqual(recap.metrics.map((metric) => metric.label), ["Exercises", "Sets", "Duration", "Volume"]);
   assert.deepEqual(recap.topEfforts[0], { exerciseName: "Bench Press", value: "225 lbs x 6" });
-  assert.match(recap.shareText, /Atlas · Hunt recap/);
+  assert.match(recap.shareText, /Atlas \| Hunt recap/);
   assert.match(recap.shareText, /Top efforts:/);
 });
 

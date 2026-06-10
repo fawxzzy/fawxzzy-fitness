@@ -20,7 +20,7 @@ test("fixture inventory covers the current canonical mobile screen set", () => {
   assert.equal(byRoute.get("historySessions"), 2);
   assert.equal(byRoute.get("historyProgression"), 2);
   assert.equal(byRoute.get("historyExercises"), 5);
-  assert.equal(byRoute.get("historyDetail"), 1);
+  assert.equal(byRoute.get("historyDetail"), 3);
   assert.equal(byRoute.get("settings"), 2);
   assert.equal(byRoute.get("exerciseDetail"), 6);
 });

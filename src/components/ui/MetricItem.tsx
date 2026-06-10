@@ -139,42 +139,53 @@ function getAdaptiveMetricWidthClassName(item: MetricDatum, totalItems: number) 
     .split("|")
     .map((segment) => segment.trim())
     .filter(Boolean);
+  const hasDualMeasurementValue = pipeSegments.length === 2
+    && item.value.trim().length >= 14
+    && pipeSegments.every((segment) => segment.length <= 14);
 
   if (
     pipeSegments.length >= 4
-    || (pipeSegments.length >= 3 && item.value.trim().length >= 24)
-    || pipeSegments.some((segment) => segment.length >= 14)
+    || (pipeSegments.length >= 3 && item.value.trim().length >= 30)
+    || pipeSegments.some((segment) => segment.length >= 18)
   ) {
     return "basis-full min-w-0";
   }
 
   if (totalItems <= 1) return "basis-full min-w-0";
   if (totalItems === 2) {
+    if (hasDualMeasurementValue) {
+      return "basis-auto min-w-[7.75rem] max-w-full grow-0";
+    }
+
     switch (tier) {
       case "micro":
-        return "basis-auto min-w-[5.1rem] max-w-full grow-0";
+        return "basis-auto min-w-[4.85rem] max-w-full grow-0";
       case "compact":
-        return "basis-auto min-w-[5.9rem] max-w-full grow-0";
+        return "basis-auto min-w-[5.55rem] max-w-full grow-0";
       case "standard":
-        return "basis-auto min-w-[6.85rem] max-w-full grow-0";
+        return "basis-auto min-w-[6.35rem] max-w-full grow-0";
       case "wide":
-        return "basis-auto min-w-[7.7rem] max-w-full grow-0";
+        return "basis-auto min-w-[7.05rem] max-w-full grow-0";
       default:
         return "basis-full min-w-0";
     }
   }
 
+  if (hasDualMeasurementValue) {
+    return "basis-auto min-w-[8.2rem] max-w-full grow-0";
+  }
+
   switch (tier) {
     case "micro":
-      return "basis-auto min-w-[4.35rem] max-w-full grow-0";
+      return "basis-auto min-w-[4.05rem] max-w-full grow-0";
     case "compact":
-      return "basis-auto min-w-[5rem] max-w-full grow-0";
+      return "basis-auto min-w-[4.65rem] max-w-full grow-0";
     case "standard":
-      return "basis-auto min-w-[5.9rem] max-w-full grow-0";
+      return "basis-auto min-w-[5.45rem] max-w-full grow-0";
     case "wide":
-      return "basis-auto min-w-[6.9rem] max-w-full grow-0";
+      return "basis-auto min-w-[6.3rem] max-w-full grow-0";
     default:
-      return "basis-auto min-w-[8rem] max-w-full grow-0";
+      return "basis-auto min-w-[7.25rem] max-w-full grow-0";
   }
 }
 
