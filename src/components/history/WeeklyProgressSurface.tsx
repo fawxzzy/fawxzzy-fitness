@@ -99,7 +99,7 @@ function getTrendTone(direction: WeeklyProgressSummary["consistencyTrend"]["dire
   return "default";
 }
 
-function getCoverageTone(summary: WeeklyProgressSummary): MetricDatum["valueTone"] {
+function getCompletionTone(summary: WeeklyProgressSummary): MetricDatum["valueTone"] {
   if (summary.primaryRoutineTargetCount <= 0) {
     return "muted";
   }
@@ -111,7 +111,7 @@ function getCoverageTone(summary: WeeklyProgressSummary): MetricDatum["valueTone
   return summary.completedWorkoutCount > 0 ? "default" : "muted";
 }
 
-function buildCoverageValueNode(summary: WeeklyProgressSummary) {
+function buildCompletionValueNode(summary: WeeklyProgressSummary) {
   if (summary.primaryRoutineTargetCount <= 0) {
     return <span>Open</span>;
   }
@@ -124,7 +124,7 @@ function buildCoverageValueNode(summary: WeeklyProgressSummary) {
   );
 }
 
-function buildCoverageDetail(summary: WeeklyProgressSummary) {
+function buildCompletionDetail(summary: WeeklyProgressSummary) {
   if (summary.primaryRoutineTargetCount <= 0) {
     return summary.activeDayCount > 0
       ? `Logged across ${summary.activeDayCount} ${summary.activeDayCount === 1 ? "active day" : "active days"}.`
@@ -149,17 +149,17 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
       value: String(summary.completedWorkoutCount),
     },
     {
-      label: "Active Days",
+      label: "Planned Days",
       value: String(projectedActiveDayCount),
       valueTone: projectedActiveDayCount > 0 ? "default" : "muted",
     },
     {
-      label: "Coverage",
+      label: "Completed",
       value: summary.primaryRoutineTargetCount > 0
         ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount}`
         : "Open",
-      valueNode: buildCoverageValueNode(summary),
-      valueTone: getCoverageTone(summary),
+      valueNode: buildCompletionValueNode(summary),
+      valueTone: getCompletionTone(summary),
     },
     {
       label: "Trend",
@@ -192,7 +192,7 @@ function WeeklyProgressBody({
       <div className="space-y-3">
         <DetailSectionBlock
           title="Cycle Review"
-          items={[summary.consistencyTrend.detail, buildCoverageDetail(summary)]}
+          items={[summary.consistencyTrend.detail, buildCompletionDetail(summary)]}
           tone="muted"
           divider={false}
         />
@@ -205,20 +205,17 @@ function WeeklyProgressBody({
           title="Watch"
           items={summary.attentionItems.length > 0 ? summary.attentionItems : ["Nothing needs attention in this cycle right now."]}
           divider={false}
-          sectionSignal="watch"
         />
         <DetailSectionBlock
           title="PR Moments"
           items={summary.prExerciseNames.length > 0 ? summary.prExerciseNames.slice(0, 4) : ["No PR moments recorded in the current cycle."]}
           divider={false}
-          sectionSignal={summary.prExerciseNames.length > 0 ? "pr" : undefined}
         />
         <DetailSectionBlock
           title="Progression"
           items={summary.progressionSummary.reviewItems}
           tone="muted"
           divider={false}
-          sectionSignal={summary.progressionSummary.promotionCount > 0 ? "promotion" : undefined}
         />
         <ProgressionSummaryActivityPanel
           activityBuckets={summary.progressionSummary.activityBuckets}
@@ -229,7 +226,6 @@ function WeeklyProgressBody({
           title="Progression Watch"
           items={summary.progressionSummary.attentionItems.length > 0 ? summary.progressionSummary.attentionItems : ["Nothing stands out in progression this week."]}
           divider={false}
-          sectionSignal="watch"
         />
       </div>
     </div>

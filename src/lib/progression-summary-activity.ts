@@ -1,5 +1,5 @@
 import { getProgressionEventBucketKey, sortProgressionEventsNewestFirst, summarizeProgressionEventAnalytics, type ProgressionAnalyticsEvent } from "@/lib/progression-event-analytics";
-import { buildProgressionActivityItemLabel, formatProgressionActivityDayLabel } from "@/lib/progression-lifeline-summary";
+import { buildStructuredProgressionActivityItem, formatProgressionActivityDayLabel } from "@/lib/progression-lifeline-summary";
 import type { DetailSectionListItem } from "@/components/ui/DetailSectionList";
 
 export type ProgressionSummaryActivityBucket = {
@@ -86,33 +86,13 @@ export function buildProgressionSummaryActivityBuckets(args: {
         deloadCount: analytics.deloadsAppliedCount,
         manualChangeCount: analytics.manualTargetChangesCount,
         revertCount: analytics.revertsCount,
-        items: orderedEvents.map((event) => {
-          const rawSummary = buildProgressionActivityItemLabel(event);
-          const [headlineRaw, transitionRaw] = rawSummary.split(/\s+\|\s+/, 2);
-          const metaParts = [
-            args.exerciseNameById?.get(event.exercise_id)?.trim() || null,
-            args.routineTitleById?.get(event.routine_id)?.trim() || null,
-          ].filter((part): part is string => Boolean(part));
-          const hasTransition = typeof transitionRaw === "string" && /(?:->|\u2192)/.test(transitionRaw);
-          const primary = hasTransition
-            ? headlineRaw.replace(/\b(promotion|regression|manual change|promotion reverted)\b/gi, "").replace(/\s{2,}/g, " ").trim() || headlineRaw.trim()
-            : rawSummary;
-
-          return {
-            id: event.id,
-            primary,
-            value: hasTransition ? transitionRaw.trim() : null,
-            meta: metaParts.join(" | ") || null,
-            signals: event.event_type === "promotion_applied"
-              ? "promotion"
-              : event.event_type === "deload_applied"
-                ? "regression"
-                : event.event_type === "manual_target_change" || event.event_type === "promotion_reverted"
-                  ? "watch"
-                  : undefined,
-            layout: "single-column",
-          } satisfies DetailSectionListItem;
-        }),
+        items: orderedEvents.map((event) => (
+          buildStructuredProgressionActivityItem({
+            event,
+            exerciseName: args.exerciseNameById?.get(event.exercise_id) ?? null,
+            routineTitle: args.routineTitleById?.get(event.routine_id) ?? null,
+          })
+        )),
         hotspotItems,
       } satisfies ProgressionSummaryActivityBucket;
     });

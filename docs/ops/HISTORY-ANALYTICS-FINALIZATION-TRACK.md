@@ -19,7 +19,7 @@ It exists to stop drift between:
 
 ## Current Marker
 
-- History / Analytics Finalization Track: `96%`
+- History / Analytics Finalization Track: `97%`
 
 Marker rules:
 
@@ -29,11 +29,11 @@ Marker rules:
 
 ## Sub-Lane Markers
 
-- Runtime Hardening and Route Loading: `92%`
+- Runtime Hardening and Route Loading: `95%`
 - Shared Metric Card Normalization: `97%`
-- Progression Analytics and Scope Filters: `94%`
-- Signal Density, Legends, and Color Coding: `90%`
-- Final QA, Post Alignment, and Closeout: `82%`
+- Progression Analytics and Scope Filters: `95%`
+- Signal Density, Legends, and Color Coding: `92%`
+- Final QA, Post Alignment, and Closeout: `85%`
 
 ## Landed State
 
@@ -61,6 +61,10 @@ Already landed:
 - logged-session top detail is now recap-first instead of splitting the same meaning across separate recap, PR, and progression sections
 - logged-session exercise cards now carry real `logged/target` set counts plus compact exercise tags, and logged-set rows can tag best or PR sets directly
 - exercise info now moves `PR History` and `Recent History` under the how-to block and uses row tags to reduce repeated `last` and `best` noise
+- localhost history preview now has a deterministic sidecar QA lane that can open session history, exercise history, and history detail without live-login friction
+- preview-seeded exercise history rows can now open exercise info directly instead of tripping the API-only exercise-id guard
+- history summary sections no longer duplicate `WATCH`, `PROMO`, or similar signals at both the title row and item-row level
+- current-cycle history metrics now read more explicitly with `Planned Days`, `Completed`, and cleaner week-over-week wording
 
 ## Runtime Note
 
@@ -71,6 +75,8 @@ Verified state on 2026-06-10:
 - [src/app/history/[sessionId]/loading.tsx](C:/ATLAS/repos/fawxzzy-fitness/src/app/history/[sessionId]/loading.tsx) uses the shared route loader
 - the old `Loading session detail` string was absent from `src/`
 - the repo-local dev server on `127.0.0.1:3002` was restarted from recorded runtime state so live output stops lagging behind source
+- the dedicated local preview lane on `http://localhost:3004/history` now renders deterministic history fixtures directly when `HISTORY_QA_PREVIEW_ENABLED=1`
+- the preview helper at [src/app/dev/history-preview/page.tsx](C:/ATLAS/repos/fawxzzy-fitness/src/app/dev/history-preview/page.tsx) now matches that direct-preview behavior instead of describing a stale cookie-only flow
 
 If the old copy appears again after this restart, treat that as cache or stale-client verification work, not as missing source work.
 
@@ -80,7 +86,7 @@ If the old copy appears again after this restart, treat that as cache or stale-c
 
 Remaining:
 
-- verify the shared route loader is what the user sees on real logged-session entry after the restart
+- verify the shared route loader is what the user sees on real authenticated logged-session entry after the restart
 - keep replacing one-off loading or recovery shells with canonical app surfaces where drift still exists
 - continue route gating that blocks bad navigation targets before they soft-crash the user into a dead-end screen
 
@@ -131,7 +137,7 @@ The card should reflect:
 ## Next Packet
 
 1. QA the row-tag spacing and one-column fallback behavior across history summaries, logged session, and exercise info.
-2. Verify the logged-session route and recovered-screen handling still behave correctly in live app navigation.
+2. Verify the real authenticated logged-session route and recovered-screen handling now that the deterministic preview lane is stable.
 3. Refresh the Discord feature card wording from this tracker after the next executed-state change.
 4. Run one final history-family QA sweep and move the marker only from proof-backed improvements.
 

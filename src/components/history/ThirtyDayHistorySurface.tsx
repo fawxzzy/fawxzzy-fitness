@@ -74,7 +74,7 @@ function buildMetricItems(summary: ThirtyDayHistorySummary): MetricDatum[] {
     { label: "Workout Days", value: String(summary.activeDayCount), valueTone: summary.activeDayCount > 0 ? "default" : "muted" },
     { label: "Unique Exercises", value: String(summary.exerciseCount), valueTone: summary.exerciseCount > 0 ? "default" : "muted" },
     { label: "PR Moments", value: String(summary.prMomentCount), valueTone: summary.prMomentCount > 0 ? "success" : "muted" },
-    { label: "Weekly Change", value: buildWeeklyChangeLabel(summary), valueTone: getTrendTone(summary.consistencyTrend.direction) },
+    { label: "Vs Prior Week", value: buildWeeklyChangeLabel(summary), valueTone: getTrendTone(summary.consistencyTrend.direction) },
   ];
 }
 
@@ -87,7 +87,7 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHis
   return (
     <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
       <p className="text-[0.72rem] leading-5 text-[rgb(var(--text-muted)/0.82)]">
-        All-time training summary with a week-over-week workout check.
+        All-time training summary with a week-over-week workout delta.
       </p>
       <MetricGrid summary={summary} />
       <div className="space-y-3">
@@ -106,14 +106,12 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHis
           title="Watch"
           items={summary.attentionItems.length > 0 ? summary.attentionItems : ["Nothing needs attention right now."]}
           divider={false}
-          sectionSignal="watch"
         />
         <DetailSectionBlock
           title="Progression"
           items={summary.progressionSummary.reviewItems}
           tone="muted"
           divider={false}
-          sectionSignal={summary.progressionSummary.promotionCount > 0 ? "promotion" : undefined}
         />
         <ProgressionSummaryActivityPanel
           activityBuckets={summary.progressionSummary.activityBuckets}
@@ -124,7 +122,6 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHis
           title="Progression Watch"
           items={summary.progressionSummary.attentionItems.length > 0 ? summary.progressionSummary.attentionItems : ["Nothing stands out in progression right now."]}
           divider={false}
-          sectionSignal="watch"
         />
       </div>
     </div>

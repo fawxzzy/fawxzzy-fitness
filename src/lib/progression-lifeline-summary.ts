@@ -358,7 +358,7 @@ export function buildProgressionActivityItemLabel(event: ProgressionEventRow) {
     : `${eventLabel} | ${changeSummary}`;
 }
 
-function buildStructuredProgressionActivityItem(args: {
+export function buildStructuredProgressionActivityItem(args: {
   event: ProgressionEventRow;
   exerciseName?: string | null;
   routineTitle?: string | null;
