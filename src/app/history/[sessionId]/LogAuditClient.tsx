@@ -21,7 +21,12 @@ import { getBottomActionButtonClassName } from "@/components/layout/bottomAction
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
 import { markProgressionAppliedPinsSourceDeletedInStorage } from "@/lib/progression-applied-pins";
-import { HistorySessionCard, type HistorySessionDetailSection } from "@/components/history/HistorySessionCard";
+import {
+  HistorySessionCard,
+  buildRecapOnlyHistorySessionDetailSections,
+  type HistorySessionDetailSection,
+  type HistorySessionRecapItemMeta,
+} from "@/components/history/HistorySessionCard";
 import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
 import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -34,7 +39,7 @@ import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSumm
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HistoryDetailHeader, HistorySection } from "@/components/history/HistoryShared";
-import { DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem } from "@/components/ui/DetailSectionList";
+import { DetailSectionBadge, DetailSectionBlocks, DetailSectionItems } from "@/components/ui/DetailSectionList";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { PillButton } from "@/components/ui/Pill";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -335,6 +340,41 @@ function buildLoggedSessionSummary(args: {
   } satisfies SessionSummary;
 }
 
+function buildLoggedSessionRecapItemMeta(args: {
+  exercises: AuditExercise[];
+  exerciseNameMap: Record<string, string>;
+  sessionSummary: SessionSummary;
+}): HistorySessionRecapItemMeta[] {
+  const prExerciseNames = new Set((args.sessionSummary.prExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
+  const bestExerciseName = args.sessionSummary.bestLift?.exerciseName?.trim() || null;
+
+  return args.exercises
+    .map((exercise) => {
+      const exerciseName = exercise.exercise_name?.trim() || args.exerciseNameMap[exercise.exercise_id] || "";
+      if (!exerciseName) {
+        return null;
+      }
+
+      const progressionSummary = exercise.progressionSummary ?? null;
+      const signals = [
+        prExerciseNames.has(exerciseName) ? "pr" : null,
+        (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
+        (progressionSummary?.deloadCount ?? 0) > 0 ? "regression" : null,
+        ((progressionSummary?.manualChangeCount ?? 0) > 0 || (progressionSummary?.revertCount ?? 0) > 0) ? "watch" : null,
+      ].filter((value, signalIndex, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === signalIndex);
+      const tagLabels = [
+        bestExerciseName === exerciseName ? "BEST" : null,
+      ].filter((value): value is string => Boolean(value));
+
+      return {
+        exerciseName,
+        signals,
+        tagLabels,
+      } satisfies HistorySessionRecapItemMeta;
+    })
+    .filter((item): item is HistorySessionRecapItemMeta => Boolean(item));
+}
+
 function formatMetricCount(value: number) {
   return Math.max(0, Math.round(value)).toLocaleString();
 }
@@ -395,52 +435,10 @@ function renderMetaTags(items: string[]) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {items.map((item) => (
-        <SignatureMetaTag key={item} className="text-[9px] tracking-[0.14em]">
-          {item}
-        </SignatureMetaTag>
+        <DetailSectionBadge key={item} label={item} />
       ))}
     </div>
   );
-}
-
-function buildLoggedSessionRecapSections(session: SessionSummary): HistorySessionDetailSection[] {
-  const prExerciseNameSet = new Set((session.prExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
-  const progressionSummary = session.progressionSummary ?? null;
-  const progressionExerciseNameSet = new Set((progressionSummary?.affectedExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
-  const bestExerciseName = session.bestLift?.exerciseName?.trim() || null;
-  const recapItems: DetailSectionListItem[] = (session.exerciseNames ?? [])
-    .map((name, index) => {
-      const normalizedName = name.trim();
-      if (!normalizedName) {
-        return null;
-      }
-
-      const signals = [
-        prExerciseNameSet.has(normalizedName) ? "pr" : null,
-        progressionExerciseNameSet.has(normalizedName) && (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
-        progressionExerciseNameSet.has(normalizedName) && (progressionSummary?.deloadCount ?? 0) > 0 ? "regression" : null,
-        progressionExerciseNameSet.has(normalizedName) && ((progressionSummary?.manualChangeCount ?? 0) > 0 || (progressionSummary?.revertCount ?? 0) > 0) ? "watch" : null,
-      ].filter((value, signalIndex, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === signalIndex);
-      const tagLabels = [
-        bestExerciseName === normalizedName ? "BEST" : null,
-      ].filter((value): value is string => Boolean(value));
-
-      return {
-        id: `session-recap-${index}`,
-        primary: normalizedName,
-        signals,
-        tagLabels,
-        layout: signals.length > 1 ? "single-column" : "auto",
-      } satisfies DetailSectionListItem;
-    })
-    .filter((item): item is DetailSectionListItem => Boolean(item));
-
-  return recapItems.length > 0
-    ? [{
-        title: "Recap",
-        items: recapItems,
-      }]
-    : [];
 }
 
 function buildFocusedExerciseDetailedMetrics(args: {
@@ -799,10 +797,7 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
               {prExerciseNames.size > 0 ? (
                 <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.84)]">
                   <span>Legend</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[rgb(var(--success-rgb)/0.2)] bg-[rgb(var(--success-rgb)/0.08)] px-2 py-0.5 text-[rgb(var(--success-rgb)/0.94)]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--success-rgb)/0.96)]" />
-                    PR
-                  </span>
+                  <DetailSectionBadge label="PR" />
                 </div>
               ) : null}
             </div>
@@ -817,8 +812,8 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
                   {effort.exerciseName}
                 </span>
                 {prExerciseNames.has(effort.exerciseName.trim()) ? (
-                  <span className="ml-2 inline-flex items-center rounded-full border border-[rgb(var(--success-rgb)/0.18)] bg-[rgb(var(--success-rgb)/0.08)] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--success-rgb)/0.94)]">
-                    PR
+                  <span className="ml-2 inline-flex">
+                    <DetailSectionBadge label="PR" />
                   </span>
                 ) : null}
                 {" | "}
@@ -1023,9 +1018,25 @@ export function LogAuditClient({
     }) ?? undefined;
   }, [editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary.prExerciseNames]);
 
+  const focusedRecapItemMeta = useMemo(() => {
+    if (expandedExercise) {
+      return [];
+    }
+
+    return buildLoggedSessionRecapItemMeta({
+      exercises: displayExercises,
+      exerciseNameMap,
+      sessionSummary: focusedSessionSummary,
+    });
+  }, [displayExercises, expandedExercise, exerciseNameMap, focusedSessionSummary]);
+
   const focusedDetailedSections = useMemo(() => {
     if (!expandedExercise) {
-      return buildLoggedSessionRecapSections(focusedSessionSummary);
+      return buildRecapOnlyHistorySessionDetailSections(
+        focusedSessionSummary,
+        focusedSessionSummary.prExerciseNames ?? [],
+        focusedRecapItemMeta,
+      );
     }
 
     const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
@@ -1037,7 +1048,7 @@ export function LogAuditClient({
       defaultUnit: expandedExercise.default_unit,
       hasPrInSession: (focusedSessionSummary.prExerciseNames ?? []).includes(exerciseName),
     });
-  }, [editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary]);
+  }, [editableSets, expandedExercise, exerciseNameMap, focusedRecapItemMeta, focusedSessionSummary]);
 
   const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
   const isFocusedSetExpanded = Boolean(expandedSetId);

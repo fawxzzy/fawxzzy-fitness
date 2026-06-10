@@ -2,12 +2,12 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { SessionSummary } from "@/app/history/session-summary";
+import type { SessionRecapSignal, SessionSummary } from "@/app/history/session-summary";
 import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCard";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
-import { DetailSectionBlock, DetailSectionBlocks, THIN_SECTION_TOP_DIVIDER_CLASS_NAME, type DetailSectionListSection, type DetailSectionSignalMap } from "@/components/ui/DetailSectionList";
+import { DetailSectionBlock, DetailSectionBlocks, THIN_SECTION_TOP_DIVIDER_CLASS_NAME, type DetailSectionListItem, type DetailSectionListSection } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, type MetricDatum, MetricGrid, SurfaceMetricGrid } from "@/components/ui/MetricItem";
 import { SignatureDot, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -207,63 +207,75 @@ function renderProgressionSummary(session: SessionSummary) {
 }
 
 export type HistorySessionDetailSection = DetailSectionListSection;
+export type HistorySessionRecapItemMeta = {
+  exerciseName: string;
+  signals?: Array<"pr" | "promotion" | "regression" | "watch">;
+  tagLabels?: string[];
+};
 
 function renderHistorySessionDetailSections(sections: HistorySessionDetailSection[]) {
   return <DetailSectionBlocks sections={sections} />;
 }
 
-function buildDefaultHistorySessionDetailSections(session: SessionSummary, prExerciseNames: string[]) {
+export function buildRecapOnlyHistorySessionDetailSections(
+  session: SessionSummary,
+  prExerciseNames: string[],
+  recapItemMeta?: HistorySessionRecapItemMeta[],
+) {
   const prExerciseNameSet = new Set(prExerciseNames.map((name) => name.trim()).filter(Boolean));
-  const recapItemSignals: DetailSectionSignalMap | undefined = session.exerciseNames?.some((name) => prExerciseNameSet.has(name.trim()))
-    ? Object.fromEntries(
-        (session.exerciseNames ?? [])
-          .filter((name) => prExerciseNameSet.has(name.trim()))
-          .map((name) => [name, "pr"]),
-      )
-    : undefined;
-  const bestItem = session.bestLift
-    ? `${session.bestLift.exerciseName} | ${session.bestLift.display}`
-    : "No best lift recorded in this session.";
-  const bestItemSignals: DetailSectionSignalMap | undefined = session.bestLift && prExerciseNameSet.has(session.bestLift.exerciseName.trim())
-    ? { [bestItem]: "pr" }
-    : undefined;
+  const progressionSummary = session.progressionSummary ?? null;
+  const progressionExerciseNameSet = new Set((progressionSummary?.affectedExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
+  const bestExerciseName = session.bestLift?.exerciseName?.trim() || null;
+  const recapMetaByName = new Map(
+    ((recapItemMeta ?? session.recapSignals ?? []) as Array<HistorySessionRecapItemMeta | SessionRecapSignal>)
+      .map((item) => {
+        const normalizedName = item.exerciseName.trim();
+        if (!normalizedName) {
+          return null;
+        }
 
-  return [
-    ...(
-      session.progressionSummary?.eventCount
-        ? [{
-            title: "Progression",
-            items: [
-              session.progressionSummary.headline,
-              session.progressionSummary.detail && session.progressionSummary.detail !== session.progressionSummary.headline
-                ? session.progressionSummary.detail
-                : null,
-              session.progressionSummary.lastPromotionAt ? `Last promotion ${formatDateShort(session.progressionSummary.lastPromotionAt)}` : null,
-            ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index),
-            sectionSignal: session.progressionSummary.promotionCount > 0 ? "promotion" : undefined,
-          }]
-        : []
-    ),
-    ...(session.exerciseNames?.length
-      ? [{
-          title: "Recap",
-          items: session.exerciseNames,
-          itemSignals: recapItemSignals,
-        }]
-      : []),
-    {
-      title: "PRs",
-      items: prExerciseNames.length > 0
-        ? prExerciseNames
-        : ["No PRs recorded in this session."],
-      sectionSignal: prExerciseNames.length > 0 ? "pr" : undefined,
-    },
-    {
-      title: "Best",
-      items: [bestItem],
-      itemSignals: bestItemSignals,
-    },
-  ];
+        return [normalizedName, item] as const;
+      })
+      .filter((entry): entry is readonly [string, HistorySessionRecapItemMeta] => Boolean(entry)),
+  );
+  const recapItems: DetailSectionListItem[] = (session.exerciseNames ?? [])
+    .map((name, index) => {
+      const normalizedName = name.trim();
+      if (!normalizedName) {
+        return null;
+      }
+
+      const explicitMeta = recapMetaByName.get(normalizedName);
+      const signals = explicitMeta?.signals?.length
+        ? explicitMeta.signals.filter((value, signalIndex, values) => values.indexOf(value) === signalIndex)
+        : [
+            prExerciseNameSet.has(normalizedName) ? "pr" : null,
+            progressionExerciseNameSet.has(normalizedName) && (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
+            progressionExerciseNameSet.has(normalizedName) && (progressionSummary?.deloadCount ?? 0) > 0 ? "regression" : null,
+            progressionExerciseNameSet.has(normalizedName) && ((progressionSummary?.manualChangeCount ?? 0) > 0 || (progressionSummary?.revertCount ?? 0) > 0) ? "watch" : null,
+          ].filter((value, signalIndex, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === signalIndex);
+      const tagLabels = explicitMeta?.tagLabels?.length
+        ? explicitMeta.tagLabels.filter((value, tagIndex, values) => Boolean(value) && values.indexOf(value) === tagIndex)
+        : [
+            bestExerciseName === normalizedName ? "BEST" : null,
+          ].filter((value): value is string => Boolean(value));
+
+      return {
+        id: `session-recap-${index}`,
+        primary: normalizedName,
+        signals,
+        tagLabels,
+        layout: signals.length + tagLabels.length > 1 ? "single-column" : "auto",
+      } satisfies DetailSectionListItem;
+    })
+    .filter((item): item is DetailSectionListItem => Boolean(item));
+
+  return recapItems.length > 0
+    ? [{
+        title: "Recap",
+        items: recapItems,
+      }]
+    : [];
 }
 
 function formatDateBadgeText(session: SessionSummary) {
@@ -330,7 +342,7 @@ export function HistorySessionCard({
     : rightIcon;
   const resolvedDetailedMetrics = detailedMetrics ?? viewModel.detailedMetrics;
   const resolvedPrExerciseNames = prExerciseNames ?? session.prExerciseNames ?? [];
-  const resolvedDetailedSections = detailedSections ?? buildDefaultHistorySessionDetailSections(session, resolvedPrExerciseNames);
+  const resolvedDetailedSections = detailedSections ?? buildRecapOnlyHistorySessionDetailSections(session, resolvedPrExerciseNames);
   const usesHeaderlessDetailedLayout = viewMode === "detailed" && detailedHeaderMode === "hidden";
   const accentStyle = metricAccentRgb
     ? { ["--metric-accent-rgb" as string]: metricAccentRgb }

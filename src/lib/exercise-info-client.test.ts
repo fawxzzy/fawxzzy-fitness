@@ -40,7 +40,17 @@ test("normalizeExerciseInfoStats strips malformed nested analytics entries", () 
         { title: "Progress", items: ["Matched | best", { raw: "bad" }, "1 Rep PR"] },
       ],
       performances: [
-        { label: "Wed", value: "225 lbs x 5", context: "4 sets" },
+        {
+          sessionId: "session-1",
+          performedAt: "2026-06-04T12:00:00.000Z",
+          label: "Wed",
+          value: "225 lbs x 5",
+          summary: "225 lbs x 5",
+          context: "4 sets",
+          setCount: 4,
+          setSummaries: ["225 lbs x 5", "205 lbs x 8"],
+          displayKind: "condensed-session",
+        },
         { label: "Broken", value: { raw: "bad" } },
       ],
     },
@@ -68,9 +78,15 @@ test("normalizeExerciseInfoStats strips malformed nested analytics entries", () 
   ]);
   assert.deepEqual(stats.progress?.performances, [
     {
+      sessionId: "session-1",
+      performedAt: "2026-06-04T12:00:00.000Z",
       label: "Wed",
       value: "225 lbs x 5",
+      summary: "225 lbs x 5",
       context: "4 sets",
+      setCount: 4,
+      setSummaries: ["225 lbs x 5", "205 lbs x 8"],
+      displayKind: "condensed-session",
     },
   ]);
   assert.equal(stats.progression?.promotionCount, 2);

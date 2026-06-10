@@ -10,6 +10,7 @@ export const THIN_SECTION_TOP_DIVIDER_CLASS_NAME = "bg-[linear-gradient(90deg,rg
 
 export type DetailSectionTone = "primary" | "muted";
 export type DetailSectionSignalTone = "pr" | "promotion" | "watch" | "regression";
+export type DetailSectionBadgeTone = DetailSectionSignalTone | "best" | "default";
 export type DetailSectionSignalMap = Record<string, DetailSectionSignalTone | DetailSectionSignalTone[]>;
 export type DetailSectionItemLayout = "auto" | "single-column";
 export type DetailSectionListItem = {
@@ -33,12 +34,12 @@ export type DetailSectionListSection = {
   legendSignals?: DetailSectionSignalTone[];
 };
 
-const DETAIL_SECTION_SIGNAL_CONFIG = {
+const DETAIL_SECTION_BADGE_CONFIG = {
   pr: {
     label: "PR",
-    textClassName: "text-[rgb(var(--success-rgb)/0.96)]",
-    chipClassName: "border-[rgb(var(--success-rgb)/0.18)] bg-[rgb(var(--success-rgb)/0.08)] text-[rgb(var(--success-rgb)/0.94)]",
-    dotClassName: "bg-[rgb(var(--success-rgb)/0.96)]",
+    textClassName: "text-[rgb(var(--secondary-action-rgb)/0.96)]",
+    chipClassName: "border-[rgb(var(--secondary-action-rgb)/0.2)] bg-[rgb(var(--secondary-action-rgb)/0.1)] text-[rgb(var(--secondary-action-rgb)/0.96)]",
+    dotClassName: "bg-[rgb(var(--secondary-action-rgb)/0.96)]",
   },
   promotion: {
     label: "PROMO",
@@ -58,7 +59,19 @@ const DETAIL_SECTION_SIGNAL_CONFIG = {
     chipClassName: "border-[rgb(255,116,116,0.24)] bg-[rgb(255,116,116,0.1)] text-[rgb(255,116,116)]",
     dotClassName: "bg-[rgb(255,116,116)]",
   },
-} satisfies Record<DetailSectionSignalTone, {
+  best: {
+    label: "BEST",
+    textClassName: "text-[rgb(var(--accent-yellow-on)/0.96)]",
+    chipClassName: "border-[rgb(var(--accent-yellow-on)/0.22)] bg-[rgb(var(--accent-yellow-on)/0.1)] text-[rgb(var(--accent-yellow-on)/0.96)]",
+    dotClassName: "bg-[rgb(var(--accent-yellow-on)/0.96)]",
+  },
+  default: {
+    label: "",
+    textClassName: "text-[rgb(var(--text-secondary)/0.92)]",
+    chipClassName: "border-[rgb(var(--border-rgb)/0.32)] bg-[rgb(var(--surface-2-rgb)/0.3)] text-[rgb(var(--text-secondary)/0.9)]",
+    dotClassName: "bg-[rgb(var(--text-secondary)/0.9)]",
+  },
+} satisfies Record<DetailSectionBadgeTone, {
   label: string;
   textClassName: string;
   chipClassName: string;
@@ -70,6 +83,38 @@ function normalizeSignalTones(value?: DetailSectionSignalTone | DetailSectionSig
   return tones.filter((tone, index, values): tone is DetailSectionSignalTone => Boolean(tone) && values.indexOf(tone) === index);
 }
 
+export function resolveDetailSectionBadgeTone(label: string): DetailSectionBadgeTone {
+  const normalized = label.trim().toUpperCase();
+  if (normalized === "PR") return "pr";
+  if (normalized === "PROMO" || normalized === "PROMOTION") return "promotion";
+  if (normalized === "WATCH") return "watch";
+  if (normalized === "REGRESS" || normalized === "REGRESSION") return "regression";
+  if (normalized === "BEST") return "best";
+  return "default";
+}
+
+export function DetailSectionBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone?: DetailSectionBadgeTone;
+}) {
+  const resolvedTone = tone ?? resolveDetailSectionBadgeTone(label);
+  const config = DETAIL_SECTION_BADGE_CONFIG[resolvedTone];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em]",
+        config.chipClassName,
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", config.dotClassName)} />
+      {label}
+    </span>
+  );
+}
+
 function renderSignalChips(signals: DetailSectionSignalTone[]) {
   if (signals.length === 0) {
     return null;
@@ -78,18 +123,12 @@ function renderSignalChips(signals: DetailSectionSignalTone[]) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       {signals.map((signal) => {
-        const config = DETAIL_SECTION_SIGNAL_CONFIG[signal];
         return (
-          <span
+          <DetailSectionBadge
             key={signal}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em]",
-              config.chipClassName,
-            )}
-          >
-            <span className={cn("h-1.5 w-1.5 rounded-full", config.dotClassName)} />
-            {config.label}
-          </span>
+            label={DETAIL_SECTION_BADGE_CONFIG[signal].label}
+            tone={signal}
+          />
         );
       })}
     </span>
@@ -105,12 +144,7 @@ function renderTagChips(labels: string[] | null | undefined) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       {normalizedLabels.map((label) => (
-        <span
-          key={label}
-          className="inline-flex items-center rounded-full border border-[rgb(var(--border-rgb)/0.32)] bg-[rgb(var(--surface-2-rgb)/0.3)] px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.9)]"
-        >
-          {label}
-        </span>
+        <DetailSectionBadge key={label} label={label} />
       ))}
     </span>
   );
@@ -296,7 +330,7 @@ export function DetailSectionItems({
                     appTokens.workoutCardDetailCompact,
                     "min-w-0 block text-[12.5px] leading-[1.28] [text-wrap:pretty]",
                     (item.tone ?? tone) === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
-                    primarySignal ? DETAIL_SECTION_SIGNAL_CONFIG[primarySignal].textClassName : undefined,
+                    primarySignal ? DETAIL_SECTION_BADGE_CONFIG[primarySignal].textClassName : undefined,
                   )}
                 >
                   {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}

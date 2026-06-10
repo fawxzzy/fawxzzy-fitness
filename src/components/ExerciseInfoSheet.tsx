@@ -95,9 +95,15 @@ export type ExerciseInfoSheetStats = {
     metrics?: MetricDatum[];
     reviewSections?: ExerciseInfoReviewSection[];
     performances?: Array<{
+      sessionId: string;
+      performedAt: string;
       label: string;
       value: string;
+      setCount: number;
+      setSummaries: string[];
+      displayKind: "session-summary" | "set-list" | "condensed-session";
       context?: string | null;
+      summary?: string | null;
     }>;
   };
   progression?: ExerciseProgressionLifelineSummary | null;
@@ -113,8 +119,6 @@ export type ExerciseInfoSheetStats = {
     sourcePerformedAt?: string | null;
   } | null;
 };
-
-type ExerciseInfoPerformanceEntry = NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number];
 
 function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | undefined) {
   const progress = stats?.progress;
@@ -136,8 +140,12 @@ function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | und
   const performances = Array.isArray(progress?.performances)
     ? progress.performances.filter((entry): entry is NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number] => (
       Boolean(entry)
+      && typeof entry.sessionId === "string"
+      && typeof entry.performedAt === "string"
       && typeof entry.label === "string"
       && typeof entry.value === "string"
+      && typeof entry.setCount === "number"
+      && Array.isArray(entry.setSummaries)
     ))
     : [];
 
@@ -181,23 +189,11 @@ function shouldPromoteMetricValueToOwnRow(item: MetricDatum) {
     || pipeSegments.some((segment) => segment.length >= 14);
 }
 
-function hasPromotedMetricValue(items: MetricDatum[]) {
-  return items.some((item) => shouldPromoteMetricValueToOwnRow(item));
-}
-
 function shouldUseCompactProgressionStrip(sections: ExerciseInfoReviewSection[]) {
   return sections.length >= 2 && sections.length <= 4 && sections.every((section) => (
     section.items.length === 1
     && isCompactSingleLineValue(section.title, 20)
     && isCompactSingleLineValue(getDetailSectionItemText(section.items[0]!), 34)
-  ));
-}
-
-function shouldUseCompactRecentHistoryStrip(performances: ExerciseInfoPerformanceEntry[]) {
-  return performances.length >= 1 && performances.length <= 6 && performances.every((entry) => (
-    isCompactSingleLineValue(entry.label, 12)
-    && (!entry.context || isCompactSingleLineValue(entry.context, 12))
-    && isCompactSingleLineValue(entry.value, 26)
   ));
 }
 
@@ -555,59 +551,123 @@ function ExerciseInfoOverviewMedia({
   );
 }
 
-function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
-  const performances = getExerciseInfoProgressState(stats).performances;
-  const latestLabel = stats.recent.lastPerformedAt ? formatDateShort(stats.recent.lastPerformedAt) : null;
-  const latestValue = normalizeExerciseInfoComparisonValue(stats.recent.lastSummary);
-  let removedLatestEcho = false;
-  const curatedPerformances = performances.filter((entry) => {
-    if (
-      removedLatestEcho
-      || !latestLabel
-      || !latestValue
-      || entry.label !== latestLabel
-      || normalizeExerciseInfoComparisonValue(entry.value) !== latestValue
-    ) {
-      return true;
+function ExerciseInfoHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
+  const HISTORY_VISIBLE_ROW_COUNT = 10;
+  const historyState = getExerciseInfoProgressState(stats);
+  const performances = historyState.performances;
+  const prHistorySection = historyState.reviewSections.find((section) => section.title === "PR History") ?? null;
+  const prHistoryDates = new Set(
+    (prHistorySection?.items ?? [])
+      .map((item) => {
+        const rawText = typeof item === "string"
+          ? item
+          : [item.primary, item.value].filter((part): part is string => Boolean(part?.trim())).join(" | ");
+        const dateText = rawText.split("|")[0]?.trim() || "";
+        return dateText;
+      })
+      .filter(Boolean),
+  );
+  const normalizedBestSummary = normalizeExerciseInfoComparisonValue(stats.bests.bestSetSummary);
+  const buildHistoryRowValue = (entry: NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number]) => {
+    const uniqueSetSummaries = Array.from(new Set(
+      entry.setSummaries
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ));
+
+    if (entry.displayKind === "set-list" && uniqueSetSummaries.length > 0) {
+      return uniqueSetSummaries.join(" | ");
     }
 
-    removedLatestEcho = true;
-    return false;
-  });
-  const performanceMetrics = curatedPerformances.map((entry) => ({
-    label: entry.label,
-    value: entry.value,
-    timeframe: entry.context ?? null,
-  }));
-  const recentItems = curatedPerformances.map((entry, index) => ({
-    id: `recent-history-${entry.label}-${index}`,
-    primary: entry.value,
-    meta: [entry.label, entry.context].filter((part): part is string => Boolean(part?.trim())).join(" | "),
-    tagLabels: index === 0 ? ["LAST"] : null,
-    layout: "single-column" as const,
-  }));
+    if (entry.displayKind === "condensed-session" && uniqueSetSummaries.length > 0) {
+      const visibleSummaries = uniqueSetSummaries.slice(0, 3);
+      const remainingCount = uniqueSetSummaries.length - visibleSummaries.length;
+      return remainingCount > 0
+        ? `${visibleSummaries.join(" | ")} | +${remainingCount} more`
+        : visibleSummaries.join(" | ");
+    }
 
-  if (performances.length === 0) {
-    return <p className={appTokens.detailBodyMutedText}>No recent performances logged yet.</p>;
-  }
-
-  if (curatedPerformances.length === 0) {
-    return <p className={appTokens.detailBodyMutedText}>The latest result is already reflected in Stats above.</p>;
-  }
-
-  if (shouldUseCompactRecentHistoryStrip(curatedPerformances) && !hasPromotedMetricValue(performanceMetrics)) {
-    return (
-      <ExerciseSurfaceMetricGrid
-        items={performanceMetrics}
-        {...getExerciseInfoMetricGridProps(performanceMetrics)}
-      />
+    return entry.summary?.trim() || entry.value;
+  };
+  const historyItems = performances.map((entry, index) => {
+    const primaryValue = buildHistoryRowValue(entry);
+    const normalizedEntryValue = normalizeExerciseInfoComparisonValue(primaryValue);
+    const valueParts = primaryValue
+      .split("|")
+      .map((part) => normalizeExerciseInfoComparisonValue(part))
+      .filter(Boolean);
+    const isBestEntry = Boolean(
+      normalizedBestSummary
+      && (normalizedEntryValue === normalizedBestSummary || valueParts.includes(normalizedBestSummary)),
     );
+    const tagLabels = [
+      index === 0 ? "LAST" : null,
+      isBestEntry ? "BEST" : null,
+    ].filter((value): value is string => Boolean(value));
+    const metaParts = [entry.label];
+    if (entry.displayKind !== "session-summary" && entry.summary?.trim()) {
+      const normalizedSummary = normalizeExerciseInfoComparisonValue(entry.summary);
+      if (normalizedSummary && normalizedSummary !== normalizedEntryValue) {
+        metaParts.push(entry.summary);
+      }
+    }
+    if (entry.context?.trim()) {
+      metaParts.push(entry.context);
+    }
+
+    return {
+      id: `history-${entry.sessionId}-${index}`,
+      primary: primaryValue,
+      meta: metaParts.join(" | "),
+      signals: prHistoryDates.has(entry.label) ? ("pr" as const) : undefined,
+      tagLabels,
+      layout: "single-column" as const,
+    };
+  });
+
+  if (historyItems.length === 0 && prHistorySection?.items.length) {
+    return (
+      <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+        <div className="w-full">
+          <DetailSectionItems items={prHistorySection.items} className="pl-0.5" showBullets={false} />
+        </div>
+      </div>
+    );
+  }
+
+  if (historyItems.length === 0 && stats.prCount > 0) {
+    return (
+      <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+        <div className="w-full">
+          <DetailSectionItems
+            items={[{
+              id: "history-pr-fallback",
+              primary: stats.prCount === 1 ? "1 PR recorded in scoped history." : `${stats.prCount} PRs recorded in scoped history.`,
+              meta: stats.prLabel?.trim() || null,
+              signals: "pr",
+              layout: "single-column",
+            }]}
+            className="pl-0.5"
+            showBullets={false}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (historyItems.length === 0) {
+    return <p className={appTokens.detailBodyMutedText}>No logged history for this scope yet.</p>;
   }
 
   return (
     <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-      <div className="w-full">
-        <DetailSectionItems items={recentItems} className="pl-0.5" />
+      <div
+        className={cn(
+          "w-full",
+          historyItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[30rem] overflow-y-auto pr-1" : undefined,
+        )}
+      >
+        <DetailSectionItems items={historyItems} className="pl-0.5" showBullets={false} />
       </div>
     </div>
   );
@@ -850,7 +910,7 @@ function buildDerivedProgressionMetrics(
 function buildDerivedProgressionSections(
   derived: NonNullable<ExerciseInfoSheetStats["progressionDerived"]>,
 ): ExerciseInfoReviewSection[] {
-  return [
+  const sections = [
     derived.currentTargetLabel ? {
       title: "Current Target",
       items: [derived.currentTargetLabel],
@@ -870,7 +930,9 @@ function buildDerivedProgressionSections(
         derived.sourcePerformedAt ? `Source session ${formatDateShort(derived.sourcePerformedAt)}` : null,
       ].filter((item): item is string => Boolean(item)),
     },
-  ].filter((section): section is ExerciseInfoReviewSection => Boolean(section));
+  ];
+
+  return sections.filter((section): section is ExerciseInfoReviewSection => section !== null);
 }
 
 function getExerciseInfoProgressionEmptyStateCopy(scope: ExerciseInfoAnalyticsScope) {
@@ -1102,8 +1164,7 @@ export function ExerciseInfoSheet({
   const performanceSectionState = getSectionStats("performance");
   const progressSectionState = getSectionStats("progress");
   const progressionSectionState = getSectionStats("progression");
-  const prHistorySectionState = getSectionStats("pr-history");
-  const recentHistorySectionState = getSectionStats("recent-history");
+  const historySectionState = getSectionStats("history");
 
   const surfaceMetrics = Array.isArray(statsSectionState.stats?.surfaceMetrics)
     ? statsSectionState.stats.surfaceMetrics.filter((item): item is MetricDatum => Boolean(item && typeof item.label === "string" && typeof item.value === "string"))
@@ -1116,17 +1177,15 @@ export function ExerciseInfoSheet({
   const progressState = getExerciseInfoProgressState(progressSectionState.stats);
   const progressMetrics = filterUniqueMetricItems(progressState.metrics, usedMetricKeys);
   const reviewSections = progressState.reviewSections.filter((section) => section.title !== "PR History");
-  const prHistoryState = getExerciseInfoProgressState(prHistorySectionState.stats);
-  const prHistorySection = prHistoryState.reviewSections.find((section) => section.title === "PR History") ?? null;
   const progression = progressionSectionState.stats?.progression ?? null;
   const derivedProgression = progressionSectionState.stats?.progressionDerived ?? null;
   const hasPerformancePanel = !performanceSectionState.loading && performanceMetrics.length > 0;
   const hasProgressPanel = progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0;
+  const hasCombinedPerformanceProgressPanel = hasPerformancePanel || hasProgressPanel;
   const hasProgressionLoadingPanel = progressionSectionState.loading;
   const hasProgressionPanel = Boolean(progression);
   const hasProgressionEmptyPanel = !progressionSectionState.loading && !progression && Boolean(progressionSectionState.stats);
-  const hasPrHistoryPanel = !prHistorySectionState.loading && Boolean(prHistorySection);
-  const hasRecentHistoryPanel = recentHistorySectionState.loading || Boolean(recentHistorySectionState.stats);
+  const hasHistoryPanel = historySectionState.loading || Boolean(historySectionState.stats);
 
   const sheetBody = (
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
@@ -1149,36 +1208,6 @@ export function ExerciseInfoSheet({
                     <AppPanel className={cn(appTokens.detailSection, "border-0 bg-transparent p-0 shadow-none")}>
                       <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
                     </AppPanel>
-
-                    {hasPrHistoryPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="PR History"
-                          section="pr-history"
-                          analyticsScope={prHistorySectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                        />
-                        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-                          <div className="w-full">
-                            <DetailSectionItems items={prHistorySection!.items} className="pl-0.5" />
-                          </div>
-                        </div>
-                      </AppPanel>
-                    ) : null}
-
-                    {hasRecentHistoryPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="Recent History"
-                          section="recent-history"
-                          analyticsScope={recentHistorySectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                        />
-                        {recentHistorySectionState.loading ? <ExerciseInfoLoadingRows /> : recentHistorySectionState.stats ? <ExerciseInfoRecentHistoryList stats={recentHistorySectionState.stats} /> : null}
-                      </AppPanel>
-                    ) : null}
 
                     <AppPanel className={cn(appTokens.detailSection, "p-2.5")}>
                       <div
@@ -1208,29 +1237,46 @@ export function ExerciseInfoSheet({
                       </div>
                     </AppPanel>
 
-                    {hasPerformancePanel ? (
+                    {hasHistoryPanel ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
                         <ExerciseInfoSectionHeader
-                          title="Performance"
-                          section="performance"
-                          analyticsScope={performanceSectionState.scope}
+                          title="History"
+                          section="history"
+                          analyticsScope={historySectionState.scope}
                           activeRoutineTitle={activeRoutineTitle}
                           onScopeClick={handleSectionScopeToggle}
                         />
-                        <ExerciseSurfaceMetricGrid items={performanceMetrics} {...getExerciseInfoMetricGridProps(performanceMetrics)} />
+                        {historySectionState.loading ? <ExerciseInfoLoadingRows /> : historySectionState.stats ? <ExerciseInfoHistoryList stats={historySectionState.stats} /> : null}
                       </AppPanel>
                     ) : null}
 
-                    {hasProgressPanel ? (
+                    {hasCombinedPerformanceProgressPanel ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="Progress"
-                          section="progress"
-                          analyticsScope={progressSectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                        />
-                        {progressSectionState.loading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview metrics={progressMetrics} sections={reviewSections} />}
+                        {hasPerformancePanel ? (
+                          <>
+                            <ExerciseInfoSectionHeader
+                              title="Performance"
+                              section="performance"
+                              analyticsScope={performanceSectionState.scope}
+                              activeRoutineTitle={activeRoutineTitle}
+                              onScopeClick={handleSectionScopeToggle}
+                            />
+                            <ExerciseSurfaceMetricGrid items={performanceMetrics} {...getExerciseInfoMetricGridProps(performanceMetrics)} />
+                          </>
+                        ) : null}
+                        {hasPerformancePanel && hasProgressPanel ? <MetricAccentBar variant="thin" className="mx-1" /> : null}
+                        {hasProgressPanel ? (
+                          <>
+                            <ExerciseInfoSectionHeader
+                              title="Progress"
+                              section="progress"
+                              analyticsScope={progressSectionState.scope}
+                              activeRoutineTitle={activeRoutineTitle}
+                              onScopeClick={handleSectionScopeToggle}
+                            />
+                            {progressSectionState.loading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview metrics={progressMetrics} sections={reviewSections} />}
+                          </>
+                        ) : null}
                       </AppPanel>
                     ) : null}
 

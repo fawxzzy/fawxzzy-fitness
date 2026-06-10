@@ -4,16 +4,14 @@ export type ExerciseInfoSectionScopeKey =
   | "performance"
   | "progress"
   | "progression"
-  | "pr-history"
-  | "recent-history";
+  | "history";
 
 export const EXERCISE_INFO_SECTION_SCOPE_KEYS: ExerciseInfoSectionScopeKey[] = [
   "stats",
   "performance",
   "progress",
   "progression",
-  "pr-history",
-  "recent-history",
+  "history",
 ];
 
 export const EXERCISE_INFO_ANALYTICS_SCOPE_OPTIONS = [

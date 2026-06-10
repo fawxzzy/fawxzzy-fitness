@@ -1,5 +1,6 @@
 import type { ExerciseInfoSheetExercise, ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
 import type { MetricDatum } from "@/components/ui/MetricItem";
+import type { DetailSectionListItemInput, DetailSectionSignalTone } from "@/components/ui/DetailSectionList";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 import type { ExerciseProgressionActivityDay, ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
@@ -110,6 +111,56 @@ function normalizeMetricList(value: unknown) {
     .filter((item): item is MetricDatum => Boolean(item));
 }
 
+function normalizeSignals(value: unknown) {
+  if (typeof value === "string") {
+    return value === "pr" || value === "promotion" || value === "watch" || value === "regression"
+      ? value
+      : null;
+  }
+
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const signals = value.filter((item): item is DetailSectionSignalTone => (
+    item === "pr" || item === "promotion" || item === "watch" || item === "regression"
+  ));
+
+  return signals.length > 0 ? signals : null;
+}
+
+function normalizeDetailSectionItemInput(value: unknown, index: number): DetailSectionListItemInput | null {
+  const primitive = readPrimitiveText(value);
+  if (primitive) {
+    return primitive;
+  }
+
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const primary = readPrimitiveText(value.primary);
+  if (!primary) {
+    return null;
+  }
+
+  const tagLabels = Array.isArray(value.tagLabels)
+    ? value.tagLabels.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
+    : [];
+  const signals = normalizeSignals(value.signals);
+
+  return {
+    id: readPrimitiveText(value.id) || `detail-item-${index}`,
+    primary,
+    ...(readOptionalString(value.value) ? { value: readOptionalString(value.value) } : {}),
+    ...(readOptionalString(value.meta) ? { meta: readOptionalString(value.meta) } : {}),
+    ...(signals ? { signals } : {}),
+    ...(tagLabels.length > 0 ? { tagLabels } : {}),
+    ...(value.tone === "muted" ? { tone: "muted" as const } : {}),
+    ...(value.layout === "single-column" || value.layout === "auto" ? { layout: value.layout } : {}),
+  };
+}
+
 function normalizeReviewSections(value: unknown) {
   if (!Array.isArray(value)) {
     return [] as ExerciseInfoReviewSection[];
@@ -127,8 +178,8 @@ function normalizeReviewSections(value: unknown) {
       }
 
       const items = section.items
-        .map((item) => readPrimitiveText(item))
-        .filter((item): item is string => Boolean(item));
+        .map((item, index) => normalizeDetailSectionItemInput(item, index))
+        .filter((item): item is DetailSectionListItemInput => Boolean(item));
 
       if (items.length === 0) {
         return null;
@@ -155,14 +206,31 @@ function normalizePerformanceEntries(value: unknown) {
 
       const label = readPrimitiveText(entry.label);
       const metricValue = readPrimitiveText(entry.value);
-      if (!label || !metricValue) {
+      const sessionId = readPrimitiveText(entry.sessionId);
+      const performedAt = readPrimitiveText(entry.performedAt);
+      const setCount = readOptionalNumber(entry.setCount);
+      const setSummaries = Array.isArray(entry.setSummaries)
+        ? entry.setSummaries.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
+        : [];
+      const displayKind = entry.displayKind === "set-list"
+        || entry.displayKind === "condensed-session"
+        || entry.displayKind === "session-summary"
+        ? entry.displayKind
+        : "session-summary";
+      if (!label || !metricValue || !sessionId || !performedAt || typeof setCount !== "number") {
         return null;
       }
 
       return {
+        sessionId,
+        performedAt,
         label,
         value: metricValue,
+        setCount,
+        setSummaries,
+        displayKind,
         ...(readOptionalString(entry.context) ? { context: readOptionalString(entry.context) } : {}),
+        ...(readOptionalString(entry.summary) ? { summary: readOptionalString(entry.summary) } : {}),
       };
     })
     .filter((entry): entry is NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number] => Boolean(entry));
@@ -254,7 +322,15 @@ function normalizeProgressionActivityDays(value: unknown) {
       deloadCount: typeof day.deloadCount === "number" && Number.isFinite(day.deloadCount) ? day.deloadCount : 0,
       manualChangeCount: typeof day.manualChangeCount === "number" && Number.isFinite(day.manualChangeCount) ? day.manualChangeCount : 0,
       revertCount: typeof day.revertCount === "number" && Number.isFinite(day.revertCount) ? day.revertCount : 0,
-      items: day.items.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item)),
+      items: day.items
+        .map((item, index) => normalizeDetailSectionItemInput(item, index))
+        .filter((item): item is DetailSectionListItemInput => Boolean(item))
+        .map((item, index) => typeof item === "string"
+          ? {
+              id: `${id}-item-${index}`,
+              primary: item,
+            }
+          : item),
     });
   }
 

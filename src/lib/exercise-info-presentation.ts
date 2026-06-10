@@ -106,11 +106,10 @@ export function buildExerciseInfoReviewSections(args: {
   prItems?: string[];
 }) {
   const prItems = args.prItems && args.prItems.length > 0
-    ? groupPrHistoryItems(args.prItems).map((item, index) => ({
+      ? groupPrHistoryItems(args.prItems).map((item, index) => ({
         id: `pr-history-${index}`,
         primary: item,
         signals: "pr" satisfies DetailSectionSignalTone,
-        tagLabels: ["PR"],
         layout: "single-column" as const,
       }))
     : [];

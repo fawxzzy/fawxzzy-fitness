@@ -9,7 +9,7 @@ import { PillButton } from "@/components/ui/Pill";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
-import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
+import type { ExerciseProgressionActivityDay, ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 
 function buildProgressionChangeMixMetrics(args: {
   promotionCount: number;
@@ -58,6 +58,139 @@ function buildProgressionActivityOverviewSections(
       ? { title: "Last Promotion", items: [formatDateShort(progression.lastPromotionAt)] }
       : null,
   ].filter((section): section is { title: string; items: string[] } => Boolean(section));
+}
+
+function buildProgressionTimelineSummary(day: ExerciseProgressionActivityDay) {
+  const parts = [
+    day.valueLabel,
+    day.promotionCount > 0 ? `${day.promotionCount} promo` : null,
+    day.deloadCount > 0 ? `${day.deloadCount} regress` : null,
+    day.manualChangeCount > 0 ? `${day.manualChangeCount} manual` : null,
+    day.revertCount > 0 ? `${day.revertCount} revert` : null,
+  ].filter((part): part is string => Boolean(part));
+
+  return parts.join(" | ");
+}
+
+function ProgressionActivityTimelineGraph({
+  activityDays,
+  selectedDayId,
+  onSelectDay,
+}: {
+  activityDays: NonNullable<ExerciseProgressionLifelineSummary["activityDays"]>;
+  selectedDayId: string | null;
+  onSelectDay: (dayId: string) => void;
+}) {
+  if (activityDays.length === 0) {
+    return null;
+  }
+
+  const chartWidth = 320;
+  const chartHeight = 124;
+  const paddingX = 18;
+  const paddingTop = 16;
+  const paddingBottom = 28;
+  const innerWidth = chartWidth - (paddingX * 2);
+  const innerHeight = chartHeight - paddingTop - paddingBottom;
+  const maxEventCount = Math.max(...activityDays.map((day) => day.eventCount), 1);
+  const firstDayLabel = activityDays[0]?.label ?? "";
+  const lastDayLabel = activityDays[activityDays.length - 1]?.label ?? "";
+  const selectedDay = activityDays.find((day) => day.id === selectedDayId) ?? null;
+  const points = activityDays.map((day, index) => {
+    const x = activityDays.length === 1
+      ? chartWidth / 2
+      : paddingX + ((innerWidth / (activityDays.length - 1)) * index);
+    const normalizedValue = maxEventCount <= 1 ? 1 : day.eventCount / maxEventCount;
+    const y = paddingTop + ((1 - normalizedValue) * innerHeight);
+    return {
+      day,
+      x,
+      y,
+      leftPercent: (x / chartWidth) * 100,
+      topPercent: (y / chartHeight) * 100,
+      selected: day.id === selectedDayId,
+    };
+  });
+  const polylinePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const guideValues = maxEventCount <= 1
+    ? [1]
+    : Array.from(new Set([1, Math.max(1, Math.round(maxEventCount / 2)), maxEventCount])).sort((left, right) => left - right);
+
+  return (
+    <div className="space-y-2 rounded-[1rem] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-3 py-3">
+      <div className="flex items-center justify-between gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-secondary)/0.84)]">
+        <span className="truncate">{firstDayLabel}</span>
+        <span className="shrink-0">{maxEventCount === 1 ? "1 event peak" : `${maxEventCount} event peak`}</span>
+        <span className="truncate text-right">{lastDayLabel}</span>
+      </div>
+      <div className="relative">
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-[7.75rem] w-full" aria-hidden="true">
+          {guideValues.map((guideValue) => {
+            const normalizedValue = maxEventCount <= 1 ? 1 : guideValue / maxEventCount;
+            const y = paddingTop + ((1 - normalizedValue) * innerHeight);
+            return (
+              <line
+                key={`guide-${guideValue}`}
+                x1={paddingX}
+                x2={chartWidth - paddingX}
+                y1={y}
+                y2={y}
+                stroke="rgb(var(--border-rgb) / 0.2)"
+                strokeWidth="1"
+                strokeDasharray="3 5"
+              />
+            );
+          })}
+          <line
+            x1={paddingX}
+            x2={chartWidth - paddingX}
+            y1={chartHeight - paddingBottom}
+            y2={chartHeight - paddingBottom}
+            stroke="rgb(var(--border-rgb) / 0.34)"
+            strokeWidth="1.2"
+          />
+          {points.length > 1 ? (
+            <polyline
+              fill="none"
+              stroke="rgb(var(--accent-strong) / 0.82)"
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              points={polylinePoints}
+            />
+          ) : null}
+          {points.map((point) => (
+            <g key={point.day.id}>
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={point.selected ? 6.5 : 5}
+                fill={point.selected ? "rgb(var(--accent-strong) / 0.96)" : "rgb(var(--surface-1-rgb) / 0.96)"}
+                stroke="rgb(var(--accent-strong) / 0.92)"
+                strokeWidth={point.selected ? 2.4 : 1.8}
+              />
+            </g>
+          ))}
+        </svg>
+        {points.map((point) => (
+          <button
+            key={`point-${point.day.id}`}
+            type="button"
+            onClick={() => onSelectDay(point.day.id)}
+            className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ left: `${point.leftPercent}%`, top: `${point.topPercent}%` }}
+            aria-label={`Open progression details for ${point.day.label}`}
+          />
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-3 text-[0.72rem] leading-5 text-[rgb(var(--text-secondary)/0.88)]">
+        <span>{activityDays.length} tracked {activityDays.length === 1 ? "day" : "days"}</span>
+        <span className="text-right">
+          {selectedDay ? buildProgressionTimelineSummary(selectedDay) : "Tap a point to inspect that day."}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 type ExerciseProgressionActivityPanelProps = {
@@ -126,6 +259,13 @@ export function ExerciseProgressionActivityPanel({
           <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
             <DetailSectionBlocks sections={overviewSections} titleClassName={subsectionTitleClassName} />
           </div>
+        ) : null}
+        {activityDays.length > 0 ? (
+          <ProgressionActivityTimelineGraph
+            activityDays={activityDays}
+            selectedDayId={selectedDayId}
+            onSelectDay={setSelectedDayId}
+          />
         ) : null}
         {selectedDay ? (
           <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>

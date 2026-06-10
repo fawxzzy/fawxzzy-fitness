@@ -65,9 +65,15 @@ export type ExerciseInfoExercise = {
 type ExerciseStatsKind = "strength" | "cardio";
 
 export type ExerciseProgressEntry = {
+  sessionId: string;
+  performedAt: string;
   label: string;
   value: string;
   context?: string | null;
+  summary?: string | null;
+  setCount: number;
+  setSummaries: string[];
+  displayKind: "session-summary" | "set-list" | "condensed-session";
 };
 
 type MetricValueTone = "default" | "success" | "danger" | "muted";
@@ -911,11 +917,51 @@ function summarizeRecentPerformanceValues(summary: string | null, setSummaries: 
   return uniqueSetSummaries.join(" | ");
 }
 
-function buildProgressEntries<T extends { performedAt: string; summary: string | null; setCount: number; setSummaries: string[] }>(performances: T[]) {
-  return performances.slice(0, 3).map((performance) => ({
+function resolveExerciseProgressEntryDisplayKind(args: {
+  summary: string | null;
+  setSummaries: string[];
+}) {
+  const uniqueSetSummaries = Array.from(new Set(
+    args.setSummaries
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0),
+  ));
+
+  if (uniqueSetSummaries.length === 0) {
+    return "session-summary" as const;
+  }
+
+  if (uniqueSetSummaries.length <= 3) {
+    return "set-list" as const;
+  }
+
+  if (uniqueSetSummaries.length <= 6 || !args.summary?.trim()) {
+    return "condensed-session" as const;
+  }
+
+  return "session-summary" as const;
+}
+
+function buildProgressEntries<T extends {
+  sessionId: string;
+  performedAt: string;
+  summary: string | null;
+  setCount: number;
+  setSummaries: string[];
+}>(performances: T[]) {
+  return performances.map((performance) => ({
+    sessionId: performance.sessionId,
+    performedAt: performance.performedAt,
     label: formatDateShort(performance.performedAt),
     value: summarizeRecentPerformanceValues(performance.summary ?? null, performance.setSummaries),
     context: `${performance.setCount} ${performance.setCount === 1 ? "set" : "sets"}`,
+    summary: performance.summary ?? null,
+    setCount: performance.setCount,
+    setSummaries: performance.setSummaries,
+    displayKind: resolveExerciseProgressEntryDisplayKind({
+      summary: performance.summary ?? null,
+      setSummaries: performance.setSummaries,
+    }),
   }));
 }
 

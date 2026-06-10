@@ -473,6 +473,7 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 - `DISCORD_COMPUTA_LIVE_TIKTOK_URL` optional
 - `DISCORD_FEEDBACK_PANEL_CHANNEL_ID` optional
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID`
+- `DISCORD_FITNESS_FEEDBACK_FORUM_CHANNEL_ID` optional for fitness-specific roadmap or operator-seeded board lanes
 - `DISCORD_FEEDBACK_BUG_EMOJI_ID` optional
 - `DISCORD_FEEDBACK_FEATURE_EMOJI_ID` optional
 - `DISCORD_EMOJI_MODE` optional
@@ -481,6 +482,7 @@ If panel creation fails with Discord `50013 Missing Permissions`, the admin resp
 
 Known production values:
 - `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID=1504673475489562744`
+- `DISCORD_FITNESS_FEEDBACK_FORUM_CHANNEL_ID=1508144612957622313`
 - `DISCORD_FEEDBACK_BUG_EMOJI_ID=1505007702924066916`
 - `DISCORD_FEEDBACK_FEATURE_EMOJI_ID=1505007651308703877`
 
@@ -519,6 +521,7 @@ When `DISCORD_BUG_REPORT_FORUM_CHANNEL_ID` is set, unique reports create a forum
 
 Starter post formatting:
 - cards show a Fibonacci `Points` estimate near the top metadata
+- cards may also show `Card ID`, `Priority`, `Phase`, and `Depends on` when the row is part of an explicitly sequenced roadmap
 - Bug cards show `Title`, `Problem`, `Expected behavior`, `Actual behavior`, `Steps to reproduce`, `Acceptance Criteria`, and `Evidence`
 - Feature cards show `Title`, `User Story`, `Description`, `Acceptance Criteria`, and `Evidence`
 - Feature cards do not show `Severity`
@@ -568,6 +571,10 @@ Bug card sections:
 - `Type`
 - `Status`
 - `Points`
+- `Card ID` when present
+- `Priority` when present
+- `Phase` when present
+- `Depends on` when present
 - `Severity`
 - `Area`
 - `Reporter`
@@ -586,6 +593,10 @@ Feature card sections:
 - `Type`
 - `Status`
 - `Points`
+- `Card ID` when present
+- `Priority` when present
+- `Phase` when present
+- `Depends on` when present
 - `Area`
 - `Reporter`
 - `Report ID`
@@ -608,6 +619,13 @@ Section override rule:
 - Feature cards can carry explicit overrides for `User Story` and `Acceptance Criteria`
 - the create and edit modals store those overrides in bounded structured form instead of letting Discord prose drift from stack truth
 - if no explicit override is supplied, Fitness falls back to deterministic generated sections
+
+Dependency metadata rule:
+- use bounded columns for roadmap sequencing metadata, not freeform `triage_notes`
+- preferred `card_id` format is uppercase hyphenated tokens such as `FF-MON-001`
+- `card_priority` is bounded to `P0`, `P1`, `P2`, or `P3`
+- `depends_on` should point to other cards by `card_id` first; exact title fallback is allowed only when the target card does not have an id yet
+- exports and reviewed task packets should reject unresolved dependencies, ambiguous title matches, self-dependencies, and simple cycles
 
 Points rule:
 - use Fibonacci effort values only: `1, 2, 3, 5, 8, 13, 21, 34, 55`

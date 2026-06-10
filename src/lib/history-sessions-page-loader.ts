@@ -1,7 +1,7 @@
 import "server-only";
 
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
-import { buildSessionSummary, type SessionSummary } from "@/app/history/session-summary";
+import { buildSessionSummary, type SessionRecapSignal, type SessionSummary } from "@/app/history/session-summary";
 import {
   buildWeeklyProgressSummary,
   getWeeklyProgressDayKey,
@@ -425,6 +425,55 @@ function normalizePrEvaluationSets(rows: unknown[]) {
   });
 }
 
+function buildSessionRecapSignals(args: {
+  exerciseNames: string[];
+  bestExerciseName?: string | null;
+  exerciseNameById: Map<string, string>;
+  prExerciseIds: Set<string>;
+  progressionEvents: ProgressionEventSummaryRow[];
+}) {
+  const prExerciseNames = new Set(
+    Array.from(args.prExerciseIds)
+      .map((exerciseId) => args.exerciseNameById.get(exerciseId)?.trim())
+      .filter((value): value is string => Boolean(value)),
+  );
+  const progressionSignalsByExerciseName = new Map<string, Set<"promotion" | "regression" | "watch">>();
+
+  for (const event of args.progressionEvents) {
+    const exerciseName = args.exerciseNameById.get(event.exercise_id)?.trim();
+    if (!exerciseName) {
+      continue;
+    }
+
+    const current = progressionSignalsByExerciseName.get(exerciseName) ?? new Set<SessionRecapSignal["signals"][number]>();
+    if (event.event_type === "promotion_applied") {
+      current.add("promotion");
+    } else if (event.event_type === "deload_applied") {
+      current.add("regression");
+    } else if (event.event_type === "manual_target_change" || event.event_type === "promotion_reverted") {
+      current.add("watch");
+    }
+    progressionSignalsByExerciseName.set(exerciseName, current);
+  }
+
+  return args.exerciseNames.map((exerciseName) => {
+    const signals = [
+      prExerciseNames.has(exerciseName) ? "pr" : null,
+      ...(Array.from(progressionSignalsByExerciseName.get(exerciseName) ?? [])),
+    ].filter((value, index, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === index);
+
+    const tagLabels = [
+      args.bestExerciseName?.trim() === exerciseName ? "BEST" : null,
+    ].filter((value): value is string => Boolean(value));
+
+    return {
+      exerciseName,
+      signals,
+      tagLabels,
+    } satisfies SessionRecapSignal;
+  });
+}
+
 async function loadOptionalRows<T>({
   enabled,
   label,
@@ -743,9 +792,18 @@ export async function loadHistorySessionsPageData({
         .map((exerciseId) => exerciseNameById.get(exerciseId) ?? "")
         .filter(Boolean),
     });
+    const prExerciseIds = sessionPrExerciseIdsById.get(session.id) ?? new Set<string>();
+    const recapSignals = buildSessionRecapSignals({
+      exerciseNames: baseSummary.exerciseNames ?? [],
+      bestExerciseName: baseSummary.bestLift?.exerciseName,
+      exerciseNameById,
+      prExerciseIds,
+      progressionEvents: progressionEventsBySessionId.get(session.id) ?? [],
+    });
 
     return {
       ...baseSummary,
+      recapSignals,
       progressionSummary: buildSessionProgressionSummary(
         progressionEventsBySessionId.get(session.id) ?? [],
         exerciseNameById,

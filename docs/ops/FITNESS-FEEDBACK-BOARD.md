@@ -52,6 +52,10 @@ Feedback cards should read like lightweight story cards, not raw engineering tic
 
 Bug cards should surface:
 - Points
+- Card ID when the card is part of a planned dependency chain
+- Priority when the card is explicitly ranked
+- Phase when the card belongs to a sequenced rollout
+- Depends on / Blocks when execution order matters
 - Title
 - Problem
 - Expected behavior
@@ -62,6 +66,10 @@ Bug cards should surface:
 
 Feature cards should surface:
 - Points
+- Card ID when the card is part of a planned dependency chain
+- Priority when the card is explicitly ranked
+- Phase when the card belongs to a sequenced rollout
+- Depends on / Blocks when execution order matters
 - Title
 - User Story
 - Description
@@ -88,6 +96,13 @@ Effort-points rule:
 - feedback cards should show a Fibonacci effort estimate near the top metadata
 - allowed values are `1, 2, 3, 5, 8, 13, 21, 34, 55`
 - the initial estimate is deterministic and should improve over time as more implementation history is reviewed
+
+Dependency-metadata rule:
+- use explicit bounded columns for roadmap metadata instead of hiding sequencing in freeform notes
+- preferred stable card-id format is uppercase hyphenated tokens such as `FF-MON-001`
+- priority is bounded to `P0`, `P1`, `P2`, or `P3`
+- `depends_on` should reference other cards by `card_id` first; exact title fallback is allowed only when a card id does not exist yet
+- exports and reviewed task packets should reject self-dependencies, unresolved dependencies, ambiguous title references, and simple dependency cycles
 
 ## Canonical workflow
 Canonical workflow:
@@ -187,6 +202,7 @@ Operator scripts:
 - `npm run feedback:sync-resolved-reactions`
 - `npm run feedback:phase:check -- --report-id <next> --requires <previous>`
 - `npm run feedback:board:export`
+- `npm run feedback:move-to-forum -- --target-forum-id <forumId> --card-id-prefix <prefix> --apply`
 
 Card structure sync:
 - `npm run feedback:sync-forum-posts -- --dry-run`
@@ -208,6 +224,10 @@ Resolved reaction sync:
   - `--report-id <uuid-or-short-prefix>`
   - `--status fixed`
   - `--include-testing`
+
+Forum retarget and normalization:
+- use `npm run feedback:move-to-forum -- --target-forum-id <forumId> --card-id-prefix <prefix> --apply` when a card lane was seeded to the wrong board forum
+- follow the move with `npm run feedback:repair-board-state -- --rows-file <json> --sync-body --apply` so titles, tags, starter-post formatting, and success or failure reactions are normalized on the new board
 
 There is no automatic `/feedback-triage` or `/feedback-export` slash command in this lane.
 - Board export is an operator workflow, not a public Discord action.

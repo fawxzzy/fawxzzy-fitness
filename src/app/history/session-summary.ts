@@ -4,6 +4,12 @@ import { formatPrBreakdown, type PrCountByCategory } from "@/lib/pr-evaluator";
 import { deriveSessionAnalytics } from "@/lib/session-analytics";
 import type { SessionProgressionSummary } from "@/lib/progression-lifeline-summary";
 
+export type SessionRecapSignal = {
+  exerciseName: string;
+  signals?: Array<"pr" | "promotion" | "regression" | "watch">;
+  tagLabels?: string[];
+};
+
 export type SessionSummary = {
   id: string;
   startedAt: string;
@@ -12,6 +18,7 @@ export type SessionSummary = {
   dayTitle?: string;
   exerciseNames?: string[];
   prExerciseNames?: string[];
+  recapSignals?: SessionRecapSignal[];
   durationSec?: number;
   exerciseCount: number;
   setCount: number;
