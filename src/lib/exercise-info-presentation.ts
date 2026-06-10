@@ -105,7 +105,7 @@ export function buildExerciseInfoReviewSections(args: {
   prCount: number;
   prItems?: string[];
 }) {
-  const prItems = args.prItems && args.prItems.length > 0
+  const prItems: DetailSectionListItemInput[] = args.prItems && args.prItems.length > 0
       ? groupPrHistoryItems(args.prItems).map((item, index) => ({
         id: `pr-history-${index}`,
         primary: item,

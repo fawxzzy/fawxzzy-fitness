@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DetailSectionSignalTone } from "@/components/ui/DetailSectionList";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import {
   buildCardioProgressDelta as buildCardioProgressDeltaShared,
@@ -76,6 +77,52 @@ export type ExerciseProgressEntry = {
   displayKind: "session-summary" | "set-list" | "condensed-session";
 };
 
+export type ExerciseHistoryValuePart = {
+  label: string;
+  value: string;
+  numericValue?: number | null;
+};
+
+export type ExerciseHistorySetRow = {
+  id: string;
+  pointId: string;
+  sessionId: string;
+  performedAt: string;
+  dayKey: string;
+  dayLabel: string;
+  setIndex: number;
+  primary: string;
+  meta?: string | null;
+  values: ExerciseHistoryValuePart[];
+  signals?: DetailSectionSignalTone[];
+  tagLabels?: string[];
+};
+
+export type ExerciseHistoryDayGroup = {
+  id: string;
+  dayKey: string;
+  label: string;
+  performedAt: string;
+  signals?: DetailSectionSignalTone[];
+  tagLabels?: string[];
+  rows: ExerciseHistorySetRow[];
+};
+
+export type ExerciseHistoryPoint = {
+  id: string;
+  type: "day" | "set" | "progression-event";
+  performedAt: string;
+  dayKey: string;
+  label: string;
+  summary: string;
+  meta?: string | null;
+  numericValue: number | null;
+  values: ExerciseHistoryValuePart[];
+  signals?: DetailSectionSignalTone[];
+  tagLabels?: string[];
+  rowId?: string | null;
+};
+
 type MetricValueTone = "default" | "success" | "danger" | "muted";
 
 export type ExerciseDerivedProgressionSummary = {
@@ -133,6 +180,8 @@ export type ExerciseStatsVM = {
     metrics: MetricDatum[];
     reviewSections: ExerciseInfoReviewSection[];
     performances: ExerciseProgressEntry[];
+    historyGroups?: ExerciseHistoryDayGroup[];
+    historyPoints?: ExerciseHistoryPoint[];
   };
   progression?: ExerciseProgressionLifelineSummary | null;
   progressionDerived?: ExerciseDerivedProgressionSummary | null;
@@ -965,6 +1014,285 @@ function buildProgressEntries<T extends {
   }));
 }
 
+function getHistoryDayKey(value: string | null | undefined) {
+  return typeof value === "string" && value.length >= 10 ? value.slice(0, 10) : "";
+}
+
+function getHistoryDayLabel(value: string | null | undefined) {
+  return value ? formatDateShort(value) : "Unknown";
+}
+
+function uniqueSignals(values: Array<DetailSectionSignalTone | null | undefined>) {
+  return values.filter((value, index, all): value is DetailSectionSignalTone => Boolean(value) && all.indexOf(value) === index);
+}
+
+function uniqueTags(values: Array<string | null | undefined>) {
+  return values.filter((value, index, all): value is string => Boolean(value?.trim()) && all.indexOf(value) === index);
+}
+
+function getProgressionSignalForEventType(eventType: ProgressionEventRow["event_type"]): DetailSectionSignalTone | null {
+  switch (eventType) {
+    case "promotion_applied":
+      return "promotion";
+    case "deload_applied":
+      return "regression";
+    case "manual_target_change":
+    case "promotion_reverted":
+      return "watch";
+    default:
+      return null;
+  }
+}
+
+function buildStrengthPrRowIds(rows: NormalizedSet[]) {
+  const ids = new Set<string>();
+  let bestWeight = 0;
+  let bestBodyweightReps = 0;
+
+  const ordered = [...rows].sort((left, right) => {
+    if (left.performedAt !== right.performedAt) return left.performedAt.localeCompare(right.performedAt);
+    if (left.sessionId !== right.sessionId) return left.sessionId.localeCompare(right.sessionId);
+    return left.setIndex - right.setIndex;
+  });
+
+  for (const row of ordered) {
+    const weight = positive(row.weight);
+    const reps = positive(row.reps);
+    const rowId = `${row.sessionId}-${row.setIndex}`;
+
+    if (weight > 0 && weight > bestWeight) {
+      bestWeight = weight;
+      ids.add(rowId);
+    }
+
+    if (weight === 0 && reps > bestBodyweightReps) {
+      bestBodyweightReps = reps;
+      ids.add(rowId);
+    }
+  }
+
+  return ids;
+}
+
+function buildPrDayLabels(items: string[]) {
+  return new Set(
+    items
+      .map((item) => item.split("|").at(-1)?.trim() ?? "")
+      .filter(Boolean),
+  );
+}
+
+function buildHistoryValueParts(row: NormalizedSet): ExerciseHistoryValuePart[] {
+  const values: ExerciseHistoryValuePart[] = [];
+  const reps = positive(row.reps);
+  const weight = positive(row.weight);
+  const duration = positive(row.durationSeconds);
+  const distance = positive(row.distance);
+  const calories = positive(row.calories);
+
+  if (reps > 0) {
+    values.push({ label: "Reps", value: `${reps} reps`, numericValue: reps });
+  }
+
+  if (weight > 0) {
+    values.push({ label: "Weight", value: formatWeight(weight, row.weightUnit) ?? `${weight}`, numericValue: weight });
+  }
+
+  if (duration > 0) {
+    values.push({ label: "Time", value: formatDurationShort(duration) ?? `${duration}s`, numericValue: duration });
+  }
+
+  if (distance > 0) {
+    values.push({ label: "Distance", value: formatDistance(distance, row.distanceUnit) ?? `${distance}`, numericValue: distance });
+  }
+
+  if (calories > 0) {
+    values.push({ label: "Calories", value: formatCalories(calories) ?? `${calories} cal`, numericValue: calories });
+  }
+
+  return values;
+}
+
+function selectHistoryGraphValue(args: {
+  row: NormalizedSet;
+  values: ExerciseHistoryValuePart[];
+  kind: ExerciseStatsKind;
+  measurementType?: string | null;
+}) {
+  const byLabel = new Map(args.values.map((value) => [value.label, value.numericValue ?? null]));
+  const primary = args.kind === "strength"
+    ? positive(args.row.weight) > 0 ? byLabel.get("Weight") : byLabel.get("Reps")
+    : args.measurementType === "time"
+      ? byLabel.get("Time")
+      : args.measurementType === "distance"
+        ? byLabel.get("Distance")
+        : args.measurementType === "time_distance"
+          ? byLabel.get("Distance") ?? byLabel.get("Time")
+          : byLabel.get("Calories") ?? byLabel.get("Distance") ?? byLabel.get("Time");
+
+  return typeof primary === "number" && Number.isFinite(primary) ? primary : null;
+}
+
+function buildExerciseHistoryModel(args: {
+  rows: NormalizedSet[];
+  kind: ExerciseStatsKind;
+  measurementType?: string | null;
+  bestSummary?: string | null;
+  prRowIds?: Set<string>;
+  prDayLabels?: Set<string>;
+  progressionEvents: ProgressionEventRow[];
+}): {
+  historyGroups: ExerciseHistoryDayGroup[];
+  historyPoints: ExerciseHistoryPoint[];
+} {
+  const sortedRows = [...args.rows].sort((left, right) => {
+    if (right.performedAt !== left.performedAt) return right.performedAt.localeCompare(left.performedAt);
+    if (right.sessionId !== left.sessionId) return right.sessionId.localeCompare(left.sessionId);
+    return right.setIndex - left.setIndex;
+  });
+  const latestRowId = sortedRows[0] ? `${sortedRows[0].sessionId}-${sortedRows[0].setIndex}` : null;
+  const normalizedBestSummary = normalizeExerciseInfoMetricComparisonValue(args.bestSummary);
+  const daySignals = new Map<string, DetailSectionSignalTone[]>();
+  const sessionSignals = new Map<string, DetailSectionSignalTone[]>();
+  const eventPoints: ExerciseHistoryPoint[] = [];
+
+  for (const event of args.progressionEvents) {
+    const dayKey = getHistoryDayKey(event.created_at);
+    if (!dayKey) continue;
+    const signal = getProgressionSignalForEventType(event.event_type);
+    if (signal) {
+      daySignals.set(dayKey, uniqueSignals([...(daySignals.get(dayKey) ?? []), signal]));
+      if (event.source_session_id) {
+        sessionSignals.set(event.source_session_id, uniqueSignals([...(sessionSignals.get(event.source_session_id) ?? []), signal]));
+      }
+    }
+
+    eventPoints.push({
+      id: `progression-event-${event.id}`,
+      type: "progression-event",
+      performedAt: event.created_at,
+      dayKey,
+      label: getHistoryDayLabel(event.created_at),
+      summary: "Progression change",
+      meta: event.source_session_id ? `Session ${event.source_session_id}` : null,
+      numericValue: null,
+      values: [],
+      signals: signal ? [signal] : undefined,
+    });
+  }
+
+  const groupsByDay = new Map<string, ExerciseHistoryDayGroup>();
+  const rowPoints: ExerciseHistoryPoint[] = [];
+
+  for (const row of sortedRows) {
+    const dayKey = getHistoryDayKey(row.performedAt);
+    if (!dayKey) continue;
+
+    const rowId = `${row.sessionId}-${row.setIndex}`;
+    const pointId = `set-${rowId}`;
+    const values = buildHistoryValueParts(row);
+    const primary = formatSetMeasurementSummary({
+      reps: row.reps,
+      weight: row.weight,
+      weightUnit: row.weightUnit,
+      durationSeconds: row.durationSeconds,
+      distance: row.distance,
+      distanceUnit: row.distanceUnit,
+      calories: row.calories,
+    });
+    const normalizedPrimary = normalizeExerciseInfoMetricComparisonValue(primary);
+    const rowSignals = uniqueSignals([
+      args.prRowIds?.has(rowId) || args.prDayLabels?.has(getHistoryDayLabel(row.performedAt)) ? "pr" : null,
+      ...(sessionSignals.get(row.sessionId) ?? []),
+    ]);
+    const tagLabels = uniqueTags([
+      latestRowId === rowId ? "LAST" : null,
+      normalizedBestSummary && normalizedPrimary === normalizedBestSummary ? "BEST" : null,
+    ]);
+    const historyRow: ExerciseHistorySetRow = {
+      id: `history-row-${rowId}`,
+      pointId,
+      sessionId: row.sessionId,
+      performedAt: row.performedAt,
+      dayKey,
+      dayLabel: getHistoryDayLabel(row.performedAt),
+      setIndex: row.setIndex,
+      primary,
+      meta: `Set ${row.setIndex}`,
+      values,
+      signals: rowSignals.length > 0 ? rowSignals : undefined,
+      tagLabels: tagLabels.length > 0 ? tagLabels : undefined,
+    };
+    const numericValue = selectHistoryGraphValue({
+      row,
+      values,
+      kind: args.kind,
+      measurementType: args.measurementType,
+    });
+    rowPoints.push({
+      id: pointId,
+      type: "set",
+      performedAt: row.performedAt,
+      dayKey,
+      label: getHistoryDayLabel(row.performedAt),
+      summary: primary,
+      meta: `Set ${row.setIndex}`,
+      numericValue,
+      values,
+      signals: historyRow.signals,
+      tagLabels: historyRow.tagLabels,
+      rowId: historyRow.id,
+    });
+
+    const existingGroup = groupsByDay.get(dayKey);
+    if (existingGroup) {
+      existingGroup.rows.push(historyRow);
+      continue;
+    }
+
+    groupsByDay.set(dayKey, {
+      id: `history-day-${dayKey}`,
+      dayKey,
+      label: getHistoryDayLabel(row.performedAt),
+      performedAt: row.performedAt,
+      signals: daySignals.get(dayKey),
+      rows: [historyRow],
+    });
+  }
+
+  const historyGroups = [...groupsByDay.values()].sort((left, right) => right.dayKey.localeCompare(left.dayKey));
+  const dayPoints = historyGroups.map((group) => {
+    const numericRows = group.rows
+      .map((row) => rowPoints.find((point) => point.rowId === row.id)?.numericValue ?? null)
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    const bestRow = group.rows[0] ?? null;
+
+    return {
+      id: `day-${group.dayKey}`,
+      type: "day" as const,
+      performedAt: group.performedAt,
+      dayKey: group.dayKey,
+      label: group.label,
+      summary: `${group.rows.length} ${group.rows.length === 1 ? "set" : "sets"}`,
+      meta: bestRow?.primary ?? null,
+      numericValue: numericRows.length > 0 ? Math.max(...numericRows) : null,
+      values: [
+        { label: "Sets", value: String(group.rows.length), numericValue: group.rows.length },
+        ...(bestRow ? [{ label: "Top", value: bestRow.primary, numericValue: null }] : []),
+      ],
+      signals: group.signals,
+      tagLabels: group.tagLabels,
+    } satisfies ExerciseHistoryPoint;
+  });
+
+  const historyPoints = [...dayPoints, ...rowPoints, ...eventPoints].sort((left, right) => {
+    if (left.performedAt !== right.performedAt) return left.performedAt.localeCompare(right.performedAt);
+    return left.id.localeCompare(right.id);
+  });
+
+  return { historyGroups, historyPoints };
+}
+
 function buildStrengthPrReviewItems(rows: NormalizedSet[]) {
   const orderedRows = [...rows].sort((a, b) => {
     if (a.performedAt !== b.performedAt) return a.performedAt.localeCompare(b.performedAt);
@@ -1436,11 +1764,10 @@ export async function getExerciseInfoStats(
 
     const normalizedRows = normalizeRows(historicalRows as HistoricalSetRow[]);
     const scopedRows = normalizeRows((scopedHistoricalSetRows.data ?? []) as HistoricalSetRow[]);
-    const progressionSummary = buildExerciseProgressionLifelineSummary(
-      ((scopeContext.analyticsScope !== "all_time"
-        ? scopedProgressionEventRows.data
-        : progressionEventRows.data) ?? []) as ProgressionEventRow[],
-    );
+    const activeProgressionEvents = ((scopeContext.analyticsScope !== "all_time"
+      ? scopedProgressionEventRows.data
+      : progressionEventRows.data) ?? []) as ProgressionEventRow[];
+    const progressionSummary = buildExerciseProgressionLifelineSummary(activeProgressionEvents);
     if (!normalizedRows.length && !statsLookup.row) return null;
 
     const sortedRows = [...normalizedRows].sort((a, b) => {
@@ -1600,6 +1927,14 @@ export async function getExerciseInfoStats(
         prCount: prCounts.total,
         prItems: prReviewItems,
       });
+      const historyModel = buildExerciseHistoryModel({
+        rows: activeRows,
+        kind,
+        measurementType: exerciseMetadata?.measurement_type,
+        bestSummary: bestSetSummary,
+        prRowIds: buildStrengthPrRowIds(activeRows),
+        progressionEvents: activeProgressionEvents,
+      });
       return {
         exercise_id: canonicalExerciseId,
         activeRoutineTitle: scopeContext.activeRoutineTitle,
@@ -1629,6 +1964,8 @@ export async function getExerciseInfoStats(
           metrics: progressMetrics,
           reviewSections,
           performances: buildProgressEntries(performances),
+          historyGroups: historyModel.historyGroups,
+          historyPoints: historyModel.historyPoints,
         },
         progression: progressionSummary,
         progressionDerived: derivedProgressionSummary,
@@ -1793,6 +2130,14 @@ export async function getExerciseInfoStats(
       prCount: prReviewItems.length,
       prItems: prReviewItems,
     });
+    const historyModel = buildExerciseHistoryModel({
+      rows: activeMeaningfulRows,
+      kind,
+      measurementType: exerciseMetadata?.measurement_type,
+      bestSummary: bestSetSummary,
+      prDayLabels: buildPrDayLabels(prReviewItems),
+      progressionEvents: activeProgressionEvents,
+    });
     return {
       exercise_id: canonicalExerciseId,
       activeRoutineTitle: scopeContext.activeRoutineTitle,
@@ -1835,6 +2180,8 @@ export async function getExerciseInfoStats(
         metrics: progressMetrics,
         reviewSections,
         performances: buildProgressEntries(performances),
+        historyGroups: historyModel.historyGroups,
+        historyPoints: historyModel.historyPoints,
       },
       progression: progressionSummary,
       progressionDerived: derivedProgressionSummary,

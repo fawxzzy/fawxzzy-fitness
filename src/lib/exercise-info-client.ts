@@ -1,6 +1,7 @@
 import type { ExerciseInfoSheetExercise, ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { DetailSectionListItemInput, DetailSectionSignalTone } from "@/components/ui/DetailSectionList";
+import type { ExerciseHistoryDayGroup, ExerciseHistoryPoint, ExerciseHistoryValuePart } from "@/lib/exercise-info";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
 import type { ExerciseProgressionActivityDay, ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
@@ -193,47 +194,185 @@ function normalizeReviewSections(value: unknown) {
     .filter((section): section is ExerciseInfoReviewSection => Boolean(section));
 }
 
-function normalizePerformanceEntries(value: unknown) {
+function normalizePerformanceEntries(value: unknown): NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]> {
   if (!Array.isArray(value)) {
     return [] as NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>;
   }
 
+  const entries: NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]> = [];
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+
+    const label = readPrimitiveText(entry.label);
+    const metricValue = readPrimitiveText(entry.value);
+    const sessionId = readPrimitiveText(entry.sessionId) || `legacy-${label}`;
+    const performedAt = readPrimitiveText(entry.performedAt) || label;
+    const setCount = readOptionalNumber(entry.setCount) ?? 1;
+    const setSummaries = Array.isArray(entry.setSummaries)
+      ? entry.setSummaries.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
+      : [];
+    const displayKind: "session-summary" | "set-list" | "condensed-session" = entry.displayKind === "set-list"
+      || entry.displayKind === "condensed-session"
+      || entry.displayKind === "session-summary"
+      ? entry.displayKind
+      : "session-summary";
+    if (!label || !metricValue || !sessionId || !performedAt || typeof setCount !== "number") {
+      continue;
+    }
+
+    entries.push({
+      sessionId,
+      performedAt,
+      label,
+      value: metricValue,
+      setCount,
+      setSummaries: setSummaries.length > 0 ? setSummaries : [metricValue],
+      displayKind,
+      ...(readOptionalString(entry.context) ? { context: readOptionalString(entry.context) } : {}),
+      ...(readOptionalString(entry.summary) ? { summary: readOptionalString(entry.summary) } : {}),
+    });
+  }
+
+  return entries;
+}
+
+function normalizeHistoryValueParts(value: unknown): ExerciseHistoryValuePart[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
   return value
-    .map((entry) => {
-      if (!isRecord(entry)) {
+    .map((item): ExerciseHistoryValuePart | null => {
+      if (!isRecord(item)) {
         return null;
       }
-
-      const label = readPrimitiveText(entry.label);
-      const metricValue = readPrimitiveText(entry.value);
-      const sessionId = readPrimitiveText(entry.sessionId);
-      const performedAt = readPrimitiveText(entry.performedAt);
-      const setCount = readOptionalNumber(entry.setCount);
-      const setSummaries = Array.isArray(entry.setSummaries)
-        ? entry.setSummaries.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
-        : [];
-      const displayKind = entry.displayKind === "set-list"
-        || entry.displayKind === "condensed-session"
-        || entry.displayKind === "session-summary"
-        ? entry.displayKind
-        : "session-summary";
-      if (!label || !metricValue || !sessionId || !performedAt || typeof setCount !== "number") {
+      const label = readPrimitiveText(item.label);
+      const partValue = readPrimitiveText(item.value);
+      if (!label || !partValue) {
         return null;
       }
 
       return {
-        sessionId,
-        performedAt,
         label,
-        value: metricValue,
-        setCount,
-        setSummaries,
-        displayKind,
-        ...(readOptionalString(entry.context) ? { context: readOptionalString(entry.context) } : {}),
-        ...(readOptionalString(entry.summary) ? { summary: readOptionalString(entry.summary) } : {}),
+        value: partValue,
+        ...(readOptionalNumber(item.numericValue) !== undefined ? { numericValue: readOptionalNumber(item.numericValue) } : {}),
       };
     })
-    .filter((entry): entry is NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number] => Boolean(entry));
+    .filter((item): item is ExerciseHistoryValuePart => Boolean(item));
+}
+
+function normalizeTagLabels(value: unknown) {
+  return Array.isArray(value)
+    ? value.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
+    : [];
+}
+
+function normalizeHistoryGroups(value: unknown): ExerciseHistoryDayGroup[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((group) => {
+      if (!isRecord(group) || !Array.isArray(group.rows)) {
+        return null;
+      }
+      const id = readPrimitiveText(group.id);
+      const dayKey = readPrimitiveText(group.dayKey);
+      const label = readPrimitiveText(group.label);
+      const performedAt = readPrimitiveText(group.performedAt);
+      if (!id || !dayKey || !label || !performedAt) {
+        return null;
+      }
+
+      const rows = group.rows
+        .map((row) => {
+          if (!isRecord(row)) {
+            return null;
+          }
+          const rowId = readPrimitiveText(row.id);
+          const pointId = readPrimitiveText(row.pointId);
+          const sessionId = readPrimitiveText(row.sessionId);
+          const rowPerformedAt = readPrimitiveText(row.performedAt);
+          const rowDayKey = readPrimitiveText(row.dayKey);
+          const dayLabel = readPrimitiveText(row.dayLabel);
+          const setIndex = readOptionalNumber(row.setIndex);
+          const primary = readPrimitiveText(row.primary);
+          if (!rowId || !pointId || !sessionId || !rowPerformedAt || !rowDayKey || !dayLabel || typeof setIndex !== "number" || !primary) {
+            return null;
+          }
+
+          return {
+            id: rowId,
+            pointId,
+            sessionId,
+            performedAt: rowPerformedAt,
+            dayKey: rowDayKey,
+            dayLabel,
+            setIndex,
+            primary,
+            ...(readOptionalString(row.meta) ? { meta: readOptionalString(row.meta) } : {}),
+            values: normalizeHistoryValueParts(row.values),
+            ...(normalizeSignals(row.signals) ? { signals: normalizeSignals(row.signals) as ExerciseHistoryDayGroup["rows"][number]["signals"] } : {}),
+            ...(normalizeTagLabels(row.tagLabels).length > 0 ? { tagLabels: normalizeTagLabels(row.tagLabels) } : {}),
+          };
+        })
+        .filter((row): row is ExerciseHistoryDayGroup["rows"][number] => Boolean(row));
+
+      return rows.length > 0
+        ? {
+            id,
+            dayKey,
+            label,
+            performedAt,
+            ...(normalizeSignals(group.signals) ? { signals: normalizeSignals(group.signals) as ExerciseHistoryDayGroup["signals"] } : {}),
+            ...(normalizeTagLabels(group.tagLabels).length > 0 ? { tagLabels: normalizeTagLabels(group.tagLabels) } : {}),
+            rows,
+          }
+        : null;
+    })
+    .filter((group): group is ExerciseHistoryDayGroup => Boolean(group));
+}
+
+function normalizeHistoryPoints(value: unknown): ExerciseHistoryPoint[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((point) => {
+      if (!isRecord(point)) {
+        return null;
+      }
+      const id = readPrimitiveText(point.id);
+      const type = point.type === "day" || point.type === "set" || point.type === "progression-event" ? point.type : null;
+      const performedAt = readPrimitiveText(point.performedAt);
+      const dayKey = readPrimitiveText(point.dayKey);
+      const label = readPrimitiveText(point.label);
+      const summary = readPrimitiveText(point.summary);
+      if (!id || !type || !performedAt || !dayKey || !label || !summary) {
+        return null;
+      }
+
+      return {
+        id,
+        type,
+        performedAt,
+        dayKey,
+        label,
+        summary,
+        ...(readOptionalString(point.meta) ? { meta: readOptionalString(point.meta) } : {}),
+        numericValue: readOptionalNumber(point.numericValue) ?? null,
+        values: normalizeHistoryValueParts(point.values),
+        ...(normalizeSignals(point.signals) ? { signals: normalizeSignals(point.signals) as ExerciseHistoryPoint["signals"] } : {}),
+        ...(normalizeTagLabels(point.tagLabels).length > 0 ? { tagLabels: normalizeTagLabels(point.tagLabels) } : {}),
+        ...(readOptionalString(point.rowId) ? { rowId: readOptionalString(point.rowId) } : {}),
+      };
+    })
+    .filter((point): point is ExerciseHistoryPoint => Boolean(point));
 }
 
 function normalizeProgressionChartSections(value: unknown) {
@@ -471,6 +610,8 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
       metrics: normalizeMetricList(progress?.metrics),
       reviewSections: normalizeReviewSections(progress?.reviewSections),
       performances: normalizePerformanceEntries(progress?.performances),
+      historyGroups: normalizeHistoryGroups(progress?.historyGroups),
+      historyPoints: normalizeHistoryPoints(progress?.historyPoints),
     },
     progression,
     ...(progressionDerived ? { progressionDerived } : {}),

@@ -13,7 +13,7 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
-import { DetailSectionBlock, DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem, type DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
+import { DetailSectionBadge, DetailSectionBlock, DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem, type DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -30,6 +30,7 @@ import {
   type ExerciseInfoSectionScopeKey,
 } from "@/lib/exercise-info-scope";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
+import type { ExerciseHistoryDayGroup, ExerciseHistoryPoint } from "@/lib/exercise-info";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import { getRecoveryExerciseFallbackDescription } from "@/lib/exercise-metadata";
 import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
@@ -95,16 +96,18 @@ export type ExerciseInfoSheetStats = {
     metrics?: MetricDatum[];
     reviewSections?: ExerciseInfoReviewSection[];
     performances?: Array<{
-      sessionId: string;
-      performedAt: string;
+      sessionId?: string;
+      performedAt?: string;
       label: string;
       value: string;
-      setCount: number;
-      setSummaries: string[];
-      displayKind: "session-summary" | "set-list" | "condensed-session";
+      setCount?: number;
+      setSummaries?: string[];
+      displayKind?: "session-summary" | "set-list" | "condensed-session";
       context?: string | null;
       summary?: string | null;
     }>;
+    historyGroups?: ExerciseHistoryDayGroup[];
+    historyPoints?: ExerciseHistoryPoint[];
   };
   progression?: ExerciseProgressionLifelineSummary | null;
   progressionDerived?: {
@@ -138,21 +141,34 @@ function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | und
         .filter((section) => section.items.length > 0)
     : [];
   const performances = Array.isArray(progress?.performances)
-    ? progress.performances.filter((entry): entry is NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number] => (
-      Boolean(entry)
-      && typeof entry.sessionId === "string"
-      && typeof entry.performedAt === "string"
-      && typeof entry.label === "string"
-      && typeof entry.value === "string"
-      && typeof entry.setCount === "number"
-      && Array.isArray(entry.setSummaries)
-    ))
+    ? progress.performances
+        .filter((entry): entry is NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number] => (
+          Boolean(entry)
+          && typeof entry.label === "string"
+          && typeof entry.value === "string"
+        ))
+        .map((entry) => ({
+          ...entry,
+          sessionId: entry.sessionId ?? `legacy-${entry.label}`,
+          performedAt: entry.performedAt ?? entry.label,
+          setCount: entry.setCount ?? 1,
+          setSummaries: entry.setSummaries ?? [entry.value],
+          displayKind: entry.displayKind ?? "session-summary",
+        }))
+    : [];
+  const historyGroups = Array.isArray(progress?.historyGroups)
+    ? progress.historyGroups.filter((group): group is ExerciseHistoryDayGroup => Boolean(group && typeof group.id === "string" && Array.isArray(group.rows)))
+    : [];
+  const historyPoints = Array.isArray(progress?.historyPoints)
+    ? progress.historyPoints.filter((point): point is ExerciseHistoryPoint => Boolean(point && typeof point.id === "string" && typeof point.type === "string"))
     : [];
 
   return {
     metrics,
     reviewSections,
     performances,
+    historyGroups,
+    historyPoints,
   };
 }
 
@@ -463,12 +479,14 @@ function ExerciseInfoSectionHeader({
   analyticsScope,
   activeRoutineTitle,
   onScopeClick,
+  resyncActive = false,
 }: {
   title: string;
   section: ExerciseInfoSectionScopeKey;
   analyticsScope: ExerciseInfoAnalyticsScope;
   activeRoutineTitle?: string | null;
   onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
+  resyncActive?: boolean;
 }) {
   return (
     <div className="relative flex min-h-[2.1rem] items-center justify-center">
@@ -478,7 +496,7 @@ function ExerciseInfoSectionHeader({
           className={exerciseInfoScopeChipClassName}
           onClick={() => onScopeClick(section)}
         >
-          {getExerciseInfoSectionScopeLabel(section, analyticsScope, activeRoutineTitle)}
+          {resyncActive ? "Re-sync" : getExerciseInfoSectionScopeLabel(section, analyticsScope, activeRoutineTitle)}
         </PillButton>
       </div>
       <h3 className={cn(appTokens.detailSectionTitle, exerciseInfoSectionTitleClassName)} style={exerciseInfoSectionTitleStyle}>
@@ -551,9 +569,264 @@ function ExerciseInfoOverviewMedia({
   );
 }
 
-function ExerciseInfoHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
-  const HISTORY_VISIBLE_ROW_COUNT = 10;
+function renderHistoryPointBadges(point: Pick<ExerciseHistoryPoint, "signals" | "tagLabels">) {
+  const signals = point.signals ?? [];
+  const tagLabels = point.tagLabels ?? [];
+  const signalLabels = signals.map((signal) => {
+    if (signal === "pr") return "PR";
+    if (signal === "promotion") return "PROMO";
+    if (signal === "regression") return "REGRESS";
+    return "WATCH";
+  });
+  const labels = [...signalLabels, ...tagLabels].filter((value, index, all) => value && all.indexOf(value) === index);
+
+  if (labels.length === 0) {
+    return null;
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-1">
+      {labels.map((label) => (
+        <DetailSectionBadge key={label} label={label} />
+      ))}
+    </span>
+  );
+}
+
+function buildHistoryPointMetrics(point: ExerciseHistoryPoint): MetricDatum[] {
+  const metrics = [
+    { label: "Point", value: point.type === "progression-event" ? "Progression" : point.type === "day" ? "Day" : "Set" },
+    { label: "Date", value: point.label },
+    ...point.values.slice(0, 4).map((value) => ({ label: value.label, value: value.value })),
+  ];
+
+  return filterUniqueMetricItems(metrics).slice(0, 6);
+}
+
+function ExerciseHistoryGraph({
+  points,
+  selectedPointId,
+  onSelectedPointChange,
+}: {
+  points: ExerciseHistoryPoint[];
+  selectedPointId: string | null;
+  onSelectedPointChange: (pointId: string | null) => void;
+}) {
+  const orderedPoints = points
+    .filter((point) => Number.isFinite(Date.parse(point.performedAt)))
+    .sort((left, right) => {
+      if (left.performedAt !== right.performedAt) return left.performedAt.localeCompare(right.performedAt);
+      return left.id.localeCompare(right.id);
+    });
+
+  if (orderedPoints.length === 0) {
+    return null;
+  }
+
+  const selectedPoint = orderedPoints.find((point) => point.id === selectedPointId) ?? null;
+  const selectedIndex = selectedPoint ? orderedPoints.findIndex((point) => point.id === selectedPoint.id) : -1;
+  const numericValues = orderedPoints
+    .map((point) => point.numericValue)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const minValue = numericValues.length > 0 ? Math.min(...numericValues) : 0;
+  const maxValue = numericValues.length > 0 ? Math.max(...numericValues) : 1;
+  const valueRange = Math.max(maxValue - minValue, 1);
+  const startTime = Date.parse(orderedPoints[0]!.performedAt);
+  const endTime = Date.parse(orderedPoints[orderedPoints.length - 1]!.performedAt);
+  const timeRange = Math.max(endTime - startTime, 1);
+  const chartWidth = 320;
+  const chartHeight = 132;
+  const paddingX = 18;
+  const paddingTop = 16;
+  const paddingBottom = 26;
+  const innerWidth = chartWidth - (paddingX * 2);
+  const innerHeight = chartHeight - paddingTop - paddingBottom;
+  const plottedPoints = orderedPoints.map((point, index) => {
+    const timestamp = Date.parse(point.performedAt);
+    const x = orderedPoints.length === 1 ? chartWidth / 2 : paddingX + (((timestamp - startTime) / timeRange) * innerWidth);
+    const hasNumericValue = typeof point.numericValue === "number" && Number.isFinite(point.numericValue);
+    const y = hasNumericValue
+      ? paddingTop + ((1 - ((point.numericValue! - minValue) / valueRange)) * innerHeight)
+      : chartHeight - paddingBottom;
+
+    return {
+      point,
+      x,
+      y,
+      selected: point.id === selectedPointId,
+      leftPercent: (x / chartWidth) * 100,
+      topPercent: (y / chartHeight) * 100,
+      index,
+    };
+  });
+  const linePoints = plottedPoints
+    .filter((point) => point.point.type !== "progression-event" && typeof point.point.numericValue === "number")
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
+  const selectedDisplayPoint = selectedPoint ?? orderedPoints[orderedPoints.length - 1]!;
+  const selectedMetrics = buildHistoryPointMetrics(selectedDisplayPoint);
+
+  return (
+    <div className="space-y-2 rounded-[1rem] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-3 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--border-rgb)/0.42)] text-[rgb(var(--accent-divider-rgb)/0.95)]"
+          onClick={() => {
+            const nextIndex = selectedIndex > 0 ? selectedIndex - 1 : orderedPoints.length - 1;
+            onSelectedPointChange(orderedPoints[nextIndex]?.id ?? null);
+          }}
+          aria-label="Previous history point"
+        >
+          <ChevronRightIcon className="h-4 w-4 rotate-180" />
+        </button>
+        <div className="min-w-0 text-center">
+          <p className="truncate text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-secondary)/0.82)]">
+            {selectedPoint ? selectedPoint.label : "All Time"}
+          </p>
+          <p className="truncate text-sm font-semibold text-[rgb(var(--text-primary)/0.95)]">
+            {selectedPoint ? selectedPoint.summary : `${orderedPoints.length} points`}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--border-rgb)/0.42)] text-[rgb(var(--accent-divider-rgb)/0.95)]"
+          onClick={() => {
+            const nextIndex = selectedIndex >= 0 && selectedIndex < orderedPoints.length - 1 ? selectedIndex + 1 : 0;
+            onSelectedPointChange(orderedPoints[nextIndex]?.id ?? null);
+          }}
+          aria-label="Next history point"
+        >
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="relative">
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-[8.25rem] w-full" aria-hidden="true">
+          <line x1={paddingX} x2={chartWidth - paddingX} y1={chartHeight - paddingBottom} y2={chartHeight - paddingBottom} stroke="rgb(var(--border-rgb) / 0.34)" strokeWidth="1.2" />
+          <line x1={paddingX} x2={paddingX} y1={paddingTop} y2={chartHeight - paddingBottom} stroke="rgb(var(--border-rgb) / 0.2)" strokeWidth="1" />
+          {linePoints ? (
+            <polyline
+              fill="none"
+              stroke="rgb(var(--accent-strong) / 0.82)"
+              strokeWidth="2.4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              points={linePoints}
+            />
+          ) : null}
+          {plottedPoints.map(({ point, x, y, selected }) => (
+            <circle
+              key={point.id}
+              cx={x}
+              cy={y}
+              r={selected ? 6.5 : point.type === "progression-event" ? 4.5 : 5}
+              fill={point.type === "progression-event" ? "rgb(var(--accent-yellow-on) / 0.92)" : selected ? "rgb(var(--accent-strong) / 0.96)" : "rgb(var(--surface-1-rgb) / 0.96)"}
+              stroke={point.signals?.includes("regression") ? "rgb(255 116 116 / 0.92)" : "rgb(var(--accent-strong) / 0.9)"}
+              strokeWidth={selected ? 2.5 : 1.7}
+            />
+          ))}
+        </svg>
+        {plottedPoints.map((point) => (
+          <button
+            key={`hit-${point.point.id}`}
+            type="button"
+            onClick={() => onSelectedPointChange(point.point.id)}
+            className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ left: `${point.leftPercent}%`, top: `${point.topPercent}%` }}
+            aria-label={`Select ${point.point.label} history point`}
+          />
+        ))}
+      </div>
+      <div className="space-y-2 rounded-[0.9rem] border border-[rgb(var(--border-rgb)/0.34)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-2.5 py-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.9)]">
+              {selectedPoint ? selectedPoint.type.replace("-", " ") : "Scope"}
+            </p>
+            <p className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary)/0.96)]">
+              {selectedDisplayPoint.summary}
+            </p>
+            {selectedDisplayPoint.meta ? (
+              <p className="text-[0.74rem] leading-5 text-[rgb(var(--text-secondary)/0.82)]">
+                {selectedDisplayPoint.meta}
+              </p>
+            ) : null}
+          </div>
+          {renderHistoryPointBadges(selectedDisplayPoint)}
+        </div>
+        {selectedMetrics.length > 0 ? (
+          <ExerciseSurfaceMetricGrid items={selectedMetrics} {...getExerciseInfoMetricGridProps(selectedMetrics)} />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ExerciseInfoHistoryList({
+  stats,
+  selectedPointId,
+  onSelectedPointChange,
+}: {
+  stats: ExerciseInfoSheetStats;
+  selectedPointId: string | null;
+  onSelectedPointChange: (pointId: string | null) => void;
+}) {
+  const HISTORY_VISIBLE_ROW_COUNT = 5;
   const historyState = getExerciseInfoProgressState(stats);
+  const historyGroups = historyState.historyGroups;
+  const historyPoints = historyState.historyPoints;
+  const selectedPoint = selectedPointId ? historyPoints.find((point) => point.id === selectedPointId) ?? null : null;
+  const activeGroups = selectedPoint
+    ? historyGroups
+        .filter((group) => group.dayKey === selectedPoint.dayKey)
+        .map((group) => selectedPoint.rowId
+          ? { ...group, rows: group.rows.filter((row) => row.id === selectedPoint.rowId) }
+          : group)
+        .filter((group) => group.rows.length > 0)
+    : historyGroups;
+  const structuredItems = activeGroups.flatMap((group) => {
+    const dayItem: DetailSectionListItem = {
+      id: group.id,
+      primary: group.label,
+      value: `${group.rows.length} ${group.rows.length === 1 ? "set" : "sets"}`,
+      signals: group.signals,
+      tagLabels: group.tagLabels,
+      layout: "single-column",
+    };
+    const setItems = group.rows.map((row): DetailSectionListItem => ({
+      id: row.id,
+      primary: row.primary,
+      meta: row.meta,
+      signals: row.signals,
+      tagLabels: row.tagLabels,
+      layout: "single-column",
+    }));
+
+    return [dayItem, ...setItems];
+  });
+
+  if (structuredItems.length > 0) {
+    return (
+      <div className="space-y-2">
+        <ExerciseHistoryGraph
+          points={historyPoints}
+          selectedPointId={selectedPointId}
+          onSelectedPointChange={onSelectedPointChange}
+        />
+        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+          <div
+            className={cn(
+              "w-full",
+              structuredItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[18rem] overflow-y-auto pr-1" : undefined,
+            )}
+          >
+            <DetailSectionItems items={structuredItems} className="pl-0.5" showBullets={false} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const performances = historyState.performances;
   const prHistorySection = historyState.reviewSections.find((section) => section.title === "PR History") ?? null;
   const prHistoryDates = new Set(
@@ -570,16 +843,18 @@ function ExerciseInfoHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
   const normalizedBestSummary = normalizeExerciseInfoComparisonValue(stats.bests.bestSetSummary);
   const buildHistoryRowValue = (entry: NonNullable<NonNullable<ExerciseInfoSheetStats["progress"]>["performances"]>[number]) => {
     const uniqueSetSummaries = Array.from(new Set(
-      entry.setSummaries
+      (entry.setSummaries ?? [entry.value])
         .map((item) => item.trim())
         .filter(Boolean),
     ));
 
-    if (entry.displayKind === "set-list" && uniqueSetSummaries.length > 0) {
+    const displayKind = entry.displayKind ?? "session-summary";
+
+    if (displayKind === "set-list" && uniqueSetSummaries.length > 0) {
       return uniqueSetSummaries.join(" | ");
     }
 
-    if (entry.displayKind === "condensed-session" && uniqueSetSummaries.length > 0) {
+    if (displayKind === "condensed-session" && uniqueSetSummaries.length > 0) {
       const visibleSummaries = uniqueSetSummaries.slice(0, 3);
       const remainingCount = uniqueSetSummaries.length - visibleSummaries.length;
       return remainingCount > 0
@@ -605,7 +880,7 @@ function ExerciseInfoHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
       isBestEntry ? "BEST" : null,
     ].filter((value): value is string => Boolean(value));
     const metaParts = [entry.label];
-    if (entry.displayKind !== "session-summary" && entry.summary?.trim()) {
+    if ((entry.displayKind ?? "session-summary") !== "session-summary" && entry.summary?.trim()) {
       const normalizedSummary = normalizeExerciseInfoComparisonValue(entry.summary);
       if (normalizedSummary && normalizedSummary !== normalizedEntryValue) {
         metaParts.push(entry.summary);
@@ -817,12 +1092,14 @@ function ExerciseInfoProgressionPanel({
   analyticsScope,
   activeRoutineTitle,
   onScopeClick,
+  resyncActive = false,
 }: {
   progression: ExerciseProgressionLifelineSummary;
   excludedMetricKeys?: string[];
   analyticsScope: ExerciseInfoAnalyticsScope;
   activeRoutineTitle?: string | null;
   onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
+  resyncActive?: boolean;
 }) {
   const usedMetricKeys = new Set(excludedMetricKeys.map((key) => normalizeMetricKey(key)));
   const currentTargetValue = compactProgressionMetricValue(progression.currentTargetLabel);
@@ -910,7 +1187,7 @@ function buildDerivedProgressionMetrics(
 function buildDerivedProgressionSections(
   derived: NonNullable<ExerciseInfoSheetStats["progressionDerived"]>,
 ): ExerciseInfoReviewSection[] {
-  const sections = [
+  const sections: Array<ExerciseInfoReviewSection | null> = [
     derived.currentTargetLabel ? {
       title: "Current Target",
       items: [derived.currentTargetLabel],
@@ -952,11 +1229,13 @@ function ExerciseInfoProgressionEmptyPanel({
   activeRoutineTitle,
   derivedProgression,
   onScopeClick,
+  resyncActive = false,
 }: {
   analyticsScope: ExerciseInfoAnalyticsScope;
   activeRoutineTitle?: string | null;
   derivedProgression?: ExerciseInfoSheetStats["progressionDerived"];
   onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
+  resyncActive?: boolean;
 }) {
   const fallbackMetrics = derivedProgression ? buildDerivedProgressionMetrics(derivedProgression) : [];
   const fallbackSections = derivedProgression ? buildDerivedProgressionSections(derivedProgression) : [];
@@ -969,6 +1248,7 @@ function ExerciseInfoProgressionEmptyPanel({
         analyticsScope={analyticsScope}
         activeRoutineTitle={activeRoutineTitle}
         onScopeClick={onScopeClick}
+        resyncActive={resyncActive}
       />
       {fallbackMetrics.length > 0 ? (
         <ExerciseSurfaceMetricGrid
@@ -1017,13 +1297,20 @@ export function ExerciseInfoSheet({
   const statsPanelId = useId();
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [sectionScopeOverrides, setSectionScopeOverrides] = useState<Partial<Record<ExerciseInfoSectionScopeKey, ExerciseInfoAnalyticsScope>>>({});
+  const [selectedHistoryPointId, setSelectedHistoryPointId] = useState<string | null>(null);
+  const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   useBodyScrollLock(open && !inline);
 
   useEffect(() => {
     if (!open) {
       setSectionScopeOverrides({});
+      setSelectedHistoryPointId(null);
     }
   }, [open]);
+
+  useEffect(() => {
+    setSelectedHistoryPointId(null);
+  }, [analyticsScope, canonicalExerciseId]);
 
   useEffect(() => {
     setPortalTarget(document.body);
@@ -1040,9 +1327,15 @@ export function ExerciseInfoSheet({
 
   const handleScopeResync = useCallback(() => {
     setSectionScopeOverrides({});
+    setSelectedHistoryPointId(null);
   }, []);
 
   const handleSectionScopeToggle = useCallback((section: ExerciseInfoSectionScopeKey) => {
+    if (selectedHistoryPointId) {
+      setSelectedHistoryPointId(null);
+      return;
+    }
+
     const currentScope = getSectionScope(section);
     const nextScope = getNextExerciseInfoAnalyticsScope(currentScope);
     setSectionScopeOverrides((current) => {
@@ -1054,7 +1347,7 @@ export function ExerciseInfoSheet({
       }
       return nextOverrides;
     });
-  }, [analyticsScope, getSectionScope]);
+  }, [analyticsScope, getSectionScope, selectedHistoryPointId]);
 
   const getSectionStats = useCallback((section: ExerciseInfoSectionScopeKey) => {
     const scope = getSectionScope(section);
@@ -1087,7 +1380,6 @@ export function ExerciseInfoSheet({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [handleClose, open]);
 
-  const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const isStretchHub = isStretchHubExercise(exercise);
   const stretchPanelContext = sourceContext === "SessionExerciseFocus" ? "session" : "detail";
   const metadata = exercise && !isStretchHub ? buildExerciseInfoMeta(exercise) : [];
@@ -1095,6 +1387,7 @@ export function ExerciseInfoSheet({
   const stretchHeroImageSrc = howToImageSrc.includes("/placeholders/") ? STRETCH_HUB_HERO_SRC : howToImageSrc;
   const activeRoutineTitle = statsByScope.current_routine?.activeRoutineTitle ?? statsByScope.all_time?.activeRoutineTitle ?? null;
   const activeScopeLabel = getExerciseInfoAnalyticsScopeDisplayLabel(analyticsScope, activeRoutineTitle);
+  const scopeResyncActive = hasUnsyncedSections || Boolean(selectedHistoryPointId);
   const detailHeader = (
     <div className="sticky top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.25rem)] z-30">
       <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10 flex items-center justify-start px-2">
@@ -1102,16 +1395,16 @@ export function ExerciseInfoSheet({
           <PillButton
             active
             className={cn(exerciseInfoScopeChipClassName, "max-w-[9.6rem] whitespace-normal text-center leading-[1.05]")}
-            aria-label={hasUnsyncedSections ? "Re-sync section analytics scopes" : "Toggle analytics scope"}
+            aria-label={scopeResyncActive ? "Re-sync analytics scope" : "Toggle analytics scope"}
             onClick={() => {
-              if (hasUnsyncedSections) {
+              if (scopeResyncActive) {
                 handleScopeResync();
                 return;
               }
               onAnalyticsScopeChange(getNextExerciseInfoAnalyticsScope(analyticsScope));
             }}
           >
-            {hasUnsyncedSections ? "Re-Sync" : activeScopeLabel}
+            {scopeResyncActive ? "Re-sync" : activeScopeLabel}
           </PillButton>
         </div>
       </div>
@@ -1177,10 +1470,24 @@ export function ExerciseInfoSheet({
   const progressState = getExerciseInfoProgressState(progressSectionState.stats);
   const progressMetrics = filterUniqueMetricItems(progressState.metrics, usedMetricKeys);
   const reviewSections = progressState.reviewSections.filter((section) => section.title !== "PR History");
+  const historyState = getExerciseInfoProgressState(historySectionState.stats);
+  const selectedHistoryPoint = selectedHistoryPointId
+    ? historyState.historyPoints.find((point) => point.id === selectedHistoryPointId) ?? null
+    : null;
+  const graphSelectionActive = Boolean(selectedHistoryPoint);
+  const selectedPointMetrics = selectedHistoryPoint ? buildHistoryPointMetrics(selectedHistoryPoint) : [];
+  const displayedSurfaceMetrics = graphSelectionActive ? selectedPointMetrics : surfaceMetrics;
+  const displayedPerformanceMetrics = graphSelectionActive ? selectedPointMetrics : performanceMetrics;
+  const displayedProgressMetrics = graphSelectionActive
+    ? filterUniqueMetricItems([
+        { label: "Selected", value: selectedHistoryPoint!.summary },
+        ...(selectedHistoryPoint!.meta ? [{ label: "Context", value: selectedHistoryPoint!.meta }] : []),
+      ])
+    : progressMetrics;
   const progression = progressionSectionState.stats?.progression ?? null;
   const derivedProgression = progressionSectionState.stats?.progressionDerived ?? null;
-  const hasPerformancePanel = !performanceSectionState.loading && performanceMetrics.length > 0;
-  const hasProgressPanel = progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0;
+  const hasPerformancePanel = graphSelectionActive || (!performanceSectionState.loading && performanceMetrics.length > 0);
+  const hasProgressPanel = graphSelectionActive || progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0;
   const hasCombinedPerformanceProgressPanel = hasPerformancePanel || hasProgressPanel;
   const hasProgressionLoadingPanel = progressionSectionState.loading;
   const hasProgressionPanel = Boolean(progression);
@@ -1221,12 +1528,13 @@ export function ExerciseInfoSheet({
                           analyticsScope={statsSectionState.scope}
                           activeRoutineTitle={activeRoutineTitle}
                           onScopeClick={handleSectionScopeToggle}
+                          resyncActive={graphSelectionActive}
                         />
                         {statsSectionState.loading ? <ExerciseInfoLoadingMetrics /> : null}
                         {!statsSectionState.loading && statsSectionState.stats ? (
                           <ExerciseSurfaceMetricGrid
-                            items={surfaceMetrics}
-                            {...getExerciseInfoMetricGridProps(surfaceMetrics)}
+                            items={displayedSurfaceMetrics}
+                            {...getExerciseInfoMetricGridProps(displayedSurfaceMetrics)}
                           />
                         ) : null}
                         {!statsSectionState.loading && !statsSectionState.stats ? (
@@ -1245,8 +1553,15 @@ export function ExerciseInfoSheet({
                           analyticsScope={historySectionState.scope}
                           activeRoutineTitle={activeRoutineTitle}
                           onScopeClick={handleSectionScopeToggle}
+                          resyncActive={graphSelectionActive}
                         />
-                        {historySectionState.loading ? <ExerciseInfoLoadingRows /> : historySectionState.stats ? <ExerciseInfoHistoryList stats={historySectionState.stats} /> : null}
+                        {historySectionState.loading ? <ExerciseInfoLoadingRows /> : historySectionState.stats ? (
+                          <ExerciseInfoHistoryList
+                            stats={historySectionState.stats}
+                            selectedPointId={selectedHistoryPoint?.id ?? null}
+                            onSelectedPointChange={setSelectedHistoryPointId}
+                          />
+                        ) : null}
                       </AppPanel>
                     ) : null}
 
@@ -1260,8 +1575,9 @@ export function ExerciseInfoSheet({
                               analyticsScope={performanceSectionState.scope}
                               activeRoutineTitle={activeRoutineTitle}
                               onScopeClick={handleSectionScopeToggle}
+                              resyncActive={graphSelectionActive}
                             />
-                            <ExerciseSurfaceMetricGrid items={performanceMetrics} {...getExerciseInfoMetricGridProps(performanceMetrics)} />
+                            <ExerciseSurfaceMetricGrid items={displayedPerformanceMetrics} {...getExerciseInfoMetricGridProps(displayedPerformanceMetrics)} />
                           </>
                         ) : null}
                         {hasPerformancePanel && hasProgressPanel ? <MetricAccentBar variant="thin" className="mx-1" /> : null}
@@ -1273,8 +1589,9 @@ export function ExerciseInfoSheet({
                               analyticsScope={progressSectionState.scope}
                               activeRoutineTitle={activeRoutineTitle}
                               onScopeClick={handleSectionScopeToggle}
+                              resyncActive={graphSelectionActive}
                             />
-                            {progressSectionState.loading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview metrics={progressMetrics} sections={reviewSections} />}
+                            {progressSectionState.loading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview metrics={displayedProgressMetrics} sections={graphSelectionActive ? [] : reviewSections} />}
                           </>
                         ) : null}
                       </AppPanel>
@@ -1288,6 +1605,7 @@ export function ExerciseInfoSheet({
                           analyticsScope={progressionSectionState.scope}
                           activeRoutineTitle={activeRoutineTitle}
                           onScopeClick={handleSectionScopeToggle}
+                          resyncActive={graphSelectionActive}
                         />
                         <ExerciseInfoLoadingRows />
                       </AppPanel>
@@ -1298,6 +1616,7 @@ export function ExerciseInfoSheet({
                         analyticsScope={progressionSectionState.scope}
                         activeRoutineTitle={activeRoutineTitle}
                         onScopeClick={handleSectionScopeToggle}
+                        resyncActive={graphSelectionActive}
                       />
                     ) : hasProgressionEmptyPanel ? (
                       <ExerciseInfoProgressionEmptyPanel
@@ -1305,6 +1624,7 @@ export function ExerciseInfoSheet({
                         activeRoutineTitle={activeRoutineTitle}
                         derivedProgression={derivedProgression}
                         onScopeClick={handleSectionScopeToggle}
+                        resyncActive={graphSelectionActive}
                       />
                     ) : null}
 
