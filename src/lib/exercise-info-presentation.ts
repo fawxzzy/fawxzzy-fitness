@@ -120,8 +120,6 @@ export function buildExerciseInfoReviewSections(args: {
       ? [{
           title: "PR History",
           items: prItems,
-          sectionSignal: "pr",
-          legendSignals: ["pr"],
         } satisfies ExerciseInfoReviewSection]
       : []),
   ] satisfies ExerciseInfoReviewSection[];

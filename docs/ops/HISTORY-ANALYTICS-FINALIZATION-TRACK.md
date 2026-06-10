@@ -19,7 +19,7 @@ It exists to stop drift between:
 
 ## Current Marker
 
-- History / Analytics Finalization Track: `97%`
+- History / Analytics Finalization Track: `98%`
 
 Marker rules:
 
@@ -31,9 +31,9 @@ Marker rules:
 
 - Runtime Hardening and Route Loading: `95%`
 - Shared Metric Card Normalization: `97%`
-- Progression Analytics and Scope Filters: `95%`
-- Signal Density, Legends, and Color Coding: `92%`
-- Final QA, Post Alignment, and Closeout: `85%`
+- Progression Analytics and Scope Filters: `96%`
+- Signal Density, Legends, and Color Coding: `94%`
+- Final QA, Post Alignment, and Closeout: `87%`
 
 ## Landed State
 
@@ -65,6 +65,8 @@ Already landed:
 - preview-seeded exercise history rows can now open exercise info directly instead of tripping the API-only exercise-id guard
 - history summary sections no longer duplicate `WATCH`, `PROMO`, or similar signals at both the title row and item-row level
 - current-cycle history metrics now read more explicitly with `Planned Days`, `Completed`, and cleaner week-over-week wording
+- progression-activity drill-in rows now use the shared structured item treatment without the old extra bullet dot fighting signal chips and row meta
+- exercise-info `PR History` now stays row-tag driven instead of repeating a section-level PR badge above rows that already carry their own signal
 
 ## Runtime Note
 

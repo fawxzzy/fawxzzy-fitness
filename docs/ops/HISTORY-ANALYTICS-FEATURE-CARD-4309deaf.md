@@ -28,8 +28,9 @@ exercise-info now reads in a cleaner sequence so stats, performance, progress, p
 exercise-info recent history now avoids repeating the exact latest result when that same result is already surfaced in Stats
 history summary metrics now use clearer outcome wording such as unique exercises, vs-prior-week delta, planned days, and completed-vs-planned cycle review
 progression activity rows now render as structured full-width entries with tags and exercise or routine context instead of raw bullet strings
+progression activity drill-ins now use the same structured row treatment cleanly, without the older mixed bullet-plus-tag display
 logged-session top detail is now recap-first, and logged-session exercise cards plus logged-set rows can carry compact PR, promo, best, and regression tags
-exercise info now moves PR History and Recent History under the how-to block and uses row tags to reduce repeated last or best copy
+exercise info now moves PR History and Recent History under the how-to block and uses row tags to reduce repeated last or best copy without duplicating section-level PR badges
 localhost history preview now has a deterministic direct-open QA lane, and preview-seeded exercise history rows can open exercise info instead of failing the API-only id guard
 
 Build Split

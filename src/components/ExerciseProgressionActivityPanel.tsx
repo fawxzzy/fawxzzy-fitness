@@ -149,7 +149,7 @@ export function ExerciseProgressionActivityPanel({
                   {renderMetaLine(selectedDaySummaryParts)}
                 </div>
               ) : null}
-              <DetailSectionItems items={selectedDay.items} className="pl-0.5" />
+              <DetailSectionItems items={selectedDay.items} className="pl-0.5" showBullets={false} />
             </div>
           </div>
         ) : activityDays.length > 0 ? (

@@ -98,7 +98,7 @@ export function ProgressionSummaryActivityPanel({
                   </div>
                 </div>
               ) : null}
-              <DetailSectionItems items={selectedBucket.items} className="pl-0.5" />
+              <DetailSectionItems items={selectedBucket.items} className="pl-0.5" showBullets={false} />
             </div>
           </div>
         ) : (

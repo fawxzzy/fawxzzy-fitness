@@ -48,8 +48,20 @@ test("exercise info review sections explain progression in plain language", () =
     {
       title: "PR History",
       items: [
-        "Jun 4 | Weight PR 225 lbs x 5",
-        "Jun 1 | Rep PR 12 reps",
+        {
+          id: "pr-history-0",
+          primary: "Jun 4 | Weight PR 225 lbs x 5",
+          signals: "pr",
+          tagLabels: ["PR"],
+          layout: "single-column",
+        },
+        {
+          id: "pr-history-1",
+          primary: "Jun 1 | Rep PR 12 reps",
+          signals: "pr",
+          tagLabels: ["PR"],
+          layout: "single-column",
+        },
       ],
     },
   ]);
@@ -69,7 +81,13 @@ test("exercise info review sections group same-day PR items into a single dated 
     {
       title: "PR History",
       items: [
-        "May 30 | Distance PR 2 mi | Time PR 9:00",
+        {
+          id: "pr-history-0",
+          primary: "May 30 | Distance PR 2 mi | Time PR 9:00",
+          signals: "pr",
+          tagLabels: ["PR"],
+          layout: "single-column",
+        },
       ],
     },
   ]);
