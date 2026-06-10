@@ -59,9 +59,32 @@ export function ExerciseInfo({
 
     const rawExerciseId = typeof exerciseId === "string" ? exerciseId.trim() : "";
     const normalizedExerciseId = resolveCanonicalExerciseId(rawExerciseId);
+    const seedPayload = normalizeExerciseInfoClientPayload(
+      initialExercise
+        ? {
+            exercise: initialExercise,
+            stats: initialStats ?? null,
+          }
+        : null,
+    );
     const isValidExerciseId = normalizedExerciseId.length > 0 && (UUID_V4ISH_PATTERN.test(normalizedExerciseId) || isKnownLegacyExerciseId(rawExerciseId));
 
     if (!isValidExerciseId) {
+      if (seedPayload) {
+        setExercise(seedPayload.exercise);
+        setStatsByScope({
+          all_time: seedPayload.stats,
+          current_routine: null,
+          current_cycle: null,
+        });
+        setStatsLoadingByScope({
+          all_time: false,
+          current_routine: false,
+          current_cycle: false,
+        });
+        return;
+      }
+
       const minimalShape = {
         hasId: normalizedExerciseId.length > 0,
         wasAliased: rawExerciseId !== normalizedExerciseId,
@@ -89,14 +112,6 @@ export function ExerciseInfo({
     }
 
     let active = true;
-    const seedPayload = normalizeExerciseInfoClientPayload(
-      initialExercise
-        ? {
-            exercise: initialExercise,
-            stats: initialStats ?? null,
-          }
-        : null,
-    );
     const controllers = new Map<ExerciseInfoAnalyticsScope, AbortController>();
     const nextStatsByScope: Partial<Record<ExerciseInfoAnalyticsScope, ExerciseInfoSheetStats | null>> = {};
     const nextStatsLoadingByScope: Record<ExerciseInfoAnalyticsScope, boolean> = {

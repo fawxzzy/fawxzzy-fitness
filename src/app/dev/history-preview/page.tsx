@@ -25,9 +25,9 @@ export default function DevHistoryPreviewPage() {
       <section className="rounded-[1.5rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.88)] px-6 py-5 shadow-[0_18px_40px_rgb(0_0_0/0.18)] backdrop-blur-[10px]">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.92)]">History QA preview</p>
-          <h1 className="text-[1.75rem] font-semibold tracking-[-0.04em]">Deterministic auth-aware history lane</h1>
+          <h1 className="text-[1.75rem] font-semibold tracking-[-0.04em]">Deterministic local history lane</h1>
           <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.92)]">
-            This helper toggles a dev-only cookie so the real history routes can render deterministic preview data on localhost without a live login.
+            When the local preview flag is enabled, localhost history routes render deterministic preview data directly without needing a live login.
           </p>
         </div>
       </section>
@@ -40,7 +40,7 @@ export default function DevHistoryPreviewPage() {
               items={[
                 <>Env flag: <code>{HISTORY_PREVIEW_FLAG_ENV}=1</code></>,
                 <>Request host allowed: <strong>{previewAvailable ? "yes" : "no"}</strong></>,
-                <>Preview cookie active: <strong>{previewActive ? "yes" : "no"}</strong></>,
+                <>Preview lane active: <strong>{previewActive ? "yes" : "no"}</strong></>,
               ]}
               separator="pipe"
               className="align-middle"
@@ -70,19 +70,11 @@ export default function DevHistoryPreviewPage() {
                   <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.92)]">{link.description}</p>
                   <div className="flex flex-wrap gap-3">
                     <Link
-                      href={`/dev/history-preview/enable?target=${encodeURIComponent(link.href)}`}
+                      href={link.href}
                       className="inline-flex min-h-[2.75rem] items-center justify-center rounded-[1rem] border border-[rgb(var(--accent)/0.3)] bg-[rgb(var(--accent)/0.14)] px-4 text-sm font-semibold"
                     >
-                      Open with preview auth
+                      Open route
                     </Link>
-                    {previewActive ? (
-                      <Link
-                        href={link.href}
-                        className="inline-flex min-h-[2.75rem] items-center justify-center rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-3-rgb)/0.88)] px-4 text-sm font-semibold"
-                      >
-                        Open current route
-                      </Link>
-                    ) : null}
                   </div>
                 </div>
               </li>
@@ -91,12 +83,6 @@ export default function DevHistoryPreviewPage() {
           <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.92)]">
             The detail preview uses session id <code>{HISTORY_PREVIEW_PRIMARY_SESSION_ID}</code>.
           </p>
-          <Link
-            href="/dev/history-preview/disable"
-            className="inline-flex min-h-[2.75rem] items-center justify-center rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-3-rgb)/0.88)] px-4 text-sm font-semibold"
-          >
-            Disable preview auth
-          </Link>
         </div>
       </section>
     </main>

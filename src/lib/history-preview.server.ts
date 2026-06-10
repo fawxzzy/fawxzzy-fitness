@@ -1,11 +1,10 @@
 import "server-only";
 
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import {
-  HISTORY_PREVIEW_COOKIE_NAME,
   isHistoryPreviewAllowedHost,
   isHistoryPreviewEnabledInEnv,
-} from "@/lib/history-preview-fixtures";
+} from "@/lib/history-preview-config";
 
 function getRequestHost() {
   const requestHeaders = headers();
@@ -17,9 +16,5 @@ export function isHistoryPreviewAvailableForRequest() {
 }
 
 export function isHistoryPreviewActiveForRequest() {
-  if (!isHistoryPreviewAvailableForRequest()) {
-    return false;
-  }
-
-  return cookies().get(HISTORY_PREVIEW_COOKIE_NAME)?.value === "enabled";
+  return isHistoryPreviewAvailableForRequest();
 }

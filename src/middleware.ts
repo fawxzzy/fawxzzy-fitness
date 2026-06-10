@@ -9,6 +9,10 @@ import {
 } from "@/lib/auth-session";
 import { CURRENT_APP_BUILD_ID } from "@/lib/app-build";
 import { recordServerBootDiagnostic } from "@/lib/boot-diagnostics";
+import {
+  isHistoryPreviewAllowedHost,
+  isHistoryPreviewEnabledInEnv,
+} from "@/lib/history-preview-config";
 import { recoverSupabaseSessionFromCookies, type SessionRecoveryResult } from "@/lib/supabase/session-recovery";
 import { isTrustedLocalDevHost } from "@/lib/supabase/local-dev-host";
 
@@ -32,6 +36,14 @@ type AuthSessionMiddlewareDependencies = {
   }) => Promise<SessionRecoveryResult>;
 };
 
+function isHistoryPreviewRequest(request: NextRequest) {
+  if (!request.nextUrl.pathname.startsWith("/history")) {
+    return false;
+  }
+
+  return isHistoryPreviewEnabledInEnv() && isHistoryPreviewAllowedHost(request.nextUrl.host);
+}
+
 export async function handleAuthSessionMiddleware(
   request: NextRequest,
   deps: AuthSessionMiddlewareDependencies = {},
@@ -42,6 +54,10 @@ export async function handleAuthSessionMiddleware(
   const shouldAttachLocalDevHeaders = isTrustedLocalDevHost(hostname);
 
   if (!shouldRefreshAuthSession(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (isHistoryPreviewRequest(request)) {
     return NextResponse.next();
   }
 

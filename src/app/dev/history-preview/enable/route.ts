@@ -4,7 +4,7 @@ import {
   normalizeHistoryPreviewTarget,
   isHistoryPreviewAllowedHost,
   isHistoryPreviewEnabledInEnv,
-} from "@/lib/history-preview-fixtures";
+} from "@/lib/history-preview-config";
 
 export const dynamic = "force-dynamic";
 

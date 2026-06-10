@@ -3,7 +3,7 @@ import {
   HISTORY_PREVIEW_COOKIE_NAME,
   isHistoryPreviewAllowedHost,
   isHistoryPreviewEnabledInEnv,
-} from "@/lib/history-preview-fixtures";
+} from "@/lib/history-preview-config";
 
 export const dynamic = "force-dynamic";
 
