@@ -8,12 +8,19 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseProgressionActivityPanel } from "@/components/ExerciseProgressionActivityPanel";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { ContentRail } from "@/components/layout/ContentRail";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import {
+  SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME,
+  SHARED_OVERLAY_PANEL_COMPACT_VIEWPORT_CLASS_NAME,
+  SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME,
+} from "@/components/ui/app/overlayPanelTokens";
+import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
+import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
-import { DetailSectionBadge, DetailSectionBlock, DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem, type DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
+import { DetailSectionBlock, DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem, type DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
+import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -21,21 +28,32 @@ import { EyebrowText } from "@/components/ui/text-roles";
 import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
 import { cn } from "@/lib/cn";
+import { formatCalories, formatDistance, formatDurationShort } from "@/lib/exercise-stats-formatting";
 import { formatDateShort } from "@/lib/formatting";
 import {
-  EXERCISE_INFO_SECTION_SCOPE_KEYS,
-  getExerciseInfoAnalyticsScopeDisplayLabel,
-  getNextExerciseInfoAnalyticsScope,
+  createDefaultExerciseInfoFilterState,
+  normalizeExerciseInfoFilterState,
   type ExerciseInfoAnalyticsScope,
+  type ExerciseInfoFilterOptions,
+  type ExerciseInfoFilterState,
+  type ExerciseInfoRoutineFilterOption,
   type ExerciseInfoSectionScopeKey,
 } from "@/lib/exercise-info-scope";
+import type { HistoryGraphMetricKey } from "@/lib/exercise-info-history-axis";
+import { buildHistoryDayBandLayout, buildHistoryValueGridTicks, resolveHistorySetPlotY, resolveHistorySetSlotX } from "@/lib/exercise-info-history-layout";
+import { buildHistoryPointComparisonMetric } from "@/lib/exercise-info-history-metrics";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import type { ExerciseHistoryDayGroup, ExerciseHistoryPoint } from "@/lib/exercise-info";
-import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
+import { buildExerciseInfoSurfaceMetrics, type ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
 import { getRecoveryExerciseFallbackDescription } from "@/lib/exercise-metadata";
 import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import { STRETCH_HUB_GUIDE_COPY, STRETCH_HUB_HERO_SRC, isStretchHubExercise } from "@/lib/stretch-library";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
+import {
+  dispatchFitnessOverlayExclusiveOpen,
+  FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT,
+  type FitnessOverlayExclusiveDetail,
+} from "@/lib/fitness-overlay-mutual-exclusion";
 
 function toTitleCase(value: string) {
   return value.replace(/\b([a-z])/g, (match) => match.toUpperCase());
@@ -57,6 +75,7 @@ export type ExerciseInfoSheetExercise = {
 export type ExerciseInfoSheetStats = {
   exercise_id?: string;
   activeRoutineTitle?: string | null;
+  filterOptions?: ExerciseInfoFilterOptions;
   kind: "strength" | "cardio";
   presentationKind?: "strength" | "bodyweight" | "cardio" | "timed";
   recent: {
@@ -95,6 +114,7 @@ export type ExerciseInfoSheetStats = {
   progress?: {
     metrics?: MetricDatum[];
     reviewSections?: ExerciseInfoReviewSection[];
+    graphMetricKey?: HistoryGraphMetricKey;
     performances?: Array<{
       sessionId?: string;
       performedAt?: string;
@@ -166,6 +186,7 @@ function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | und
   return {
     metrics,
     reviewSections,
+    graphMetricKey: progress?.graphMetricKey,
     performances,
     historyGroups,
     historyPoints,
@@ -174,6 +195,22 @@ function getExerciseInfoProgressState(stats: ExerciseInfoSheetStats | null | und
 
 function normalizeMetricKey(label: string | null | undefined) {
   return String(label ?? "").trim().toLowerCase();
+}
+
+function isThirtyDayFrequencyMetric(item: MetricDatum) {
+  const label = normalizeMetricKey(item.label).replace(/\s+/g, " ");
+  const timeframe = normalizeMetricKey(item.timeframe).replace(/\s+/g, " ");
+
+  return label === "30d"
+    || label === "30 days"
+    || label === "30d frequency"
+    || label === "30 day frequency"
+    || label === "30-day frequency"
+    || (label.includes("frequency") && label.includes("30"))
+    || timeframe === "30d"
+    || timeframe === "30 days"
+    || timeframe.includes("recent window")
+    || (timeframe.includes("30") && timeframe.includes("day"));
 }
 
 function isDetailSectionListItem(value: DetailSectionListItemInput): value is DetailSectionListItem {
@@ -349,14 +386,6 @@ function normalizeCompactProgressionComparisonValue(value: string | null | undef
     .trim();
 }
 
-function isSameCalendarDay(left: string | null | undefined, right: string | null | undefined) {
-  if (!left || !right) {
-    return false;
-  }
-
-  return left.slice(0, 10) === right.slice(0, 10);
-}
-
 const exerciseInfoSectionTitleClassName = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const exerciseInfoSubsectionTitleClassName = "text-[rgb(var(--accent-divider-rgb)/0.92)]";
 const exerciseInfoHeaderTitleClassName = "pl-[4px] pt-[5px] pr-3 text-[1.02rem] leading-[1.12] text-[rgb(var(--accent-divider-rgb)/0.98)]";
@@ -364,8 +393,11 @@ const exerciseInfoSectionTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 
 const exerciseInfoHeaderTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.98)" } as const;
 const exerciseInfoTightLabelSlotClassName = "min-h-[1.45rem]";
 const exerciseInfoDenseLabelClassName = "text-[9px] tracking-[0.11em]";
-const exerciseInfoScopeChipClassName = "min-h-[1.85rem] min-w-[5.4rem] justify-center px-2 py-[4px] text-[9px] tracking-[0.16em]";
 const exerciseInfoSubsectionHeadingClassName = "px-2 text-center text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
+const exerciseInfoFilterCompactSectionStackClassName = "space-y-1.5";
+const exerciseInfoFilterCompactHeaderWrapClassName = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]";
+const exerciseInfoFilterCompactRailClassName = "hide-scrollbar -mx-1 max-w-none overflow-x-auto overflow-y-visible px-1 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
+const exerciseInfoFilterCompactRailTopPaddingClassName = "pt-0.5";
 
 type ExerciseInfoMetricGridVariant = "default" | "progression";
 
@@ -465,43 +497,28 @@ function getExerciseInfoMetricGridProps(items: MetricDatum[], variant: ExerciseI
   };
 }
 
-function getExerciseInfoSectionScopeLabel(
-  section: ExerciseInfoSectionScopeKey,
-  analyticsScope: ExerciseInfoAnalyticsScope,
-  activeRoutineTitle?: string | null,
-) {
-  return getExerciseInfoAnalyticsScopeDisplayLabel(analyticsScope, activeRoutineTitle);
-}
-
 function ExerciseInfoSectionHeader({
   title,
-  section,
-  analyticsScope,
-  activeRoutineTitle,
-  onScopeClick,
-  resyncActive = false,
+  subtitle,
 }: {
   title: string;
-  section: ExerciseInfoSectionScopeKey;
-  analyticsScope: ExerciseInfoAnalyticsScope;
+  subtitle?: string | null;
+  section?: ExerciseInfoSectionScopeKey;
+  analyticsScope?: ExerciseInfoAnalyticsScope;
   activeRoutineTitle?: string | null;
-  onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
+  onScopeClick?: (section: ExerciseInfoSectionScopeKey) => void;
   resyncActive?: boolean;
 }) {
   return (
-    <div className="relative flex min-h-[2.1rem] items-center justify-center">
-      <div className="absolute left-0 top-1/2 -translate-y-1/2">
-        <PillButton
-          active
-          className={exerciseInfoScopeChipClassName}
-          onClick={() => onScopeClick(section)}
-        >
-          {resyncActive ? "Re-sync" : getExerciseInfoSectionScopeLabel(section, analyticsScope, activeRoutineTitle)}
-        </PillButton>
-      </div>
+    <div className="flex min-h-[2.1rem] flex-col items-center justify-center gap-0.5">
       <h3 className={cn(appTokens.detailSectionTitle, exerciseInfoSectionTitleClassName)} style={exerciseInfoSectionTitleStyle}>
         {title}
       </h3>
+      {subtitle ? (
+        <p className="px-2 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]">
+          {subtitle}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -569,46 +586,438 @@ function ExerciseInfoOverviewMedia({
   );
 }
 
-function renderHistoryPointBadges(point: Pick<ExerciseHistoryPoint, "signals" | "tagLabels">) {
-  const signals = point.signals ?? [];
-  const tagLabels = point.tagLabels ?? [];
-  const signalLabels = signals.map((signal) => {
-    if (signal === "pr") return "PR";
-    if (signal === "promotion") return "PROMO";
-    if (signal === "regression") return "REGRESS";
-    return "WATCH";
-  });
-  const labels = [...signalLabels, ...tagLabels].filter((value, index, all) => value && all.indexOf(value) === index);
+function buildHistoryPointMetrics(point: ExerciseHistoryPoint): MetricDatum[] {
+  const pointTypeValue = point.type === "progression-event"
+    ? (() => {
+      const tags = new Set((point.tagLabels ?? []).map((tag) => tag.trim().toUpperCase()));
+      if (tags.has("MANUAL")) return "Manual";
+      if ((point.signals ?? []).includes("promotion")) return "Promotion";
+      if ((point.signals ?? []).includes("regression")) return "Regression";
+      if ((point.signals ?? []).includes("watch")) return "Watch";
+      return "Update";
+    })()
+    : point.type === "day"
+      ? "Day"
+      : "Set";
+  if (point.type === "progression-event") {
+    return [{ label: "Change", value: pointTypeValue }];
+  }
+  const orderedValues = point.type === "day"
+    ? [
+        ...point.values.filter((value) => value.label === "Promotions"),
+        ...point.values.filter((value) => value.label === "Regressions"),
+        ...point.values.filter((value) => value.label === "Manual"),
+        ...point.values.filter((value) => !["Promotions", "Regressions", "Manual", "Updates"].includes(value.label)),
+      ]
+    : point.values.filter((value) => value.label !== "Updates");
+  const normalizedValues = orderedValues.map((value) => ({
+    label: value.label === "Top" ? "Top Set" : value.label,
+    value: value.value,
+  }));
+  const metrics = normalizedValues;
 
-  if (labels.length === 0) {
+  return filterUniqueMetricItems(metrics).slice(0, 8);
+}
+
+function buildSelectedHistoryPointStatsSubtitle(point: ExerciseHistoryPoint | null) {
+  if (!point) {
+    return null;
+  }
+
+  if (point.type === "day") {
+    return `Selected day | ${point.label}`;
+  }
+
+  if (point.type === "set") {
+    return point.meta ? `Selected set | ${point.label} | ${point.meta}` : `Selected set | ${point.label}`;
+  }
+
+  const tags = new Set((point.tagLabels ?? []).map((tag) => tag.trim().toUpperCase()));
+  const changeLabel = tags.has("MANUAL")
+    ? "manual change"
+    : (point.signals ?? []).includes("promotion")
+      ? "promotion"
+      : (point.signals ?? []).includes("regression")
+        ? "regression"
+        : (point.signals ?? []).includes("watch")
+          ? "watch"
+          : "update";
+  return `Selected ${changeLabel} | ${point.label}`;
+}
+
+function buildExerciseInfoHistoryRangeLabel(stats: ExerciseInfoSheetStats | null | undefined) {
+  const historyGroups = getExerciseInfoProgressState(stats).historyGroups;
+  const dayKeys = historyGroups
+    .map((group) => group.dayKey)
+    .filter((dayKey, index, values) => dayKey.length > 0 && values.indexOf(dayKey) === index)
+    .sort();
+
+  if (dayKeys.length === 0) {
+    return null;
+  }
+
+  const startDayKey = dayKeys[0]!;
+  const endDayKey = dayKeys[dayKeys.length - 1]!;
+  const startLabel = formatDateShort(`${startDayKey}T12:00:00.000Z`);
+  const endLabel = formatDateShort(`${endDayKey}T12:00:00.000Z`);
+
+  return startDayKey === endDayKey ? startLabel : `${startLabel} - ${endLabel}`;
+}
+
+function getHistoryChangeSignal(point: ExerciseHistoryPoint): "promotion" | "regression" | "watch" {
+  const signals = point.signals ?? [];
+  if (signals.includes("promotion")) return "promotion";
+  if (signals.includes("regression")) return "regression";
+  if (signals.includes("watch")) return "watch";
+  return "watch";
+}
+
+function getHistoryChangePointFill(signal: "promotion" | "regression" | "watch") {
+  if (signal === "promotion") return "rgb(var(--success-rgb) / 0.94)";
+  if (signal === "regression") return "rgb(255 116 116 / 0.94)";
+  return "rgb(var(--accent-yellow-on) / 0.95)";
+}
+
+function buildSunPath(cx: number, cy: number, outerRadius: number, innerRadius: number, points = 10) {
+  const commands: string[] = [];
+  const total = points * 2;
+
+  for (let index = 0; index < total; index += 1) {
+    const angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / total);
+    const radius = index % 2 === 0 ? outerRadius : innerRadius;
+    const x = cx + (Math.cos(angle) * radius);
+    const y = cy + (Math.sin(angle) * radius);
+    commands.push(`${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`);
+  }
+
+  return `${commands.join(" ")} Z`;
+}
+
+function formatHistoryChartNumber(value: number) {
+  if (Math.abs(value) >= 100) {
+    return String(Math.round(value));
+  }
+
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
+
+function getFallbackHistoryGraphMetricKey(stats: ExerciseInfoSheetStats, points: ExerciseHistoryPoint[]): HistoryGraphMetricKey {
+  if (stats.kind === "cardio") {
+    if ((stats.recent.lastDurationSeconds ?? 0) > 0) {
+      return "time";
+    }
+
+    if ((stats.recent.lastDistance ?? 0) > 0) {
+      return "distance";
+    }
+
+    if ((stats.recent.lastCalories ?? 0) > 0) {
+      return "calories";
+    }
+  } else if ((stats.bests.bestWeight ?? 0) > 0) {
+    return "weight";
+  }
+
+  const orderedPoints = [...points].sort((left, right) => {
+    if (left.performedAt !== right.performedAt) {
+      return right.performedAt.localeCompare(left.performedAt);
+    }
+
+    return right.id.localeCompare(left.id);
+  });
+
+  for (const point of orderedPoints) {
+    const labels = new Set(point.values.map((value) => value.label));
+    if (labels.has("Time")) return "time";
+    if (labels.has("Distance")) return "distance";
+    if (labels.has("Calories")) return "calories";
+    if (labels.has("Weight")) return "weight";
+    if (labels.has("Reps")) return "reps";
+  }
+
+  return stats.kind === "cardio" ? "time" : "reps";
+}
+
+function readHistoryPointMetricNumericValue(point: ExerciseHistoryPoint, metricKey: HistoryGraphMetricKey) {
+  const primaryLabel = metricKey === "weight"
+    ? "Weight"
+    : metricKey === "reps"
+      ? "Reps"
+      : metricKey === "distance"
+        ? "Distance"
+        : metricKey === "calories"
+          ? "Calories"
+          : "Time";
+  const fallbackLabel = metricKey === "weight"
+    ? "Reps"
+    : metricKey === "reps"
+      ? "Weight"
+      : metricKey === "distance"
+        ? "Time"
+        : metricKey === "calories"
+          ? "Distance"
+          : "Distance";
+  const primary = point.values.find((value) => value.label === primaryLabel)?.numericValue;
+  const fallback = point.values.find((value) => value.label === fallbackLabel)?.numericValue;
+  const numericValue = typeof primary === "number" && Number.isFinite(primary)
+    ? primary
+    : typeof fallback === "number" && Number.isFinite(fallback)
+      ? fallback
+      : point.numericValue;
+
+  return typeof numericValue === "number" && Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function getHistoryChartValueSuffix(points: ExerciseHistoryPoint[], metricKey: HistoryGraphMetricKey) {
+  if (metricKey === "time") {
+    return "";
+  }
+
+  if (metricKey === "calories") {
+    return " cal";
+  }
+
+  if (metricKey === "reps") {
+    return " reps";
+  }
+
+  for (const point of points) {
+    const pointMetricValue = readHistoryPointMetricNumericValue(point, metricKey);
+    if (typeof pointMetricValue !== "number" || !Number.isFinite(pointMetricValue)) {
+      continue;
+    }
+
+    for (const part of point.values) {
+      const matchesMetric = metricKey === "weight"
+        ? part.label === "Weight"
+        : metricKey === "distance"
+          ? part.label === "Distance"
+          : true;
+      if (!matchesMetric) {
+        continue;
+      }
+
+      const numericMatch = part.value.trim().match(/^(-?\d+(?:\.\d+)?)(.*)$/);
+      const parsedValue = numericMatch ? Number(numericMatch[1]) : NaN;
+      if (
+        numericMatch
+        && Number.isFinite(parsedValue)
+        && Math.abs(parsedValue - pointMetricValue) < 0.001
+        && numericMatch[2]?.trim()
+      ) {
+        return ` ${numericMatch[2].trim()}`;
+      }
+    }
+  }
+
+  return "";
+}
+
+function formatHistoryChartAxisValue(value: number, metricKey: HistoryGraphMetricKey, tickSuffix: string) {
+  if (metricKey === "time") {
+    return formatDurationShort(value) ?? `${Math.round(value)}s`;
+  }
+
+  if (metricKey === "distance") {
+    return formatDistance(value, tickSuffix.trim() || null) ?? `${formatHistoryChartNumber(value)}${tickSuffix}`;
+  }
+
+  if (metricKey === "calories") {
+    return formatCalories(value) ?? `${formatHistoryChartNumber(value)}${tickSuffix}`;
+  }
+
+  return `${formatHistoryChartNumber(value)}${tickSuffix}`;
+}
+
+function selectHistoryAxisDayKeys(dayKeys: string[], maxGridLines = 5) {
+  if (dayKeys.length <= maxGridLines) {
+    return dayKeys;
+  }
+
+  const selected = new Set<string>();
+  selected.add(dayKeys[0]!);
+  selected.add(dayKeys[dayKeys.length - 1]!);
+
+  const interiorCount = Math.max(maxGridLines - 2, 1);
+  for (let index = 1; index <= interiorCount; index += 1) {
+    const dayIndex = Math.round((index * (dayKeys.length - 1)) / (interiorCount + 1));
+    const dayKey = dayKeys[dayIndex];
+    if (dayKey) {
+      selected.add(dayKey);
+    }
+  }
+
+  return dayKeys.filter((dayKey) => selected.has(dayKey));
+}
+
+function selectHistoryAxisNumericTickValues(values: number[], maxLabels = 5) {
+  if (values.length <= maxLabels) {
+    return values;
+  }
+
+  const selected = new Set<number>();
+  selected.add(values[0]!);
+  selected.add(values[values.length - 1]!);
+
+  const interiorCount = Math.max(maxLabels - 2, 1);
+  for (let index = 1; index <= interiorCount; index += 1) {
+    const valueIndex = Math.round((index * (values.length - 1)) / (interiorCount + 1));
+    const value = values[valueIndex];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      selected.add(value);
+    }
+  }
+
+  return values.filter((value) => selected.has(value));
+}
+
+function formatHistoryAxisDayLabel(dayKey: string) {
+  const date = new Date(`${dayKey}T12:00:00.000Z`);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function buildHistoryCalendarDayKeys(dayKeys: string[]) {
+  const sortedKeys = dayKeys
+    .filter((dayKey, index, values) => Boolean(dayKey) && values.indexOf(dayKey) === index)
+    .sort();
+  const firstDayKey = sortedKeys[0];
+  const lastDayKey = sortedKeys.at(-1);
+  if (!firstDayKey || !lastDayKey) {
+    return [];
+  }
+
+  const firstTime = Date.parse(`${firstDayKey}T00:00:00.000Z`);
+  const lastTime = Date.parse(`${lastDayKey}T00:00:00.000Z`);
+  if (!Number.isFinite(firstTime) || !Number.isFinite(lastTime) || lastTime < firstTime) {
+    return sortedKeys;
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const dayCount = Math.round((lastTime - firstTime) / dayMs) + 1;
+  if (dayCount > 370) {
+    return sortedKeys;
+  }
+
+  return Array.from({ length: dayCount }, (_, index) => new Date(firstTime + (index * dayMs)).toISOString().slice(0, 10));
+}
+
+type HistoryGraphLegendKind = "set" | "day" | "skipped-day" | "promotion" | "regression" | "manual" | "watch";
+
+function HistoryGraphLegendIcon({ kind }: { kind: HistoryGraphLegendKind }) {
+  if (kind === "set") {
+    return (
+      <svg viewBox="0 0 28 14" className="h-3.5 w-7" aria-hidden="true">
+        <line x1="4" x2="24" y1="9" y2="5" stroke="rgb(var(--accent-strong) / 0.78)" strokeWidth="1.35" strokeLinecap="round" />
+        <circle cx="7" cy="8.4" r="2" fill="rgb(var(--surface-1-rgb) / 0.96)" stroke="rgb(var(--accent-strong) / 0.9)" strokeWidth="1" />
+        <circle cx="21" cy="5.6" r="2" fill="rgb(var(--surface-1-rgb) / 0.96)" stroke="rgb(var(--accent-strong) / 0.9)" strokeWidth="1" />
+      </svg>
+    );
+  }
+
+  if (kind === "day" || kind === "skipped-day") {
+    return (
+      <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
+        <path
+          d={buildSunPath(8, 8, 4.2, 2.7)}
+          fill={kind === "skipped-day" ? "rgb(var(--accent-yellow-on) / 0.96)" : "rgb(var(--text-primary) / 0.9)"}
+          stroke="rgb(var(--accent-strong) / 0.92)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  const fill = kind === "promotion"
+    ? getHistoryChangePointFill("promotion")
+    : kind === "regression"
+      ? getHistoryChangePointFill("regression")
+      : kind === "watch"
+        ? getHistoryChangePointFill("watch")
+      : getHistoryChangePointFill("watch");
+
+  return (
+    <span
+      aria-hidden="true"
+      className="block h-1.5 w-1.5 rounded-full"
+      style={{ backgroundColor: fill }}
+    />
+  );
+}
+
+function HistoryGraphLegend({
+  items,
+}: {
+  items: Array<{ kind: HistoryGraphLegendKind; label: string }>;
+}) {
+  if (items.length === 0) {
     return null;
   }
 
   return (
-    <span className="inline-flex flex-wrap items-center justify-end gap-1">
-      {labels.map((label) => (
-        <DetailSectionBadge key={label} label={label} />
-      ))}
-    </span>
+    <div className="rounded-[0.9rem] border border-[rgb(var(--accent-strong)/0.34)] bg-[rgb(var(--surface-1-rgb)/0.14)] px-2.5 py-2">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+        {items.map((item) => (
+          <div key={item.kind} className="flex min-w-0 items-center gap-2">
+            <span className="flex h-5 w-8 shrink-0 items-center justify-center">
+              <HistoryGraphLegendIcon kind={item.kind} />
+            </span>
+            <span className="truncate text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.84)]">
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function buildHistoryPointMetrics(point: ExerciseHistoryPoint): MetricDatum[] {
-  const metrics = [
-    { label: "Point", value: point.type === "progression-event" ? "Progression" : point.type === "day" ? "Day" : "Set" },
-    { label: "Date", value: point.label },
-    ...point.values.slice(0, 4).map((value) => ({ label: value.label, value: value.value })),
-  ];
+function buildHistoryDayTagLabels(group: ExerciseHistoryDayGroup) {
+  const signalLabels = (group.signals ?? []).map((signal) => {
+    if (signal === "promotion") return "PROMO";
+    if (signal === "regression") return "REGRESSION";
+    if (signal === "watch") return "WATCH";
+    if (signal === "pr") return "PR";
+    return null;
+  });
 
-  return filterUniqueMetricItems(metrics).slice(0, 6);
+  return [...(group.tagLabels ?? []), ...signalLabels]
+    .filter((label, index, labels): label is string => Boolean(label) && labels.indexOf(label) === index);
+}
+
+function formatHistoryDayPrimaryLabel(group: ExerciseHistoryDayGroup, analyticsScope: ExerciseInfoAnalyticsScope) {
+  if (analyticsScope !== "all_time") {
+    return group.label;
+  }
+
+  const routineTitles = (group.routineTitles ?? []).filter((title, index, titles) => title.trim().length > 0 && titles.indexOf(title) === index);
+  if (routineTitles.length === 0) {
+    return group.label;
+  }
+
+  const routinePrefix = routineTitles.length === 1
+    ? routineTitles[0]!
+    : routineTitles.length === 2
+      ? routineTitles.join(" / ")
+      : `${routineTitles[0]} +${routineTitles.length - 1}`;
+
+  return `${routinePrefix} | ${group.label}`;
 }
 
 function ExerciseHistoryGraph({
+  stats,
   points,
+  graphMetricKey,
   selectedPointId,
   onSelectedPointChange,
 }: {
+  stats: ExerciseInfoSheetStats;
   points: ExerciseHistoryPoint[];
+  graphMetricKey?: HistoryGraphMetricKey | null;
   selectedPointId: string | null;
   onSelectedPointChange: (pointId: string | null) => void;
 }) {
@@ -625,53 +1034,231 @@ function ExerciseHistoryGraph({
 
   const selectedPoint = orderedPoints.find((point) => point.id === selectedPointId) ?? null;
   const selectedIndex = selectedPoint ? orderedPoints.findIndex((point) => point.id === selectedPoint.id) : -1;
-  const numericValues = orderedPoints
-    .map((point) => point.numericValue)
+  const setPoints = orderedPoints.filter((point) => point.type === "set");
+  const dayPoints = orderedPoints.filter((point) => point.type === "day");
+  const changePoints = orderedPoints.filter((point) => point.type === "progression-event");
+  const resolvedGraphMetricKey = graphMetricKey ?? getFallbackHistoryGraphMetricKey(stats, setPoints);
+  const resolvedSetPointValues = setPoints.map((point) => ({
+    point,
+    graphValue: readHistoryPointMetricNumericValue(point, resolvedGraphMetricKey),
+    secondaryReps: readHistoryPointMetricNumericValue(point, "reps"),
+  }));
+  const numericValues = setPoints
+    .map((point) => readHistoryPointMetricNumericValue(point, resolvedGraphMetricKey))
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-  const minValue = numericValues.length > 0 ? Math.min(...numericValues) : 0;
-  const maxValue = numericValues.length > 0 ? Math.max(...numericValues) : 1;
+  const primaryLevelsDesc = resolvedGraphMetricKey === "weight"
+    ? Array.from(new Set(numericValues.map((value) => Number(value.toFixed(3))))).sort((left, right) => right - left)
+    : [];
+  const maxSecondaryReps = resolvedGraphMetricKey === "weight"
+    ? resolvedSetPointValues.reduce((max, entry) => {
+        const reps = entry.secondaryReps;
+        return typeof reps === "number" && Number.isFinite(reps) ? Math.max(max, reps) : max;
+      }, 0)
+    : 0;
+  const rawMinValue = numericValues.length > 0 ? Math.min(...numericValues) : 0;
+  const rawMaxValue = numericValues.length > 0 ? Math.max(...numericValues) : 1;
+  const rawValueRange = Math.max(rawMaxValue - rawMinValue, 1);
+  const valuePadding = rawValueRange * 0.14;
+  const minValue = rawMinValue - valuePadding;
+  const maxValue = rawMaxValue + valuePadding;
   const valueRange = Math.max(maxValue - minValue, 1);
   const startTime = Date.parse(orderedPoints[0]!.performedAt);
   const endTime = Date.parse(orderedPoints[orderedPoints.length - 1]!.performedAt);
   const timeRange = Math.max(endTime - startTime, 1);
-  const chartWidth = 320;
-  const chartHeight = 132;
-  const paddingX = 18;
-  const paddingTop = 16;
-  const paddingBottom = 26;
-  const innerWidth = chartWidth - (paddingX * 2);
-  const innerHeight = chartHeight - paddingTop - paddingBottom;
-  const plottedPoints = orderedPoints.map((point, index) => {
-    const timestamp = Date.parse(point.performedAt);
-    const x = orderedPoints.length === 1 ? chartWidth / 2 : paddingX + (((timestamp - startTime) / timeRange) * innerWidth);
-    const hasNumericValue = typeof point.numericValue === "number" && Number.isFinite(point.numericValue);
+  const chartWidth = 500;
+  const chartHeight = 392;
+  const leftGutter = 42;
+  const rightGutter = 6;
+  const yAxisX = 1;
+  const xAxisY = chartHeight - 1;
+  const setLaneTop = 16;
+  const setLaneBottom = 284;
+  const changeLaneCenterY = 326;
+  const dayLaneY = 356;
+  const innerWidth = chartWidth - leftGutter - rightGutter;
+  const setLaneHeight = setLaneBottom - setLaneTop;
+  const dayKeys = Array.from(new Set(orderedPoints.map((point) => point.dayKey).filter(Boolean))).sort();
+  const calendarDayKeys = buildHistoryCalendarDayKeys(dayKeys);
+  const timelineDayKeys = calendarDayKeys.length > 0 ? calendarDayKeys : dayKeys;
+  const setCountsByDay = new Map<string, number>();
+  const changeCountsByDay = new Map<string, number>();
+  const actualDayKeys = new Set(dayPoints.map((point) => point.dayKey));
+  for (const point of setPoints) {
+    setCountsByDay.set(point.dayKey, (setCountsByDay.get(point.dayKey) ?? 0) + 1);
+  }
+  for (const point of changePoints) {
+    changeCountsByDay.set(point.dayKey, (changeCountsByDay.get(point.dayKey) ?? 0) + 1);
+  }
+  const axisDayKeys = selectHistoryAxisDayKeys(
+    dayKeys,
+    dayKeys.length > 18 ? 4 : 5,
+  );
+  const { bandByDayKey: dayBandByDayKey, xByDayKey, slotWidthByDayKey: daySlotWidthByDayKey } = buildHistoryDayBandLayout({
+    dayKeys: timelineDayKeys,
+    actualDayKeys,
+    leftGutter,
+    innerWidth,
+    setCountsByDay,
+    changeCountsByDay,
+  });
+  const setPointsByDay = new Map<string, ExerciseHistoryPoint[]>();
+  for (const point of setPoints) {
+    const current = setPointsByDay.get(point.dayKey) ?? [];
+    current.push(point);
+    setPointsByDay.set(point.dayKey, current);
+  }
+  const xForPoint = (point: ExerciseHistoryPoint) => {
+    const dayX = xByDayKey.get(point.dayKey);
+    if (typeof dayX === "number") {
+      return dayX;
+    }
+
+    const timestamp = Date.parse(point.type === "set" ? point.performedAt : `${point.dayKey}T12:00:00.000Z`);
+    return orderedPoints.length === 1 ? leftGutter + (innerWidth / 2) : leftGutter + (((timestamp - startTime) / timeRange) * innerWidth);
+  };
+  const xForSetPoint = (point: ExerciseHistoryPoint) => {
+    const baseX = xForPoint(point);
+    const sameDayPoints = setPointsByDay.get(point.dayKey) ?? [point];
+    const index = Math.max(sameDayPoints.findIndex((sameDayPoint) => sameDayPoint.id === point.id), 0);
+    return resolveHistorySetSlotX({
+      band: dayBandByDayKey.get(point.dayKey),
+      baseX,
+      daySlotWidth: daySlotWidthByDayKey.get(point.dayKey),
+      pointIndex: index,
+      pointsInDay: sameDayPoints.length,
+    });
+  };
+  const eventsByDay = new Map<string, ExerciseHistoryPoint[]>();
+  for (const point of changePoints) {
+    const current = eventsByDay.get(point.dayKey) ?? [];
+    current.push(point);
+    eventsByDay.set(point.dayKey, current);
+  }
+  const plottedSetPoints = resolvedSetPointValues.map(({ point, graphValue, secondaryReps }) => {
+    const x = xForSetPoint(point);
+    const hasNumericValue = typeof graphValue === "number" && Number.isFinite(graphValue);
     const y = hasNumericValue
-      ? paddingTop + ((1 - ((point.numericValue! - minValue) / valueRange)) * innerHeight)
-      : chartHeight - paddingBottom;
+      ? resolveHistorySetPlotY({
+          metricKey: resolvedGraphMetricKey,
+          maxSecondaryReps,
+          minValue,
+          primaryLevelsDesc,
+          primaryValue: graphValue!,
+          secondaryReps,
+          setLaneHeight,
+          setLaneTop,
+          valueRange,
+        })
+      : setLaneBottom;
+
+    return {
+      point,
+      graphValue,
+      x,
+      y,
+      selected: point.id === selectedPointId,
+      leftPercent: (x / chartWidth) * 100,
+      topPercent: (y / chartHeight) * 100,
+    };
+  });
+  const plottedDayPoints = dayPoints.map((point) => {
+    const x = xForPoint(point);
+
+    return {
+      point,
+      x,
+      y: dayLaneY,
+      selected: point.id === selectedPointId,
+      leftPercent: (x / chartWidth) * 100,
+      topPercent: (dayLaneY / chartHeight) * 100,
+    };
+  });
+  const plottedChangePoints = changePoints.map((point) => {
+    const dayEvents = eventsByDay.get(point.dayKey) ?? [point];
+    const dayIndex = Math.max(dayEvents.findIndex((eventPoint) => eventPoint.id === point.id), 0);
+    const yOffsets = dayEvents.length <= 1 ? [0] : dayEvents.length === 2 ? [-4, 4] : [-6, 0, 6];
+    const y = changeLaneCenterY + (yOffsets[Math.min(dayIndex, yOffsets.length - 1)] ?? 0);
+    const x = xForPoint(point);
 
     return {
       point,
       x,
       y,
       selected: point.id === selectedPointId,
+      signal: getHistoryChangeSignal(point),
       leftPercent: (x / chartWidth) * 100,
       topPercent: (y / chartHeight) * 100,
-      index,
     };
   });
-  const linePoints = plottedPoints
-    .filter((point) => point.point.type !== "progression-event" && typeof point.point.numericValue === "number")
+  const plottedPoints = [...plottedSetPoints, ...plottedDayPoints, ...plottedChangePoints];
+  const selectionActive = Boolean(selectedPointId);
+  const selectedPlottedPoint = selectedPointId
+    ? plottedPoints.find((point) => point.point.id === selectedPointId) ?? null
+    : null;
+  const selectedDayKey = selectedPoint?.type === "day" ? selectedPoint.dayKey : null;
+  const selectedDayLinePoints = selectedDayKey
+    ? (setPointsByDay.get(selectedDayKey) ?? [])
+        .map((point) => plottedSetPoints.find((plottedPoint) => plottedPoint.point.id === point.id) ?? null)
+        .filter((point): point is NonNullable<(typeof plottedSetPoints)[number]> => Boolean(point && typeof point.graphValue === "number"))
+        .map((point) => `${point.x},${point.y}`)
+        .join(" ")
+    : "";
+  const linePoints = plottedSetPoints
+    .filter((point) => typeof point.graphValue === "number")
     .map((point) => `${point.x},${point.y}`)
     .join(" ");
-  const selectedDisplayPoint = selectedPoint ?? orderedPoints[orderedPoints.length - 1]!;
-  const selectedMetrics = buildHistoryPointMetrics(selectedDisplayPoint);
-
+  const visibleLegendItems: Array<{ kind: HistoryGraphLegendKind; label: string }> = [
+    ...(plottedDayPoints.some(({ point }) => !point.isSkipped) ? [{ kind: "day" as const, label: "Logged days" }] : []),
+    ...(plottedDayPoints.some(({ point }) => point.isSkipped) ? [{ kind: "skipped-day" as const, label: "Skipped days" }] : []),
+    ...(plottedSetPoints.length > 0 ? [{ kind: "set" as const, label: "Logged sets" }] : []),
+    ...(plottedChangePoints.some(({ point }) => (point.signals ?? []).includes("promotion")) ? [{ kind: "promotion" as const, label: "Promotions" }] : []),
+    ...(plottedChangePoints.some(({ point }) => (point.signals ?? []).includes("regression")) ? [{ kind: "regression" as const, label: "Regressions" }] : []),
+    ...(plottedChangePoints.some(({ point }) => (point.signals ?? []).includes("watch")) ? [{ kind: "watch" as const, label: "Watch" }] : []),
+    ...(plottedChangePoints.some(({ point }) => (point.tagLabels ?? []).includes("MANUAL")) ? [{ kind: "manual" as const, label: "Manual changes" }] : []),
+  ];
+  const yGridTicks = numericValues.length > 0
+    ? buildHistoryValueGridTicks({
+        metricKey: resolvedGraphMetricKey,
+        numericValues,
+      })
+    : [];
+  const labeledTickValues = numericValues.length > 0
+    ? resolvedGraphMetricKey === "weight"
+      ? selectHistoryAxisNumericTickValues(yGridTicks, 5)
+      : Array.from(new Set([rawMaxValue, rawMinValue + ((rawMaxValue - rawMinValue) / 2), rawMinValue].map((value) => Number(value.toFixed(3)))))
+    : [];
+  const labeledTickSet = new Set(labeledTickValues);
+  const weightRepAnchorTicks = resolvedGraphMetricKey === "weight"
+    ? (yGridTicks.length > 1 ? yGridTicks.slice(1) : yGridTicks)
+    : [];
+  const weightRepSubticks = resolvedGraphMetricKey === "weight" && maxSecondaryReps > 1
+    ? weightRepAnchorTicks.flatMap((tickValue) => Array.from({ length: Math.max(maxSecondaryReps - 1, 0) }, (_, index) => {
+        const repCount = index + 2;
+        const y = resolveHistorySetPlotY({
+          metricKey: "weight",
+          maxSecondaryReps,
+          minValue,
+          primaryLevelsDesc,
+          primaryValue: tickValue,
+          secondaryReps: repCount,
+          setLaneHeight,
+          setLaneTop,
+          valueRange,
+        });
+        return Number.isFinite(y) ? [{
+          id: `${tickValue}-${repCount}`,
+          repCount,
+          y,
+        }] : [];
+      }).flat())
+    : [];
+  const tickSuffix = getHistoryChartValueSuffix(setPoints, resolvedGraphMetricKey);
   return (
-    <div className="space-y-2 rounded-[1rem] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-3 py-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="w-full space-y-2 bg-[rgb(var(--surface-2-rgb)/0.14)] pb-2 pt-1.5">
+      <div className="relative w-full" style={{ aspectRatio: `${chartWidth} / ${chartHeight}` }}>
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--border-rgb)/0.42)] text-[rgb(var(--accent-divider-rgb)/0.95)]"
+          className="absolute left-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--accent-strong)/0.56)] bg-[rgb(var(--surface-1-rgb)/0.72)] text-[rgb(var(--accent-divider-rgb)/0.95)] backdrop-blur"
           onClick={() => {
             const nextIndex = selectedIndex > 0 ? selectedIndex - 1 : orderedPoints.length - 1;
             onSelectedPointChange(orderedPoints[nextIndex]?.id ?? null);
@@ -680,17 +1267,9 @@ function ExerciseHistoryGraph({
         >
           <ChevronRightIcon className="h-4 w-4 rotate-180" />
         </button>
-        <div className="min-w-0 text-center">
-          <p className="truncate text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-secondary)/0.82)]">
-            {selectedPoint ? selectedPoint.label : "All Time"}
-          </p>
-          <p className="truncate text-sm font-semibold text-[rgb(var(--text-primary)/0.95)]">
-            {selectedPoint ? selectedPoint.summary : `${orderedPoints.length} points`}
-          </p>
-        </div>
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--border-rgb)/0.42)] text-[rgb(var(--accent-divider-rgb)/0.95)]"
+          className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--accent-strong)/0.56)] bg-[rgb(var(--surface-1-rgb)/0.72)] text-[rgb(var(--accent-divider-rgb)/0.95)] backdrop-blur"
           onClick={() => {
             const nextIndex = selectedIndex >= 0 && selectedIndex < orderedPoints.length - 1 ? selectedIndex + 1 : 0;
             onSelectedPointChange(orderedPoints[nextIndex]?.id ?? null);
@@ -699,30 +1278,234 @@ function ExerciseHistoryGraph({
         >
           <ChevronRightIcon className="h-4 w-4" />
         </button>
-      </div>
-      <div className="relative">
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-[8.25rem] w-full" aria-hidden="true">
-          <line x1={paddingX} x2={chartWidth - paddingX} y1={chartHeight - paddingBottom} y2={chartHeight - paddingBottom} stroke="rgb(var(--border-rgb) / 0.34)" strokeWidth="1.2" />
-          <line x1={paddingX} x2={paddingX} y1={paddingTop} y2={chartHeight - paddingBottom} stroke="rgb(var(--border-rgb) / 0.2)" strokeWidth="1" />
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-full w-full" aria-hidden="true">
+          <rect
+            x={yAxisX}
+            y={setLaneTop}
+            width={chartWidth - yAxisX}
+            height={setLaneBottom - setLaneTop}
+            fill="rgb(var(--surface-1-rgb) / 0.05)"
+            stroke="rgb(var(--border-rgb) / 0.42)"
+            strokeWidth="1"
+          />
+          <line
+            x1={yAxisX}
+            x2={yAxisX}
+            y1={setLaneTop}
+            y2={xAxisY}
+            stroke="rgb(var(--accent-strong) / 0.9)"
+            strokeWidth="1.5"
+          />
+          <line
+            x1={yAxisX}
+            x2={chartWidth}
+            y1={xAxisY}
+            y2={xAxisY}
+            stroke="rgb(var(--accent-strong) / 0.9)"
+            strokeWidth="1.5"
+          />
+          {selectedPlottedPoint ? (
+            <line
+              x1={selectedPlottedPoint.x}
+              x2={selectedPlottedPoint.x}
+              y1={setLaneTop}
+              y2={xAxisY}
+              stroke="rgb(var(--accent-strong) / 0.28)"
+              strokeWidth="1.15"
+              strokeDasharray="4 4"
+            />
+          ) : null}
+          {timelineDayKeys.map((dayKey) => {
+            const x = xByDayKey.get(dayKey);
+            if (typeof x !== "number") return null;
+            return (
+              <g key={`day-tick-${dayKey}`}>
+                <line
+                  x1={x}
+                  x2={x}
+                  y1={dayLaneY - 4}
+                  y2={xAxisY}
+                  stroke="rgb(var(--border-rgb) / 0.42)"
+                  strokeWidth="1"
+                />
+                <line
+                  x1={x - 1.6}
+                  x2={x + 1.4}
+                  y1={xAxisY}
+                  y2={xAxisY - 4}
+                  stroke="rgb(var(--accent-strong) / 0.7)"
+                  strokeWidth="0.8"
+                  strokeLinecap="round"
+                />
+              </g>
+            );
+          })}
+          {axisDayKeys.map((dayKey, index) => {
+            const x = xByDayKey.get(dayKey);
+            if (typeof x !== "number") return null;
+            const isFirst = index === 0;
+            const isLast = index === axisDayKeys.length - 1;
+            const labelX = isFirst ? x + 5 : isLast ? x - 5 : x;
+            return (
+              <g key={`day-grid-${dayKey}`}>
+                <line
+                  x1={x}
+                  x2={x}
+                  y1={setLaneTop}
+                  y2={xAxisY}
+                  stroke="rgb(var(--border-rgb) / 0.36)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={labelX}
+                  y={xAxisY - 10}
+                  textAnchor={isFirst ? "start" : isLast ? "end" : "middle"}
+                  fill="rgb(var(--text-secondary) / 0.64)"
+                  fontSize="7.2"
+                  fontWeight="600"
+                >
+                  {formatHistoryAxisDayLabel(dayKey)}
+                </text>
+              </g>
+            );
+          })}
+          {yGridTicks.map((tickValue) => {
+            const y = setLaneTop + ((1 - ((tickValue - minValue) / valueRange)) * setLaneHeight);
+            const shouldLabel = labeledTickSet.has(Number(tickValue.toFixed(3)));
+            return (
+              <g key={`tick-${tickValue}`}>
+                <line
+                  x1={yAxisX}
+                  x2={chartWidth}
+                  y1={y}
+                  y2={y}
+                  stroke={shouldLabel ? "rgb(var(--border-rgb) / 0.42)" : "rgb(var(--border-rgb) / 0.28)"}
+                  strokeWidth="1"
+                  strokeDasharray={shouldLabel ? undefined : "2 4"}
+                />
+                <line
+                  x1={yAxisX}
+                  x2={yAxisX + 4.2}
+                  y1={y}
+                  y2={y - 1.6}
+                  stroke="rgb(var(--accent-strong) / 0.7)"
+                  strokeWidth="0.8"
+                  strokeLinecap="round"
+                />
+                {shouldLabel ? (
+                  <text
+                    x={yAxisX + 5.5}
+                    y={y + 2.5}
+                    textAnchor="start"
+                    fill="rgb(var(--text-secondary) / 0.62)"
+                    fontSize="7.5"
+                    fontWeight="600"
+                  >
+                    {formatHistoryChartAxisValue(tickValue, resolvedGraphMetricKey, tickSuffix)}
+                  </text>
+                ) : null}
+              </g>
+            );
+          })}
+          {weightRepSubticks.map((tick) => (
+            <line
+              key={`rep-subgrid-${tick.id}`}
+              x1={yAxisX + 5.5}
+              x2={chartWidth}
+              y1={tick.y}
+              y2={tick.y}
+              stroke="rgb(var(--accent-strong) / 0.14)"
+              strokeWidth="0.7"
+              strokeDasharray="1.5 5"
+            />
+          ))}
+          {weightRepSubticks.map((tick) => (
+            <g key={`rep-subtick-${tick.id}`}>
+              <line
+                x1={yAxisX}
+                x2={yAxisX + 4.8}
+                y1={tick.y}
+                y2={tick.y - 1.7}
+                stroke="rgb(var(--accent-strong) / 0.58)"
+                strokeWidth="0.82"
+                strokeLinecap="round"
+              />
+            </g>
+          ))}
+          <line x1={0} x2={chartWidth} y1={changeLaneCenterY} y2={changeLaneCenterY} stroke="rgb(var(--border-rgb) / 0.42)" strokeWidth="1" strokeDasharray="2 6" />
           {linePoints ? (
             <polyline
               fill="none"
-              stroke="rgb(var(--accent-strong) / 0.82)"
-              strokeWidth="2.4"
+              stroke={selectionActive ? "rgb(var(--accent-strong) / 0.38)" : "rgb(var(--accent-strong) / 0.82)"}
+              strokeWidth="2.25"
               strokeLinejoin="round"
               strokeLinecap="round"
               points={linePoints}
             />
           ) : null}
-          {plottedPoints.map(({ point, x, y, selected }) => (
+          {selectedDayLinePoints ? (
+            <polyline
+              fill="none"
+              stroke="rgb(255 255 255 / 0.92)"
+              strokeWidth="2.85"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              points={selectedDayLinePoints}
+            />
+          ) : null}
+          {plottedSetPoints.map(({ point, x, y, selected }) => (
             <circle
               key={point.id}
               cx={x}
               cy={y}
-              r={selected ? 6.5 : point.type === "progression-event" ? 4.5 : 5}
-              fill={point.type === "progression-event" ? "rgb(var(--accent-yellow-on) / 0.92)" : selected ? "rgb(var(--accent-strong) / 0.96)" : "rgb(var(--surface-1-rgb) / 0.96)"}
-              stroke={point.signals?.includes("regression") ? "rgb(255 116 116 / 0.92)" : "rgb(var(--accent-strong) / 0.9)"}
-              strokeWidth={selected ? 2.5 : 1.7}
+              r={selected ? 4.1 : 2.55}
+              fill={selected
+                ? "rgb(var(--accent-strong) / 0.96)"
+                : selectionActive
+                  ? "rgb(var(--surface-1-rgb) / 0.52)"
+                  : "rgb(var(--surface-1-rgb) / 0.96)"}
+              stroke={selected
+                ? "rgb(var(--accent-strong) / 0.96)"
+                : selectionActive
+                  ? "rgb(var(--accent-strong) / 0.42)"
+                  : "rgb(var(--accent-strong) / 0.9)"}
+              strokeWidth={selected ? 1.6 : 1.15}
+            />
+          ))}
+          {plottedChangePoints.map(({ point, x, y, selected, signal }) => (
+            <g key={point.id}>
+              {selected ? (
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={6.2}
+                  fill="rgb(var(--surface-1-rgb) / 0.12)"
+                  stroke={getHistoryChangePointFill(signal)}
+                  strokeWidth="1.4"
+                />
+              ) : null}
+              <circle
+                cx={x}
+                cy={y}
+                r={selected ? 3.8 : selectionActive ? 2.2 : 2.6}
+                fill={selected
+                  ? getHistoryChangePointFill(signal)
+                  : selectionActive
+                    ? getHistoryChangePointFill(signal).replace("0.94", "0.45").replace("0.95", "0.45")
+                    : getHistoryChangePointFill(signal)}
+              />
+            </g>
+          ))}
+          {plottedDayPoints.map(({ point, x, y, selected }) => (
+            <path
+              key={point.id}
+              d={buildSunPath(x, y, selected ? 5.4 : 4.25, selected ? 3.5 : 2.65)}
+              fill={point.isSkipped
+                ? (selectionActive && !selected ? "rgb(var(--accent-yellow-on) / 0.44)" : "rgb(var(--accent-yellow-on) / 0.96)")
+                : (selectionActive && !selected ? "rgb(var(--text-primary) / 0.42)" : "rgb(var(--text-primary) / 0.9)")}
+              stroke={selectionActive && !selected ? "rgb(var(--accent-strong) / 0.44)" : "rgb(var(--accent-strong) / 0.92)"}
+              strokeWidth={selected ? 1.35 : 1}
+              strokeLinejoin="round"
             />
           ))}
         </svg>
@@ -731,32 +1514,21 @@ function ExerciseHistoryGraph({
             key={`hit-${point.point.id}`}
             type="button"
             onClick={() => onSelectedPointChange(point.point.id)}
-            className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ left: `${point.leftPercent}%`, top: `${point.topPercent}%` }}
+            className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 appearance-none rounded-full !border-0 !border-transparent !bg-transparent !p-0 !shadow-none outline-none ring-0 [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-strong)/0.34)]"
+            style={{
+              left: `${point.leftPercent}%`,
+              top: `${point.topPercent}%`,
+              background: "transparent",
+              border: 0,
+              boxShadow: "none",
+              padding: 0,
+            }}
             aria-label={`Select ${point.point.label} history point`}
           />
         ))}
       </div>
-      <div className="space-y-2 rounded-[0.9rem] border border-[rgb(var(--border-rgb)/0.34)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-2.5 py-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.9)]">
-              {selectedPoint ? selectedPoint.type.replace("-", " ") : "Scope"}
-            </p>
-            <p className="text-sm font-semibold leading-5 text-[rgb(var(--text-primary)/0.96)]">
-              {selectedDisplayPoint.summary}
-            </p>
-            {selectedDisplayPoint.meta ? (
-              <p className="text-[0.74rem] leading-5 text-[rgb(var(--text-secondary)/0.82)]">
-                {selectedDisplayPoint.meta}
-              </p>
-            ) : null}
-          </div>
-          {renderHistoryPointBadges(selectedDisplayPoint)}
-        </div>
-        {selectedMetrics.length > 0 ? (
-          <ExerciseSurfaceMetricGrid items={selectedMetrics} {...getExerciseInfoMetricGridProps(selectedMetrics)} />
-        ) : null}
+      <div className="px-3">
+        <HistoryGraphLegend items={visibleLegendItems} />
       </div>
     </div>
   );
@@ -764,10 +1536,12 @@ function ExerciseHistoryGraph({
 
 function ExerciseInfoHistoryList({
   stats,
+  analyticsScope,
   selectedPointId,
   onSelectedPointChange,
 }: {
   stats: ExerciseInfoSheetStats;
+  analyticsScope: ExerciseInfoAnalyticsScope;
   selectedPointId: string | null;
   onSelectedPointChange: (pointId: string | null) => void;
 }) {
@@ -782,15 +1556,15 @@ function ExerciseInfoHistoryList({
         .map((group) => selectedPoint.rowId
           ? { ...group, rows: group.rows.filter((row) => row.id === selectedPoint.rowId) }
           : group)
-        .filter((group) => group.rows.length > 0)
+        .filter((group) => selectedPoint.rowId ? group.rows.length > 0 : true)
     : historyGroups;
   const structuredItems = activeGroups.flatMap((group) => {
     const dayItem: DetailSectionListItem = {
       id: group.id,
-      primary: group.label,
+      primary: formatHistoryDayPrimaryLabel(group, analyticsScope),
       value: `${group.rows.length} ${group.rows.length === 1 ? "set" : "sets"}`,
-      signals: group.signals,
-      tagLabels: group.tagLabels,
+      contentClassName: "inline-block w-fit max-w-full pb-[3px] bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%]",
+      tagLabels: buildHistoryDayTagLabels(group),
       layout: "single-column",
     };
     const setItems = group.rows.map((row): DetailSectionListItem => ({
@@ -805,24 +1579,28 @@ function ExerciseInfoHistoryList({
     return [dayItem, ...setItems];
   });
 
-  if (structuredItems.length > 0) {
+  if (historyPoints.length > 0) {
     return (
       <div className="space-y-2">
         <ExerciseHistoryGraph
+          stats={stats}
           points={historyPoints}
+          graphMetricKey={historyState.graphMetricKey}
           selectedPointId={selectedPointId}
           onSelectedPointChange={onSelectedPointChange}
         />
-        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-          <div
-            className={cn(
-              "w-full",
-              structuredItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[18rem] overflow-y-auto pr-1" : undefined,
-            )}
-          >
-            <DetailSectionItems items={structuredItems} className="pl-0.5" showBullets={false} />
+        {structuredItems.length > 0 ? (
+          <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+            <div
+              className={cn(
+                "w-full",
+                structuredItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[18rem] overflow-y-auto pr-1" : undefined,
+              )}
+            >
+              <DetailSectionItems items={structuredItems} className="pl-0.5" showBullets={false} />
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     );
   }
@@ -1106,19 +1884,20 @@ function ExerciseInfoProgressionPanel({
   const startedTargetValue = compactProgressionMetricValue(progression.firstTargetLabel);
   const startedMatchesCurrent = Boolean(startedTargetValue)
     && normalizeCompactProgressionComparisonValue(startedTargetValue) === normalizeCompactProgressionComparisonValue(currentTargetValue);
-  const latestChangeWasPromotion = progression.latestEventLabel === "Promotion applied";
-  const shouldHideLastPromotion = latestChangeWasPromotion
-    && isSameCalendarDay(progression.lastPromotionAt, progression.latestChangeAt);
   const progressionMetricCandidates: Array<MetricDatum | null> = [
-    progression.currentTargetLabel ? (() => {
-      const value = currentTargetValue;
-      return { label: "Current", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
-    })() : null,
+    { label: "Promotions", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
     progression.firstTargetLabel && !startedMatchesCurrent ? (() => {
       const value = startedTargetValue;
       return { label: "Started", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
     })() : null,
-    { label: "Promotions", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
+    progression.currentTargetLabel ? (() => {
+      const value = currentTargetValue;
+      return { label: "Current", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
+    })() : null,
+    progression.latestChangeSummary ? (() => {
+      const value = compactProgressionMetricValue(progression.latestChangeSummary);
+      return { label: "Latest Change", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
+    })() : null,
   ];
   const metrics = filterUniqueMetricItems(
     progressionMetricCandidates.filter((item): item is MetricDatum => item !== null),
@@ -1128,8 +1907,6 @@ function ExerciseInfoProgressionPanel({
     metrics.length === 0
     && (progression.activityDays?.length ?? 0) === 0
     && !progression.latestChangeSummary
-    && !progression.recentActivitySummary
-    && !progression.lastPromotionAt
   ) {
     return null;
   }
@@ -1146,126 +1923,16 @@ function ExerciseInfoProgressionPanel({
       {metrics.length > 0 ? <ExerciseSurfaceMetricGrid items={metrics} {...getExerciseInfoMetricGridProps(metrics, "progression")} /> : null}
       <ExerciseProgressionActivityPanel
         progression={progression}
-        activityTitle={analyticsScope === "current_cycle" ? "Cycle Activity" : "Progression Activity"}
         headingClassName={cn(exerciseInfoSubsectionHeadingClassName, "px-0 pt-0.5")}
         subsectionTitleClassName={exerciseInfoSubsectionTitleClassName}
-        renderMetaLine={renderMetricMetaLine}
         metricGridProps={getExerciseInfoMetricGridProps([
           { label: "Promotions", value: "0" },
-          { label: "Regressed", value: "0" },
+          { label: "Regressions", value: "0" },
+          { label: "Watch", value: "0" },
           { label: "Manual", value: "0" },
-          { label: "Reverted", value: "0" },
         ])}
         topDividerClassName="mx-1"
       />
-    </AppPanel>
-  );
-}
-
-function buildDerivedProgressionMetrics(
-  derived: NonNullable<ExerciseInfoSheetStats["progressionDerived"]>,
-): MetricDatum[] {
-  return [
-    {
-      label: "Signal",
-      value: derived.signalLabel,
-      valueTone: derived.signalTone ?? "default",
-    },
-    {
-      label: "Method",
-      value: derived.methodLabel,
-      valueTone: derived.methodLabel === "Manual" ? "muted" : "default",
-    },
-    {
-      label: "History",
-      value: derived.historySessionCount === 1 ? "1 session" : `${derived.historySessionCount} sessions`,
-      valueTone: derived.historySessionCount > 0 ? "default" : "muted",
-    },
-  ];
-}
-
-function buildDerivedProgressionSections(
-  derived: NonNullable<ExerciseInfoSheetStats["progressionDerived"]>,
-): ExerciseInfoReviewSection[] {
-  const sections: Array<ExerciseInfoReviewSection | null> = [
-    derived.currentTargetLabel ? {
-      title: "Current Target",
-      items: [derived.currentTargetLabel],
-    } : null,
-    derived.nextTargetLabel ? {
-      title: "Next Update",
-      items: [derived.nextTargetLabel],
-    } : null,
-    {
-      title: "Readiness",
-      items: [derived.reason],
-    },
-    {
-      title: "Basis",
-      items: [
-        derived.historySessionCount === 1 ? "1 scoped session reviewed." : `${derived.historySessionCount} scoped sessions reviewed.`,
-        derived.sourcePerformedAt ? `Source session ${formatDateShort(derived.sourcePerformedAt)}` : null,
-      ].filter((item): item is string => Boolean(item)),
-    },
-  ];
-
-  return sections.filter((section): section is ExerciseInfoReviewSection => section !== null);
-}
-
-function getExerciseInfoProgressionEmptyStateCopy(scope: ExerciseInfoAnalyticsScope) {
-  if (scope === "current_cycle") {
-    return "No progression changes have been recorded in this cycle yet. This lane only fills after promotions, regressions, reverts, or manual target edits.";
-  }
-
-  if (scope === "current_routine") {
-    return "No progression changes have been recorded for this routine yet. Logged sets alone do not create progression activity until a target actually changes.";
-  }
-
-  return "No progression changes have been recorded for this exercise yet. Logged history can exist without progression activity until a target changes.";
-}
-
-function ExerciseInfoProgressionEmptyPanel({
-  analyticsScope,
-  activeRoutineTitle,
-  derivedProgression,
-  onScopeClick,
-  resyncActive = false,
-}: {
-  analyticsScope: ExerciseInfoAnalyticsScope;
-  activeRoutineTitle?: string | null;
-  derivedProgression?: ExerciseInfoSheetStats["progressionDerived"];
-  onScopeClick: (section: ExerciseInfoSectionScopeKey) => void;
-  resyncActive?: boolean;
-}) {
-  const fallbackMetrics = derivedProgression ? buildDerivedProgressionMetrics(derivedProgression) : [];
-  const fallbackSections = derivedProgression ? buildDerivedProgressionSections(derivedProgression) : [];
-
-  return (
-    <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-      <ExerciseInfoSectionHeader
-        title="Progression"
-        section="progression"
-        analyticsScope={analyticsScope}
-        activeRoutineTitle={activeRoutineTitle}
-        onScopeClick={onScopeClick}
-        resyncActive={resyncActive}
-      />
-      {fallbackMetrics.length > 0 ? (
-        <ExerciseSurfaceMetricGrid
-          items={fallbackMetrics}
-          {...getExerciseInfoMetricGridProps(fallbackMetrics, "progression")}
-        />
-      ) : null}
-      {fallbackSections.length > 0 ? (
-        <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-          <DetailSectionBlocks sections={fallbackSections} titleClassName={exerciseInfoSubsectionTitleClassName} />
-        </div>
-      ) : null}
-      <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-        <p className={appTokens.detailBodyMutedText}>
-          {getExerciseInfoProgressionEmptyStateCopy(analyticsScope)}
-        </p>
-      </div>
     </AppPanel>
   );
 }
@@ -1274,8 +1941,9 @@ export function ExerciseInfoSheet({
   exercise,
   statsByScope,
   statsLoadingByScope,
-  analyticsScope,
-  onAnalyticsScopeChange,
+  lastVisibleStats,
+  filterState,
+  onFilterStateChange,
   open,
   onOpenChange,
   onClose,
@@ -1285,8 +1953,9 @@ export function ExerciseInfoSheet({
   exercise: ExerciseInfoSheetExercise | null;
   statsByScope: Partial<Record<ExerciseInfoAnalyticsScope, ExerciseInfoSheetStats | null>>;
   statsLoadingByScope: Partial<Record<ExerciseInfoAnalyticsScope, boolean>>;
-  analyticsScope: ExerciseInfoAnalyticsScope;
-  onAnalyticsScopeChange: (scope: ExerciseInfoAnalyticsScope) => void;
+  lastVisibleStats?: ExerciseInfoSheetStats | null;
+  filterState: ExerciseInfoFilterState;
+  onFilterStateChange: (state: ExerciseInfoFilterState) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onClose?: () => void;
@@ -1296,67 +1965,250 @@ export function ExerciseInfoSheet({
   const router = useRouter();
   const statsPanelId = useId();
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-  const [sectionScopeOverrides, setSectionScopeOverrides] = useState<Partial<Record<ExerciseInfoSectionScopeKey, ExerciseInfoAnalyticsScope>>>({});
   const [selectedHistoryPointId, setSelectedHistoryPointId] = useState<string | null>(null);
+  const [selectedPointFilterSnapshot, setSelectedPointFilterSnapshot] = useState<ExerciseInfoFilterState | null>(null);
+  const [isHeaderFilterOpen, setIsHeaderFilterOpen] = useState(false);
+  const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
+  const [headerFilterMode, setHeaderFilterMode] = useState<ExerciseInfoAnalyticsScope>(normalizedFilterState.analyticsScope);
+  const [pendingCycleRoutineId, setPendingCycleRoutineId] = useState<string | null>(normalizedFilterState.routineId);
+  const [pendingCycleStartDate, setPendingCycleStartDate] = useState<string | null>(normalizedFilterState.cycleStartDate);
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   useBodyScrollLock(open && !inline);
 
   useEffect(() => {
     if (!open) {
-      setSectionScopeOverrides({});
       setSelectedHistoryPointId(null);
+      setSelectedPointFilterSnapshot(null);
+      setIsHeaderFilterOpen(false);
+      setHeaderFilterMode("all_time");
+      setPendingCycleRoutineId(null);
+      setPendingCycleStartDate(null);
     }
   }, [open]);
 
   useEffect(() => {
     setSelectedHistoryPointId(null);
-  }, [analyticsScope, canonicalExerciseId]);
+    setSelectedPointFilterSnapshot(null);
+    setHeaderFilterMode(normalizedFilterState.analyticsScope);
+    setPendingCycleRoutineId(normalizedFilterState.routineId);
+    setPendingCycleStartDate(normalizedFilterState.cycleStartDate);
+  }, [
+    canonicalExerciseId,
+    normalizedFilterState.analyticsScope,
+    normalizedFilterState.cycleStartDate,
+    normalizedFilterState.routineId,
+  ]);
+
+  useEffect(() => {
+    if (selectedHistoryPointId) {
+      setSelectedPointFilterSnapshot((current) => current ?? normalizedFilterState);
+      setIsHeaderFilterOpen(false);
+      return;
+    }
+
+    setSelectedPointFilterSnapshot(null);
+  }, [normalizedFilterState, selectedHistoryPointId]);
+
+  useEffect(() => {
+    const handleExclusiveOverlayOpen = (event: Event) => {
+      const payload = (event as CustomEvent<FitnessOverlayExclusiveDetail>).detail;
+      if (payload?.source === "info") {
+        return;
+      }
+
+      setIsHeaderFilterOpen(false);
+    };
+
+    window.addEventListener(FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT, handleExclusiveOverlayOpen);
+    return () => window.removeEventListener(FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT, handleExclusiveOverlayOpen);
+  }, []);
 
   useEffect(() => {
     setPortalTarget(document.body);
   }, []);
 
-  const hasUnsyncedSections = useMemo(
-    () => EXERCISE_INFO_SECTION_SCOPE_KEYS.some((section) => sectionScopeOverrides[section] !== undefined),
-    [sectionScopeOverrides],
-  );
+  const currentScope = normalizedFilterState.analyticsScope;
+  const currentStats = statsByScope[currentScope] ?? null;
+  const fallbackStats = statsByScope.all_time ?? null;
+  const filterOptions = currentStats?.filterOptions ?? fallbackStats?.filterOptions ?? { routines: [] };
+  const routineOptions = Array.isArray(filterOptions.routines) ? filterOptions.routines : [];
+  const orderOptionsWithSelectedFirst = useCallback(<T,>(options: T[], isSelected: (option: T) => boolean) => {
+    const selected: T[] = [];
+    const unselected: T[] = [];
+    for (const option of options) {
+      if (isSelected(option)) {
+        selected.push(option);
+      } else {
+        unselected.push(option);
+      }
+    }
 
-  const getSectionScope = useCallback((section: ExerciseInfoSectionScopeKey) => (
-    sectionScopeOverrides[section] ?? analyticsScope
-  ), [analyticsScope, sectionScopeOverrides]);
-
-  const handleScopeResync = useCallback(() => {
-    setSectionScopeOverrides({});
-    setSelectedHistoryPointId(null);
+    return [...selected, ...unselected];
   }, []);
+  const defaultRoutineOption = routineOptions.find((routine) => routine.isActive) ?? routineOptions[0] ?? null;
+  const appliedRoutineOption = normalizedFilterState.routineId
+    ? routineOptions.find((routine) => routine.id === normalizedFilterState.routineId) ?? null
+    : null;
+  const routineModeSelectedRoutine = appliedRoutineOption ?? (headerFilterMode === "current_routine" ? defaultRoutineOption : null);
+  const cycleModeSelectedRoutine = pendingCycleRoutineId
+    ? routineOptions.find((routine) => routine.id === pendingCycleRoutineId) ?? null
+    : null;
+  const selectedCycleOption = cycleModeSelectedRoutine?.cycleOptions.find((cycle) => cycle.startDate === normalizedFilterState.cycleStartDate) ?? null;
+  const pendingCycleOption = cycleModeSelectedRoutine?.cycleOptions.find((cycle) => cycle.startDate === pendingCycleStartDate) ?? null;
+  const orderedScopeOptions = orderOptionsWithSelectedFirst([
+    { label: "Routine", value: "current_routine" as const },
+    { label: "Cycle", value: "current_cycle" as const },
+  ], (option) => headerFilterMode === option.value);
+  const orderedRoutineOptions = orderOptionsWithSelectedFirst(routineOptions, (routine) => (
+    headerFilterMode === "current_cycle"
+      ? pendingCycleRoutineId === routine.id
+      : routineModeSelectedRoutine?.id === routine.id
+  ));
+  const orderedCycleOptions = orderOptionsWithSelectedFirst(cycleModeSelectedRoutine?.cycleOptions ?? [], (cycle) => (
+    (selectedCycleOption ?? pendingCycleOption)?.startDate === cycle.startDate
+  ));
+  const hasAppliedFilter = currentScope !== "all_time";
+  const showFilterClearButton = hasAppliedFilter || headerFilterMode !== "all_time";
+  const showRoutineClearButton = headerFilterMode === "current_routine"
+    ? Boolean(routineModeSelectedRoutine)
+    : Boolean(pendingCycleRoutineId);
+  const showCycleClearButton = Boolean(pendingCycleStartDate);
 
-  const handleSectionScopeToggle = useCallback((section: ExerciseInfoSectionScopeKey) => {
-    if (selectedHistoryPointId) {
-      setSelectedHistoryPointId(null);
+  const applyFilterState = useCallback((nextState: Partial<ExerciseInfoFilterState>) => {
+    onFilterStateChange(normalizeExerciseInfoFilterState(nextState));
+  }, [onFilterStateChange]);
+
+  const handleHeaderFilterModeSelect = useCallback((mode: ExerciseInfoAnalyticsScope) => {
+    setHeaderFilterMode(mode);
+    if (mode === "current_routine") {
+      const nextRoutineId = normalizedFilterState.routineId ?? pendingCycleRoutineId ?? defaultRoutineOption?.id ?? null;
+      setPendingCycleRoutineId(nextRoutineId);
+      if (nextRoutineId) {
+        applyFilterState({
+          analyticsScope: "current_routine",
+          routineId: nextRoutineId,
+          cycleStartDate: null,
+        });
+      }
       return;
     }
 
-    const currentScope = getSectionScope(section);
-    const nextScope = getNextExerciseInfoAnalyticsScope(currentScope);
-    setSectionScopeOverrides((current) => {
-      const nextOverrides = { ...current };
-      if (nextScope === analyticsScope) {
-        delete nextOverrides[section];
-      } else {
-        nextOverrides[section] = nextScope;
+    if (mode === "current_cycle") {
+      const nextRoutineId = pendingCycleRoutineId ?? normalizedFilterState.routineId ?? defaultRoutineOption?.id ?? null;
+      setPendingCycleRoutineId(nextRoutineId);
+      if (nextRoutineId && pendingCycleStartDate) {
+        applyFilterState({
+          analyticsScope: "current_cycle",
+          routineId: nextRoutineId,
+          cycleStartDate: pendingCycleStartDate,
+        });
       }
-      return nextOverrides;
+      return;
+    }
+
+    setPendingCycleRoutineId(null);
+    setPendingCycleStartDate(null);
+  }, [
+    applyFilterState,
+    defaultRoutineOption,
+    normalizedFilterState.routineId,
+    pendingCycleRoutineId,
+    pendingCycleStartDate,
+  ]);
+
+  const handleFilterClear = useCallback(() => {
+    setHeaderFilterMode("all_time");
+    setPendingCycleRoutineId(null);
+    setPendingCycleStartDate(null);
+    applyFilterState(createDefaultExerciseInfoFilterState());
+  }, [applyFilterState]);
+
+  const handleRoutineFilterSelect = useCallback((routine: ExerciseInfoRoutineFilterOption) => {
+    if (headerFilterMode === "current_cycle") {
+      setPendingCycleRoutineId(routine.id);
+      if (pendingCycleStartDate && !routine.cycleOptions.some((cycle) => cycle.startDate === pendingCycleStartDate)) {
+        setPendingCycleStartDate(null);
+      }
+      return;
+    }
+
+    applyFilterState({
+      analyticsScope: "current_routine",
+      routineId: routine.id,
+      cycleStartDate: null,
     });
-  }, [analyticsScope, getSectionScope, selectedHistoryPointId]);
+  }, [applyFilterState, headerFilterMode, pendingCycleStartDate]);
+
+  const handleRoutineFilterClear = useCallback(() => {
+    setPendingCycleRoutineId(null);
+    if (headerFilterMode === "current_cycle") {
+      setPendingCycleStartDate(null);
+      applyFilterState(createDefaultExerciseInfoFilterState());
+      return;
+    }
+
+    applyFilterState(createDefaultExerciseInfoFilterState());
+  }, [applyFilterState, headerFilterMode]);
+
+  const handleCycleFilterSelect = useCallback((cycleStartDate: string) => {
+    if (!pendingCycleRoutineId) {
+      return;
+    }
+
+    setPendingCycleStartDate(cycleStartDate);
+    applyFilterState({
+      analyticsScope: "current_cycle",
+      routineId: pendingCycleRoutineId,
+      cycleStartDate,
+    });
+  }, [applyFilterState, pendingCycleRoutineId]);
+
+  const handleCycleFilterClear = useCallback(() => {
+    setPendingCycleStartDate(null);
+    if (pendingCycleRoutineId) {
+      applyFilterState({
+        analyticsScope: "current_routine",
+        routineId: pendingCycleRoutineId,
+        cycleStartDate: null,
+      });
+      return;
+    }
+
+    applyFilterState(createDefaultExerciseInfoFilterState());
+  }, [applyFilterState, pendingCycleRoutineId]);
+
+  const handlePointSelectionResync = useCallback(() => {
+    const snapshot = selectedPointFilterSnapshot;
+    setIsHeaderFilterOpen(false);
+    setSelectedHistoryPointId(null);
+    setSelectedPointFilterSnapshot(null);
+    if (
+      snapshot
+      && (
+        snapshot.analyticsScope !== normalizedFilterState.analyticsScope
+        || snapshot.routineId !== normalizedFilterState.routineId
+        || snapshot.cycleStartDate !== normalizedFilterState.cycleStartDate
+      )
+    ) {
+      onFilterStateChange(snapshot);
+    }
+  }, [normalizedFilterState, onFilterStateChange, selectedPointFilterSnapshot]);
+
+  const handleSectionScopeToggle = useCallback((section: ExerciseInfoSectionScopeKey) => {
+    void section;
+    setSelectedHistoryPointId(null);
+  }, []);
 
   const getSectionStats = useCallback((section: ExerciseInfoSectionScopeKey) => {
-    const scope = getSectionScope(section);
+    void section;
+    const scope = currentScope;
+    const resolvedStats = statsByScope[scope] ?? (statsLoadingByScope[scope] ? lastVisibleStats ?? null : null);
     return {
       scope,
-      stats: statsByScope[scope] ?? null,
+      stats: resolvedStats,
       loading: Boolean(statsLoadingByScope[scope]),
     };
-  }, [getSectionScope, statsByScope, statsLoadingByScope]);
+  }, [currentScope, lastVisibleStats, statsByScope, statsLoadingByScope]);
 
   const handleClose = useCallback(() => {
     if (onClose) {
@@ -1386,27 +2238,208 @@ export function ExerciseInfoSheet({
   const howToImageSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const stretchHeroImageSrc = howToImageSrc.includes("/placeholders/") ? STRETCH_HUB_HERO_SRC : howToImageSrc;
   const activeRoutineTitle = statsByScope.current_routine?.activeRoutineTitle ?? statsByScope.all_time?.activeRoutineTitle ?? null;
-  const activeScopeLabel = getExerciseInfoAnalyticsScopeDisplayLabel(analyticsScope, activeRoutineTitle);
-  const scopeResyncActive = hasUnsyncedSections || Boolean(selectedHistoryPointId);
+  const filterResyncActive = Boolean(selectedHistoryPointId);
+  const toggleHeaderFilterOpen = () => {
+    setIsHeaderFilterOpen((previous) => {
+      const nextValue = !previous;
+      if (nextValue) {
+        setHeaderFilterMode(normalizedFilterState.analyticsScope);
+        setPendingCycleRoutineId(normalizedFilterState.routineId);
+        setPendingCycleStartDate(normalizedFilterState.cycleStartDate);
+        dispatchFitnessOverlayExclusiveOpen("info");
+      }
+      return nextValue;
+    });
+  };
   const detailHeader = (
     <div className="sticky top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.25rem)] z-30">
       <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10 flex items-center justify-start px-2">
-        <div className="pointer-events-auto">
-          <PillButton
-            active
-            className={cn(exerciseInfoScopeChipClassName, "max-w-[9.6rem] whitespace-normal text-center leading-[1.05]")}
-            aria-label={scopeResyncActive ? "Re-sync analytics scope" : "Toggle analytics scope"}
-            onClick={() => {
-              if (scopeResyncActive) {
-                handleScopeResync();
-                return;
-              }
-              onAnalyticsScopeChange(getNextExerciseInfoAnalyticsScope(analyticsScope));
-            }}
+        <div className="pointer-events-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={filterResyncActive ? handlePointSelectionResync : toggleHeaderFilterOpen}
+            aria-expanded={filterResyncActive ? undefined : isHeaderFilterOpen}
+            aria-label={filterResyncActive ? "Re-sync exercise info filters" : "Toggle exercise info filters"}
+            data-action-chrome-intent={filterResyncActive || isHeaderFilterOpen ? "toggleActive" : "neutral"}
+            data-action-chrome-selected={filterResyncActive || isHeaderFilterOpen ? "true" : undefined}
+            className={cn(
+              ACTION_CHROME_CONTROL_CLASS_NAME,
+              ACTION_CHROME_SEGMENTED_CLASS_NAME,
+              "inline-flex h-8 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
+            )}
           >
-            {scopeResyncActive ? "Re-sync" : activeScopeLabel}
-          </PillButton>
+            <span>{filterResyncActive ? "Re-sync" : "Filter"}</span>
+            {!filterResyncActive ? (isHeaderFilterOpen ? <ChevronUpIcon className="h-3.5 w-3.5" /> : <ChevronDownIcon className="h-3.5 w-3.5" />) : null}
+          </button>
         </div>
+        {isHeaderFilterOpen && !filterResyncActive ? (
+          <div
+            className={cn(
+              "pointer-events-auto fixed left-1/2 top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+3.75rem)] z-60 -translate-x-1/2",
+              SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME,
+            )}
+          >
+            <div
+              aria-label="Exercise info filters"
+              className={cn(
+                appTokens.exercisePickerFilterPanel,
+                `mx-auto w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} !border-[rgb(var(--accent)/0.42)] !bg-[rgb(var(--bg-app))] !shadow-none !backdrop-blur-none`,
+              )}
+            >
+              <FilterScrollPanel
+                className="relative z-[1] !bg-transparent"
+                showEdgeFades={false}
+                viewportClassName={`${SHARED_OVERLAY_PANEL_COMPACT_VIEWPORT_CLASS_NAME} pr-0`}
+              >
+                <div className={exerciseInfoFilterCompactSectionStackClassName}>
+                  <div className={exerciseInfoFilterCompactHeaderWrapClassName}>
+                    <p className={appTokens.exercisePickerFilterGroupLabel}>Scope</p>
+                    <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                  </div>
+                  <div className={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}>
+                    <div className="flex min-w-max flex-nowrap gap-1.5">
+                      {showFilterClearButton ? (
+                        <button
+                          type="button"
+                          onClick={handleFilterClear}
+                          className={cn(
+                            appTokens.exercisePickerFilterClearButton,
+                            "!border-[rgb(var(--accent-yellow-on)/0.58)]",
+                            "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                          )}
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                      {orderedScopeOptions.map((option) => (
+                        <PillButton
+                          key={option.value}
+                          type="button"
+                          active={headerFilterMode === option.value}
+                          className={cn(
+                            "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                            headerFilterMode === option.value
+                              ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                              : undefined,
+                          )}
+                          onClick={() => handleHeaderFilterModeSelect(option.value)}
+                        >
+                          {option.label}
+                        </PillButton>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {headerFilterMode === "current_routine" || headerFilterMode === "current_cycle" ? (
+                  <div className={exerciseInfoFilterCompactSectionStackClassName}>
+                    <div className={exerciseInfoFilterCompactHeaderWrapClassName}>
+                      <p className={appTokens.exercisePickerFilterGroupLabel}>Routine</p>
+                      <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                    </div>
+                    <div className={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}>
+                      <div className="flex min-w-max flex-nowrap gap-1.5">
+                        {showRoutineClearButton ? (
+                          <button
+                            type="button"
+                            onClick={handleRoutineFilterClear}
+                            className={cn(
+                              appTokens.exercisePickerFilterClearButton,
+                              "!border-[rgb(var(--accent-yellow-on)/0.58)]",
+                              "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                            )}
+                          >
+                            Clear
+                          </button>
+                        ) : null}
+                        {routineOptions.length === 0 ? (
+                          <p className="px-1 text-[11px] text-[rgb(var(--text-muted))]">
+                            No routine history available yet.
+                          </p>
+                        ) : orderedRoutineOptions.map((routine) => {
+                          const isSelected = headerFilterMode === "current_cycle"
+                            ? pendingCycleRoutineId === routine.id
+                            : routineModeSelectedRoutine?.id === routine.id;
+                          return (
+                            <PillButton
+                              key={routine.id}
+                              type="button"
+                              active={isSelected}
+                              className={cn(
+                                "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                                isSelected
+                                  ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                                  : undefined,
+                              )}
+                              onClick={() => handleRoutineFilterSelect(routine)}
+                            >
+                              {routine.title}
+                            </PillButton>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {headerFilterMode === "current_cycle" ? (
+                  <div className={exerciseInfoFilterCompactSectionStackClassName}>
+                    <div className={exerciseInfoFilterCompactHeaderWrapClassName}>
+                      <p className={appTokens.exercisePickerFilterGroupLabel}>Cycle</p>
+                      <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                    </div>
+                    {!pendingCycleRoutineId ? (
+                      <p className="px-1 text-[11px] text-[rgb(var(--text-muted))]">
+                        Choose a routine first.
+                      </p>
+                    ) : (
+                      <div className={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}>
+                        <div className="flex min-w-max flex-nowrap gap-1.5">
+                          {showCycleClearButton ? (
+                            <button
+                              type="button"
+                              onClick={handleCycleFilterClear}
+                              className={cn(
+                                appTokens.exercisePickerFilterClearButton,
+                                "!border-[rgb(var(--accent-yellow-on)/0.58)]",
+                                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                              )}
+                            >
+                              Clear
+                            </button>
+                          ) : null}
+                          {orderedCycleOptions.length ? orderedCycleOptions.map((cycle) => {
+                              const isSelected = (selectedCycleOption ?? pendingCycleOption)?.startDate === cycle.startDate;
+                              return (
+                              <PillButton
+                                key={cycle.startDate}
+                                type="button"
+                                active={isSelected}
+                                className={cn(
+                                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                                  isSelected
+                                    ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                                    : undefined,
+                                )}
+                                onClick={() => handleCycleFilterSelect(cycle.startDate)}
+                              >
+                                {cycle.label}
+                              </PillButton>
+                            );
+                          }) : (
+                            <p className="px-1 text-[11px] text-[rgb(var(--text-muted))]">
+                              No saved cycles for this routine yet.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </FilterScrollPanel>
+            </div>
+          </div>
+        ) : null}
       </div>
       <DetailHeader
         title={(
@@ -1454,44 +2487,53 @@ export function ExerciseInfoSheet({
   if (!open || !exercise || (!inline && !portalTarget)) return null;
   const resolvedPortalTarget = portalTarget;
   const statsSectionState = getSectionStats("stats");
-  const performanceSectionState = getSectionStats("performance");
-  const progressSectionState = getSectionStats("progress");
   const progressionSectionState = getSectionStats("progression");
   const historySectionState = getSectionStats("history");
 
-  const surfaceMetrics = Array.isArray(statsSectionState.stats?.surfaceMetrics)
+  const baseSurfaceMetrics = Array.isArray(statsSectionState.stats?.surfaceMetrics)
     ? statsSectionState.stats.surfaceMetrics.filter((item): item is MetricDatum => Boolean(item && typeof item.label === "string" && typeof item.value === "string"))
     : [];
-  const rawPerformanceMetrics = Array.isArray(performanceSectionState.stats?.performanceMetrics)
-    ? performanceSectionState.stats.performanceMetrics.filter((item): item is MetricDatum => Boolean(item && typeof item.label === "string" && typeof item.value === "string"))
+  const statsQuickMetrics = Array.isArray(statsSectionState.stats?.quickMetrics)
+    ? statsSectionState.stats.quickMetrics.filter((item): item is MetricDatum => Boolean(item && typeof item.label === "string" && typeof item.value === "string"))
     : [];
+  const statsPerformanceMetrics = Array.isArray(statsSectionState.stats?.performanceMetrics)
+    ? statsSectionState.stats.performanceMetrics.filter((item): item is MetricDatum => Boolean(item && typeof item.label === "string" && typeof item.value === "string"))
+    : [];
+  const statsProgressState = getExerciseInfoProgressState(statsSectionState.stats);
+  const statsProgressMetrics = statsProgressState.metrics.filter((item) => !isThirtyDayFrequencyMetric(item));
+  const surfaceMetrics = buildExerciseInfoSurfaceMetrics({
+    quickMetrics: statsQuickMetrics.length > 0 ? statsQuickMetrics : baseSurfaceMetrics,
+    performanceMetrics: statsPerformanceMetrics,
+    progressMetrics: statsProgressMetrics,
+  });
   const usedMetricKeys = new Set(surfaceMetrics.map((item) => normalizeMetricKey(item.label)));
-  const performanceMetrics = filterUniqueMetricItems(rawPerformanceMetrics, usedMetricKeys);
-  const progressState = getExerciseInfoProgressState(progressSectionState.stats);
-  const progressMetrics = filterUniqueMetricItems(progressState.metrics, usedMetricKeys);
-  const reviewSections = progressState.reviewSections.filter((section) => section.title !== "PR History");
   const historyState = getExerciseInfoProgressState(historySectionState.stats);
   const selectedHistoryPoint = selectedHistoryPointId
     ? historyState.historyPoints.find((point) => point.id === selectedHistoryPointId) ?? null
     : null;
   const graphSelectionActive = Boolean(selectedHistoryPoint);
-  const selectedPointMetrics = selectedHistoryPoint ? buildHistoryPointMetrics(selectedHistoryPoint) : [];
-  const displayedSurfaceMetrics = graphSelectionActive ? selectedPointMetrics : surfaceMetrics;
-  const displayedPerformanceMetrics = graphSelectionActive ? selectedPointMetrics : performanceMetrics;
-  const displayedProgressMetrics = graphSelectionActive
+  const selectedHistoryContextPoint = selectedHistoryPoint?.type === "progression-event"
+    ? historyState.historyPoints.find((point) => point.type === "day" && point.dayKey === selectedHistoryPoint.dayKey) ?? null
+    : selectedHistoryPoint;
+  const selectedPointMetrics = selectedHistoryPoint
     ? filterUniqueMetricItems([
-        { label: "Selected", value: selectedHistoryPoint!.summary },
-        ...(selectedHistoryPoint!.meta ? [{ label: "Context", value: selectedHistoryPoint!.meta }] : []),
-      ])
-    : progressMetrics;
+        ...buildHistoryPointMetrics(selectedHistoryPoint),
+        ...(selectedHistoryContextPoint && selectedHistoryContextPoint.id !== selectedHistoryPoint.id
+          ? buildHistoryPointMetrics(selectedHistoryContextPoint)
+          : []),
+        buildHistoryPointComparisonMetric({
+          points: historyState.historyPoints,
+          selectedPoint: selectedHistoryContextPoint,
+        }),
+      ].filter((item): item is MetricDatum => Boolean(item)))
+    : [];
+  const displayedSurfaceMetrics = graphSelectionActive ? selectedPointMetrics : surfaceMetrics;
+  const selectedHistoryPointStatsSubtitle = graphSelectionActive
+    ? buildSelectedHistoryPointStatsSubtitle(selectedHistoryPoint)
+    : null;
   const progression = progressionSectionState.stats?.progression ?? null;
-  const derivedProgression = progressionSectionState.stats?.progressionDerived ?? null;
-  const hasPerformancePanel = graphSelectionActive || (!performanceSectionState.loading && performanceMetrics.length > 0);
-  const hasProgressPanel = graphSelectionActive || progressSectionState.loading || progressMetrics.length > 0 || reviewSections.length > 0;
-  const hasCombinedPerformanceProgressPanel = hasPerformancePanel || hasProgressPanel;
   const hasProgressionLoadingPanel = progressionSectionState.loading;
   const hasProgressionPanel = Boolean(progression);
-  const hasProgressionEmptyPanel = !progressionSectionState.loading && !progression && Boolean(progressionSectionState.stats);
   const hasHistoryPanel = historySectionState.loading || Boolean(historySectionState.stats);
 
   const sheetBody = (
@@ -1524,6 +2566,7 @@ export function ExerciseInfoSheet({
                       >
                         <ExerciseInfoSectionHeader
                           title="Stats"
+                          subtitle={selectedHistoryPointStatsSubtitle}
                           section="stats"
                           analyticsScope={statsSectionState.scope}
                           activeRoutineTitle={activeRoutineTitle}
@@ -1545,59 +2588,7 @@ export function ExerciseInfoSheet({
                       </div>
                     </AppPanel>
 
-                    {hasHistoryPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="History"
-                          section="history"
-                          analyticsScope={historySectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                          resyncActive={graphSelectionActive}
-                        />
-                        {historySectionState.loading ? <ExerciseInfoLoadingRows /> : historySectionState.stats ? (
-                          <ExerciseInfoHistoryList
-                            stats={historySectionState.stats}
-                            selectedPointId={selectedHistoryPoint?.id ?? null}
-                            onSelectedPointChange={setSelectedHistoryPointId}
-                          />
-                        ) : null}
-                      </AppPanel>
-                    ) : null}
-
-                    {hasCombinedPerformanceProgressPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
-                        {hasPerformancePanel ? (
-                          <>
-                            <ExerciseInfoSectionHeader
-                              title="Performance"
-                              section="performance"
-                              analyticsScope={performanceSectionState.scope}
-                              activeRoutineTitle={activeRoutineTitle}
-                              onScopeClick={handleSectionScopeToggle}
-                              resyncActive={graphSelectionActive}
-                            />
-                            <ExerciseSurfaceMetricGrid items={displayedPerformanceMetrics} {...getExerciseInfoMetricGridProps(displayedPerformanceMetrics)} />
-                          </>
-                        ) : null}
-                        {hasPerformancePanel && hasProgressPanel ? <MetricAccentBar variant="thin" className="mx-1" /> : null}
-                        {hasProgressPanel ? (
-                          <>
-                            <ExerciseInfoSectionHeader
-                              title="Progress"
-                              section="progress"
-                              analyticsScope={progressSectionState.scope}
-                              activeRoutineTitle={activeRoutineTitle}
-                              onScopeClick={handleSectionScopeToggle}
-                              resyncActive={graphSelectionActive}
-                            />
-                            {progressSectionState.loading ? <ExerciseInfoLoadingRows /> : <ExerciseInfoProgressReview metrics={displayedProgressMetrics} sections={graphSelectionActive ? [] : reviewSections} />}
-                          </>
-                        ) : null}
-                      </AppPanel>
-                    ) : null}
-
-                    {hasProgressionLoadingPanel ? (
+                    {!graphSelectionActive && hasProgressionLoadingPanel ? (
                       <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
                         <ExerciseInfoSectionHeader
                           title="Progression"
@@ -1609,7 +2600,7 @@ export function ExerciseInfoSheet({
                         />
                         <ExerciseInfoLoadingRows />
                       </AppPanel>
-                    ) : hasProgressionPanel ? (
+                    ) : !graphSelectionActive && hasProgressionPanel ? (
                       <ExerciseInfoProgressionPanel
                         progression={progression!}
                         excludedMetricKeys={[...usedMetricKeys]}
@@ -1618,14 +2609,29 @@ export function ExerciseInfoSheet({
                         onScopeClick={handleSectionScopeToggle}
                         resyncActive={graphSelectionActive}
                       />
-                    ) : hasProgressionEmptyPanel ? (
-                      <ExerciseInfoProgressionEmptyPanel
-                        analyticsScope={progressionSectionState.scope}
-                        activeRoutineTitle={activeRoutineTitle}
-                        derivedProgression={derivedProgression}
-                        onScopeClick={handleSectionScopeToggle}
-                        resyncActive={graphSelectionActive}
-                      />
+                    ) : null}
+
+                    {hasHistoryPanel ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-0")}>
+                        <div className="px-2 pt-2">
+                          <ExerciseInfoSectionHeader
+                            title="History"
+                            section="history"
+                            analyticsScope={historySectionState.scope}
+                            activeRoutineTitle={activeRoutineTitle}
+                            onScopeClick={handleSectionScopeToggle}
+                            resyncActive={graphSelectionActive}
+                          />
+                        </div>
+                        {historySectionState.loading ? <ExerciseInfoLoadingRows /> : historySectionState.stats ? (
+                          <ExerciseInfoHistoryList
+                            stats={historySectionState.stats}
+                            analyticsScope={historySectionState.scope}
+                            selectedPointId={selectedHistoryPoint?.id ?? null}
+                            onSelectedPointChange={setSelectedHistoryPointId}
+                          />
+                        ) : null}
+                      </AppPanel>
                     ) : null}
 
                   </>

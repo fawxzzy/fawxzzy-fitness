@@ -6,6 +6,14 @@ import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
+import {
+  applyResolvedFeedbackCardDependencies,
+  normalizeFeedbackCardId,
+  normalizeFeedbackCardPhase,
+  normalizeFeedbackCardPriority,
+  normalizeFeedbackDependencyNote,
+  normalizeFeedbackDependencyReferences,
+} from "./feedback-card-metadata.mjs";
 
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const FALLBACK_SUPABASE_URL_ENV = "SUPABASE_URL";
@@ -362,16 +370,28 @@ function buildBoardCardSections(row) {
   };
 }
 
+function buildBoardCardMetadata(row) {
+  return {
+    card_id: normalizeFeedbackCardId(row.card_id),
+    card_phase: normalizeFeedbackCardPhase(row.card_phase),
+    card_priority: normalizeFeedbackCardPriority(row.card_priority),
+    depends_on: normalizeFeedbackDependencyReferences(row.depends_on),
+    dependency_notes: normalizeFeedbackDependencyNote(row.dependency_notes),
+  };
+}
+
 export function toBoardRecord(row, debug = false) {
   const reportType = normalizeType(row.report_type) ?? "bug";
   const status = normalizeStatus(row.status) ?? "new";
   const threadId = typeof row.discord_forum_thread_id === "string" ? row.discord_forum_thread_id : null;
   const completionReviewStatus = feedbackHelpers.normalizeDiscordCompletionReviewStatus(row.completion_review_status) ?? "not_required";
+  const cardMetadata = buildBoardCardMetadata(row);
   const cardSections = buildBoardCardSections({
     ...row,
     report_type: reportType,
     status,
     severity: typeof row.severity === "string" ? row.severity : "medium",
+    ...cardMetadata,
   });
 
   return {
@@ -382,6 +402,12 @@ export function toBoardRecord(row, debug = false) {
     status,
     status_label: formatDisplayStatusLabel(reportType, status),
     effort_points: typeof row.effort_points === "number" ? row.effort_points : null,
+    card_id: cardMetadata.card_id,
+    card_phase: cardMetadata.card_phase,
+    card_priority: cardMetadata.card_priority,
+    depends_on: [...cardMetadata.depends_on],
+    blocks: [],
+    dependency_notes: cardMetadata.dependency_notes,
     completion_review_status: completionReviewStatus,
     completion_review_status_label: feedbackHelpers.formatDiscordCompletionReviewStatusLabel(completionReviewStatus),
     completion_review_required: feedbackHelpers.requiresDiscordFeedbackCompletionReview({
@@ -473,6 +499,9 @@ function renderBoardListItem(record, debug = false) {
   const metadata = [
     `Status: ${record.status_label}`,
     record.effort_points ? `Points: ${record.effort_points}` : null,
+    record.card_id ? `Card ID: ${record.card_id}` : null,
+    record.card_priority ? `Priority: ${record.card_priority}` : null,
+    record.card_phase ? `Phase: ${record.card_phase}` : null,
     `Duplicates: ${record.duplicate_count}`,
     `Attachments: ${record.attachment_count}`,
     record.last_seen_at ? `Last seen: ${record.last_seen_at}` : null,
@@ -484,6 +513,15 @@ function renderBoardListItem(record, debug = false) {
 
   if (metadata.length > 0) {
     parts.push(`  ${metadata.join(" | ")}`);
+  }
+  if (Array.isArray(record.depends_on) && record.depends_on.length > 0) {
+    parts.push(`  Depends on: ${record.depends_on.join(", ")}`);
+  }
+  if (Array.isArray(record.blocks) && record.blocks.length > 0) {
+    parts.push(`  Blocks: ${record.blocks.join(", ")}`);
+  }
+  if (record.dependency_notes) {
+    parts.push(`  Dependency notes: ${record.dependency_notes}`);
   }
 
   const cardSections = record.card_sections ?? null;
@@ -638,8 +676,26 @@ export function renderCodexDrafts(records) {
     lines.push(`- Feedback report IDs: \`${record.short_id}\``);
     lines.push(`- Current board status: ${record.status_label}`);
     lines.push(`- User-facing problem: ${record.description ?? record.title}`);
+    if (record.card_id) {
+      lines.push(`- Card ID: ${record.card_id}`);
+    }
+    if (record.card_priority) {
+      lines.push(`- Priority: ${record.card_priority}`);
+    }
+    if (record.card_phase) {
+      lines.push(`- Phase: ${record.card_phase}`);
+    }
+    if (Array.isArray(record.depends_on) && record.depends_on.length > 0) {
+      lines.push(`- Depends on: ${record.depends_on.join(", ")}`);
+    }
+    if (Array.isArray(record.blocks) && record.blocks.length > 0) {
+      lines.push(`- Blocks: ${record.blocks.join(", ")}`);
+    }
     if (record.forum_thread_link) {
       lines.push(`- Forum thread: ${record.forum_thread_link}`);
+    }
+    if (record.dependency_notes) {
+      lines.push(`- Dependency notes: ${record.dependency_notes}`);
     }
     lines.push("");
     lines.push("Files to inspect");
@@ -684,6 +740,11 @@ async function loadRows(client, args) {
       "status",
       "severity",
       "effort_points",
+      "card_id",
+      "card_phase",
+      "card_priority",
+      "depends_on",
+      "dependency_notes",
       "area",
       "summary",
       "details",
@@ -736,7 +797,20 @@ export async function exportFeedbackBoard({
 } = {}) {
   const rows = await loadRows(client, args);
   const filteredRows = filterBoardRows(rows, args);
-  const records = filteredRows.map((row) => toBoardRecord(row, args.debug));
+  const records = applyResolvedFeedbackCardDependencies(
+    filteredRows.map((row) => toBoardRecord(row, args.debug)),
+    {
+      getShortId: (record) => record.short_id,
+      getCardId: (record) => record.card_id,
+      getTitle: (record) => record.title,
+      getDependsOn: (record) => record.depends_on,
+      setResolved: (record, resolved) => ({
+        ...record,
+        depends_on: resolved.dependsOn,
+        blocks: resolved.blocks,
+      }),
+    },
+  );
   const paths = resolveOutputPaths(args);
 
   if (paths.markdown) {

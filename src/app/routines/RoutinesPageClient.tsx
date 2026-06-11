@@ -39,7 +39,6 @@ import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { appTokens } from "@/components/ui/app/tokens";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import { cn } from "@/lib/cn";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import {
@@ -384,7 +383,7 @@ export function RoutinesPageClient({
                                     : ROUTINE_HOME_TOGGLE_ACTION_BUTTON_CLASS_NAME}
                                 >
                                   <span className={cn("bottom-action__label", isThisTogglePending ? "opacity-65" : undefined)}>
-                                    {isThisTogglePending ? "Saving..." : displayIsRest ? NORMALIZED_ACTION_LABELS.resting : NORMALIZED_ACTION_LABELS.training}
+                                    {isThisTogglePending ? "Saving..." : displayIsRest ? "Set Training" : "Set Rest"}
                                   </span>
                                 </button>
                                 {!displayIsRest ? (
@@ -394,7 +393,7 @@ export function RoutinesPageClient({
                                     onClick={() => router.push(editDayHref)}
                                     className={ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME}
                                   >
-                                    <span className="bottom-action__label">Edit</span>
+                                    <span className="bottom-action__label">Edit Day</span>
                                   </button>
                                 ) : null}
                             </AttachedCardActionStripFrame>

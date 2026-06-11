@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ExerciseInfoSheet, type ExerciseInfoSheetExercise, type ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
+import { createDefaultExerciseInfoFilterState, type ExerciseInfoFilterState } from "@/lib/exercise-info-scope";
 
 export function LiveExerciseInfoPreview({
   exercise,
@@ -12,6 +13,8 @@ export function LiveExerciseInfoPreview({
   stats: ExerciseInfoSheetStats | null;
   initialScrollY?: number;
 }) {
+  const [filterState, setFilterState] = useState<ExerciseInfoFilterState>(createDefaultExerciseInfoFilterState());
+
   useEffect(() => {
     if (initialScrollY <= 0) return;
 
@@ -95,10 +98,10 @@ export function LiveExerciseInfoPreview({
   return (
     <ExerciseInfoSheet
       exercise={exercise}
-      statsByScope={{ all_time: stats, current_routine: stats }}
-      statsLoadingByScope={{ all_time: false, current_routine: false }}
-      analyticsScope="all_time"
-      onAnalyticsScopeChange={() => {}}
+      statsByScope={{ all_time: stats, current_routine: stats, current_cycle: stats }}
+      statsLoadingByScope={{ all_time: false, current_routine: false, current_cycle: false }}
+      filterState={filterState}
+      onFilterStateChange={setFilterState}
       open
       inline
       onOpenChange={() => {}}

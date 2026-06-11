@@ -41,7 +41,7 @@ import type {
   ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
 import { formatProgressionReviewTargetLabel } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
+import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import {
   buildProgressionAppliedPin,
   getPendingProgressionAppliedPinsForRoutineDay,
@@ -156,7 +156,7 @@ export function TodayDayPicker({
   switchFloatingHeaderSlotId?: string;
   exerciseDensity?: "compact" | "detailed";
   progressionReviewItems?: ProgressionReviewDisplayItem[];
-  progressionStatusItems?: ProgressionStatusDisplayItem[];
+  progressionStatusItems?: ProgressionStatusSurfaceItem[];
   progressionRoutineId?: string | null;
   applyProgressionReviewCandidateAction?: (payload: {
     routineId: string;
@@ -298,7 +298,7 @@ export function TodayDayPicker({
   }, [progressionReviewItems, selectedDay]);
 
   const selectedDayProgressFillByExerciseId = useMemo(() => {
-    const progressById = new Map<string, ProgressionStatusDisplayItem["progress"]>();
+    const progressById = new Map<string, ProgressionStatusSurfaceItem["progress"]>();
 
     if (!selectedDay) {
       return progressById;
@@ -573,16 +573,6 @@ export function TodayDayPicker({
   const selectedDayStateCard = useMemo(() => {
     if (!selectedDay || mode.dayPickerOpen) {
       return null;
-    }
-
-    if (selectedDay.state === "empty" && selectedDay.invalidExerciseCount === 0) {
-      return (
-        <DayDetailStateCard
-          tone="neutral"
-          title="No exercises planned"
-          body="Add exercises to this day to start a workout."
-        />
-      );
     }
 
     return null;

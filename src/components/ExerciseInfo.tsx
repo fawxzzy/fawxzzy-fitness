@@ -14,9 +14,22 @@ import {
   writeExerciseInfoClientPayload,
 } from "@/lib/exercise-info-client-cache";
 import { isKnownLegacyExerciseId, resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
-import { EXERCISE_INFO_ANALYTICS_SCOPE_OPTIONS, type ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import {
+  createDefaultExerciseInfoFilterState,
+  normalizeExerciseInfoFilterState,
+  type ExerciseInfoAnalyticsScope,
+  type ExerciseInfoFilterState,
+} from "@/lib/exercise-info-scope";
 
 const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function createEmptyStatsLoadingState(): Record<ExerciseInfoAnalyticsScope, boolean> {
+  return {
+    all_time: false,
+    current_routine: false,
+    current_cycle: false,
+  };
+}
 
 export function ExerciseInfo({
   exerciseId,
@@ -37,28 +50,36 @@ export function ExerciseInfo({
 }) {
   const [exercise, setExercise] = useState<ExerciseInfoSheetExercise | null>(null);
   const [statsByScope, setStatsByScope] = useState<Partial<Record<ExerciseInfoAnalyticsScope, ExerciseInfoSheetStats | null>>>({});
-  const [statsLoadingByScope, setStatsLoadingByScope] = useState<Record<ExerciseInfoAnalyticsScope, boolean>>({
-    all_time: false,
-    current_routine: false,
-    current_cycle: false,
-  });
-  const [analyticsScope, setAnalyticsScope] = useState<ExerciseInfoAnalyticsScope>("all_time");
+  const [statsLoadingByScope, setStatsLoadingByScope] = useState<Record<ExerciseInfoAnalyticsScope, boolean>>(createEmptyStatsLoadingState);
+  const [filterState, setFilterState] = useState<ExerciseInfoFilterState>(createDefaultExerciseInfoFilterState());
+  const [lastVisibleStats, setLastVisibleStats] = useState<ExerciseInfoSheetStats | null>(null);
   const toast = useToast();
 
   useEffect(() => {
+    setFilterState(createDefaultExerciseInfoFilterState());
+  }, [exerciseId]);
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+
+    setExercise(null);
+    setStatsByScope({});
+    setStatsLoadingByScope(createEmptyStatsLoadingState());
+    setFilterState(createDefaultExerciseInfoFilterState());
+    setLastVisibleStats(null);
+  }, [open]);
+
+  useEffect(() => {
     if (!open) {
-      setExercise(null);
-      setStatsByScope({});
-      setStatsLoadingByScope({
-        all_time: false,
-        current_routine: false,
-        current_cycle: false,
-      });
       return;
     }
 
     const rawExerciseId = typeof exerciseId === "string" ? exerciseId.trim() : "";
     const normalizedExerciseId = resolveCanonicalExerciseId(rawExerciseId);
+    const normalizedFilterState = normalizeExerciseInfoFilterState(filterState);
+    const currentScope = normalizedFilterState.analyticsScope;
     const seedPayload = normalizeExerciseInfoClientPayload(
       initialExercise
         ? {
@@ -77,11 +98,8 @@ export function ExerciseInfo({
           current_routine: null,
           current_cycle: null,
         });
-        setStatsLoadingByScope({
-          all_time: false,
-          current_routine: false,
-          current_cycle: false,
-        });
+        setStatsLoadingByScope(createEmptyStatsLoadingState());
+        setLastVisibleStats(seedPayload.stats);
         return;
       }
 
@@ -99,116 +117,100 @@ export function ExerciseInfo({
       toast.error("Invalid exercise link");
       setExercise(null);
       setStatsByScope({});
-      setStatsLoadingByScope({
-        all_time: false,
-        current_routine: false,
-        current_cycle: false,
-      });
+      setStatsLoadingByScope(createEmptyStatsLoadingState());
       return;
     }
 
     if (process.env.NODE_ENV === "development") {
-      console.debug("[ExerciseInfo] open request", { exerciseId: normalizedExerciseId, source: sourceContext ?? "ExerciseInfo" });
+      console.debug("[ExerciseInfo] open request", {
+        exerciseId: normalizedExerciseId,
+        source: sourceContext ?? "ExerciseInfo",
+        filterState: normalizedFilterState,
+      });
     }
 
     let active = true;
-    const controllers = new Map<ExerciseInfoAnalyticsScope, AbortController>();
-    const nextStatsByScope: Partial<Record<ExerciseInfoAnalyticsScope, ExerciseInfoSheetStats | null>> = {};
-    const nextStatsLoadingByScope: Record<ExerciseInfoAnalyticsScope, boolean> = {
-      all_time: false,
-      current_routine: false,
-      current_cycle: false,
-    };
-    let nextExercise: ExerciseInfoSheetExercise | null = null;
+    const controller = new AbortController();
+    const cachedEntry = readExerciseInfoClientPayload(normalizedExerciseId, normalizedFilterState);
+    const cachedPayload = normalizeExerciseInfoClientPayload(cachedEntry?.payload ?? null);
+    const fallbackPayload = currentScope === "all_time" ? seedPayload : null;
+    const localPayload = cachedPayload ?? fallbackPayload;
 
-    for (const scope of EXERCISE_INFO_ANALYTICS_SCOPE_OPTIONS.map((option) => option.id)) {
-      const cachedEntry = readExerciseInfoClientPayload(normalizedExerciseId, scope);
-      const cachedPayload = normalizeExerciseInfoClientPayload(cachedEntry?.payload ?? null);
-      const fallbackPayload = scope === "all_time" ? seedPayload : null;
-      const localPayload = cachedPayload ?? fallbackPayload;
-
-      if (localPayload) {
-        nextExercise ??= localPayload.exercise;
-        nextStatsByScope[scope] = localPayload.stats;
-        if (!cachedPayload && fallbackPayload) {
-          writeExerciseInfoClientPayload(normalizedExerciseId, fallbackPayload, "seed", scope);
-        }
+    if (localPayload) {
+      setExercise(localPayload.exercise);
+      setStatsByScope((current) => ({
+        ...current,
+        [currentScope]: localPayload.stats,
+      }));
+      setLastVisibleStats(localPayload.stats);
+      if (!cachedPayload && fallbackPayload) {
+        writeExerciseInfoClientPayload(normalizedExerciseId, fallbackPayload, "seed", normalizedFilterState);
       }
-
-      nextStatsLoadingByScope[scope] = !cachedPayload && !fallbackPayload;
     }
 
-    setExercise(nextExercise);
-    setStatsByScope(nextStatsByScope);
-    setStatsLoadingByScope(nextStatsLoadingByScope);
+    setStatsLoadingByScope((current) => ({
+      ...current,
+      [currentScope]: !cachedPayload && !fallbackPayload,
+    }));
 
-    async function loadScope(scope: ExerciseInfoAnalyticsScope) {
-      const controller = new AbortController();
-      controllers.set(scope, controller);
-
+    async function loadCurrentFilter() {
       try {
-        const result = await fetchExerciseInfoClientPayload(normalizedExerciseId, scope, controller.signal);
+        const result = await fetchExerciseInfoClientPayload(normalizedExerciseId, normalizedFilterState, controller.signal);
         if (!active) return;
 
         if (!result.ok) {
           console.error("[ExerciseInfo] failed to load payload", {
             exerciseId: normalizedExerciseId,
-            scope,
+            filterState: normalizedFilterState,
             status: result.status ?? "request-failed",
             code: result.code,
             details: result.details,
           });
-          if (scope === "all_time") {
+          if (currentScope === "all_time") {
             toast.error(result.message);
           }
-          setStatsLoadingByScope((current) => ({ ...current, [scope]: false }));
+          setStatsLoadingByScope((current) => ({ ...current, [currentScope]: false }));
           return;
         }
 
         setExercise((current) => current ?? result.payload.exercise);
         setStatsByScope((current) => ({
           ...current,
-          [scope]: result.payload.stats,
+          [currentScope]: result.payload.stats,
         }));
+        setLastVisibleStats(result.payload.stats);
         writeExerciseInfoClientPayload(normalizedExerciseId, {
           exercise: result.payload.exercise,
           stats: result.payload.stats,
-        }, "server", scope);
-        setStatsLoadingByScope((current) => ({ ...current, [scope]: false }));
+        }, "server", normalizedFilterState);
+        setStatsLoadingByScope((current) => ({ ...current, [currentScope]: false }));
       } catch (error) {
         if (!active || controller.signal.aborted) return;
         console.error("[ExerciseInfo] request failed", {
           exerciseId: normalizedExerciseId,
-          scope,
+          filterState: normalizedFilterState,
           status: "request-failed",
           error,
         });
-        if (scope === "all_time") {
+        if (currentScope === "all_time") {
           toast.error("Could not load exercise info.");
         }
-        setStatsLoadingByScope((current) => ({ ...current, [scope]: false }));
+        setStatsLoadingByScope((current) => ({ ...current, [currentScope]: false }));
       }
     }
 
-    for (const scope of EXERCISE_INFO_ANALYTICS_SCOPE_OPTIONS.map((option) => option.id)) {
-      const cachedEntry = readExerciseInfoClientPayload(normalizedExerciseId, scope);
-      const cachedPayload = normalizeExerciseInfoClientPayload(cachedEntry?.payload ?? null);
-      const fallbackPayload = scope === "all_time" ? seedPayload : null;
-      if (shouldFetchExerciseInfoClientPayload(cachedEntry) || !cachedPayload) {
-        if (!cachedPayload && !fallbackPayload) {
-          setStatsLoadingByScope((current) => ({ ...current, [scope]: true }));
-        }
-        void loadScope(scope);
+    if (shouldFetchExerciseInfoClientPayload(cachedEntry) || !cachedPayload) {
+      if (!cachedPayload && !fallbackPayload) {
+        setStatsLoadingByScope((current) => ({ ...current, [currentScope]: true }));
       }
+      void loadCurrentFilter();
     }
 
     return () => {
       active = false;
-      for (const controller of controllers.values()) {
-        controller.abort();
-      }
+      controller.abort();
     };
-  }, [exerciseId, initialExercise, initialStats, open, sourceContext, toast]);
+  }, [exerciseId, filterState, initialExercise, initialStats, open, sourceContext, toast]);
 
   return (
     <ExerciseInfoSoftBoundary exerciseId={exerciseId} onClose={onClose}>
@@ -216,12 +218,13 @@ export function ExerciseInfo({
         exercise={exercise}
         statsByScope={statsByScope}
         statsLoadingByScope={statsLoadingByScope}
+        lastVisibleStats={lastVisibleStats}
         open={open}
         onOpenChange={onOpenChange}
         onClose={onClose}
         sourceContext={sourceContext}
-        analyticsScope={analyticsScope}
-        onAnalyticsScopeChange={setAnalyticsScope}
+        filterState={filterState}
+        onFilterStateChange={setFilterState}
       />
     </ExerciseInfoSoftBoundary>
   );

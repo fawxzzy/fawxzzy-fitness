@@ -11,7 +11,7 @@ export type MetricDatum = {
   timeframe?: string | null;
   trend?: string | null;
   valuePrefix?: string | null;
-  valueTone?: "default" | "success" | "danger" | "muted";
+  valueTone?: "default" | "success" | "danger" | "warning" | "muted";
 };
 
 type MetricLabelPlacement = "top" | "bottom-right";
@@ -327,6 +327,8 @@ function resolveMetricValueToneClassName(tone: MetricDatum["valueTone"]) {
       return "text-[rgb(var(--success-rgb)/0.94)]";
     case "danger":
       return "text-[rgb(255,116,116)]";
+    case "warning":
+      return "text-[rgb(var(--accent-yellow-on)/0.96)]";
     case "muted":
       return "text-[rgb(var(--text-secondary)/0.82)]";
     default:

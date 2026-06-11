@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import Script from "next/script";
 import { Suspense } from "react";
+import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { ClientBundleRecoveryBootstrap } from "@/components/ClientBundleRecoveryBootstrap";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
 import { ProtectedAppInstallGate } from "@/components/install/ProtectedAppInstallGate";
@@ -156,6 +157,9 @@ export default async function RootLayout({
         <AppThemeBootstrap />
         <PersistentAppChrome />
         <ToastProvider>
+          <Suspense fallback={null}>
+            <ActionFeedbackToasts />
+          </Suspense>
           <ServiceWorkerBootstrap />
           <ClientBundleRecoveryBootstrap />
           <AppAmbientThemeBootstrap />

@@ -413,7 +413,7 @@ function buildCurrentSessionHeaderSignalMap(args: CurrentSessionHeaderContext): 
     signalMap["session-status"] = {
       id: "session-status",
       label: "Progress",
-      value: `${loggedExerciseCount} logged${skippedExerciseCount > 0 ? ` Â· ${skippedExerciseCount} skipped` : ""}`,
+      value: `${loggedExerciseCount} logged${skippedExerciseCount > 0 ? ` \u00B7 ${skippedExerciseCount} skipped` : ""}`,
       tone: skippedExerciseCount > 0 ? "warning" : "success",
       title: "Logged and skipped exercise status in this session",
       valuePosition: "after",
@@ -446,7 +446,7 @@ function buildCurrentSessionHeaderSignalMap(args: CurrentSessionHeaderContext): 
     signalMap["routine-structure"] = {
       id: "routine-structure",
       label: "Structure",
-      value: `${trainingDays} training Â· ${restDays} rest`,
+      value: `${trainingDays} training \u00B7 ${restDays} rest`,
       tone: "default",
       title: "Training and rest day split across this routine",
       valuePosition: "after",

@@ -97,6 +97,64 @@ test("normalizeExerciseInfoStats strips malformed nested analytics entries", () 
   assert.equal(stats.progression?.recentFocusSummary, "2 promotions led recent changes");
 });
 
+test("normalizeExerciseInfoStats preserves event-only regression history days", () => {
+  const stats = normalizeExerciseInfoStats({
+    kind: "strength",
+    recent: {},
+    totals: {},
+    bests: {},
+    prLabel: "",
+    prCount: 0,
+    quickMetrics: [],
+    surfaceMetrics: [],
+    progress: {
+      graphMetricKey: "time",
+      metrics: [],
+      reviewSections: [],
+      performances: [],
+      historyGroups: [
+        {
+          id: "history-day-2026-05-01",
+          dayKey: "2026-05-01",
+          label: "May 1",
+          performedAt: "2026-05-01T12:00:00.000Z",
+          routineTitles: ["Base Routine"],
+          signals: ["regression"],
+          tagLabels: ["UPDATE"],
+          rows: [],
+        },
+      ],
+      historyPoints: [
+        {
+          id: "day-2026-05-01",
+          type: "day",
+          performedAt: "2026-05-01T12:00:00.000Z",
+          dayKey: "2026-05-01",
+          label: "May 1",
+          summary: "0 sets",
+          numericValue: null,
+          values: [{ label: "Sets", value: "0", numericValue: 0 }],
+          signals: ["regression"],
+          tagLabels: ["UPDATE"],
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(stats?.progress?.historyGroups?.[0], {
+    id: "history-day-2026-05-01",
+    dayKey: "2026-05-01",
+    label: "May 1",
+    performedAt: "2026-05-01T12:00:00.000Z",
+    routineTitles: ["Base Routine"],
+    signals: ["regression"],
+    tagLabels: ["UPDATE"],
+    rows: [],
+  });
+  assert.equal(stats?.progress?.graphMetricKey, "time");
+  assert.equal(stats?.progress?.historyPoints?.[0]?.signals?.[0], "regression");
+});
+
 test("normalizeExerciseInfoClientPayload rejects incomplete exercise payloads", () => {
   assert.equal(
     normalizeExerciseInfoClientPayload({

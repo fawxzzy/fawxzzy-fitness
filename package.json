@@ -45,6 +45,8 @@
     "feedback:board:export": "node scripts/export-feedback-board.mjs",
     "feedback:tasks:generate": "node scripts/generate-feedback-task-packets.mjs",
     "feedback:phase:check": "node scripts/check-feedback-phase-readiness.mjs",
+    "feedback:monetization:seed": "node scripts/seed-feedback-monetization-roadmap.mjs",
+    "feedback:move-to-forum": "node scripts/move-feedback-reports-to-forum.mjs",
     "feedback:sync-forum-posts": "node scripts/sync-feedback-forum-posts.mjs",
     "feedback:sync-resolved-reactions": "node scripts/sync-feedback-resolved-reactions.mjs",
     "feedback:repair-board-state": "node scripts/repair-feedback-board-state.mjs",

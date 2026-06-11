@@ -17,6 +17,10 @@ export const DISCORD_BUG_REPORT_FORUM_BODY_MAX_LENGTH = 2000;
 export const DISCORD_BUG_REPORT_STATUS_NOTE_MAX_LENGTH = 1000;
 export const DISCORD_FEEDBACK_COMPLETION_REVIEW_NOTE_MAX_LENGTH = 1000;
 export const DISCORD_FEEDBACK_AUDIT_NOTE_MAX_LENGTH = 240;
+export const DISCORD_FEEDBACK_CARD_ID_MAX_LENGTH = 40;
+export const DISCORD_FEEDBACK_CARD_PHASE_MAX_LENGTH = 80;
+export const DISCORD_FEEDBACK_DEPENDENCY_NOTE_MAX_LENGTH = 240;
+export const DISCORD_FEEDBACK_DEPENDENCY_REF_MAX_LENGTH = 160;
 export const DISCORD_FEEDBACK_ATTACHMENT_MAX_COUNT = 3;
 export const DISCORD_FEEDBACK_ATTACHMENT_MAX_SIZE_BYTES = 8 * 1024 * 1024;
 export const DISCORD_BUG_REPORT_SHORT_ID_MIN_LENGTH = 6;
@@ -49,6 +53,7 @@ export const DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS = {
   needs_followup: "Needs Follow-Up",
 } as const;
 export const DISCORD_FEEDBACK_EFFORT_POINT_VALUES = [1, 2, 3, 5, 8, 13, 21, 34, 55] as const;
+export const DISCORD_FEEDBACK_CARD_PRIORITY_VALUES = ["P0", "P1", "P2", "P3"] as const;
 
 export type DiscordBugReportSeverity = "low" | "medium" | "high" | "blocker";
 export type DiscordBugReportStatus = keyof typeof DISCORD_BUG_REPORT_STATUS_TAG_LABELS;
@@ -56,6 +61,7 @@ export type DiscordBugReportReportType = keyof typeof DISCORD_BUG_REPORT_TYPE_TA
 export type DiscordBugReportReporterUserKind = "human" | "automation" | "unknown";
 export type DiscordFeedbackCompletionReviewStatus = keyof typeof DISCORD_FEEDBACK_COMPLETION_REVIEW_STATUS_TAG_LABELS;
 export type DiscordFeedbackEffortPoints = typeof DISCORD_FEEDBACK_EFFORT_POINT_VALUES[number];
+export type DiscordFeedbackCardPriority = typeof DISCORD_FEEDBACK_CARD_PRIORITY_VALUES[number];
 
 export type DiscordBugReportModalFields = {
   summary: string | null;
@@ -115,6 +121,11 @@ export type DiscordBugReportRow = {
   status: DiscordBugReportStatus;
   severity: DiscordBugReportSeverity;
   effort_points: DiscordFeedbackEffortPoints;
+  card_id: string | null;
+  card_phase: string | null;
+  card_priority: DiscordFeedbackCardPriority | null;
+  depends_on: string[] | null;
+  dependency_notes: string | null;
   area: string | null;
   summary: string;
   details: string | null;
@@ -291,6 +302,11 @@ const DISCORD_BUG_REPORT_SELECT_COLUMNS = [
   "status",
   "severity",
   "effort_points",
+  "card_id",
+  "card_phase",
+  "card_priority",
+  "depends_on",
+  "dependency_notes",
   "area",
   "summary",
   "details",
@@ -721,6 +737,61 @@ export function normalizeDiscordFeedbackEffortPoints(value: unknown): DiscordFee
     : null;
 }
 
+export function normalizeDiscordFeedbackCardId(value: unknown): string | null {
+  const normalized = normalizeTextInput(
+    typeof value === "string" ? value.replace(/[_\s]+/g, "-") : null,
+    DISCORD_FEEDBACK_CARD_ID_MAX_LENGTH,
+  )?.toUpperCase();
+  if (!normalized) {
+    return null;
+  }
+
+  return /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(normalized) ? normalized : null;
+}
+
+export function normalizeDiscordFeedbackCardPhase(value: unknown): string | null {
+  return normalizeTextInput(typeof value === "string" ? value : null, DISCORD_FEEDBACK_CARD_PHASE_MAX_LENGTH);
+}
+
+export function normalizeDiscordFeedbackCardPriority(value: unknown): DiscordFeedbackCardPriority | null {
+  const normalized = normalizeTextInput(typeof value === "string" ? value : null, 8)?.toUpperCase();
+  return normalized && DISCORD_FEEDBACK_CARD_PRIORITY_VALUES.includes(normalized as DiscordFeedbackCardPriority)
+    ? normalized as DiscordFeedbackCardPriority
+    : null;
+}
+
+export function normalizeDiscordFeedbackDependencyReferences(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const normalizedValues: string[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of value) {
+    const raw = normalizeTextInput(typeof entry === "string" ? entry : null, DISCORD_FEEDBACK_DEPENDENCY_REF_MAX_LENGTH);
+    if (!raw) {
+      continue;
+    }
+
+    const normalizedCardId = normalizeDiscordFeedbackCardId(raw);
+    const normalized = normalizedCardId ?? raw;
+    const key = normalizedCardId ? `id:${normalizedCardId}` : `title:${normalized.toLowerCase()}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalizedValues.push(normalized);
+  }
+
+  return normalizedValues.length > 0 ? normalizedValues : null;
+}
+
+export function normalizeDiscordFeedbackDependencyNote(value: unknown): string | null {
+  return normalizeTextInput(typeof value === "string" ? value : null, DISCORD_FEEDBACK_DEPENDENCY_NOTE_MAX_LENGTH);
+}
+
 function snapDiscordFeedbackEffortPoints(value: number): DiscordFeedbackEffortPoints {
   for (const points of DISCORD_FEEDBACK_EFFORT_POINT_VALUES) {
     if (value <= points) {
@@ -802,6 +873,7 @@ function coerceBugReportRow(data: Record<string, unknown> | null | undefined): D
   const status = coerceBugReportStatus(data.status);
   const severity = coerceBugReportSeverity(data.severity);
   const effortPoints = normalizeDiscordFeedbackEffortPoints(data.effort_points);
+  const cardPriority = normalizeDiscordFeedbackCardPriority(data.card_priority);
   const completionReviewStatus = coerceCompletionReviewStatus(data.completion_review_status) ?? "not_required";
   if (!reportType || !status || !severity || typeof data.summary !== "string" || typeof data.reporter_discord_user_id !== "string") {
     return null;
@@ -823,6 +895,11 @@ function coerceBugReportRow(data: Record<string, unknown> | null | undefined): D
       attachment_count: typeof data.attachment_count === "number" ? data.attachment_count : 0,
       duplicate_count: typeof data.duplicate_count === "number" ? data.duplicate_count : 1,
     }),
+    card_id: normalizeDiscordFeedbackCardId(data.card_id),
+    card_phase: normalizeDiscordFeedbackCardPhase(data.card_phase),
+    card_priority: cardPriority,
+    depends_on: normalizeDiscordFeedbackDependencyReferences(data.depends_on),
+    dependency_notes: normalizeDiscordFeedbackDependencyNote(data.dependency_notes),
     area: typeof data.area === "string" ? data.area : null,
     summary: data.summary,
     details: typeof data.details === "string" ? data.details : null,
@@ -1573,6 +1650,19 @@ export function buildDiscordBugForumThreadBody(args: {
     sharedLines.push(`Severity: ${formatForumSeverityLabel(args.report.severity)}`);
   }
 
+  if (args.report.card_id) {
+    sharedLines.push(`Card ID: ${args.report.card_id}`);
+  }
+  if (args.report.card_priority) {
+    sharedLines.push(`Priority: ${args.report.card_priority}`);
+  }
+  if (args.report.card_phase) {
+    sharedLines.push(`Phase: ${args.report.card_phase}`);
+  }
+  if (Array.isArray(args.report.depends_on) && args.report.depends_on.length > 0) {
+    sharedLines.push(`Depends on: ${args.report.depends_on.join(", ")}`);
+  }
+
   sharedLines.push(
     `Area: ${formatForumAreaLabel(args.report.area)}`,
     `Reporter: ${reporterLine}`,
@@ -1583,6 +1673,11 @@ export function buildDiscordBugForumThreadBody(args: {
     sections.title,
     "",
   );
+  if (args.report.dependency_notes) {
+    sharedLines.push("**Dependency Notes**");
+    sharedLines.push(renderForumBodyValue(args.report.dependency_notes, "Not provided"));
+    sharedLines.push("");
+  }
   const acceptanceCriteriaLines = sections.acceptanceCriteria.map((criterion) => `- ${criterion}`);
   const evidenceLines = sections.evidence.map((item) => item.value);
 

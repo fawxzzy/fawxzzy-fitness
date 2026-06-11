@@ -18,6 +18,7 @@ export type DetailSectionListItem = {
   primary: string;
   value?: string | null;
   meta?: string | null;
+  contentClassName?: string;
   signals?: DetailSectionSignalTone | DetailSectionSignalTone[] | null;
   tagLabels?: string[] | null;
   tone?: DetailSectionTone;
@@ -54,7 +55,7 @@ const DETAIL_SECTION_BADGE_CONFIG = {
     dotClassName: "bg-[rgb(var(--accent-yellow-on)/0.96)]",
   },
   regression: {
-    label: "REGRESS",
+    label: "REGRESSION",
     textClassName: "text-[rgb(255,116,116)]",
     chipClassName: "border-[rgb(255,116,116,0.24)] bg-[rgb(255,116,116,0.1)] text-[rgb(255,116,116)]",
     dotClassName: "bg-[rgb(255,116,116)]",
@@ -200,6 +201,7 @@ function normalizeDetailSectionItem(input: DetailSectionListItemInput, index: nu
     primary,
     value: typeof input.value === "string" ? normalizeDecoratedText(input.value).trim() : input.value ?? null,
     meta: typeof input.meta === "string" ? normalizeDecoratedText(input.meta).trim() : input.meta ?? null,
+    contentClassName: typeof input.contentClassName === "string" ? input.contentClassName : undefined,
     signals: input.signals ?? null,
     tagLabels: Array.isArray(input.tagLabels) ? input.tagLabels.filter((label) => typeof label === "string" && label.trim().length > 0) : null,
     tone: input.tone,
@@ -331,6 +333,7 @@ export function DetailSectionItems({
                     "min-w-0 block text-[12.5px] leading-[1.28] [text-wrap:pretty]",
                     (item.tone ?? tone) === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
                     primarySignal ? DETAIL_SECTION_BADGE_CONFIG[primarySignal].textClassName : undefined,
+                    item.contentClassName,
                   )}
                 >
                   {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}

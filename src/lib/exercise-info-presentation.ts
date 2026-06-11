@@ -31,7 +31,7 @@ export function buildExerciseInfoSurfaceMetrics(args: {
 }) {
   const metrics: MetricDatum[] = [];
   const pushMetric = (item: MetricDatum | null | undefined) => {
-    if (!item || metrics.length >= 4) {
+    if (!item) {
       return;
     }
     metrics.push(item);
@@ -48,16 +48,22 @@ export function buildExerciseInfoSurfaceMetrics(args: {
   pushMetric(lastMetric);
   pushMetric(bestMetric);
 
-  if (metrics.length < 4) {
-    for (const item of quickMetrics) {
-      if (item.label === "Last" || item.label === "Best" || item.label === "Sessions" || item.label === "Sets" || item.label === "PRs") {
-        continue;
-      }
-      pushMetric(item);
-    }
+  for (const item of args.progressMetrics) {
+    pushMetric(item);
   }
 
-  return dedupeMetricList(metrics).slice(0, 4);
+  for (const item of args.performanceMetrics) {
+    pushMetric(item);
+  }
+
+  for (const item of quickMetrics) {
+    if (item.label === "Last" || item.label === "Best" || item.label === "Sessions" || item.label === "Sets" || item.label === "PRs") {
+      continue;
+    }
+    pushMetric(item);
+  }
+
+  return dedupeMetricList(metrics);
 }
 
 function groupPrHistoryItems(items: string[]) {

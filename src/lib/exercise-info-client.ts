@@ -3,7 +3,13 @@ import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { DetailSectionListItemInput, DetailSectionSignalTone } from "@/components/ui/DetailSectionList";
 import type { ExerciseHistoryDayGroup, ExerciseHistoryPoint, ExerciseHistoryValuePart } from "@/lib/exercise-info";
 import type { ExerciseInfoReviewSection } from "@/lib/exercise-info-presentation";
-import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import type {
+  ExerciseInfoAnalyticsScope,
+  ExerciseInfoCycleFilterOption,
+  ExerciseInfoFilterOptions,
+  ExerciseInfoFilterState,
+  ExerciseInfoRoutineFilterOption,
+} from "@/lib/exercise-info-scope";
 import type { ExerciseProgressionActivityDay, ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
 
@@ -270,6 +276,54 @@ function normalizeTagLabels(value: unknown) {
     : [];
 }
 
+function normalizeExerciseInfoFilterOptions(value: unknown): ExerciseInfoFilterOptions {
+  if (!isRecord(value) || !Array.isArray(value.routines)) {
+    return { routines: [] };
+  }
+
+  const routines = value.routines
+    .map((routine): ExerciseInfoRoutineFilterOption | null => {
+      if (!isRecord(routine)) {
+        return null;
+      }
+
+      const id = readPrimitiveText(routine.id);
+      const title = readPrimitiveText(routine.title);
+      if (!id || !title) {
+        return null;
+      }
+
+      const cycleOptions = Array.isArray(routine.cycleOptions)
+        ? routine.cycleOptions
+            .map((cycle): ExerciseInfoCycleFilterOption | null => {
+              if (!isRecord(cycle)) {
+                return null;
+              }
+
+              const startDate = readPrimitiveText(cycle.startDate);
+              const endDate = readPrimitiveText(cycle.endDate);
+              const label = readPrimitiveText(cycle.label);
+              if (!startDate || !endDate || !label) {
+                return null;
+              }
+
+              return { startDate, endDate, label };
+            })
+            .filter((cycle): cycle is ExerciseInfoCycleFilterOption => Boolean(cycle))
+        : [];
+
+      return {
+        id,
+        title,
+        ...(routine.isActive === true ? { isActive: true } : {}),
+        cycleOptions,
+      };
+    })
+    .filter((routine): routine is ExerciseInfoRoutineFilterOption => Boolean(routine));
+
+  return { routines };
+}
+
 function normalizeHistoryGroups(value: unknown): ExerciseHistoryDayGroup[] {
   if (!Array.isArray(value)) {
     return [];
@@ -287,6 +341,9 @@ function normalizeHistoryGroups(value: unknown): ExerciseHistoryDayGroup[] {
       if (!id || !dayKey || !label || !performedAt) {
         return null;
       }
+      const routineTitles = Array.isArray(group.routineTitles)
+        ? group.routineTitles.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
+        : [];
 
       const rows = group.rows
         .map((row) => {
@@ -316,23 +373,24 @@ function normalizeHistoryGroups(value: unknown): ExerciseHistoryDayGroup[] {
             primary,
             ...(readOptionalString(row.meta) ? { meta: readOptionalString(row.meta) } : {}),
             values: normalizeHistoryValueParts(row.values),
+            ...(row.isSkipped === true ? { isSkipped: true } : {}),
             ...(normalizeSignals(row.signals) ? { signals: normalizeSignals(row.signals) as ExerciseHistoryDayGroup["rows"][number]["signals"] } : {}),
             ...(normalizeTagLabels(row.tagLabels).length > 0 ? { tagLabels: normalizeTagLabels(row.tagLabels) } : {}),
           };
         })
         .filter((row): row is ExerciseHistoryDayGroup["rows"][number] => Boolean(row));
 
-      return rows.length > 0
-        ? {
-            id,
-            dayKey,
-            label,
-            performedAt,
-            ...(normalizeSignals(group.signals) ? { signals: normalizeSignals(group.signals) as ExerciseHistoryDayGroup["signals"] } : {}),
-            ...(normalizeTagLabels(group.tagLabels).length > 0 ? { tagLabels: normalizeTagLabels(group.tagLabels) } : {}),
-            rows,
-          }
-        : null;
+      return {
+        id,
+        dayKey,
+        label,
+        performedAt,
+        ...(routineTitles.length > 0 ? { routineTitles } : {}),
+        ...(group.isSkipped === true ? { isSkipped: true } : {}),
+        ...(normalizeSignals(group.signals) ? { signals: normalizeSignals(group.signals) as ExerciseHistoryDayGroup["signals"] } : {}),
+        ...(normalizeTagLabels(group.tagLabels).length > 0 ? { tagLabels: normalizeTagLabels(group.tagLabels) } : {}),
+        rows,
+      };
     })
     .filter((group): group is ExerciseHistoryDayGroup => Boolean(group));
 }
@@ -367,6 +425,7 @@ function normalizeHistoryPoints(value: unknown): ExerciseHistoryPoint[] {
         ...(readOptionalString(point.meta) ? { meta: readOptionalString(point.meta) } : {}),
         numericValue: readOptionalNumber(point.numericValue) ?? null,
         values: normalizeHistoryValueParts(point.values),
+        ...(point.isSkipped === true ? { isSkipped: true } : {}),
         ...(normalizeSignals(point.signals) ? { signals: normalizeSignals(point.signals) as ExerciseHistoryPoint["signals"] } : {}),
         ...(normalizeTagLabels(point.tagLabels).length > 0 ? { tagLabels: normalizeTagLabels(point.tagLabels) } : {}),
         ...(readOptionalString(point.rowId) ? { rowId: readOptionalString(point.rowId) } : {}),
@@ -567,10 +626,12 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
   const progressionDerived = normalizeDerivedProgression(value.progressionDerived);
   const bestSetSummary = readOptionalString(value.bests.bestSetSummary);
   const bestDistanceUnit = readOptionalString(value.bests.bestDistanceUnit);
+  const graphMetricKey = readOptionalString(progress?.graphMetricKey);
 
   return {
     ...(readOptionalString(value.exercise_id) ? { exercise_id: readOptionalString(value.exercise_id) ?? undefined } : {}),
     ...(readOptionalString(value.activeRoutineTitle) !== null ? { activeRoutineTitle: readOptionalString(value.activeRoutineTitle) } : {}),
+    filterOptions: normalizeExerciseInfoFilterOptions(value.filterOptions),
     kind,
     ...(presentationKind ? { presentationKind } : {}),
     recent: {
@@ -609,6 +670,9 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
     progress: {
       metrics: normalizeMetricList(progress?.metrics),
       reviewSections: normalizeReviewSections(progress?.reviewSections),
+      ...(graphMetricKey && ["reps", "weight", "time", "distance", "calories"].includes(graphMetricKey)
+        ? { graphMetricKey }
+        : {}),
       performances: normalizePerformanceEntries(progress?.performances),
       historyGroups: normalizeHistoryGroups(progress?.historyGroups),
       historyPoints: normalizeHistoryPoints(progress?.historyPoints),
@@ -648,10 +712,31 @@ export function normalizeExerciseInfoClientPayload(value: unknown): ExerciseInfo
 
 export async function fetchExerciseInfoClientPayload(
   exerciseId: string,
-  scope: ExerciseInfoAnalyticsScope,
+  filterState: Partial<ExerciseInfoFilterState> | ExerciseInfoAnalyticsScope,
   signal?: AbortSignal,
 ): Promise<ExerciseInfoClientFetchResult> {
-  const response = await fetch(`/api/exercise-info/${exerciseId}?scope=${scope}`, { signal });
+  const normalizedFilterState = typeof filterState === "string"
+    ? {
+        analyticsScope: filterState,
+        routineId: null,
+        cycleStartDate: null,
+      }
+    : {
+        analyticsScope: filterState.analyticsScope ?? "all_time",
+        routineId: filterState.routineId ?? null,
+        cycleStartDate: filterState.cycleStartDate ?? null,
+      };
+  const params = new URLSearchParams({
+    scope: normalizedFilterState.analyticsScope,
+  });
+  if (normalizedFilterState.routineId) {
+    params.set("routineId", normalizedFilterState.routineId);
+  }
+  if (normalizedFilterState.cycleStartDate) {
+    params.set("cycleStartDate", normalizedFilterState.cycleStartDate);
+  }
+
+  const response = await fetch(`/api/exercise-info/${exerciseId}?${params.toString()}`, { signal });
   const payload = (await response.json().catch(() => null)) as ExerciseInfoApiSuccess | ExerciseInfoApiFailure | null;
 
   if (!response.ok) {

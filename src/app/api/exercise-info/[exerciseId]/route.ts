@@ -44,6 +44,8 @@ export async function GET(
   const canonicalExerciseId = resolveCanonicalExerciseId(exerciseId);
   const requestUrl = new URL(request.url);
   const requestedScope = requestUrl.searchParams.get("scope");
+  const requestedRoutineId = requestUrl.searchParams.get("routineId");
+  const requestedCycleStartDate = requestUrl.searchParams.get("cycleStartDate");
   const analyticsScope = isExerciseInfoAnalyticsScope(requestedScope) ? requestedScope : "all_time";
   const requestId = `ei_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   let step: ExerciseInfoStep = "validate";
@@ -102,7 +104,11 @@ export async function GET(
       exercise.exercise_id,
       exercise,
       requestId,
-      { analyticsScope },
+      {
+        analyticsScope,
+        routineId: requestedRoutineId,
+        cycleStartDate: requestedCycleStartDate,
+      },
     ));
 
     let exerciseWithImages = exercise;

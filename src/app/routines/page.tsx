@@ -51,7 +51,7 @@ function formatRoutineBrowseCardSummary(args: {
       : "No exercises",
     `${safeTrainingDays} train`,
     `${safeRestDays} rest`,
-  ].join(" • ");
+  ].join(" \u2022 ");
 }
 
 async function setActiveRoutineAction(formData: FormData) {
@@ -236,7 +236,7 @@ export default async function RoutinesPage({
   const restDays = sortedActiveRoutineDays.filter((day) => day.is_rest).length;
   const trainingDays = Math.max(totalDays - restDays, 0);
   const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
-  const cycleSummary = activeRoutine ? `${trainingDays} training • ${restDays} rest` : undefined;
+  const cycleSummary = activeRoutine ? `${trainingDays} training \u2022 ${restDays} rest` : undefined;
   const todayRoutineSchedule = activeRoutine?.start_date && cycleLength > 0
     ? resolveRoutineScheduleForToday({
         cycleLengthDays: cycleLength,

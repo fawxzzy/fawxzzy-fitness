@@ -21,12 +21,18 @@ export function hasQaLlelMarker(values: Array<string | null | undefined>) {
   return values.some((value) => isQaLlelLabel(value));
 }
 
-export function resolveShowQaLlelDataPreference(profile: Pick<ProfileRow, "show_qa_llel_data" | "user_kind">) {
+export function resolveShowQaLlelDataPreference(
+  profile: Pick<ProfileRow, "show_qa_llel_data" | "user_kind"> & { user_number?: number | null },
+) {
   if (typeof profile.show_qa_llel_data === "boolean") {
     return profile.show_qa_llel_data;
   }
 
-  return profile.user_kind === "automation";
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+
+  return profile.user_kind === "automation" || profile.user_number === 0;
 }
 
 export function resolveQaLlelVisibilityOverride(value: string | null | undefined) {
@@ -42,7 +48,7 @@ export function resolveQaLlelVisibilityOverride(value: string | null | undefined
 }
 
 export function resolveShowQaLlelDataPreferenceWithOverride(
-  profile: Pick<ProfileRow, "show_qa_llel_data" | "user_kind">,
+  profile: Pick<ProfileRow, "show_qa_llel_data" | "user_kind"> & { user_number?: number | null },
   override: boolean | null,
 ) {
   if (typeof override === "boolean") {

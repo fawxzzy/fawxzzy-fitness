@@ -6086,7 +6086,7 @@ export function ProgressionPlaybookEditor({
                         <div className="mx-auto flex w-fit max-w-full flex-col items-center justify-center gap-y-1 text-center">
                           {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.repResetBefore!, section.repResetAfter!, "left"))}
                           <span className="inline-flex min-h-4 min-w-0 rotate-90 items-center justify-center text-[12px] font-bold text-[rgb(var(--accent-divider-rgb)/0.95)]">
-                            â†’
+                            {"\u2192"}
                           </span>
                           {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.repResetAfter!, section.repResetBefore!))}
                         </div>

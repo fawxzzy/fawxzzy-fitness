@@ -50,9 +50,42 @@ type RoutinesRoutineDeleteQuery = {
   };
 };
 
+type SessionsRoutineDeleteQuery = {
+  select(columns: "id"): {
+    eq(column: "user_id", value: string): {
+      eq(column: "routine_id", value: string): Promise<{
+        data: RoutineDeleteIdentityRow[] | null;
+        error: RoutineDeleteError | null;
+      }>;
+    };
+  };
+  delete(): {
+    eq(column: "routine_id", value: string): {
+      eq(column: "user_id", value: string): Promise<{
+        error: RoutineDeleteError | null;
+      }>;
+    };
+  };
+};
+
+type ProgressionEventsRoutineDeleteQuery = {
+  delete(): {
+    eq(column: "user_id", value: string): {
+      eq(column: "routine_id", value: string): Promise<{
+        error: RoutineDeleteError | null;
+      }>;
+      in(column: "source_session_id", values: string[]): Promise<{
+        error: RoutineDeleteError | null;
+      }>;
+    };
+  };
+};
+
 export type RoutineDeleteClient = {
   from(table: "profiles"): ProfilesRoutineDeleteQuery;
   from(table: "routines"): RoutinesRoutineDeleteQuery;
+  from(table: "sessions"): SessionsRoutineDeleteQuery;
+  from(table: "progression_events"): ProgressionEventsRoutineDeleteQuery;
 };
 
 export type DeleteRoutineMutationResult =
@@ -66,6 +99,9 @@ export type DeleteRoutineMutationResult =
       error: string;
       reason:
         | "profile-lookup-failed"
+        | "session-lookup-failed"
+        | "progression-delete-failed"
+        | "session-delete-failed"
         | "routine-delete-failed"
         | "replacement-routine-lookup-failed"
         | "profile-update-failed";
@@ -91,6 +127,66 @@ export async function deleteRoutineMutation(args: {
   }
 
   const deletingActiveRoutine = profile?.active_routine_id === args.routineId;
+
+  const { data: routineSessions, error: routineSessionsError } = await args.supabase
+    .from("sessions")
+    .select("id")
+    .eq("user_id", args.userId)
+    .eq("routine_id", args.routineId);
+
+  if (routineSessionsError) {
+    return {
+      ok: false,
+      error: routineSessionsError.message || "Failed to resolve routine sessions.",
+      reason: "session-lookup-failed",
+    };
+  }
+
+  const routineSessionIds = (routineSessions ?? []).map((row) => row.id).filter(Boolean);
+
+  const { error: progressionDeleteError } = await args.supabase
+    .from("progression_events")
+    .delete()
+    .eq("user_id", args.userId)
+    .eq("routine_id", args.routineId);
+
+  if (progressionDeleteError) {
+    return {
+      ok: false,
+      error: progressionDeleteError.message || "Failed to delete routine progression events.",
+      reason: "progression-delete-failed",
+    };
+  }
+
+  if (routineSessionIds.length > 0) {
+    const { error: sessionProgressionDeleteError } = await args.supabase
+      .from("progression_events")
+      .delete()
+      .eq("user_id", args.userId)
+      .in("source_session_id", routineSessionIds);
+
+    if (sessionProgressionDeleteError) {
+      return {
+        ok: false,
+        error: sessionProgressionDeleteError.message || "Failed to delete session-linked progression events.",
+        reason: "progression-delete-failed",
+      };
+    }
+  }
+
+  const { error: sessionDeleteError } = await args.supabase
+    .from("sessions")
+    .delete()
+    .eq("routine_id", args.routineId)
+    .eq("user_id", args.userId);
+
+  if (sessionDeleteError) {
+    return {
+      ok: false,
+      error: sessionDeleteError.message || "Failed to delete routine sessions.",
+      reason: "session-delete-failed",
+    };
+  }
 
   const { error: deleteError } = await args.supabase
     .from("routines")

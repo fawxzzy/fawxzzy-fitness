@@ -27,6 +27,11 @@ function buildRecord(overrides = {}) {
     report_type: "bug",
     status: "confirmed",
     effort_points: 3,
+    card_id: null,
+    card_phase: null,
+    card_priority: null,
+    depends_on: [],
+    dependency_notes: null,
     area: "Security",
     title: "Verification controls fail on repeated attempts",
     description: "Repeated verification attempts should surface staff-visible context and controlled failure handling.",
@@ -256,6 +261,63 @@ test("task packet generation groups related records into a single packet", () =>
   assert.deepEqual(result.packets[0].feedbackShortIds, ["11111111", "22222222"]);
   assert.equal(result.packets[0].duplicateCount, 3);
   assert.equal(result.packets[0].effortPoints, 8);
+});
+
+test("loadBoardRecords rejects unresolved dependency metadata", () => {
+  const { sourcePath } = writeBoardFixture([
+    buildRecord({
+      id: "11111111-1111-4111-8111-111111111111",
+      card_id: "FF-MON-002",
+      depends_on: ["FF-MON-001"],
+    }),
+  ]);
+
+  assert.throws(() => loadBoardRecords(sourcePath), /unresolved dependency "FF-MON-001"/);
+});
+
+test("task packet generation keeps dependency cards separate and carries dependency metadata", () => {
+  const args = parseArgs(["--type", "feature"]);
+  const records = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        id: "11111111-1111-4111-8111-111111111111",
+        report_type: "feature",
+        title: "Monetization foundation",
+        description: "Land the pricing and entitlement foundation.",
+        card_id: "FF-MON-001",
+      }),
+      buildRecord({
+        id: "22222222-2222-4222-8222-222222222222",
+        report_type: "feature",
+        title: "Monetization offer wall",
+        description: "Ship the offer wall after the foundation lands.",
+        card_id: "FF-MON-002",
+        card_phase: "Monetization Phase 2",
+        card_priority: "P1",
+        depends_on: ["FF-MON-001"],
+        dependency_notes: "Do not start until the foundation card is complete.",
+      }),
+    ]).sourcePath,
+  );
+  const result = buildTaskPacketResult({
+    records,
+    inputCount: records.length,
+    args,
+    sourcePath: "fixture.json",
+  });
+
+  assert.equal(result.packets.length, 2);
+
+  const foundation = result.packets.find((packet) => packet.cardIds.includes("FF-MON-001"));
+  const followup = result.packets.find((packet) => packet.cardIds.includes("FF-MON-002"));
+
+  assert.ok(foundation);
+  assert.ok(followup);
+  assert.deepEqual(foundation?.blocks, ["FF-MON-002"]);
+  assert.deepEqual(followup?.dependsOn, ["FF-MON-001"]);
+  assert.equal(followup?.cardSections[0].cardPhase, "Monetization Phase 2");
+  assert.equal(followup?.cardSections[0].cardPriority, "P1");
+  assert.equal(followup?.cardSections[0].dependencyNotes, "Do not start until the foundation card is complete.");
 });
 
 test("task packet outputs mask discord ids and attachment bytes by default", async () => {

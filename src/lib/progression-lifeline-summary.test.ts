@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildExerciseProgressionLifelineSummary,
   buildProgressionAnalyticsDigest,
+  buildStructuredProgressionActivityItem,
   buildSessionProgressionSummary,
 } from "./progression-lifeline-summary";
 import type { ProgressionEventRow } from "@/types/db";
@@ -114,6 +115,19 @@ test("buildExerciseProgressionLifelineSummary labels single-measurement reductio
   ]);
 
   assert.equal(summary?.latestChangeSummary, "Distance reduced | 2 mi → 1 mi");
+});
+
+test("buildStructuredProgressionActivityItem marks promotion reverts as regressions", () => {
+  const item = buildStructuredProgressionActivityItem({
+    event: buildEvent({
+      event_type: "promotion_reverted",
+      from_target: { measurementType: "reps", repsMin: 10, repsMax: 12, weightMin: 135, weightMax: 135, weightUnit: "lbs" },
+      to_target: { measurementType: "reps", repsMin: 8, repsMax: 10, weightMin: 135, weightMax: 135, weightUnit: "lbs" },
+    }),
+  });
+
+  assert.equal(item.signals, "regression");
+  assert.notEqual(item.primary, "Promotion reverted");
 });
 
 test("buildSessionProgressionSummary rolls session updates into a session headline", () => {

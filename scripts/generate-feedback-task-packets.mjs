@@ -4,6 +4,14 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+  applyResolvedFeedbackCardDependencies,
+  normalizeFeedbackCardId,
+  normalizeFeedbackCardPhase,
+  normalizeFeedbackCardPriority,
+  normalizeFeedbackDependencyNote,
+  normalizeFeedbackDependencyReferences,
+} from "./feedback-card-metadata.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
@@ -343,6 +351,11 @@ function normalizeBoardRecord(input, index) {
   const completionReviewStatus = typeof input.completion_review_status === "string"
     ? input.completion_review_status.trim().toLowerCase()
     : "not_required";
+  const cardId = normalizeFeedbackCardId(input.card_id);
+  const cardPhase = normalizeFeedbackCardPhase(input.card_phase);
+  const cardPriority = normalizeFeedbackCardPriority(input.card_priority);
+  const dependsOn = normalizeFeedbackDependencyReferences(input.depends_on);
+  const dependencyNotes = normalizeFeedbackDependencyNote(input.dependency_notes);
   const cardSections = input?.card_sections && typeof input.card_sections === "object"
     ? {
       headerLabel: clipped(input.card_sections.header_label, 80),
@@ -384,6 +397,12 @@ function normalizeBoardRecord(input, index) {
     duplicateCount,
     attachmentCount,
     effortPoints,
+    cardId,
+    cardPhase,
+    cardPriority,
+    dependsOn,
+    blocks: [],
+    dependencyNotes,
     forumThreadLink: forumThreadLink || null,
     lastSeenAt: typeof input.last_seen_at === "string" ? input.last_seen_at : null,
     completionReviewStatus,
@@ -439,9 +458,22 @@ export function loadBoardRecords(sourcePath) {
     throw new Error("Feedback board input must be an array or an object with a records array.");
   }
 
-  return rows
+  return applyResolvedFeedbackCardDependencies(
+    rows
     .map((row, index) => normalizeBoardRecord(row, index))
-    .filter((row) => Boolean(row));
+    .filter((row) => Boolean(row)),
+    {
+      getShortId: (record) => record.shortId,
+      getCardId: (record) => record.cardId,
+      getTitle: (record) => record.title,
+      getDependsOn: (record) => record.dependsOn,
+      setResolved: (record, resolved) => ({
+        ...record,
+        dependsOn: resolved.dependsOn,
+        blocks: resolved.blocks,
+      }),
+    },
+  );
 }
 
 export function filterBoardRecords(records, args) {
@@ -450,7 +482,22 @@ export function filterBoardRecords(records, args) {
     .slice(0, args.limit);
 }
 
+function hasExplicitDependencyMetadata(record) {
+  return Boolean(
+    record.cardId
+    || record.cardPhase
+    || record.cardPriority
+    || (Array.isArray(record.dependsOn) && record.dependsOn.length > 0)
+    || (Array.isArray(record.blocks) && record.blocks.length > 0)
+    || record.dependencyNotes,
+  );
+}
+
 function shouldGroupTogether(record, candidatePacket) {
+  if (hasExplicitDependencyMetadata(record) || candidatePacket.records.some((item) => hasExplicitDependencyMetadata(item))) {
+    return false;
+  }
+
   if (record.reportType !== candidatePacket.reportType || record.area !== candidatePacket.area) {
     return false;
   }
@@ -650,6 +697,10 @@ function buildAcceptanceCriteria(packet) {
     criteria.push("Any shipped work can be mapped back to the source feedback card(s) for manual status updates.");
   }
 
+  if (packet.records.some((record) => hasExplicitDependencyMetadata(record))) {
+    criteria.push("Declared card dependencies, phase order, and blocked follow-on work remain consistent with the board metadata.");
+  }
+
   return criteria;
 }
 
@@ -672,6 +723,10 @@ function buildStatusSuggestions(packet) {
   const suggestions = [];
   if (packet.records.some((record) => record.status === "confirmed")) {
     suggestions.push("Suggest `/feedback-status in_progress` after human review approves the implementation start.");
+  }
+
+  if (packet.records.some((record) => Array.isArray(record.dependsOn) && record.dependsOn.length > 0)) {
+    suggestions.push("Confirm every declared prerequisite card is actually complete before advancing this card.");
   }
 
   suggestions.push("Suggest `/feedback-status fixed` after the implementation is shipped and verified.");
@@ -734,10 +789,20 @@ export function finalizePacket(packet, args, decisionMap = new Map()) {
     reportType: packet.reportType,
     area: packet.area,
     title: commonTopicTitle(packet),
+    cardIds: [...new Set(sortedRecords.map((record) => record.cardId).filter(Boolean))],
+    cardPhases: [...new Set(sortedRecords.map((record) => record.cardPhase).filter(Boolean))],
+    dependsOn: [...new Set(sortedRecords.flatMap((record) => record.dependsOn ?? []))],
+    blocks: [...new Set(sortedRecords.flatMap((record) => record.blocks ?? []))],
     problemStatement: summarizeProblemStatement(packet),
     cardSections: sortedRecords.map((record) => ({
       reportId: record.id,
       shortId: record.shortId,
+      cardId: record.cardId,
+      cardPhase: record.cardPhase,
+      cardPriority: record.cardPriority,
+      dependsOn: [...(record.dependsOn ?? [])],
+      blocks: [...(record.blocks ?? [])],
+      dependencyNotes: record.dependencyNotes,
       headerLabel: record.cardSections.headerLabel,
       title: record.cardSections.title,
       problem: record.cardSections.problem,
@@ -908,6 +973,18 @@ export function renderPacketMarkdown(result) {
       if (packet.effortPoints) {
         lines.push(`- Points: ${packet.effortPoints}`);
       }
+      if (packet.cardIds.length > 0) {
+        lines.push(`- Card IDs: ${packet.cardIds.join(", ")}`);
+      }
+      if (packet.cardPhases.length > 0) {
+        lines.push(`- Phases: ${packet.cardPhases.join(", ")}`);
+      }
+      if (packet.dependsOn.length > 0) {
+        lines.push(`- Depends on: ${packet.dependsOn.join(", ")}`);
+      }
+      if (packet.blocks.length > 0) {
+        lines.push(`- Blocks: ${packet.blocks.join(", ")}`);
+      }
       lines.push(`- Reviewer decision: ${packet.reviewerDecision}`);
       lines.push(`- Feedback IDs: ${packet.feedbackShortIds.map((id) => `\`${id}\``).join(", ")}`);
       lines.push(`- Attachment count: ${packet.attachmentsCount}`);
@@ -925,6 +1002,21 @@ export function renderPacketMarkdown(result) {
         lines.push("Card sections:");
         for (const section of packet.cardSections) {
           lines.push(`- ${section.shortId} | ${section.headerLabel}`);
+          if (section.cardId) {
+            lines.push(`  Card ID: ${section.cardId}`);
+          }
+          if (section.cardPriority) {
+            lines.push(`  Priority: ${section.cardPriority}`);
+          }
+          if (section.cardPhase) {
+            lines.push(`  Phase: ${section.cardPhase}`);
+          }
+          if (section.dependsOn.length > 0) {
+            lines.push(`  Depends on: ${section.dependsOn.join(", ")}`);
+          }
+          if (section.blocks.length > 0) {
+            lines.push(`  Blocks: ${section.blocks.join(", ")}`);
+          }
           if (section.userStory) {
             lines.push(`  User Story: ${section.userStory}`);
           }
@@ -942,6 +1034,9 @@ export function renderPacketMarkdown(result) {
           }
           if (section.stepsToReproduce) {
             lines.push(`  Steps: ${section.stepsToReproduce}`);
+          }
+          if (section.dependencyNotes) {
+            lines.push(`  Dependency notes: ${section.dependencyNotes}`);
           }
         }
         lines.push("");
@@ -1062,6 +1157,18 @@ export function renderCodexPrompts(result) {
       if (packet.effortPoints) {
         lines.push(`- Points: ${packet.effortPoints}`);
       }
+      if (packet.cardIds.length > 0) {
+        lines.push(`- Card IDs: ${packet.cardIds.join(", ")}`);
+      }
+      if (packet.cardPhases.length > 0) {
+        lines.push(`- Phases: ${packet.cardPhases.join(", ")}`);
+      }
+      if (packet.dependsOn.length > 0) {
+        lines.push(`- Depends on: ${packet.dependsOn.join(", ")}`);
+      }
+      if (packet.blocks.length > 0) {
+        lines.push(`- Blocks: ${packet.blocks.join(", ")}`);
+      }
       lines.push("");
       lines.push("Feedback evidence");
       lines.push("");
@@ -1074,6 +1181,21 @@ export function renderCodexPrompts(result) {
         lines.push("");
         for (const section of packet.cardSections) {
           lines.push(`- ${section.shortId} | ${section.headerLabel}`);
+          if (section.cardId) {
+            lines.push(`  Card ID: ${section.cardId}`);
+          }
+          if (section.cardPriority) {
+            lines.push(`  Priority: ${section.cardPriority}`);
+          }
+          if (section.cardPhase) {
+            lines.push(`  Phase: ${section.cardPhase}`);
+          }
+          if (section.dependsOn.length > 0) {
+            lines.push(`  Depends on: ${section.dependsOn.join(", ")}`);
+          }
+          if (section.blocks.length > 0) {
+            lines.push(`  Blocks: ${section.blocks.join(", ")}`);
+          }
           if (section.userStory) {
             lines.push(`  User Story: ${section.userStory}`);
           }
@@ -1094,6 +1216,9 @@ export function renderCodexPrompts(result) {
           }
           if (section.evidenceSummary) {
             lines.push(`  Evidence: ${section.evidenceSummary}`);
+          }
+          if (section.dependencyNotes) {
+            lines.push(`  Dependency notes: ${section.dependencyNotes}`);
           }
         }
         lines.push("");

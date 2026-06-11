@@ -93,7 +93,7 @@ function formatEventTypeLabel(eventType: ProgressionEventRow["event_type"]) {
     case "promotion_applied":
       return "Promotion";
     case "promotion_reverted":
-      return "Promotion reverted";
+      return "Regression";
     case "deload_applied":
       return "Regression";
     case "manual_target_change":
@@ -150,9 +150,9 @@ function getProgressionEventSignal(eventType: ProgressionEventRow["event_type"])
     case "promotion_applied":
       return "promotion" as const;
     case "deload_applied":
+    case "promotion_reverted":
       return "regression" as const;
     case "manual_target_change":
-    case "promotion_reverted":
       return "watch" as const;
     default:
       return null;

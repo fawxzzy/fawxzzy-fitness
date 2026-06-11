@@ -1,6 +1,16 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-06-10 - Feedback board roadmap sequencing should use explicit dependency metadata
+- Type: Pattern
+- Summary: Feedback board cards that represent sequenced roadmap work should store explicit card ids, bounded priorities, rollout phases, and dependency links so Discord starter posts, board exports, and reviewed task packets all preserve the same execution order.
+- Rule: Use explicit `card_id`, `card_phase`, `card_priority`, `depends_on`, and `dependency_notes` metadata instead of hiding sequencing in freeform notes.
+- Rule: Reviewed task packets must reject unresolved dependencies, ambiguous title fallbacks, self-dependencies, and simple cycles before implementation work starts.
+- Pattern: bounded feedback row metadata -> forum card metadata lines -> export-time dependency validation -> reviewed task packets that preserve phase order and blocked follow-on cards.
+- Failure Mode: Letting roadmap sequencing live only in prose or auto-grouped packets causes follow-on work to start early and makes board exports lose the real dependency order.
+- Evidence: `src/lib/discord/bug-reports.ts`, `scripts/feedback-card-metadata.mjs`, `scripts/export-feedback-board.mjs`, `scripts/generate-feedback-task-packets.mjs`, `docs/ops/FITNESS-FEEDBACK-BOARD.md`, `docs/ops/FITNESS-DISCORD-FEEDBACK.md`
+- Status: Proposed
+
 ## 2026-06-02 - Progression v2 exercise surfaces should reuse shared display and gating contracts
 - Type: Pattern
 - Summary: Routine, Edit Day, Add Exercise, and Today progression surfaces should derive visible measurements, review labels, day-card summaries, and status rails from shared progression contracts instead of screen-local formatting or gating rules.

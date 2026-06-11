@@ -60,7 +60,7 @@ import {
   type ProgressionReviewLinkedTargetSnapshot,
   type ProgressionReviewRevertTargetSnapshot,
 } from "@/lib/progression-review-display";
-import type { ProgressionStatusDisplayItem } from "@/lib/progression-status-display";
+import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { buildProgressionReviewTargetUpdate } from "@/lib/progression-review-target-update";
 import {
   buildProgressionEventPayload,
@@ -1119,7 +1119,7 @@ export default async function TodayPage({
   const progressionUpdatesEnabled = isFeatureEnabled("progressionUpdatesSurface");
   const earnedInstallPromptEnabled = isFeatureEnabled("earnedInstallPromptTiming");
   let progressionReviewItems: ProgressionReviewDisplayItem[] = [];
-  let progressionStatusItems: ProgressionStatusDisplayItem[] = [];
+  let progressionStatusItems: ProgressionStatusSurfaceItem[] = [];
   if (progressionUpdatesEnabled && activeRoutine && !inProgressSession && allDayExercises.length > 0) {
     try {
       const progressionUpdates = await diagnostics.measure("today.progression-review.fetch", () => loadProgressionUpdatesDisplayData({
@@ -1141,7 +1141,7 @@ export default async function TodayPage({
         timeoutMs: 7000,
       });
       progressionReviewItems = progressionUpdates.readyItems;
-      progressionStatusItems = progressionUpdates.statusItems;
+      progressionStatusItems = progressionUpdates.statusSurfaceItems;
     } catch (error) {
       logTodayBootstrapFailure({
         step: "progression review fetch",

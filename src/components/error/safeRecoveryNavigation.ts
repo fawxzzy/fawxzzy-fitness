@@ -12,9 +12,21 @@ function normalizeCandidateHref(value: string | null | undefined) {
   return isSafeAppPath(value) ? value : null;
 }
 
+function appendRecoveryError(href: string, message: string | null | undefined) {
+  const normalizedMessage = message?.trim();
+  if (!normalizedMessage || typeof window === "undefined") {
+    return href;
+  }
+
+  const url = new URL(href, window.location.origin);
+  url.searchParams.set("error", normalizedMessage);
+  return `${url.pathname}${url.search}`;
+}
+
 function buildUniqueCandidates(
   currentPath: string | null | undefined,
   preferredHrefs: Array<string | null | undefined> = [],
+  recoveryErrorMessage?: string | null,
 ) {
   const candidates = new Set<string>();
   const safeCurrentPath = normalizeCandidateHref(currentPath);
@@ -30,7 +42,7 @@ function buildUniqueCandidates(
     if (!normalized || normalized === safeCurrentPath) {
       continue;
     }
-    candidates.add(normalized);
+    candidates.add(appendRecoveryError(normalized, recoveryErrorMessage));
   }
 
   return [...candidates];
@@ -81,8 +93,9 @@ export async function navigateToFirstSafeRecoveryHref(options: {
   currentPath: string | null | undefined;
   preferredHrefs?: Array<string | null | undefined>;
   onNavigate?: (href: string) => void;
+  recoveryErrorMessage?: string | null;
 }) {
-  const candidates = buildUniqueCandidates(options.currentPath, options.preferredHrefs);
+  const candidates = buildUniqueCandidates(options.currentPath, options.preferredHrefs, options.recoveryErrorMessage);
   for (const candidate of candidates) {
     const probe = await probeSafeRecoveryHref(candidate);
     if (!probe.ok) {

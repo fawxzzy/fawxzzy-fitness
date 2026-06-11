@@ -15,11 +15,20 @@ function createRoutineDeleteClient(options?: {
   profileData?: { active_routine_id: string | null } | null;
   profileError?: RoutineDeleteError;
   profileUpdateError?: RoutineDeleteError;
+  progressionRoutineDeleteError?: RoutineDeleteError;
+  progressionSessionDeleteError?: RoutineDeleteError;
   remainingRoutines?: Array<{ id: string }> | null;
   remainingRoutinesError?: RoutineDeleteError;
+  routineSessions?: Array<{ id: string }> | null;
+  routineSessionsError?: RoutineDeleteError;
+  sessionDeleteError?: RoutineDeleteError;
 }) {
   const calls: Array<
     | { type: "profiles-select"; userId: string }
+    | { routineId: string; type: "sessions-select"; userId: string }
+    | { routineId: string; type: "progression-events-delete-routine"; userId: string }
+    | { sessionIds: string[]; type: "progression-events-delete-sessions"; userId: string }
+    | { routineId: string; type: "sessions-delete"; userId: string }
     | { routineId: string; type: "routines-delete"; userId: string }
     | { type: "routines-select"; userId: string }
     | { replacementRoutineId: string | null; type: "profiles-update"; userId: string }
@@ -58,6 +67,85 @@ function createRoutineDeleteClient(options?: {
 
                 return {
                   error: options?.profileUpdateError ?? null,
+                };
+              },
+            };
+          },
+        };
+      }
+
+      if (table === "sessions") {
+        return {
+          select(_columns: "id") {
+            return {
+              eq(_column: "user_id", userId: string) {
+                return {
+                  async eq(_innerColumn: "routine_id", routineId: string) {
+                    calls.push({
+                      type: "sessions-select",
+                      routineId,
+                      userId,
+                    });
+
+                    return {
+                      data: options?.routineSessions ?? [],
+                      error: options?.routineSessionsError ?? null,
+                    };
+                  },
+                };
+              },
+            };
+          },
+          delete() {
+            return {
+              eq(_column: "routine_id", routineId: string) {
+                return {
+                  async eq(_innerColumn: "user_id", userId: string) {
+                    calls.push({
+                      type: "sessions-delete",
+                      routineId,
+                      userId,
+                    });
+
+                    return {
+                      error: options?.sessionDeleteError ?? null,
+                    };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+
+      if (table === "progression_events") {
+        return {
+          delete() {
+            return {
+              eq(_column: "user_id", userId: string) {
+                return {
+                  async eq(_innerColumn: "routine_id", routineId: string) {
+                    calls.push({
+                      type: "progression-events-delete-routine",
+                      routineId,
+                      userId,
+                    });
+
+                    return {
+                      error: options?.progressionRoutineDeleteError ?? null,
+                    };
+                  },
+                  async in(_innerColumn: "source_session_id", sessionIds: string[]) {
+                    calls.push({
+                      type: "progression-events-delete-sessions",
+                      sessionIds,
+                      userId,
+                    });
+
+                    return {
+                      error: options?.progressionSessionDeleteError ?? null,
+                    };
+                  },
                 };
               },
             };
@@ -152,6 +240,21 @@ test("deleteRoutineMutation assumes the action already validated routineId", asy
       userId: "user-1",
     },
     {
+      routineId: "",
+      type: "sessions-select",
+      userId: "user-1",
+    },
+    {
+      routineId: "",
+      type: "progression-events-delete-routine",
+      userId: "user-1",
+    },
+    {
+      routineId: "",
+      type: "sessions-delete",
+      userId: "user-1",
+    },
+    {
       type: "routines-delete",
       routineId: "",
       userId: "user-1",
@@ -176,6 +279,121 @@ test("deleteRoutineMutation surfaces profile lookup failures", async () => {
     ok: false,
     error: "profile unavailable",
     reason: "profile-lookup-failed",
+  });
+});
+
+test("deleteRoutineMutation surfaces routine session lookup failures", async () => {
+  const { client } = createRoutineDeleteClient({
+    profileData: {
+      active_routine_id: null,
+    },
+    routineSessionsError: {
+      message: "session lookup failed",
+    },
+  });
+
+  const result = await deleteRoutineMutation({
+    routineId: "routine-lookup",
+    supabase: client,
+    userId: "user-lookup",
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    error: "session lookup failed",
+    reason: "session-lookup-failed",
+  });
+});
+
+test("deleteRoutineMutation surfaces progression cleanup failures", async () => {
+  const { client } = createRoutineDeleteClient({
+    profileData: {
+      active_routine_id: null,
+    },
+    progressionRoutineDeleteError: {
+      message: "progression cleanup failed",
+    },
+  });
+
+  const result = await deleteRoutineMutation({
+    routineId: "routine-progression",
+    supabase: client,
+    userId: "user-progression",
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    error: "progression cleanup failed",
+    reason: "progression-delete-failed",
+  });
+});
+
+test("deleteRoutineMutation deletes session-linked progression events when routine sessions exist", async () => {
+  const { client, calls } = createRoutineDeleteClient({
+    profileData: {
+      active_routine_id: null,
+    },
+    routineSessions: [
+      { id: "session-1" },
+      { id: "session-2" },
+    ],
+  });
+
+  const result = await deleteRoutineMutation({
+    routineId: "routine-with-sessions",
+    supabase: client,
+    userId: "user-with-sessions",
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls.slice(0, 5), [
+    {
+      type: "profiles-select",
+      userId: "user-with-sessions",
+    },
+    {
+      type: "sessions-select",
+      routineId: "routine-with-sessions",
+      userId: "user-with-sessions",
+    },
+    {
+      type: "progression-events-delete-routine",
+      routineId: "routine-with-sessions",
+      userId: "user-with-sessions",
+    },
+    {
+      type: "progression-events-delete-sessions",
+      sessionIds: ["session-1", "session-2"],
+      userId: "user-with-sessions",
+    },
+    {
+      type: "sessions-delete",
+      routineId: "routine-with-sessions",
+      userId: "user-with-sessions",
+    },
+  ]);
+});
+
+test("deleteRoutineMutation surfaces routine session delete failures", async () => {
+  const { client } = createRoutineDeleteClient({
+    profileData: {
+      active_routine_id: null,
+    },
+    sessionDeleteError: {
+      message: "session delete failed",
+    },
+  });
+
+  const result = await deleteRoutineMutation({
+    routineId: "routine-session-delete",
+    supabase: client,
+    userId: "user-session-delete",
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    error: "session delete failed",
+    reason: "session-delete-failed",
   });
 });
 
@@ -226,6 +444,21 @@ test("deleteRoutineMutation skips profile updates when deleting a non-active rou
       userId: "user-4",
     },
     {
+      type: "sessions-select",
+      routineId: "routine-4",
+      userId: "user-4",
+    },
+    {
+      type: "progression-events-delete-routine",
+      routineId: "routine-4",
+      userId: "user-4",
+    },
+    {
+      type: "sessions-delete",
+      routineId: "routine-4",
+      userId: "user-4",
+    },
+    {
       type: "routines-delete",
       routineId: "routine-4",
       userId: "user-4",
@@ -257,6 +490,21 @@ test("deleteRoutineMutation updates the active routine to a replacement when nee
   assert.deepEqual(calls, [
     {
       type: "profiles-select",
+      userId: "user-5",
+    },
+    {
+      type: "sessions-select",
+      routineId: "routine-active",
+      userId: "user-5",
+    },
+    {
+      type: "progression-events-delete-routine",
+      routineId: "routine-active",
+      userId: "user-5",
+    },
+    {
+      type: "sessions-delete",
+      routineId: "routine-active",
       userId: "user-5",
     },
     {

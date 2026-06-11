@@ -5,7 +5,8 @@ import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import { revalidateRoutinesViews, getRoutineEditPath } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { resolveReplacementActiveRoutineId } from "@/lib/active-routine-fallback";
+import { deleteRoutineMutation } from "@/lib/dal/routine-delete";
+import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { ROUTINE_SCHEDULE_MODE_VALUES, type RoutineDetailsScheduleMode } from "@/lib/routine-details-form";
 import { ROUTINE_START_WEEKDAYS, createRoutineDaySeedsFromStartDate, getRoutineStartDateForWeekday } from "@/lib/routines";
 import { toCanonicalRoutineTimezone } from "@/lib/timezones";
@@ -390,50 +391,34 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
     return { ok: false, error: "Missing routine ID." };
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("active_routine_id")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: affectedExerciseRows, error: affectedExerciseError } = await supabase
+    .from("session_exercises")
+    .select("exercise_id, session:sessions!inner(routine_id, status, user_id)")
+    .eq("user_id", user.id)
+    .eq("session.user_id", user.id)
+    .eq("session.routine_id", routineId)
+    .eq("session.status", "completed");
 
-  if (profileError) {
-    return { ok: false, error: profileError.message || "Failed to resolve active routine." };
+  if (affectedExerciseError) {
+    return { ok: false, error: affectedExerciseError.message || "Failed to resolve routine exercise history." };
   }
 
-  const deletingActiveRoutine = profile?.active_routine_id === routineId;
+  const affectedExerciseIds = Array.from(new Set(
+    (affectedExerciseRows ?? []).map((row) => row.exercise_id).filter((value): value is string => Boolean(value)),
+  ));
 
-  const { error } = await supabase
-    .from("routines")
-    .delete()
-    .eq("id", routineId)
-    .eq("user_id", user.id);
+  const result = await deleteRoutineMutation({
+    routineId,
+    supabase,
+    userId: user.id,
+  });
 
-  if (error) {
-    return { ok: false, error: error.message || "Failed to delete routine." };
+  if (!result.ok) {
+    return { ok: false, error: result.error };
   }
 
-  if (deletingActiveRoutine) {
-    const { data: remainingRoutines, error: remainingRoutinesError } = await supabase
-      .from("routines")
-      .select("id")
-      .eq("user_id", user.id)
-      .order("updated_at", { ascending: false })
-      .order("id", { ascending: true })
-      .limit(1);
-
-    if (remainingRoutinesError) {
-      return { ok: false, error: remainingRoutinesError.message || "Failed to resolve replacement routine." };
-    }
-
-    const replacementRoutineId = resolveReplacementActiveRoutineId(remainingRoutines ?? []);
-    const { error: profileUpdateError } = await supabase
-      .from("profiles")
-      .update({ active_routine_id: replacementRoutineId })
-      .eq("id", user.id);
-
-    if (profileUpdateError) {
-      return { ok: false, error: profileUpdateError.message || "Failed to update active routine." };
-    }
+  if (affectedExerciseIds.length > 0) {
+    await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds, supabase);
   }
 
   revalidateRoutinesViews();

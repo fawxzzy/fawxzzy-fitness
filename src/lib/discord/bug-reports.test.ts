@@ -44,6 +44,11 @@ function buildStoredRow(overrides = {}) {
     status: "new",
     severity: "medium",
     effort_points: 3,
+    card_id: null,
+    card_phase: null,
+    card_priority: null,
+    depends_on: null,
+    dependency_notes: null,
     area: "Settings",
     summary: "Token copy button failed",
     details: "I tapped Copy and nothing happened.",
@@ -506,6 +511,26 @@ test("buildDiscordBugForumThreadBody preserves proper-name casing in feature use
     }),
     /\*\*User Story\*\*\nAs a user, I want Music Sesh Phase 8 - Room System \+ Private Room Keys, so that the Settings flow better matches the requested outcome\./,
   );
+});
+
+test("buildDiscordBugForumThreadBody includes dependency metadata when present", () => {
+  const body = buildDiscordBugForumThreadBody({
+    report: buildStoredRow({
+      report_type: "feature",
+      card_id: "FF-MON-002",
+      card_priority: "P1",
+      card_phase: "Monetization Phase 2",
+      depends_on: ["FF-MON-001"],
+      dependency_notes: "Do not start this card until the launchwall instrumentation contract is closed.",
+    }),
+    reporterLabel: "Member #4",
+  });
+
+  assert.match(body, /Card ID: FF-MON-002/);
+  assert.match(body, /Priority: P1/);
+  assert.match(body, /Phase: Monetization Phase 2/);
+  assert.match(body, /Depends on: FF-MON-001/);
+  assert.match(body, /\*\*Dependency Notes\*\*\nDo not start this card until the launchwall instrumentation contract is closed\./);
 });
 
 test("buildDiscordBugForumThreadBody uses stored feature acceptance criteria when provided", () => {

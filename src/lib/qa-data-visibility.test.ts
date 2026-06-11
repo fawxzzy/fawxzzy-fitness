@@ -24,18 +24,26 @@ test("finds QA markers across multiple labels", () => {
   assert.equal(hasQaLlelMarker(["Atlas Routine", "Lower A"]), false);
 });
 
-test("defaults QA visibility on for automation users and off for human users", () => {
+test("defaults QA visibility on for automation users and Zac account, and off for other human users", () => {
   assert.equal(resolveShowQaLlelDataPreference({
     show_qa_llel_data: null,
     user_kind: "automation",
+    user_number: null,
   }), true);
   assert.equal(resolveShowQaLlelDataPreference({
     show_qa_llel_data: null,
     user_kind: "human",
+    user_number: 0,
+  }), true);
+  assert.equal(resolveShowQaLlelDataPreference({
+    show_qa_llel_data: null,
+    user_kind: "human",
+    user_number: 7,
   }), false);
   assert.equal(resolveShowQaLlelDataPreference({
     show_qa_llel_data: true,
     user_kind: "human",
+    user_number: 7,
   }), true);
 });
 
@@ -47,14 +55,17 @@ test("resolves cookie-style QA visibility overrides before profile defaults", ()
   assert.equal(resolveShowQaLlelDataPreferenceWithOverride({
     show_qa_llel_data: null,
     user_kind: "human",
+    user_number: 7,
   }, true), true);
   assert.equal(resolveShowQaLlelDataPreferenceWithOverride({
     show_qa_llel_data: true,
     user_kind: "human",
+    user_number: 7,
   }, false), false);
   assert.equal(resolveShowQaLlelDataPreferenceWithOverride({
     show_qa_llel_data: null,
     user_kind: "automation",
+    user_number: null,
   }, null), true);
 });
 

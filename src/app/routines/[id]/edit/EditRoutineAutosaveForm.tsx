@@ -358,6 +358,7 @@ export function EditRoutineAutosaveForm(props: Props) {
               defaultExpanded={false}
               collapsible={false}
               separateInfoBox
+              infoDockPlacement="above-bottom-actions"
               trainingFocusValue={selectedTrainingGoal}
               trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
               onTrainingFocusChange={(goal) => {

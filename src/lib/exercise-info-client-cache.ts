@@ -1,7 +1,7 @@
 "use client";
 
 import type { ExerciseInfoClientPayload } from "@/lib/exercise-info-client";
-import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import type { ExerciseInfoAnalyticsScope, ExerciseInfoFilterState } from "@/lib/exercise-info-scope";
 
 type ExerciseInfoClientCacheEntry = {
   payload: ExerciseInfoClientPayload;
@@ -23,7 +23,8 @@ function normalizeExerciseId(exerciseId: string | null | undefined) {
   return typeof exerciseId === "string" ? exerciseId.trim() : "";
 }
 
-function normalizeScope(scope: ExerciseInfoAnalyticsScope | null | undefined) {
+function normalizeScope(filter: ExerciseInfoAnalyticsScope | Partial<ExerciseInfoFilterState> | null | undefined) {
+  const scope = typeof filter === "string" ? filter : filter?.analyticsScope;
   if (scope === "current_routine") {
     return "current_routine";
   }
@@ -35,8 +36,24 @@ function normalizeScope(scope: ExerciseInfoAnalyticsScope | null | undefined) {
   return "all_time";
 }
 
-function buildCacheKey(exerciseId: string, scope: ExerciseInfoAnalyticsScope | null | undefined) {
-  return `${exerciseId}::${normalizeScope(scope)}`;
+function buildCacheKey(exerciseId: string, filter: ExerciseInfoAnalyticsScope | Partial<ExerciseInfoFilterState> | null | undefined) {
+  const normalizedScope = normalizeScope(filter);
+  if (normalizedScope === "all_time") {
+    return `${exerciseId}::all_time`;
+  }
+
+  const routineId = typeof filter === "string"
+    ? ""
+    : typeof filter?.routineId === "string" && filter.routineId.trim().length > 0
+      ? filter.routineId.trim()
+      : "";
+  const cycleStartDate = typeof filter === "string"
+    ? ""
+    : typeof filter?.cycleStartDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(filter.cycleStartDate.trim())
+      ? filter.cycleStartDate.trim()
+      : "";
+
+  return `${exerciseId}::${normalizedScope}::${routineId}::${cycleStartDate}`;
 }
 
 function getFreshnessTtl(entry: ExerciseInfoClientCacheEntry) {
@@ -99,7 +116,7 @@ function mergeStoredEntries() {
 
 export function readExerciseInfoClientPayload(
   exerciseId: string | null | undefined,
-  scope: ExerciseInfoAnalyticsScope | null | undefined = "all_time",
+  filter: ExerciseInfoAnalyticsScope | Partial<ExerciseInfoFilterState> | null | undefined = "all_time",
 ) {
   const normalizedExerciseId = normalizeExerciseId(exerciseId);
   if (!normalizedExerciseId) {
@@ -113,22 +130,22 @@ export function readExerciseInfoClientPayload(
     memoryCache.set(entryId, entry);
   }
 
-  return memoryCache.get(buildCacheKey(normalizedExerciseId, scope)) ?? null;
+  return memoryCache.get(buildCacheKey(normalizedExerciseId, filter)) ?? null;
 }
 
 export function writeExerciseInfoClientPayload(
   exerciseId: string | null | undefined,
   payload: ExerciseInfoClientPayload,
   source: "seed" | "server",
-  scope: ExerciseInfoAnalyticsScope | null | undefined = "all_time",
+  filter: ExerciseInfoAnalyticsScope | Partial<ExerciseInfoFilterState> | null | undefined = "all_time",
 ) {
   const normalizedExerciseId = normalizeExerciseId(exerciseId);
   if (!normalizedExerciseId) {
     return null;
   }
 
-  const cacheKey = buildCacheKey(normalizedExerciseId, scope);
-  const current = readExerciseInfoClientPayload(normalizedExerciseId, scope);
+  const cacheKey = buildCacheKey(normalizedExerciseId, filter);
+  const current = readExerciseInfoClientPayload(normalizedExerciseId, filter);
   if (
     current
     && current.source === "server"

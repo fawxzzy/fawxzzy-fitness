@@ -29,7 +29,7 @@ export function ExerciseInfoIconButton({
         aria-label={`Exercise info for ${exerciseName}`}
         className={className ?? "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] text-sm text-text transition-colors hover:bg-[rgb(var(--bg)/0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"}
       >
-        <span aria-hidden="true">ⓘ</span>
+        <span aria-hidden="true">{"\u24D8"}</span>
       </button>
       <ExerciseInfo
         exerciseId={canonicalExerciseId}

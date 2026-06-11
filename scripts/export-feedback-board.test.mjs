@@ -22,6 +22,11 @@ function buildRow(overrides = {}) {
     report_type: "bug",
     status: "new",
     effort_points: 3,
+    card_id: null,
+    card_phase: null,
+    card_priority: null,
+    depends_on: null,
+    dependency_notes: null,
     area: "Account",
     summary: "Copy button does not work",
     details: "Tapping Copy did not copy the token.",
@@ -160,6 +165,91 @@ test("board export includes structured card sections and acceptance criteria", (
   assert.equal(record.card_sections.steps_to_reproduce, "1. Generate token\\n2. Verify account");
   assert.equal(record.card_sections.acceptance_criteria.length > 0, true);
   assert.match(record.card_sections.evidence_summary, /Evidence included:/);
+});
+
+test("board export resolves dependency metadata and derives blocked cards", async () => {
+  const result = await exportFeedbackBoard({
+    client: createMockClient([
+      buildRow({
+        id: "core-card",
+        report_type: "feature",
+        summary: "Build monetization foundation",
+        card_id: "FF-MON-001",
+      }),
+      buildRow({
+        id: "followup-card",
+        report_type: "feature",
+        summary: "Ship monetization offer wall",
+        card_id: "ff-mon-002",
+        card_phase: "Monetization Phase 2",
+        card_priority: "p1",
+        depends_on: ["FF-MON-001"],
+        dependency_notes: "Keep this blocked until the foundation contract lands.",
+      }),
+    ]),
+    args: {
+      ...parseArgs(["--type", "feature"]),
+      writeMarkdown: false,
+      writeJson: false,
+    },
+  });
+
+  assert.equal(result.records[0].card_id, "FF-MON-001");
+  assert.deepEqual(result.records[0].blocks, ["FF-MON-002"]);
+  assert.equal(result.records[1].card_id, "FF-MON-002");
+  assert.equal(result.records[1].card_phase, "Monetization Phase 2");
+  assert.equal(result.records[1].card_priority, "P1");
+  assert.deepEqual(result.records[1].depends_on, ["FF-MON-001"]);
+  assert.equal(result.records[1].dependency_notes, "Keep this blocked until the foundation contract lands.");
+});
+
+test("board export rejects unresolved dependency references", async () => {
+  await assert.rejects(
+    () => exportFeedbackBoard({
+      client: createMockClient([
+        buildRow({
+          report_type: "feature",
+          card_id: "FF-MON-002",
+          depends_on: ["FF-MON-001"],
+        }),
+      ]),
+      args: {
+        ...parseArgs(["--type", "feature"]),
+        writeMarkdown: false,
+        writeJson: false,
+      },
+    }),
+    /unresolved dependency "FF-MON-001"/,
+  );
+});
+
+test("board export rejects dependency cycles", async () => {
+  await assert.rejects(
+    () => exportFeedbackBoard({
+      client: createMockClient([
+        buildRow({
+          id: "card-a",
+          report_type: "feature",
+          summary: "Phase one work",
+          card_id: "FF-PHASE-001",
+          depends_on: ["FF-PHASE-002"],
+        }),
+        buildRow({
+          id: "card-b",
+          report_type: "feature",
+          summary: "Phase two work",
+          card_id: "FF-PHASE-002",
+          depends_on: ["FF-PHASE-001"],
+        }),
+      ]),
+      args: {
+        ...parseArgs(["--type", "feature"]),
+        writeMarkdown: false,
+        writeJson: false,
+      },
+    }),
+    /Feedback dependency cycle detected:/,
+  );
 });
 
 test("board markdown groups cards by status and separates bugs from features", () => {
