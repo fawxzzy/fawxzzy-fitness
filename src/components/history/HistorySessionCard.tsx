@@ -223,7 +223,7 @@ export function buildRecapOnlyHistorySessionDetailSections(
   session: SessionSummary,
   prExerciseNames: string[],
   recapItemMeta?: HistorySessionRecapItemMeta[],
-) {
+): HistorySessionDetailSection[] {
   const prExerciseNameSet = new Set(prExerciseNames.map((name) => name.trim()).filter(Boolean));
   const progressionSummary = session.progressionSummary ?? null;
   const progressionExerciseNameSet = new Set((progressionSummary?.affectedExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
@@ -274,7 +274,7 @@ export function buildRecapOnlyHistorySessionDetailSections(
         title: "Recap",
         items: recapItems,
         layout: "inline",
-      }]
+      } satisfies HistorySessionDetailSection]
     : [];
 }
 

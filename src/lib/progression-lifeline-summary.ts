@@ -14,6 +14,7 @@ export type ProgressionAnalyticsDigest = {
   promotionCount: number;
   deloadCount: number;
   manualChangeCount: number;
+  watchCount?: number;
   revertCount: number;
   lockInCount: number;
   linkedSessionCount: number;

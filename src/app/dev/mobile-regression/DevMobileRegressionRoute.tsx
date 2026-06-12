@@ -2524,7 +2524,7 @@ function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
         floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ExerciseBrowserClient rows={rows} inlineHeaderControls initialViewMode={initialViewMode} />
+          <ExerciseBrowserClient initialRows={rows} inlineHeaderControls initialViewMode={initialViewMode} />
         </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>

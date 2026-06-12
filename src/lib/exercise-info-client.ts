@@ -268,14 +268,14 @@ function normalizeHistoryValueParts(value: unknown): ExerciseHistoryValuePart[] 
         ...(readOptionalNumber(item.numericValue) !== undefined ? { numericValue: readOptionalNumber(item.numericValue) } : {}),
       };
     })
-    .filter((item): item is ExerciseHistoryValuePart => Boolean(item));
+    .filter((item): item is ExerciseHistoryValuePart => item !== null);
 }
 
 function normalizeTagLabels(value: unknown) {
   return Array.isArray(value)
     ? value
       .map((item) => readPrimitiveText(item))
-      .filter((item): item is string => Boolean(item) && item.trim().toUpperCase() !== "UPDATE")
+      .filter((item): item is string => typeof item === "string" && item.trim().toUpperCase() !== "UPDATE")
     : [];
 }
 

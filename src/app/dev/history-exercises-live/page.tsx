@@ -73,7 +73,7 @@ export default async function DevHistoryExercisesLivePage({
       <MainTabScreen topNavMode="none" ambientPreset="history">
         <ContentRail className="pt-5">
           <ExerciseBrowserClient
-            rows={rows}
+            initialRows={rows}
             inlineHeaderControls
             initialViewMode={initialViewMode}
             initialFiltersOpen={initialFiltersOpen}
@@ -93,7 +93,7 @@ export default async function DevHistoryExercisesLivePage({
       floatingHeaderSlot={<div id="history-exercises-floating-header" />}
     >
       <ExerciseBrowserClient
-        rows={rows}
+        initialRows={rows}
         initialViewMode={initialViewMode}
         initialFiltersOpen={initialFiltersOpen}
       />

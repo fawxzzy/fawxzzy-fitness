@@ -237,11 +237,11 @@ test("buildHistoryExerciseCardViewModel keeps bodyweight history cards on the sh
   assert.equal(viewModel.semanticTone, "logged");
   assert.equal(viewModel.comparison, "-3 reps vs best");
   assert.equal(viewModel.badgeText, "Top 5");
-  assert.deepEqual(viewModel.badgeItems, ["Top 5", "5 recent", "1 PR", "9 Sessions"]);
+  assert.deepEqual(viewModel.badgeItems, ["Top 5", "1 PR", "9 Sessions", "Last Apr 8"]);
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Bodyweight", "Pull Up Bar", "Vertical Pull"]);
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Recent", "PRs"]);
-  assert.deepEqual(viewModel.detailedSections.map((section) => section.title), ["Last", "Best", "Progress"]);
-  assert.deepEqual(viewModel.detailedSections[2]?.items, ["-3 reps vs best", "Rep PR", "Last trained Apr 8"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Tracking"]);
+  assert.deepEqual(viewModel.detailedSections.map((section) => section.title), ["History"]);
+  assert.deepEqual(viewModel.detailedSections[0]?.items, ["Best | 12 reps", "PRs | Rep PR", "Last trained Apr 8"]);
 });
 
 test("buildHistoryExerciseCardViewModel keeps cardio history cards on the shared identity and metric contract", () => {
@@ -283,10 +283,8 @@ test("buildHistoryExerciseCardViewModel keeps cardio history cards on the shared
   assert.equal(viewModel.semanticTone, "logged");
   assert.equal(viewModel.comparison, "-0.4mi vs best");
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Cardio", "Treadmill", "Gait"]);
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Recent", "Tracked"]);
-  assert.deepEqual(viewModel.detailedSections[0]?.items, ["Time: 22:00", "Distance: 1.7 mi", "Pace: 12:56/mi", "Calories: 240 cal"]);
-  assert.deepEqual(viewModel.detailedSections[1]?.items, ["Distance: 2.1 mi", "Pace: 12:22/mi"]);
-  assert.deepEqual(viewModel.detailedSections[2]?.items, ["-0.4mi vs best", "Distance: +0.2 mi vs previous"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Tracking"]);
+  assert.deepEqual(viewModel.detailedSections[0]?.items, ["Best | 2.1 mi", "Last trained Apr 9"]);
 });
 
 test("buildHistoryExerciseCardViewModel supports step-based cardio wording", () => {
@@ -319,11 +317,9 @@ test("buildHistoryExerciseCardViewModel supports step-based cardio wording", () 
     ],
   }));
 
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Recent", "Tracked"]);
-  assert.equal(viewModel.detailedMetrics[3]?.value, "Time + Steps + Cal");
-  assert.deepEqual(viewModel.detailedSections[0]?.items, ["Time: 22:00", "Steps: 5000 steps", "Calories: 240 cal"]);
-  assert.deepEqual(viewModel.detailedSections[1]?.items, ["Steps: 6200 steps"]);
-  assert.deepEqual(viewModel.detailedSections[2]?.items, ["-1200steps vs best", "Steps: +400 steps vs previous"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Tracking"]);
+  assert.equal(viewModel.detailedMetrics[2]?.value, "Time + Distance");
+  assert.deepEqual(viewModel.detailedSections[0]?.items, ["Best | 6200 steps"]);
 });
 
 test("buildHistoryExerciseCardViewModel treats timed holds as their own review family", () => {
@@ -343,10 +339,9 @@ test("buildHistoryExerciseCardViewModel treats timed holds as their own review f
 
   assert.equal(viewModel.presentationKind, "timed");
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Timed", "Bodyweight", "Brace"]);
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Active", "Tracked"]);
-  assert.equal(viewModel.detailedMetrics[3]?.value, "Time");
-  assert.deepEqual(viewModel.detailedSections[0]?.items, ["2:00"]);
-  assert.deepEqual(viewModel.detailedSections[1]?.items, ["3:00"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Tracking"]);
+  assert.equal(viewModel.detailedMetrics[2]?.value, "Time");
+  assert.deepEqual(viewModel.detailedSections[0]?.items, ["Best | 3:00"]);
 });
 
 test("buildHistoryExerciseCardViewModel gives Stretch a library-first history card", () => {
@@ -393,7 +388,7 @@ test("buildHistoryExerciseCardViewModel falls back to the last-performed marker 
 
   assert.equal(viewModel.comparison, "Last Apr 10");
   assert.deepEqual(viewModel.badgeItems, ["4 Sessions", "Last Apr 10"]);
-  assert.deepEqual(viewModel.detailedSections[2]?.items, ["Last trained Apr 10"]);
+  assert.equal(viewModel.detailedSections[2], undefined);
 });
 
 test("buildHistoryExerciseCardViewModel surfaces progression lifeline analytics when available", () => {
@@ -428,11 +423,12 @@ test("buildHistoryExerciseCardViewModel surfaces progression lifeline analytics 
   }));
 
   assert.equal(viewModel.comparison, "10 reps • 230 lbs -> 12 reps • 235 lbs");
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Promoted", "Current"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Sessions", "Sets", "Promoted", "Target"]);
   assert.equal(viewModel.detailedMetrics[2]?.value, "2");
   assert.equal(viewModel.detailedMetrics[3]?.value, "12 reps • 235 lbs");
-  assert.equal(viewModel.detailedSections[2]?.title, "Progression");
-  assert.deepEqual(viewModel.detailedSections[2]?.items, [
+  assert.equal(viewModel.detailedSections[1]?.title, "Progression");
+  assert.deepEqual(viewModel.detailedSections[1]?.items, [
+    viewModel.comparison,
     "Latest: 10 reps • 230 lbs -> 12 reps • 235 lbs",
     "Lifeline: 8 reps • 225 lbs -> 12 reps • 235 lbs",
   ]);
@@ -450,9 +446,8 @@ test("buildHistoryExerciseCardViewModel promotes the top activity badge into pla
   }));
 
   assert.equal(viewModel.badgeText, "Most Trained");
-  assert.deepEqual(viewModel.badgeItems, ["Most Trained", "11 recent", "19 Sessions"]);
-  assert.equal(viewModel.detailedMetrics[2]?.label, "Recent");
-  assert.equal(viewModel.detailedMetrics[2]?.value, "11");
+  assert.deepEqual(viewModel.badgeItems, ["Most Trained", "19 Sessions"]);
+  assert.equal(viewModel.detailedMetrics[2]?.label, "Tracking");
 });
 
 test("buildHistorySessionCardViewModel favors PR progress language when a session hits PRs", () => {

@@ -7,6 +7,7 @@ export const PROGRESSION_HISTORY_EVENT_TYPES = [
   "deload_applied",
   "review_acknowledged",
   "manual_target_change",
+  "watch_applied",
 ] as const;
 
 export type ProgressionHistoryEventType = (typeof PROGRESSION_HISTORY_EVENT_TYPES)[number];
@@ -155,6 +156,8 @@ export function getProgressionHistoryEventTypeLabel(eventType: ProgressionHistor
       return "Review acknowledged";
     case "manual_target_change":
       return "Manual target change";
+    case "watch_applied":
+      return "Watch applied";
     default:
       return eventType;
   }

@@ -178,7 +178,7 @@ function resolveMostFrequentExerciseName(sessions: SessionSummary[], excludedNam
 }
 
 function addProgressionSignalForEvent(
-  signals: Set<"promotion" | "regression" | "watch">,
+  signals: Set<"pr" | "promotion" | "regression" | "watch">,
   eventType: ProgressionAnalyticsEvent["event_type"],
 ) {
   if (eventType === "promotion_applied") {

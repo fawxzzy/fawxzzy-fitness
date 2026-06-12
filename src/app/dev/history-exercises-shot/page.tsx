@@ -47,7 +47,7 @@ export default async function DevHistoryExercisesShotPage({
       floatingHeaderSlot={<div id="history-exercises-floating-header" />}
     >
       <ExerciseBrowserClient
-        rows={rows}
+        initialRows={rows}
         initialViewMode={initialViewMode}
         initialFiltersOpen={initialFiltersOpen}
       />
