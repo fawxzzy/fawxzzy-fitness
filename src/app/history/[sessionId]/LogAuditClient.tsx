@@ -367,8 +367,8 @@ function buildLoggedSessionRecapItemMeta(args: {
       const signals = [
         prExerciseNames.has(exerciseName) ? "pr" : null,
         (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
-        (progressionSummary?.deloadCount ?? 0) > 0 ? "regression" : null,
-        ((progressionSummary?.manualChangeCount ?? 0) > 0 || (progressionSummary?.revertCount ?? 0) > 0) ? "watch" : null,
+        ((progressionSummary?.deloadCount ?? 0) + (progressionSummary?.revertCount ?? 0)) > 0 ? "regression" : null,
+        (progressionSummary?.watchCount ?? 0) > 0 ? "watch" : null,
       ].filter((value, signalIndex, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === signalIndex);
       const tagLabels = [
         bestExerciseName === exerciseName ? "BEST" : null,
@@ -432,8 +432,9 @@ function buildSignalTagItems(args: {
     args.hasPrInSession ? "PR" : null,
     args.isBest ? "BEST" : null,
     (args.progressionSummary?.promotionCount ?? 0) > 0 ? "PROMO" : null,
-    (args.progressionSummary?.deloadCount ?? 0) > 0 ? "REGRESS" : null,
-    ((args.progressionSummary?.manualChangeCount ?? 0) > 0 || (args.progressionSummary?.revertCount ?? 0) > 0) ? "WATCH" : null,
+    ((args.progressionSummary?.deloadCount ?? 0) + (args.progressionSummary?.revertCount ?? 0)) > 0 ? "REG" : null,
+    (args.progressionSummary?.watchCount ?? 0) > 0 ? "WATCH" : null,
+    (args.progressionSummary?.manualChangeCount ?? 0) > 0 ? "MANUAL" : null,
   ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
 }
 
@@ -1701,7 +1702,7 @@ export function LogAuditClient({
                           />
                         </div>
                       ) : (
-                        <div className={cn(appTokens.currentSessionLoggerSetList, "min-h-full overflow-hidden rounded-none border-0 bg-transparent px-0 py-2")}>
+                        <div className={cn(appTokens.currentSessionLoggerSetList, "overflow-hidden rounded-none border-0 bg-transparent px-0 py-2")}>
                           {setsForExercise.length > 0 ? (
                             <div className={appTokens.currentSessionLoggerSetListHeader}>
                               <p className={appTokens.currentSessionLoggerSetListTitle}>Logged Sets</p>

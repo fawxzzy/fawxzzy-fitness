@@ -16,7 +16,7 @@ function buildProgressionChangeMixMetrics(args: {
   const regressionCount = args.deloadCount + args.revertCount;
   const watchCount = args.watchCount ?? 0;
 
-  return [
+  const metrics: MetricDatum[] = [
     {
       label: "Promotions",
       value: String(args.promotionCount),
@@ -37,7 +37,9 @@ function buildProgressionChangeMixMetrics(args: {
       value: String(args.manualChangeCount),
       valueTone: args.manualChangeCount > 0 ? "warning" : "muted",
     },
-  ] satisfies MetricDatum[];
+  ];
+
+  return metrics.filter((metric) => metric.value !== "0");
 }
 
 type ExerciseProgressionActivityPanelProps = {
@@ -66,7 +68,7 @@ export function ExerciseProgressionActivityPanel({
     revertCount: progression.revertCount,
   });
 
-  if (changeMixMetrics.every((metric) => metric.value === "0")) {
+  if (changeMixMetrics.length === 0) {
     return null;
   }
 
