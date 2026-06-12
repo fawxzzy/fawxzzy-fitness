@@ -1,6 +1,6 @@
 import { getProgressionEventBucketKey, sortProgressionEventsNewestFirst, summarizeProgressionEventAnalytics, type ProgressionAnalyticsEvent } from "@/lib/progression-event-analytics";
 import { buildStructuredProgressionActivityItem, formatProgressionActivityDayLabel } from "@/lib/progression-lifeline-summary";
-import type { DetailSectionListItem } from "@/components/ui/DetailSectionList";
+import type { DetailSectionListItem, DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
 
 export type ProgressionSummaryActivityBucket = {
   id: string;
@@ -12,7 +12,7 @@ export type ProgressionSummaryActivityBucket = {
   deloadCount: number;
   manualChangeCount: number;
   revertCount: number;
-  items: DetailSectionListItem[];
+  items: DetailSectionListItemInput[];
   hotspotItems: string[];
 };
 

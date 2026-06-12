@@ -86,7 +86,9 @@ test("buildExerciseProgressionLifelineSummary formats the target path", () => {
     "May 10:1",
   ]);
   assert.deepEqual(
-    summary?.activityDays?.[1]?.items.map((item) => `${item.primary}|${item.value ?? ""}|${item.signals ?? ""}`),
+    summary?.activityDays?.[1]?.items.map((item) => (
+      typeof item === "string" ? item : `${item.primary}|${item.value ?? ""}|${item.signals ?? ""}`
+    )),
     [
       "Weight|135 lbs → 140 lbs|promotion",
     ],

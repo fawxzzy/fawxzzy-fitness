@@ -253,7 +253,9 @@ test("history summary raises plain-language attention flags for inactivity and m
     "Apr 20 - Apr 26:2",
   ]);
   assert.deepEqual(
-    summary.progressionSummary.activityBuckets[0]?.items.map((item) => `${item.primary}|${item.meta ?? ""}|${item.signals ?? ""}`),
+    summary.progressionSummary.activityBuckets[0]?.items.map((item) => (
+      typeof item === "string" ? item : `${item.primary}|${item.meta ?? ""}|${item.signals ?? ""}`
+    )),
     [
       "Manual change|Atlas|watch",
       "Regression|Atlas|regression",

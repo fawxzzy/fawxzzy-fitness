@@ -1318,7 +1318,7 @@ function buildHistoryDayEventValueParts(events: ProgressionEventRow[]): Exercise
   const promotionCount = events.filter((event) => event.event_type === "promotion_applied").length;
   const regressionCount = events.filter((event) => event.event_type === "deload_applied" || event.event_type === "promotion_reverted").length;
   const manualCount = events.filter((event) => event.event_type === "manual_target_change").length;
-  const watchCount = events.filter((event) => event.event_type === "watch_applied").length;
+  const watchCount = events.filter((event) => String(event.event_type) === "watch_applied").length;
   const values: ExerciseHistoryValuePart[] = [];
 
   if (promotionCount > 0) {
