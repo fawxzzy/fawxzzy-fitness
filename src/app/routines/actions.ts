@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import { revalidateRoutinesViews, getRoutineEditPath } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { deleteRoutineMutation } from "@/lib/dal/routine-delete";
+import { deleteRoutineMutation, type RoutineDeleteClient } from "@/lib/dal/routine-delete";
 import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { ROUTINE_SCHEDULE_MODE_VALUES, type RoutineDetailsScheduleMode } from "@/lib/routine-details-form";
 import { ROUTINE_START_WEEKDAYS, createRoutineDaySeedsFromStartDate, getRoutineStartDateForWeekday } from "@/lib/routines";
@@ -409,7 +409,7 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
 
   const result = await deleteRoutineMutation({
     routineId,
-    supabase,
+    supabase: supabase as unknown as RoutineDeleteClient,
     userId: user.id,
   });
 

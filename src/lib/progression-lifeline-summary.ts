@@ -1,5 +1,5 @@
 import type { ProgressionEventRow } from "@/types/db";
-import type { DetailSectionListItem } from "@/components/ui/DetailSectionList";
+import type { DetailSectionListItem, DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
 import { formatCalories, formatDistance } from "@/lib/exercise-stats-formatting";
 import { formatDurationClock } from "@/lib/duration";
 import { formatWeight } from "@/lib/formatting";
@@ -52,7 +52,7 @@ export type ExerciseProgressionActivityDay = {
   manualChangeCount: number;
   watchCount?: number;
   revertCount: number;
-  items: DetailSectionListItem[];
+  items: DetailSectionListItemInput[];
 };
 
 export type SessionProgressionSummary = ProgressionAnalyticsDigest & {

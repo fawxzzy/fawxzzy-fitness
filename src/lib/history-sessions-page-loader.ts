@@ -598,7 +598,7 @@ function buildSessionRecapSignals(args: {
       continue;
     }
 
-    const current = progressionSignalsByExerciseName.get(exerciseName) ?? new Set<SessionRecapSignal["signals"][number]>();
+    const current = progressionSignalsByExerciseName.get(exerciseName) ?? new Set<"promotion" | "regression" | "watch">();
     if (event.event_type === "promotion_applied") {
       current.add("promotion");
     } else if (event.event_type === "deload_applied" || event.event_type === "promotion_reverted") {

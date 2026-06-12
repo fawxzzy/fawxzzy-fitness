@@ -34,7 +34,7 @@ function createRoutineDeleteClient(options?: {
     | { replacementRoutineId: string | null; type: "profiles-update"; userId: string }
   > = [];
 
-  const from = ((table: "profiles" | "routines") => {
+  const from = ((table: "profiles" | "routines" | "sessions" | "progression_events") => {
       if (table === "profiles") {
         return {
           select(_columns: "active_routine_id") {

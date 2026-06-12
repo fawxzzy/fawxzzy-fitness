@@ -228,20 +228,15 @@ export function buildRecapOnlyHistorySessionDetailSections(
   const progressionSummary = session.progressionSummary ?? null;
   const progressionExerciseNameSet = new Set((progressionSummary?.affectedExerciseNames ?? []).map((name) => name.trim()).filter(Boolean));
   const bestExerciseName = session.bestLift?.exerciseName?.trim() || null;
-  const recapMetaByName = new Map(
-    ((recapItemMeta ?? session.recapSignals ?? []) as Array<HistorySessionRecapItemMeta | SessionRecapSignal>)
-      .map((item) => {
-        const normalizedName = item.exerciseName.trim();
-        if (!normalizedName) {
-          return null;
-        }
-
-        return [normalizedName, item] as const;
-      })
-      .filter((entry): entry is readonly [string, HistorySessionRecapItemMeta] => Boolean(entry)),
-  );
+  const recapMetaByName = new Map<string, HistorySessionRecapItemMeta | SessionRecapSignal>();
+  for (const item of (recapItemMeta ?? session.recapSignals ?? [])) {
+    const normalizedName = item.exerciseName.trim();
+    if (normalizedName) {
+      recapMetaByName.set(normalizedName, item);
+    }
+  }
   const recapItems: DetailSectionListItem[] = (session.exerciseNames ?? [])
-    .map((name, index) => {
+    .map((name, index): DetailSectionListItem | null => {
       const normalizedName = name.trim();
       if (!normalizedName) {
         return null;
@@ -272,7 +267,7 @@ export function buildRecapOnlyHistorySessionDetailSections(
         layout: signals.length + tagLabels.length > 1 ? "single-column" : "auto",
       } satisfies DetailSectionListItem;
     })
-    .filter((item): item is DetailSectionListItem => Boolean(item));
+    .filter((item): item is DetailSectionListItem => item !== null);
 
   return recapItems.length > 0
       ? [{

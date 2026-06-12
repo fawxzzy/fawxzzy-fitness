@@ -1664,9 +1664,7 @@ const mockTodayProgressionStatusItems: ProgressionStatusSurfaceItem[] = [
     reason: "Ready: met the load evidence requirement from the latest qualifying session.",
     progress: {
       percent: 100,
-      completedEvidenceCount: 4,
-      requiredEvidenceCount: 4,
-      status: "ready",
+      state: "ready",
       label: "Ready",
     },
   },
@@ -2542,7 +2540,7 @@ function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
   const exercises = scenario.fixture === "long-metrics"
     ? mockHistoryDetailLongMetricExercises
     : mockHistoryDetailExercises;
-  const exerciseNameMap = scenario.fixture === "long-metrics"
+  const exerciseNameMap: Record<string, string> = scenario.fixture === "long-metrics"
     ? {
         [MOCK_EXERCISE_IDS.pullup]: "Weighted Pull-Up",
         [MOCK_EXERCISE_IDS.row]: "Chest-Supported Row",

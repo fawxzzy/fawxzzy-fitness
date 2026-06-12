@@ -12,6 +12,7 @@ import type {
 } from "@/lib/exercise-info-scope";
 import type { ExerciseProgressionActivityDay, ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { ProgressionHistoryChartSection } from "@/lib/progression-history-display";
+import type { HistoryGraphMetricKey } from "@/lib/exercise-info-history-axis";
 
 export type ExerciseInfoClientPayload = {
   exercise: ExerciseInfoSheetExercise;
@@ -276,6 +277,10 @@ function normalizeTagLabels(value: unknown) {
       .map((item) => readPrimitiveText(item))
       .filter((item): item is string => Boolean(item) && item.trim().toUpperCase() !== "UPDATE")
     : [];
+}
+
+function isHistoryGraphMetricKey(value: string | null): value is HistoryGraphMetricKey {
+  return value === "reps" || value === "weight" || value === "time" || value === "distance" || value === "calories";
 }
 
 function normalizeExerciseInfoFilterOptions(value: unknown): ExerciseInfoFilterOptions {
@@ -672,7 +677,7 @@ export function normalizeExerciseInfoStats(value: unknown): ExerciseInfoSheetSta
     progress: {
       metrics: normalizeMetricList(progress?.metrics),
       reviewSections: normalizeReviewSections(progress?.reviewSections),
-      ...(graphMetricKey && ["reps", "weight", "time", "distance", "calories"].includes(graphMetricKey)
+      ...(isHistoryGraphMetricKey(graphMetricKey)
         ? { graphMetricKey }
         : {}),
       performances: normalizePerformanceEntries(progress?.performances),

@@ -350,7 +350,7 @@ function buildLoggedSessionRecapItemMeta(args: {
   const bestExerciseName = args.sessionSummary.bestLift?.exerciseName?.trim() || null;
 
   return args.exercises
-    .map((exercise) => {
+    .map((exercise): HistorySessionRecapItemMeta | null => {
       const exerciseName = exercise.exercise_name?.trim() || args.exerciseNameMap[exercise.exercise_id] || "";
       if (!exerciseName) {
         return null;
@@ -668,8 +668,8 @@ function buildFocusedExerciseDetailedSections(args: {
           items: sessionItems.map((item, index) => ({
             id: `focused-recap-${index}`,
             primary: item,
-            signals: args.hasPrInSession ? ["pr"] : undefined,
-            layout: "single-column",
+            signals: args.hasPrInSession ? ["pr" as const] : undefined,
+            layout: "single-column" as const,
           })),
         }]
       : []),
