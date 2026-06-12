@@ -6,7 +6,7 @@ import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { HistorySessionCard } from "@/components/history/HistorySessionCard";
-import { ThirtyDayHistorySurface } from "@/components/history/ThirtyDayHistorySurface";
+import { HistoryScopeSummarySurface } from "@/components/history/HistoryScopeSummarySurface";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
@@ -18,7 +18,7 @@ import { cn } from "@/lib/cn";
 import { getWeeklyProgressWeekStart, type WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
-import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
+import type { HistoryScopeSummary } from "@/lib/history-scope-summary";
 import { buildSessionMetricTagGroup, buildSessionMetricTagValues } from "@/lib/history-metric-filters";
 import { rememberHistorySessionSummary } from "@/lib/history-session-summary-cache";
 import {
@@ -67,7 +67,7 @@ const FILTER_SECTION_RAIL_CLASS_NAME = "hide-scrollbar -mx-1.5 max-w-none overfl
 
 type HistorySessionsScopePayload = {
   sessionItems: SessionSummary[];
-  thirtyDaySummary: ThirtyDayHistorySummary;
+  scopeSummary: HistoryScopeSummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
   routineTitle: string | null;
@@ -358,9 +358,9 @@ export function HistorySessionsClient({
   currentRoutineSessions = [],
   currentCycleSessions = [],
   activeRoutineTitle = null,
-  thirtyDaySummary,
-  currentRoutineThirtyDaySummary,
-  currentCycleThirtyDaySummary,
+  scopeSummary,
+  currentRoutineScopeSummary,
+  currentCycleScopeSummary,
   weeklyProgress,
   currentRoutineWeeklyProgress,
   currentCycleWeeklyProgress,
@@ -379,9 +379,9 @@ export function HistorySessionsClient({
   currentRoutineSessions?: SessionSummary[];
   currentCycleSessions?: SessionSummary[];
   activeRoutineTitle?: string | null;
-  thirtyDaySummary: ThirtyDayHistorySummary;
-  currentRoutineThirtyDaySummary: ThirtyDayHistorySummary;
-  currentCycleThirtyDaySummary: ThirtyDayHistorySummary;
+  scopeSummary: HistoryScopeSummary;
+  currentRoutineScopeSummary: HistoryScopeSummary;
+  currentCycleScopeSummary: HistoryScopeSummary;
   weeklyProgress: WeeklyProgressSummary;
   currentRoutineWeeklyProgress: WeeklyProgressSummary;
   currentCycleWeeklyProgress: WeeklyProgressSummary;
@@ -403,7 +403,7 @@ export function HistorySessionsClient({
     const initialPayloads: Record<string, HistorySessionsScopePayload> = {
       [buildFilterStateKey(createDefaultExerciseInfoFilterState())]: {
         sessionItems: sessions,
-        thirtyDaySummary,
+        scopeSummary,
         weeklyProgress,
         weeklyProgressByWeek,
         routineTitle: null,
@@ -417,7 +417,7 @@ export function HistorySessionsClient({
         cycleStartDate: null,
       })] = {
         sessionItems: currentRoutineSessions,
-        thirtyDaySummary: currentRoutineThirtyDaySummary,
+        scopeSummary: currentRoutineScopeSummary,
         weeklyProgress: currentRoutineWeeklyProgress,
         weeklyProgressByWeek: currentRoutineWeeklyProgressByWeek,
         routineTitle: activeRoutine.title,
@@ -432,7 +432,7 @@ export function HistorySessionsClient({
           cycleStartDate: activeCycleStartDate,
         })] = {
           sessionItems: currentCycleSessions,
-          thirtyDaySummary: currentCycleThirtyDaySummary,
+          scopeSummary: currentCycleScopeSummary,
           weeklyProgress: currentCycleWeeklyProgress,
           weeklyProgressByWeek: currentCycleWeeklyProgressByWeek,
           routineTitle: activeRoutine.title,
@@ -444,7 +444,7 @@ export function HistorySessionsClient({
   });
   const [lastVisiblePayload, setLastVisiblePayload] = useState<HistorySessionsScopePayload>({
     sessionItems: sessions,
-    thirtyDaySummary,
+    scopeSummary,
     weeklyProgress,
     weeklyProgressByWeek,
     routineTitle: null,
@@ -460,7 +460,7 @@ export function HistorySessionsClient({
       : (payloadsByFilterKey[filterKey] ?? lastVisiblePayload)
   ), [filterKey, lastVisiblePayload, normalizedFilterState.analyticsScope, payloadsByFilterKey]);
   const scopedSessions = scopedPayload?.sessionItems ?? EMPTY_SESSION_ITEMS;
-  const scopedThirtyDaySummary = scopedPayload?.thirtyDaySummary ?? thirtyDaySummary;
+  const scopedScopeSummary = scopedPayload?.scopeSummary ?? scopeSummary;
   const scopedWeeklyProgress = scopedPayload?.weeklyProgress ?? weeklyProgress;
   const scopedWeeklyProgressByWeek = scopedPayload?.weeklyProgressByWeek ?? weeklyProgressByWeek ?? EMPTY_WEEKLY_PROGRESS_BY_WEEK;
   const scopedRoutineTitle = scopedPayload?.routineTitle ?? activeRoutineTitle;
@@ -670,7 +670,7 @@ export function HistorySessionsClient({
           </div>
         </div>
       ) : null}
-      <ThirtyDayHistorySurface summary={scopedThirtyDaySummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+      <HistoryScopeSummarySurface summary={scopedScopeSummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
       <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
       {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (

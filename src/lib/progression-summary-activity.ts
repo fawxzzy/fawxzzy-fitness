@@ -11,6 +11,7 @@ export type ProgressionSummaryActivityBucket = {
   promotionCount: number;
   deloadCount: number;
   manualChangeCount: number;
+  watchCount?: number;
   revertCount: number;
   items: DetailSectionListItem[];
   hotspotItems: string[];
@@ -66,13 +67,13 @@ export function buildProgressionSummaryActivityBuckets(args: {
       const analytics = summarizeProgressionEventAnalytics(bucketEvents);
       const hotspotItems = [
         analytics.topProgressedExercises[0]
-          ? `Promotion hotspot: ${args.exerciseNameById?.get(analytics.topProgressedExercises[0].exerciseId)?.trim() || "Exercise"}.`
+          ? `${args.exerciseNameById?.get(analytics.topProgressedExercises[0].exerciseId)?.trim() || "Exercise"} drove the most promotions.`
           : null,
         analytics.deloadFrequencyByExercise[0]
-          ? `Regression hotspot: ${args.exerciseNameById?.get(analytics.deloadFrequencyByExercise[0].exerciseId)?.trim() || "Exercise"}.`
+          ? `${args.exerciseNameById?.get(analytics.deloadFrequencyByExercise[0].exerciseId)?.trim() || "Exercise"} had the most regressions.`
           : null,
         analytics.manualChangeFrequencyByExercise[0]
-          ? `Manual-change hotspot: ${args.exerciseNameById?.get(analytics.manualChangeFrequencyByExercise[0].exerciseId)?.trim() || "Exercise"}.`
+          ? `${args.exerciseNameById?.get(analytics.manualChangeFrequencyByExercise[0].exerciseId)?.trim() || "Exercise"} had the most manual target changes.`
           : null,
       ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
 
@@ -85,6 +86,7 @@ export function buildProgressionSummaryActivityBuckets(args: {
         promotionCount: analytics.promotionsAppliedCount,
         deloadCount: analytics.deloadsAppliedCount,
         manualChangeCount: analytics.manualTargetChangesCount,
+        watchCount: analytics.watchAppliedCount,
         revertCount: analytics.revertsCount,
         items: orderedEvents.map((event) => (
           buildStructuredProgressionActivityItem({

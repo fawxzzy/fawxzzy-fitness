@@ -11,11 +11,12 @@ import type { ProgressionSummaryActivityBucket } from "@/lib/progression-summary
 import { buildProgressionSummaryActivityBuckets } from "@/lib/progression-summary-activity";
 import { buildProgressionSummaryChartSections } from "@/lib/progression-summary-charts";
 
-export type ThirtyDayProgressionSummary = {
+export type HistoryScopeProgressionSummary = {
   totalEventCount: number;
   promotionCount: number;
   deloadCount: number;
   manualChangeCount: number;
+  watchCount?: number;
   revertCount: number;
   chartSections: ProgressionHistoryChartSection[];
   activityBuckets: ProgressionSummaryActivityBucket[];
@@ -28,7 +29,17 @@ export type ThirtyDayProgressionSummary = {
   attentionItems: string[];
 };
 
-export type ThirtyDayHistorySummary = {
+export type HistoryScopeRecapItem = {
+  id: string;
+  primary: string;
+  value?: string | null;
+  meta?: string | null;
+  signals?: Array<"pr" | "promotion" | "regression" | "watch">;
+  tagLabels?: string[];
+  layout?: "auto" | "single-column";
+};
+
+export type HistoryScopeSummary = {
   timezone: string;
   windowStart: string;
   windowEnd: string;
@@ -36,6 +47,9 @@ export type ThirtyDayHistorySummary = {
   primaryRoutineTitle: string | null;
   completedWorkoutCount: number;
   activeDayCount: number;
+  plannedWorkoutDayCount: number;
+  completedWorkoutDayCount: number;
+  skippedWorkoutDayCount: number;
   exerciseCount: number;
   routineCount: number;
   prMomentCount: number;
@@ -50,13 +64,14 @@ export type ThirtyDayHistorySummary = {
     detail: string;
     delta: number;
   };
-  progressionSummary: ThirtyDayProgressionSummary;
+  progressionSummary: HistoryScopeProgressionSummary;
   hotspotItems: string[];
   reviewItems: string[];
   attentionItems: string[];
+  recapItems?: HistoryScopeRecapItem[];
 };
 
-type BuildThirtyDayHistorySummaryOptions = {
+type BuildHistoryScopeSummaryOptions = {
   sessions: SessionSummary[];
   progressionEvents?: ProgressionAnalyticsEvent[];
   exerciseNameById?: Map<string, string>;
@@ -105,13 +120,22 @@ function resolvePrimaryRoutineTitle(sessions: SessionSummary[]) {
   return primaryTitle;
 }
 
+function isPassiveRecoveryExerciseName(exerciseName: string) {
+  const normalized = exerciseName.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return /\b(stretch|stretching|mobility|warm[-\s]?up|cool[-\s]?down|recovery|foam roll|breathing)\b/.test(normalized);
+}
+
 function resolveMostFrequentExerciseName(sessions: SessionSummary[], excludedNames = new Set<string>()) {
   const counts = new Map<string, { count: number; lastStartedAt: string }>();
 
   for (const session of sessions) {
     for (const exerciseName of session.exerciseNames ?? []) {
       const normalizedName = exerciseName.trim();
-      if (!normalizedName || excludedNames.has(normalizedName)) {
+      if (!normalizedName || excludedNames.has(normalizedName) || isPassiveRecoveryExerciseName(normalizedName)) {
         continue;
       }
       const current = counts.get(normalizedName);
@@ -153,6 +177,155 @@ function resolveMostFrequentExerciseName(sessions: SessionSummary[], excludedNam
   };
 }
 
+function addProgressionSignalForEvent(
+  signals: Set<"promotion" | "regression" | "watch">,
+  eventType: ProgressionAnalyticsEvent["event_type"],
+) {
+  if (eventType === "promotion_applied") {
+    signals.add("promotion");
+  } else if (eventType === "deload_applied" || eventType === "promotion_reverted") {
+    signals.add("regression");
+  } else if (eventType === "manual_target_change" || eventType === "watch_applied") {
+    signals.add("watch");
+  }
+}
+
+function buildHistoryScopeRecapItems({
+  sessions,
+  progressionEvents,
+  exerciseNameById,
+}: {
+  sessions: SessionSummary[];
+  progressionEvents: ProgressionAnalyticsEvent[];
+  exerciseNameById: Map<string, string>;
+}): HistoryScopeRecapItem[] {
+  const exerciseStateByName = new Map<string, {
+    sessionCount: number;
+    signals: Set<"pr" | "promotion" | "regression" | "watch">;
+    tagLabels: Set<string>;
+  }>();
+
+  function getExerciseState(exerciseName: string) {
+    const normalizedName = exerciseName.trim();
+    if (!normalizedName) {
+      return null;
+    }
+
+    const current = exerciseStateByName.get(normalizedName) ?? {
+      sessionCount: 0,
+      signals: new Set<"pr" | "promotion" | "regression" | "watch">(),
+      tagLabels: new Set<string>(),
+    };
+    exerciseStateByName.set(normalizedName, current);
+    return current;
+  }
+
+  for (const session of sessions) {
+    for (const exerciseName of session.exerciseNames ?? []) {
+      const state = getExerciseState(exerciseName);
+      if (state) {
+        state.sessionCount += 1;
+      }
+    }
+
+    for (const exerciseName of session.prExerciseNames ?? []) {
+      getExerciseState(exerciseName)?.signals.add("pr");
+    }
+  }
+
+  for (const event of progressionEvents) {
+    const exerciseName = exerciseNameById.get(event.exercise_id)?.trim();
+    if (!exerciseName) {
+      continue;
+    }
+
+    const state = getExerciseState(exerciseName);
+    if (!state) {
+      continue;
+    }
+
+    addProgressionSignalForEvent(state.signals, event.event_type);
+    if (event.event_type === "manual_target_change") {
+      state.tagLabels.add("MANUAL");
+    }
+  }
+
+  return [...exerciseStateByName.entries()].map(([exerciseName, state], index) => ({
+    id: `history-scope-recap-${index}-${exerciseName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    primary: exerciseName,
+    value: state.sessionCount > 0 ? toPluralLabel(state.sessionCount, "session") : "progression",
+    signals: [...state.signals],
+    tagLabels: [...state.tagLabels],
+    layout: state.signals.size + state.tagLabels.size > 1 ? "single-column" : "auto",
+  }));
+}
+
+type HistorySignalReason = "leadProgress" | "promotion" | "regression" | "manual" | "stalled";
+
+type HistorySignalEntry = {
+  exerciseName: string;
+  reason: HistorySignalReason;
+  count?: number;
+};
+
+function formatReasonList(parts: string[]) {
+  if (parts.length === 2 && parts[0] === "had the most regressions" && parts[1] === "had the most manual target changes") {
+    return "had the most regressions and manual target changes";
+  }
+
+  if (parts.length <= 1) {
+    return parts[0] ?? "";
+  }
+
+  if (parts.length === 2) {
+    return `${parts[0]} and ${parts[1]}`;
+  }
+
+  return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
+}
+
+function buildConsolidatedHistorySignalItems(entries: HistorySignalEntry[]) {
+  const orderedNames: string[] = [];
+  const reasonsByName = new Map<string, Map<HistorySignalReason, number | null>>();
+
+  for (const entry of entries) {
+    const exerciseName = entry.exerciseName.trim();
+    if (!exerciseName) {
+      continue;
+    }
+
+    if (!reasonsByName.has(exerciseName)) {
+      reasonsByName.set(exerciseName, new Map());
+      orderedNames.push(exerciseName);
+    }
+
+    reasonsByName.get(exerciseName)?.set(entry.reason, entry.count ?? null);
+  }
+
+  return orderedNames
+    .map((exerciseName) => {
+      const reasons = reasonsByName.get(exerciseName);
+      if (!reasons) {
+        return null;
+      }
+
+      if (reasons.has("stalled")) {
+        const count = reasons.get("stalled") ?? 0;
+        return `${exerciseName} appeared in ${toPluralLabel(count, "session")} without a PR or progression signal.`;
+      }
+
+      const parts = [
+        reasons.has("leadProgress") ? "led progress across this scope" : null,
+        reasons.has("promotion") ? "drove the most promotions" : null,
+        reasons.has("regression") ? "had the most regressions" : null,
+        reasons.has("manual") ? "had the most manual target changes" : null,
+      ].filter((value): value is string => Boolean(value));
+
+      return parts.length > 0 ? `${exerciseName} ${formatReasonList(parts)}.` : null;
+    })
+    .filter((value): value is string => Boolean(value));
+}
+
 function buildHistoryProgressionSummary(args: {
   events: ProgressionAnalyticsEvent[];
   exerciseNameById?: Map<string, string>;
@@ -185,26 +358,14 @@ function buildHistoryProgressionSummary(args: {
     ? (args.exerciseNameById?.get(latestEvent.exercise_id)?.trim() || "Exercise")
     : null;
 
-  const promotedExerciseCount = analytics.topProgressedExercises.length;
-  const reviewItems = [
-    `${toPluralLabel(analytics.totalEvents, "progression event")} recorded across your history.`,
-    analytics.promotionsAppliedCount > 0
-      ? `${toPluralLabel(analytics.promotionsAppliedCount, "promotion")} landed across ${toPluralLabel(promotedExerciseCount, "exercise")}.`
-      : "No promotions landed across your history.",
-    analytics.deloadsAppliedCount > 0 || analytics.manualTargetChangesCount > 0 || analytics.revertsCount > 0
-      ? `${toPluralLabel(analytics.deloadsAppliedCount, "deload")}, ${toPluralLabel(analytics.manualTargetChangesCount, "manual change")}, and ${toPluralLabel(analytics.revertsCount, "revert")} were recorded.`
-      : "No deloads, manual changes, or reverts were recorded.",
-  ];
+  const regressionCount = analytics.deloadsAppliedCount + analytics.revertsCount;
+  const reviewItems: string[] = [];
 
-  if (topProgressedExerciseNames.length > 0) {
-    reviewItems.push(`Most progressed: ${topProgressedExerciseNames.join(", ")}.`);
-  }
-
-  const hotspotItems = [
-    topProgressedExerciseNames[0] ? `Promotion hotspot: ${topProgressedExerciseNames[0]}.` : null,
-    topDeloadExerciseNames[0] ? `Regression hotspot: ${topDeloadExerciseNames[0]}.` : null,
-    topAdjustedExerciseNames[0] ? `Manual-change hotspot: ${topAdjustedExerciseNames[0]}.` : null,
-  ].filter((value): value is string => Boolean(value));
+  const hotspotItems = buildConsolidatedHistorySignalItems([
+    ...(topProgressedExerciseNames[0] ? [{ exerciseName: topProgressedExerciseNames[0], reason: "promotion" as const }] : []),
+    ...(topDeloadExerciseNames[0] ? [{ exerciseName: topDeloadExerciseNames[0], reason: "regression" as const }] : []),
+    ...(topAdjustedExerciseNames[0] ? [{ exerciseName: topAdjustedExerciseNames[0], reason: "manual" as const }] : []),
+  ]);
 
   const timelineItems = [
     weeklyBuckets.length > 0 ? `Active weeks: ${toPluralLabel(weeklyBuckets.length, "week")}.` : null,
@@ -219,8 +380,8 @@ function buildHistoryProgressionSummary(args: {
     if (analytics.promotionsAppliedCount === 0) {
       attentionItems.push("No promotions landed yet.");
     }
-    if (analytics.deloadsAppliedCount > analytics.promotionsAppliedCount && analytics.deloadsAppliedCount > 0 && analytics.promotionsAppliedCount > 0) {
-      attentionItems.push("Deloads outpaced promotions.");
+    if (regressionCount > analytics.promotionsAppliedCount && regressionCount > 0 && analytics.promotionsAppliedCount > 0) {
+      attentionItems.push("Regressions outpaced promotions.");
     }
     if (analytics.manualTargetChangesCount > analytics.promotionsAppliedCount && analytics.manualTargetChangesCount > 0 && analytics.promotionsAppliedCount > 0) {
       attentionItems.push("Manual target changes outpaced promotions.");
@@ -232,6 +393,7 @@ function buildHistoryProgressionSummary(args: {
     promotionCount: analytics.promotionsAppliedCount,
     deloadCount: analytics.deloadsAppliedCount,
     manualChangeCount: analytics.manualTargetChangesCount,
+    watchCount: analytics.watchAppliedCount,
     revertCount: analytics.revertsCount,
     chartSections: buildProgressionSummaryChartSections({
       events: args.events,
@@ -253,10 +415,10 @@ function buildHistoryProgressionSummary(args: {
     hotspotItems,
     timelineItems,
     attentionItems,
-  } satisfies ThirtyDayProgressionSummary;
+  } satisfies HistoryScopeProgressionSummary;
 }
 
-export function buildThirtyDayHistorySummary({
+export function buildHistoryScopeSummary({
   sessions,
   progressionEvents = [],
   exerciseNameById = new Map<string, string>(),
@@ -264,7 +426,7 @@ export function buildThirtyDayHistorySummary({
   timezone = DEFAULT_TIMEZONE,
   now = new Date().toISOString(),
   scopeLabel = "All Time",
-}: BuildThirtyDayHistorySummaryOptions): ThirtyDayHistorySummary {
+}: BuildHistoryScopeSummaryOptions): HistoryScopeSummary {
   const safeTimezone = typeof timezone === "string" && timezone.trim().length > 0 ? timezone : DEFAULT_TIMEZONE;
   const currentDayKey = getWeeklyProgressDayKey(now, safeTimezone)
     ?? getWeeklyProgressDayKey(new Date().toISOString(), safeTimezone)
@@ -358,13 +520,16 @@ export function buildThirtyDayHistorySummary({
     consistencyDetail = `${toPluralLabel(currentSevenDayWorkoutCount, "workout")} in the last 7 days after ${previousSevenDayWorkoutCount} the week before.`;
   }
 
+  const completedWorkoutDayCount = activeDays.size;
+  const plannedWorkoutDayCount = Math.max(primaryRoutineTargetCount, completedWorkoutDayCount);
+  const skippedWorkoutDayCount = Math.max(0, plannedWorkoutDayCount - completedWorkoutDayCount);
+
   const reviewItems = [
-    `${toPluralLabel(sessions.length, "workout")} across ${toPluralLabel(activeDays.size, "workout day", "workout days")}.`,
+    `${toPluralLabel(completedWorkoutDayCount, "completed workout day", "completed workout days")} across ${toPluralLabel(routineTitles.size, "routine")}.`,
     ...(primaryRoutineTitle && primaryRoutineWorkoutCount > 0
       ? [`${primaryRoutineTitle} led with ${toPluralLabel(primaryRoutineWorkoutCount, "workout")}.`]
       : []),
-    `${toPluralLabel(exerciseNames.size, "exercise")} trained across ${toPluralLabel(routineTitles.size, "routine")}.`,
-    consistencyDetail,
+    `${toPluralLabel(exerciseNames.size, "exercise")} trained.`,
   ];
 
   const attentionItems: string[] = [];
@@ -394,15 +559,28 @@ export function buildThirtyDayHistorySummary({
     ...progressionSummary.topProgressedExerciseNames,
   ]);
   const stalledExercise = resolveMostFrequentExerciseName(sessions, excludedStalledNames);
+  const signalEntries: HistorySignalEntry[] = [
+    ...(progressionSummary.topProgressedExerciseNames[0]
+      ? [
+          { exerciseName: progressionSummary.topProgressedExerciseNames[0], reason: "leadProgress" as const },
+          { exerciseName: progressionSummary.topProgressedExerciseNames[0], reason: "promotion" as const },
+        ]
+      : []),
+    ...(progressionSummary.topDeloadExerciseNames[0] ? [{ exerciseName: progressionSummary.topDeloadExerciseNames[0], reason: "regression" as const }] : []),
+    ...(progressionSummary.topAdjustedExerciseNames[0] ? [{ exerciseName: progressionSummary.topAdjustedExerciseNames[0], reason: "manual" as const }] : []),
+    ...(stalledExercise ? [{ exerciseName: stalledExercise.exerciseName, reason: "stalled" as const, count: stalledExercise.count }] : []),
+  ];
   const hotspotItems = [
-    progressionSummary.topProgressedExerciseNames[0] ? `Most improved: ${progressionSummary.topProgressedExerciseNames[0]}.` : null,
     progressionSummary.deloadCount > progressionSummary.promotionCount && progressionSummary.deloadCount > 0
-      ? "Net progress: regressions outpaced promotions."
-      : progressionSummary.promotionCount > 0
-        ? `Net progress: ${toPluralLabel(progressionSummary.promotionCount, "promotion")} landed in this window.`
-        : null,
-    stalledExercise ? `Stalled: ${stalledExercise.exerciseName} showed up in ${toPluralLabel(stalledExercise.count, "session")} without a PR or promotion signal.` : null,
+      ? "Regressions outpaced promotions."
+      : null,
+    ...buildConsolidatedHistorySignalItems(signalEntries),
   ].filter((value): value is string => Boolean(value));
+  const recapItems = buildHistoryScopeRecapItems({
+    sessions,
+    progressionEvents,
+    exerciseNameById,
+  });
 
   return {
     timezone: safeTimezone,
@@ -412,6 +590,9 @@ export function buildThirtyDayHistorySummary({
     primaryRoutineTitle,
     completedWorkoutCount: sessions.length,
     activeDayCount: activeDays.size,
+    plannedWorkoutDayCount,
+    completedWorkoutDayCount,
+    skippedWorkoutDayCount,
     exerciseCount: exerciseNames.size,
     routineCount: routineTitles.size,
     prMomentCount,
@@ -430,5 +611,6 @@ export function buildThirtyDayHistorySummary({
     hotspotItems,
     reviewItems,
     attentionItems,
+    recapItems,
   };
 }

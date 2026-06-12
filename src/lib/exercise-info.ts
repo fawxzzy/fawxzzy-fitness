@@ -1302,15 +1302,10 @@ function getProgressionSignalForEventType(eventType: ProgressionEventRow["event_
 
 function getProgressionTagLabelsForEventType(eventType: ProgressionEventRow["event_type"]) {
   switch (eventType) {
-    case "promotion_applied":
-      return ["UPDATE"];
-    case "deload_applied":
-    case "promotion_reverted":
-      return ["UPDATE"];
     case "manual_target_change":
-      return ["UPDATE", "MANUAL"];
+      return ["MANUAL"];
     default:
-      return ["UPDATE"];
+      return [];
   }
 }
 

@@ -189,6 +189,12 @@ function getAdaptiveMetricWidthClassName(item: MetricDatum, totalItems: number) 
   }
 }
 
+function compactMetricValueNeedsExtraWidth(item: MetricDatum) {
+  const valueLength = item.value.trim().length;
+  const labelLength = item.label.trim().length;
+  return valueLength > 12 || labelLength > 13 || item.value.includes("|") || Boolean(item.valueNode);
+}
+
 function estimateMetricStripWeight(item: MetricDatum) {
   const labelLength = item.label.trim().length;
   const valueLength = item.value.trim().length;
@@ -557,6 +563,7 @@ export function SurfaceMetricGrid({
   accentBarVariant = "thin",
   autoColumns = true,
   fullWidthUnderline = false,
+  scrollable = false,
 }: {
   items: MetricDatum[];
   className?: string;
@@ -567,9 +574,37 @@ export function SurfaceMetricGrid({
   accentBarVariant?: MetricAccentBarVariant;
   autoColumns?: boolean;
   fullWidthUnderline?: boolean;
+  scrollable?: boolean;
 }) {
   if (items.length === 0) {
     return null;
+  }
+
+  if (scrollable) {
+    return (
+      <div className={cn("hide-scrollbar -mx-1 min-w-0 overflow-x-auto overflow-y-visible px-1 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]", className)}>
+        <div className="mx-auto flex w-max min-w-max flex-nowrap justify-start gap-1.25">
+          {items.map((item) => (
+            <MetricItem
+              key={`${item.label}-${item.value}`}
+              item={item}
+              className={cn(
+                "w-[7.1rem] min-w-[7.1rem] shrink-0",
+                compactMetricValueNeedsExtraWidth(item) ? "w-[8.4rem] min-w-[8.4rem]" : undefined,
+                "min-h-[2.8rem] px-2.75 py-1",
+                itemClassName,
+              )}
+              valueClassName={appTokens.workoutMetricValueCompact}
+              labelClassName={cn("text-[rgb(var(--accent-divider-rgb)/0.92)]", labelClassName)}
+              labelSlotClassName={labelSlotClassName}
+              style={itemStyle}
+              accentBarVariant={accentBarVariant}
+              fullWidthUnderline={fullWidthUnderline}
+            />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

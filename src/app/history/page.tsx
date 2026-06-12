@@ -133,9 +133,9 @@ export default async function HistoryPage({
           currentRoutineSessions={state.data.currentRoutineSessionItems}
           currentCycleSessions={state.data.currentCycleSessionItems}
           activeRoutineTitle={state.data.activeRoutineTitle}
-          thirtyDaySummary={state.data.thirtyDaySummary}
-          currentRoutineThirtyDaySummary={state.data.currentRoutineThirtyDaySummary}
-          currentCycleThirtyDaySummary={state.data.currentCycleThirtyDaySummary}
+          scopeSummary={state.data.scopeSummary}
+          currentRoutineScopeSummary={state.data.currentRoutineScopeSummary}
+          currentCycleScopeSummary={state.data.currentCycleScopeSummary}
           weeklyProgress={state.data.weeklyProgress}
           currentRoutineWeeklyProgress={state.data.currentRoutineWeeklyProgress}
           currentCycleWeeklyProgress={state.data.currentCycleWeeklyProgress}

@@ -272,7 +272,9 @@ function normalizeHistoryValueParts(value: unknown): ExerciseHistoryValuePart[] 
 
 function normalizeTagLabels(value: unknown) {
   return Array.isArray(value)
-    ? value.map((item) => readPrimitiveText(item)).filter((item): item is string => Boolean(item))
+    ? value
+      .map((item) => readPrimitiveText(item))
+      .filter((item): item is string => Boolean(item) && item.trim().toUpperCase() !== "UPDATE")
     : [];
 }
 

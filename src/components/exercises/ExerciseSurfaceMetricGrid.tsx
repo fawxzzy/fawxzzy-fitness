@@ -10,6 +10,7 @@ export function ExerciseSurfaceMetricGrid({
   labelSlotClassName,
   accentBarVariant,
   autoColumns,
+  scrollable,
 }: {
   items: MetricDatum[];
   className?: string;
@@ -19,6 +20,7 @@ export function ExerciseSurfaceMetricGrid({
   labelSlotClassName?: string;
   accentBarVariant?: MetricAccentBarVariant;
   autoColumns?: boolean;
+  scrollable?: boolean;
 }) {
   return (
     <SurfaceMetricGrid
@@ -30,6 +32,7 @@ export function ExerciseSurfaceMetricGrid({
       labelSlotClassName={labelSlotClassName}
       accentBarVariant={accentBarVariant}
       autoColumns={autoColumns}
+      scrollable={scrollable}
     />
   );
 }

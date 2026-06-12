@@ -97,12 +97,10 @@ test("weekly progress treats one workout in an otherwise empty comparison week a
   assert.deepEqual(summary.prExerciseNames, ["Back Squat"]);
   assert.equal(summary.progressScore.value, 3);
   assert.deepEqual(summary.hotspotItems, [
-    "Hotspot: Back Squat showed up in 1 session.",
-    "Most improved: Back Squat.",
-    "Net progress: 1 extra workout vs last week.",
+    "Back Squat had the strongest PR signal.",
   ]);
   assert.deepEqual(summary.attentionItems, [
-    "Needs attention: 2 planned sessions still open this cycle.",
+    "2 planned days are still open this cycle.",
   ]);
 });
 
@@ -179,12 +177,10 @@ test("weekly progress aggregates workouts, PR moments, and category volume insid
   );
   assert.equal(summary.progressScore.value, 6);
   assert.deepEqual(summary.hotspotItems, [
-    "Hotspot: Back Squat showed up in 2 sessions.",
-    "Most improved: Back Squat.",
-    "Net progress: 1 extra workout vs last week.",
+    "Back Squat led the cycle with 2 sessions and had the strongest PR signal.",
   ]);
   assert.deepEqual(summary.attentionItems, [
-    "Needs attention: 1 planned session still open this cycle.",
+    "1 planned day is still open this cycle.",
   ]);
 });
 
@@ -231,9 +227,7 @@ test("weekly progress keeps previous-week sessions out of current-week PR and sc
   assert.equal(summary.consistencyTrend.direction, "down");
   assert.equal(summary.progressScore.value, 3);
   assert.deepEqual(summary.attentionItems, [
-    "Needs attention: 2 planned sessions still open this cycle.",
-    "Stalled: Bench Press carried work this week without a PR moment yet.",
-    "Momentum slipped vs last week.",
+    "2 planned days are still open this cycle.",
   ]);
 });
 
@@ -360,8 +354,8 @@ test("weekly progress builds explicit progression recap, hotspots, and timeline 
   assert.deepEqual(summary.progressionSummary.topProgressedExerciseNames, ["Back Squat"]);
   assert.deepEqual(summary.progressionSummary.topAdjustedExerciseNames, ["Incline Walk"]);
   assert.deepEqual(summary.progressionSummary.hotspotItems, [
-    "Promotion hotspot: Back Squat.",
-    "Manual-change hotspot: Incline Walk.",
+    "Back Squat drove the most promotions.",
+    "Incline Walk had the most manual target changes.",
   ]);
   assert.deepEqual(summary.progressionSummary.timelineItems, [
     "Active progression days: 2 days.",
@@ -383,6 +377,15 @@ test("weekly progress builds explicit progression recap, hotspots, and timeline 
     "May 7:1",
   ]);
   assert.deepEqual(summary.progressionSummary.activityBuckets[1]?.hotspotItems, [
-    "Manual-change hotspot: Incline Walk.",
+    "Incline Walk had the most manual target changes.",
+  ]);
+  assert.deepEqual(summary.recapItems?.map((item) => ({
+    primary: item.primary,
+    value: item.value,
+    signals: item.signals,
+    tagLabels: item.tagLabels,
+  })), [
+    { primary: "Back Squat", value: "1 session", signals: ["promotion"], tagLabels: [] },
+    { primary: "Incline Walk", value: "progression", signals: ["watch"], tagLabels: ["MANUAL"] },
   ]);
 });

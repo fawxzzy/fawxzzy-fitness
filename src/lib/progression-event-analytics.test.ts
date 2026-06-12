@@ -11,6 +11,7 @@ import {
   countProgressionEventsByVector,
   countPromotionAppliedEvents,
   countPromotionRevertedEvents,
+  countWatchAppliedEvents,
   getLatestProgressionEventByExercise,
   getTopProgressedExercisesByPromotionCount,
   summarizeProgressionEventAnalytics,
@@ -83,6 +84,7 @@ test("empty analytics summary returns stable zero values", () => {
   assert.equal(summary.promotionsAppliedCount, 0);
   assert.equal(summary.deloadsAppliedCount, 0);
   assert.equal(summary.manualTargetChangesCount, 0);
+  assert.equal(summary.watchAppliedCount, 0);
   assert.equal(summary.revertsCount, 0);
   assert.deepEqual(summary.byType, []);
   assert.deepEqual(summary.byRoutine, []);
@@ -140,7 +142,32 @@ test("type, method, and vector counts summarize durable events correctly", () =>
   assert.equal(countPromotionAppliedEvents(events), 1);
   assert.equal(countDeloadAppliedEvents(events), 1);
   assert.equal(countManualTargetChangeEvents(events), 1);
+  assert.equal(countWatchAppliedEvents(events), 0);
   assert.equal(countPromotionRevertedEvents(events), 1);
+});
+
+test("watch-applied events stay separate from manual target changes", () => {
+  const events = [
+    buildEvent({
+      id: "event-manual",
+      event_type: "manual_target_change",
+      method: "manual",
+      vector: "duration",
+    }),
+    buildEvent({
+      id: "event-watch",
+      event_type: "watch_applied",
+      method: "hold_and_review",
+      vector: "none",
+    }),
+  ];
+
+  const summary = summarizeProgressionEventAnalytics(events);
+
+  assert.equal(countManualTargetChangeEvents(events), 1);
+  assert.equal(countWatchAppliedEvents(events), 1);
+  assert.equal(summary.manualTargetChangesCount, 1);
+  assert.equal(summary.watchAppliedCount, 1);
 });
 
 test("top progressed exercises sort by promotion count and stable exercise id", () => {

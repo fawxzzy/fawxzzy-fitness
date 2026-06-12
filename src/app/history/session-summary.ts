@@ -6,6 +6,8 @@ import type { SessionProgressionSummary } from "@/lib/progression-lifeline-summa
 
 export type SessionRecapSignal = {
   exerciseName: string;
+  value?: string | null;
+  meta?: string | null;
   signals?: Array<"pr" | "promotion" | "regression" | "watch">;
   tagLabels?: string[];
 };

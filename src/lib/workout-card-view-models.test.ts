@@ -487,7 +487,7 @@ test("buildHistorySessionCardViewModel falls back to completion delta when there
   assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "6 sets", "+10% completion"]);
 });
 
-test("buildHistorySessionCardViewModel prioritizes progression updates when a session applies promotions", () => {
+test("buildHistorySessionCardViewModel prioritizes progression changes when a session applies promotions", () => {
   const viewModel = buildHistorySessionCardViewModel(makeSessionSummary({
     progressionSummary: {
       eventCount: 2,
@@ -511,6 +511,38 @@ test("buildHistorySessionCardViewModel prioritizes progression updates when a se
   assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "2 promotions", "2 promotions applied"]);
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Exercises", "Sets", "Promotions", "Duration"]);
   assert.equal(viewModel.detailedMetrics[2]?.value, "2");
+});
+
+test("buildHistorySessionCardViewModel separates regression, watch, and manual progression metrics", () => {
+  const viewModel = buildHistorySessionCardViewModel(makeSessionSummary({
+    progressionSummary: {
+      eventCount: 3,
+      promotionCount: 0,
+      deloadCount: 1,
+      manualChangeCount: 1,
+      watchCount: 1,
+      revertCount: 1,
+      lockInCount: 0,
+      linkedSessionCount: 1,
+      distinctExerciseCount: 2,
+      firstChangeAt: "2026-05-01T12:00:00.000Z",
+      latestChangeAt: "2026-05-01T12:00:00.000Z",
+      lastPromotionAt: null,
+      affectedExerciseNames: ["Back Squat", "Bench Press"],
+      headline: null,
+      detail: "Back Squat, Bench Press",
+    },
+  }));
+
+  assert.equal(viewModel.progress, "3 target changes");
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => `${metric.label}:${metric.value}`), [
+    "Exercises:2",
+    "Sets:6",
+    "Regressions:2",
+    "Watch:1",
+    "Manual:1",
+    "Duration:45m",
+  ]);
 });
 
 test("buildHistorySessionCardViewModel hides low-value zero duration and full completion metrics", () => {

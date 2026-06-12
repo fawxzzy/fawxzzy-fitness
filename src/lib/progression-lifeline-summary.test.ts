@@ -44,14 +44,21 @@ test("buildProgressionAnalyticsDigest counts event families and linked sessions"
       source_session_id: "session-2",
       created_at: "2026-05-05T12:00:00.000Z",
     }),
+    buildEvent({
+      id: "event-4",
+      event_type: "watch_applied",
+      source_session_id: null,
+      created_at: "2026-05-06T12:00:00.000Z",
+    }),
   ]);
 
-  assert.equal(digest.eventCount, 3);
+  assert.equal(digest.eventCount, 4);
   assert.equal(digest.promotionCount, 1);
   assert.equal(digest.manualChangeCount, 1);
+  assert.equal(digest.watchCount, 1);
   assert.equal(digest.deloadCount, 1);
   assert.equal(digest.linkedSessionCount, 2);
-  assert.equal(digest.latestChangeAt, "2026-05-05T12:00:00.000Z");
+  assert.equal(digest.latestChangeAt, "2026-05-06T12:00:00.000Z");
 });
 
 test("buildExerciseProgressionLifelineSummary formats the target path", () => {

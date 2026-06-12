@@ -35,6 +35,7 @@ export function WorkoutExerciseCardDetails({
           items={visibleMetrics.slice(0, 4)}
           autoColumns={false}
           className="min-w-0"
+          scrollable
         />
       ) : null}
     </div>

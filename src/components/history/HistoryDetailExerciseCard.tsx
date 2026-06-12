@@ -223,6 +223,7 @@ export function HistoryDetailExerciseCard({
                 autoColumns
                 itemClassName="px-2.5 py-1"
                 fullWidthUnderline
+                scrollable
               />
             ) : null}
             {detailSections.length > 0 ? (

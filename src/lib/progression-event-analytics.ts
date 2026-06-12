@@ -45,6 +45,7 @@ export type ProgressionEventAnalyticsSummary = {
   promotionsAppliedCount: number;
   deloadsAppliedCount: number;
   manualTargetChangesCount: number;
+  watchAppliedCount: number;
   revertsCount: number;
   byType: ProgressionEventCountByKey[];
   byRoutine: ProgressionEventCountByKey[];
@@ -214,6 +215,10 @@ export function countManualTargetChangeEvents(events: ProgressionAnalyticsEvent[
   return events.filter((event) => event.event_type === "manual_target_change").length;
 }
 
+export function countWatchAppliedEvents(events: ProgressionAnalyticsEvent[]) {
+  return events.filter((event) => event.event_type === "watch_applied").length;
+}
+
 export function countPromotionRevertedEvents(events: ProgressionAnalyticsEvent[]) {
   return events.filter((event) => event.event_type === "promotion_reverted").length;
 }
@@ -377,6 +382,7 @@ export function summarizeProgressionEventAnalytics(events: ProgressionAnalyticsE
     promotionsAppliedCount: countPromotionAppliedEvents(events),
     deloadsAppliedCount: countDeloadAppliedEvents(events),
     manualTargetChangesCount: countManualTargetChangeEvents(events),
+    watchAppliedCount: countWatchAppliedEvents(events),
     revertsCount: countPromotionRevertedEvents(events),
     byType: countProgressionEventsByType(events),
     byRoutine: countProgressionEventsByRoutine(events),

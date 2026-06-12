@@ -92,9 +92,9 @@ export default async function DevHistorySessionsLivePage({
             currentRoutineSessions={data.currentRoutineSessionItems}
             currentCycleSessions={data.currentCycleSessionItems}
             activeRoutineTitle={data.activeRoutineTitle}
-            thirtyDaySummary={data.thirtyDaySummary}
-            currentRoutineThirtyDaySummary={data.currentRoutineThirtyDaySummary}
-            currentCycleThirtyDaySummary={data.currentCycleThirtyDaySummary}
+            scopeSummary={data.scopeSummary}
+            currentRoutineScopeSummary={data.currentRoutineScopeSummary}
+            currentCycleScopeSummary={data.currentCycleScopeSummary}
             weeklyProgress={data.weeklyProgress}
             currentRoutineWeeklyProgress={data.currentRoutineWeeklyProgress}
             currentCycleWeeklyProgress={data.currentCycleWeeklyProgress}
@@ -125,9 +125,9 @@ export default async function DevHistorySessionsLivePage({
         currentRoutineSessions={data.currentRoutineSessionItems}
         currentCycleSessions={data.currentCycleSessionItems}
         activeRoutineTitle={data.activeRoutineTitle}
-        thirtyDaySummary={data.thirtyDaySummary}
-        currentRoutineThirtyDaySummary={data.currentRoutineThirtyDaySummary}
-        currentCycleThirtyDaySummary={data.currentCycleThirtyDaySummary}
+        scopeSummary={data.scopeSummary}
+        currentRoutineScopeSummary={data.currentRoutineScopeSummary}
+        currentCycleScopeSummary={data.currentCycleScopeSummary}
         weeklyProgress={data.weeklyProgress}
         currentRoutineWeeklyProgress={data.currentRoutineWeeklyProgress}
         currentCycleWeeklyProgress={data.currentCycleWeeklyProgress}

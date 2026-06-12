@@ -13,6 +13,7 @@ export type DetailSectionSignalTone = "pr" | "promotion" | "watch" | "regression
 export type DetailSectionBadgeTone = DetailSectionSignalTone | "best" | "default";
 export type DetailSectionSignalMap = Record<string, DetailSectionSignalTone | DetailSectionSignalTone[]>;
 export type DetailSectionItemLayout = "auto" | "single-column";
+export type DetailSectionItemsLayout = "grid" | "inline";
 export type DetailSectionListItem = {
   id: string;
   primary: string;
@@ -30,6 +31,7 @@ export type DetailSectionListSection = {
   title: string;
   items: DetailSectionListItemInput[];
   tone?: DetailSectionTone;
+  layout?: DetailSectionItemsLayout;
   sectionSignal?: DetailSectionSignalTone;
   itemSignals?: DetailSectionSignalMap;
   legendSignals?: DetailSectionSignalTone[];
@@ -55,7 +57,7 @@ const DETAIL_SECTION_BADGE_CONFIG = {
     dotClassName: "bg-[rgb(var(--accent-yellow-on)/0.96)]",
   },
   regression: {
-    label: "REGRESSION",
+    label: "REG",
     textClassName: "text-[rgb(255,116,116)]",
     chipClassName: "border-[rgb(255,116,116,0.24)] bg-[rgb(255,116,116,0.1)] text-[rgb(255,116,116)]",
     dotClassName: "bg-[rgb(255,116,116)]",
@@ -89,7 +91,7 @@ export function resolveDetailSectionBadgeTone(label: string): DetailSectionBadge
   if (normalized === "PR") return "pr";
   if (normalized === "PROMO" || normalized === "PROMOTION") return "promotion";
   if (normalized === "WATCH") return "watch";
-  if (normalized === "REGRESS" || normalized === "REGRESSION") return "regression";
+  if (normalized === "REG" || normalized === "REGRESS" || normalized === "REGRESSION") return "regression";
   if (normalized === "BEST") return "best";
   return "default";
 }
@@ -103,6 +105,7 @@ export function DetailSectionBadge({
 }) {
   const resolvedTone = tone ?? resolveDetailSectionBadgeTone(label);
   const config = DETAIL_SECTION_BADGE_CONFIG[resolvedTone];
+  const displayLabel = config.label || label;
   return (
     <span
       className={cn(
@@ -111,7 +114,7 @@ export function DetailSectionBadge({
       )}
     >
       <span className={cn("h-1.5 w-1.5 rounded-full", config.dotClassName)} />
-      {label}
+      {displayLabel}
     </span>
   );
 }
@@ -273,6 +276,7 @@ export function DetailSectionItems({
   tone = "primary",
   className,
   showBullets = true,
+  layout = "grid",
   itemSignals,
   sectionSignal,
 }: {
@@ -280,6 +284,7 @@ export function DetailSectionItems({
   tone?: DetailSectionTone;
   className?: string;
   showBullets?: boolean;
+  layout?: DetailSectionItemsLayout;
   itemSignals?: DetailSectionSignalMap;
   sectionSignal?: DetailSectionSignalTone;
 }) {
@@ -287,6 +292,62 @@ export function DetailSectionItems({
     .map((item, index) => normalizeDetailSectionItem(item, index))
     .filter((item): item is DetailSectionListItem => Boolean(item));
   const shouldUseTwoColumnGrid = normalizedItems.length > 1;
+
+  if (layout === "inline") {
+    return (
+      <div className={cn("hide-scrollbar flex min-w-0 flex-nowrap gap-x-4 gap-y-1 overflow-x-auto px-1.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]", className)}>
+        {normalizedItems.map((item, index) => {
+          const rowText = buildDetailSectionItemText(item);
+          const normalizedItem = normalizeDecoratedText(rowText);
+          const signals = normalizeSignalTones(item.signals ?? itemSignals?.[item.primary] ?? itemSignals?.[buildDetailSectionItemSignature(item)] ?? sectionSignal);
+          const primarySignal = signals[0] ?? null;
+          const shouldRenderDecoratedContent = normalizedItem.includes("|")
+            || normalizedItem.includes("\u2022")
+            || normalizedItem.includes("\u2192")
+            || normalizedItem.includes("->");
+
+          return (
+            <div
+              key={item.id || `${rowText}-${index}`}
+              className="flex min-w-fit max-w-[24rem] shrink-0 flex-col items-start"
+            >
+              <div className={cn("flex min-w-0 items-start", showBullets ? "gap-2" : "gap-0")}>
+                {showBullets ? (
+                  <div className="flex h-[1.05rem] shrink-0 items-center pt-[0.08rem]">
+                    <SignatureDot />
+                  </div>
+                ) : null}
+                <span className="min-w-0">
+                  <span
+                    className={cn(
+                      appTokens.workoutCardDetailCompact,
+                      "min-w-0 block whitespace-nowrap text-[12.5px] leading-[1.28]",
+                      (item.tone ?? tone) === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
+                      primarySignal ? DETAIL_SECTION_BADGE_CONFIG[primarySignal].textClassName : undefined,
+                      item.contentClassName,
+                    )}
+                  >
+                    {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}
+                  </span>
+                  {item.meta ? (
+                    <span className="mt-0.5 block whitespace-nowrap text-[10.5px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.76)]">
+                      {renderDetailSectionItemContent(item.meta)}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+              {item.tagLabels?.length || signals.length > 0 ? (
+                <span className="mt-1 inline-flex max-w-full flex-wrap items-center gap-1">
+                  {renderTagChips(item.tagLabels)}
+                  {renderSignalChips(signals)}
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className={cn(shouldUseTwoColumnGrid ? "grid grid-cols-2 gap-x-3 gap-y-1.5 pl-px" : "space-y-1.5 pl-px", className)}>
@@ -364,6 +425,7 @@ export function DetailSectionBlock({
   divider = true,
   titleClassName,
   showBullets = true,
+  layout = "grid",
   itemSignals,
   sectionSignal,
   legendSignals,
@@ -375,6 +437,7 @@ export function DetailSectionBlock({
   divider?: boolean;
   titleClassName?: string;
   showBullets?: boolean;
+  layout?: DetailSectionItemsLayout;
   itemSignals?: DetailSectionSignalMap;
   sectionSignal?: DetailSectionSignalTone;
   legendSignals?: DetailSectionSignalTone[];
@@ -402,6 +465,7 @@ export function DetailSectionBlock({
           items={items}
           tone={tone}
           showBullets={showBullets}
+          layout={layout}
           itemSignals={itemSignals}
           sectionSignal={resolvedSectionSignal}
         />
@@ -433,6 +497,7 @@ export function DetailSectionBlocks({
         title={section.title}
         items={items}
         tone={section.tone}
+        layout={section.layout}
         titleClassName={titleClassName}
         itemSignals={section.itemSignals}
         sectionSignal={section.sectionSignal}

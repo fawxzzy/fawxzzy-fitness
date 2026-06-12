@@ -494,6 +494,7 @@ function getExerciseInfoMetricGridProps(items: MetricDatum[], variant: ExerciseI
     labelClassName: shouldUseDenseExerciseInfoMetricLabels(items) ? exerciseInfoDenseLabelClassName : undefined,
     labelSlotClassName: exerciseInfoTightLabelSlotClassName,
     autoColumns: true as const,
+    scrollable: true,
   };
 }
 

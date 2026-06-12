@@ -11,7 +11,7 @@ import {
   type WeeklyProgressSet,
   type WeeklyProgressSummary,
 } from "@/lib/history-weekly-progress";
-import { buildThirtyDayHistorySummary, type ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
+import { buildHistoryScopeSummary, type HistoryScopeSummary } from "@/lib/history-scope-summary";
 import {
   filterQaLlelRows,
   resolveShowQaLlelDataPreferenceWithOverride,
@@ -52,9 +52,9 @@ export type HistorySessionsPageData = {
   currentCycleSessionItems: SessionSummary[];
   subtitle: string;
   activeRoutineTitle: string | null;
-  thirtyDaySummary: ThirtyDayHistorySummary;
-  currentRoutineThirtyDaySummary: ThirtyDayHistorySummary;
-  currentCycleThirtyDaySummary: ThirtyDayHistorySummary;
+  scopeSummary: HistoryScopeSummary;
+  currentRoutineScopeSummary: HistoryScopeSummary;
+  currentCycleScopeSummary: HistoryScopeSummary;
   weeklyProgress: WeeklyProgressSummary;
   currentRoutineWeeklyProgress: WeeklyProgressSummary;
   currentCycleWeeklyProgress: WeeklyProgressSummary;
@@ -65,7 +65,7 @@ export type HistorySessionsPageData = {
 
 export type HistorySessionsScopePayload = {
   sessionItems: SessionSummary[];
-  thirtyDaySummary: ThirtyDayHistorySummary;
+  scopeSummary: HistoryScopeSummary;
   weeklyProgress: WeeklyProgressSummary;
   weeklyProgressByWeek: WeeklyProgressSummary[];
   routineTitle: string | null;
@@ -601,9 +601,9 @@ function buildSessionRecapSignals(args: {
     const current = progressionSignalsByExerciseName.get(exerciseName) ?? new Set<SessionRecapSignal["signals"][number]>();
     if (event.event_type === "promotion_applied") {
       current.add("promotion");
-    } else if (event.event_type === "deload_applied") {
+    } else if (event.event_type === "deload_applied" || event.event_type === "promotion_reverted") {
       current.add("regression");
-    } else if (event.event_type === "manual_target_change" || event.event_type === "promotion_reverted") {
+    } else if (event.event_type === "manual_target_change" || event.event_type === "watch_applied") {
       current.add("watch");
     }
     progressionSignalsByExerciseName.set(exerciseName, current);
@@ -617,6 +617,7 @@ function buildSessionRecapSignals(args: {
 
     const tagLabels = [
       args.bestExerciseName?.trim() === exerciseName ? "BEST" : null,
+      args.progressionEvents.some((event) => event.event_type === "manual_target_change" && args.exerciseNameById.get(event.exercise_id)?.trim() === exerciseName) ? "MANUAL" : null,
     ].filter((value): value is string => Boolean(value));
 
     return {
@@ -625,6 +626,18 @@ function buildSessionRecapSignals(args: {
       tagLabels,
     } satisfies SessionRecapSignal;
   });
+}
+
+function appendProgressionEventForSession(
+  progressionEventsBySessionId: Map<string, ProgressionEventSummaryRow[]>,
+  sessionId: string,
+  event: ProgressionEventSummaryRow,
+) {
+  const current = progressionEventsBySessionId.get(sessionId) ?? [];
+  if (!current.some((currentEvent) => currentEvent.id === event.id)) {
+    current.push(event);
+  }
+  progressionEventsBySessionId.set(sessionId, current);
 }
 
 async function loadOptionalRows<T>({
@@ -743,7 +756,7 @@ function buildHistorySessionsScopePayload(
       weekStart,
     }));
 
-  const thirtyDaySummary = buildThirtyDayHistorySummary({
+  const scopeSummary = buildHistoryScopeSummary({
     sessions: scopedSessionItems,
     progressionEvents: scopedProgressionEvents,
     exerciseNameById: context.exerciseNameById,
@@ -763,7 +776,7 @@ function buildHistorySessionsScopePayload(
 
   return {
     sessionItems: scopedSessionItems,
-    thirtyDaySummary,
+    scopeSummary,
     weeklyProgress,
     weeklyProgressByWeek,
     routineTitle: scopedRoutineTitle,
@@ -943,9 +956,7 @@ async function loadHistorySessionsScopeContext({
     if (!event.source_session_id) {
       continue;
     }
-    const current = progressionEventsBySessionId.get(event.source_session_id) ?? [];
-    current.push(event);
-    progressionEventsBySessionId.set(event.source_session_id, current);
+    appendProgressionEventForSession(progressionEventsBySessionId, event.source_session_id, event);
   }
   const sessionExerciseIds = sessionExercises.map((row) => row.id);
   const exerciseIds = Array.from(new Set([
@@ -1019,6 +1030,39 @@ async function loadHistorySessionsScopeContext({
       exerciseId: row.exercise_id,
     });
     weeklyProgressExercisesBySessionId.set(row.session_id, weeklyProgressCurrent);
+  }
+
+  const completedSessionDayKeyById = new Map(
+    sessions.map((session) => [
+      session.id,
+      getWeeklyProgressDayKey(session.performed_at, profileTimezone),
+    ] as const),
+  );
+  for (const event of progressionEvents) {
+    if (event.source_session_id) {
+      continue;
+    }
+
+    const eventDayKey = getWeeklyProgressDayKey(event.created_at, profileTimezone);
+    if (!eventDayKey) {
+      continue;
+    }
+
+    for (const session of sessions) {
+      if (completedSessionDayKeyById.get(session.id) !== eventDayKey) {
+        continue;
+      }
+      if (event.routine_id && session.routine_id && event.routine_id !== session.routine_id) {
+        continue;
+      }
+
+      const sessionExercisesForSession = exercisesBySessionId.get(session.id) ?? [];
+      if (!sessionExercisesForSession.some((exercise) => exercise.exercise_id === event.exercise_id)) {
+        continue;
+      }
+
+      appendProgressionEventForSession(progressionEventsBySessionId, session.id, event);
+    }
   }
 
   const setsBySessionExerciseId = new Map<string, SessionSetSummaryRow[]>();
@@ -1171,9 +1215,9 @@ export async function loadHistorySessionsPageData({
     currentCycleSessionItems: currentCyclePayload.sessionItems,
     subtitle: `${allTimePayload.sessionItems.length} completed sessions`,
     activeRoutineTitle: scopeContext.activeRoutineTitle,
-    thirtyDaySummary: allTimePayload.thirtyDaySummary,
-    currentRoutineThirtyDaySummary: currentRoutinePayload.thirtyDaySummary,
-    currentCycleThirtyDaySummary: currentCyclePayload.thirtyDaySummary,
+    scopeSummary: allTimePayload.scopeSummary,
+    currentRoutineScopeSummary: currentRoutinePayload.scopeSummary,
+    currentCycleScopeSummary: currentCyclePayload.scopeSummary,
     weeklyProgress: allTimePayload.weeklyProgress,
     currentRoutineWeeklyProgress: currentRoutinePayload.weeklyProgress,
     currentCycleWeeklyProgress: currentCyclePayload.weeklyProgress,

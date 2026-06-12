@@ -125,7 +125,7 @@ export type ProgressionEventRow = {
   routine_id: string;
   routine_day_exercise_id: string;
   exercise_id: string;
-  event_type: "promotion_applied" | "promotion_reverted" | "lock_in" | "deload_applied" | "review_acknowledged" | "manual_target_change";
+  event_type: "promotion_applied" | "promotion_reverted" | "lock_in" | "deload_applied" | "review_acknowledged" | "manual_target_change" | "watch_applied";
   from_target: Record<string, unknown>;
   to_target: Record<string, unknown>;
   method: string;

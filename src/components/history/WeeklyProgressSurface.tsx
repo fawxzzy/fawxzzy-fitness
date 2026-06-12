@@ -4,15 +4,13 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { DetailSectionBlock } from "@/components/ui/DetailSectionList";
+import { DetailSectionBlock, DetailSectionItems } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
-import { ProgressionSummaryActivityPanel } from "./ProgressionSummaryActivityPanel";
 
 const HISTORY_YELLOW_ACCENT_BAR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
-const HISTORY_YELLOW_CARD_BORDER_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.24)]";
 const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
 
 function formatDayKey(dayKey: string) {
@@ -73,12 +71,13 @@ function buildCurrentProgressionTitle(summary: WeeklyProgressSummary, routineTit
 }
 
 function buildCurrentProgressionPreview(summary: WeeklyProgressSummary) {
+  const regressionCount = summary.progressionSummary.deloadCount + (summary.progressionSummary.revertCount ?? 0);
   const coverageLabel = summary.primaryRoutineTargetCount > 0
     ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount} completed`
     : `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "session" : "sessions"}`;
   const changeLabels = [
     summary.progressionSummary.promotionCount > 0 ? `${summary.progressionSummary.promotionCount} ${summary.progressionSummary.promotionCount === 1 ? "promotion" : "promotions"}` : null,
-    summary.progressionSummary.deloadCount > 0 ? `${summary.progressionSummary.deloadCount} ${summary.progressionSummary.deloadCount === 1 ? "regression" : "regressions"}` : null,
+    regressionCount > 0 ? `${regressionCount} ${regressionCount === 1 ? "regression" : "regressions"}` : null,
     summary.progressionSummary.manualChangeCount > 0 ? `${summary.progressionSummary.manualChangeCount} ${summary.progressionSummary.manualChangeCount === 1 ? "manual" : "manuals"}` : null,
   ].filter((value): value is string => Boolean(value));
   const changeLabel = changeLabels.length > 0 ? changeLabels.join(" | ") : "No changes yet";
@@ -144,7 +143,30 @@ function buildCompletionDetail(summary: WeeklyProgressSummary) {
   return `${summary.completedWorkoutCount} of ${summary.primaryRoutineTargetCount} planned routine ${summary.primaryRoutineTargetCount === 1 ? "day" : "days"} completed so far.`;
 }
 
+function buildWorkoutPaceDetail(summary: WeeklyProgressSummary) {
+  if (summary.completedWorkoutCount > summary.previousWeekWorkoutCount) {
+    return `Workout pace is up: ${summary.completedWorkoutCount} this week vs ${summary.previousWeekWorkoutCount} last week.`;
+  }
+
+  if (summary.completedWorkoutCount < summary.previousWeekWorkoutCount) {
+    return `Workout pace is down: ${summary.completedWorkoutCount} this week vs ${summary.previousWeekWorkoutCount} last week.`;
+  }
+
+  if (summary.completedWorkoutCount > 0) {
+    return `Workout pace matched last week at ${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "workout" : "workouts"}.`;
+  }
+
+  return summary.consistencyTrend.detail;
+}
+
+function isOpenPlannedDaysAttentionItem(item: string) {
+  return /^\d+ planned days? (?:is|are) still open this cycle\.$/i.test(item.trim());
+}
+
 function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] {
+  const regressionCount = summary.progressionSummary.deloadCount + (summary.progressionSummary.revertCount ?? 0);
+  const watchCount = summary.progressionSummary.watchCount ?? 0;
+
   return [
     {
       label: summary.primaryRoutineTargetCount > 0 ? "Completed" : "Sessions",
@@ -166,8 +188,13 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
     },
     {
       label: "Regressions",
-      value: String(summary.progressionSummary.deloadCount),
-      valueTone: summary.progressionSummary.deloadCount > 0 ? "danger" : "muted",
+      value: String(regressionCount),
+      valueTone: regressionCount > 0 ? "danger" : "muted",
+    },
+    {
+      label: "Watch",
+      value: String(watchCount),
+      valueTone: watchCount > 0 ? "warning" : "muted",
     },
     {
       label: "Manual",
@@ -179,7 +206,36 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
 
 function CurrentWeeklyMetricGrid({ summary }: { summary: WeeklyProgressSummary }) {
   const metricItems = buildCurrentMetricItems(summary);
-  return <SurfaceMetricGrid items={metricItems} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" />;
+  return <SurfaceMetricGrid items={metricItems} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" scrollable />;
+}
+
+function ProgressionRecapRow({ summary }: { summary: WeeklyProgressSummary }) {
+  const items = summary.recapItems ?? [];
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <DetailSectionItems
+      items={items}
+      layout="inline"
+      className="pb-0"
+    />
+  );
+}
+
+function reduceProgressionReviewItems(items: string[]) {
+  return items.filter((item) => {
+    const normalized = item.trim().toLowerCase();
+    return !(
+      /\bpromotions?\b.*\blanded\b/.test(normalized)
+      || /\bpromotions?\b.*\bapplied\b/.test(normalized)
+      || /\bregressions?\b.*\bmanual change\b/.test(normalized)
+      || /\bdeloads?\b.*\bmanual change\b/.test(normalized)
+      || normalized.startsWith("no promotions")
+      || normalized.startsWith("no regressions")
+    );
+  });
 }
 
 function WeeklyProgressBody({
@@ -189,47 +245,47 @@ function WeeklyProgressBody({
   summary: WeeklyProgressSummary;
   topPaddingClassName?: string;
 }) {
+  const hasProgressionData = summary.progressionSummary.totalEventCount > 0;
+  const progressionReviewItems = reduceProgressionReviewItems(summary.progressionSummary.reviewItems);
+  const openPlanItems = summary.attentionItems.filter(isOpenPlannedDaysAttentionItem);
+  const watchItems = summary.attentionItems.filter((item) => !isOpenPlannedDaysAttentionItem(item));
+  const cycleReviewItems = [
+    buildCompletionDetail(summary),
+    buildWorkoutPaceDetail(summary),
+    ...openPlanItems,
+  ];
+
   return (
     <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
       <CurrentWeeklyMetricGrid summary={summary} />
+      <ProgressionRecapRow summary={summary} />
       <div className="space-y-3">
         <DetailSectionBlock
           title="Cycle Review"
-          items={[summary.consistencyTrend.detail, buildCompletionDetail(summary)]}
+          items={cycleReviewItems}
           tone="muted"
           divider={false}
         />
         <DetailSectionBlock
-          title="Hotspots"
-          items={summary.hotspotItems.length > 0 ? summary.hotspotItems : ["No hotspots stand out in this cycle yet."]}
+          title="Signals"
+          items={summary.hotspotItems}
           divider={false}
         />
-        <DetailSectionBlock
-          title="Watch"
-          items={summary.attentionItems.length > 0 ? summary.attentionItems : ["Nothing needs attention in this cycle right now."]}
-          divider={false}
-        />
-        <DetailSectionBlock
-          title="PR Moments"
-          items={summary.prExerciseNames.length > 0 ? summary.prExerciseNames.slice(0, 4) : ["No PR moments recorded in the current cycle."]}
-          divider={false}
-        />
-        <DetailSectionBlock
-          title="Progression"
-          items={summary.progressionSummary.reviewItems}
-          tone="muted"
-          divider={false}
-        />
-        <ProgressionSummaryActivityPanel
-          activityBuckets={summary.progressionSummary.activityBuckets}
-          hotspotItems={summary.progressionSummary.hotspotItems}
-          emptyHotspotCopy="No progression hotspots stand out this week."
-        />
-        <DetailSectionBlock
-          title="Progression Watch"
-          items={summary.progressionSummary.attentionItems.length > 0 ? summary.progressionSummary.attentionItems : ["Nothing stands out in progression this week."]}
-          divider={false}
-        />
+        {watchItems.length > 0 ? (
+          <DetailSectionBlock
+            title="Watch"
+            items={watchItems}
+            divider={false}
+          />
+        ) : null}
+        {hasProgressionData && progressionReviewItems.length > 0 ? (
+          <DetailSectionBlock
+            title="Progression"
+            items={progressionReviewItems}
+            tone="muted"
+            divider={false}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -312,11 +368,14 @@ function ExpandedWeeklySummaryCard({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-lg)] border bg-transparent",
-        HISTORY_YELLOW_CARD_BORDER_CLASS_NAME,
+        "relative overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none",
         cardShellToneClassNames.logged,
       )}
     >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full bg-[linear-gradient(180deg,rgb(var(--accent-yellow-on)/0.96),rgb(var(--accent-yellow-on)/0.52))]"
+      />
       <div className="relative">
         {children}
       </div>

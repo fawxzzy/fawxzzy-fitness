@@ -3,12 +3,11 @@
 import { type ReactNode, useId, useState } from "react";
 import { cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { DetailSectionBlock } from "@/components/ui/DetailSectionList";
+import { DetailSectionBlock, DetailSectionItems } from "@/components/ui/DetailSectionList";
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
-import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
-import { ProgressionSummaryActivityPanel } from "./ProgressionSummaryActivityPanel";
+import type { HistoryScopeSummary } from "@/lib/history-scope-summary";
 
 const HISTORY_YELLOW_METRIC_ACCENT_STYLE = { ["--metric-accent-rgb" as string]: "var(--accent-yellow-on)" };
 
@@ -21,7 +20,7 @@ function formatDayKey(dayKey: string) {
   }).format(date);
 }
 
-function normalizeThirtyDayRangeLabel(summary: ThirtyDayHistorySummary, routineTitleOverride?: string | null) {
+function normalizeScopeSummaryRangeLabel(summary: HistoryScopeSummary, routineTitleOverride?: string | null) {
   const scopeLabel = summary.scopeLabel?.trim() ?? "";
   const routineTitle = routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim() || "";
 
@@ -47,8 +46,8 @@ function normalizeThirtyDayRangeLabel(summary: ThirtyDayHistorySummary, routineT
   return scopeLabel;
 }
 
-function buildThirtyDayTitle(summary: ThirtyDayHistorySummary, routineTitleOverride?: string | null) {
-  const rangeLabel = normalizeThirtyDayRangeLabel(summary, routineTitleOverride);
+function buildScopeSummaryTitle(summary: HistoryScopeSummary, routineTitleOverride?: string | null) {
+  const rangeLabel = normalizeScopeSummaryRangeLabel(summary, routineTitleOverride);
   const isAllTimeScope = rangeLabel === "All Time";
   const resolvedRoutineTitle = isAllTimeScope ? "" : (routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim() || "");
   const leadingLabel = resolvedRoutineTitle ? `${resolvedRoutineTitle} Summary` : "History Summary";
@@ -64,54 +63,65 @@ function buildThirtyDayTitle(summary: ThirtyDayHistorySummary, routineTitleOverr
   );
 }
 
-function getTrendTone(direction: ThirtyDayHistorySummary["consistencyTrend"]["direction"]): MetricDatum["valueTone"] {
-  if (direction === "up" || direction === "new") {
-    return "success";
-  }
-  if (direction === "down") {
-    return "danger";
-  }
-  if (direction === "none") {
-    return "muted";
-  }
-  return "default";
-}
+function buildMetricItems(summary: HistoryScopeSummary): MetricDatum[] {
+  const regressionCount = summary.progressionSummary.deloadCount + summary.progressionSummary.revertCount;
+  const watchCount = summary.progressionSummary.watchCount ?? 0;
 
-function buildWeeklyChangeLabel(summary: ThirtyDayHistorySummary) {
-  if (summary.consistencyTrend.direction === "up") {
-    return `${summary.consistencyTrend.delta > 0 ? "+" : ""}${summary.consistencyTrend.delta} workout${Math.abs(summary.consistencyTrend.delta) === 1 ? "" : "s"}`;
-  }
-
-  if (summary.consistencyTrend.direction === "down") {
-    return `${summary.consistencyTrend.delta} workout${Math.abs(summary.consistencyTrend.delta) === 1 ? "" : "s"}`;
-  }
-
-  if (summary.consistencyTrend.direction === "flat" && summary.consistencyTrend.delta === 0) {
-    return "Matched workouts";
-  }
-
-  return summary.consistencyTrend.label;
-}
-
-function buildMetricItems(summary: ThirtyDayHistorySummary): MetricDatum[] {
   return [
-    { label: "Completed Workouts", value: String(summary.completedWorkoutCount) },
-    { label: "Workout Days", value: String(summary.activeDayCount), valueTone: summary.activeDayCount > 0 ? "default" : "muted" },
-    { label: "Unique Exercises", value: String(summary.exerciseCount), valueTone: summary.exerciseCount > 0 ? "default" : "muted" },
+    { label: "Planned Days", value: String(summary.plannedWorkoutDayCount), valueTone: summary.plannedWorkoutDayCount > 0 ? "default" : "muted" },
+    { label: "Completed Days", value: String(summary.completedWorkoutDayCount), valueTone: summary.completedWorkoutDayCount > 0 ? "success" : "muted" },
+    { label: "Skipped Days", value: String(summary.skippedWorkoutDayCount), valueTone: summary.skippedWorkoutDayCount > 0 ? "danger" : "muted" },
+    { label: "Distinct Exercises", value: String(summary.exerciseCount), valueTone: summary.exerciseCount > 0 ? "default" : "muted" },
     { label: "PR Moments", value: String(summary.prMomentCount), valueTone: summary.prMomentCount > 0 ? "success" : "muted" },
-    { label: "Vs Prior Week", value: buildWeeklyChangeLabel(summary), valueTone: getTrendTone(summary.consistencyTrend.direction) },
+    { label: "Promotions", value: String(summary.progressionSummary.promotionCount), valueTone: summary.progressionSummary.promotionCount > 0 ? "success" : "muted" },
+    { label: "Regressions", value: String(regressionCount), valueTone: regressionCount > 0 ? "danger" : "muted" },
+    { label: "Watch", value: String(watchCount), valueTone: watchCount > 0 ? "warning" : "muted" },
+    { label: "Manual", value: String(summary.progressionSummary.manualChangeCount), valueTone: summary.progressionSummary.manualChangeCount > 0 ? "warning" : "muted" },
   ];
 }
 
-function MetricGrid({ summary }: { summary: ThirtyDayHistorySummary }) {
+function MetricGrid({ summary }: { summary: HistoryScopeSummary }) {
   const metricItems = buildMetricItems(summary);
-  return <SurfaceMetricGrid items={metricItems} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" />;
+  return <SurfaceMetricGrid items={metricItems} accentBarVariant="compact" itemClassName="min-h-[3.55rem]" scrollable />;
 }
 
-function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHistorySummary; topPaddingClassName?: string }) {
+function ProgressionRecapRow({ summary }: { summary: HistoryScopeSummary }) {
+  const items = summary.recapItems ?? [];
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <DetailSectionItems
+      items={items}
+      layout="inline"
+      className="pb-0"
+    />
+  );
+}
+
+function reduceProgressionReviewItems(items: string[]) {
+  return items.filter((item) => {
+    const normalized = item.trim().toLowerCase();
+    return !(
+      /\bpromotions?\b.*\blanded\b/.test(normalized)
+      || /\bpromotions?\b.*\bapplied\b/.test(normalized)
+      || /\bregressions?\b.*\bmanual change\b/.test(normalized)
+      || /\bdeloads?\b.*\bmanual change\b/.test(normalized)
+      || normalized.startsWith("no promotions")
+      || normalized.startsWith("no regressions")
+    );
+  });
+}
+
+function Body({ summary, topPaddingClassName = "pt-2" }: { summary: HistoryScopeSummary; topPaddingClassName?: string }) {
+  const hasProgressionData = summary.progressionSummary.totalEventCount > 0;
+  const progressionReviewItems = reduceProgressionReviewItems(summary.progressionSummary.reviewItems);
+
   return (
     <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
       <MetricGrid summary={summary} />
+      <ProgressionRecapRow summary={summary} />
       <div className="space-y-3">
         <DetailSectionBlock
           title="Summary"
@@ -119,32 +129,28 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHis
           tone="muted"
           divider={false}
         />
-        <DetailSectionBlock
-          title="Hotspots"
-          items={summary.hotspotItems.length > 0 ? summary.hotspotItems : ["No hotspots stand out yet."]}
-          divider={false}
-        />
-        <DetailSectionBlock
-          title="Watch"
-          items={summary.attentionItems.length > 0 ? summary.attentionItems : ["Nothing needs attention right now."]}
-          divider={false}
-        />
-        <DetailSectionBlock
-          title="Progression"
-          items={summary.progressionSummary.reviewItems}
-          tone="muted"
-          divider={false}
-        />
-        <ProgressionSummaryActivityPanel
-          activityBuckets={summary.progressionSummary.activityBuckets}
-          hotspotItems={summary.progressionSummary.hotspotItems}
-          emptyHotspotCopy="No progression hotspots stand out yet."
-        />
-        <DetailSectionBlock
-          title="Progression Watch"
-          items={summary.progressionSummary.attentionItems.length > 0 ? summary.progressionSummary.attentionItems : ["Nothing stands out in progression right now."]}
-          divider={false}
-        />
+        {summary.hotspotItems.length > 0 ? (
+          <DetailSectionBlock
+            title="Signals"
+            items={summary.hotspotItems}
+            divider={false}
+          />
+        ) : null}
+        {summary.attentionItems.length > 0 ? (
+          <DetailSectionBlock
+            title="Watch"
+            items={summary.attentionItems}
+            divider={false}
+          />
+        ) : null}
+        {hasProgressionData && progressionReviewItems.length > 0 ? (
+          <DetailSectionBlock
+            title="Progression"
+            items={progressionReviewItems}
+            tone="muted"
+            divider={false}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -199,27 +205,31 @@ function ExpandedCard({ children }: { children: ReactNode }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--accent-yellow-on)/0.24)] bg-transparent",
+        "relative overflow-hidden rounded-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none",
         cardShellToneClassNames.logged,
       )}
     >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full bg-[linear-gradient(180deg,rgb(var(--accent-yellow-on)/0.96),rgb(var(--accent-yellow-on)/0.52))]"
+      />
       <div className="relative">{children}</div>
     </div>
   );
 }
 
-export function ThirtyDayHistorySurface({
+export function HistoryScopeSummarySurface({
   summary,
   viewMode = "compact",
   titleRoutineOverride = null,
 }: {
-  summary: ThirtyDayHistorySummary;
+  summary: HistoryScopeSummary;
   viewMode?: "compact" | "detailed";
   titleRoutineOverride?: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
-  const title = buildThirtyDayTitle(summary, titleRoutineOverride);
+  const title = buildScopeSummaryTitle(summary, titleRoutineOverride);
 
   if (viewMode === "detailed") {
     return (

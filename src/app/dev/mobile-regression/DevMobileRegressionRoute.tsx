@@ -41,7 +41,7 @@ import {
   type MobileFixtureScenario,
 } from "@/features/mobile-regression/fixtures";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
+import type { HistoryScopeSummary } from "@/lib/history-scope-summary";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import { buildProgressionHistoryDisplayModel, type ProgressionHistoryDisplayModel } from "@/lib/progression-history-display";
 import type { ProgressionAnalyticsEvent } from "@/lib/progression-event-analytics";
@@ -949,7 +949,7 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
           "Back Squat promoted | 5 reps -> 6 reps",
         ],
         hotspotItems: [
-          "Promotion hotspot: Back Squat.",
+          "Back Squat drove the most promotions.",
         ],
       },
       {
@@ -967,8 +967,8 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
           "Incline Walk manual target change | 12:00 -> 15:00",
         ],
         hotspotItems: [
-          "Regression hotspot: Bench Press.",
-          "Manual-change hotspot: Incline Walk.",
+          "Bench Press had the most regressions.",
+          "Incline Walk had the most manual target changes.",
         ],
       },
       {
@@ -985,7 +985,7 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
           "Bench Press promoted | 215 lbs -> 225 lbs",
         ],
         hotspotItems: [
-          "Promotion hotspot: Bench Press.",
+          "Bench Press drove the most promotions.",
         ],
       },
     ],
@@ -993,14 +993,11 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
     topDeloadExerciseNames: ["Bench Press"],
     topAdjustedExerciseNames: ["Incline Walk"],
     reviewItems: [
-      "4 progression events landed this week.",
-      "2 promotions applied across 2 exercises.",
-      "1 regression and 1 manual change were recorded.",
     ],
     hotspotItems: [
-      "Promotion hotspot: Back Squat.",
-      "Regression hotspot: Bench Press.",
-      "Manual-change hotspot: Incline Walk.",
+      "Back Squat drove the most promotions.",
+      "Bench Press had the most regressions.",
+      "Incline Walk had the most manual target changes.",
     ],
     timelineItems: [
       "Active progression days: 3 days.",
@@ -1010,16 +1007,21 @@ const mockHistoryWeeklyProgress: WeeklyProgressSummary = {
     attentionItems: [],
   },
   hotspotItems: [
-    "Hotspot: Back Squat showed up in 2 sessions.",
-    "Most improved: Back Squat.",
-    "Net progress: 1 extra workout vs last week.",
+    "Back Squat led the cycle with 2 sessions, had the strongest PR signal, and drove the most promotions.",
+    "Bench Press had the most regressions.",
+    "Incline Walk had the most manual target changes.",
   ],
   attentionItems: [
-    "Needs attention: 1 planned session still open this cycle.",
+    "1 planned day is still open this cycle.",
+  ],
+  recapItems: [
+    { id: "weekly-recap-back-squat", primary: "Back Squat", value: "2 sessions", signals: ["pr", "promotion"], layout: "single-column" },
+    { id: "weekly-recap-bench-press", primary: "Bench Press", value: "1 session", signals: ["promotion", "regression"], layout: "single-column" },
+    { id: "weekly-recap-incline-walk", primary: "Incline Walk", value: "progression", signals: ["watch"], tagLabels: ["MANUAL"], layout: "single-column" },
   ],
 };
 
-const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
+const mockHistoryScopeSummary: HistoryScopeSummary = {
   timezone: "America/New_York",
   windowStart: "2026-03-11",
   windowEnd: "2026-04-09",
@@ -1027,6 +1029,9 @@ const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
   primaryRoutineTitle: PREVIEW_ROUTINE_NAME,
   completedWorkoutCount: 3,
   activeDayCount: 3,
+  plannedWorkoutDayCount: 4,
+  completedWorkoutDayCount: 3,
+  skippedWorkoutDayCount: 1,
   exerciseCount: 13,
   routineCount: 3,
   prMomentCount: 4,
@@ -1098,7 +1103,7 @@ const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
           "Back Squat promoted | 5 reps -> 6 reps",
         ],
         hotspotItems: [
-          "Promotion hotspot: Back Squat.",
+          "Back Squat drove the most promotions.",
         ],
       },
       {
@@ -1117,9 +1122,9 @@ const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
           "Incline Walk manual target change | 12:00 -> 15:00",
         ],
         hotspotItems: [
-          "Promotion hotspot: Bench Press.",
-          "Regression hotspot: Bench Press.",
-          "Manual-change hotspot: Incline Walk.",
+          "Bench Press drove the most promotions.",
+          "Bench Press had the most regressions.",
+          "Incline Walk had the most manual target changes.",
         ],
       },
     ],
@@ -1127,15 +1132,11 @@ const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
     topDeloadExerciseNames: ["Bench Press"],
     topAdjustedExerciseNames: ["Incline Walk"],
     reviewItems: [
-      "4 progression events recorded across your history.",
-      "2 promotions landed across 2 exercises.",
-      "1 deload, 1 manual change, and 0 reverts were recorded.",
-      "Most progressed: Back Squat, Bench Press.",
     ],
     hotspotItems: [
-      "Promotion hotspot: Back Squat.",
-      "Regression hotspot: Bench Press.",
-      "Manual-change hotspot: Incline Walk.",
+      "Back Squat drove the most promotions.",
+      "Bench Press had the most regressions.",
+      "Incline Walk had the most manual target changes.",
     ],
     timelineItems: [
       "Active weeks: 3 weeks.",
@@ -1145,17 +1146,23 @@ const mockHistoryThirtyDaySummary: ThirtyDayHistorySummary = {
     attentionItems: [],
   },
   hotspotItems: [
-    "Most improved: Back Squat.",
-    "Net progress: 2 promotions landed in this window.",
-    "Stalled: Incline Walk showed up in 1 session without a PR or promotion signal.",
+    "Back Squat led progress across this scope and drove the most promotions.",
+    "Incline Walk appeared in 1 session without a PR or progression signal.",
+    "Bench Press had the most regressions.",
+    "Incline Walk had the most manual target changes.",
   ],
   reviewItems: [
-    "3 workouts across 3 workout days.",
+    "3 completed workout days across 3 routines.",
     `${PREVIEW_ROUTINE_NAME} led with 1 workout.`,
-    "13 exercises trained across 3 routines.",
-    "2 workouts in the last 7 days, up from 1 the week before.",
+    "13 exercises trained.",
   ],
   attentionItems: [],
+  recapItems: [
+    { id: "scope-recap-back-squat", primary: "Back Squat", value: "2 sessions", signals: ["pr", "promotion"], layout: "single-column" },
+    { id: "scope-recap-bench-press", primary: "Bench Press", value: "1 session", signals: ["pr", "promotion", "regression"], layout: "single-column" },
+    { id: "scope-recap-incline-walk", primary: "Incline Walk", value: "1 session", signals: ["watch"], tagLabels: ["MANUAL"], layout: "single-column" },
+    { id: "scope-recap-weighted-chin-up", primary: "Weighted Chin-Up", value: "1 session", signals: ["pr"] },
+  ],
 };
 
 const mockHistoryExerciseRows = [
@@ -2459,15 +2466,15 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             currentRoutineSessions={[...mockHistorySessions]}
             currentCycleSessions={[...mockHistorySessions]}
             activeRoutineTitle={mockHistoryWeeklyProgress.primaryRoutineTitle}
-            thirtyDaySummary={mockHistoryThirtyDaySummary}
-            currentRoutineThirtyDaySummary={{
-              ...mockHistoryThirtyDaySummary,
+            scopeSummary={mockHistoryScopeSummary}
+            currentRoutineScopeSummary={{
+              ...mockHistoryScopeSummary,
               scopeLabel: mockHistoryWeeklyProgress.primaryRoutineTitle
                 ? `Current Routine: ${mockHistoryWeeklyProgress.primaryRoutineTitle}`
                 : "Current Routine",
             }}
-            currentCycleThirtyDaySummary={{
-              ...mockHistoryThirtyDaySummary,
+            currentCycleScopeSummary={{
+              ...mockHistoryScopeSummary,
               scopeLabel: "Current Cycle: Apr 6 - Apr 12",
             }}
             weeklyProgress={mockHistoryWeeklyProgress}

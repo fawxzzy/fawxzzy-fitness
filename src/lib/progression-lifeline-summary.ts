@@ -50,6 +50,7 @@ export type ExerciseProgressionActivityDay = {
   promotionCount: number;
   deloadCount: number;
   manualChangeCount: number;
+  watchCount?: number;
   revertCount: number;
   items: DetailSectionListItem[];
 };
@@ -98,6 +99,8 @@ function formatEventTypeLabel(eventType: ProgressionEventRow["event_type"]) {
       return "Regression";
     case "manual_target_change":
       return "Manual change";
+    case "watch_applied":
+      return "Watch";
     case "lock_in":
       return "Lock-in";
     case "review_acknowledged":
@@ -153,6 +156,7 @@ function getProgressionEventSignal(eventType: ProgressionEventRow["event_type"])
     case "promotion_reverted":
       return "regression" as const;
     case "manual_target_change":
+    case "watch_applied":
       return "watch" as const;
     default:
       return null;
@@ -552,6 +556,7 @@ export function buildProgressionAnalyticsDigest(events: ProgressionEventRow[]): 
     promotionCount: promotions.length,
     deloadCount: ordered.filter((event) => event.event_type === "deload_applied").length,
     manualChangeCount: ordered.filter((event) => event.event_type === "manual_target_change").length,
+    watchCount: ordered.filter((event) => event.event_type === "watch_applied").length,
     revertCount: ordered.filter((event) => event.event_type === "promotion_reverted").length,
     lockInCount: ordered.filter((event) => event.event_type === "lock_in").length,
     linkedSessionCount: linkedSessionIds.size,
@@ -602,6 +607,7 @@ export function buildExerciseProgressionLifelineSummary(
     recentWindow.recentActivitySummary ? `Recent activity: ${recentWindow.recentActivitySummary}` : null,
     digest.promotionCount > 0 ? `${countLabel(digest.promotionCount, "promotion")} applied` : null,
     digest.deloadCount > 0 ? `${countLabel(digest.deloadCount, "regression")} logged` : null,
+    (digest.watchCount ?? 0) > 0 ? `${countLabel(digest.watchCount ?? 0, "watch")} logged` : null,
     digest.manualChangeCount > 0 ? `${countLabel(digest.manualChangeCount, "manual change")} recorded` : null,
   ].filter((value): value is string => Boolean(value));
 

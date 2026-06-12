@@ -120,7 +120,7 @@ test("normalizeExerciseInfoStats preserves event-only regression history days", 
           performedAt: "2026-05-01T12:00:00.000Z",
           routineTitles: ["Base Routine"],
           signals: ["regression"],
-          tagLabels: ["UPDATE"],
+          tagLabels: ["UPDATE", "MANUAL"],
           rows: [],
         },
       ],
@@ -135,7 +135,7 @@ test("normalizeExerciseInfoStats preserves event-only regression history days", 
           numericValue: null,
           values: [{ label: "Sets", value: "0", numericValue: 0 }],
           signals: ["regression"],
-          tagLabels: ["UPDATE"],
+          tagLabels: ["UPDATE", "MANUAL"],
         },
       ],
     },
@@ -148,11 +148,12 @@ test("normalizeExerciseInfoStats preserves event-only regression history days", 
     performedAt: "2026-05-01T12:00:00.000Z",
     routineTitles: ["Base Routine"],
     signals: ["regression"],
-    tagLabels: ["UPDATE"],
+    tagLabels: ["MANUAL"],
     rows: [],
   });
   assert.equal(stats?.progress?.graphMetricKey, "time");
   assert.equal(stats?.progress?.historyPoints?.[0]?.signals?.[0], "regression");
+  assert.deepEqual(stats?.progress?.historyPoints?.[0]?.tagLabels, ["MANUAL"]);
 });
 
 test("normalizeExerciseInfoClientPayload rejects incomplete exercise payloads", () => {

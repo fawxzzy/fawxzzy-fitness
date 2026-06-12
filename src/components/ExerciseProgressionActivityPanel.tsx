@@ -10,10 +10,11 @@ function buildProgressionChangeMixMetrics(args: {
   promotionCount: number;
   deloadCount: number;
   manualChangeCount: number;
+  watchCount?: number;
   revertCount: number;
 }) {
   const regressionCount = args.deloadCount + args.revertCount;
-  const watchCount = args.manualChangeCount;
+  const watchCount = args.watchCount ?? 0;
 
   return [
     {
@@ -61,6 +62,7 @@ export function ExerciseProgressionActivityPanel({
     promotionCount: progression.promotionCount,
     deloadCount: progression.deloadCount,
     manualChangeCount: progression.manualChangeCount,
+    watchCount: progression.watchCount,
     revertCount: progression.revertCount,
   });
 
@@ -72,7 +74,7 @@ export function ExerciseProgressionActivityPanel({
     <div className={cn("space-y-2 px-1 pb-1", className)}>
       {topDividerClassName ? <MetricAccentBar variant="thin" className={topDividerClassName} /> : null}
       <div className="space-y-1.5 pt-1">
-        <ExerciseSurfaceMetricGrid items={changeMixMetrics} {...metricGridProps} />
+        <ExerciseSurfaceMetricGrid items={changeMixMetrics} {...metricGridProps} scrollable />
       </div>
     </div>
   );

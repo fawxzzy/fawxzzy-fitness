@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import type { SessionRecapSignal, SessionSummary } from "@/app/history/session-summary";
 import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCard";
@@ -14,7 +14,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { HistoryMetaLine } from "@/components/history/HistoryMetaLine";
 import { cn } from "@/lib/cn";
 import { formatDateShort } from "@/lib/formatting";
-import { buildHistorySessionCardViewModel } from "@/lib/workout-card-view-models";
+import { buildHistorySessionCardViewModel, type HistorySessionCardViewModel } from "@/lib/workout-card-view-models";
 
 const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
 
@@ -30,7 +30,7 @@ const densityStyles = {
 };
 
 function HistorySessionDetailedMetricGrid({ items }: { items: MetricDatum[] }) {
-  return <SurfaceMetricGrid items={items} />;
+  return <SurfaceMetricGrid items={items} scrollable />;
 }
 
 function formatWeekdayShort(value: string) {
@@ -55,10 +55,10 @@ export function buildSessionTitleText(session: SessionSummary) {
 
 export function buildSessionCompactTitleText(
   session: SessionSummary,
-  { showChevron = true, centeredTitle = false }: { showChevron?: boolean; centeredTitle?: boolean } = {},
+  { showChevron = true, centeredTitle = false, metaTagText }: { showChevron?: boolean; centeredTitle?: boolean; metaTagText?: string | null } = {},
 ) {
   const { weekday, routineTitle, dayTitle } = buildSessionTitleParts(session);
-  const dateText = formatDateBadgeText(session);
+  const dateText = metaTagText?.trim() || formatDateBadgeText(session);
   const hasMetadata = Boolean(dayTitle || weekday);
 
   const titleCluster = (
@@ -209,6 +209,8 @@ function renderProgressionSummary(session: SessionSummary) {
 export type HistorySessionDetailSection = DetailSectionListSection;
 export type HistorySessionRecapItemMeta = {
   exerciseName: string;
+  value?: string | null;
+  meta?: string | null;
   signals?: Array<"pr" | "promotion" | "regression" | "watch">;
   tagLabels?: string[];
 };
@@ -263,6 +265,8 @@ export function buildRecapOnlyHistorySessionDetailSections(
       return {
         id: `session-recap-${index}`,
         primary: normalizedName,
+        value: explicitMeta?.value ?? null,
+        meta: explicitMeta?.meta ?? null,
         signals,
         tagLabels,
         layout: signals.length + tagLabels.length > 1 ? "single-column" : "auto",
@@ -271,15 +275,54 @@ export function buildRecapOnlyHistorySessionDetailSections(
     .filter((item): item is DetailSectionListItem => Boolean(item));
 
   return recapItems.length > 0
-    ? [{
+      ? [{
         title: "Recap",
         items: recapItems,
+        layout: "inline",
       }]
     : [];
 }
 
 function formatDateBadgeText(session: SessionSummary) {
   return formatDateShort(session.startedAt).toUpperCase();
+}
+
+function formatCompactCountBadge(count: number | null | undefined, label: string) {
+  return typeof count === "number" && count > 0 ? `${count} ${label}` : null;
+}
+
+function buildSessionProgressionBadgeItems(session: SessionSummary) {
+  const summary = session.progressionSummary ?? null;
+  if (!summary || summary.eventCount <= 0) {
+    return [];
+  }
+
+  const regressionCount = (summary.deloadCount ?? 0) + (summary.revertCount ?? 0);
+  const knownProgressionCount = summary.promotionCount + regressionCount + (summary.watchCount ?? 0) + summary.manualChangeCount;
+
+  return [
+    formatCompactCountBadge(summary.promotionCount, "PROMO"),
+    formatCompactCountBadge(regressionCount, "REG"),
+    formatCompactCountBadge(summary.watchCount, "WATCH"),
+    formatCompactCountBadge(summary.manualChangeCount, "MANUAL"),
+    knownProgressionCount === 0 ? formatCompactCountBadge(summary.eventCount, "EVENT") : null,
+  ].filter((item): item is string => Boolean(item));
+}
+
+function buildSessionCompactBadgeItems(session: SessionSummary, viewModel: HistorySessionCardViewModel) {
+  const dateText = formatDateBadgeText(session);
+  const prLabel = session.prCounts.total > 0
+    ? `${session.prCounts.total} ${session.prCounts.total === 1 ? "PR" : "PRS"}`
+    : null;
+  const progressionLabels = buildSessionProgressionBadgeItems(session);
+  const compactChipLabels = viewModel.compactChips
+    .map((chip) => chip.label.trim())
+    .filter(Boolean);
+
+  return [dateText, prLabel, ...progressionLabels, ...compactChipLabels]
+    .filter((item): item is string => Boolean(item?.trim()))
+    .map((item) => item.toUpperCase())
+    .filter((item, index, items) => items.indexOf(item) === index);
 }
 
 function renderDateMetaTag(value: string, className?: string) {
@@ -330,6 +373,9 @@ export function HistorySessionCard({
   metricAccentRgb,
 }: HistorySessionCardProps) {
   const viewModel = buildHistorySessionCardViewModel(session, previousSession);
+  const compactBadgeItems = buildSessionCompactBadgeItems(session, viewModel);
+  const compactBadgeKey = compactBadgeItems.join("|");
+  const [compactBadgeIndex, setCompactBadgeIndex] = useState(0);
   const styles = densityStyles[viewMode];
   const resolvedTone = tone ?? viewModel.tone;
   const compactHeaderTextClassName = "text-[0.79rem] font-semibold leading-[1] tracking-[-0.01em]";
@@ -357,6 +403,21 @@ export function HistorySessionCard({
   const resolvedSubtitle = subtitle ?? (
     resolvedDetailedSubtitle
   );
+  const activeCompactBadge = compactBadgeItems[compactBadgeIndex] ?? compactBadgeItems[0] ?? formatDateBadgeText(session);
+
+  useEffect(() => {
+    setCompactBadgeIndex(0);
+
+    if (viewMode !== "compact" || compactBadgeItems.length <= 1) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setCompactBadgeIndex((current) => (current + 1) % compactBadgeItems.length);
+    }, 3200);
+
+    return () => window.clearInterval(timer);
+  }, [compactBadgeItems.length, compactBadgeKey, viewMode]);
 
   if (viewMode === "compact") {
     const compactContent = (
@@ -375,7 +436,7 @@ export function HistorySessionCard({
         >
           <div className="flex min-h-[30px] items-center">
             <div className={cn("w-full min-w-0 pl-px text-[rgb(var(--text)/1)]", compactHeaderTextClassName)}>
-              {title ?? buildSessionCompactTitleText(session)}
+              {title ?? buildSessionCompactTitleText(session, { metaTagText: activeCompactBadge })}
             </div>
           </div>
           {resolvedCompactMetaItems.length > 0 ? (

@@ -1,5 +1,5 @@
 import type { SessionSummary } from "@/app/history/session-summary";
-import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
+import type { HistoryScopeSummary } from "@/lib/history-scope-summary";
 import type { HistorySessionsPageData } from "@/lib/history-sessions-page-loader";
 import type { WeeklyProgressSummary } from "@/lib/history-weekly-progress";
 import type { IncomingHistoryAuditExercise } from "@/lib/history-log-normalization";
@@ -300,22 +300,18 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
           "Walking Lunge manual target change | 10 reps -> 12 reps",
         ],
         hotspotItems: [
-          "Promotion hotspot: Back Squat.",
-          "Manual-change hotspot: Walking Lunge.",
+          "Back Squat drove the most promotions.",
+          "Walking Lunge had the most manual target changes.",
         ],
       },
     ],
     topProgressedExerciseNames: ["Back Squat"],
     topDeloadExerciseNames: [],
     topAdjustedExerciseNames: ["Walking Lunge"],
-    reviewItems: [
-      "2 progression events landed this week.",
-      "1 promotion applied across 1 exercise.",
-      "0 regressions and 1 manual change were recorded.",
-    ],
+    reviewItems: [],
     hotspotItems: [
-      "Promotion hotspot: Back Squat.",
-      "Manual-change hotspot: Walking Lunge.",
+      "Back Squat drove the most promotions.",
+      "Walking Lunge had the most manual target changes.",
     ],
     timelineItems: [
       "Active progression days: 1 day.",
@@ -325,16 +321,21 @@ const historyPreviewWeeklyProgress: WeeklyProgressSummary = {
     attentionItems: [],
   },
   hotspotItems: [
-    "Hotspot: Back Squat showed up in 1 session.",
-    "Most improved: Back Squat.",
+    "Back Squat had the strongest PR signal and drove the most promotions.",
+    "Walking Lunge had the most manual target changes.",
   ],
   attentionItems: [
-    "Needs attention: 3 planned sessions still open this cycle.",
-    "Momentum slipped vs last week.",
+    "3 planned days are still open this cycle.",
+  ],
+  recapItems: [
+    { id: "preview-weekly-recap-back-squat", primary: "Back Squat", value: "1 session", signals: ["pr", "promotion"], layout: "single-column" },
+    { id: "preview-weekly-recap-walking-lunge", primary: "Walking Lunge", value: "1 session", signals: ["pr", "watch"], tagLabels: ["MANUAL"], layout: "single-column" },
+    { id: "preview-weekly-recap-incline-walk", primary: "Incline Walk", value: "1 session" },
+    { id: "preview-weekly-recap-plank", primary: "Plank", value: "1 session" },
   ],
 };
 
-const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
+const historyPreviewScopeSummary: HistoryScopeSummary = {
   timezone: "America/New_York",
   windowStart: "2026-03-23",
   windowEnd: "2026-04-21",
@@ -342,6 +343,9 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
   primaryRoutineTitle: "Lower Rotation",
   completedWorkoutCount: 3,
   activeDayCount: 3,
+  plannedWorkoutDayCount: 4,
+  completedWorkoutDayCount: 3,
+  skippedWorkoutDayCount: 1,
   exerciseCount: 7,
   routineCount: 3,
   prMomentCount: 3,
@@ -412,7 +416,7 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
           "Weighted Pull-Up promoted | 6 reps -> 7 reps",
         ],
         hotspotItems: [
-          "Promotion hotspot: Weighted Pull-Up.",
+          "Weighted Pull-Up drove the most promotions.",
         ],
       },
       {
@@ -430,23 +434,18 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
           "Incline Walk manual target change | 12:00 -> 15:00",
         ],
         hotspotItems: [
-          "Promotion hotspot: Back Squat.",
-          "Manual-change hotspot: Incline Walk.",
+          "Back Squat drove the most promotions.",
+          "Incline Walk had the most manual target changes.",
         ],
       },
     ],
     topProgressedExerciseNames: ["Back Squat", "Weighted Pull-Up"],
     topDeloadExerciseNames: [],
     topAdjustedExerciseNames: ["Incline Walk"],
-    reviewItems: [
-      "3 progression events recorded across your history.",
-      "2 promotions landed across 2 exercises.",
-      "0 deloads, 1 manual change, and 0 reverts were recorded.",
-      "Most progressed: Back Squat, Weighted Pull-Up.",
-    ],
+    reviewItems: [],
     hotspotItems: [
-      "Promotion hotspot: Back Squat.",
-      "Manual-change hotspot: Incline Walk.",
+      "Back Squat drove the most promotions.",
+      "Incline Walk had the most manual target changes.",
     ],
     timelineItems: [
       "Active weeks: 2 weeks.",
@@ -456,17 +455,22 @@ const historyPreviewThirtyDaySummary: ThirtyDayHistorySummary = {
     attentionItems: [],
   },
   hotspotItems: [
-    "Most improved: Back Squat.",
-    "Net progress: 2 promotions landed in this window.",
-    "Stalled: Incline Walk showed up in 1 session without a PR or promotion signal.",
+    "Back Squat led progress across this scope and drove the most promotions.",
+    "Incline Walk appeared in 1 session without a PR or progression signal.",
+    "Incline Walk had the most manual target changes.",
   ],
   reviewItems: [
-    "3 workouts across 3 workout days.",
+    "3 completed workout days across 3 routines.",
     "Lower Rotation led with 1 workout.",
-    "7 exercises trained across 3 routines.",
-    "1 workout in each of the last two weeks.",
+    "7 exercises trained.",
   ],
   attentionItems: [],
+  recapItems: [
+    { id: "preview-scope-recap-back-squat", primary: "Back Squat", value: "1 session", signals: ["pr", "promotion"], layout: "single-column" },
+    { id: "preview-scope-recap-weighted-pull-up", primary: "Weighted Pull-Up", value: "1 session", signals: ["pr", "promotion"], layout: "single-column" },
+    { id: "preview-scope-recap-walking-lunge", primary: "Walking Lunge", value: "1 session", signals: ["watch"], tagLabels: ["MANUAL"], layout: "single-column" },
+    { id: "preview-scope-recap-incline-walk", primary: "Incline Walk", value: "2 sessions" },
+  ],
 };
 
 const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
@@ -555,20 +559,16 @@ const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
             "Weighted Pull-Up promoted | 5 reps -> 6 reps",
           ],
           hotspotItems: [
-            "Promotion hotspot: Weighted Pull-Up.",
+            "Weighted Pull-Up drove the most promotions.",
           ],
         },
       ],
       topProgressedExerciseNames: ["Weighted Pull-Up"],
       topDeloadExerciseNames: [],
       topAdjustedExerciseNames: [],
-      reviewItems: [
-        "1 progression event landed this week.",
-        "1 promotion applied across 1 exercise.",
-        "No regressions or manual target changes were recorded.",
-      ],
+      reviewItems: [],
       hotspotItems: [
-        "Promotion hotspot: Weighted Pull-Up.",
+        "Weighted Pull-Up drove the most promotions.",
       ],
       timelineItems: [
         "Active progression days: 1 day.",
@@ -578,12 +578,10 @@ const historyPreviewWeeklyProgressByWeek: WeeklyProgressSummary[] = [
       attentionItems: [],
     },
     hotspotItems: [
-      "Hotspot: Weighted Pull-Up showed up in 1 session.",
-      "Most improved: Weighted Pull-Up.",
-      "Net progress: 2 extra workouts vs last week.",
+      "Weighted Pull-Up had the strongest PR signal and drove the most promotions.",
     ],
     attentionItems: [
-      "Needs attention: 2 planned sessions still open this cycle.",
+      "2 planned days are still open this cycle.",
     ],
   },
 ];
@@ -675,13 +673,13 @@ export function getHistoryPreviewSessionsPageData(args?: {
     currentRoutineSessionItems: [...historyPreviewSessions],
     currentCycleSessionItems: [...historyPreviewSessions],
     subtitle: `${historyPreviewSessions.length} completed sessions`,
-    thirtyDaySummary: historyPreviewThirtyDaySummary,
-    currentRoutineThirtyDaySummary: {
-      ...historyPreviewThirtyDaySummary,
+    scopeSummary: historyPreviewScopeSummary,
+    currentRoutineScopeSummary: {
+      ...historyPreviewScopeSummary,
       scopeLabel: "Current Routine: Atlas",
     },
-    currentCycleThirtyDaySummary: {
-      ...historyPreviewThirtyDaySummary,
+    currentCycleScopeSummary: {
+      ...historyPreviewScopeSummary,
       scopeLabel: "Current Cycle: Apr 20 - Apr 26",
     },
     weeklyProgress: historyPreviewWeeklyProgress,

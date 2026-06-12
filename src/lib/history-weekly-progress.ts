@@ -38,6 +38,16 @@ export type WeeklyProgressVolumeCategory = {
 
 export type WeeklyProgressTrendDirection = "up" | "flat" | "down" | "new" | "none";
 
+export type WeeklyProgressRecapItem = {
+  id: string;
+  primary: string;
+  value?: string | null;
+  meta?: string | null;
+  signals?: Array<"pr" | "promotion" | "regression" | "watch">;
+  tagLabels?: string[];
+  layout?: "auto" | "single-column";
+};
+
 export type WeeklyProgressSummary = {
   timezone: string;
   weekStart: string;
@@ -71,6 +81,8 @@ export type WeeklyProgressSummary = {
     promotionCount: number;
     deloadCount: number;
     manualChangeCount: number;
+    watchCount?: number;
+    revertCount?: number;
     chartSections: ProgressionHistoryChartSection[];
     activityBuckets: ProgressionSummaryActivityBucket[];
     topProgressedExerciseNames: string[];
@@ -83,6 +95,7 @@ export type WeeklyProgressSummary = {
   };
   hotspotItems: string[];
   attentionItems: string[];
+  recapItems?: WeeklyProgressRecapItem[];
 };
 
 type BuildWeeklyProgressSummaryOptions = {
@@ -196,6 +209,15 @@ function formatWeeklyProgressDayKey(dayKey: string) {
   }).format(date);
 }
 
+function isPassiveRecoveryExerciseName(exerciseName: string) {
+  const normalized = exerciseName.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return /\b(stretch|stretching|mobility|warm[-\s]?up|cool[-\s]?down|recovery|foam roll|breathing)\b/.test(normalized);
+}
+
 function resolveTopExerciseByCount(
   exerciseCounts: Map<string, number>,
   exerciseMetaById: Map<string, WeeklyProgressExerciseMeta>,
@@ -204,13 +226,18 @@ function resolveTopExerciseByCount(
   let topCount = -1;
 
   for (const [exerciseId, count] of exerciseCounts.entries()) {
+    const exerciseName = exerciseMetaById.get(exerciseId)?.name?.trim() || "";
+    if (isPassiveRecoveryExerciseName(exerciseName)) {
+      continue;
+    }
+
     if (count > topCount || (count === topCount && topExerciseId && exerciseId.localeCompare(topExerciseId) < 0)) {
       topExerciseId = exerciseId;
       topCount = count;
     }
   }
 
-  if (!topExerciseId || topCount <= 0) {
+  if (!topExerciseId || topCount <= 1) {
     return null;
   }
 
@@ -219,6 +246,166 @@ function resolveTopExerciseByCount(
     exerciseName: exerciseMetaById.get(topExerciseId)?.name?.trim() || "Exercise",
     count: topCount,
   };
+}
+
+function addWeeklyProgressionSignalForEvent(
+  signals: Set<"promotion" | "regression" | "watch">,
+  eventType: ProgressionAnalyticsEvent["event_type"],
+) {
+  if (eventType === "promotion_applied") {
+    signals.add("promotion");
+  } else if (eventType === "deload_applied" || eventType === "promotion_reverted") {
+    signals.add("regression");
+  } else if (eventType === "manual_target_change" || eventType === "watch_applied") {
+    signals.add("watch");
+  }
+}
+
+function buildWeeklyProgressRecapItems({
+  sessions,
+  progressionEvents,
+  sessionExercisesBySessionId,
+  exerciseMetaById,
+}: {
+  sessions: SessionSummary[];
+  progressionEvents: ProgressionAnalyticsEvent[];
+  sessionExercisesBySessionId: Map<string, WeeklyProgressSessionExercise[]>;
+  exerciseMetaById: Map<string, WeeklyProgressExerciseMeta>;
+}): WeeklyProgressRecapItem[] {
+  const exerciseStateByName = new Map<string, {
+    sessionCount: number;
+    signals: Set<"pr" | "promotion" | "regression" | "watch">;
+    tagLabels: Set<string>;
+  }>();
+
+  function getExerciseState(exerciseName: string) {
+    const normalizedName = exerciseName.trim();
+    if (!normalizedName) {
+      return null;
+    }
+
+    const current = exerciseStateByName.get(normalizedName) ?? {
+      sessionCount: 0,
+      signals: new Set<"pr" | "promotion" | "regression" | "watch">(),
+      tagLabels: new Set<string>(),
+    };
+    exerciseStateByName.set(normalizedName, current);
+    return current;
+  }
+
+  for (const session of sessions) {
+    const namesForSession = new Set<string>();
+    for (const sessionExercise of sessionExercisesBySessionId.get(session.id) ?? []) {
+      const exerciseName = exerciseMetaById.get(sessionExercise.exerciseId)?.name?.trim();
+      if (exerciseName) {
+        namesForSession.add(exerciseName);
+      }
+    }
+    for (const exerciseName of session.exerciseNames ?? []) {
+      if (exerciseName.trim()) {
+        namesForSession.add(exerciseName.trim());
+      }
+    }
+
+    for (const exerciseName of namesForSession) {
+      const state = getExerciseState(exerciseName);
+      if (state) {
+        state.sessionCount += 1;
+      }
+    }
+
+    for (const exerciseName of session.prExerciseNames ?? []) {
+      getExerciseState(exerciseName)?.signals.add("pr");
+    }
+  }
+
+  for (const event of progressionEvents) {
+    const exerciseName = exerciseMetaById.get(event.exercise_id)?.name?.trim();
+    if (!exerciseName) {
+      continue;
+    }
+
+    const state = getExerciseState(exerciseName);
+    if (!state) {
+      continue;
+    }
+
+    addWeeklyProgressionSignalForEvent(state.signals, event.event_type);
+    if (event.event_type === "manual_target_change") {
+      state.tagLabels.add("MANUAL");
+    }
+  }
+
+  return [...exerciseStateByName.entries()].map(([exerciseName, state], index) => ({
+    id: `weekly-progress-recap-${index}-${exerciseName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    primary: exerciseName,
+    value: state.sessionCount > 0 ? toPluralLabel(state.sessionCount, "session") : "progression",
+    signals: [...state.signals],
+    tagLabels: [...state.tagLabels],
+    layout: state.signals.size + state.tagLabels.size > 1 ? "single-column" : "auto",
+  }));
+}
+
+type WeeklySignalReason = "cycleLead" | "pr" | "promotion" | "regression" | "manual";
+
+type WeeklySignalEntry = {
+  exerciseName: string;
+  reason: WeeklySignalReason;
+  count?: number;
+};
+
+function formatWeeklyReasonList(parts: string[]) {
+  if (parts.length === 2 && parts[0] === "had the most regressions" && parts[1] === "had the most manual target changes") {
+    return "had the most regressions and manual target changes";
+  }
+
+  if (parts.length <= 1) {
+    return parts[0] ?? "";
+  }
+
+  if (parts.length === 2) {
+    return `${parts[0]} and ${parts[1]}`;
+  }
+
+  return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
+}
+
+function buildConsolidatedWeeklySignalItems(entries: WeeklySignalEntry[]) {
+  const orderedNames: string[] = [];
+  const reasonsByName = new Map<string, Map<WeeklySignalReason, number | null>>();
+
+  for (const entry of entries) {
+    const exerciseName = entry.exerciseName.trim();
+    if (!exerciseName) {
+      continue;
+    }
+
+    if (!reasonsByName.has(exerciseName)) {
+      reasonsByName.set(exerciseName, new Map());
+      orderedNames.push(exerciseName);
+    }
+
+    reasonsByName.get(exerciseName)?.set(entry.reason, entry.count ?? null);
+  }
+
+  return orderedNames
+    .map((exerciseName) => {
+      const reasons = reasonsByName.get(exerciseName);
+      if (!reasons) {
+        return null;
+      }
+
+      const parts = [
+        reasons.has("cycleLead") ? `led the cycle with ${toPluralLabel(reasons.get("cycleLead") ?? 0, "session")}` : null,
+        reasons.has("pr") ? "had the strongest PR signal" : null,
+        reasons.has("promotion") ? "drove the most promotions" : null,
+        reasons.has("regression") ? "had the most regressions" : null,
+        reasons.has("manual") ? "had the most manual target changes" : null,
+      ].filter((value): value is string => Boolean(value));
+
+      return parts.length > 0 ? `${exerciseName} ${formatWeeklyReasonList(parts)}.` : null;
+    })
+    .filter((value): value is string => Boolean(value));
 }
 
 function resolvePrimaryRoutineTargetCount(
@@ -452,6 +639,8 @@ export function buildWeeklyProgressSummary({
     promotionCount: progressionAnalytics.promotionsAppliedCount,
     deloadCount: progressionAnalytics.deloadsAppliedCount,
     manualChangeCount: progressionAnalytics.manualTargetChangesCount,
+    watchCount: progressionAnalytics.watchAppliedCount,
+    revertCount: progressionAnalytics.revertsCount,
     chartSections: buildProgressionSummaryChartSections({
       events: currentWeekProgressionEvents,
       exerciseNameById: new Map(
@@ -476,20 +665,12 @@ export function buildWeeklyProgressSummary({
     topProgressedExerciseNames: progressionTopProgressedExerciseNames,
     topDeloadExerciseNames: progressionTopDeloadExerciseNames,
     topAdjustedExerciseNames: progressionTopAdjustedExerciseNames,
-    reviewItems: [
-      `${toPluralLabel(progressionAnalytics.totalEvents, "progression event")} landed this week.`,
-      progressionAnalytics.promotionsAppliedCount > 0
-        ? `${toPluralLabel(progressionAnalytics.promotionsAppliedCount, "promotion")} applied across ${toPluralLabel(progressionAnalytics.topProgressedExercises.length, "exercise")}.`
-        : "No promotions landed this week.",
-      progressionAnalytics.deloadsAppliedCount > 0 || progressionAnalytics.manualTargetChangesCount > 0
-        ? `${toPluralLabel(progressionAnalytics.deloadsAppliedCount, "regression")} and ${toPluralLabel(progressionAnalytics.manualTargetChangesCount, "manual change")} were recorded.`
-        : "No regressions or manual target changes were recorded.",
-    ],
-    hotspotItems: [
-      progressionTopProgressedExerciseNames[0] ? `Promotion hotspot: ${progressionTopProgressedExerciseNames[0]}.` : null,
-      progressionTopDeloadExerciseNames[0] ? `Regression hotspot: ${progressionTopDeloadExerciseNames[0]}.` : null,
-      progressionTopAdjustedExerciseNames[0] ? `Manual-change hotspot: ${progressionTopAdjustedExerciseNames[0]}.` : null,
-    ].filter((value): value is string => Boolean(value)),
+    reviewItems: [],
+    hotspotItems: buildConsolidatedWeeklySignalItems([
+      ...(progressionTopProgressedExerciseNames[0] ? [{ exerciseName: progressionTopProgressedExerciseNames[0], reason: "promotion" as const }] : []),
+      ...(progressionTopDeloadExerciseNames[0] ? [{ exerciseName: progressionTopDeloadExerciseNames[0], reason: "regression" as const }] : []),
+      ...(progressionTopAdjustedExerciseNames[0] ? [{ exerciseName: progressionTopAdjustedExerciseNames[0], reason: "manual" as const }] : []),
+    ]),
     timelineItems: [
       progressionDayBuckets.length > 0 ? `Active progression days: ${toPluralLabel(progressionDayBuckets.length, "day")}.` : null,
       busiestProgressionDay ? `Busiest day: ${formatWeeklyProgressDayKey(busiestProgressionDay.bucket)} (${toPluralLabel(busiestProgressionDay.count, "event")}).` : null,
@@ -500,7 +681,7 @@ export function buildWeeklyProgressSummary({
     attentionItems: [
       progressionAnalytics.totalEvents === 0 ? "No progression events were recorded this week." : null,
       progressionAnalytics.totalEvents > 0 && progressionAnalytics.promotionsAppliedCount === 0 ? "Progression changes landed without a promotion this week." : null,
-      progressionAnalytics.deloadsAppliedCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
+      progressionAnalytics.deloadsAppliedCount + progressionAnalytics.revertsCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
         ? "Regressions outpaced promotions this week."
         : null,
       progressionAnalytics.manualTargetChangesCount > progressionAnalytics.promotionsAppliedCount && progressionAnalytics.promotionsAppliedCount > 0
@@ -508,24 +689,22 @@ export function buildWeeklyProgressSummary({
         : null,
     ].filter((value): value is string => Boolean(value)),
   };
-  const hotspotItems = [
-    topExercise ? `Hotspot: ${topExercise.exerciseName} showed up in ${toPluralLabel(topExercise.count, "session")}.` : null,
-    prExerciseNames[0] ? `Most improved: ${prExerciseNames[0]}.` : null,
-    completedWorkoutCount > previousWeekWorkoutCount
-      ? `Net progress: ${toPluralLabel(completedWorkoutCount - previousWeekWorkoutCount, "extra workout")} vs last week.`
-      : completedWorkoutCount === previousWeekWorkoutCount && completedWorkoutCount > 0
-        ? "Net progress: matched last week's workout pace."
-        : null,
-  ].filter((value): value is string => Boolean(value));
+  const hotspotItems = buildConsolidatedWeeklySignalItems([
+    ...(topExercise ? [{ exerciseName: topExercise.exerciseName, reason: "cycleLead" as const, count: topExercise.count }] : []),
+    ...(prExerciseNames[0] ? [{ exerciseName: prExerciseNames[0], reason: "pr" as const }] : []),
+    ...(progressionTopProgressedExerciseNames[0] ? [{ exerciseName: progressionTopProgressedExerciseNames[0], reason: "promotion" as const }] : []),
+    ...(progressionTopDeloadExerciseNames[0] ? [{ exerciseName: progressionTopDeloadExerciseNames[0], reason: "regression" as const }] : []),
+    ...(progressionTopAdjustedExerciseNames[0] ? [{ exerciseName: progressionTopAdjustedExerciseNames[0], reason: "manual" as const }] : []),
+  ]);
+  const recapItems = buildWeeklyProgressRecapItems({
+    sessions: currentWeekSessions,
+    progressionEvents: currentWeekProgressionEvents,
+    sessionExercisesBySessionId,
+    exerciseMetaById,
+  });
   const attentionItems = [
     primaryRoutineTargetCount > 0 && completedWorkoutCount < primaryRoutineTargetCount
-      ? `Needs attention: ${primaryRoutineTargetCount - completedWorkoutCount} planned ${primaryRoutineTargetCount - completedWorkoutCount === 1 ? "session" : "sessions"} still open this cycle.`
-      : null,
-    completedWorkoutCount > 0 && prMomentCount === 0 && topExercise
-      ? `Stalled: ${topExercise.exerciseName} carried work this week without a PR moment yet.`
-      : null,
-    consistencyDirection === "down"
-      ? "Momentum slipped vs last week."
+      ? `${primaryRoutineTargetCount - completedWorkoutCount} planned ${primaryRoutineTargetCount - completedWorkoutCount === 1 ? "day is" : "days are"} still open this cycle.`
       : null,
   ].filter((value): value is string => Boolean(value));
 
@@ -567,5 +746,6 @@ export function buildWeeklyProgressSummary({
     progressionSummary,
     hotspotItems,
     attentionItems,
+    recapItems,
   };
 }

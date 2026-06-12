@@ -342,6 +342,7 @@ function buildLoggedSessionSummary(args: {
 
 function buildLoggedSessionRecapItemMeta(args: {
   exercises: AuditExercise[];
+  editableSets: Record<string, EditableSet[]>;
   exerciseNameMap: Record<string, string>;
   sessionSummary: SessionSummary;
 }): HistorySessionRecapItemMeta[] {
@@ -356,6 +357,13 @@ function buildLoggedSessionRecapItemMeta(args: {
       }
 
       const progressionSummary = exercise.progressionSummary ?? null;
+      const sets = args.editableSets[exercise.id] ?? [];
+      const bestSet = findBestEditableSet(sets);
+      const bestSetDisplay = bestSet ? buildMeasurementSummary(bestSet, exercise.default_unit) : null;
+      const valueParts = [
+        progressionSummary?.currentTargetLabel?.trim() ? `Target ${progressionSummary.currentTargetLabel.trim()}` : null,
+        bestSetDisplay && bestSetDisplay !== "No measurements" ? `Logged ${bestSetDisplay}` : null,
+      ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
       const signals = [
         prExerciseNames.has(exerciseName) ? "pr" : null,
         (progressionSummary?.promotionCount ?? 0) > 0 ? "promotion" : null,
@@ -364,10 +372,12 @@ function buildLoggedSessionRecapItemMeta(args: {
       ].filter((value, signalIndex, values): value is "pr" | "promotion" | "regression" | "watch" => Boolean(value) && values.indexOf(value) === signalIndex);
       const tagLabels = [
         bestExerciseName === exerciseName ? "BEST" : null,
+        (progressionSummary?.manualChangeCount ?? 0) > 0 ? "MANUAL" : null,
       ].filter((value): value is string => Boolean(value));
 
       return {
         exerciseName,
+        value: valueParts.length > 0 ? valueParts.join(" | ") : null,
         signals,
         tagLabels,
       } satisfies HistorySessionRecapItemMeta;
@@ -882,7 +892,7 @@ function FocusedExerciseContextPanels({
       {showOverview && (resolvedOverviewMetrics.length > 0 || resolvedOverviewSections.length > 0) ? (
         <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
           <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Overview</h3>
-          {resolvedOverviewMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={resolvedOverviewMetrics} className="justify-center" /> : null}
+          {resolvedOverviewMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={resolvedOverviewMetrics} className="justify-center" scrollable /> : null}
           {resolvedOverviewSections.length > 0 ? (
             <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
               <DetailSectionBlocks sections={resolvedOverviewSections} titleClassName={FOCUSED_SUBSECTION_TITLE_CLASS_NAME} />
@@ -894,7 +904,7 @@ function FocusedExerciseContextPanels({
       {showProgression && (progressionMetrics.length > 0 || progressionSummary) ? (
         <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
           <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Progression</h3>
-          {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} className="justify-center" /> : null}
+          {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} className="justify-center" scrollable /> : null}
           {progressionSummary ? (
             <ExerciseProgressionActivityPanel
               progression={progressionSummary}
@@ -1025,10 +1035,11 @@ export function LogAuditClient({
 
     return buildLoggedSessionRecapItemMeta({
       exercises: displayExercises,
+      editableSets,
       exerciseNameMap,
       sessionSummary: focusedSessionSummary,
     });
-  }, [displayExercises, expandedExercise, exerciseNameMap, focusedSessionSummary]);
+  }, [displayExercises, editableSets, expandedExercise, exerciseNameMap, focusedSessionSummary]);
 
   const focusedDetailedSections = useMemo(() => {
     if (!expandedExercise) {

@@ -635,7 +635,7 @@ function buildSessionProgress(session: SessionSummary, previousSession?: Session
   }
 
   if (session.progressionSummary?.eventCount) {
-    return session.progressionSummary.headline ?? `${formatIntegerValue(session.progressionSummary.eventCount)} target updates`;
+    return session.progressionSummary.headline ?? `${formatIntegerValue(session.progressionSummary.eventCount)} target ${session.progressionSummary.eventCount === 1 ? "change" : "changes"}`;
   }
 
   if (session.prCounts.total > 0) {
@@ -691,6 +691,7 @@ function buildSessionProgressionMetrics(session: SessionSummary): MetricDatum[] 
   }
 
   const metrics: MetricDatum[] = [];
+  const regressionCount = summary.deloadCount + (summary.revertCount ?? 0);
   if (summary.promotionCount > 0) {
     metrics.push({
       label: "Promotions",
@@ -698,11 +699,18 @@ function buildSessionProgressionMetrics(session: SessionSummary): MetricDatum[] 
       valueTone: "success",
     });
   }
-  if (summary.deloadCount > 0) {
+  if (regressionCount > 0) {
     metrics.push({
       label: "Regressions",
-      value: formatIntegerValue(summary.deloadCount),
+      value: formatIntegerValue(regressionCount),
       valueTone: "danger",
+    });
+  }
+  if ((summary.watchCount ?? 0) > 0) {
+    metrics.push({
+      label: "Watch",
+      value: formatIntegerValue(summary.watchCount ?? 0),
+      valueTone: "warning",
     });
   }
   if (summary.manualChangeCount > 0) {
@@ -772,7 +780,7 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
     });
   }
 
-  return metrics.slice(0, 4);
+  return metrics;
 }
 
 export function buildHistorySessionCardViewModel(session: SessionSummary, previousSession?: SessionSummary | null): HistorySessionCardViewModel {
