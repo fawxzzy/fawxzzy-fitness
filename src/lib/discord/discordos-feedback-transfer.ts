@@ -6,6 +6,7 @@ export type DiscordOsFeedbackTransferConfig = {
   enabled: boolean;
   mode: "fitness-primary" | "discordos-primary";
   endpointUrl: string | null;
+  transferSecret: string | null;
   blockedReasons: string[];
 };
 
@@ -18,6 +19,7 @@ type SubmitDiscordOsFeedbackTransferArgs = {
   area: string | null;
   details: string | null;
   endpointUrl: string;
+  transferSecret: string;
   fetchImpl?: typeof fetch;
 };
 
@@ -47,21 +49,27 @@ export function getDiscordOsFeedbackTransferConfig(
     optionalEnv("DISCORDOS_FEEDBACK_TRANSFER_ENDPOINT_URL", env)
     ?? optionalEnv("DISCORDOS_FEEDBACK_PERSIST_ENDPOINT_URL", env);
   const endpointUrl = rawEndpoint ? `${cleanUrl(rawEndpoint)}` : null;
+  const transferSecret = optionalEnv("DISCORDOS_FEEDBACK_TRANSFER_SECRET", env);
   const blockedReasons: string[] = [];
 
   if (mode === "discordos-primary" && endpointUrl === null) {
     blockedReasons.push("missing_discordos_feedback_transfer_endpoint_url");
   }
 
+  if (mode === "discordos-primary" && transferSecret === null) {
+    blockedReasons.push("missing_discordos_feedback_transfer_secret");
+  }
+
   return {
     enabled: mode === "discordos-primary" && blockedReasons.length === 0,
     mode,
     endpointUrl,
+    transferSecret,
     blockedReasons,
   };
 }
 
-export function buildDiscordOsFeedbackTransferPayload(args: Omit<SubmitDiscordOsFeedbackTransferArgs, "endpointUrl" | "fetchImpl">) {
+export function buildDiscordOsFeedbackTransferPayload(args: Omit<SubmitDiscordOsFeedbackTransferArgs, "endpointUrl" | "transferSecret" | "fetchImpl">) {
   const reportIdSource = args.interactionId?.trim() || randomUUID();
   const summary = normalizeTitlePart(args.summary, "Feedback report");
   const area = normalizeTitlePart(args.area, "Fitness");
@@ -71,6 +79,8 @@ export function buildDiscordOsFeedbackTransferPayload(args: Omit<SubmitDiscordOs
     reportType: args.reportType,
     reporterDiscordUserId: args.reporterDiscordUserId,
     reporterUserKind: args.reporterUserKind ?? "human",
+    transferSource: "fitness-discord-interaction",
+    sourceProof: "discord-signature-verified-by-fitness",
     forumTitle: `${args.reportType === "feature" ? "Feature" : "Bug"}: ${area} - ${summary}`.slice(0, 180),
     statusNote: args.details?.trim().slice(0, 500) || null,
   };
@@ -93,6 +103,7 @@ export async function submitDiscordOsFeedbackTransfer(args: SubmitDiscordOsFeedb
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        "X-DiscordOS-Feedback-Transfer-Secret": args.transferSecret,
       },
       body: JSON.stringify(buildDiscordOsFeedbackTransferPayload(args)),
     });

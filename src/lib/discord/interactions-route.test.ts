@@ -3351,6 +3351,7 @@ test("Discord interactions route transfers active feedback submits to DiscordOS 
   process.env.DISCORD_GUILD_ID = "1504668396338413670";
   process.env.DISCORDOS_FEEDBACK_TRANSFER_MODE = "discordos-primary";
   process.env.DISCORDOS_FEEDBACK_TRANSFER_ENDPOINT_URL = "https://fawxzzy-discordos.vercel.app/api/feedback-persist";
+  process.env.DISCORDOS_FEEDBACK_TRANSFER_SECRET = "shared-transfer-secret";
   delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
 
   const originalFetch = globalThis.fetch;
@@ -3360,7 +3361,8 @@ test("Discord interactions route transfers active feedback submits to DiscordOS 
     const url = new URL(String(input));
     const method = String(init?.method ?? "GET");
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
-    observedRequests.push({ href: url.href, path: url.pathname, method, body });
+    const headers = new Headers(init?.headers);
+    observedRequests.push({ href: url.href, path: url.pathname, method, body, headers });
 
     if (url.pathname === "/api/v10/interactions/interaction-1/interaction-token/callback") {
       return new Response(null, { status: 204 });
@@ -3438,14 +3440,18 @@ test("Discord interactions route transfers active feedback submits to DiscordOS 
       reportType: "bug",
       reporterDiscordUserId: "123456789012345678",
       reporterUserKind: "human",
+      transferSource: "fitness-discord-interaction",
+      sourceProof: "discord-signature-verified-by-fitness",
       forumTitle: "Bug: Settings - Token copy button failed",
       statusNote: "I tapped Copy and nothing happened.",
     });
+    assert.equal(transferCall?.headers.get("x-discordos-feedback-transfer-secret"), "shared-transfer-secret");
     assert.equal(observedRequests.some((entry) => entry.path.endsWith("/rest/v1/discord_feedback_reports")), false);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORDOS_FEEDBACK_TRANSFER_MODE;
     delete process.env.DISCORDOS_FEEDBACK_TRANSFER_ENDPOINT_URL;
+    delete process.env.DISCORDOS_FEEDBACK_TRANSFER_SECRET;
   }
 });
 

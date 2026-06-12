@@ -6243,7 +6243,7 @@ async function processFeedbackCreateModalSubmit(
   const modalFields = extractDiscordBugReportModalFields(interaction.data?.components, extractDiscordModalTextInputValue);
   const transferConfig = getDiscordOsFeedbackTransferConfig();
   if (transferConfig.mode === "discordos-primary") {
-    if (!transferConfig.enabled || transferConfig.endpointUrl === null) {
+    if (!transferConfig.enabled || transferConfig.endpointUrl === null || transferConfig.transferSecret === null) {
       console.error("[discord-interactions] DiscordOS feedback transfer disabled by config", {
         requestId: randomUUID(),
         blockedReasons: transferConfig.blockedReasons,
@@ -6260,6 +6260,7 @@ async function processFeedbackCreateModalSubmit(
       area: modalFields.area,
       details: modalFields.details,
       endpointUrl: transferConfig.endpointUrl,
+      transferSecret: transferConfig.transferSecret,
     });
 
     if (!transferResult.ok) {
