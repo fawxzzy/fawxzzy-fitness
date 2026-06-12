@@ -684,31 +684,40 @@ function buildSessionCompactChips(session: SessionSummary, progress: string | nu
   return clampChips(chips);
 }
 
-function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
-  if (session.progressionSummary?.eventCount) {
-    const metrics: MetricDatum[] = [
-      {
-        label: "Exercises",
-        value: formatIntegerValue(session.exerciseCount),
-      },
-      {
-        label: "Sets",
-        value: formatIntegerValue(session.setCount),
-      },
-      {
-        label: "Updates",
-        value: formatIntegerValue(session.progressionSummary.eventCount),
-        valueTone: session.progressionSummary.promotionCount > 0 ? "success" : "default",
-      },
-      {
-        label: "Completion",
-        value: session.completionRate !== undefined ? formatPercent(session.completionRate) : (session.hasSetData ? "Logged" : "Open"),
-      },
-    ];
-    return metrics.slice(0, 4);
+function buildSessionProgressionMetrics(session: SessionSummary): MetricDatum[] {
+  const summary = session.progressionSummary;
+  if (!summary || summary.eventCount <= 0) {
+    return [];
   }
 
-  return [
+  const metrics: MetricDatum[] = [];
+  if (summary.promotionCount > 0) {
+    metrics.push({
+      label: "Promotions",
+      value: formatIntegerValue(summary.promotionCount),
+      valueTone: "success",
+    });
+  }
+  if (summary.deloadCount > 0) {
+    metrics.push({
+      label: "Regressions",
+      value: formatIntegerValue(summary.deloadCount),
+      valueTone: "danger",
+    });
+  }
+  if (summary.manualChangeCount > 0) {
+    metrics.push({
+      label: "Manual",
+      value: formatIntegerValue(summary.manualChangeCount),
+      valueTone: "warning",
+    });
+  }
+
+  return metrics;
+}
+
+function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
+  const metrics: MetricDatum[] = [
     {
       label: "Exercises",
       value: formatIntegerValue(session.exerciseCount),
@@ -717,15 +726,53 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
       label: "Sets",
       value: formatIntegerValue(session.setCount),
     },
-    {
+    ...buildSessionProgressionMetrics(session),
+  ];
+
+  if (session.prCounts.total > 0) {
+    metrics.push({
+      label: "PRs",
+      value: formatIntegerValue(session.prCounts.total),
+      valueTone: "success",
+    });
+  }
+
+  const duration = session.durationSec ? formatDurationShort(session.durationSec) : null;
+  if (duration && duration !== "0m") {
+    metrics.push({
       label: "Duration",
-      value: formatDurationShort(session.durationSec) ?? "0m",
-    },
-    {
+      value: duration,
+    });
+  }
+
+  const shouldShowCompletion = session.completionRate !== undefined && (
+    session.completionRate < 1
+    || !session.hasSetData
+    || session.setCount === 0
+  );
+  if (shouldShowCompletion) {
+    metrics.push({
       label: "Completion",
-      value: session.completionRate !== undefined ? formatPercent(session.completionRate) : (session.hasSetData ? "Logged" : "Open"),
-    },
-  ].slice(0, 4);
+      value: formatPercent(session.completionRate ?? 0),
+    });
+  }
+
+  if (session.hasNote) {
+    metrics.push({
+      label: "Note",
+      value: "Saved",
+      valueTone: "success",
+    });
+  }
+
+  if (metrics.length <= 2) {
+    metrics.push({
+      label: "Duration",
+      value: duration ?? "Open",
+    });
+  }
+
+  return metrics.slice(0, 4);
 }
 
 export function buildHistorySessionCardViewModel(session: SessionSummary, previousSession?: SessionSummary | null): HistorySessionCardViewModel {

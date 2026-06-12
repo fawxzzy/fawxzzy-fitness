@@ -18,6 +18,12 @@ import {
 } from "@/lib/qa-data-visibility";
 import { buildSessionProgressionSummary } from "@/lib/progression-lifeline-summary";
 import { buildCurrentCycleWindow } from "@/lib/current-cycle-window";
+import {
+  normalizeExerciseInfoFilterState,
+  type ExerciseInfoFilterOptions,
+  type ExerciseInfoFilterState,
+  type ExerciseInfoRoutineFilterOption,
+} from "@/lib/exercise-info-scope";
 import type { ProgressionEventRow, SessionExerciseRow, SessionRow } from "@/types/db";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
@@ -41,6 +47,7 @@ export type HistorySessionsPageData = {
   nextCursor: string | null;
   selectedSessionId?: string;
   sessionItems: SessionSummary[];
+  filterOptions: ExerciseInfoFilterOptions;
   currentRoutineSessionItems: SessionSummary[];
   currentCycleSessionItems: SessionSummary[];
   subtitle: string;
@@ -54,6 +61,14 @@ export type HistorySessionsPageData = {
   weeklyProgressByWeek: WeeklyProgressSummary[];
   currentRoutineWeeklyProgressByWeek: WeeklyProgressSummary[];
   currentCycleWeeklyProgressByWeek: WeeklyProgressSummary[];
+};
+
+export type HistorySessionsScopePayload = {
+  sessionItems: SessionSummary[];
+  thirtyDaySummary: ThirtyDayHistorySummary;
+  weeklyProgress: WeeklyProgressSummary;
+  weeklyProgressByWeek: WeeklyProgressSummary[];
+  routineTitle: string | null;
 };
 
 export type HistorySessionsRouteState<TData, TFallback> =
@@ -72,6 +87,35 @@ type SessionSetSummaryRow = {
   weight_unit: "kg" | "lb" | "lbs" | null;
 };
 type ExerciseMetadataRow = WeeklyProgressExerciseMeta;
+type HistorySessionRoutineMeta = {
+  id: string;
+  title: string;
+  cycleLengthDays: number | null;
+  startDate: string | null;
+  timeZone: string;
+  isActive: boolean;
+};
+type HistorySessionsScopeContext = {
+  visibleSessionItems: SessionSummary[];
+  progressionEvents: ProgressionEventSummaryRow[];
+  weeklyProgressExercisesBySessionId: Map<string, WeeklyProgressSessionExercise[]>;
+  weeklyProgressSetsBySessionExerciseId: Map<string, WeeklyProgressSet[]>;
+  exerciseMetaById: Map<string, ExerciseMetadataRow>;
+  exerciseNameById: Map<string, string>;
+  routineDayCountByRoutineId: Map<string, number>;
+  profileTimeZone: string;
+  now?: string;
+  activeRoutineId: string | null;
+  activeRoutineTitle: string | null;
+  activeCycleStartDate: string | null;
+  routineMetas: HistorySessionRoutineMeta[];
+  filterOptions: ExerciseInfoFilterOptions;
+};
+type LoadHistorySessionsContextResult = {
+  nextCursor: string | null;
+  selectedSessionId?: string;
+  scopeContext: HistorySessionsScopeContext;
+};
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
@@ -344,6 +388,115 @@ function normalizeRoutineMetadata(rows: unknown[], routineId: string | null | un
   return null;
 }
 
+function normalizeRoutineMetas(rows: unknown[], activeRoutineId: string | null, profileTimeZone: string) {
+  return rows
+    .map((row): HistorySessionRoutineMeta | null => {
+      const record = asRecord(row);
+      const id = record ? asTrimmedString(record.id) : null;
+      const title = record ? asTrimmedString(record.name) : null;
+      if (!id || !title) {
+        return null;
+      }
+
+      return {
+        id,
+        title,
+        cycleLengthDays: record ? asNullableInteger(record.cycle_length_days) : null,
+        startDate: record ? asTrimmedString(record.start_date) : null,
+        timeZone: record ? (asTrimmedString(record.timezone) ?? profileTimeZone) : profileTimeZone,
+        isActive: id === activeRoutineId,
+      };
+    })
+    .filter((routine): routine is HistorySessionRoutineMeta => Boolean(routine))
+    .sort((left, right) => {
+      if (left.isActive !== right.isActive) {
+        return left.isActive ? -1 : 1;
+      }
+
+      return left.title.localeCompare(right.title);
+    });
+}
+
+function formatCycleDayLabel(dayKey: string) {
+  const timestamp = Date.parse(`${dayKey}T12:00:00.000Z`);
+  if (!Number.isFinite(timestamp)) {
+    return dayKey;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+}
+
+function buildCycleLabel(startDate: string, endDate: string) {
+  return `${formatCycleDayLabel(startDate)} - ${formatCycleDayLabel(endDate)}`;
+}
+
+function buildRoutineCycleOptions(args: {
+  routine: HistorySessionRoutineMeta;
+  dayKeys: string[];
+}): ExerciseInfoRoutineFilterOption["cycleOptions"] {
+  if (!args.routine.startDate || !args.routine.cycleLengthDays || args.routine.cycleLengthDays <= 0) {
+    return [];
+  }
+
+  const optionsByStartDate = new Map<string, ExerciseInfoRoutineFilterOption["cycleOptions"][number]>();
+  for (const dayKey of args.dayKeys) {
+    const cycleWindow = buildCurrentCycleWindow({
+      cycleLengthDays: args.routine.cycleLengthDays,
+      startDate: args.routine.startDate,
+      profileTimeZone: args.routine.timeZone,
+      referenceDate: dayKey,
+    });
+    if (!cycleWindow) {
+      continue;
+    }
+
+    optionsByStartDate.set(cycleWindow.startDate, {
+      startDate: cycleWindow.startDate,
+      endDate: cycleWindow.endDate,
+      label: buildCycleLabel(cycleWindow.startDate, cycleWindow.endDate),
+    });
+  }
+
+  return [...optionsByStartDate.values()].sort((left, right) => right.startDate.localeCompare(left.startDate));
+}
+
+function buildHistorySessionsFilterOptions(args: {
+  routineMetas: HistorySessionRoutineMeta[];
+  sessions: SessionSummary[];
+  profileTimeZone: string;
+}): ExerciseInfoFilterOptions {
+  const dayKeysByRoutineId = new Map<string, Set<string>>();
+  for (const session of args.sessions) {
+    const routineId = typeof session.routineId === "string" ? session.routineId.trim() : "";
+    const dayKey = getWeeklyProgressDayKey(session.startedAt, args.profileTimeZone);
+    if (!routineId || !dayKey) {
+      continue;
+    }
+
+    const current = dayKeysByRoutineId.get(routineId) ?? new Set<string>();
+    current.add(dayKey);
+    dayKeysByRoutineId.set(routineId, current);
+  }
+
+  return {
+    routines: args.routineMetas
+      .filter((routine) => routine.isActive || dayKeysByRoutineId.has(routine.id))
+      .map((routine) => ({
+        id: routine.id,
+        title: routine.title,
+        ...(routine.isActive ? { isActive: true } : {}),
+        cycleOptions: buildRoutineCycleOptions({
+          routine,
+          dayKeys: [...(dayKeysByRoutineId.get(routine.id) ?? new Set<string>())],
+        }),
+      })),
+  };
+}
+
 function normalizeRoutineDayNames(rows: unknown[]) {
   const routineDayNameByKey = new Map<string, string>();
 
@@ -503,6 +656,120 @@ async function loadOptionalRows<T>({
   }
 }
 
+function buildHistorySessionsScopePayload(
+  context: HistorySessionsScopeContext,
+  filterState: Partial<ExerciseInfoFilterState> | null | undefined,
+): HistorySessionsScopePayload {
+  const normalizedFilterState = normalizeExerciseInfoFilterState(filterState);
+  const selectedRoutineId = normalizedFilterState.routineId;
+  const selectedRoutine = selectedRoutineId
+    ? context.routineMetas.find((routine) => routine.id === selectedRoutineId) ?? null
+    : null;
+  const scopedRoutineTitle = selectedRoutine?.title ?? null;
+  const currentCycleWindow = normalizedFilterState.analyticsScope === "current_cycle" && selectedRoutine
+    ? buildCurrentCycleWindow({
+        cycleLengthDays: selectedRoutine.cycleLengthDays,
+        startDate: selectedRoutine.startDate,
+        profileTimeZone: selectedRoutine.timeZone,
+        referenceDate: normalizedFilterState.cycleStartDate ?? context.now,
+      })
+    : null;
+
+  const scopedSessionItems = context.visibleSessionItems.filter((session) => {
+    if (normalizedFilterState.analyticsScope === "all_time") {
+      return true;
+    }
+
+    if (!selectedRoutineId || session.routineId !== selectedRoutineId) {
+      return false;
+    }
+
+    if (normalizedFilterState.analyticsScope !== "current_cycle" || !currentCycleWindow) {
+      return true;
+    }
+
+    const dayKey = getWeeklyProgressDayKey(session.startedAt, context.profileTimeZone);
+    return Boolean(dayKey && dayKey >= currentCycleWindow.startDate && dayKey <= currentCycleWindow.endDate);
+  });
+
+  const scopedProgressionEvents = context.progressionEvents.filter((event) => {
+    if (normalizedFilterState.analyticsScope === "all_time") {
+      return true;
+    }
+
+    if (!selectedRoutineId || event.routine_id !== selectedRoutineId) {
+      return false;
+    }
+
+    if (normalizedFilterState.analyticsScope !== "current_cycle" || !currentCycleWindow) {
+      return true;
+    }
+
+    const dayKey = getWeeklyProgressDayKey(event.created_at, context.profileTimeZone);
+    return Boolean(dayKey && dayKey >= currentCycleWindow.startDate && dayKey <= currentCycleWindow.endDate);
+  });
+
+  const weeklyProgress = buildWeeklyProgressSummary({
+    sessions: scopedSessionItems,
+    progressionEvents: scopedProgressionEvents,
+    sessionExercisesBySessionId: context.weeklyProgressExercisesBySessionId,
+    setsBySessionExerciseId: context.weeklyProgressSetsBySessionExerciseId,
+    exerciseMetaById: context.exerciseMetaById,
+    routineDayCountByRoutineId: context.routineDayCountByRoutineId,
+    timezone: context.profileTimeZone,
+    now: context.now,
+    weekStart: normalizedFilterState.analyticsScope === "current_cycle"
+      ? currentCycleWindow?.startDate
+      : undefined,
+  });
+
+  const weeklyProgressByWeek = Array.from(
+    new Set(
+      scopedSessionItems
+        .map((session) => getWeeklyProgressWeekStart(session.startedAt, context.profileTimeZone))
+        .filter((weekStart): weekStart is string => Boolean(weekStart)),
+    ),
+  )
+    .sort((left, right) => right.localeCompare(left))
+    .map((weekStart) => buildWeeklyProgressSummary({
+      sessions: scopedSessionItems,
+      progressionEvents: scopedProgressionEvents,
+      sessionExercisesBySessionId: context.weeklyProgressExercisesBySessionId,
+      setsBySessionExerciseId: context.weeklyProgressSetsBySessionExerciseId,
+      exerciseMetaById: context.exerciseMetaById,
+      routineDayCountByRoutineId: context.routineDayCountByRoutineId,
+      timezone: context.profileTimeZone,
+      now: context.now,
+      weekStart,
+    }));
+
+  const thirtyDaySummary = buildThirtyDayHistorySummary({
+    sessions: scopedSessionItems,
+    progressionEvents: scopedProgressionEvents,
+    exerciseNameById: context.exerciseNameById,
+    routineDayCountByRoutineId: context.routineDayCountByRoutineId,
+    timezone: context.profileTimeZone,
+    now: context.now,
+    scopeLabel: normalizedFilterState.analyticsScope === "current_routine"
+      ? (scopedRoutineTitle?.trim()
+          ? `Current Routine: ${scopedRoutineTitle.trim()}`
+          : "Current Routine")
+      : normalizedFilterState.analyticsScope === "current_cycle"
+        ? (currentCycleWindow
+            ? `Current Cycle: ${buildCycleLabel(currentCycleWindow.startDate, currentCycleWindow.endDate)}`
+            : "Current Cycle")
+        : undefined,
+  });
+
+  return {
+    sessionItems: scopedSessionItems,
+    thirtyDaySummary,
+    weeklyProgress,
+    weeklyProgressByWeek,
+    routineTitle: scopedRoutineTitle,
+  };
+}
+
 export function encodeHistoryCursor(cursor: HistoryCursor) {
   return Buffer.from(JSON.stringify(cursor)).toString("base64url");
 }
@@ -552,7 +819,7 @@ export async function resolveHistorySessionsRouteState<TData, TFallback>({
   }
 }
 
-export async function loadHistorySessionsPageData({
+async function loadHistorySessionsScopeContext({
   logger = console,
   now,
   searchParams,
@@ -566,7 +833,7 @@ export async function loadHistorySessionsPageData({
   showQaLlelDataOverride?: boolean | null;
   supabase: SupabaseLike;
   userId: string;
-}): Promise<HistorySessionsPageData> {
+}): Promise<LoadHistorySessionsContextResult> {
   const cursor = decodeHistoryCursor(getSingleSearchParam(searchParams?.cursor));
 
   let query = supabase
@@ -813,160 +1080,105 @@ export async function loadHistorySessionsPageData({
   const visibleSessionItems = profileSettings.showQaLlelData
     ? sessionItems
     : filterQaLlelRows(sessionItems, (session) => [session.routineTitle, session.dayTitle]);
-  const currentRoutineSessionItems = profileSettings.activeRoutineId
-    ? visibleSessionItems.filter((session) => session.routineId === profileSettings.activeRoutineId)
-    : [];
-  const currentRoutineProgressionEvents = profileSettings.activeRoutineId
-    ? progressionEvents.filter((event) => event.routine_id === profileSettings.activeRoutineId)
-    : [];
-  const currentCycleSessionItems = profileSettings.activeRoutineId && currentCycleWindow
-    ? currentRoutineSessionItems.filter((session) => {
-      const dayKey = getWeeklyProgressDayKey(session.startedAt, profileTimezone);
-      return Boolean(dayKey && dayKey >= currentCycleWindow.startDate && dayKey <= currentCycleWindow.endDate);
-    })
-    : [];
-  const currentCycleProgressionEvents = profileSettings.activeRoutineId && currentCycleWindow
-    ? currentRoutineProgressionEvents.filter((event) => {
-      const dayKey = getWeeklyProgressDayKey(event.created_at, profileTimezone);
-      return Boolean(dayKey && dayKey >= currentCycleWindow.startDate && dayKey <= currentCycleWindow.endDate);
-    })
-    : [];
-
-  const weeklyProgress = buildWeeklyProgressSummary({
+  const routineMetas = normalizeRoutineMetas(allRoutineRows, profileSettings.activeRoutineId, profileTimezone);
+  const filterOptions = buildHistorySessionsFilterOptions({
+    routineMetas,
     sessions: visibleSessionItems,
-    progressionEvents,
-    sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
-    setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
-    exerciseMetaById,
-    routineDayCountByRoutineId,
-    timezone: profileTimezone,
-    now,
-  });
-  const currentRoutineWeeklyProgress = buildWeeklyProgressSummary({
-    sessions: currentRoutineSessionItems,
-    progressionEvents: currentRoutineProgressionEvents,
-    sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
-    setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
-    exerciseMetaById,
-    routineDayCountByRoutineId,
-    timezone: profileTimezone,
-    now,
-  });
-  const currentCycleWeeklyProgress = buildWeeklyProgressSummary({
-    sessions: currentCycleSessionItems,
-    progressionEvents: currentCycleProgressionEvents,
-    sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
-    setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
-    exerciseMetaById,
-    routineDayCountByRoutineId,
-    timezone: profileTimezone,
-    now,
-    weekStart: currentCycleWindow?.startDate,
-  });
-  const weeklyProgressByWeek = Array.from(
-    new Set(
-      visibleSessionItems
-        .map((session) => getWeeklyProgressWeekStart(session.startedAt, profileTimezone))
-        .filter((weekStart): weekStart is string => Boolean(weekStart)),
-    ),
-  )
-    .sort((left, right) => right.localeCompare(left))
-    .map((weekStart) => buildWeeklyProgressSummary({
-      sessions: visibleSessionItems,
-      progressionEvents,
-      sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
-      setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
-      exerciseMetaById,
-      routineDayCountByRoutineId,
-      timezone: profileTimezone,
-      now,
-      weekStart,
-    }));
-  const currentRoutineWeeklyProgressByWeek = Array.from(
-    new Set(
-      currentRoutineSessionItems
-        .map((session) => getWeeklyProgressWeekStart(session.startedAt, profileTimezone))
-        .filter((weekStart): weekStart is string => Boolean(weekStart)),
-    ),
-  )
-    .sort((left, right) => right.localeCompare(left))
-    .map((weekStart) => buildWeeklyProgressSummary({
-      sessions: currentRoutineSessionItems,
-      progressionEvents: currentRoutineProgressionEvents,
-      sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
-      setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
-      exerciseMetaById,
-      routineDayCountByRoutineId,
-      timezone: profileTimezone,
-      now,
-      weekStart,
-    }));
-  const currentCycleWeeklyProgressByWeek = Array.from(
-    new Set(
-      currentCycleSessionItems
-        .map((session) => getWeeklyProgressWeekStart(session.startedAt, profileTimezone))
-        .filter((weekStart): weekStart is string => Boolean(weekStart)),
-    ),
-  )
-    .sort((left, right) => right.localeCompare(left))
-    .map((weekStart) => buildWeeklyProgressSummary({
-      sessions: currentCycleSessionItems,
-      progressionEvents: currentCycleProgressionEvents,
-      sessionExercisesBySessionId: weeklyProgressExercisesBySessionId,
-      setsBySessionExerciseId: weeklyProgressSetsBySessionExerciseId,
-      exerciseMetaById,
-      routineDayCountByRoutineId,
-      timezone: profileTimezone,
-      now,
-      weekStart,
-    }));
-  const thirtyDaySummary = buildThirtyDayHistorySummary({
-    sessions: visibleSessionItems,
-    progressionEvents,
-    exerciseNameById,
-    routineDayCountByRoutineId,
-    timezone: profileTimezone,
-    now,
-  });
-  const currentRoutineThirtyDaySummary = buildThirtyDayHistorySummary({
-    sessions: currentRoutineSessionItems,
-    progressionEvents: currentRoutineProgressionEvents,
-    exerciseNameById,
-    routineDayCountByRoutineId,
-    timezone: profileTimezone,
-    now,
-    scopeLabel: activeRoutineTitle?.trim()
-      ? `Current Routine: ${activeRoutineTitle.trim()}`
-      : "Current Routine",
-  });
-  const currentCycleThirtyDaySummary = buildThirtyDayHistorySummary({
-    sessions: currentCycleSessionItems,
-    progressionEvents: currentCycleProgressionEvents,
-    exerciseNameById,
-    routineDayCountByRoutineId,
-    timezone: profileTimezone,
-    now,
-    scopeLabel: currentCycleWindow
-      ? `Current Cycle: ${currentCycleWindow.label}`
-      : "Current Cycle",
+    profileTimeZone: profileTimezone,
   });
 
   return {
     nextCursor,
     selectedSessionId: getSingleSearchParam(searchParams?.selected) ?? undefined,
-    sessionItems: visibleSessionItems,
-    currentRoutineSessionItems,
-    currentCycleSessionItems,
-    subtitle: `${visibleSessionItems.length} completed sessions`,
-    activeRoutineTitle,
-    thirtyDaySummary,
-    currentRoutineThirtyDaySummary,
-    currentCycleThirtyDaySummary,
-    weeklyProgress,
-    currentRoutineWeeklyProgress,
-    currentCycleWeeklyProgress,
-    weeklyProgressByWeek,
-    currentRoutineWeeklyProgressByWeek,
-    currentCycleWeeklyProgressByWeek,
+    scopeContext: {
+      visibleSessionItems,
+      progressionEvents,
+      weeklyProgressExercisesBySessionId,
+      weeklyProgressSetsBySessionExerciseId,
+      exerciseMetaById,
+      exerciseNameById,
+      routineDayCountByRoutineId,
+      profileTimeZone: profileTimezone,
+      now,
+      activeRoutineId: profileSettings.activeRoutineId,
+      activeRoutineTitle,
+      activeCycleStartDate: currentCycleWindow?.startDate ?? null,
+      routineMetas,
+      filterOptions,
+    },
+  };
+}
+
+export async function loadHistorySessionsScopePayloadForUser(args: {
+  logger?: ConsoleLike;
+  now?: string;
+  showQaLlelDataOverride?: boolean | null;
+  supabase: SupabaseLike;
+  userId: string;
+  filterState?: Partial<ExerciseInfoFilterState> | null;
+}): Promise<HistorySessionsScopePayload> {
+  const { scopeContext } = await loadHistorySessionsScopeContext({
+    logger: args.logger,
+    now: args.now,
+    showQaLlelDataOverride: args.showQaLlelDataOverride,
+    supabase: args.supabase,
+    userId: args.userId,
+  });
+
+  return buildHistorySessionsScopePayload(scopeContext, args.filterState);
+}
+
+export async function loadHistorySessionsPageData({
+  logger = console,
+  now,
+  searchParams,
+  showQaLlelDataOverride = null,
+  supabase,
+  userId,
+}: {
+  logger?: ConsoleLike;
+  now?: string;
+  searchParams?: HistorySearchParams;
+  showQaLlelDataOverride?: boolean | null;
+  supabase: SupabaseLike;
+  userId: string;
+}): Promise<HistorySessionsPageData> {
+  const { nextCursor, selectedSessionId, scopeContext } = await loadHistorySessionsScopeContext({
+    logger,
+    now,
+    searchParams,
+    showQaLlelDataOverride,
+    supabase,
+    userId,
+  });
+  const allTimePayload = buildHistorySessionsScopePayload(scopeContext, { analyticsScope: "all_time" });
+  const currentRoutinePayload = buildHistorySessionsScopePayload(scopeContext, {
+    analyticsScope: "current_routine",
+    routineId: scopeContext.activeRoutineId,
+  });
+  const currentCyclePayload = buildHistorySessionsScopePayload(scopeContext, {
+    analyticsScope: "current_cycle",
+    routineId: scopeContext.activeRoutineId,
+    cycleStartDate: scopeContext.activeCycleStartDate,
+  });
+
+  return {
+    nextCursor,
+    selectedSessionId,
+    sessionItems: allTimePayload.sessionItems,
+    filterOptions: scopeContext.filterOptions,
+    currentRoutineSessionItems: currentRoutinePayload.sessionItems,
+    currentCycleSessionItems: currentCyclePayload.sessionItems,
+    subtitle: `${allTimePayload.sessionItems.length} completed sessions`,
+    activeRoutineTitle: scopeContext.activeRoutineTitle,
+    thirtyDaySummary: allTimePayload.thirtyDaySummary,
+    currentRoutineThirtyDaySummary: currentRoutinePayload.thirtyDaySummary,
+    currentCycleThirtyDaySummary: currentCyclePayload.thirtyDaySummary,
+    weeklyProgress: allTimePayload.weeklyProgress,
+    currentRoutineWeeklyProgress: currentRoutinePayload.weeklyProgress,
+    currentCycleWeeklyProgress: currentCyclePayload.weeklyProgress,
+    weeklyProgressByWeek: allTimePayload.weeklyProgressByWeek,
+    currentRoutineWeeklyProgressByWeek: currentRoutinePayload.weeklyProgressByWeek,
+    currentCycleWeeklyProgressByWeek: currentCyclePayload.weeklyProgressByWeek,
   };
 }

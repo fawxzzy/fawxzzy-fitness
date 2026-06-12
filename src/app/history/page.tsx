@@ -129,6 +129,7 @@ export default async function HistoryPage({
         <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <HistorySessionsClient
           sessions={state.data.sessionItems}
+          filterOptions={state.data.filterOptions}
           currentRoutineSessions={state.data.currentRoutineSessionItems}
           currentCycleSessions={state.data.currentCycleSessionItems}
           activeRoutineTitle={state.data.activeRoutineTitle}

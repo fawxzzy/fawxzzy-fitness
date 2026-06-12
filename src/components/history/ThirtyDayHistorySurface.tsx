@@ -21,11 +21,36 @@ function formatDayKey(dayKey: string) {
   }).format(date);
 }
 
+function normalizeThirtyDayRangeLabel(summary: ThirtyDayHistorySummary, routineTitleOverride?: string | null) {
+  const scopeLabel = summary.scopeLabel?.trim() ?? "";
+  const routineTitle = routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim() || "";
+
+  if (!scopeLabel) {
+    return `${formatDayKey(summary.windowStart)} - ${formatDayKey(summary.windowEnd)}`;
+  }
+
+  if (scopeLabel === "All Time") {
+    return "All Time";
+  }
+
+  if (scopeLabel.startsWith("Current Routine:")) {
+    const scopedRoutineTitle = scopeLabel.replace(/^Current Routine:\s*/i, "").trim();
+    if (routineTitle && scopedRoutineTitle.toLowerCase() === routineTitle.toLowerCase()) {
+      return "Routine";
+    }
+  }
+
+  if (scopeLabel.startsWith("Current Cycle:")) {
+    return scopeLabel.replace(/^Current Cycle:\s*/i, "").trim();
+  }
+
+  return scopeLabel;
+}
+
 function buildThirtyDayTitle(summary: ThirtyDayHistorySummary, routineTitleOverride?: string | null) {
-  const rangeLabel = summary.scopeLabel?.trim()
-    ? summary.scopeLabel.trim()
-    : `${formatDayKey(summary.windowStart)} - ${formatDayKey(summary.windowEnd)}`;
-  const resolvedRoutineTitle = routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim() || "";
+  const rangeLabel = normalizeThirtyDayRangeLabel(summary, routineTitleOverride);
+  const isAllTimeScope = rangeLabel === "All Time";
+  const resolvedRoutineTitle = isAllTimeScope ? "" : (routineTitleOverride?.trim() || summary.primaryRoutineTitle?.trim() || "");
   const leadingLabel = resolvedRoutineTitle ? `${resolvedRoutineTitle} Summary` : "History Summary";
 
   return (
@@ -86,9 +111,6 @@ function MetricGrid({ summary }: { summary: ThirtyDayHistorySummary }) {
 function Body({ summary, topPaddingClassName = "pt-2" }: { summary: ThirtyDayHistorySummary; topPaddingClassName?: string }) {
   return (
     <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
-      <p className="text-[0.72rem] leading-5 text-[rgb(var(--text-muted)/0.82)]">
-        All-time training summary with a week-over-week workout delta.
-      </p>
       <MetricGrid summary={summary} />
       <div className="space-y-3">
         <DetailSectionBlock

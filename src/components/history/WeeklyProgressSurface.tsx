@@ -75,12 +75,18 @@ function buildCurrentProgressionTitle(summary: WeeklyProgressSummary, routineTit
 function buildCurrentProgressionPreview(summary: WeeklyProgressSummary) {
   const coverageLabel = summary.primaryRoutineTargetCount > 0
     ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount} completed`
-    : `${summary.activeDayCount} ${summary.activeDayCount === 1 ? "active day" : "active days"}`;
+    : `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "session" : "sessions"}`;
+  const changeLabels = [
+    summary.progressionSummary.promotionCount > 0 ? `${summary.progressionSummary.promotionCount} ${summary.progressionSummary.promotionCount === 1 ? "promotion" : "promotions"}` : null,
+    summary.progressionSummary.deloadCount > 0 ? `${summary.progressionSummary.deloadCount} ${summary.progressionSummary.deloadCount === 1 ? "regression" : "regressions"}` : null,
+    summary.progressionSummary.manualChangeCount > 0 ? `${summary.progressionSummary.manualChangeCount} ${summary.progressionSummary.manualChangeCount === 1 ? "manual" : "manuals"}` : null,
+  ].filter((value): value is string => Boolean(value));
+  const changeLabel = changeLabels.length > 0 ? changeLabels.join(" | ") : "No changes yet";
   const prLabel = summary.prMomentCount > 0
     ? `${summary.prMomentCount} ${summary.prMomentCount === 1 ? "PR" : "PRs"}`
     : "No PRs yet";
 
-  return [coverageLabel, summary.consistencyTrend.label, prLabel].join(" | ");
+  return [coverageLabel, changeLabel, prLabel].join(" | ");
 }
 
 function getTrendTone(direction: WeeklyProgressSummary["consistencyTrend"]["direction"]): MetricDatum["valueTone"] {
@@ -139,37 +145,34 @@ function buildCompletionDetail(summary: WeeklyProgressSummary) {
 }
 
 function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] {
-  const projectedActiveDayCount = summary.primaryRoutineTargetCount > 0
-    ? summary.primaryRoutineTargetCount
-    : summary.activeDayCount;
-
   return [
     {
-      label: "Sessions",
-      value: String(summary.completedWorkoutCount),
-    },
-    {
-      label: "Planned Days",
-      value: String(projectedActiveDayCount),
-      valueTone: projectedActiveDayCount > 0 ? "default" : "muted",
-    },
-    {
-      label: "Completed",
+      label: summary.primaryRoutineTargetCount > 0 ? "Completed" : "Sessions",
       value: summary.primaryRoutineTargetCount > 0
         ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount}`
-        : "Open",
-      valueNode: buildCompletionValueNode(summary),
-      valueTone: getCompletionTone(summary),
-    },
-    {
-      label: "Trend",
-      value: summary.consistencyTrend.label,
-      valueTone: getTrendTone(summary.consistencyTrend.direction),
+        : String(summary.completedWorkoutCount),
+      valueNode: summary.primaryRoutineTargetCount > 0 ? buildCompletionValueNode(summary) : undefined,
+      valueTone: summary.primaryRoutineTargetCount > 0 ? getCompletionTone(summary) : undefined,
     },
     {
       label: "PRs",
       value: String(summary.prMomentCount),
       valueTone: summary.prMomentCount > 0 ? "success" : "muted",
+    },
+    {
+      label: "Promotions",
+      value: String(summary.progressionSummary.promotionCount),
+      valueTone: summary.progressionSummary.promotionCount > 0 ? "success" : "muted",
+    },
+    {
+      label: "Regressions",
+      value: String(summary.progressionSummary.deloadCount),
+      valueTone: summary.progressionSummary.deloadCount > 0 ? "danger" : "muted",
+    },
+    {
+      label: "Manual",
+      value: String(summary.progressionSummary.manualChangeCount),
+      valueTone: summary.progressionSummary.manualChangeCount > 0 ? "warning" : "muted",
     },
   ];
 }

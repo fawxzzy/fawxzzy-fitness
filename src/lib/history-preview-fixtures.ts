@@ -671,6 +671,7 @@ export function getHistoryPreviewSessionsPageData(args?: {
     nextCursor: null,
     selectedSessionId: getSelectedSessionId(args?.selected) ?? HISTORY_PREVIEW_PRIMARY_SESSION_ID,
     sessionItems: [...historyPreviewSessions],
+    filterOptions: { routines: [] },
     currentRoutineSessionItems: [...historyPreviewSessions],
     currentCycleSessionItems: [...historyPreviewSessions],
     subtitle: `${historyPreviewSessions.length} completed sessions`,

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { DEFAULT_EXERCISE_SEARCH_FILTERS_STACK_CLASSNAME, ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
@@ -20,8 +21,13 @@ import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurfac
 import type { ThirtyDayHistorySummary } from "@/lib/history-30-day-summary";
 import { buildSessionMetricTagGroup, buildSessionMetricTagValues } from "@/lib/history-metric-filters";
 import { rememberHistorySessionSummary } from "@/lib/history-session-summary-cache";
-import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
-import { getExerciseInfoAnalyticsScopeDisplayLabel, getNextExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import {
+  createDefaultExerciseInfoFilterState,
+  normalizeExerciseInfoFilterState,
+  type ExerciseInfoFilterOptions,
+  type ExerciseInfoFilterState,
+  type ExerciseInfoRoutineFilterOption,
+} from "@/lib/exercise-info-scope";
 import type { SessionSummary } from "./session-summary";
 
 function normalizeSessionTagValue(prefix: string, value: string) {
@@ -32,7 +38,42 @@ function formatSessionTagLabel(value: string) {
   return value.trim();
 }
 
+function buildFilterStateKey(filterState: ExerciseInfoFilterState) {
+  return [
+    filterState.analyticsScope,
+    filterState.routineId ?? "",
+    filterState.cycleStartDate ?? "",
+  ].join("::");
+}
+
+function orderSelectedFirst<T>(options: T[], isSelected: (option: T) => boolean) {
+  const selected: T[] = [];
+  const unselected: T[] = [];
+  for (const option of options) {
+    if (isSelected(option)) {
+      selected.push(option);
+    } else {
+      unselected.push(option);
+    }
+  }
+
+  return [...selected, ...unselected];
+}
+
 const HISTORY_CYCLE_SEPARATOR_CLASS_NAME = "bg-[linear-gradient(90deg,rgb(var(--accent-yellow-on)/0.16),rgb(var(--accent-yellow-on)/0.92),rgb(var(--accent-yellow-on)/0.16))] shadow-[0_0_14px_rgb(var(--accent-yellow-on)/0.22)]";
+const FILTER_SECTION_STACK_CLASS_NAME = "space-y-1";
+const FILTER_SECTION_HEADER_CLASS_NAME = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[2px]";
+const FILTER_SECTION_RAIL_CLASS_NAME = "hide-scrollbar -mx-1.5 max-w-none overflow-x-auto overflow-y-visible px-1.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
+
+type HistorySessionsScopePayload = {
+  sessionItems: SessionSummary[];
+  thirtyDaySummary: ThirtyDayHistorySummary;
+  weeklyProgress: WeeklyProgressSummary;
+  weeklyProgressByWeek: WeeklyProgressSummary[];
+  routineTitle: string | null;
+};
+const EMPTY_SESSION_ITEMS: SessionSummary[] = [];
+const EMPTY_WEEKLY_PROGRESS_BY_WEEK: WeeklyProgressSummary[] = [];
 
 function HistoryCycleSectionSeparator({ className }: { className?: string }) {
   return (
@@ -41,6 +82,48 @@ function HistoryCycleSectionSeparator({ className }: { className?: string }) {
         variant="thin"
         className={HISTORY_CYCLE_SEPARATOR_CLASS_NAME}
       />
+    </div>
+  );
+}
+
+function FilterSection({
+  title,
+  showClear = false,
+  onClear,
+  children,
+}: {
+  title: string;
+  showClear?: boolean;
+  onClear?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className={FILTER_SECTION_STACK_CLASS_NAME}>
+      <div className={FILTER_SECTION_HEADER_CLASS_NAME}>
+        <p className={appTokens.exercisePickerFilterGroupLabel}>{title}</p>
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      </div>
+      <div className={FILTER_SECTION_RAIL_CLASS_NAME}>
+        <div className="flex min-w-max flex-nowrap gap-1.5 pt-0">
+          {showClear && onClear ? (
+            <button
+              type="button"
+              onClick={onClear}
+              className={cn(
+                appTokens.exercisePickerFilterClearButton,
+                "!border-[rgb(var(--accent-yellow-on)/0.58)]",
+                "mr-2.5 shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+              )}
+            >
+              Clear
+            </button>
+          ) : null}
+          {children}
+        </div>
+      </div>
+      <div className="px-[4px] pt-0.5">
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      </div>
     </div>
   );
 }
@@ -70,9 +153,9 @@ function HistorySessionFilters({
   groups,
   resultCount,
   initialOpen = false,
-  analyticsScope,
-  activeRoutineTitle,
-  onAnalyticsScopeToggle,
+  filterState,
+  filterOptions,
+  onFilterStateChange,
 }: {
   query: string;
   onQueryChange: (next: string) => void;
@@ -81,11 +164,161 @@ function HistorySessionFilters({
   groups: ExerciseTagGroup[];
   resultCount: number;
   initialOpen?: boolean;
-  analyticsScope: ExerciseInfoAnalyticsScope;
-  activeRoutineTitle?: string | null;
-  onAnalyticsScopeToggle: () => void;
+  filterState: ExerciseInfoFilterState;
+  filterOptions: ExerciseInfoFilterOptions;
+  onFilterStateChange: (next: ExerciseInfoFilterState) => void;
 }) {
-  const scopeLabel = getExerciseInfoAnalyticsScopeDisplayLabel(analyticsScope, activeRoutineTitle);
+  const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
+  const routineOptions = Array.isArray(filterOptions.routines) ? filterOptions.routines : [];
+  const defaultRoutineOption = routineOptions.find((routine) => routine.isActive) ?? routineOptions[0] ?? null;
+  const selectedRoutine = normalizedFilterState.routineId
+    ? routineOptions.find((routine) => routine.id === normalizedFilterState.routineId) ?? null
+    : defaultRoutineOption;
+  const selectedCycleStartDate = normalizedFilterState.cycleStartDate;
+  const orderedRoutineOptions = orderSelectedFirst(routineOptions, (routine) => routine.id === selectedRoutine?.id);
+  const orderedCycleOptions = orderSelectedFirst(selectedRoutine?.cycleOptions ?? [], (cycle) => cycle.startDate === selectedCycleStartDate);
+
+  const applyFilterState = (nextState: Partial<ExerciseInfoFilterState>) => {
+    onFilterStateChange(normalizeExerciseInfoFilterState(nextState));
+  };
+
+  const handleRoutineScopeSelect = () => {
+    if (normalizedFilterState.analyticsScope !== "all_time") {
+      return;
+    }
+
+    const nextRoutine = selectedRoutine ?? defaultRoutineOption;
+    if (!nextRoutine) {
+      return;
+    }
+
+    applyFilterState({
+      analyticsScope: "current_routine",
+      routineId: nextRoutine.id,
+      cycleStartDate: null,
+    });
+  };
+
+  const handleRoutineSelect = (routine: ExerciseInfoRoutineFilterOption) => {
+    if (
+      normalizedFilterState.analyticsScope === "current_routine"
+      && normalizedFilterState.routineId === routine.id
+    ) {
+      return;
+    }
+
+    if (
+      normalizedFilterState.analyticsScope === "current_cycle"
+      && normalizedFilterState.routineId === routine.id
+      && Boolean(normalizedFilterState.cycleStartDate)
+    ) {
+      return;
+    }
+
+    if (normalizedFilterState.analyticsScope === "current_cycle") {
+      const nextCycle = routine.cycleOptions[0] ?? null;
+      if (nextCycle) {
+        applyFilterState({
+          analyticsScope: "current_cycle",
+          routineId: routine.id,
+          cycleStartDate: nextCycle.startDate,
+        });
+        return;
+      }
+    }
+
+    applyFilterState({
+      analyticsScope: "current_routine",
+      routineId: routine.id,
+      cycleStartDate: null,
+    });
+  };
+
+  const filterExtraContent = (
+    <>
+      {routineOptions.length > 0 ? (
+        <FilterSection
+          title="Scope"
+          showClear={normalizedFilterState.analyticsScope !== "all_time"}
+          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
+        >
+          <PillButton
+            type="button"
+            active={normalizedFilterState.analyticsScope !== "all_time"}
+            className={cn(
+              "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+              normalizedFilterState.analyticsScope !== "all_time"
+                ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                : undefined,
+            )}
+            onClick={handleRoutineScopeSelect}
+          >
+            Routine
+          </PillButton>
+        </FilterSection>
+      ) : null}
+
+      {normalizedFilterState.analyticsScope !== "all_time" && orderedRoutineOptions.length > 0 ? (
+        <FilterSection
+          title="Routine"
+          showClear
+          onClear={() => onFilterStateChange(createDefaultExerciseInfoFilterState())}
+        >
+          {orderedRoutineOptions.map((routine) => {
+            const isSelected = selectedRoutine?.id === routine.id;
+            return (
+              <PillButton
+                key={routine.id}
+                type="button"
+                active={isSelected}
+                className={cn(
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                )}
+                onClick={() => handleRoutineSelect(routine)}
+              >
+                {routine.title}
+              </PillButton>
+            );
+          })}
+        </FilterSection>
+      ) : null}
+
+      {normalizedFilterState.analyticsScope !== "all_time" && selectedRoutine?.cycleOptions.length ? (
+        <FilterSection
+          title="Cycle"
+          showClear={Boolean(selectedCycleStartDate)}
+          onClear={() => applyFilterState({
+            analyticsScope: "current_routine",
+            routineId: selectedRoutine.id,
+            cycleStartDate: null,
+          })}
+        >
+          {orderedCycleOptions.map((cycle) => {
+            const isSelected = cycle.startDate === selectedCycleStartDate;
+            return (
+              <PillButton
+                key={cycle.startDate}
+                type="button"
+                active={isSelected}
+                className={cn(
+                  "shrink-0 whitespace-nowrap px-2 py-1 text-[10px]",
+                  isSelected ? "!border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]" : undefined,
+                )}
+                onClick={() => applyFilterState({
+                  analyticsScope: "current_cycle",
+                  routineId: selectedRoutine.id,
+                  cycleStartDate: cycle.startDate,
+                })}
+              >
+                {cycle.label}
+              </PillButton>
+            );
+          })}
+        </FilterSection>
+      ) : null}
+    </>
+  );
 
   return (
     <ExerciseSearchFilters
@@ -114,24 +347,14 @@ function HistorySessionFilters({
       toggleFiltersAriaLabel="Toggle session filters"
       defaultFilterOpen={initialOpen}
       chromeVariant="history"
-      trailingControls={(
-        <PillButton
-          active
-          type="button"
-          onClick={onAnalyticsScopeToggle}
-          className="inline-flex h-8 max-w-[12.75rem] items-center justify-center whitespace-nowrap px-3 py-0 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none"
-          title={scopeLabel}
-          aria-label={`Toggle session history metric scope. Current scope: ${scopeLabel}`}
-        >
-          <span className="block max-w-full truncate">{scopeLabel}</span>
-        </PillButton>
-      )}
+      filterExtraContent={filterExtraContent}
     />
   );
 }
 
 export function HistorySessionsClient({
   sessions,
+  filterOptions = { routines: [] },
   currentRoutineSessions = [],
   currentCycleSessions = [],
   activeRoutineTitle = null,
@@ -152,6 +375,7 @@ export function HistorySessionsClient({
   showBottomActions = true,
 }: {
   sessions: SessionSummary[];
+  filterOptions?: ExerciseInfoFilterOptions;
   currentRoutineSessions?: SessionSummary[];
   currentCycleSessions?: SessionSummary[];
   activeRoutineTitle?: string | null;
@@ -174,35 +398,142 @@ export function HistorySessionsClient({
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
-  const [analyticsScope, setAnalyticsScope] = useState<ExerciseInfoAnalyticsScope>("all_time");
+  const [filterState, setFilterState] = useState<ExerciseInfoFilterState>(createDefaultExerciseInfoFilterState());
+  const [payloadsByFilterKey, setPayloadsByFilterKey] = useState<Record<string, HistorySessionsScopePayload>>(() => {
+    const initialPayloads: Record<string, HistorySessionsScopePayload> = {
+      [buildFilterStateKey(createDefaultExerciseInfoFilterState())]: {
+        sessionItems: sessions,
+        thirtyDaySummary,
+        weeklyProgress,
+        weeklyProgressByWeek,
+        routineTitle: null,
+      },
+    };
+    const activeRoutine = filterOptions.routines.find((routine) => routine.isActive) ?? null;
+    if (activeRoutine) {
+      initialPayloads[buildFilterStateKey({
+        analyticsScope: "current_routine",
+        routineId: activeRoutine.id,
+        cycleStartDate: null,
+      })] = {
+        sessionItems: currentRoutineSessions,
+        thirtyDaySummary: currentRoutineThirtyDaySummary,
+        weeklyProgress: currentRoutineWeeklyProgress,
+        weeklyProgressByWeek: currentRoutineWeeklyProgressByWeek,
+        routineTitle: activeRoutine.title,
+      };
+
+      const activeCycleStartDate = activeRoutine.cycleOptions.find((cycle) => cycle.startDate === currentCycleWeeklyProgress.weekStart)?.startDate
+        ?? null;
+      if (activeCycleStartDate) {
+        initialPayloads[buildFilterStateKey({
+          analyticsScope: "current_cycle",
+          routineId: activeRoutine.id,
+          cycleStartDate: activeCycleStartDate,
+        })] = {
+          sessionItems: currentCycleSessions,
+          thirtyDaySummary: currentCycleThirtyDaySummary,
+          weeklyProgress: currentCycleWeeklyProgress,
+          weeklyProgressByWeek: currentCycleWeeklyProgressByWeek,
+          routineTitle: activeRoutine.title,
+        };
+      }
+    }
+
+    return initialPayloads;
+  });
+  const [lastVisiblePayload, setLastVisiblePayload] = useState<HistorySessionsScopePayload>({
+    sessionItems: sessions,
+    thirtyDaySummary,
+    weeklyProgress,
+    weeklyProgressByWeek,
+    routineTitle: null,
+  });
+  const [isScopeLoading, setIsScopeLoading] = useState(false);
   const deferredQuery = useDeferredValue(query);
   const nextViewModeLabel = viewMode === "compact" ? "View Detailed" : "View Compact";
-  const scopedSessions = analyticsScope === "current_routine"
-    ? currentRoutineSessions
-    : analyticsScope === "current_cycle"
-      ? currentCycleSessions
-      : sessions;
-  const scopedThirtyDaySummary = analyticsScope === "current_routine"
-    ? currentRoutineThirtyDaySummary
-    : analyticsScope === "current_cycle"
-      ? currentCycleThirtyDaySummary
-      : thirtyDaySummary;
-  const scopedWeeklyProgress = analyticsScope === "current_routine"
-    ? currentRoutineWeeklyProgress
-    : analyticsScope === "current_cycle"
-      ? currentCycleWeeklyProgress
-      : weeklyProgress;
-  const scopedWeeklyProgressByWeek = analyticsScope === "current_routine"
-    ? currentRoutineWeeklyProgressByWeek
-    : analyticsScope === "current_cycle"
-      ? currentCycleWeeklyProgressByWeek
-      : weeklyProgressByWeek;
+  const normalizedFilterState = useMemo(() => normalizeExerciseInfoFilterState(filterState), [filterState]);
+  const filterKey = useMemo(() => buildFilterStateKey(normalizedFilterState), [normalizedFilterState]);
+  const scopedPayload = useMemo(() => (
+    normalizedFilterState.analyticsScope === "all_time"
+      ? payloadsByFilterKey[buildFilterStateKey(createDefaultExerciseInfoFilterState())]
+      : (payloadsByFilterKey[filterKey] ?? lastVisiblePayload)
+  ), [filterKey, lastVisiblePayload, normalizedFilterState.analyticsScope, payloadsByFilterKey]);
+  const scopedSessions = scopedPayload?.sessionItems ?? EMPTY_SESSION_ITEMS;
+  const scopedThirtyDaySummary = scopedPayload?.thirtyDaySummary ?? thirtyDaySummary;
+  const scopedWeeklyProgress = scopedPayload?.weeklyProgress ?? weeklyProgress;
+  const scopedWeeklyProgressByWeek = scopedPayload?.weeklyProgressByWeek ?? weeklyProgressByWeek ?? EMPTY_WEEKLY_PROGRESS_BY_WEEK;
+  const scopedRoutineTitle = scopedPayload?.routineTitle ?? activeRoutineTitle;
 
   useEffect(() => {
-    for (const session of [...sessions, ...currentRoutineSessions, ...currentCycleSessions]) {
-      rememberHistorySessionSummary(session);
+    for (const payload of Object.values(payloadsByFilterKey)) {
+      for (const session of payload.sessionItems) {
+        rememberHistorySessionSummary(session);
+      }
     }
-  }, [currentCycleSessions, currentRoutineSessions, sessions]);
+  }, [payloadsByFilterKey]);
+
+  useEffect(() => {
+    if (normalizedFilterState.analyticsScope === "all_time" || payloadsByFilterKey[filterKey]) {
+      setIsScopeLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({ scope: normalizedFilterState.analyticsScope });
+    if (normalizedFilterState.routineId) {
+      params.set("routineId", normalizedFilterState.routineId);
+    }
+    if (normalizedFilterState.cycleStartDate) {
+      params.set("cycleStartDate", normalizedFilterState.cycleStartDate);
+    }
+
+    setIsScopeLoading(true);
+    void fetch(`/api/history/sessions?${params.toString()}`, {
+      credentials: "same-origin",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.ok || !payload?.payload || !Array.isArray(payload.payload.sessionItems)) {
+          throw new Error(typeof payload?.error === "string" ? payload.error : "Failed to load filtered session history.");
+        }
+
+        setPayloadsByFilterKey((current) => ({
+          ...current,
+          [filterKey]: payload.payload as HistorySessionsScopePayload,
+        }));
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        console.error("[history/sessions] failed to load scoped rows", {
+          filterState: normalizedFilterState,
+          error,
+        });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsScopeLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [filterKey, normalizedFilterState, payloadsByFilterKey]);
+
+  useEffect(() => {
+    if (normalizedFilterState.analyticsScope === "all_time") {
+      setLastVisiblePayload(payloadsByFilterKey[buildFilterStateKey(createDefaultExerciseInfoFilterState())]);
+      return;
+    }
+
+    const cachedPayload = payloadsByFilterKey[filterKey];
+    if (cachedPayload) {
+      setLastVisiblePayload(cachedPayload);
+    }
+  }, [filterKey, normalizedFilterState.analyticsScope, payloadsByFilterKey]);
 
   const sessionTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -330,17 +661,17 @@ export function HistorySessionsClient({
                   groups={availableTagGroups}
                   resultCount={filteredSessions.length}
                   initialOpen={initialFiltersOpen}
-                  analyticsScope={analyticsScope}
-                  activeRoutineTitle={activeRoutineTitle}
-                  onAnalyticsScopeToggle={() => setAnalyticsScope((current) => getNextExerciseInfoAnalyticsScope(current))}
+                  filterState={filterState}
+                  filterOptions={filterOptions}
+                  onFilterStateChange={setFilterState}
                 />
               </HistoryTitleControlShell>
             </div>
           </div>
         </div>
       ) : null}
-      <ThirtyDayHistorySurface summary={scopedThirtyDaySummary} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
-      <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={activeRoutineTitle} />
+      <ThirtyDayHistorySurface summary={scopedThirtyDaySummary} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
+      <WeeklyProgressSurface summary={scopedWeeklyProgress} viewMode={viewMode} titleRoutineOverride={scopedRoutineTitle} />
       {filteredSessions.length > 0 ? <HistoryCycleSectionSeparator /> : null}
       {filteredSessions.length > 0 ? (
         <ul className={cn(
@@ -392,15 +723,20 @@ export function HistorySessionsClient({
             <p className={appTokens.historyBrowserEmptyState}>
               {scopedSessions.length > 0
                 ? "No matching sessions."
-                : analyticsScope === "current_routine"
+                : normalizedFilterState.analyticsScope === "current_routine"
                   ? "No completed sessions in the current routine yet."
-                  : analyticsScope === "current_cycle"
+                  : normalizedFilterState.analyticsScope === "current_cycle"
                     ? "No completed sessions in the current cycle yet."
                     : "No completed sessions yet."}
             </p>
           )}
         />
       )}
+      {isScopeLoading ? (
+        <div className="px-1 pt-2 text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--text-muted)/0.72)]">
+          Updating scope...
+        </div>
+      ) : null}
       {showBottomActions ? (
         <PublishBottomActions>
           <BottomActionSplit

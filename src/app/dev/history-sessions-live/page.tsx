@@ -88,6 +88,7 @@ export default async function DevHistorySessionsLivePage({
         <ContentRail className="pt-5">
           <HistorySessionsClient
             sessions={data.sessionItems}
+            filterOptions={data.filterOptions}
             currentRoutineSessions={data.currentRoutineSessionItems}
             currentCycleSessions={data.currentCycleSessionItems}
             activeRoutineTitle={data.activeRoutineTitle}
@@ -120,6 +121,7 @@ export default async function DevHistorySessionsLivePage({
     >
       <HistorySessionsClient
         sessions={data.sessionItems}
+        filterOptions={data.filterOptions}
         currentRoutineSessions={data.currentRoutineSessionItems}
         currentCycleSessions={data.currentCycleSessionItems}
         activeRoutineTitle={data.activeRoutineTitle}

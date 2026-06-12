@@ -337,7 +337,10 @@ export function buildThirtyDayHistorySummary({
   let consistencyDetail = "Log a completed session to start your history review.";
   const consistencyDelta = currentSevenDayWorkoutCount - previousSevenDayWorkoutCount;
 
-  if (currentSevenDayWorkoutCount > 0 && previousSevenDayWorkoutCount === 0) {
+  if (sessions.length > 0 && currentSevenDayWorkoutCount === 0 && previousSevenDayWorkoutCount === 0) {
+    consistencyLabel = "No recent workouts";
+    consistencyDetail = "No workouts were logged in either of the last two weeks.";
+  } else if (currentSevenDayWorkoutCount > 0 && previousSevenDayWorkoutCount === 0) {
     consistencyDirection = "new";
     consistencyLabel = "Started moving again";
     consistencyDetail = `${toPluralLabel(currentSevenDayWorkoutCount, "workout")} in the last 7 days after an empty week before that.`;

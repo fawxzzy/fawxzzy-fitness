@@ -467,7 +467,7 @@ test("buildHistorySessionCardViewModel favors PR progress language when a sessio
   assert.equal(viewModel.outcome, "Best: Back Squat | 315 lbs x 5");
   assert.equal(viewModel.progress, "2 PRs this session");
   assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "6 sets", "2 PRs this session"]);
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Exercises", "Sets", "Duration", "Completion"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Exercises", "Sets", "PRs", "Duration"]);
 });
 
 test("buildHistorySessionCardViewModel falls back to completion delta when there are no PRs", () => {
@@ -509,6 +509,17 @@ test("buildHistorySessionCardViewModel prioritizes progression updates when a se
 
   assert.equal(viewModel.progress, "2 promotions applied");
   assert.deepEqual(viewModel.compactChips.map((chip) => chip.label), ["45m", "2 promotions", "2 promotions applied"]);
-  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Exercises", "Sets", "Updates", "Completion"]);
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Exercises", "Sets", "Promotions", "Duration"]);
   assert.equal(viewModel.detailedMetrics[2]?.value, "2");
+});
+
+test("buildHistorySessionCardViewModel hides low-value zero duration and full completion metrics", () => {
+  const viewModel = buildHistorySessionCardViewModel(makeSessionSummary({
+    durationSec: undefined,
+    completionRate: 1,
+    hasNote: true,
+  }));
+
+  assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Exercises", "Sets", "Note"]);
+  assert.equal(viewModel.detailedMetrics[2]?.value, "Saved");
 });
