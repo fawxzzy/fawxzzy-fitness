@@ -26,6 +26,9 @@ type ExerciseThumbProps = {
   imageClassName?: string;
   sizes?: string;
   size?: number;
+  width?: number;
+  height?: number;
+  fitOverride?: "cover" | "contain";
   railWidth?: number;
   detailed?: boolean;
   layout?: "rail" | "inline";
@@ -60,15 +63,18 @@ function RailAssetPanel({
   alt,
   sizes,
   intent,
+  fitOverride,
   className,
 }: {
   asset: ExerciseThumbRailAsset;
   alt: string;
   sizes: string;
   intent: ExerciseThumbIntent;
+  fitOverride?: "cover" | "contain";
   className?: string;
 }) {
-  const usesCover = asset.fit === "cover";
+  const resolvedFit = fitOverride ?? asset.fit;
+  const usesCover = resolvedFit === "cover";
   const usesRowCardContainLayout = !usesCover && intent === "row-card";
 
   return (
@@ -93,7 +99,7 @@ function RailAssetPanel({
               : "object-contain p-[12%]",
         )}
         sizes={sizes}
-        fit={asset.fit}
+        fit={resolvedFit}
         fallback={<ThumbFallback glyphClassName="h-8 w-8" />}
       />
     </div>
@@ -107,12 +113,17 @@ export function ExerciseThumb({
   imageClassName,
   sizes,
   size = 56,
+  width,
+  height,
+  fitOverride,
   detailed = false,
   railWidth,
   layout = "inline",
   intent = "default",
 }: ExerciseThumbProps) {
   const resolvedRailWidth = railWidth ?? (detailed ? 76 : 72);
+  const resolvedInlineWidth = width ?? size;
+  const resolvedInlineHeight = height ?? size;
   const thumb = resolveExerciseThumb(exercise, { intent });
   const railSpec = resolveExerciseThumbRailSpec(exercise, { intent });
   const isRail = layout === "rail";
@@ -133,7 +144,7 @@ export function ExerciseThumb({
     return (
       <div
         className={wrapperClassName}
-        style={isRail ? undefined : { width: size, height: size }}
+        style={isRail ? undefined : { width: resolvedInlineWidth, height: resolvedInlineHeight }}
       >
         <ThumbFallback glyphClassName={fallbackGlyphClassName} />
       </div>
@@ -152,12 +163,13 @@ export function ExerciseThumb({
     if (railSpec.layout === "dual" && railSpec.assets.length > 1) {
       return (
         <div className={cn(wrapperClassName, "grid grid-rows-2 bg-[rgb(var(--surface-2-rgb)/0.92)]")}>
-          <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} intent={intent} />
+          <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} intent={intent} fitOverride={fitOverride} />
           <RailAssetPanel
             asset={railSpec.assets[1]}
             alt={alt ?? ""}
             sizes={sizes ?? `${resolvedRailWidth}px`}
             intent={intent}
+            fitOverride={fitOverride}
             className="border-t border-[rgb(var(--accent-divider-rgb)/0.18)]"
           />
         </div>
@@ -166,7 +178,7 @@ export function ExerciseThumb({
 
     return (
       <div className={cn(wrapperClassName, "bg-[rgb(var(--surface-2-rgb)/0.92)]")}>
-        <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} intent={intent} />
+        <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} intent={intent} fitOverride={fitOverride} />
       </div>
     );
   }
@@ -174,7 +186,7 @@ export function ExerciseThumb({
   return (
     <div
       className={wrapperClassName}
-      style={isRail ? undefined : { width: size, height: size }}
+      style={isRail ? undefined : { width: resolvedInlineWidth, height: resolvedInlineHeight }}
     >
       <div className="relative h-full w-full">
         <ExerciseAssetImage
@@ -182,7 +194,7 @@ export function ExerciseThumb({
           alt={alt ?? ""}
           className="h-full w-full"
           imageClassName={cn("absolute inset-0 h-full w-full object-contain object-center", imageClassName)}
-          sizes={sizes ?? (isRail ? `${resolvedRailWidth}px` : `${size}px`)}
+          sizes={sizes ?? (isRail ? `${resolvedRailWidth}px` : `${resolvedInlineWidth}px`)}
           fit="contain"
           fallback={<ThumbFallback glyphClassName={fallbackGlyphClassName} />}
         />

@@ -1,18 +1,64 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCard";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
+import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSeparator";
 import { StateChevron } from "@/components/ui/StateChevron";
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
+import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 function renderMetaBadge(value: string) {
   return (
     <SignatureMetaTag className="text-[9px] tracking-[0.14em]">
       {value}
     </SignatureMetaTag>
+  );
+}
+
+function renderDetailedBulletSection({
+  title,
+  items,
+  leadingVisual,
+  detailCutoutSize,
+}: {
+  title: string;
+  items: string[];
+  leadingVisual?: ReactNode;
+  detailCutoutSize?: number;
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="w-full space-y-1.5 pt-[0.45rem] bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0]">
+      <div className="w-full space-y-1">
+        {leadingVisual ? (
+          <div
+            className="float-left mb-1.5 mr-3 overflow-hidden"
+            style={{ width: `${detailCutoutSize ?? 104}px`, height: `${detailCutoutSize ?? 104}px` }}
+          >
+            {leadingVisual}
+          </div>
+        ) : null}
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]">
+          {title}
+        </p>
+        <div className="space-y-2 pl-px">
+          {items.map((item, index) => (
+            <div key={`${title}-${item}-${index}`} className="flex min-w-0 items-start gap-2.5">
+              <div className="flex h-[1.05rem] shrink-0 items-center">
+                <SignatureDot />
+              </div>
+              <span className={cn(appTokens.workoutCardDetailCompact, "min-w-0 flex-1 leading-[1.22] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>{item}</span>
+            </div>
+          ))}
+        </div>
+        {leadingVisual ? <div className="clear-left" /> : null}
+      </div>
+    </div>
   );
 }
 
@@ -35,6 +81,17 @@ type HistoryDetailExerciseCardProps = {
   className?: string;
   mediaClassName?: string;
   shellStyle?: CSSProperties;
+  leadingVisual?: ReactNode;
+  mediaRailWidthOverride?: number;
+  footerContent?: ReactNode;
+  detailSections?: Array<{
+    title: string;
+    items: string[];
+  }>;
+  surface?: WorkoutCardSurface;
+  dataSurface?: string;
+  compactBadgePlacement?: "trailing" | "stack";
+  combineCompactSummaryLabel?: boolean;
   expanded: boolean;
   onPress?: () => void;
   showLeadingVisual?: boolean;
@@ -53,6 +110,14 @@ export function HistoryDetailExerciseCard({
   className,
   mediaClassName,
   shellStyle,
+  leadingVisual,
+  mediaRailWidthOverride,
+  footerContent,
+  detailSections = [],
+  surface = "history-detail",
+  dataSurface = "history-detail",
+  compactBadgePlacement = "trailing",
+  combineCompactSummaryLabel = true,
   expanded,
   onPress,
   showLeadingVisual = true,
@@ -81,14 +146,17 @@ export function HistoryDetailExerciseCard({
 
   const activeBadge = rotatingBadgeItems[badgeIndex] ?? rotatingBadgeItems[0] ?? null;
   const resolvedMetaBadge = density === "compact" ? null : (activeBadge ? renderMetaBadge(activeBadge) : null);
-  const compactTrailingMeta = density === "compact" && activeBadge
+  const compactTrailingMeta = density === "compact" && compactBadgePlacement === "trailing" && activeBadge
     ? <SignatureMetaTag className="text-[10.5px] tracking-[0.14em]">{activeBadge}</SignatureMetaTag>
     : null;
-  const resolvedSummary = density === "compact" && summaryLabel.trim().length > 0
+  const shouldCombineCompactSummary = density === "compact" && combineCompactSummaryLabel;
+  const resolvedSummary = shouldCombineCompactSummary && summaryLabel.trim().length > 0
     ? `${summaryLabel} | ${summary}`
     : summary;
   const topAccentBar = shouldRenderTopAccentBar ? <MetricAccentBar variant="thin" /> : null;
-  const hasSupportingStack = Boolean(metadata) || hasMetrics;
+  const hasSupportingStack = Boolean(metadata) || hasMetrics || detailSections.length > 0 || Boolean(footerContent);
+  const shouldUseDetailedCutoutVisual = density === "detailed" && Boolean(leadingVisual);
+  const detailCutoutSize = mediaRailWidthOverride ?? 104;
   const resolvedRightIcon = !isInteractive
     ? compactTrailingMeta
     : density === "compact" && compactTrailingMeta
@@ -104,13 +172,13 @@ export function HistoryDetailExerciseCard({
     <div
       data-history-card="detail-exercise"
       data-history-density={density}
-      data-history-surface="history-detail"
+      data-history-surface={dataSurface}
       data-history-expanded={expanded ? "true" : "false"}
     >
       <StandardExerciseRow
         exercise={exercise}
-        summary={resolvedSummary}
-        summaryLabel={density === "compact" ? undefined : summaryLabel}
+        summaryContent={resolvedSummary}
+        summaryLabel={density === "compact" && shouldCombineCompactSummary ? undefined : summaryLabel}
         titleMeta={resolvedMetaBadge}
         onPress={onPress}
         className={cn("w-full", appTokens.historyExerciseCardShell, className)}
@@ -120,16 +188,18 @@ export function HistoryDetailExerciseCard({
         density={density}
         state={expanded ? "selected" : "default"}
         semanticTone={tone}
-        surface="history-detail"
-        showLeadingVisual={showLeadingVisual}
-        subtitleTone={density === "compact" ? "plain" : "panel"}
+        surface={surface}
+        showLeadingVisual={shouldUseDetailedCutoutVisual ? false : showLeadingVisual}
+        subtitleTone="plain"
         rightIconMode="overlay"
         titleContainerClassName={density === "compact" ? "pr-[5.3rem]" : "pr-[2.35rem] space-y-0.5"}
         rightRailClassName={density === "compact" ? "right-[0.78rem] bottom-[0.58rem] top-auto translate-y-0" : "right-[0.85rem] top-1/2 -translate-y-1/2"}
         trailingStackClassName={density === "compact" ? "items-end justify-end" : "h-4.5 w-4.5"}
+        leadingVisual={shouldUseDetailedCutoutVisual ? undefined : leadingVisual}
         mediaClassName={mediaClassName}
+        mediaRailWidthOverride={mediaRailWidthOverride}
         contentClassName="pl-1.5"
-        titleClassName="max-[380px]:line-clamp-3 [text-wrap:pretty]"
+        titleClassName="max-[420px]:line-clamp-3 [text-wrap:pretty]"
         subtitleClassName="[text-wrap:pretty] text-[rgb(var(--text-secondary)/0.9)]"
         headerDivider={topAccentBar}
         shellClassName="[--glass-shadow:none] before:!bg-transparent after:!shadow-none"
@@ -148,16 +218,27 @@ export function HistoryDetailExerciseCard({
               </div>
             ) : null}
             {hasMetrics ? (
-              <>
-                <SurfaceMetricGrid
-                  items={(metrics ?? []).slice(0, 4)}
-                  autoColumns={false}
-                  className="sm:grid-cols-3"
-                  itemClassName="px-2.5 py-1"
-                  fullWidthUnderline
-                />
-              </>
+              <SurfaceMetricGrid
+                items={(metrics ?? []).slice(0, 4)}
+                autoColumns
+                itemClassName="px-2.5 py-1"
+                fullWidthUnderline
+              />
             ) : null}
+            {detailSections.length > 0 ? (
+              <div className="space-y-1 pt-0.5">
+                {detailSections.map((section, index) => (
+                  <div key={section.title}>
+                    {renderDetailedBulletSection({
+                      ...section,
+                      leadingVisual: shouldUseDetailedCutoutVisual && index === detailSections.length - 1 ? leadingVisual : undefined,
+                      detailCutoutSize,
+                    })}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {footerContent}
           </div>
         ) : null}
       </StandardExerciseRow>

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import {
@@ -48,6 +49,7 @@ type ExerciseTagFilterControlProps = {
   viewportMode?: "scroll" | "auto-height";
   horizontalRailOverrideClassName?: string;
   compactDensity?: "default" | "tight";
+  extraContent?: ReactNode;
 };
 
 export function ExerciseTagFilterControl({
@@ -71,6 +73,7 @@ export function ExerciseTagFilterControl({
   viewportMode = "scroll",
   horizontalRailOverrideClassName,
   compactDensity = "default",
+  extraContent,
 }: ExerciseTagFilterControlProps) {
   const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(defaultOpen);
   const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
@@ -237,6 +240,7 @@ export function ExerciseTagFilterControl({
           {viewportMode === "auto-height" ? (
             <div className="space-y-2">
               {groupBySectionNode}
+              {extraContent}
               {orderedGroups.map((group) => {
                 const selectedTagsForGroup = group.tags
                   .map((tag) => tag.value)
@@ -330,6 +334,7 @@ export function ExerciseTagFilterControl({
               viewportClassName={compact ? `${FILTER_OVERLAY_VIEWPORT_CLASS_NAME} pr-0` : "max-h-[min(48vh,24rem)] space-y-2"}
             >
               {groupBySectionNode}
+              {extraContent}
               {orderedGroups.map((group) => {
                 const selectedTagsForGroup = group.tags
                   .map((tag) => tag.value)

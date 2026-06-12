@@ -25,7 +25,13 @@ import { aggregateCardioSessions, aggregateExerciseStatsFromSets, groupNormalize
 import { formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { ProgressionEventRow } from "@/types/db";
-import type { ExerciseInfoAnalyticsScope } from "@/lib/exercise-info-scope";
+import {
+  normalizeExerciseInfoFilterState,
+  type ExerciseInfoAnalyticsScope,
+  type ExerciseInfoFilterOptions,
+  type ExerciseInfoFilterState,
+  type ExerciseInfoRoutineFilterOption,
+} from "@/lib/exercise-info-scope";
 import { buildCurrentCycleWindow, type CurrentCycleWindow } from "@/lib/current-cycle-window";
 
 type ExerciseCatalogRow = {
@@ -103,16 +109,25 @@ export type ExerciseBrowserRow = {
 };
 
 export type ExerciseBrowserScopePayload = {
-  allTimeRows: ExerciseBrowserRow[];
-  currentRoutineRows: ExerciseBrowserRow[];
-  currentCycleRows: ExerciseBrowserRow[];
+  initialRows: ExerciseBrowserRow[];
+  filterOptions: ExerciseInfoFilterOptions;
   activeRoutineTitle: string | null;
 };
 
 type ExerciseBrowserScopeContext = {
+  profileTimeZone: string;
   activeRoutineId: string | null;
   activeRoutineTitle: string | null;
   currentCycleWindow: CurrentCycleWindow | null;
+};
+
+type ExerciseBrowserRoutineMeta = {
+  id: string;
+  title: string;
+  cycleLengthDays: number | null;
+  startDate: string | null;
+  timeZone: string;
+  isActive: boolean;
 };
 
 function formatCompact(value: number) {
@@ -575,15 +590,186 @@ function isRelationOrColumnMissing(error: PostgrestError | null) {
   return error?.code === "42P01" || error?.code === "42703";
 }
 
-async function loadRoutineTitle(routineId: string, userId: string, supabase: SupabaseClient) {
+function formatCycleDayLabel(dayKey: string) {
+  const timestamp = Date.parse(`${dayKey}T12:00:00.000Z`);
+  if (!Number.isFinite(timestamp)) {
+    return dayKey;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+}
+
+function buildCycleLabel(startDate: string, endDate: string) {
+  return `${formatCycleDayLabel(startDate)} - ${formatCycleDayLabel(endDate)}`;
+}
+
+function getDayKey(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
+
+async function loadExerciseBrowserRoutineMeta(args: {
+  userId: string;
+  routineId: string;
+  activeRoutineId: string | null;
+  profileTimeZone: string;
+  client?: SupabaseClient;
+}): Promise<ExerciseBrowserRoutineMeta | null> {
+  const supabase = args.client ?? supabaseServer();
   const { data } = await supabase
     .from("routines")
-    .select("name")
-    .eq("id", routineId)
-    .eq("user_id", userId)
+    .select("id, name, cycle_length_days, start_date, timezone")
+    .eq("id", args.routineId)
+    .eq("user_id", args.userId)
     .maybeSingle();
 
-  return typeof data?.name === "string" && data.name.trim().length > 0 ? data.name.trim() : null;
+  const id = typeof data?.id === "string" ? data.id.trim() : "";
+  const title = typeof data?.name === "string" && data.name.trim().length > 0
+    ? data.name.trim()
+    : "";
+  if (!id || !title) {
+    return null;
+  }
+
+  return {
+    id,
+    title,
+    cycleLengthDays: typeof data?.cycle_length_days === "number" ? data.cycle_length_days : null,
+    startDate: typeof data?.start_date === "string" ? data.start_date : null,
+    timeZone: typeof data?.timezone === "string" && data.timezone.trim().length > 0
+      ? data.timezone.trim()
+      : args.profileTimeZone,
+    isActive: id === args.activeRoutineId,
+  };
+}
+
+function buildExerciseBrowserRoutineCycleOptions(args: {
+  routine: ExerciseBrowserRoutineMeta;
+  dayKeys: string[];
+}): ExerciseInfoRoutineFilterOption["cycleOptions"] {
+  if (!args.routine.startDate || !args.routine.cycleLengthDays || args.routine.cycleLengthDays <= 0) {
+    return [];
+  }
+
+  const optionsByStartDate = new Map<string, ExerciseInfoRoutineFilterOption["cycleOptions"][number]>();
+  for (const dayKey of args.dayKeys) {
+    const cycleWindow = buildCurrentCycleWindow({
+      cycleLengthDays: args.routine.cycleLengthDays,
+      startDate: args.routine.startDate,
+      profileTimeZone: args.routine.timeZone,
+      referenceDate: dayKey,
+    });
+    if (!cycleWindow) {
+      continue;
+    }
+
+    optionsByStartDate.set(cycleWindow.startDate, {
+      startDate: cycleWindow.startDate,
+      endDate: cycleWindow.endDate,
+      label: buildCycleLabel(cycleWindow.startDate, cycleWindow.endDate),
+    });
+  }
+
+  return [...optionsByStartDate.values()].sort((left, right) => right.startDate.localeCompare(left.startDate));
+}
+
+async function buildExerciseBrowserFilterOptions(args: {
+  userId: string;
+  scopeContext: ExerciseBrowserScopeContext;
+  client?: SupabaseClient;
+}): Promise<ExerciseInfoFilterOptions> {
+  const supabase = args.client ?? supabaseServer();
+  const [{ data: routineRows }, { data: sessionRows }, { data: progressionRows }] = await Promise.all([
+    supabase
+      .from("routines")
+      .select("id, name, cycle_length_days, start_date, timezone")
+      .eq("user_id", args.userId),
+    supabase
+      .from("sessions")
+      .select("routine_id, performed_at")
+      .eq("user_id", args.userId)
+      .eq("status", "completed")
+      .not("routine_id", "is", null),
+    supabase
+      .from("progression_events")
+      .select("routine_id, created_at")
+      .eq("user_id", args.userId)
+      .not("routine_id", "is", null),
+  ]);
+
+  const dayKeysByRoutineId = new Map<string, Set<string>>();
+  for (const row of sessionRows ?? []) {
+    const routineId = typeof row?.routine_id === "string" ? row.routine_id.trim() : "";
+    const dayKey = getDayKey(typeof row?.performed_at === "string" ? row.performed_at : null);
+    if (!routineId || !dayKey) {
+      continue;
+    }
+
+    const current = dayKeysByRoutineId.get(routineId) ?? new Set<string>();
+    current.add(dayKey);
+    dayKeysByRoutineId.set(routineId, current);
+  }
+  for (const row of progressionRows ?? []) {
+    const routineId = typeof row?.routine_id === "string" ? row.routine_id.trim() : "";
+    const dayKey = getDayKey(typeof row?.created_at === "string" ? row.created_at : null);
+    if (!routineId || !dayKey) {
+      continue;
+    }
+
+    const current = dayKeysByRoutineId.get(routineId) ?? new Set<string>();
+    current.add(dayKey);
+    dayKeysByRoutineId.set(routineId, current);
+  }
+
+  const routines = (routineRows ?? [])
+    .map((routine): ExerciseBrowserRoutineMeta | null => {
+      const id = typeof routine?.id === "string" ? routine.id.trim() : "";
+      const title = typeof routine?.name === "string" && routine.name.trim().length > 0
+        ? routine.name.trim()
+        : "";
+      if (!id || !title) {
+        return null;
+      }
+
+      return {
+        id,
+        title,
+        cycleLengthDays: typeof routine?.cycle_length_days === "number" ? routine.cycle_length_days : null,
+        startDate: typeof routine?.start_date === "string" ? routine.start_date : null,
+        timeZone: typeof routine?.timezone === "string" && routine.timezone.trim().length > 0
+          ? routine.timezone.trim()
+          : args.scopeContext.profileTimeZone,
+        isActive: id === args.scopeContext.activeRoutineId,
+      };
+    })
+    .filter((routine): routine is ExerciseBrowserRoutineMeta => Boolean(routine))
+    .sort((left, right) => {
+      if (left.isActive !== right.isActive) {
+        return left.isActive ? -1 : 1;
+      }
+
+      return left.title.localeCompare(right.title);
+    });
+
+  return {
+    routines: routines.map((routine) => ({
+      id: routine.id,
+      title: routine.title,
+      ...(routine.isActive ? { isActive: true } : {}),
+      cycleOptions: buildExerciseBrowserRoutineCycleOptions({
+        routine,
+        dayKeys: [...(dayKeysByRoutineId.get(routine.id) ?? new Set<string>())],
+      }),
+    })),
+  };
 }
 
 async function resolveExerciseBrowserScopeContext(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserScopeContext> {
@@ -603,6 +789,7 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Supab
 
   if (!activeRoutineId) {
     return {
+      profileTimeZone,
       activeRoutineId: null,
       activeRoutineTitle: null,
       currentCycleWindow: null,
@@ -617,6 +804,7 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Supab
     .maybeSingle();
 
   return {
+    profileTimeZone,
     activeRoutineId,
     activeRoutineTitle: typeof routineData?.name === "string" && routineData.name.trim().length > 0
       ? routineData.name.trim()
@@ -626,8 +814,65 @@ async function resolveExerciseBrowserScopeContext(userId: string, client?: Supab
       startDate: typeof routineData?.start_date === "string" ? routineData.start_date : null,
       profileTimeZone: typeof routineData?.timezone === "string" && routineData.timezone.trim().length > 0
         ? routineData.timezone.trim()
-        : profileTimeZone,
+      : profileTimeZone,
     }),
+  };
+}
+
+async function resolveExerciseBrowserScopedContext(args: {
+  userId: string;
+  filterState?: Partial<ExerciseInfoFilterState> | null;
+  client?: SupabaseClient;
+}): Promise<ExerciseBrowserScopeContext> {
+  const normalizedFilterState = normalizeExerciseInfoFilterState(args.filterState);
+  const scopeContext = await resolveExerciseBrowserScopeContext(args.userId, args.client);
+  if (normalizedFilterState.analyticsScope === "all_time") {
+    return scopeContext;
+  }
+
+  const requestedRoutineId = normalizedFilterState.routineId ?? scopeContext.activeRoutineId;
+  if (!requestedRoutineId) {
+    return {
+      ...scopeContext,
+      activeRoutineId: null,
+      activeRoutineTitle: null,
+      currentCycleWindow: null,
+    };
+  }
+
+  if (requestedRoutineId === scopeContext.activeRoutineId) {
+    if (normalizedFilterState.analyticsScope !== "current_cycle" || !normalizedFilterState.cycleStartDate) {
+      return scopeContext;
+    }
+
+    if (scopeContext.currentCycleWindow?.startDate === normalizedFilterState.cycleStartDate) {
+      return scopeContext;
+    }
+  }
+
+  const routineMeta = await loadExerciseBrowserRoutineMeta({
+    userId: args.userId,
+    routineId: requestedRoutineId,
+    activeRoutineId: scopeContext.activeRoutineId,
+    profileTimeZone: scopeContext.profileTimeZone,
+    client: args.client,
+  });
+  if (!routineMeta) {
+    return scopeContext;
+  }
+
+  return {
+    profileTimeZone: scopeContext.profileTimeZone,
+    activeRoutineId: routineMeta.id,
+    activeRoutineTitle: routineMeta.title,
+    currentCycleWindow: normalizedFilterState.analyticsScope === "current_cycle"
+      ? buildCurrentCycleWindow({
+          cycleLengthDays: routineMeta.cycleLengthDays,
+          startDate: routineMeta.startDate,
+          profileTimeZone: routineMeta.timeZone,
+          referenceDate: normalizedFilterState.cycleStartDate ?? routineMeta.startDate ?? undefined,
+        })
+      : null,
   };
 }
 
@@ -1084,6 +1329,13 @@ async function getExercisesWithStats(
       runDevExerciseBrowserVerification(nextRow);
       return nextRow;
     })
+    .filter((row) => {
+      if (!shouldUseDerivedHistory) {
+        return true;
+      }
+
+      return row.sessionCount > 0 || Boolean(progressionEventsByExerciseId.get(row.exerciseId)?.length);
+    })
     .sort(compareExerciseBrowserRows);
 
   return applyHistoryExerciseActivityRanks(rows);
@@ -1096,27 +1348,38 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
 export async function getExerciseBrowserScopePayloadForUser(): Promise<ExerciseBrowserScopePayload> {
   const user = await requireUser();
-  const scopeContext = await resolveExerciseBrowserScopeContext(user.id);
-  const [allTimeRows, currentRoutineRows, currentCycleRows] = await Promise.all([
+  const [scopeContext, initialRows] = await Promise.all([
+    resolveExerciseBrowserScopeContext(user.id),
     getExercisesWithStats(user.id),
-    getExercisesWithStats(user.id, undefined, {
-      analyticsScope: "current_routine",
-      scopeContext,
-    }),
-    getExercisesWithStats(user.id, undefined, {
-      analyticsScope: "current_cycle",
-      scopeContext,
-    }),
   ]);
+  const filterOptions = await buildExerciseBrowserFilterOptions({
+    userId: user.id,
+    scopeContext,
+  });
 
   return {
-    allTimeRows,
-    currentRoutineRows,
-    currentCycleRows,
+    initialRows,
+    filterOptions,
     activeRoutineTitle: scopeContext.activeRoutineTitle,
   };
 }
 
 export async function getExercisesWithStatsForExplicitUser(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserRow[]> {
   return getExercisesWithStats(userId, client);
+}
+
+export async function getExerciseBrowserRowsForUserFilter(
+  filterState?: Partial<ExerciseInfoFilterState> | null,
+): Promise<ExerciseBrowserRow[]> {
+  const user = await requireUser();
+  const normalizedFilterState = normalizeExerciseInfoFilterState(filterState);
+  const scopeContext = await resolveExerciseBrowserScopedContext({
+    userId: user.id,
+    filterState: normalizedFilterState,
+  });
+
+  return getExercisesWithStats(user.id, undefined, {
+    analyticsScope: normalizedFilterState.analyticsScope,
+    scopeContext,
+  });
 }

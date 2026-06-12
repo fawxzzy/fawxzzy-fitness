@@ -414,6 +414,7 @@ export function buildPlannedExerciseDetailMetrics(args: ExerciseIdentityChipArgs
 
 function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily): MetricDatum[] {
   if (row.progressionSummary?.eventCount) {
+    const currentTargetLabel = row.progressionSummary.currentTargetLabel?.trim() ?? "";
     return [
       {
         label: "Sessions",
@@ -431,15 +432,14 @@ function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: Ex
         valueTone: row.progressionSummary.promotionCount > 0 ? "success" : "muted",
       },
       {
-        label: "Current",
-        value: row.progressionSummary.currentTargetLabel ?? "No target",
-        valueTone: row.progressionSummary.currentTargetLabel ? "default" : "muted",
+        label: "Target",
+        value: currentTargetLabel || "No target",
+        valueTone: currentTargetLabel ? "default" : "muted",
       },
     ];
   }
 
-  const recentLabel = family === "timed-hold" ? "Active" : "Recent";
-  const trackingValue = family === "timed-hold" ? "Time" : "Review";
+  const trackingPresentationKind = mapExerciseAnalyticsFamilyToPresentationKind(family);
 
   const metrics: MetricDatum[] = [
     {
@@ -453,19 +453,9 @@ function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: Ex
       valueTone: positive(row.setCount) > 0 ? "default" : "muted",
     },
     {
-      label: recentLabel,
-      value: formatIntegerValue(row.sessionsLast30Days ?? 0),
-      timeframe: "recent window",
-      valueTone: positive(row.sessionsLast30Days) > 0 ? "default" : "muted",
-    },
-    {
-      label: family.startsWith("cardio") || family === "timed-hold" ? "Tracked" : "PRs",
-      value: family.startsWith("cardio") || family === "timed-hold"
-        ? trackingValue
-        : formatIntegerValue(row.prCount),
-      valueTone: family.startsWith("cardio") || family === "timed-hold"
-        ? "muted"
-        : row.prCount > 0 ? "success" : "muted",
+      label: "Tracking",
+      value: resolveTrackingLabel(trackingPresentationKind),
+      valueTone: "muted",
     },
   ];
 
@@ -481,10 +471,6 @@ function buildHistoryExerciseBadgeItems(row: ExerciseBrowserRow) {
     items.push("Top 5");
   } else if (row.activityRank && row.activityRank > 5 && row.activityRank <= 10) {
     items.push("Top 10");
-  }
-
-  if (positive(row.sessionsLast30Days) > 0) {
-    items.push(`${formatIntegerValue(row.sessionsLast30Days ?? 0)} recent`);
   }
 
   if (row.progressionSummary?.promotionCount) {
@@ -507,45 +493,34 @@ function buildHistoryExerciseBadgeItems(row: ExerciseBrowserRow) {
 }
 
 function buildHistoryExerciseDetailedSections(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily) {
-  if (row.detailSections && row.detailSections.length > 0) {
-    if (!row.progressionSummary?.eventCount) {
-      return row.detailSections;
-    }
-
-    return row.detailSections.map((section) => (
-      section.title === "Progress"
-        ? {
-            title: "Progression",
-            items: [...section.items, ...(row.progressionSummary?.lifelineItems ?? [])]
-              .filter((value, index, values) => Boolean(value) && values.indexOf(value) === index)
-              .slice(0, 4),
-          }
-        : section
-    ));
-  }
-
   const cleanedBest = row.bestSummary?.replace(/^Best\s*[:|]\s*/i, "").trim() || null;
-  const progressItems = [
-    row.deltaFromBest,
-    ...(row.progressionSummary?.lifelineItems ?? []),
-    row.prCount > 0 ? (row.prLabel || `${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"} recorded`) : null,
+  const historyItems = [
+    cleanedBest ? `Best | ${cleanedBest}` : null,
+    row.prCount > 0 ? (row.prLabel ? `PRs | ${row.prLabel}` : `${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"} recorded`) : null,
     row.last_performed_at ? `Last trained ${formatDateShort(row.last_performed_at)}` : null,
   ].filter((value, index, items): value is string => Boolean(value) && items.indexOf(value) === index);
-
-  return [
+  const progressionItems = [
+    row.progressionSummary?.latestChangeSummary,
+    ...(row.progressionSummary?.lifelineItems ?? []),
+    row.deltaFromBest && row.deltaFromBest !== buildHistoryExerciseComparison(row) ? row.deltaFromBest : null,
+  ].filter((value, index, items): value is string => Boolean(value) && items.indexOf(value) === index);
+  const sections: Array<{ title: string; items: string[] }> = [
     {
-      title: "Last",
-      items: [row.lastSummary ?? (family === "timed-hold" ? "No timed effort logged yet." : "No logged history yet.")],
-    },
-    {
-      title: "Best",
-      items: [cleanedBest ?? (family === "timed-hold" ? "No best hold recorded yet." : "No best effort recorded yet.")],
-    },
-    {
-      title: row.progressionSummary?.eventCount ? "Progression" : "Progress",
-      items: progressItems.length > 0 ? progressItems.slice(0, 4) : ["No progression signal yet."],
+      title: "History",
+      items: historyItems.length > 0
+        ? historyItems.slice(0, 3)
+        : [row.lastSummary ?? (family === "timed-hold" ? "No timed effort logged yet." : "No logged history yet.")],
     },
   ];
+
+  if (progressionItems.length > 0) {
+    sections.push({
+      title: "Progression",
+      items: progressionItems.slice(0, 4),
+    });
+  }
+
+  return sections;
 }
 
 function buildHistoryExerciseComparison(row: ExerciseBrowserRow) {
@@ -632,9 +607,7 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
     }),
     badgeItems,
     badgeText: badgeItems[0],
-    detailedMetrics: row.progressionSummary?.eventCount
-      ? buildHistoryExerciseDetailedMetrics(row, family)
-      : (row.detailedMetrics ?? buildHistoryExerciseDetailedMetrics(row, family)),
+    detailedMetrics: buildHistoryExerciseDetailedMetrics(row, family),
     detailedSections: buildHistoryExerciseDetailedSections(row, family),
     semanticTone,
   };

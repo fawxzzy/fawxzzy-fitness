@@ -44,6 +44,7 @@ type ExerciseSearchFiltersProps = {
   filterHorizontalRailOverrideClassName?: string;
   filterCompactDensity?: "default" | "tight";
   trailingControls?: ReactNode;
+  filterExtraContent?: ReactNode;
 };
 
 export function ExerciseSearchFilters({
@@ -73,6 +74,7 @@ export function ExerciseSearchFilters({
   filterHorizontalRailOverrideClassName,
   filterCompactDensity = "default",
   trailingControls,
+  filterExtraContent,
 }: ExerciseSearchFiltersProps) {
   void searchFirst;
   const [isFilterOpen, setIsFilterOpen] = useState(defaultFilterOpen);
@@ -184,6 +186,7 @@ export function ExerciseSearchFilters({
       viewportMode={filterViewportMode}
       horizontalRailOverrideClassName={filterHorizontalRailOverrideClassName}
       compactDensity={filterCompactDensity}
+      extraContent={filterExtraContent}
     />
   );
 

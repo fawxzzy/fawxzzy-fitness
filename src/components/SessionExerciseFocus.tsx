@@ -28,7 +28,7 @@ import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visib
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
-import { createStableSetId } from "@/lib/offline/set-log-reconciliation";
+import { areSetListsEquivalent, createStableSetId } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
@@ -84,6 +84,56 @@ type SessionExercisePrefill = {
   durationSeconds?: number;
   weightUnit?: "lbs" | "kg";
 };
+
+function areSessionRowClientStateMapsEqual(
+  left: Record<string, SessionRowClientState>,
+  right: Record<string, SessionRowClientState>,
+) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  for (const key of leftKeys) {
+    const leftValue = left[key];
+    const rightValue = right[key];
+    if (!rightValue) {
+      return false;
+    }
+    if (
+      leftValue.loggedSetCount !== rightValue.loggedSetCount
+      || leftValue.setCountOverrideActive !== rightValue.setCountOverrideActive
+      || leftValue.isSkipped !== rightValue.isSkipped
+      || leftValue.isQuickLogPending !== rightValue.isQuickLogPending
+      || leftValue.isSkipPending !== rightValue.isSkipPending
+      || leftValue.showWhenCompleted !== rightValue.showWhenCompleted
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areSetSnapshotMapsEqual(
+  left: Record<string, SetLoggerSeedSet[]>,
+  right: Record<string, SetLoggerSeedSet[]>,
+) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  for (const key of leftKeys) {
+    if (!areSetListsEquivalent(left[key] ?? [], right[key] ?? [])) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 function toPrefillFromQuickLogTarget(
   target: SessionQuickLogTarget | null | undefined,
@@ -325,9 +375,13 @@ export function SessionExerciseFocus({
         isSkipPending: false,
         showWhenCompleted: false,
       };
+      const next = patch(previous);
+      if (next === previous) {
+        return current;
+      }
       return {
         ...current,
-        [sessionExerciseId]: patch(previous),
+        [sessionExerciseId]: next,
       };
     });
   }, [exercises]);
@@ -340,11 +394,12 @@ export function SessionExerciseFocus({
         ),
         exercises,
       );
-      return reconcileSessionRowClientState({
+      const next = reconcileSessionRowClientState({
         current,
         rows: exercises,
         mergedLoggedSetCount: mergedCountState,
       });
+      return areSessionRowClientStateMapsEqual(current, next) ? current : next;
     });
   }, [exercises]);
 
@@ -354,7 +409,7 @@ export function SessionExerciseFocus({
       for (const exercise of exercises) {
         next[exercise.id] = current[exercise.id] ?? exercise.initialSets;
       }
-      return next;
+      return areSetSnapshotMapsEqual(current, next) ? current : next;
     });
   }, [exercises]);
 
@@ -675,7 +730,7 @@ export function SessionExerciseFocus({
                   onSetsChange={(nextSets) => {
                     setSetSnapshotsBySessionExerciseId((current) => {
                       const previous = current[exercise.id];
-                      if (previous === nextSets) {
+                      if (previous && areSetListsEquivalent(previous, nextSets)) {
                         return current;
                       }
                       return {

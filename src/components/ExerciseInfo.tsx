@@ -39,6 +39,7 @@ export function ExerciseInfo({
   sourceContext,
   initialExercise,
   initialStats,
+  initialFilterState,
 }: {
   exerciseId: string | null;
   open: boolean;
@@ -47,6 +48,7 @@ export function ExerciseInfo({
   sourceContext?: string;
   initialExercise?: ExerciseInfoSheetExercise | null;
   initialStats?: ExerciseInfoSheetStats | null;
+  initialFilterState?: ExerciseInfoFilterState | null;
 }) {
   const [exercise, setExercise] = useState<ExerciseInfoSheetExercise | null>(null);
   const [statsByScope, setStatsByScope] = useState<Partial<Record<ExerciseInfoAnalyticsScope, ExerciseInfoSheetStats | null>>>({});
@@ -56,8 +58,8 @@ export function ExerciseInfo({
   const toast = useToast();
 
   useEffect(() => {
-    setFilterState(createDefaultExerciseInfoFilterState());
-  }, [exerciseId]);
+    setFilterState(normalizeExerciseInfoFilterState(initialFilterState ?? createDefaultExerciseInfoFilterState()));
+  }, [exerciseId, initialFilterState]);
 
   useEffect(() => {
     if (open) {

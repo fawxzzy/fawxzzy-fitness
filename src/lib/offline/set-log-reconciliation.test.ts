@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  areSetListsEquivalent,
+  areSetsEquivalent,
   buildSetQueueDedupeKey,
   isQueueItemPendingSync,
   mergeByStableSetId,
@@ -92,4 +94,60 @@ test("replaying restore with the same stable set id stays idempotent", () => {
   assert.equal(firstPass.length, 1);
   assert.equal(secondPass.length, 1);
   assert.equal(secondPass[0].id, "queue-2");
+});
+
+test("areSetsEquivalent treats fresh but identical set payloads as equal", () => {
+  const left = {
+    id: "set-1",
+    client_log_id: "stable-set-1",
+    stableId: "stable-set-1",
+    session_exercise_id: "exercise-1",
+    user_id: "user-1",
+    set_index: 0,
+    weight: 225,
+    reps: 5,
+    is_warmup: false,
+    notes: null,
+    duration_seconds: null,
+    distance: null,
+    distance_unit: null,
+    calories: null,
+    rpe: 8,
+    weight_unit: "lbs" as const,
+    queueItemId: undefined,
+    pending: false,
+    queueStatus: undefined,
+  };
+  const right = { ...left };
+
+  assert.equal(areSetsEquivalent(left, right), true);
+});
+
+test("areSetListsEquivalent rejects logical changes but ignores reference churn", () => {
+  const left = [{
+    id: "set-1",
+    client_log_id: "stable-set-1",
+    stableId: "stable-set-1",
+    session_exercise_id: "exercise-1",
+    user_id: "user-1",
+    set_index: 0,
+    weight: 225,
+    reps: 5,
+    is_warmup: false,
+    notes: null,
+    duration_seconds: null,
+    distance: null,
+    distance_unit: null,
+    calories: null,
+    rpe: 8,
+    weight_unit: "lbs" as const,
+    queueItemId: undefined,
+    pending: false,
+    queueStatus: undefined,
+  }];
+  const sameButNewReference = [{ ...left[0] }];
+  const changed = [{ ...left[0], reps: 6 }];
+
+  assert.equal(areSetListsEquivalent(left, sameButNewReference), true);
+  assert.equal(areSetListsEquivalent(left, changed), false);
 });

@@ -57,6 +57,7 @@ type StandardExerciseRowProps = {
   leadingVisual?: ReactNode;
   showLeadingVisual?: boolean;
   imageSizes?: string;
+  mediaRailWidthOverride?: number;
   buttonProps?: ExerciseCardButtonProps;
   surface?: WorkoutCardSurface;
   showAccentRail?: boolean;
@@ -102,6 +103,7 @@ export function StandardExerciseRow({
   leadingVisual,
   showLeadingVisual = true,
   imageSizes,
+  mediaRailWidthOverride,
   buttonProps,
   surface = "exercise-picker",
   showAccentRail = true,
@@ -122,7 +124,7 @@ export function StandardExerciseRow({
   const resolvedDensity = density ?? (variant === "standard" || variant === "expanded" || variant === "summary" ? "detailed" : "compact");
   const usesCompactDensity = resolvedDensity === "compact";
   const surfacePolicy = resolveWorkoutCardSurfacePolicy(surface, resolvedDensity);
-  const mediaRailWidth = surfacePolicy.mediaRailWidth;
+  const mediaRailWidth = mediaRailWidthOverride ?? surfacePolicy.mediaRailWidth;
   const allowsSurfaceMedia = surfacePolicy.showMedia && mediaRailWidth > 0;
   const resolvedImageSizes = imageSizes ?? `${Math.max(mediaRailWidth, 1)}px`;
   const resolvedLeadingVisual = allowsSurfaceMedia

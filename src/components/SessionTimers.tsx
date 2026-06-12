@@ -11,6 +11,7 @@ import {
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import {
+  areSetListsEquivalent,
   createStableSetId,
   mergeByStableSetId,
   resolveStableSetId,
@@ -569,7 +570,10 @@ export function SetLoggerCard({
 
   useEffect(() => {
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
-    setSets((current) => mergeDisplaySets(current, nextDisplaySets));
+    setSets((current) => {
+      const next = mergeDisplaySets(current, nextDisplaySets);
+      return areSetListsEquivalent(current, next) ? current : next;
+    });
   }, [initialSets, sessionExerciseId]);
 
   useEffect(() => {
@@ -613,10 +617,13 @@ export function SetLoggerCard({
           ...set,
           stableId: resolveStableSetId(set),
         })) as DisplaySet[];
-        setSets(mergeDisplaySets(
-          filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current),
-          filterDeletedDisplaySets(storedSets, locallyDeletedSetIdentityKeysRef.current),
-        ));
+        setSets((current) => {
+          const next = mergeDisplaySets(
+            filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current),
+            filterDeletedDisplaySets(storedSets, locallyDeletedSetIdentityKeysRef.current),
+          );
+          return areSetListsEquivalent(current, next) ? current : next;
+        });
       }
 
       if (parsed.form) {
