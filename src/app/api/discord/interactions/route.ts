@@ -306,6 +306,10 @@ import {
   syncDiscordFeedbackForumThread as syncDiscordFeedbackForumThreadBoundary,
   syncDiscordFeedbackStarterMessage as syncDiscordFeedbackStarterMessageBoundary,
 } from "@/lib/discord/runtime/feedback/forum";
+import {
+  getDiscordOsFeedbackTransferConfig,
+  submitDiscordOsFeedbackTransfer,
+} from "@/lib/discord/discordos-feedback-transfer";
 import type { DiscordInteraction } from "@/lib/discord/runtime/types";
 import { consumeDiscordVerificationTokenForDiscordUser } from "@/lib/discord/verification-server";
 
@@ -6218,6 +6222,10 @@ async function processFeedbackCreateModalSubmit(
     return "Choose Bug or Feature for the feedback type.";
   }
 
+  if (reportType !== "bug" && reportType !== "feature") {
+    return "Choose Bug or Feature for the feedback type.";
+  }
+
   if (!interactionMatchesGuild(interaction)) {
     return "This feedback flow is only available in the configured server.";
   }
@@ -6232,13 +6240,47 @@ async function processFeedbackCreateModalSubmit(
     return attachmentResult.message;
   }
 
+  const modalFields = extractDiscordBugReportModalFields(interaction.data?.components, extractDiscordModalTextInputValue);
+  const transferConfig = getDiscordOsFeedbackTransferConfig();
+  if (transferConfig.mode === "discordos-primary") {
+    if (!transferConfig.enabled || transferConfig.endpointUrl === null) {
+      console.error("[discord-interactions] DiscordOS feedback transfer disabled by config", {
+        requestId: randomUUID(),
+        blockedReasons: transferConfig.blockedReasons,
+      });
+      return "Could not save that feedback report right now. Try again in a moment.";
+    }
+
+    const transferResult = await submitDiscordOsFeedbackTransfer({
+      interactionId: typeof interaction.id === "string" ? interaction.id : null,
+      reporterDiscordUserId: discordUser.id,
+      reportType,
+      reporterUserKind: "human",
+      summary: modalFields.summary,
+      area: modalFields.area,
+      details: modalFields.details,
+      endpointUrl: transferConfig.endpointUrl,
+    });
+
+    if (!transferResult.ok) {
+      console.error("[discord-interactions] DiscordOS feedback transfer failed", {
+        requestId: randomUUID(),
+        status: transferResult.status,
+        code: transferResult.code,
+      });
+      return "Could not save that feedback report right now. Try again in a moment.";
+    }
+
+    return "Feedback received. Thanks for helping improve Fitness.";
+  }
+
   await validateDiscordFeedbackEmojis();
   const creationResult = await createDiscordBugReport({
     interactionId: typeof interaction.id === "string" ? interaction.id : null,
     reporterDiscordUserId: discordUser.id,
     reporterDiscordUsername: discordUser.username ?? discordUser.globalName,
     reportType,
-    modalFields: extractDiscordBugReportModalFields(interaction.data?.components, extractDiscordModalTextInputValue),
+    modalFields,
     attachments: attachmentResult.attachments,
   });
 
