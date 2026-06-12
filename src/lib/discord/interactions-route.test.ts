@@ -3342,6 +3342,113 @@ test("Discord interactions route defers feedback submit and edits the original e
   }
 });
 
+test("Discord interactions route transfers active feedback submits to DiscordOS without Fitness writes", async () => {
+  const keyPair = nacl.sign.keyPair();
+  process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  process.env.DISCORD_BOT_TOKEN = "discord-bot-token";
+  process.env.DISCORD_GUILD_ID = "1504668396338413670";
+  process.env.DISCORDOS_FEEDBACK_TRANSFER_MODE = "discordos-primary";
+  process.env.DISCORDOS_FEEDBACK_TRANSFER_ENDPOINT_URL = "https://fawxzzy-discordos.vercel.app/api/feedback-persist";
+  delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+
+  const originalFetch = globalThis.fetch;
+  const observedRequests = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const method = String(init?.method ?? "GET");
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
+    observedRequests.push({ href: url.href, path: url.pathname, method, body });
+
+    if (url.pathname === "/api/v10/interactions/interaction-1/interaction-token/callback") {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_member_links")) {
+      return new Response(JSON.stringify({
+        fitness_user_id: "00000000-0000-0000-0000-000000000123",
+        user_number: 4,
+        user_kind: "human",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.href === "https://fawxzzy-discordos.vercel.app/api/feedback-persist" && method === "POST") {
+      return new Response(JSON.stringify({
+        ok: true,
+        persisted: true,
+        liveTrafficMoved: true,
+      }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports")) {
+      throw new Error(`Fitness feedback write path should not run during DiscordOS transfer: ${method}`);
+    }
+
+    if (url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original") {
+      return new Response(JSON.stringify({ id: "original-message" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unexpected fetch: ${url.toString()} (${method})`);
+  };
+
+  try {
+    const response = await POST(createSignedRequest(JSON.stringify({
+      id: "interaction-1",
+      application_id: "1504700208251146371",
+      token: "interaction-token",
+      type: 5,
+      guild_id: "1504668396338413670",
+      member: {
+        user: {
+          id: "123456789012345678",
+          username: "zac",
+        },
+      },
+      data: {
+        custom_id: "fitness_feedback_submit_modal",
+        components: [
+          {
+            type: 18,
+            label: "Feedback type",
+            component: { type: 3, custom_id: "feedback_type", values: ["bug"] },
+          },
+          { type: 1, components: [{ type: 4, custom_id: "bug_summary", value: "Token copy button failed" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_area", value: "Settings" }] },
+          { type: 1, components: [{ type: 4, custom_id: "bug_details", value: "I tapped Copy and nothing happened." }] },
+          { type: 18, label: "Screenshot or image", component: { type: 19, custom_id: "feedback_attachment", values: [] } },
+        ],
+      },
+    }), keyPair));
+
+    assert.equal(response.status, 202);
+    const transferCall = observedRequests.find((entry) => entry.href === "https://fawxzzy-discordos.vercel.app/api/feedback-persist");
+    assert.deepEqual(transferCall?.body, {
+      reportId: "fitness-live-transfer-interaction-1",
+      reportType: "bug",
+      reporterDiscordUserId: "123456789012345678",
+      reporterUserKind: "human",
+      forumTitle: "Bug: Settings - Token copy button failed",
+      statusNote: "I tapped Copy and nothing happened.",
+    });
+    assert.equal(observedRequests.some((entry) => entry.path.endsWith("/rest/v1/discord_feedback_reports")), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.DISCORDOS_FEEDBACK_TRANSFER_MODE;
+    delete process.env.DISCORDOS_FEEDBACK_TRANSFER_ENDPOINT_URL;
+  }
+});
+
 test("Discord interactions route sends a feedback submit followup when editing the deferred response fails", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
