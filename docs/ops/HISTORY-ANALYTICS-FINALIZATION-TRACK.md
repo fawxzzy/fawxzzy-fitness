@@ -4,7 +4,7 @@ Date: 2026-06-10
 Owner: Codex lane inside `fawxzzy-fitness`
 Feature card: `History / Analytics - Rebuild useful history metrics and progression analytics`
 Forum report id: `4309deaf`
-Status: resolved locally; non-production merge/push closeout pending
+Status: resolved, merged, pushed, synced to Discord, and deployed to production
 
 ## Purpose
 
@@ -100,28 +100,18 @@ The implementation pass is complete for this non-production branch. The remainin
 - Summary/progression cards: planned/completed/skipped/completion metrics, deduped signals, hidden empty sections, recap rows, and normalized metric rows.
 - Runtime/data: shared loading/error behavior coverage, routine delete cascade migration, and targeted regression tests for the touched logic.
 
-### Still Worth Checking After Merge
+### Still Worth Checking After Production
 
 - Authenticated visual QA on the real app, especially mobile graph sizing, dense recap horizontal scroll hints, and long multi-set values.
-- Live Discord forum-card sync once Supabase/Discord operator access is reachable from the current machine.
-- Production release readiness, explicitly outside this branch closeout.
 
 ## Discord Card Alignment
 
-The local feature-card summary has been updated to `Resolved` and now reflects the completed feature pass.
-
-The live Discord forum card still needs to be synced through the operator workflow when Supabase/Discord access is reachable:
-
-- status/display state should read as resolved for this feature card
-- evidence should mention the non-production branch completion and verification caveat
-- no production release should be implied by the card update
+The local feature-card summary and live Discord forum card are aligned. The live forum card now carries the resolved state, the updated title/body, the resolved tag set, the approved completion review state, a success reaction, and a closeout audit comment.
 
 ## Next Packet
 
-1. Commit and push the feature branch.
-2. Merge the branch through the non-production path agreed for this repo.
-3. Clean up merged local branches and stale temp artifacts without touching unrelated user work.
-4. Sync the live Discord forum card once the feedback operator path can reach Supabase/Discord again.
+1. Continue with the next logged-session focused pass after this production closeout.
+2. Keep any future visual polish scoped to dense graph, recap-row, and mobile layout issues discovered in authenticated use.
 
 ## Verification Note
 
@@ -146,4 +136,4 @@ This lane is done locally when:
 - the Discord feature card and update wording match the real shipped state
 - final focused QA passes without new history-family regressions
 
-As of June 13, 2026, the non-production branch meets the local feature criteria. Live Discord sync and production release are separate operational steps.
+As of June 13, 2026, the lane meets the local feature criteria and the operational closeout criteria: merged to `main`, pushed, production deployed, release-ledger ready, and synced to the live Discord feedback forum card.

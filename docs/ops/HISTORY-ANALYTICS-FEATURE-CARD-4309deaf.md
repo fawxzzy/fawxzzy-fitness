@@ -34,9 +34,7 @@ exercise browser cards, detailed exercise cards, mini trend graphs, and exercise
 progression events, signal density, tag cleanup, duplicated metric removal, skipped-day semantics, and cascade-delete cleanup
 
 Remaining Follow-Up
-live Discord forum card sync still needs the Supabase/Discord operator path to be reachable; the local feature card has been updated as the source summary for that sync
-production release is intentionally not part of this closeout
-one authenticated visual QA sweep is still useful after merge/push to catch device-specific layout drift, especially mobile graph and dense recap rows
+one authenticated visual QA sweep is still useful after production to catch device-specific layout drift, especially mobile graph and dense recap rows
 
 Acceptance Criteria
 Add clear card and progression analytics across exercise info, session summaries, logged-session detail, and selected history surfaces.
@@ -44,4 +42,4 @@ Surface plain-language outcomes such as promotions, regressions, stalled exercis
 Keep surface metrics beginner-clear, avoid repeated low-value stats, and reuse one normalized metric-card language across the history family.
 
 Evidence
-Updated Jun 13, 2026. The non-production feature pass is complete locally: history-family summaries, logged-session detail, exercise-history cards, exercise-info graph/history analytics, progression signal tags, scoped filtering, skipped-day handling, and routine-delete cascade cleanup are implemented on the feature branch. Focused lint/test/migration checks were run during the pass; full typecheck remains blocked by pre-existing structured-detail debt outside this feature lane.
+Updated Jun 13, 2026. The feature pass is complete, merged to `main`, pushed, synced to the live Discord feedback forum card, and deployed to production at `https://fawxzzy-fitness-local.vercel.app`. History-family summaries, logged-session detail, exercise-history cards, exercise-info graph/history analytics, progression signal tags, scoped filtering, skipped-day handling, and routine-delete cascade cleanup are live. Focused lint/tests, mobile-regression typecheck, deploy preflight, production deploy, and a production login health check passed during closeout.
