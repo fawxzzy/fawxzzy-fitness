@@ -491,7 +491,7 @@ function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: Ex
   const watchCount = progression?.watchCount ?? 0;
   const startedMatchesCurrent = firstTargetLabel.length > 0 && currentTargetLabel.length > 0 && firstTargetLabel === currentTargetLabel;
 
-  const metrics: MetricDatum[] = [
+  const metricCandidates: Array<MetricDatum | null> = [
     row.lastSummary ? {
       label: "Last",
       value: row.lastSummary,
@@ -571,9 +571,9 @@ function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: Ex
       value: resolveTrackingLabel(trackingPresentationKind),
       valueTone: "muted",
     },
-  ].filter((item): item is MetricDatum => Boolean(item));
+  ];
 
-  return metrics;
+  return metricCandidates.filter((item): item is MetricDatum => item !== null);
 }
 
 function buildHistoryExerciseBadgeItems(row: ExerciseBrowserRow) {
