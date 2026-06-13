@@ -20,7 +20,7 @@ import { formatDateShort } from "@/lib/formatting";
 import { WeeklyProgressSurface } from "@/components/history/WeeklyProgressSurface";
 import type { HistoryScopeSummary } from "@/lib/history-scope-summary";
 import { buildSessionMetricTagGroup, buildSessionMetricTagValues } from "@/lib/history-metric-filters";
-import { rememberHistorySessionSummary } from "@/lib/history-session-summary-cache";
+import { rememberHistorySessionSummaries } from "@/lib/history-session-summary-cache";
 import {
   createDefaultExerciseInfoFilterState,
   normalizeExerciseInfoFilterState,
@@ -466,11 +466,11 @@ export function HistorySessionsClient({
   const scopedRoutineTitle = scopedPayload?.routineTitle ?? activeRoutineTitle;
 
   useEffect(() => {
+    const summaries: SessionSummary[] = [];
     for (const payload of Object.values(payloadsByFilterKey)) {
-      for (const session of payload.sessionItems) {
-        rememberHistorySessionSummary(session);
-      }
+      summaries.push(...payload.sessionItems);
     }
+    rememberHistorySessionSummaries(summaries);
   }, [payloadsByFilterKey]);
 
   useEffect(() => {
@@ -637,6 +637,10 @@ export function HistorySessionsClient({
     () => new Map(filteredSessions.map((session) => [session.id, getWeeklyProgressWeekStart(session.startedAt, scopedWeeklyProgress.timezone)])),
     [filteredSessions, scopedWeeklyProgress.timezone],
   );
+  const scopedSessionIndexById = useMemo(
+    () => new Map(scopedSessions.map((session, index) => [session.id, index])),
+    [scopedSessions],
+  );
   const weeklyProgressByWeekStart = useMemo(
     () => new Map(scopedWeeklyProgressByWeek.map((summary) => [summary.weekStart, summary])),
     [scopedWeeklyProgressByWeek],
@@ -680,7 +684,7 @@ export function HistorySessionsClient({
             : appTokens.historyBrowserList,
         )}>
           {filteredSessions.map((session, filteredIndex) => {
-            const index = scopedSessions.findIndex((entry) => entry.id === session.id);
+            const index = scopedSessionIndexById.get(session.id) ?? -1;
             const previousFilteredSession = filteredIndex > 0 ? filteredSessions[filteredIndex - 1] : null;
             const sessionWeekStart = sessionWeekStarts.get(session.id) ?? null;
             const previousWeekStart = previousFilteredSession

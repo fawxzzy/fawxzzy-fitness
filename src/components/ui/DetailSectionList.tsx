@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { cn } from "@/lib/cn";
 import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
 
@@ -19,6 +20,7 @@ export type DetailSectionListItem = {
   primary: string;
   value?: string | null;
   meta?: string | null;
+  rowClassName?: string;
   contentClassName?: string;
   signals?: DetailSectionSignalTone | DetailSectionSignalTone[] | null;
   tagLabels?: string[] | null;
@@ -109,11 +111,10 @@ export function DetailSectionBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em]",
+        "inline-flex items-center rounded-full border px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-[0.12em]",
         config.chipClassName,
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", config.dotClassName)} />
       {displayLabel}
     </span>
   );
@@ -156,14 +157,6 @@ function renderTagChips(labels: string[] | null | undefined) {
 
 function getArrowToneClassName(item: string) {
   const normalized = item.toLowerCase();
-  if (/\b(reduced|removed|regression|deload)\b/.test(normalized)) {
-    return "text-[rgb(255,116,116)]";
-  }
-
-  if (/\b(increased|added|promotion|promoted)\b/.test(normalized)) {
-    return "text-[rgb(var(--success-rgb)/0.94)]";
-  }
-
   const transitionMatch = normalized.match(/(.+?)(?:->|\u2192)(.+)/);
   if (transitionMatch) {
     const leftScore = (transitionMatch[1].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
@@ -171,6 +164,18 @@ function getArrowToneClassName(item: string) {
     if (Number.isFinite(leftScore) && Number.isFinite(rightScore) && rightScore !== leftScore) {
       return rightScore > leftScore ? "text-[rgb(var(--success-rgb)/0.94)]" : "text-[rgb(255,116,116)]";
     }
+  }
+
+  if (/\b(matched|match|same|flat|steady|held|no change)\b/.test(normalized)) {
+    return "text-[rgb(var(--accent-yellow-on)/0.96)]";
+  }
+
+  if (/\b(reduced|removed|regression|regressed|revert|reverted|deload|decreased|down|below|slipped)\b/.test(normalized)) {
+    return "text-[rgb(255,116,116)]";
+  }
+
+  if (/\b(increased|added|promotion|promoted|improved|up|new best|pr)\b/.test(normalized)) {
+    return "text-[rgb(var(--success-rgb)/0.94)]";
   }
 
   return "text-[rgb(var(--text-primary)/0.95)]";
@@ -204,6 +209,7 @@ function normalizeDetailSectionItem(input: DetailSectionListItemInput, index: nu
     primary,
     value: typeof input.value === "string" ? normalizeDecoratedText(input.value).trim() : input.value ?? null,
     meta: typeof input.meta === "string" ? normalizeDecoratedText(input.meta).trim() : input.meta ?? null,
+    rowClassName: typeof input.rowClassName === "string" ? input.rowClassName : undefined,
     contentClassName: typeof input.contentClassName === "string" ? input.contentClassName : undefined,
     signals: input.signals ?? null,
     tagLabels: Array.isArray(input.tagLabels) ? input.tagLabels.filter((label) => typeof label === "string" && label.trim().length > 0) : null,
@@ -219,6 +225,54 @@ function buildDetailSectionItemSignature(item: DetailSectionListItem) {
 function buildDetailSectionItemText(item: DetailSectionListItem) {
   const parts = [item.primary, item.value].filter((part): part is string => Boolean(part?.trim()));
   return parts.join(" | ");
+}
+
+function renderSlashSeparatedText(part: string, keyPrefix: string) {
+  if (!part.includes(" / ")) {
+    return null;
+  }
+
+  const slashParts = part.split(/\s+\/\s+/).map((value) => value.trim()).filter(Boolean);
+  if (slashParts.length <= 1) {
+    return null;
+  }
+
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-1">
+      {slashParts.map((slashPart, slashIndex) => (
+        <Fragment key={`${keyPrefix}-${slashPart}-${slashIndex}`}>
+          {slashIndex > 0 ? <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">/</span> : null}
+          <span className="min-w-0 whitespace-nowrap">{slashPart}</span>
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
+function renderLabeledColonText(part: string, key: string) {
+  const match = part.match(/^(Target|Logged):\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  return (
+    <span key={key} className="min-w-0">
+      <span>{match[1]}</span>
+      <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">:</span>
+      <span> {renderSlashSeparatedText(match[2], `${key}-slash`) ?? match[2]}</span>
+    </span>
+  );
+}
+
+function DetailSectionInlineSeparator() {
+  return (
+    <span
+      aria-hidden="true"
+      className="mt-[0.02rem] inline-flex h-[2.35rem] w-[0.465rem] shrink-0 items-start justify-center"
+    >
+      <span className="block h-full w-[3px] rounded-full bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.96),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.78))] shadow-[0_0_14px_rgb(var(--accent-divider-rgb)/0.44)]" />
+    </span>
+  );
 }
 
 function renderDetailSectionItemContent(item: string) {
@@ -265,6 +319,16 @@ function renderDetailSectionItemContent(item: string) {
           );
         }
 
+        const labeledText = renderLabeledColonText(part, `${part}-${index}`);
+        if (labeledText) {
+          return labeledText;
+        }
+
+        const slashSeparatedText = renderSlashSeparatedText(part, `${part}-${index}`);
+        if (slashSeparatedText) {
+          return <span key={`${part}-${index}`} className="min-w-0">{slashSeparatedText}</span>;
+        }
+
         return <span key={`${part}-${index}`} className="min-w-0">{part}</span>;
       })}
     </span>
@@ -294,8 +358,14 @@ export function DetailSectionItems({
   const shouldUseTwoColumnGrid = normalizedItems.length > 1;
 
   if (layout === "inline") {
+    const showInlineBullets = false;
+
     return (
-      <div className={cn("hide-scrollbar flex min-w-0 flex-nowrap gap-x-4 gap-y-1 overflow-x-auto px-1.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]", className)}>
+      <HorizontalScrollHint
+        className={className}
+        scrollClassName="px-1.5 pb-1"
+        contentClassName="flex min-w-max flex-nowrap gap-x-3 gap-y-1"
+      >
         {normalizedItems.map((item, index) => {
           const rowText = buildDetailSectionItemText(item);
           const normalizedItem = normalizeDecoratedText(rowText);
@@ -307,45 +377,47 @@ export function DetailSectionItems({
             || normalizedItem.includes("->");
 
           return (
-            <div
-              key={item.id || `${rowText}-${index}`}
-              className="flex min-w-fit max-w-[24rem] shrink-0 flex-col items-start"
-            >
-              <div className={cn("flex min-w-0 items-start", showBullets ? "gap-2" : "gap-0")}>
-                {showBullets ? (
-                  <div className="flex h-[1.05rem] shrink-0 items-center pt-[0.08rem]">
-                    <SignatureDot />
-                  </div>
-                ) : null}
-                <span className="min-w-0">
-                  <span
-                    className={cn(
-                      appTokens.workoutCardDetailCompact,
-                      "min-w-0 block whitespace-nowrap text-[12.5px] leading-[1.28]",
-                      (item.tone ?? tone) === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
-                      primarySignal ? DETAIL_SECTION_BADGE_CONFIG[primarySignal].textClassName : undefined,
-                      item.contentClassName,
-                    )}
-                  >
-                    {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}
-                  </span>
-                  {item.meta ? (
-                    <span className="mt-0.5 block whitespace-nowrap text-[10.5px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.76)]">
-                      {renderDetailSectionItemContent(item.meta)}
-                    </span>
+            <Fragment key={item.id || `${rowText}-${index}`}>
+              <div
+                className={cn("inline-grid min-w-fit max-w-[24rem] shrink-0 justify-items-center", item.rowClassName)}
+              >
+                <div className={cn("flex min-w-0 items-start justify-center text-center", showInlineBullets ? "gap-2" : "gap-0")}>
+                  {showInlineBullets ? (
+                    <div className="flex h-[1.05rem] shrink-0 items-center pt-[0.08rem]">
+                      <SignatureDot />
+                    </div>
                   ) : null}
-                </span>
+                  <span className="min-w-0 text-center">
+                    <span
+                      className={cn(
+                        appTokens.workoutCardDetailCompact,
+                        "min-w-0 block whitespace-nowrap text-center text-[12.5px] leading-[1.28]",
+                        (item.tone ?? tone) === "muted" ? "text-[rgb(var(--text-secondary)/0.9)]" : "text-[rgb(var(--text-primary)/0.95)]",
+                        primarySignal ? DETAIL_SECTION_BADGE_CONFIG[primarySignal].textClassName : undefined,
+                        item.contentClassName,
+                      )}
+                    >
+                      {shouldRenderDecoratedContent ? renderDetailSectionItemContent(normalizedItem) : normalizedItem}
+                    </span>
+                    {item.meta ? (
+                      <span className="mt-0.5 block whitespace-nowrap text-[10.5px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.76)]">
+                        {renderDetailSectionItemContent(item.meta)}
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+                {item.tagLabels?.length || signals.length > 0 ? (
+                  <span className="mt-1 flex max-w-[24rem] flex-wrap items-center justify-center gap-1 text-center">
+                    {renderTagChips(item.tagLabels)}
+                    {renderSignalChips(signals)}
+                  </span>
+                ) : null}
               </div>
-              {item.tagLabels?.length || signals.length > 0 ? (
-                <span className="mt-1 inline-flex max-w-full flex-wrap items-center gap-1">
-                  {renderTagChips(item.tagLabels)}
-                  {renderSignalChips(signals)}
-                </span>
-              ) : null}
-            </div>
+              {index < normalizedItems.length - 1 ? <DetailSectionInlineSeparator /> : null}
+            </Fragment>
           );
         })}
-      </div>
+      </HorizontalScrollHint>
     );
   }
 
@@ -379,6 +451,7 @@ export function DetailSectionItems({
               "flex min-w-0 items-start",
               showBullets ? "gap-2.5" : "gap-0",
               shouldSpanFullWidth ? "col-span-2" : "col-span-1",
+              item.rowClassName,
             )}
           >
             {showBullets ? (
@@ -454,7 +527,7 @@ export function DetailSectionBlock({
       <div className="w-full space-y-1">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 gap-y-1">
           <span aria-hidden="true" className="justify-self-start" />
-          <p className={cn("justify-self-center text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.92)]", titleClassName)}>
+          <p className={cn("justify-self-center text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)]", titleClassName)}>
             {title}
           </p>
           <span className="justify-self-end">

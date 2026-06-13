@@ -79,6 +79,27 @@ export function rememberHistorySessionSummary(summary: SessionSummary) {
   writeStorage();
 }
 
+export function rememberHistorySessionSummaries(summaries: SessionSummary[]) {
+  const validSummariesById = new Map(
+    summaries
+      .filter((summary) => Boolean(summary.id))
+      .map((summary) => [summary.id, summary]),
+  );
+  if (validSummariesById.size === 0) {
+    return;
+  }
+
+  syncFromStorage();
+  const cachedAt = Date.now();
+  for (const summary of validSummariesById.values()) {
+    memoryCache.set(summary.id, {
+      summary,
+      cachedAt,
+    });
+  }
+  writeStorage();
+}
+
 export function readHistorySessionSummary(sessionId: string | null | undefined) {
   const normalizedSessionId = typeof sessionId === "string" ? sessionId.trim() : "";
   if (!normalizedSessionId) {

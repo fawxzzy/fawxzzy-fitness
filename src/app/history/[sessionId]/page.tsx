@@ -25,8 +25,16 @@ import {
   buildExerciseProgressionLifelineSummary,
   buildSessionProgressionSummary,
 } from "@/lib/progression-lifeline-summary";
+import {
+  validateProgressionPlaybookSelection,
+  type ProgressionTargetPlan,
+} from "@/lib/progression-playbooks";
+import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
+import { buildPlannedSetTargetSeriesSummary } from "@/lib/session-recap-target-series";
+import { generateSetFlowTargets } from "@/lib/set-flow-targets";
 import { buildWorkoutRecapArtifact } from "@/lib/workout-recap";
-import type { ProgressionEventRow, SessionRow, SetRow } from "@/types/db";
+import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { ProgressionEventRow, RoutineDayExerciseRow, SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
@@ -39,6 +47,152 @@ type PageProps = {
 
 function toClientPlainObject<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+type HistoryRoutineDayExerciseRelation = Partial<RoutineDayExerciseRow> | Array<Partial<RoutineDayExerciseRow>> | null | undefined;
+
+function resolveRoutineDayExerciseRelation(row: { routine_day_exercise?: HistoryRoutineDayExerciseRelation }) {
+  const relation = row.routine_day_exercise;
+  return Array.isArray(relation) ? (relation[0] ?? null) : (relation ?? null);
+}
+
+function firstDefined<T>(...values: Array<T | null | undefined>) {
+  return values.find((value): value is T => value !== null && value !== undefined);
+}
+
+function normalizeWeightUnit(value: unknown, fallback: "lbs" | "kg"): "lbs" | "kg" {
+  return value === "lbs" || value === "kg" ? value : fallback;
+}
+
+function normalizeDistanceUnit(value: unknown, fallback?: FitnessDistanceUnit | null): FitnessDistanceUnit | null {
+  if (isFitnessDistanceUnit(value)) return value;
+  return fallback ?? null;
+}
+
+function buildHistoryProgressionPlan(args: {
+  sessionExercise: SessionExerciseRow;
+  routineExercise: Partial<RoutineDayExerciseRow> | null;
+  measurementType: ProgressionTargetPlan["measurementType"];
+  fallbackWeightUnit: "lbs" | "kg";
+  fallbackDistanceUnit: FitnessDistanceUnit | null;
+}) {
+  const sessionExercise = args.sessionExercise;
+  const routineExercise = args.routineExercise;
+  const setsMin = firstDefined(sessionExercise.target_sets_min, routineExercise?.target_sets);
+  const setsMax = firstDefined(sessionExercise.target_sets_max, routineExercise?.target_sets);
+  const repsMin = firstDefined(sessionExercise.target_reps_min, routineExercise?.target_reps_min, routineExercise?.target_reps);
+  const repsMax = firstDefined(sessionExercise.target_reps_max, routineExercise?.target_reps_max, routineExercise?.target_reps);
+  const weightMin = firstDefined(sessionExercise.target_weight_min, routineExercise?.target_weight);
+  const weightMax = firstDefined(sessionExercise.target_weight_max, routineExercise?.target_weight);
+  const durationSeconds = firstDefined(
+    sessionExercise.target_time_seconds_min,
+    sessionExercise.target_time_seconds_max,
+    routineExercise?.target_duration_seconds,
+  );
+  const distance = firstDefined(sessionExercise.target_distance_min, sessionExercise.target_distance_max, routineExercise?.target_distance);
+  const calories = firstDefined(sessionExercise.target_calories_min, sessionExercise.target_calories_max, routineExercise?.target_calories);
+
+  const hasTarget = [
+    setsMin,
+    setsMax,
+    repsMin,
+    repsMax,
+    weightMin,
+    weightMax,
+    durationSeconds,
+    distance,
+    calories,
+  ].some((value) => value !== null && value !== undefined);
+
+  if (!hasTarget) {
+    return null;
+  }
+
+  return {
+    measurementType: args.measurementType,
+    setsMin: setsMin ?? null,
+    setsMax: setsMax ?? null,
+    repsTarget: firstDefined(repsMax, repsMin) ?? null,
+    repsMin: repsMin ?? null,
+    repsMax: repsMax ?? null,
+    weightMin: weightMin ?? null,
+    weightMax: weightMax ?? null,
+    weightUnit: normalizeWeightUnit(firstDefined(sessionExercise.target_weight_unit, routineExercise?.target_weight_unit), args.fallbackWeightUnit),
+    durationSeconds: durationSeconds ?? null,
+    distance: distance ?? null,
+    distanceUnit: normalizeDistanceUnit(
+      firstDefined(sessionExercise.target_distance_unit, routineExercise?.target_distance_unit),
+      args.fallbackDistanceUnit,
+    ),
+    calories: calories ?? null,
+  } satisfies ProgressionTargetPlan;
+}
+
+function buildHistoryExerciseTargetSeriesSummary(args: {
+  sessionExercise: SessionExerciseRow;
+  routineExercise: Partial<RoutineDayExerciseRow> | null;
+  metadata: {
+    measurement_type?: ProgressionTargetPlan["measurementType"] | null;
+    default_unit?: string | null;
+    equipment?: string | null;
+    movement_pattern?: string | null;
+  } | null | undefined;
+  fallbackWeightUnit: "lbs" | "kg";
+}) {
+  const selection = args.routineExercise?.progression_playbook_id
+    ? validateProgressionPlaybookSelection({
+        playbookId: args.routineExercise.progression_playbook_id,
+        config: args.routineExercise.progression_playbook_config ?? null,
+      })
+    : null;
+
+  if (!selection) {
+    return null;
+  }
+
+  const measurementType = (
+    args.sessionExercise.measurement_type
+      ?? args.routineExercise?.measurement_type
+      ?? args.metadata?.measurement_type
+      ?? "reps"
+  ) as ProgressionTargetPlan["measurementType"];
+  const fallbackDistanceUnit = normalizeDistanceUnit(args.sessionExercise.default_unit, normalizeDistanceUnit(args.metadata?.default_unit, "mi"));
+  const plan = buildHistoryProgressionPlan({
+    sessionExercise: args.sessionExercise,
+    routineExercise: args.routineExercise,
+    measurementType,
+    fallbackWeightUnit: args.fallbackWeightUnit,
+    fallbackDistanceUnit,
+  });
+
+  if (!plan) {
+    return null;
+  }
+
+  const progressionStepPolicy = inferProgressionStepPolicy({
+    measurementType: plan.measurementType,
+    equipment: args.metadata?.equipment ?? null,
+    movementPattern: args.metadata?.movement_pattern ?? null,
+    defaultUnit: args.sessionExercise.default_unit ?? args.routineExercise?.default_unit ?? args.metadata?.default_unit ?? null,
+    weightUnit: plan.weightUnit ?? args.fallbackWeightUnit,
+    distanceUnit: plan.distanceUnit ?? fallbackDistanceUnit ?? "mi",
+    targetWeight: plan.weightMax ?? plan.weightMin ?? null,
+    exerciseOverrideValue: selection.config.loadIncrement,
+    stepOverrides: selection.config.stepOverrides ?? null,
+  });
+  const targets = generateSetFlowTargets({
+    setFlow: selection.config.setFlow,
+    setFlowDirections: selection.config.setFlowDirections ?? null,
+    setFlowSteps: selection.config.setFlowSteps ?? null,
+    plan,
+    progressionStepPolicy,
+  });
+
+  return buildPlannedSetTargetSeriesSummary({
+    targets,
+    weightUnit: plan.weightUnit ?? args.fallbackWeightUnit,
+    distanceUnit: plan.distanceUnit ?? fallbackDistanceUnit,
+  });
 }
 
 export default async function HistoryLogDetailsPage({ params }: PageProps) {
@@ -74,13 +228,16 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       collector: diagnostics,
     });
     const supabase = supabaseServer();
-    const profile = await ensureProfile(user.id);
-    const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
-      profile,
-      resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
-    );
-
-    const sessionResult = await diagnostics.measure<{ data: unknown }>("history.detail.session.fetch", async () => await supabase
+    const profilePromise = ensureProfile(user.id);
+    const exerciseNameMapPromise = diagnostics.measure("history.detail.exercise-names.fetch", () => getExerciseNameMap(), {
+      blockingReason: "Waiting for exercise names for history detail.",
+      metadata: {
+        sessionId: params.sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    });
+    const sessionResultPromise = diagnostics.measure<{ data: unknown }>("history.detail.session.fetch", async () => await supabase
       .from("sessions")
       .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, day_name_override, duration_seconds, status, routines(name, weight_unit)")
       .eq("id", params.sessionId)
@@ -94,6 +251,12 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       },
       timeoutMs: 7000,
     });
+    const [profile, sessionResult] = await Promise.all([profilePromise, sessionResultPromise]);
+    const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
+      profile,
+      resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+    );
+
     const session = sessionResult.data as SessionRow & {
       routines?: Array<{ name: string; weight_unit: "lbs" | "kg" | null }> | { name: string; weight_unit: "lbs" | "kg" | null } | null;
     } | null;
@@ -119,11 +282,18 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
     const sessionRow = session;
 
-    const historyDetailRowsPromise = loadHistoryDetailRows({
+    const historyDetailRowsPromise = diagnostics.measure("history.detail.rows.fetch", () => loadHistoryDetailRows({
       supabase,
       sessionId: sessionRow.id,
       userId: user.id,
       sessionFound: true,
+    }), {
+      blockingReason: "Waiting for logged session exercises and sets.",
+      metadata: {
+        sessionId: params.sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
     });
     const routineDayPromise = sessionRow.routine_id && typeof sessionRow.routine_day_index === "number"
       ? supabase
@@ -134,14 +304,6 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         .eq("user_id", user.id)
         .maybeSingle()
       : Promise.resolve({ data: null });
-    const exerciseNameMapPromise = diagnostics.measure("history.detail.exercise-names.fetch", () => getExerciseNameMap(), {
-      blockingReason: "Waiting for exercise names for history detail.",
-      metadata: {
-        sessionId: params.sessionId,
-        userId: user.id,
-      },
-      timeoutMs: 7000,
-    });
 
     const [{
       orderedSessionExercises,
@@ -180,20 +342,28 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
     const exerciseIds = orderedSessionExercises.map((exercise) => exercise.exercise_id);
     const [{ data: historicalSetRows }, { data: progressionEventRows }] = exerciseIds.length
-      ? await Promise.all([
-        supabase
-          .from("sets")
-          .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
-          .eq("user_id", user.id)
-          .eq("session_exercise.user_id", user.id)
-          .eq("session_exercise.session.status", "completed")
-          .in("session_exercise.exercise_id", exerciseIds),
-        supabase
-          .from("progression_events")
-          .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
-          .eq("user_id", user.id)
-          .in("exercise_id", exerciseIds),
-      ])
+      ? await diagnostics.measure("history.detail.analytics.fetch", () => Promise.all([
+          supabase
+            .from("sets")
+            .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
+            .eq("user_id", user.id)
+            .eq("session_exercise.user_id", user.id)
+            .eq("session_exercise.session.status", "completed")
+            .in("session_exercise.exercise_id", exerciseIds),
+          supabase
+            .from("progression_events")
+            .select("id, user_id, routine_id, routine_day_exercise_id, exercise_id, event_type, from_target, to_target, method, vector, step, reason, source_session_id, created_at")
+            .eq("user_id", user.id)
+            .in("exercise_id", exerciseIds),
+        ]), {
+          blockingReason: "Waiting for session PR and progression analytics.",
+          metadata: {
+            sessionId: params.sessionId,
+            userId: user.id,
+            exerciseCount: exerciseIds.length,
+          },
+          timeoutMs: 7000,
+        })
       : [{ data: [] }, { data: [] }];
 
     const prEvaluationSets: PrEvaluationSet[] = ((historicalSetRows ?? []) as Array<{
@@ -267,6 +437,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     const clientExercises = toClientPlainObject(orderedSessionExercises.map((exercise) => {
       const exerciseId = String(exercise.exercise_id);
       const metadata = exerciseMetadataById.get(exerciseId);
+      const routineExercise = resolveRoutineDayExerciseRelation(exercise);
       const resolvedExerciseName = resolveHistoryExerciseName({
         metadataName: metadata?.name,
         rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
@@ -286,6 +457,12 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
         target_sets_min: exercise.target_sets_min ?? null,
         target_sets_max: exercise.target_sets_max ?? null,
+        targetSeriesSummary: buildHistoryExerciseTargetSeriesSummary({
+          sessionExercise: exercise,
+          routineExercise,
+          metadata,
+          fallbackWeightUnit: unitLabel,
+        }),
         progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? [], {
           exerciseNameById: exerciseNameMap,
           routineTitleById: sessionRow.routine_id ? new Map([[sessionRow.routine_id, routineTitle]]) : undefined,

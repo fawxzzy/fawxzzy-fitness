@@ -94,7 +94,7 @@ function normalizeMetricDatum(value: unknown): MetricDatum | null {
     return null;
   }
 
-  const valueTone = value.valueTone === "success" || value.valueTone === "danger" || value.valueTone === "muted"
+  const valueTone = value.valueTone === "success" || value.valueTone === "danger" || value.valueTone === "warning" || value.valueTone === "muted"
     ? value.valueTone
     : undefined;
 

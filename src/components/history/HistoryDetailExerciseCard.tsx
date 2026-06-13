@@ -82,6 +82,7 @@ type HistoryDetailExerciseCardProps = {
   mediaClassName?: string;
   shellStyle?: CSSProperties;
   leadingVisual?: ReactNode;
+  detailVisualAside?: ReactNode;
   mediaRailWidthOverride?: number;
   footerContent?: ReactNode;
   detailSections?: Array<{
@@ -111,6 +112,7 @@ export function HistoryDetailExerciseCard({
   mediaClassName,
   shellStyle,
   leadingVisual,
+  detailVisualAside,
   mediaRailWidthOverride,
   footerContent,
   detailSections = [],
@@ -219,7 +221,7 @@ export function HistoryDetailExerciseCard({
             ) : null}
             {hasMetrics ? (
               <SurfaceMetricGrid
-                items={(metrics ?? []).slice(0, 4)}
+                items={metrics ?? []}
                 autoColumns
                 itemClassName="px-2.5 py-1"
                 fullWidthUnderline
@@ -237,6 +239,23 @@ export function HistoryDetailExerciseCard({
                     })}
                   </div>
                 ))}
+              </div>
+            ) : null}
+            {shouldUseDetailedCutoutVisual && detailSections.length === 0 ? (
+              <div className="pt-0.5">
+                <div className="flex min-w-0 items-stretch gap-3">
+                  <div
+                    className="shrink-0 overflow-hidden"
+                    style={{ width: `${detailCutoutSize}px`, height: `${detailCutoutSize}px` }}
+                  >
+                    {leadingVisual}
+                  </div>
+                  {detailVisualAside ? (
+                    <div className="min-w-0 flex-1 self-stretch">
+                      {detailVisualAside}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
             {footerContent}

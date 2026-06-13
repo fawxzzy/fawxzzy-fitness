@@ -99,7 +99,8 @@ export async function GET(
       return jsonError(404, "EXERCISE_INFO_NOT_FOUND", "Exercise not found.", requestId, step);
     }
 
-    const stats = await runStep("payload:stats", () => getExerciseInfoStats(
+    step = "payload:stats";
+    const statsPromise = getExerciseInfoStats(
       user.id,
       exercise.exercise_id,
       exercise,
@@ -109,12 +110,10 @@ export async function GET(
         routineId: requestedRoutineId,
         cycleStartDate: requestedCycleStartDate,
       },
-    ));
-
-    let exerciseWithImages = exercise;
-    try {
-      exerciseWithImages = await runStep("payload:images", () => resolveExerciseInfoImages(exercise));
-    } catch (error) {
+    );
+    const exerciseWithImagesPromise = Promise.resolve()
+      .then(() => resolveExerciseInfoImages(exercise))
+      .catch((error) => {
       console.warn("[api/exercise-info] non-fatal images failure", {
         requestId,
         step: "payload:images",
@@ -124,7 +123,9 @@ export async function GET(
         userId,
         message: error instanceof Error ? error.message : String(error),
       });
-    }
+      return exercise;
+    });
+    const [stats, exerciseWithImages] = await Promise.all([statsPromise, exerciseWithImagesPromise]);
 
     const payload = { exercise: exerciseWithImages, stats: stats ?? null };
 

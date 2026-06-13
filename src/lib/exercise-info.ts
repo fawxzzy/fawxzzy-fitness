@@ -55,6 +55,7 @@ import type {
 import { buildStrengthPerformanceMetrics } from "@/lib/exercise-info-strength-performance";
 import { buildStrengthProgressMetrics } from "@/lib/exercise-info-strength-progress";
 import { buildCurrentCycleWindow, type CurrentCycleWindow } from "@/lib/current-cycle-window";
+import { addDaysToDateString, getTodayDateInTimeZone } from "@/lib/routines";
 
 export type ExerciseInfoExercise = {
   id: string;
@@ -261,6 +262,29 @@ type HistoricalSetRow = {
     | null;
 };
 
+type SkippedSessionExerciseRow = {
+  id: string;
+  session_id: string;
+  exercise_id: string | null;
+  is_skipped?: boolean | null;
+  session:
+    | {
+        name?: string | null;
+        performed_at: string;
+        status: "in_progress" | "completed";
+        routine_id?: string | null;
+        routine?: { name?: string | null } | Array<{ name?: string | null }> | null;
+      }
+    | Array<{
+        name?: string | null;
+        performed_at: string;
+        status: "in_progress" | "completed";
+        routine_id?: string | null;
+        routine?: { name?: string | null } | Array<{ name?: string | null }> | null;
+      }>
+    | null;
+};
+
 type NormalizedSet = {
   sessionId: string;
   performedAt: string;
@@ -275,6 +299,13 @@ type NormalizedSet = {
   calories: number | null;
   weightUnit: "lbs" | "lb" | "kg" | null;
   isSkipped: boolean;
+};
+
+type PlannedSkippedHistoryDay = {
+  dayKey: string;
+  performedAt: string;
+  routineId: string;
+  routineTitle: string;
 };
 
 type ExerciseInfoScopeContext = {
@@ -792,6 +823,54 @@ async function loadHistoricalSetRowsForCycle(
     .lt("session_exercise.session.performed_at", cycleWindow.queryEndExclusiveIso);
 }
 
+async function loadSkippedSessionExerciseRows(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
+  const supabase = client ?? supabaseServer();
+  return supabase
+    .from("session_exercises")
+    .select("id, session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name))")
+    .eq("user_id", userId)
+    .eq("exercise_id", canonicalExerciseId)
+    .eq("is_skipped", true)
+    .eq("session.status", "completed");
+}
+
+async function loadSkippedSessionExerciseRowsForRoutine(
+  userId: string,
+  canonicalExerciseId: string,
+  routineId: string,
+  client?: SupabaseClient,
+) {
+  const supabase = client ?? supabaseServer();
+  return supabase
+    .from("session_exercises")
+    .select("id, session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name))")
+    .eq("user_id", userId)
+    .eq("exercise_id", canonicalExerciseId)
+    .eq("is_skipped", true)
+    .eq("session.status", "completed")
+    .eq("session.routine_id", routineId);
+}
+
+async function loadSkippedSessionExerciseRowsForCycle(
+  userId: string,
+  canonicalExerciseId: string,
+  routineId: string,
+  cycleWindow: CurrentCycleWindow,
+  client?: SupabaseClient,
+) {
+  const supabase = client ?? supabaseServer();
+  return supabase
+    .from("session_exercises")
+    .select("id, session_id, exercise_id, is_skipped, session:sessions!inner(name, performed_at, status, routine_id, routine:routines(name))")
+    .eq("user_id", userId)
+    .eq("exercise_id", canonicalExerciseId)
+    .eq("is_skipped", true)
+    .eq("session.status", "completed")
+    .eq("session.routine_id", routineId)
+    .gte("session.performed_at", cycleWindow.queryStartIso)
+    .lt("session.performed_at", cycleWindow.queryEndExclusiveIso);
+}
+
 async function loadExerciseProgressionEvents(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
   const supabase = client ?? supabaseServer();
 
@@ -1033,6 +1112,265 @@ function normalizeRows(historicalRows: HistoricalSetRow[]): NormalizedSet[] {
       isSkipped: sessionExercise.is_skipped === true && !hasMeaningfulLoggedValue,
     }];
   });
+}
+
+function normalizeSkippedSessionRows(rows: SkippedSessionExerciseRow[]): NormalizedSet[] {
+  return rows.flatMap((row) => {
+    if (row.is_skipped !== true || !row.session_id) {
+      return [];
+    }
+
+    const session = Array.isArray(row.session)
+      ? (row.session[0] ?? null)
+      : (row.session ?? null);
+    const routine = Array.isArray(session?.routine)
+      ? (session?.routine[0] ?? null)
+      : (session?.routine ?? null);
+    const routineId = typeof session?.routine_id === "string" && session.routine_id.trim().length > 0
+      ? session.routine_id.trim()
+      : null;
+    const sessionTitle = typeof session?.name === "string" && session.name.trim().length > 0
+      ? session.name.trim()
+      : null;
+    const routineTitle = typeof routine?.name === "string" && routine.name.trim().length > 0
+      ? routine.name.trim()
+      : sessionTitle;
+
+    if (!session?.performed_at || session.status !== "completed") {
+      return [];
+    }
+
+    return [{
+      sessionId: row.session_id,
+      performedAt: session.performed_at,
+      routineId,
+      routineTitle,
+      setIndex: 0,
+      weight: null,
+      reps: null,
+      durationSeconds: null,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+      weightUnit: null,
+      isSkipped: true,
+    }];
+  });
+}
+
+function mergeSkippedRows(rows: NormalizedSet[], skippedRows: NormalizedSet[]) {
+  const loggedSessionIds = new Set(rows.filter((row) => !row.isSkipped).map((row) => row.sessionId));
+  const existingSkippedKeys = new Set(rows.filter((row) => row.isSkipped).map((row) => `${row.sessionId}-${row.setIndex}`));
+  const merged = [...rows];
+
+  for (const skippedRow of skippedRows) {
+    const key = `${skippedRow.sessionId}-${skippedRow.setIndex}`;
+    if (loggedSessionIds.has(skippedRow.sessionId) || existingSkippedKeys.has(key)) {
+      continue;
+    }
+    existingSkippedKeys.add(key);
+    merged.push(skippedRow);
+  }
+
+  return merged;
+}
+
+function parseDayKeyAsUtc(value: string) {
+  const timestamp = Date.parse(`${value}T00:00:00.000Z`);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function diffDayKeys(left: string, right: string) {
+  const leftTimestamp = parseDayKeyAsUtc(left);
+  const rightTimestamp = parseDayKeyAsUtc(right);
+  if (leftTimestamp === null || rightTimestamp === null) {
+    return null;
+  }
+  return Math.floor((leftTimestamp - rightTimestamp) / (24 * 60 * 60 * 1000));
+}
+
+function minDayKey(left: string, right: string) {
+  return left <= right ? left : right;
+}
+
+function maxDayKey(left: string, right: string) {
+  return left >= right ? left : right;
+}
+
+async function loadPlannedSkippedHistoryDays(args: {
+  userId: string;
+  canonicalExerciseId: string;
+  routineIds: string[];
+  rows: NormalizedSet[];
+  progressionEvents: ProgressionEventRow[];
+  scopeContext: ExerciseInfoScopeContext;
+  client?: SupabaseClient;
+}): Promise<PlannedSkippedHistoryDay[]> {
+  const routineIds = args.routineIds.filter((routineId, index, values) => routineId.length > 0 && values.indexOf(routineId) === index);
+  if (routineIds.length === 0) {
+    return [];
+  }
+
+  try {
+    const routineMetas = await loadExerciseInfoRoutineMetas({
+      userId: args.userId,
+      routineIds,
+      activeRoutineId: args.scopeContext.activeRoutineId,
+      profileTimeZone: args.scopeContext.profileTimeZone,
+      client: args.client,
+    });
+    const usableRoutineMetas = routineMetas.filter((routine) => (
+      routine.startDate
+      && routine.cycleLengthDays
+      && routine.cycleLengthDays > 0
+    ));
+    if (usableRoutineMetas.length === 0) {
+      return [];
+    }
+
+    const supabase = args.client ?? supabaseServer();
+    const { data: routineDays } = await supabase
+      .from("routine_days")
+      .select("id, routine_id, day_index, name, is_rest")
+      .eq("user_id", args.userId)
+      .in("routine_id", usableRoutineMetas.map((routine) => routine.id))
+      .eq("is_rest", false);
+    const dayRows = (routineDays ?? []) as Array<{
+      id: string;
+      routine_id: string | null;
+      day_index: number | null;
+      name?: string | null;
+      is_rest?: boolean | null;
+    }>;
+    const dayIds = dayRows.map((day) => day.id).filter((id): id is string => typeof id === "string" && id.length > 0);
+    if (dayIds.length === 0) {
+      return [];
+    }
+
+    const { data: plannedExerciseRows } = await supabase
+      .from("routine_day_exercises")
+      .select("routine_day_id")
+      .eq("user_id", args.userId)
+      .eq("exercise_id", args.canonicalExerciseId)
+      .in("routine_day_id", dayIds);
+    const plannedDayIds = new Set(
+      ((plannedExerciseRows ?? []) as Array<{ routine_day_id?: string | null }>)
+        .map((row) => row.routine_day_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    );
+    if (plannedDayIds.size === 0) {
+      return [];
+    }
+
+    const routineById = new Map(usableRoutineMetas.map((routine) => [routine.id, routine]));
+    const loggedDayKeysByRoutine = new Map<string, Set<string>>();
+    const anyRowDayKeysByRoutine = new Map<string, Set<string>>();
+    const signalDayKeysByRoutine = new Map<string, Set<string>>();
+
+    for (const row of args.rows) {
+      if (!row.routineId) continue;
+      const dayKey = getHistoryDayKey(row.performedAt);
+      if (!dayKey) continue;
+      const anyKeys = anyRowDayKeysByRoutine.get(row.routineId) ?? new Set<string>();
+      anyKeys.add(dayKey);
+      anyRowDayKeysByRoutine.set(row.routineId, anyKeys);
+      if (!row.isSkipped) {
+        const loggedKeys = loggedDayKeysByRoutine.get(row.routineId) ?? new Set<string>();
+        loggedKeys.add(dayKey);
+        loggedDayKeysByRoutine.set(row.routineId, loggedKeys);
+      }
+    }
+
+    for (const event of args.progressionEvents) {
+      const routineId = typeof event.routine_id === "string" ? event.routine_id.trim() : "";
+      if (!routineId) continue;
+      const dayKey = getHistoryDayKey(event.created_at);
+      if (!dayKey) continue;
+      const signalKeys = signalDayKeysByRoutine.get(routineId) ?? new Set<string>();
+      signalKeys.add(dayKey);
+      signalDayKeysByRoutine.set(routineId, signalKeys);
+    }
+
+    const result: PlannedSkippedHistoryDay[] = [];
+    const seen = new Set<string>();
+
+    for (const day of dayRows) {
+      if (!plannedDayIds.has(day.id)) continue;
+      const routineId = typeof day.routine_id === "string" ? day.routine_id : "";
+      const routine = routineById.get(routineId);
+      const dayIndex = typeof day.day_index === "number" && Number.isFinite(day.day_index)
+        ? Math.floor(day.day_index)
+        : 0;
+      if (!routine || !routine.startDate || !routine.cycleLengthDays || routine.cycleLengthDays <= 0 || dayIndex <= 0) {
+        continue;
+      }
+
+      const today = getTodayDateInTimeZone(routine.timeZone || args.scopeContext.profileTimeZone);
+      const lastPastDay = addDaysToDateString(today, -1);
+      const observedKeys = [
+        ...(loggedDayKeysByRoutine.get(routineId) ?? []),
+        ...(anyRowDayKeysByRoutine.get(routineId) ?? []),
+        ...(signalDayKeysByRoutine.get(routineId) ?? []),
+      ].sort();
+      const earliestObserved = observedKeys[0] ?? null;
+      const rangeStart = args.scopeContext.analyticsScope === "current_cycle"
+        && args.scopeContext.activeRoutineId === routineId
+        && args.scopeContext.currentCycleWindow
+        ? args.scopeContext.currentCycleWindow.startDate
+        : earliestObserved
+          ? maxDayKey(routine.startDate, earliestObserved)
+          : null;
+      const rangeEnd = args.scopeContext.analyticsScope === "current_cycle"
+        && args.scopeContext.activeRoutineId === routineId
+        && args.scopeContext.currentCycleWindow
+        ? minDayKey(args.scopeContext.currentCycleWindow.endDate, lastPastDay)
+        : lastPastDay;
+
+      if (!rangeStart || rangeStart > rangeEnd) {
+        continue;
+      }
+
+      const firstOccurrence = addDaysToDateString(routine.startDate, dayIndex - 1);
+      const diffToStart = diffDayKeys(rangeStart, firstOccurrence);
+      if (diffToStart === null) {
+        continue;
+      }
+
+      const cycleLength = Math.max(1, Math.floor(routine.cycleLengthDays));
+      const firstOffset = diffToStart <= 0 ? 0 : Math.ceil(diffToStart / cycleLength) * cycleLength;
+      for (
+        let dayKey = addDaysToDateString(firstOccurrence, firstOffset);
+        dayKey <= rangeEnd;
+        dayKey = addDaysToDateString(dayKey, cycleLength)
+      ) {
+        if (dayKey < rangeStart) {
+          continue;
+        }
+        if (loggedDayKeysByRoutine.get(routineId)?.has(dayKey) || anyRowDayKeysByRoutine.get(routineId)?.has(dayKey)) {
+          continue;
+        }
+        const key = `${routineId}-${dayKey}-${dayIndex}`;
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        result.push({
+          dayKey,
+          performedAt: `${dayKey}T12:00:00.000Z`,
+          routineId,
+          routineTitle: routine.title,
+        });
+      }
+    }
+
+    return result.sort((left, right) => left.dayKey.localeCompare(right.dayKey));
+  } catch (error) {
+    console.warn("[exercise-info] skipped planned days unavailable", {
+      exerciseId: args.canonicalExerciseId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return [];
+  }
 }
 
 async function loadExerciseInfoRoutineMetas(args: {
@@ -1462,6 +1800,7 @@ function buildExerciseHistoryModel(args: {
   prRowIds?: Set<string>;
   prDayLabels?: Set<string>;
   progressionEvents: ProgressionEventRow[];
+  plannedSkippedDays?: PlannedSkippedHistoryDay[];
 }): {
   graphMetricKey: HistoryGraphMetricKey;
   historyGroups: ExerciseHistoryDayGroup[];
@@ -1552,26 +1891,28 @@ function buildExerciseHistoryModel(args: {
       signals: rowSignals.length > 0 ? rowSignals : undefined,
       tagLabels: tagLabels.length > 0 ? tagLabels : undefined,
     };
-    const numericValue = selectHistoryGraphValue({
-      row,
-      values,
-      graphMetricKey: args.graphMetricKey,
-    });
-    rowPoints.push({
-      id: pointId,
-      type: "set",
-      performedAt: row.performedAt,
-      dayKey,
-      label: getHistoryDayLabel(row.performedAt),
-      summary: primary,
-      meta: displaySetLabel,
-      numericValue,
-      values,
-      signals: historyRow.signals,
-      tagLabels: historyRow.tagLabels,
-      rowId: historyRow.id,
-      isSkipped: historyRow.isSkipped,
-    });
+    if (!row.isSkipped) {
+      const numericValue = selectHistoryGraphValue({
+        row,
+        values,
+        graphMetricKey: args.graphMetricKey,
+      });
+      rowPoints.push({
+        id: pointId,
+        type: "set",
+        performedAt: row.performedAt,
+        dayKey,
+        label: getHistoryDayLabel(row.performedAt),
+        summary: primary,
+        meta: displaySetLabel,
+        numericValue,
+        values,
+        signals: historyRow.signals,
+        tagLabels: historyRow.tagLabels,
+        rowId: historyRow.id,
+        isSkipped: historyRow.isSkipped,
+      });
+    }
 
     const existingGroup = groupsByDay.get(dayKey);
     if (existingGroup) {
@@ -1593,6 +1934,30 @@ function buildExerciseHistoryModel(args: {
       tagLabels: dayTagLabels.get(dayKey),
       isSkipped: row.isSkipped,
       rows: [historyRow],
+    });
+  }
+
+  for (const plannedDay of args.plannedSkippedDays ?? []) {
+    const existingGroup = groupsByDay.get(plannedDay.dayKey);
+    if (existingGroup) {
+      if (existingGroup.rows.some((row) => row.isSkipped !== true)) {
+        continue;
+      }
+      existingGroup.isSkipped = true;
+      existingGroup.tagLabels = uniqueTags([...(existingGroup.tagLabels ?? []), "SKIPPED"]);
+      existingGroup.routineTitles = uniqueTags([...(existingGroup.routineTitles ?? []), plannedDay.routineTitle]);
+      continue;
+    }
+
+    groupsByDay.set(plannedDay.dayKey, {
+      id: `history-day-skipped-${plannedDay.routineId}-${plannedDay.dayKey}`,
+      dayKey: plannedDay.dayKey,
+      label: getHistoryDayLabel(plannedDay.performedAt),
+      performedAt: plannedDay.performedAt,
+      routineTitles: [plannedDay.routineTitle],
+      tagLabels: ["SKIPPED"],
+      isSkipped: true,
+      rows: [],
     });
   }
 
@@ -1643,10 +2008,11 @@ function buildExerciseHistoryModel(args: {
       performedAt: group.performedAt,
       dayKey: group.dayKey,
       label: group.label,
-      summary: `${group.rows.length} ${group.rows.length === 1 ? "set" : "sets"}`,
+      summary: group.isSkipped ? "Skipped" : `${group.rows.length} ${group.rows.length === 1 ? "set" : "sets"}`,
       meta: bestRow?.primary ?? null,
       numericValue: numericRows.length > 0 ? Math.max(...numericRows) : null,
       values: [
+        ...(group.isSkipped ? [{ label: "Status", value: "Skipped", numericValue: null }] : []),
         ...eventValues,
         ...(topMetricValuePart ? [topMetricValuePart] : []),
         { label: "Sets", value: String(group.rows.length), numericValue: group.rows.length },
@@ -2105,14 +2471,28 @@ export async function getExerciseInfoStats(
 ): Promise<ExerciseStatsVM | null> {
   try {
     const scopeContext = await resolveExerciseInfoScopeContext(userId, options, client);
-    const [statsLookup, historicalSetRows, progressionEventRows, scopedHistoricalSetRows, scopedProgressionEventRows] = await Promise.all([
+    const [
+      statsLookup,
+      historicalSetRows,
+      skippedSessionExerciseRows,
+      progressionEventRows,
+      scopedHistoricalSetRows,
+      scopedSkippedSessionExerciseRows,
+      scopedProgressionEventRows,
+    ] = await Promise.all([
       getExerciseStatsForExercise(userId, canonicalExerciseId, client, { skipCanonicalValidation: true }),
       loadHistoricalSetRows(userId, canonicalExerciseId, client),
+      loadSkippedSessionExerciseRows(userId, canonicalExerciseId, client),
       loadExerciseProgressionEvents(userId, canonicalExerciseId, client),
       scopeContext.analyticsScope === "current_routine" && scopeContext.activeRoutineId
         ? loadHistoricalSetRowsForRoutine(userId, canonicalExerciseId, scopeContext.activeRoutineId, client)
         : scopeContext.analyticsScope === "current_cycle" && scopeContext.activeRoutineId && scopeContext.currentCycleWindow
           ? loadHistoricalSetRowsForCycle(userId, canonicalExerciseId, scopeContext.activeRoutineId, scopeContext.currentCycleWindow, client)
+          : Promise.resolve({ data: [], error: null }),
+      scopeContext.analyticsScope === "current_routine" && scopeContext.activeRoutineId
+        ? loadSkippedSessionExerciseRowsForRoutine(userId, canonicalExerciseId, scopeContext.activeRoutineId, client)
+        : scopeContext.analyticsScope === "current_cycle" && scopeContext.activeRoutineId && scopeContext.currentCycleWindow
+          ? loadSkippedSessionExerciseRowsForCycle(userId, canonicalExerciseId, scopeContext.activeRoutineId, scopeContext.currentCycleWindow, client)
           : Promise.resolve({ data: [], error: null }),
       scopeContext.analyticsScope === "current_routine" && scopeContext.activeRoutineId
         ? loadExerciseProgressionEventsForRoutine(userId, canonicalExerciseId, scopeContext.activeRoutineId, client)
@@ -2137,8 +2517,14 @@ export async function getExerciseInfoStats(
       historicalRows = repairedRows.data ?? historicalRows;
     }
 
-    const normalizedRows = normalizeRows(historicalRows as HistoricalSetRow[]);
-    const scopedRows = normalizeRows((scopedHistoricalSetRows.data ?? []) as HistoricalSetRow[]);
+    const normalizedRows = mergeSkippedRows(
+      normalizeRows(historicalRows as HistoricalSetRow[]),
+      normalizeSkippedSessionRows((skippedSessionExerciseRows.data ?? []) as SkippedSessionExerciseRow[]),
+    );
+    const scopedRows = mergeSkippedRows(
+      normalizeRows((scopedHistoricalSetRows.data ?? []) as HistoricalSetRow[]),
+      normalizeSkippedSessionRows((scopedSkippedSessionExerciseRows.data ?? []) as SkippedSessionExerciseRow[]),
+    );
     const allProgressionEvents = (progressionEventRows.data ?? []) as ProgressionEventRow[];
     const activeProgressionEvents = ((scopeContext.analyticsScope !== "all_time"
       ? scopedProgressionEventRows.data
@@ -2159,15 +2545,30 @@ export async function getExerciseInfoStats(
       return b.setIndex - a.setIndex;
     });
     const activeRows = scopeContext.analyticsScope === "all_time" ? normalizedRows : scopedRows;
-    const activeSortedRows = [...activeRows].sort((a, b) => {
+    const activeRoutineIds = Array.from(new Set([
+      ...(scopeContext.activeRoutineId ? [scopeContext.activeRoutineId] : []),
+      ...activeRows.map((row) => row.routineId ?? "").filter(Boolean),
+      ...activeProgressionEvents.map((event) => (typeof event.routine_id === "string" ? event.routine_id.trim() : "")).filter(Boolean),
+    ]));
+    const plannedSkippedDays = await loadPlannedSkippedHistoryDays({
+      userId,
+      canonicalExerciseId,
+      routineIds: activeRoutineIds,
+      rows: activeRows,
+      progressionEvents: activeProgressionEvents,
+      scopeContext,
+      client,
+    });
+    const activeLoggedRows = activeRows.filter((row) => !row.isSkipped);
+    const activeSortedRows = [...activeLoggedRows].sort((a, b) => {
       if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
       return b.setIndex - a.setIndex;
     });
     const activeLastSet = activeSortedRows[0] ?? null;
 
     const activeTotals = {
-      sessions: new Set(activeRows.map((row) => row.sessionId)).size,
-      sets: activeRows.length,
+      sessions: new Set(activeLoggedRows.map((row) => row.sessionId)).size,
+      sets: activeLoggedRows.length,
     };
     const derivedProgressionSummary = buildExerciseDerivedProgressionSummary({
       statsRow: statsLookup.row,
@@ -2304,6 +2705,7 @@ export async function getExerciseInfoStats(
         bestSummary: bestSetSummary,
         prRowIds: buildStrengthPrRowIds(activeRows),
         progressionEvents: activeProgressionEvents,
+        plannedSkippedDays,
       });
       const historyTrendMetric = buildHistoryPointComparisonMetric({ points: historyModel.historyPoints });
       const progressMetrics = [
@@ -2523,6 +2925,7 @@ export async function getExerciseInfoStats(
       bestSummary: bestSetSummary,
       prDayLabels: buildPrDayLabels(prReviewItems),
       progressionEvents: activeProgressionEvents,
+      plannedSkippedDays,
     });
     const historyTrendMetric = buildHistoryPointComparisonMetric({ points: historyModel.historyPoints });
     const progressMetrics = [

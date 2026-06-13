@@ -141,7 +141,8 @@ async function createSessionFromDay(context: SessionStartContext): Promise<Actio
           exercise_id: exercise.exercise_id,
           routine_day_exercise_id: exercise.id,
           position: exercise.position,
-          notes: exercise.notes,
+          // Routine-plan notes are setup cues, not logged-session notes.
+          notes: null,
           is_skipped: false,
           ...mappedGoalColumns,
           measurement_type: measurementType,

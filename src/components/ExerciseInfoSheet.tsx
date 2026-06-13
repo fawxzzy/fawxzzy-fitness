@@ -5,9 +5,14 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { ExerciseProgressionActivityPanel } from "@/components/ExerciseProgressionActivityPanel";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { ContentRail } from "@/components/layout/ContentRail";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import {
+  BottomActionUtilityCluster,
+  BOTTOM_ACTION_SHELL_CLASSNAME,
+  BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME,
+} from "@/components/layout/CanonicalBottomActions";
 import {
   SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME,
   SHARED_OVERLAY_PANEL_COMPACT_VIEWPORT_CLASS_NAME,
@@ -24,6 +29,7 @@ import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
 import { EyebrowText } from "@/components/ui/text-roles";
 import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
@@ -54,6 +60,9 @@ import {
   FITNESS_OVERLAY_EXCLUSIVE_OPEN_EVENT,
   type FitnessOverlayExclusiveDetail,
 } from "@/lib/fitness-overlay-mutual-exclusion";
+
+const exerciseInfoBorderlessPanelClassName = "![border-width:0] !bg-transparent !shadow-none";
+const exerciseInfoBorderlessHistoryRowClassName = "![border-width:0]";
 
 function toTitleCase(value: string) {
   return value.replace(/\b([a-z])/g, (match) => match.toUpperCase());
@@ -380,10 +389,7 @@ function compactProgressionMetricValue(value: string | null | undefined) {
 }
 
 function normalizeCompactProgressionComparisonValue(value: string | null | undefined) {
-  return compactProgressionMetricValue(value)
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  return compactProgressionMetricValue(value).toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 const exerciseInfoSectionTitleClassName = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
@@ -403,14 +409,6 @@ type ExerciseInfoMetricGridVariant = "default" | "progression";
 
 function getCompactMetricArrowToneClassName(value: string) {
   const normalized = value.toLowerCase();
-  if (/\b(reduced|removed|regression|deload)\b/.test(normalized)) {
-    return "text-[rgb(255,116,116)]";
-  }
-
-  if (/\b(increased|added|promotion|promoted)\b/.test(normalized)) {
-    return "text-[rgb(var(--success-rgb)/0.94)]";
-  }
-
   const transitionMatch = normalized.match(/(.+?)(?:->|→|â†’|Ã¢â€ â€™)(.+)/);
   if (transitionMatch) {
     const leftScore = (transitionMatch[1].match(/-?\d+(?:\.\d+)?/g) ?? []).reduce((sum, part) => sum + Number(part), 0);
@@ -418,6 +416,18 @@ function getCompactMetricArrowToneClassName(value: string) {
     if (Number.isFinite(leftScore) && Number.isFinite(rightScore) && rightScore !== leftScore) {
       return rightScore > leftScore ? "text-[rgb(var(--success-rgb)/0.94)]" : "text-[rgb(255,116,116)]";
     }
+  }
+
+  if (/\b(matched|match|same|flat|steady|held|no change)\b/.test(normalized)) {
+    return "text-[rgb(var(--accent-yellow-on)/0.96)]";
+  }
+
+  if (/\b(reduced|removed|regression|regressed|revert|reverted|deload|decreased|down|below|slipped)\b/.test(normalized)) {
+    return "text-[rgb(255,116,116)]";
+  }
+
+  if (/\b(increased|added|promotion|promoted|improved|up|new best|pr)\b/.test(normalized)) {
+    return "text-[rgb(var(--success-rgb)/0.94)]";
   }
 
   return "text-[rgb(var(--text-primary)/0.95)]";
@@ -428,6 +438,8 @@ function buildCompactMetricValueNode(value: string) {
     .replaceAll("ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢", "•")
     .replaceAll("Ã¢â‚¬Â¢", "•")
     .trim();
+  const hasDivider = /\s+\|\s+|\s+\u2022\s+/.test(normalized);
+  const hasTransition = /(?:->|\u2192)/.test(normalized);
   const tokens = normalized
     .split(/(\s+\|\s+|\s+•\s+)/)
     .map((part) => part.trim())
@@ -442,8 +454,12 @@ function buildCompactMetricValueNode(value: string) {
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 items-center gap-x-2 gap-y-1 [text-wrap:pretty]",
-        normalized.length <= 32 ? "flex-nowrap whitespace-nowrap" : "flex-wrap",
+        "inline-flex min-w-0 max-w-full items-center justify-center gap-x-2 gap-y-1 [text-wrap:pretty]",
+        hasDivider && hasTransition
+          ? "flex-wrap whitespace-normal"
+          : normalized.length <= 24
+            ? "flex-nowrap whitespace-nowrap"
+            : "flex-wrap whitespace-normal",
       )}
     >
       {tokens.map((part, index) => {
@@ -454,7 +470,7 @@ function buildCompactMetricValueNode(value: string) {
         if (part.includes("→") || part.includes("->") || part.includes("â†’") || part.includes("Ã¢â€ â€™")) {
           const arrowParts = part.split(/(?:→|->|â†’|Ã¢â€ â€™)/);
           return (
-            <span key={`${part}-${index}`} className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+            <span key={`${part}-${index}`} className="inline-flex min-w-0 max-w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-1">
               {arrowParts.map((arrowPart, arrowIndex) => (
                 <Fragment key={`${arrowPart}-${arrowIndex}`}>
                   {arrowIndex > 0 ? <span className={cn("px-1", arrowToneClassName)}>&rarr;</span> : null}
@@ -493,6 +509,7 @@ function getExerciseInfoMetricGridProps(items: MetricDatum[], variant: ExerciseI
     itemClassName: undefined,
     labelClassName: shouldUseDenseExerciseInfoMetricLabels(items) ? exerciseInfoDenseLabelClassName : undefined,
     labelSlotClassName: exerciseInfoTightLabelSlotClassName,
+    accentBarVariant: variant === "progression" ? "none" as const : undefined,
     autoColumns: true as const,
     scrollable: true,
   };
@@ -677,6 +694,37 @@ function getHistoryChangePointFill(signal: "promotion" | "regression" | "watch")
   if (signal === "promotion") return "rgb(var(--success-rgb) / 0.94)";
   if (signal === "regression") return "rgb(255 116 116 / 0.94)";
   return "rgb(var(--accent-yellow-on) / 0.95)";
+}
+
+function getOrderedHistoryGraphPoints(points: ExerciseHistoryPoint[]) {
+  return points
+    .filter((point) => Number.isFinite(Date.parse(point.performedAt)))
+    .sort((left, right) => {
+      if (left.performedAt !== right.performedAt) return left.performedAt.localeCompare(right.performedAt);
+      return left.id.localeCompare(right.id);
+    });
+}
+
+function getAdjacentHistoryGraphPointId(points: ExerciseHistoryPoint[], selectedPointId: string | null, direction: -1 | 1) {
+  if (!selectedPointId) {
+    return null;
+  }
+
+  const orderedPoints = getOrderedHistoryGraphPoints(points);
+  if (orderedPoints.length < 2) {
+    return null;
+  }
+
+  const selectedIndex = orderedPoints.findIndex((point) => point.id === selectedPointId);
+  if (selectedIndex < 0) {
+    return null;
+  }
+
+  const nextIndex = direction < 0
+    ? selectedIndex > 0 ? selectedIndex - 1 : orderedPoints.length - 1
+    : selectedIndex < orderedPoints.length - 1 ? selectedIndex + 1 : 0;
+
+  return orderedPoints[nextIndex]?.id ?? null;
 }
 
 function buildSunPath(cx: number, cy: number, outerRadius: number, innerRadius: number, points = 10) {
@@ -986,7 +1034,7 @@ function buildHistoryDayTagLabels(group: ExerciseHistoryDayGroup) {
     return null;
   });
 
-  return [...(group.tagLabels ?? []), ...signalLabels]
+  return [...(group.isSkipped ? ["SKIPPED"] : []), ...(group.tagLabels ?? []), ...signalLabels]
     .filter((label, index, labels): label is string => Boolean(label) && labels.indexOf(label) === index);
 }
 
@@ -1022,20 +1070,14 @@ function ExerciseHistoryGraph({
   selectedPointId: string | null;
   onSelectedPointChange: (pointId: string | null) => void;
 }) {
-  const orderedPoints = points
-    .filter((point) => Number.isFinite(Date.parse(point.performedAt)))
-    .sort((left, right) => {
-      if (left.performedAt !== right.performedAt) return left.performedAt.localeCompare(right.performedAt);
-      return left.id.localeCompare(right.id);
-    });
+  const orderedPoints = getOrderedHistoryGraphPoints(points);
 
   if (orderedPoints.length === 0) {
     return null;
   }
 
   const selectedPoint = orderedPoints.find((point) => point.id === selectedPointId) ?? null;
-  const selectedIndex = selectedPoint ? orderedPoints.findIndex((point) => point.id === selectedPoint.id) : -1;
-  const setPoints = orderedPoints.filter((point) => point.type === "set");
+  const setPoints = orderedPoints.filter((point) => point.type === "set" && !point.isSkipped);
   const dayPoints = orderedPoints.filter((point) => point.type === "day");
   const changePoints = orderedPoints.filter((point) => point.type === "progression-event");
   const resolvedGraphMetricKey = graphMetricKey ?? getFallbackHistoryGraphMetricKey(stats, setPoints);
@@ -1257,28 +1299,6 @@ function ExerciseHistoryGraph({
   return (
     <div className="w-full space-y-2 bg-[rgb(var(--surface-2-rgb)/0.14)] pb-2 pt-1.5">
       <div className="relative w-full" style={{ aspectRatio: `${chartWidth} / ${chartHeight}` }}>
-        <button
-          type="button"
-          className="absolute left-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--accent-strong)/0.56)] bg-[rgb(var(--surface-1-rgb)/0.72)] text-[rgb(var(--accent-divider-rgb)/0.95)] backdrop-blur"
-          onClick={() => {
-            const nextIndex = selectedIndex > 0 ? selectedIndex - 1 : orderedPoints.length - 1;
-            onSelectedPointChange(orderedPoints[nextIndex]?.id ?? null);
-          }}
-          aria-label="Previous history point"
-        >
-          <ChevronRightIcon className="h-4 w-4 rotate-180" />
-        </button>
-        <button
-          type="button"
-          className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgb(var(--accent-strong)/0.56)] bg-[rgb(var(--surface-1-rgb)/0.72)] text-[rgb(var(--accent-divider-rgb)/0.95)] backdrop-blur"
-          onClick={() => {
-            const nextIndex = selectedIndex >= 0 && selectedIndex < orderedPoints.length - 1 ? selectedIndex + 1 : 0;
-            onSelectedPointChange(orderedPoints[nextIndex]?.id ?? null);
-          }}
-          aria-label="Next history point"
-        >
-          <ChevronRightIcon className="h-4 w-4" />
-        </button>
         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-full w-full" aria-hidden="true">
           <rect
             x={yAxisX}
@@ -1479,7 +1499,7 @@ function ExerciseHistoryGraph({
                 <circle
                   cx={x}
                   cy={y}
-                  r={6.2}
+                  r={6.6}
                   fill="rgb(var(--surface-1-rgb) / 0.12)"
                   stroke={getHistoryChangePointFill(signal)}
                   strokeWidth="1.4"
@@ -1488,7 +1508,7 @@ function ExerciseHistoryGraph({
               <circle
                 cx={x}
                 cy={y}
-                r={selected ? 3.8 : selectionActive ? 2.2 : 2.6}
+                r={selected ? 4.1 : selectionActive ? 2.45 : 2.9}
                 fill={selected
                   ? getHistoryChangePointFill(signal)
                   : selectionActive
@@ -1568,12 +1588,15 @@ function ExerciseInfoHistoryList({
       tagLabels: buildHistoryDayTagLabels(group),
       layout: "single-column",
     };
-    const setItems = group.rows.map((row): DetailSectionListItem => ({
+    const setItems = group.rows.map((row, rowIndex): DetailSectionListItem => ({
       id: row.id,
       primary: row.primary,
       meta: row.meta,
       signals: row.signals,
       tagLabels: row.tagLabels,
+      rowClassName: rowIndex === group.rows.length - 1
+        ? "pb-2 bg-[linear-gradient(90deg,rgb(var(--metric-accent-rgb)/0.14),rgb(var(--metric-accent-rgb)/0.85),rgb(var(--metric-accent-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_100%]"
+        : undefined,
       layout: "single-column",
     }));
 
@@ -1591,15 +1614,17 @@ function ExerciseInfoHistoryList({
           onSelectedPointChange={onSelectedPointChange}
         />
         {structuredItems.length > 0 ? (
-          <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-            <div
-              className={cn(
+          <div className={cn(appTokens.detailHistoryRow, exerciseInfoBorderlessHistoryRowClassName, "px-2 py-2")}>
+            <VerticalScrollHint
+              className="w-full rounded-[0.65rem]"
+              scrollClassName={cn(
                 "w-full",
-                structuredItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[18rem] overflow-y-auto pr-1" : undefined,
+                structuredItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[18rem]" : "overflow-visible",
               )}
+              showRail={structuredItems.length > HISTORY_VISIBLE_ROW_COUNT}
             >
               <DetailSectionItems items={structuredItems} className="pl-0.5" showBullets={false} />
-            </div>
+            </VerticalScrollHint>
           </div>
         ) : null}
       </div>
@@ -1681,7 +1706,7 @@ function ExerciseInfoHistoryList({
 
   if (historyItems.length === 0 && prHistorySection?.items.length) {
     return (
-      <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+      <div className={cn(appTokens.detailHistoryRow, exerciseInfoBorderlessHistoryRowClassName, "px-2 py-2")}>
         <div className="w-full">
           <DetailSectionItems items={prHistorySection.items} className="pl-0.5" showBullets={false} />
         </div>
@@ -1691,7 +1716,7 @@ function ExerciseInfoHistoryList({
 
   if (historyItems.length === 0 && stats.prCount > 0) {
     return (
-      <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+      <div className={cn(appTokens.detailHistoryRow, exerciseInfoBorderlessHistoryRowClassName, "px-2 py-2")}>
         <div className="w-full">
           <DetailSectionItems
             items={[{
@@ -1714,15 +1739,17 @@ function ExerciseInfoHistoryList({
   }
 
   return (
-    <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
-      <div
-        className={cn(
+    <div className={cn(appTokens.detailHistoryRow, exerciseInfoBorderlessHistoryRowClassName, "px-2 py-2")}>
+      <VerticalScrollHint
+        className="w-full rounded-[0.65rem]"
+        scrollClassName={cn(
           "w-full",
-          historyItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[30rem] overflow-y-auto pr-1" : undefined,
+          historyItems.length > HISTORY_VISIBLE_ROW_COUNT ? "max-h-[30rem]" : "overflow-visible",
         )}
+        showRail={historyItems.length > HISTORY_VISIBLE_ROW_COUNT}
       >
         <DetailSectionItems items={historyItems} className="pl-0.5" showBullets={false} />
-      </div>
+      </VerticalScrollHint>
     </div>
   );
 }
@@ -1885,8 +1912,9 @@ function ExerciseInfoProgressionPanel({
   const startedTargetValue = compactProgressionMetricValue(progression.firstTargetLabel);
   const startedMatchesCurrent = Boolean(startedTargetValue)
     && normalizeCompactProgressionComparisonValue(startedTargetValue) === normalizeCompactProgressionComparisonValue(currentTargetValue);
+  const regressionCount = progression.deloadCount + progression.revertCount;
+  const watchCount = progression.watchCount ?? 0;
   const progressionMetricCandidates: Array<MetricDatum | null> = [
-    { label: "Promotions", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
     progression.firstTargetLabel && !startedMatchesCurrent ? (() => {
       const value = startedTargetValue;
       return { label: "Started", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
@@ -1899,21 +1927,24 @@ function ExerciseInfoProgressionPanel({
       const value = compactProgressionMetricValue(progression.latestChangeSummary);
       return { label: "Latest Change", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
     })() : null,
+    { label: "Promotions", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" },
+    regressionCount > 0 ? { label: "Regressions", value: `${regressionCount}`, valueTone: "danger" } : null,
+    watchCount > 0 ? { label: "Watch", value: `${watchCount}`, valueTone: "warning" } : null,
+    progression.manualChangeCount > 0 ? { label: "Manual", value: `${progression.manualChangeCount}`, valueTone: "warning" } : null,
   ];
   const metrics = filterUniqueMetricItems(
     progressionMetricCandidates.filter((item): item is MetricDatum => item !== null),
     usedMetricKeys,
-  ).slice(0, 4);
+  );
   if (
     metrics.length === 0
-    && (progression.activityDays?.length ?? 0) === 0
     && !progression.latestChangeSummary
   ) {
     return null;
   }
 
   return (
-    <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+    <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "space-y-2 p-2")}>
       <ExerciseInfoSectionHeader
         title="Progression"
         section="progression"
@@ -1922,18 +1953,6 @@ function ExerciseInfoProgressionPanel({
         onScopeClick={onScopeClick}
       />
       {metrics.length > 0 ? <ExerciseSurfaceMetricGrid items={metrics} {...getExerciseInfoMetricGridProps(metrics, "progression")} /> : null}
-      <ExerciseProgressionActivityPanel
-        progression={progression}
-        headingClassName={cn(exerciseInfoSubsectionHeadingClassName, "px-0 pt-0.5")}
-        subsectionTitleClassName={exerciseInfoSubsectionTitleClassName}
-        metricGridProps={getExerciseInfoMetricGridProps([
-          { label: "Promotions", value: "0" },
-          { label: "Regressions", value: "0" },
-          { label: "Watch", value: "0" },
-          { label: "Manual", value: "0" },
-        ])}
-        topDividerClassName="mx-1"
-      />
     </AppPanel>
   );
 }
@@ -1942,7 +1961,6 @@ export function ExerciseInfoSheet({
   exercise,
   statsByScope,
   statsLoadingByScope,
-  lastVisibleStats,
   filterState,
   onFilterStateChange,
   open,
@@ -1954,7 +1972,6 @@ export function ExerciseInfoSheet({
   exercise: ExerciseInfoSheetExercise | null;
   statsByScope: Partial<Record<ExerciseInfoAnalyticsScope, ExerciseInfoSheetStats | null>>;
   statsLoadingByScope: Partial<Record<ExerciseInfoAnalyticsScope, boolean>>;
-  lastVisibleStats?: ExerciseInfoSheetStats | null;
   filterState: ExerciseInfoFilterState;
   onFilterStateChange: (state: ExerciseInfoFilterState) => void;
   open: boolean;
@@ -2203,13 +2220,12 @@ export function ExerciseInfoSheet({
   const getSectionStats = useCallback((section: ExerciseInfoSectionScopeKey) => {
     void section;
     const scope = currentScope;
-    const resolvedStats = statsByScope[scope] ?? (statsLoadingByScope[scope] ? lastVisibleStats ?? null : null);
     return {
       scope,
-      stats: resolvedStats,
+      stats: statsByScope[scope] ?? null,
       loading: Boolean(statsLoadingByScope[scope]),
     };
-  }, [currentScope, lastVisibleStats, statsByScope, statsLoadingByScope]);
+  }, [currentScope, statsByScope, statsLoadingByScope]);
 
   const handleClose = useCallback(() => {
     if (onClose) {
@@ -2532,6 +2548,38 @@ export function ExerciseInfoSheet({
   const selectedHistoryPointStatsSubtitle = graphSelectionActive
     ? buildSelectedHistoryPointStatsSubtitle(selectedHistoryPoint)
     : null;
+  const previousHistoryPointId = graphSelectionActive
+    ? getAdjacentHistoryGraphPointId(historyState.historyPoints, selectedHistoryPointId, -1)
+    : null;
+  const nextHistoryPointId = graphSelectionActive
+    ? getAdjacentHistoryGraphPointId(historyState.historyPoints, selectedHistoryPointId, 1)
+    : null;
+  const historyPointNavigationActions = previousHistoryPointId && nextHistoryPointId ? (
+    <BottomActionUtilityCluster>
+      <BottomDockButton
+        type="button"
+        intent="info"
+        aria-label="Previous history point"
+        onClick={() => setSelectedHistoryPointId(previousHistoryPointId)}
+      >
+        <span className="inline-flex items-center justify-center gap-2">
+          <ChevronRightIcon className="h-4 w-4 rotate-180" />
+          <span>Previous</span>
+        </span>
+      </BottomDockButton>
+      <BottomDockButton
+        type="button"
+        intent="info"
+        aria-label="Next history point"
+        onClick={() => setSelectedHistoryPointId(nextHistoryPointId)}
+      >
+        <span className="inline-flex items-center justify-center gap-2">
+          <span>Next</span>
+          <ChevronRightIcon className="h-4 w-4" />
+        </span>
+      </BottomDockButton>
+    </BottomActionUtilityCluster>
+  ) : null;
   const progression = progressionSectionState.stats?.progression ?? null;
   const hasProgressionLoadingPanel = progressionSectionState.loading;
   const hasProgressionPanel = Boolean(progression);
@@ -2541,7 +2589,10 @@ export function ExerciseInfoSheet({
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
       <AmbientBackground />
       <main className="app-page-scroll relative z-10 min-h-[100dvh]">
-        <ContentRail className="flex min-h-[100dvh] flex-col gap-2 pt-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.7rem)]">
+        <ContentRail className={cn(
+          "flex min-h-[100dvh] flex-col gap-2 pt-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.7rem)]",
+          !inline && historyPointNavigationActions ? "pb-24" : undefined,
+        )}>
           {detailHeader}
 
           <Glass variant="base" className="overflow-hidden rounded-[34px]">
@@ -2555,11 +2606,11 @@ export function ExerciseInfoSheet({
                   />
                 ) : (
                   <>
-                    <AppPanel className={cn(appTokens.detailSection, "border-0 bg-transparent p-0 shadow-none")}>
+                    <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "p-0")}>
                       <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
                     </AppPanel>
 
-                    <AppPanel className={cn(appTokens.detailSection, "p-2.5")}>
+                    <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "p-2.5")}>
                       <div
                         id={statsPanelId}
                         data-testid="exercise-info-stats-box"
@@ -2590,7 +2641,7 @@ export function ExerciseInfoSheet({
                     </AppPanel>
 
                     {!graphSelectionActive && hasProgressionLoadingPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+                      <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "space-y-2 p-2")}>
                         <ExerciseInfoSectionHeader
                           title="Progression"
                           section="progression"
@@ -2613,7 +2664,7 @@ export function ExerciseInfoSheet({
                     ) : null}
 
                     {hasHistoryPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, "space-y-1.5 p-0")}>
+                      <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "space-y-1.5 p-0")}>
                         <div className="px-2 pt-2">
                           <ExerciseInfoSectionHeader
                             title="History"
@@ -2642,6 +2693,15 @@ export function ExerciseInfoSheet({
           </Glass>
         </ContentRail>
       </main>
+      {!inline && historyPointNavigationActions ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] bg-[linear-gradient(180deg,rgba(var(--bg-app),0)_0%,rgba(var(--bg-app),0.86)_22%,rgba(var(--bg-app),0.985)_100%)] backdrop-blur-[14px]">
+          <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto")}>
+            <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
+              {historyPointNavigationActions}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 

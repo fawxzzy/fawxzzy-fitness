@@ -9,7 +9,7 @@ type ExerciseInfoClientCacheEntry = {
   source: "seed" | "server";
 };
 
-const STORAGE_KEY = "fawxzzy:exercise-info-cache:v5";
+const STORAGE_KEY = "fawxzzy:exercise-info-cache:v6";
 const MAX_ENTRIES = 36;
 const SERVER_TTL_MS = 5 * 60 * 1000;
 const SEED_TTL_MS = 45 * 1000;

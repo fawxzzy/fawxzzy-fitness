@@ -582,6 +582,7 @@ function buildSessionRecapSignals(args: {
   exerciseNames: string[];
   bestExerciseName?: string | null;
   exerciseNameById: Map<string, string>;
+  setCountByExerciseName?: Map<string, number>;
   prExerciseIds: Set<string>;
   progressionEvents: ProgressionEventSummaryRow[];
 }) {
@@ -622,6 +623,9 @@ function buildSessionRecapSignals(args: {
 
     return {
       exerciseName,
+      value: typeof args.setCountByExerciseName?.get(exerciseName) === "number"
+        ? `${args.setCountByExerciseName.get(exerciseName)} ${args.setCountByExerciseName.get(exerciseName) === 1 ? "set" : "sets"}`
+        : null,
       signals,
       tagLabels,
     } satisfies SessionRecapSignal;
@@ -1104,10 +1108,19 @@ async function loadHistorySessionsScopeContext({
         .filter(Boolean),
     });
     const prExerciseIds = sessionPrExerciseIdsById.get(session.id) ?? new Set<string>();
+    const setCountByExerciseName = new Map<string, number>();
+    for (const exercise of exercisesBySessionId.get(session.id) ?? []) {
+      const exerciseName = exerciseNameById.get(exercise.exercise_id)?.trim();
+      if (!exerciseName) {
+        continue;
+      }
+      setCountByExerciseName.set(exerciseName, (setCountByExerciseName.get(exerciseName) ?? 0) + (setsBySessionExerciseId.get(exercise.id)?.length ?? 0));
+    }
     const recapSignals = buildSessionRecapSignals({
       exerciseNames: baseSummary.exerciseNames ?? [],
       bestExerciseName: baseSummary.bestLift?.exerciseName,
       exerciseNameById,
+      setCountByExerciseName,
       prExerciseIds,
       progressionEvents: progressionEventsBySessionId.get(session.id) ?? [],
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { SessionRecapSignal, SessionSummary } from "@/app/history/session-summary";
 import { ExerciseCard, type ExerciseCardVariant } from "@/components/ExerciseCard";
@@ -70,7 +70,7 @@ export function buildSessionCompactTitleText(
           {dayTitle ? <span className="min-w-0 shrink truncate">{dayTitle}</span> : null}
           {weekday ? (
             <span className="inline-flex shrink-0 items-center gap-2">
-              {dayTitle ? <SignatureDot /> : null}
+              {dayTitle ? <SignatureDot className="translate-y-px" /> : null}
               <span className="text-[rgb(var(--accent-divider-rgb)/0.96)]">{weekday}</span>
             </span>
           ) : null}
@@ -282,10 +282,6 @@ function formatDateBadgeText(session: SessionSummary) {
   return formatDateShort(session.startedAt).toUpperCase();
 }
 
-function formatCompactCountBadge(count: number | null | undefined, label: string) {
-  return typeof count === "number" && count > 0 ? `${count} ${label}` : null;
-}
-
 function buildSessionProgressionBadgeItems(session: SessionSummary) {
   const summary = session.progressionSummary ?? null;
   if (!summary || summary.eventCount <= 0) {
@@ -293,28 +289,23 @@ function buildSessionProgressionBadgeItems(session: SessionSummary) {
   }
 
   const regressionCount = (summary.deloadCount ?? 0) + (summary.revertCount ?? 0);
-  const knownProgressionCount = summary.promotionCount + regressionCount + (summary.watchCount ?? 0) + summary.manualChangeCount;
-
   return [
-    formatCompactCountBadge(summary.promotionCount, "PROMO"),
-    formatCompactCountBadge(regressionCount, "REG"),
-    formatCompactCountBadge(summary.watchCount, "WATCH"),
-    formatCompactCountBadge(summary.manualChangeCount, "MANUAL"),
-    knownProgressionCount === 0 ? formatCompactCountBadge(summary.eventCount, "EVENT") : null,
+    summary.promotionCount > 0 ? "PROMO" : null,
+    regressionCount > 0 ? "REG" : null,
+    (summary.watchCount ?? 0) > 0 ? "WATCH" : null,
+    summary.manualChangeCount > 0 ? "MANUAL" : null,
+    summary.promotionCount + regressionCount + (summary.watchCount ?? 0) + summary.manualChangeCount === 0 ? "EVENT" : null,
   ].filter((item): item is string => Boolean(item));
 }
 
-function buildSessionCompactBadgeItems(session: SessionSummary, viewModel: HistorySessionCardViewModel) {
+function buildSessionCompactBadgeItems(session: SessionSummary) {
   const dateText = formatDateBadgeText(session);
   const prLabel = session.prCounts.total > 0
-    ? `${session.prCounts.total} ${session.prCounts.total === 1 ? "PR" : "PRS"}`
+    ? "PR"
     : null;
   const progressionLabels = buildSessionProgressionBadgeItems(session);
-  const compactChipLabels = viewModel.compactChips
-    .map((chip) => chip.label.trim())
-    .filter(Boolean);
 
-  return [dateText, prLabel, ...progressionLabels, ...compactChipLabels]
+  return [dateText, prLabel, ...progressionLabels]
     .filter((item): item is string => Boolean(item?.trim()))
     .map((item) => item.toUpperCase())
     .filter((item, index, items) => items.indexOf(item) === index);
@@ -367,9 +358,15 @@ export function HistorySessionCard({
   className,
   metricAccentRgb,
 }: HistorySessionCardProps) {
-  const viewModel = buildHistorySessionCardViewModel(session, previousSession);
-  const compactBadgeItems = buildSessionCompactBadgeItems(session, viewModel);
-  const compactBadgeKey = compactBadgeItems.join("|");
+  const viewModel = useMemo(
+    () => buildHistorySessionCardViewModel(session, previousSession),
+    [previousSession, session],
+  );
+  const compactBadgeItems = useMemo(
+    () => buildSessionCompactBadgeItems(session),
+    [session],
+  );
+  const compactBadgeKey = useMemo(() => compactBadgeItems.join("|"), [compactBadgeItems]);
   const [compactBadgeIndex, setCompactBadgeIndex] = useState(0);
   const styles = densityStyles[viewMode];
   const resolvedTone = tone ?? viewModel.tone;
@@ -388,7 +385,6 @@ export function HistorySessionCard({
   const accentStyle = metricAccentRgb
     ? { ["--metric-accent-rgb" as string]: metricAccentRgb }
     : undefined;
-  const resolvedCompactMetaItems = viewModel.compactChips.map((chip) => chip.label).filter(Boolean);
   const resolvedSubtitleItems = [viewModel.outcome, viewModel.progress].filter((item): item is string => Boolean(item));
   const resolvedDetailedSubtitle = viewMode === "detailed" ? undefined : (
     resolvedSubtitleItems.length > 0
@@ -434,11 +430,6 @@ export function HistorySessionCard({
               {title ?? buildSessionCompactTitleText(session, { metaTagText: activeCompactBadge })}
             </div>
           </div>
-          {resolvedCompactMetaItems.length > 0 ? (
-            <div className="px-px pt-[2px] text-[rgb(var(--text-secondary)/0.86)]">
-              <HistoryMetaLine items={resolvedCompactMetaItems} className="text-[10.5px] font-semibold tracking-[0.01em] text-inherit" />
-            </div>
-          ) : null}
           <div className="px-px pt-[3px]">
             <MetricAccentBar variant="compact" />
           </div>
@@ -547,6 +538,7 @@ export function HistorySessionCard({
       shellStyle={accentStyle}
       titleClassName="line-clamp-none [text-wrap:pretty]"
       subtitleClassName="pt-px [text-wrap:pretty] text-[rgb(var(--text-secondary)/0.9)]"
+      subtitleLabelClassName="text-[rgb(var(--accent-divider-rgb)/0.96)]"
     >
       {supportingContent}
     </ExerciseCard>

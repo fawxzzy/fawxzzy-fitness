@@ -1,6 +1,5 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
-import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
@@ -12,12 +11,6 @@ import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
 export const dynamic = "force-dynamic";
-const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
-
-function resolveInitialViewMode() {
-  const cookieValue = cookies().get(HISTORY_EXERCISE_VIEW_MODE_COOKIE)?.value;
-  return cookieValue === "detailed" ? "detailed" : "compact";
-}
 
 function ExercisesBrowserError() {
   return (
@@ -31,7 +24,6 @@ function ExercisesBrowserError() {
 
 export default async function HistoryExercisesPage() {
   const diagnostics = new LoadingDiagnosticsCollector("/history/exercises");
-  const initialViewMode = resolveInitialViewMode();
 
   try {
     const browserPayload = isHistoryPreviewActiveForRequest()
@@ -58,7 +50,7 @@ export default async function HistoryExercisesPage() {
           initialRows={browserPayload.initialRows}
           filterOptions={browserPayload.filterOptions}
           activeRoutineTitle={browserPayload.activeRoutineTitle}
-          initialViewMode={initialViewMode}
+          initialViewMode="compact"
         />
       </HistoryRouteScaffold>
     );

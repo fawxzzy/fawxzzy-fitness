@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { AccentDotSeparatedText, SignatureDot } from "@/components/ui/app/SignatureSeparator";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { cn } from "@/lib/cn";
 
 export type MetricDatum = {
@@ -15,7 +16,7 @@ export type MetricDatum = {
 };
 
 type MetricLabelPlacement = "top" | "bottom-right";
-export type MetricAccentBarVariant = "metric" | "thin" | "compact";
+export type MetricAccentBarVariant = "metric" | "thin" | "compact" | "none";
 
 export function MetricAccentBar({
   className,
@@ -24,6 +25,10 @@ export function MetricAccentBar({
   className?: string;
   variant?: MetricAccentBarVariant;
 }) {
+  if (variant === "none") {
+    return null;
+  }
+
   return (
     <span
       aria-hidden="true"
@@ -62,12 +67,75 @@ function MetricMetaLine({
   );
 }
 
+const metricValueArrowPattern = /(?:->|\u2192|=>|â†’|Ã¢â€ â€™)/;
+
+function getMetricArrowToneClassName(value: string) {
+  const normalized = value.toLowerCase();
+  const transitionMatch = normalized.match(/(.+?)(?:->|\u2192|=>|â†’|Ã¢â€ â€™)(.+)/);
+  if (transitionMatch) {
+    const leftNumbers = transitionMatch[1].match(/-?\d+(?:\.\d+)?/g) ?? [];
+    const rightNumbers = transitionMatch[2].match(/-?\d+(?:\.\d+)?/g) ?? [];
+    const comparisonCount = Math.min(leftNumbers.length, rightNumbers.length);
+    if (comparisonCount > 0) {
+      let sawIncrease = false;
+      let sawDecrease = false;
+      for (let index = 0; index < comparisonCount; index += 1) {
+        const delta = Number(rightNumbers[index]) - Number(leftNumbers[index]);
+        if (Math.abs(delta) < 0.001) continue;
+        if (delta > 0) {
+          sawIncrease = true;
+        } else {
+          sawDecrease = true;
+        }
+      }
+      if (sawIncrease && !sawDecrease) return "text-[rgb(var(--success-rgb)/0.94)]";
+      if (sawDecrease && !sawIncrease) return "text-[rgb(255,116,116)]";
+      if (!sawIncrease && !sawDecrease) return "text-[rgb(var(--accent-yellow-on)/0.96)]";
+    }
+  }
+
+  if (/\b(matched|match|same|flat|steady|held|no change)\b/.test(normalized)) {
+    return "text-[rgb(var(--accent-yellow-on)/0.96)]";
+  }
+  if (/\b(reduced|removed|regression|regressed|revert|reverted|deload|decreased|down|below|slipped)\b/.test(normalized)) {
+    return "text-[rgb(255,116,116)]";
+  }
+  if (/\b(increased|added|promotion|promoted|improved|up|new best|pr)\b/.test(normalized)) {
+    return "text-[rgb(var(--success-rgb)/0.94)]";
+  }
+
+  return "text-[rgb(var(--text-primary)/0.95)]";
+}
+
 function MetricValueLine({
   value,
 }: {
   value: string;
 }) {
   const normalizedValue = String(value);
+  if (metricValueArrowPattern.test(normalizedValue)) {
+    const arrowToneClassName = getMetricArrowToneClassName(normalizedValue);
+    const parts = normalizedValue.split(/\s*(?:\||â€¢|Ã¢â‚¬Â¢|ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢)\s*/).map((part) => part.trim()).filter(Boolean);
+
+    return (
+      <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+        {(parts.length > 0 ? parts : [normalizedValue]).map((part, index) => (
+          <span key={`${part}-${index}`} className="inline-flex min-w-0 items-center gap-2">
+            {index > 0 ? <SignatureDot /> : null}
+            <span className="inline-flex min-w-0 flex-wrap items-center justify-center gap-x-1">
+              {part.split(metricValueArrowPattern).map((arrowPart, arrowIndex) => (
+                <span key={`${arrowPart}-${arrowIndex}`} className="inline-flex min-w-0 items-center">
+                  {arrowIndex > 0 ? <span className={cn("px-1", arrowToneClassName)}>&rarr;</span> : null}
+                  {arrowPart.trim() ? <span className="min-w-0 whitespace-nowrap">{arrowPart.trim()}</span> : null}
+                </span>
+              ))}
+            </span>
+          </span>
+        ))}
+      </span>
+    );
+  }
+
   if (
     !normalizedValue.includes("|")
     && !normalizedValue.includes("•")
@@ -195,6 +263,27 @@ function compactMetricValueNeedsExtraWidth(item: MetricDatum) {
   return valueLength > 12 || labelLength > 13 || item.value.includes("|") || Boolean(item.valueNode);
 }
 
+function getScrollableMetricWidthClassName(item: MetricDatum) {
+  const valueLength = item.value.trim().length;
+  const labelLength = item.label.trim().length;
+  const hasTransition = /(?:->|\u2192|=>|Ã¢â€ â€™|ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢)/.test(item.value);
+  const hasDivider = item.value.includes("|") || item.value.includes("â€¢");
+
+  if (valueLength >= 34 || (Boolean(item.valueNode) && valueLength >= 28) || (hasTransition && hasDivider)) {
+    return "w-[12.6rem] min-w-[12.6rem]";
+  }
+
+  if (valueLength >= 24 || labelLength >= 16 || (Boolean(item.valueNode) && valueLength >= 18)) {
+    return "w-[10.4rem] min-w-[10.4rem]";
+  }
+
+  if (compactMetricValueNeedsExtraWidth(item)) {
+    return "w-[8.4rem] min-w-[8.4rem]";
+  }
+
+  return "w-[7.7rem] min-w-[7.7rem]";
+}
+
 function estimateMetricStripWeight(item: MetricDatum) {
   const labelLength = item.label.trim().length;
   const valueLength = item.value.trim().length;
@@ -293,7 +382,7 @@ function MetricChrome({
   style?: CSSProperties;
   accentBarVariant?: MetricAccentBarVariant;
 }) {
-  if (accentBarVariant === "thin") {
+  if (accentBarVariant === "thin" || accentBarVariant === "none") {
     return (
       <div
         className={cn(
@@ -582,28 +671,30 @@ export function SurfaceMetricGrid({
 
   if (scrollable) {
     return (
-      <div className={cn("hide-scrollbar -mx-1 min-w-0 overflow-x-auto overflow-y-visible px-1 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]", className)}>
-        <div className="mx-auto flex w-max min-w-max flex-nowrap justify-start gap-1.25">
-          {items.map((item) => (
-            <MetricItem
-              key={`${item.label}-${item.value}`}
-              item={item}
-              className={cn(
-                "w-[7.1rem] min-w-[7.1rem] shrink-0",
-                compactMetricValueNeedsExtraWidth(item) ? "w-[8.4rem] min-w-[8.4rem]" : undefined,
-                "min-h-[2.8rem] px-2.75 py-1",
-                itemClassName,
-              )}
-              valueClassName={appTokens.workoutMetricValueCompact}
-              labelClassName={cn("text-[rgb(var(--accent-divider-rgb)/0.92)]", labelClassName)}
-              labelSlotClassName={labelSlotClassName}
-              style={itemStyle}
-              accentBarVariant={accentBarVariant}
-              fullWidthUnderline={fullWidthUnderline}
-            />
-          ))}
-        </div>
-      </div>
+      <HorizontalScrollHint
+        className={cn("-mx-1", className)}
+        scrollClassName="px-1 pb-1"
+        contentClassName="mx-auto flex w-max min-w-max flex-nowrap justify-start gap-1.25"
+      >
+        {items.map((item) => (
+          <MetricItem
+            key={`${item.label}-${item.value}`}
+            item={item}
+            className={cn(
+              getScrollableMetricWidthClassName(item),
+              "shrink-0",
+              "min-h-[2.8rem] px-2.75 py-1",
+              itemClassName,
+            )}
+            valueClassName={appTokens.workoutMetricValueCompact}
+            labelClassName={cn("text-[rgb(var(--accent-divider-rgb)/0.92)]", labelClassName)}
+            labelSlotClassName={labelSlotClassName}
+            style={itemStyle}
+            accentBarVariant={accentBarVariant}
+            fullWidthUnderline={fullWidthUnderline}
+          />
+        ))}
+      </HorizontalScrollHint>
     );
   }
 

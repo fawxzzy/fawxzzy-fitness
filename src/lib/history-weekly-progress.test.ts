@@ -160,6 +160,7 @@ test("weekly progress aggregates workouts, PR moments, and category volume insid
   });
 
   assert.equal(summary.completedWorkoutCount, 2);
+  assert.equal(summary.cycleCompletionRate, 2 / 3);
   assert.equal(summary.previousWeekWorkoutCount, 1);
   assert.equal(summary.primaryRoutineTitle, "Routine");
   assert.equal(summary.primaryRoutineTargetCount, 3);
@@ -182,6 +183,41 @@ test("weekly progress aggregates workouts, PR moments, and category volume insid
   assert.deepEqual(summary.attentionItems, [
     "1 planned day is still open this cycle.",
   ]);
+});
+
+test("weekly progress summarizes cycle completion from completed days and their internal completion rates", () => {
+  const summary = buildWeeklyProgressSummary({
+    sessions: [
+      createSession({
+        id: "session-complete",
+        startedAt: "2026-05-05T13:00:00.000Z",
+        routineId: "routine-1",
+        completionRate: 1,
+      }),
+      createSession({
+        id: "session-partial",
+        startedAt: "2026-05-07T13:00:00.000Z",
+        routineId: "routine-1",
+        completionRate: 0.5,
+      }),
+      createSession({
+        id: "session-previous",
+        startedAt: "2026-04-29T13:00:00.000Z",
+        routineId: "routine-1",
+        completionRate: 1,
+      }),
+    ],
+    sessionExercisesBySessionId: new Map(),
+    setsBySessionExerciseId: new Map(),
+    exerciseMetaById: new Map(),
+    routineDayCountByRoutineId: new Map([["routine-1", 5]]),
+    timezone: "America/New_York",
+    now: "2026-05-08T14:00:00.000Z",
+  });
+
+  assert.equal(summary.completedWorkoutCount, 2);
+  assert.equal(summary.primaryRoutineTargetCount, 5);
+  assert.equal(summary.cycleCompletionRate, 0.3);
 });
 
 test("weekly progress keeps previous-week sessions out of current-week PR and score totals", () => {

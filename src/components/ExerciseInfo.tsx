@@ -54,7 +54,6 @@ export function ExerciseInfo({
   const [statsByScope, setStatsByScope] = useState<Partial<Record<ExerciseInfoAnalyticsScope, ExerciseInfoSheetStats | null>>>({});
   const [statsLoadingByScope, setStatsLoadingByScope] = useState<Record<ExerciseInfoAnalyticsScope, boolean>>(createEmptyStatsLoadingState);
   const [filterState, setFilterState] = useState<ExerciseInfoFilterState>(createDefaultExerciseInfoFilterState());
-  const [lastVisibleStats, setLastVisibleStats] = useState<ExerciseInfoSheetStats | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -70,7 +69,6 @@ export function ExerciseInfo({
     setStatsByScope({});
     setStatsLoadingByScope(createEmptyStatsLoadingState());
     setFilterState(createDefaultExerciseInfoFilterState());
-    setLastVisibleStats(null);
   }, [open]);
 
   useEffect(() => {
@@ -101,7 +99,6 @@ export function ExerciseInfo({
           current_cycle: null,
         });
         setStatsLoadingByScope(createEmptyStatsLoadingState());
-        setLastVisibleStats(seedPayload.stats);
         return;
       }
 
@@ -135,8 +132,12 @@ export function ExerciseInfo({
     const controller = new AbortController();
     const cachedEntry = readExerciseInfoClientPayload(normalizedExerciseId, normalizedFilterState);
     const cachedPayload = normalizeExerciseInfoClientPayload(cachedEntry?.payload ?? null);
-    const fallbackPayload = currentScope === "all_time" ? seedPayload : null;
-    const localPayload = cachedPayload ?? fallbackPayload;
+    const canUseCachedPayload = Boolean(cachedPayload && cachedEntry?.source === "server" && !shouldFetchExerciseInfoClientPayload(cachedEntry));
+    const localPayload = canUseCachedPayload ? cachedPayload : null;
+
+    if (!localPayload && seedPayload?.exercise) {
+      setExercise(seedPayload.exercise);
+    }
 
     if (localPayload) {
       setExercise(localPayload.exercise);
@@ -144,15 +145,11 @@ export function ExerciseInfo({
         ...current,
         [currentScope]: localPayload.stats,
       }));
-      setLastVisibleStats(localPayload.stats);
-      if (!cachedPayload && fallbackPayload) {
-        writeExerciseInfoClientPayload(normalizedExerciseId, fallbackPayload, "seed", normalizedFilterState);
-      }
     }
 
     setStatsLoadingByScope((current) => ({
       ...current,
-      [currentScope]: !cachedPayload && !fallbackPayload,
+      [currentScope]: !localPayload,
     }));
 
     async function loadCurrentFilter() {
@@ -180,7 +177,6 @@ export function ExerciseInfo({
           ...current,
           [currentScope]: result.payload.stats,
         }));
-        setLastVisibleStats(result.payload.stats);
         writeExerciseInfoClientPayload(normalizedExerciseId, {
           exercise: result.payload.exercise,
           stats: result.payload.stats,
@@ -201,8 +197,8 @@ export function ExerciseInfo({
       }
     }
 
-    if (shouldFetchExerciseInfoClientPayload(cachedEntry) || !cachedPayload) {
-      if (!cachedPayload && !fallbackPayload) {
+    if (!canUseCachedPayload) {
+      if (!localPayload) {
         setStatsLoadingByScope((current) => ({ ...current, [currentScope]: true }));
       }
       void loadCurrentFilter();
@@ -220,7 +216,6 @@ export function ExerciseInfo({
         exercise={exercise}
         statsByScope={statsByScope}
         statsLoadingByScope={statsLoadingByScope}
-        lastVisibleStats={lastVisibleStats}
         open={open}
         onOpenChange={onOpenChange}
         onClose={onClose}

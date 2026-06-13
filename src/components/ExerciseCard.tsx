@@ -202,6 +202,7 @@ export function ExerciseCard({
   titleContainerClassName,
   titleClassName,
   subtitleClassName,
+  subtitleLabelClassName,
   headerDivider,
   disablePressScale = false,
   disableSurfacePressScale = true,
@@ -243,6 +244,7 @@ export function ExerciseCard({
   titleContainerClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
+  subtitleLabelClassName?: string;
   headerDivider?: ReactNode;
   disablePressScale?: boolean;
   disableSurfacePressScale?: boolean;
@@ -437,7 +439,7 @@ export function ExerciseCard({
               subtitleTone === "plain" ? (
                 <div className="min-w-0">
                   {resolvedSubtitleLabel ? (
-                    <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
+                    <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME, subtitleLabelClassName)}>
                       {resolvedSubtitleLabel}
                     </p>
                   ) : null}
@@ -456,7 +458,7 @@ export function ExerciseCard({
               ) : (
                 <div className={cn("min-w-0", styles.goalRow)}>
                   {resolvedSubtitleLabel ? (
-                    <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
+                    <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME, subtitleLabelClassName)}>
                       {resolvedSubtitleLabel}
                     </p>
                   ) : null}

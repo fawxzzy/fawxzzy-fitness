@@ -387,6 +387,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       badgeText={viewModel.badgeText}
       badgeItems={viewModel.badgeItems}
       metrics={viewModel.detailedMetrics}
+      trendPreview={row.trendPreview}
       detailSections={viewModel.detailedSections}
       density={viewMode}
       tone={viewModel.semanticTone}
@@ -641,7 +642,7 @@ export function ExerciseBrowserClient({
       <div className={cn(appTokens.historyExerciseResultsViewport, "pt-2")}>
         <ul className={appTokens.historyExerciseResults}>
           {filteredRows.map((row) => (
-            <li key={`${filterKey}:${viewMode}:${row.exerciseId}`}>
+            <li key={row.exerciseId}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
             </li>
           ))}

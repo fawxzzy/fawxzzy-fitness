@@ -7,6 +7,8 @@ type SessionExerciseSeed = {
   session_id: string;
   user_id: string | null;
   exercise_id: string;
+  routine_day_exercise_id?: string | null;
+  routine_day_exercise?: { notes?: string | null } | Array<{ notes?: string | null }> | null;
   position: number;
   performed_index: number | null;
   notes: string | null;
@@ -153,7 +155,7 @@ test("loads strict user-scoped rows when user_id columns are populated", async (
   assert.equal(result.exerciseMetadataById.get("exercise-a")?.name, "Bench Press");
 });
 
-test("falls back to session-id boundary when legacy rows miss user_id, preserving non-zero counts", async () => {
+test("uses authorized session boundary when legacy rows miss user_id, preserving non-zero counts", async () => {
   const supabase = createSupabaseStub({
     sessionExercises: [{
       id: "se-legacy",
@@ -187,12 +189,12 @@ test("falls back to session-id boundary when legacy rows miss user_id, preservin
 
   assert.equal(result.orderedSessionExercises.length, 1);
   assert.equal(result.sets.length, 1);
-  assert.equal(result.summary.fallbackPathUsed, true);
+  assert.equal(result.summary.fallbackPathUsed, false);
   assert.equal(result.summary.sessionExercisesCount, 1);
   assert.equal(result.summary.setsCount, 1);
 });
 
-test("prefers relaxed detail rows when legacy ownership drift would only partially match strict user filters", async () => {
+test("uses authorized session boundary when legacy ownership drift would only partially match strict user filters", async () => {
   const supabase = createSupabaseStub({
     sessionExercises: [
       {
@@ -256,11 +258,48 @@ test("prefers relaxed detail rows when legacy ownership drift would only partial
 
   assert.equal(result.orderedSessionExercises.length, 2);
   assert.equal(result.sets.length, 2);
-  assert.equal(result.summary.strictSessionExercisesCount, 1);
+  assert.equal(result.summary.strictSessionExercisesCount, 2);
   assert.equal(result.summary.relaxedSessionExercisesCount, 2);
-  assert.equal(result.summary.strictSetsCount, 1);
+  assert.equal(result.summary.strictSetsCount, 2);
   assert.equal(result.summary.relaxedSetsCount, 2);
-  assert.equal(result.summary.fallbackPathUsed, true);
+  assert.equal(result.summary.fallbackPathUsed, false);
+});
+
+test("keeps unverified callers on strict user-scoped detail rows", async () => {
+  const supabase = createSupabaseStub({
+    sessionExercises: [{
+      id: "se-legacy-unverified",
+      session_id: "session-unverified",
+      user_id: null,
+      exercise_id: "exercise-legacy",
+      position: 1,
+      performed_index: 0,
+      notes: null,
+      is_skipped: false,
+    }],
+    sets: [{
+      id: "set-legacy-unverified",
+      session_exercise_id: "se-legacy-unverified",
+      user_id: null,
+      set_index: 0,
+      weight: 95,
+      reps: 10,
+      is_warmup: false,
+      notes: null,
+      duration_seconds: null,
+      distance: null,
+      distance_unit: null,
+      calories: null,
+      rpe: null,
+      weight_unit: "lbs",
+    }],
+  });
+
+  const result = await loadHistoryDetailRows({ supabase, sessionId: "session-unverified", userId: "user-1", sessionFound: false });
+
+  assert.equal(result.orderedSessionExercises.length, 0);
+  assert.equal(result.sets.length, 0);
+  assert.equal(result.summary.fallbackPathUsed, false);
 });
 
 test("keeps non-zero detail rows even when exercise metadata is absent", async () => {
@@ -286,6 +325,43 @@ test("keeps non-zero detail rows even when exercise metadata is absent", async (
   assert.equal(result.orderedSessionExercises.length, 1);
   assert.equal(result.summary.sessionExercisesCount, 1);
   assert.equal(result.exerciseMetadataById.size, 0);
+});
+
+test("suppresses routine-plan notes that were inherited into session exercise notes", async () => {
+  const supabase = createSupabaseStub({
+    sessionExercises: [
+      {
+        id: "se-inherited",
+        session_id: "session-notes",
+        user_id: "user-1",
+        exercise_id: "exercise-a",
+        routine_day_exercise_id: "rde-1",
+        routine_day_exercise: { notes: "Three-minute warm-up." },
+        position: 1,
+        performed_index: 0,
+        notes: " Three-minute warm-up. ",
+        is_skipped: false,
+      },
+      {
+        id: "se-manual",
+        session_id: "session-notes",
+        user_id: "user-1",
+        exercise_id: "exercise-b",
+        routine_day_exercise_id: "rde-2",
+        routine_day_exercise: { notes: "Plan cue." },
+        position: 2,
+        performed_index: 1,
+        notes: "Felt strong after warm-up.",
+        is_skipped: false,
+      },
+    ],
+    sets: [],
+  });
+
+  const result = await loadHistoryDetailRows({ supabase, sessionId: "session-notes", userId: "user-1", sessionFound: true });
+
+  assert.equal(result.orderedSessionExercises[0]?.notes, null);
+  assert.equal(result.orderedSessionExercises[1]?.notes, "Felt strong after warm-up.");
 });
 
 test("does not zero out exercises when only some exercise metadata resolves", async () => {

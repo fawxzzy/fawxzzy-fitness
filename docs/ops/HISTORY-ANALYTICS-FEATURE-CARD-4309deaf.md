@@ -1,6 +1,6 @@
 Feature Request
 Type: Feature
-Status: Ready for Fawxzzy Review
+Status: Resolved
 Points: 34
 Area: History / Analytics
 Reporter: @fawxzzy / fawxzzy
@@ -16,33 +16,27 @@ As a Fitness user, I want every metric to feel immediately useful, so I can see 
 Description
 History / Analytics was rebuilt around usefulness-first review instead of stat volume. Surface metrics should stay beginner-clear and action-guiding while secondary or diagnostic stats move deeper. Scope covers current-cycle progression, the all-time history summary, session recap cards, exercise analytics, exercise info, logged-session detail, and progression review surfaces.
 
-Current Build State
-history summary hierarchy and progression review surfaces are live
-session, exercise, logged-session, and exercise-info metric cards were rebuilt and mostly normalized
-shared metric-card and structured detail-row formatting is now in place across most history-family surfaces
-logged-session detail now uses the shared app loading pattern instead of a custom route shell
-shared signal-density treatment now supports reusable PR, promotion, watch, and regression badges plus compact row tags across history-family detail sections
-weekly cycle summaries and 30-day history summaries now use the shared section-block system instead of bespoke bullet rows
-cardio handling is broader across timed, pace, distance, calorie-first, and mixed measurement families
-exercise-info now reads in a cleaner sequence so stats, performance, progress, progression, PR history, and recent history are more intentionally separated
-exercise-info recent history now avoids repeating the exact latest result when that same result is already surfaced in Stats
-history summary metrics now use clearer outcome wording such as unique exercises, vs-prior-week delta, planned days, and completed-vs-planned cycle review
-progression activity rows now render as structured full-width entries with tags and exercise or routine context instead of raw bullet strings
-progression activity drill-ins now use the same structured row treatment cleanly, without the older mixed bullet-plus-tag display
-logged-session top detail is now recap-first, and logged-session exercise cards plus logged-set rows can carry compact PR, promo, best, and regression tags
-exercise info now moves PR History and Recent History under the how-to block and uses row tags to reduce repeated last or best copy without duplicating section-level PR badges
-localhost history preview now has a deterministic direct-open QA lane, and preview-seeded exercise history rows can open exercise info instead of failing the API-only id guard
+Completed Build State
+history summary hierarchy, cycle review surfaces, session recap cards, exercise cards, logged-session detail, exercise-info analytics, and progression review surfaces have been rebuilt around usefulness-first metrics
+shared metric-card, horizontal-scroll metric rows, structured detail-row formatting, recap-row separators, and signal tags now carry the history-family UI language across the main surfaces
+logged-session detail uses the shared app loading pattern, keeps detail content contained, hides unsafe back navigation while disclosures are open, and formats recap targets/logged values with multi-set measurement series
+history sessions now prioritize compact cards, move secondary compact metrics into detail metric rows, dedupe promotion/progression copy, and keep completion/session time as leading detail metrics
+history summary, routine progression, and cycle summary cards now focus on planned/completed/skipped/completion/exercise/progression metrics and avoid empty watch or duplicate hotspot sections
+exercise-history cards now initialize compact, use detailed-card image placement without the old left-strip waste, move last/best/history facts into metric rows, and include scoped mini trend graphs
+exercise-info now has the filtered scope model, graph legend/layers/grid/axis treatment, proportional day/set spacing, selected-point scoping, skipped-day support, progression metric priority ordering, and cleaned history day/set rows
+progression signals now use promotion, regression, manual, and watch consistently where they are meaningful; low-value generic update tags and totals were removed
+routine deletion now cascades owned session data so deleted routines do not leave orphaned history/session rows
 
-Build Split
-history shell and summary hierarchy
-session recap and exercise analytics surfaces
-exercise info and logged-session detail
-progression events, signal density, and cleanup of weak or repeated metrics
+Build Split Completed
+history shell, filtering, summary hierarchy, and compact/detailed card behavior
+session recap, logged-session detail, and exercise disclosure analytics
+exercise browser cards, detailed exercise cards, mini trend graphs, and exercise-info graph/history analytics
+progression events, signal density, tag cleanup, duplicated metric removal, skipped-day semantics, and cascade-delete cleanup
 
 Remaining Follow-Up
-finish the last visual QA and cleanup pass so row-tag spacing, fallback column behavior, and long-value packing stay consistent across the history family
-continue final route hardening and shared crash-soft handling on remaining real authenticated history-family entry paths
-run the last history-family QA sweep, then remove any remaining low-value repeats
+live Discord forum card sync still needs the Supabase/Discord operator path to be reachable; the local feature card has been updated as the source summary for that sync
+production release is intentionally not part of this closeout
+one authenticated visual QA sweep is still useful after merge/push to catch device-specific layout drift, especially mobile graph and dense recap rows
 
 Acceptance Criteria
 Add clear card and progression analytics across exercise info, session summaries, logged-session detail, and selected history surfaces.
@@ -50,4 +44,4 @@ Surface plain-language outcomes such as promotions, regressions, stalled exercis
 Keep surface metrics beginner-clear, avoid repeated low-value stats, and reuse one normalized metric-card language across the history family.
 
 Evidence
-Updated Jun 10, 2026. The lane is in late finalization: shared loaders, structured detail rows, summary metric cleanup, progression activity normalization, recap-first logged-session detail, the deterministic local preview lane, and the latest exercise-info pass are in place; remaining work is final visual cleanup, authenticated-route hardening, and closeout QA.
+Updated Jun 13, 2026. The non-production feature pass is complete locally: history-family summaries, logged-session detail, exercise-history cards, exercise-info graph/history analytics, progression signal tags, scoped filtering, skipped-day handling, and routine-delete cascade cleanup are implemented on the feature branch. Focused lint/test/migration checks were run during the pass; full typecheck remains blocked by pre-existing structured-detail debt outside this feature lane.

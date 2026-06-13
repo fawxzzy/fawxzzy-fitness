@@ -12,7 +12,6 @@ import {
   updateLogExerciseSetAction,
   updateLogMetaAction,
 } from "@/app/actions/history";
-import { ExerciseProgressionActivityPanel } from "@/components/ExerciseProgressionActivityPanel";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { ExerciseSurfaceMetricGrid } from "@/components/exercises/ExerciseSurfaceMetricGrid";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -91,6 +90,7 @@ type AuditExercise = {
   default_unit: string | null;
   target_sets_min?: number | null;
   target_sets_max?: number | null;
+  targetSeriesSummary?: string | null;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   sets: AuditSet[];
 };
@@ -110,7 +110,6 @@ const SESSION_HEADER_TITLE_CLASS_NAME = "text-[0.79rem] font-semibold leading-[1
 const SET_CARD_SHELL_CLASS_NAME = "w-full overflow-hidden rounded-[1.05rem] border-0 bg-[rgb(var(--surface-1-rgb)/0.88)] bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0.14),rgb(var(--accent-divider-rgb)/0.85),rgb(var(--accent-divider-rgb)/0.14))] bg-[length:100%_1px] bg-no-repeat [background-position:0_0] shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0] [--glass-shadow:none]";
 const FOCUSED_PANEL_TITLE_CLASS_NAME = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const FOCUSED_PANEL_TITLE_STYLE = { color: "rgb(var(--accent-divider-rgb) / 0.96)" } as const;
-const FOCUSED_SUBSECTION_HEADING_CLASS_NAME = "px-2 pt-0.5 text-center text-[0.82rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const FOCUSED_SUBSECTION_TITLE_CLASS_NAME = "text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 
 function formatWeekdayShort(value: string) {
@@ -213,6 +212,68 @@ function buildMeasurementSummary(set: EditableSet, defaultUnit: string | null) {
     distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(defaultUnit) ?? "mi",
     emptyLabel: "No measurements",
   });
+}
+
+function formatSeriesNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatLoggedMetricSeries(values: string[], unitLabel?: string | null) {
+  const cleanedValues = values.map((value) => value.trim()).filter(Boolean);
+  if (cleanedValues.length === 0) {
+    return null;
+  }
+
+  return `${cleanedValues.join(" / ")}${unitLabel ? ` ${unitLabel}` : ""}`;
+}
+
+function buildLoggedMeasurementSeriesSummary(sets: EditableSet[], defaultUnit: string | null) {
+  const meaningfulSets = sets.filter(hasMeaningfulSetData);
+  if (meaningfulSets.length === 0) {
+    return null;
+  }
+
+  const weightUnit = meaningfulSets.find((set) => parsePositiveNumber(set.values.weight) > 0)?.values.weightUnit ?? "lbs";
+  const distanceUnit = resolveFocusedDistanceUnit(meaningfulSets, defaultUnit);
+  const metricParts = [
+    formatLoggedMetricSeries(
+      meaningfulSets
+        .map((set) => parsePositiveNumber(set.values.reps))
+        .filter((value) => value > 0)
+        .map((value) => formatSeriesNumber(value)),
+      "reps",
+    ),
+    formatLoggedMetricSeries(
+      meaningfulSets
+        .map((set) => parsePositiveNumber(set.values.weight))
+        .filter((value) => value > 0)
+        .map((value) => formatSeriesNumber(value)),
+      weightUnit,
+    ),
+    formatLoggedMetricSeries(
+      meaningfulSets
+        .map((set) => parseDurationInput(set.values.duration) ?? 0)
+        .filter((value) => value > 0)
+        .map((value) => formatDurationClock(value)),
+      null,
+    ),
+    formatLoggedMetricSeries(
+      meaningfulSets
+        .map((set) => parsePositiveNumber(set.values.distance))
+        .filter((value) => value > 0)
+        .map((value) => formatSeriesNumber(value)),
+      distanceUnit,
+    ),
+    formatLoggedMetricSeries(
+      meaningfulSets
+        .map((set) => parsePositiveNumber(set.values.calories))
+        .filter((value) => value > 0)
+        .map((value) => formatSeriesNumber(value)),
+      "cal",
+    ),
+  ].filter((value): value is string => Boolean(value));
+
+  return metricParts.length > 0 ? metricParts.join(" • ") : null;
 }
 
 function scoreEditableSet(set: EditableSet) {
@@ -358,11 +419,14 @@ function buildLoggedSessionRecapItemMeta(args: {
 
       const progressionSummary = exercise.progressionSummary ?? null;
       const sets = args.editableSets[exercise.id] ?? [];
-      const bestSet = findBestEditableSet(sets);
-      const bestSetDisplay = bestSet ? buildMeasurementSummary(bestSet, exercise.default_unit) : null;
+      const loggedSeriesSummary = buildLoggedMeasurementSeriesSummary(sets, exercise.default_unit);
+      const targetSeriesSummary = exercise.targetSeriesSummary?.trim()
+        || progressionSummary?.currentTargetLabel?.trim()
+        || null;
       const valueParts = [
-        progressionSummary?.currentTargetLabel?.trim() ? `Target ${progressionSummary.currentTargetLabel.trim()}` : null,
-        bestSetDisplay && bestSetDisplay !== "No measurements" ? `Logged ${bestSetDisplay}` : null,
+        `${sets.length} ${sets.length === 1 ? "set" : "sets"}`,
+        targetSeriesSummary ? `Target: ${targetSeriesSummary}` : null,
+        loggedSeriesSummary ? `Logged: ${loggedSeriesSummary}` : null,
       ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
       const signals = [
         prExerciseNames.has(exerciseName) ? "pr" : null,
@@ -598,85 +662,6 @@ function buildFocusedExerciseDetailedMetrics(args: {
   return [...summaryMetrics, ...detailMetrics.slice(0, 3)].slice(0, 6);
 }
 
-function buildFocusedExerciseSessionRecapItems(args: {
-  exercise: AuditExercise;
-  sets: EditableSet[];
-  defaultUnit: string | null;
-}) {
-  const setCount = args.sets.length;
-  const meaningfulSetCount = countMeaningfulSetData(args.sets);
-  const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
-  const totalDurationSeconds = args.sets.reduce((sum, set) => sum + (parseDurationInput(set.values.duration) ?? 0), 0);
-  const totalDistance = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.distance), 0);
-  const totalCalories = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.calories), 0);
-  const totalVolume = args.sets.reduce((sum, set) => {
-    const reps = parsePositiveNumber(set.values.reps);
-    const weight = parsePositiveNumber(set.values.weight);
-    return reps > 0 && weight > 0 ? sum + (weight * reps) : sum;
-  }, 0);
-  const volumeUnit = args.sets.find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit ?? null;
-  const distanceUnit = resolveFocusedDistanceUnit(args.sets, args.defaultUnit);
-  const pace = totalDurationSeconds > 0 && totalDistance > 0 && distanceUnit
-    ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
-    : null;
-
-  if (meaningfulSetCount === 0) {
-    return [];
-  }
-
-  const items = [`${formatMetricCount(setCount)} ${setCount === 1 ? "set" : "sets"} logged in this session.`];
-
-  if (args.exercise.measurement_type === "reps") {
-    items.push(`${formatMetricCount(totalReps)} reps across ${formatFocusedVolume(totalVolume, volumeUnit)}.`);
-  } else if (args.exercise.measurement_type === "time") {
-    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} total time.`);
-    if (totalCalories > 0) {
-      items.push(`${formatMetricCount(totalCalories)} calories logged.`);
-    }
-  } else if (args.exercise.measurement_type === "distance") {
-    items.push(`${formatDistance(totalDistance, distanceUnit) ?? "0"} total distance.`);
-    if (totalCalories > 0) {
-      items.push(`${formatMetricCount(totalCalories)} calories logged.`);
-    }
-  } else if (args.exercise.measurement_type === "time_distance") {
-    items.push(`${formatWorkoutDuration(totalDurationSeconds) ?? "0:00"} over ${formatDistance(totalDistance, distanceUnit) ?? "0"}.`);
-    if (pace) {
-      items.push(`Pace held at ${pace}.`);
-    }
-  } else if (totalCalories > 0) {
-    items.push(`${formatMetricCount(totalCalories)} calories logged.`);
-  }
-
-  return items.filter((value, index, values) => Boolean(value) && values.indexOf(value) === index).slice(0, 2);
-}
-
-function buildFocusedExerciseDetailedSections(args: {
-  exercise: AuditExercise;
-  sets: EditableSet[];
-  defaultUnit: string | null;
-  hasPrInSession: boolean;
-}): HistorySessionDetailSection[] {
-  const sessionItems = buildFocusedExerciseSessionRecapItems({
-    exercise: args.exercise,
-    sets: args.sets,
-    defaultUnit: args.defaultUnit,
-  });
-
-  return [
-    ...(sessionItems.length > 0
-      ? [{
-          title: "Recap",
-          items: sessionItems.map((item, index) => ({
-            id: `focused-recap-${index}`,
-            primary: item,
-            signals: args.hasPrInSession ? ["pr" as const] : undefined,
-            layout: "single-column" as const,
-          })),
-        }]
-      : []),
-  ];
-}
-
 function buildLoggedSetSummaryItems(set: EditableSet, defaultUnit: string | null) {
   return formatMeasurementSummaryItems({
     ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
@@ -711,23 +696,6 @@ function autoSizeTextarea(element: HTMLTextAreaElement | null) {
   if (!element) return;
   element.style.height = "0px";
   element.style.height = `${Math.max(element.scrollHeight, 52)}px`;
-}
-
-function renderSignatureMeta(parts: string[]) {
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      {parts.map((part, index) => (
-        <div key={`${part}-${index}`} className="flex min-w-0 items-center gap-2">
-          {index > 0 ? <SignatureDot /> : null}
-          <span className="min-w-0 truncate">{part}</span>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function countMeaningfulSetData(sets: EditableSet[]) {
@@ -846,6 +814,27 @@ function WorkoutRecapCard({ recap }: { recap: WorkoutRecapArtifact }) {
   );
 }
 
+function buildFocusedProgressionMetrics(progressionSummary: ExerciseProgressionLifelineSummary | null | undefined): MetricDatum[] {
+  if (!progressionSummary) {
+    return [];
+  }
+
+  const regressionCount = progressionSummary.deloadCount + progressionSummary.revertCount;
+  const metrics: Array<MetricDatum | null> = [
+    progressionSummary.currentTargetLabel ? { label: "Current", value: progressionSummary.currentTargetLabel } : null,
+    progressionSummary.firstTargetLabel ? { label: "Started", value: progressionSummary.firstTargetLabel } : null,
+    { label: "Promotions", value: `${progressionSummary.promotionCount}`, valueTone: progressionSummary.promotionCount > 0 ? "success" : "muted" },
+    regressionCount > 0 ? { label: "Regressions", value: `${regressionCount}`, valueTone: "danger" } : null,
+    (progressionSummary.watchCount ?? 0) > 0 ? { label: "Watch", value: `${progressionSummary.watchCount ?? 0}`, valueTone: "warning" } : null,
+    progressionSummary.manualChangeCount > 0 ? { label: "Manual", value: `${progressionSummary.manualChangeCount}`, valueTone: "warning" } : null,
+    progressionSummary.latestChangeSummary || progressionSummary.latestEventLabel
+      ? { label: "Latest", value: progressionSummary.latestChangeSummary ?? progressionSummary.latestEventLabel ?? "" }
+      : null,
+  ];
+
+  return metrics.filter((item): item is MetricDatum => item !== null);
+}
+
 function FocusedExerciseContextPanels({
   overviewMetrics,
   overviewSections,
@@ -875,18 +864,7 @@ function FocusedExerciseContextPanels({
   const shouldRenderNotes = showNotes && canShowNotes && (isEditing ? canEditNotes && Boolean(noteInput) : hasNotes);
   const resolvedOverviewMetrics = (overviewMetrics ?? []).filter((item) => item.value.trim().length > 0);
   const resolvedOverviewSections = (overviewSections ?? []).filter((section) => section.items.length > 0);
-  const progressionMetricCandidates: Array<MetricDatum | null> = progressionSummary ? [
-    progressionSummary.currentTargetLabel ? { label: "Current", value: progressionSummary.currentTargetLabel } : null,
-    progressionSummary.firstTargetLabel ? { label: "Started", value: progressionSummary.firstTargetLabel } : null,
-    { label: "Promotions", value: `${progressionSummary.promotionCount}`, valueTone: progressionSummary.promotionCount > 0 ? "success" : "muted" },
-    progressionSummary.latestEventLabel ? {
-      label: "Latest",
-      value: progressionSummary.latestEventLabel,
-    } : null,
-  ] : [];
-  const progressionMetrics: MetricDatum[] = progressionMetricCandidates
-    .filter((item): item is MetricDatum => item !== null)
-    .slice(0, 4);
+  const progressionMetrics = buildFocusedProgressionMetrics(progressionSummary);
 
   return (
     <div className="space-y-2">
@@ -903,25 +881,16 @@ function FocusedExerciseContextPanels({
       ) : null}
 
       {showProgression && (progressionMetrics.length > 0 || progressionSummary) ? (
-        <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+        <AppPanel className={cn(appTokens.detailSection, "space-y-2 !border-0 !bg-transparent p-2 !shadow-none")}>
           <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Progression</h3>
           {progressionMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={progressionMetrics} className="justify-center" scrollable /> : null}
-          {progressionSummary ? (
-            <ExerciseProgressionActivityPanel
-              progression={progressionSummary}
-              headingClassName={FOCUSED_SUBSECTION_HEADING_CLASS_NAME}
-              subsectionTitleClassName={FOCUSED_SUBSECTION_TITLE_CLASS_NAME}
-              renderMetaLine={renderSignatureMeta}
-              hideLastPromotionOverview
-            />
-          ) : null}
         </AppPanel>
       ) : null}
 
       {shouldRenderNotes ? (
-        <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+        <AppPanel className={cn(appTokens.detailSection, "space-y-2 !border-0 !bg-transparent p-2 !shadow-none")}>
           <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Notes</h3>
-          <div className={cn(appTokens.detailHistoryRow, "px-2 py-2")}>
+          <div className="px-2 py-1">
             {isEditing
               ? noteInput
               : (
@@ -1051,16 +1020,8 @@ export function LogAuditClient({
       );
     }
 
-    const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
-    const sets = editableSets[expandedExercise.id] ?? [];
-
-    return buildFocusedExerciseDetailedSections({
-      exercise: expandedExercise,
-      sets,
-      defaultUnit: expandedExercise.default_unit,
-      hasPrInSession: (focusedSessionSummary.prExerciseNames ?? []).includes(exerciseName),
-    });
-  }, [editableSets, expandedExercise, exerciseNameMap, focusedRecapItemMeta, focusedSessionSummary]);
+    return [];
+  }, [expandedExercise, focusedRecapItemMeta, focusedSessionSummary]);
 
   const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
   const isFocusedSetExpanded = Boolean(expandedSetId);
@@ -1366,7 +1327,7 @@ export function LogAuditClient({
       <SignatureMetaTag className="text-[10px] tracking-[0.08em]">
         {formatDateShort(sessionSummary.startedAt).toUpperCase()}
       </SignatureMetaTag>
-      <TopRightBackButton href={backHref} ariaLabel="Back to sessions" />
+      {!expandedExercise ? <TopRightBackButton href={backHref} ariaLabel="Back to sessions" /> : null}
     </div>
   );
 
@@ -1638,7 +1599,6 @@ export function LogAuditClient({
                             isEditing={isEditing}
                             canEditNotes={!isFocusedSetExpanded}
                             canShowNotes={focusedHasMeaningfulSetData}
-                            showProgression={false}
                             showNotes={false}
                             noteInput={(
                               <label className="block">
@@ -1774,6 +1734,7 @@ export function LogAuditClient({
                             canEditNotes={!isFocusedSetExpanded}
                             canShowNotes={focusedHasMeaningfulSetData}
                             showOverview={false}
+                            showProgression={false}
                             noteInput={(
                               <label className="block">
                                 <LabeledEditorField label="Exercise notes">

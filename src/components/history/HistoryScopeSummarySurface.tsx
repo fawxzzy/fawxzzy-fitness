@@ -71,7 +71,8 @@ function buildMetricItems(summary: HistoryScopeSummary): MetricDatum[] {
     { label: "Planned Days", value: String(summary.plannedWorkoutDayCount), valueTone: summary.plannedWorkoutDayCount > 0 ? "default" : "muted" },
     { label: "Completed Days", value: String(summary.completedWorkoutDayCount), valueTone: summary.completedWorkoutDayCount > 0 ? "success" : "muted" },
     { label: "Skipped Days", value: String(summary.skippedWorkoutDayCount), valueTone: summary.skippedWorkoutDayCount > 0 ? "danger" : "muted" },
-    { label: "Distinct Exercises", value: String(summary.exerciseCount), valueTone: summary.exerciseCount > 0 ? "default" : "muted" },
+    { label: "Routines", value: String(summary.routineCount), valueTone: summary.routineCount > 0 ? "default" : "muted" },
+    { label: "Exercises Trained", value: String(summary.exerciseCount), valueTone: summary.exerciseCount > 0 ? "default" : "muted" },
     { label: "PR Moments", value: String(summary.prMomentCount), valueTone: summary.prMomentCount > 0 ? "success" : "muted" },
     { label: "Promotions", value: String(summary.progressionSummary.promotionCount), valueTone: summary.progressionSummary.promotionCount > 0 ? "success" : "muted" },
     { label: "Regressions", value: String(regressionCount), valueTone: regressionCount > 0 ? "danger" : "muted" },
@@ -86,12 +87,7 @@ function MetricGrid({ summary }: { summary: HistoryScopeSummary }) {
 }
 
 function ProgressionRecapRow({ summary }: { summary: HistoryScopeSummary }) {
-  const items = (summary.recapItems ?? []).map((item) => ({
-    ...item,
-    signals: null,
-    tagLabels: null,
-    layout: "auto" as const,
-  }));
+  const items = summary.recapItems ?? [];
   if (items.length === 0) {
     return null;
   }
@@ -128,12 +124,6 @@ function Body({ summary, topPaddingClassName = "pt-2" }: { summary: HistoryScope
       <MetricGrid summary={summary} />
       <ProgressionRecapRow summary={summary} />
       <div className="space-y-3">
-        <DetailSectionBlock
-          title="Summary"
-          items={summary.reviewItems}
-          tone="muted"
-          divider={false}
-        />
         {summary.hotspotItems.length > 0 ? (
           <DetailSectionBlock
             title="Signals"

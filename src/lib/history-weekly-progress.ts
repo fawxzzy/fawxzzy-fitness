@@ -55,6 +55,7 @@ export type WeeklyProgressSummary = {
   primaryRoutineTitle: string | null;
   primaryRoutineTargetCount: number;
   completedWorkoutCount: number;
+  cycleCompletionRate?: number | null;
   previousWeekWorkoutCount: number;
   activeDayCount: number;
   prMomentCount: number;
@@ -170,6 +171,38 @@ function labelForVolumeCategory(key: WeeklyProgressVolumeCategoryKey) {
 
 function normalizePositive(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function clampCompletionRate(value: number | null | undefined, fallback = 1) {
+  const safeValue = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  return Math.max(0, Math.min(1, safeValue));
+}
+
+function resolveCycleCompletionRate(
+  sessions: Array<SessionSummary & { dayKey: string }>,
+  plannedDayCount: number,
+) {
+  if (sessions.length === 0) {
+    return plannedDayCount > 0 ? 0 : null;
+  }
+
+  const ratesByDay = new Map<string, number[]>();
+  for (const session of sessions) {
+    const rates = ratesByDay.get(session.dayKey) ?? [];
+    rates.push(clampCompletionRate(session.completionRate));
+    ratesByDay.set(session.dayKey, rates);
+  }
+
+  const completedDayRates = [...ratesByDay.values()].map((rates) => (
+    rates.reduce((sum, rate) => sum + rate, 0) / Math.max(rates.length, 1)
+  ));
+  const completedRateSum = completedDayRates.reduce((sum, rate) => sum + rate, 0);
+
+  if (plannedDayCount > 0) {
+    return Math.max(0, Math.min(1, completedRateSum / plannedDayCount));
+  }
+
+  return completedRateSum / Math.max(completedDayRates.length, 1);
 }
 
 function resolveVolumeCategory(
@@ -521,6 +554,7 @@ export function buildWeeklyProgressSummary({
   const primaryRoutineTitle = resolvePrimaryRoutineTitle(currentWeekSessions);
   const prMomentCount = currentWeekSessions.reduce((sum, session) => sum + session.prCounts.total, 0);
   const primaryRoutineTargetCount = resolvePrimaryRoutineTargetCount(currentWeekSessions, routineDayCountByRoutineId);
+  const cycleCompletionRate = resolveCycleCompletionRate(currentWeekSessions, primaryRoutineTargetCount);
   const prExerciseNames: string[] = [];
   for (const session of currentWeekSessions) {
     for (const exerciseName of session.prExerciseNames ?? []) {
@@ -726,6 +760,7 @@ export function buildWeeklyProgressSummary({
     primaryRoutineTitle,
     primaryRoutineTargetCount,
     completedWorkoutCount,
+    cycleCompletionRate,
     previousWeekWorkoutCount,
     activeDayCount,
     prMomentCount,

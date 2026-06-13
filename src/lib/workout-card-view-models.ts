@@ -122,6 +122,73 @@ function formatSignedWholeDelta(delta: number, suffix = "") {
   return `${delta > 0 ? "+" : "-"}${rounded}${suffix}`;
 }
 
+function resolveArrowDirectionTone(value: string): MetricDatum["valueTone"] | null {
+  const parts = value.split(/\s*(?:->|\u2192|=>)\s*/);
+  if (parts.length < 2) {
+    return null;
+  }
+
+  const leftNumbers = Array.from(parts[0].matchAll(/-?\d+(?:\.\d+)?/g)).map((match) => Number(match[0]));
+  const rightNumbers = Array.from(parts[1].matchAll(/-?\d+(?:\.\d+)?/g)).map((match) => Number(match[0]));
+  const comparisonCount = Math.min(leftNumbers.length, rightNumbers.length);
+  if (comparisonCount === 0) {
+    return null;
+  }
+
+  let sawIncrease = false;
+  let sawDecrease = false;
+  for (let index = 0; index < comparisonCount; index += 1) {
+    const delta = rightNumbers[index] - leftNumbers[index];
+    if (Math.abs(delta) < 0.001) {
+      continue;
+    }
+    if (delta > 0) {
+      sawIncrease = true;
+    } else {
+      sawDecrease = true;
+    }
+  }
+
+  if (sawIncrease && !sawDecrease) {
+    return "success";
+  }
+  if (sawDecrease && !sawIncrease) {
+    return "danger";
+  }
+  if (!sawIncrease && !sawDecrease) {
+    return "warning";
+  }
+  return "warning";
+}
+
+function resolveDirectionalMetricTone(value: string | null | undefined, context?: string | null): MetricDatum["valueTone"] | null {
+  const combined = [context, value].filter(Boolean).join(" ").trim();
+  if (!combined) {
+    return null;
+  }
+
+  const arrowTone = resolveArrowDirectionTone(combined);
+  if (arrowTone) {
+    return arrowTone;
+  }
+
+  const normalized = combined.toLowerCase();
+  if (/^[+-]?0(?:\.0+)?(?:[^\d.]|$)/.test(normalized) || /\b(matched|match|even|same|flat|steady|held|no change)\b/.test(normalized)) {
+    return "warning";
+  }
+  if (/^-/.test(normalized) || /(^|\s)-\d/.test(normalized) || /\b(regress|regression|regressed|revert|reverted|deload|reduced|removed|decrease|decreased|down|below|slipped|lost)\b/.test(normalized)) {
+    return "danger";
+  }
+  if (/^\+/.test(normalized) || /(^|\s)\+\d/.test(normalized) || /\b(promotion|promoted|increase|increased|improved|up|new best|pr)\b/.test(normalized)) {
+    return "success";
+  }
+  if (/\b(manual|watch)\b/.test(normalized)) {
+    return "warning";
+  }
+
+  return null;
+}
+
 function formatWeightReps(weight: number | null, reps: number | null, unit: string | null) {
   const weightValue = positive(weight);
   const repsValue = positive(reps);
@@ -413,35 +480,62 @@ export function buildPlannedExerciseDetailMetrics(args: ExerciseIdentityChipArgs
 }
 
 function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily): MetricDatum[] {
-  if (row.progressionSummary?.eventCount) {
-    const currentTargetLabel = row.progressionSummary.currentTargetLabel?.trim() ?? "";
-    return [
-      {
-        label: "Sessions",
-        value: formatIntegerValue(row.sessionCount),
-        valueTone: row.sessionCount > 0 ? "default" : "muted",
-      },
-      {
-        label: "Sets",
-        value: formatIntegerValue(row.setCount ?? 0),
-        valueTone: positive(row.setCount) > 0 ? "default" : "muted",
-      },
-      {
-        label: "Promoted",
-        value: formatIntegerValue(row.progressionSummary.promotionCount),
-        valueTone: row.progressionSummary.promotionCount > 0 ? "success" : "muted",
-      },
-      {
-        label: "Target",
-        value: currentTargetLabel || "No target",
-        valueTone: currentTargetLabel ? "default" : "muted",
-      },
-    ];
-  }
-
   const trackingPresentationKind = mapExerciseAnalyticsFamilyToPresentationKind(family);
+  const progression = row.progressionSummary ?? null;
+  const firstTargetLabel = progression?.firstTargetLabel?.trim() ?? "";
+  const currentTargetLabel = row.progressionSummary?.currentTargetLabel?.trim() ?? "";
+  const latestChangeSummary = row.progressionSummary?.latestChangeSummary?.trim() ?? "";
+  const cleanedBest = row.bestSummary?.replace(/^Best\s*[:|]\s*/i, "").trim() || null;
+  const comparison = buildHistoryExerciseComparison(row);
+  const regressionCount = (progression?.deloadCount ?? 0) + (progression?.revertCount ?? 0);
+  const watchCount = progression?.watchCount ?? 0;
+  const startedMatchesCurrent = firstTargetLabel.length > 0 && currentTargetLabel.length > 0 && firstTargetLabel === currentTargetLabel;
 
   const metrics: MetricDatum[] = [
+    row.lastSummary ? {
+      label: "Last",
+      value: row.lastSummary,
+      valueTone: "default",
+    } : {
+      label: "Last",
+      value: family === "timed-hold" ? "No timed effort" : "No history",
+      valueTone: "muted",
+    },
+    comparison ? {
+      label: "Vs Best",
+      value: comparison,
+      valueTone: resolveDirectionalMetricTone(comparison, row.progressionSummary?.latestEventLabel) ?? "default",
+    } : null,
+    cleanedBest ? {
+      label: "Best",
+      value: cleanedBest,
+      valueTone: "success",
+    } : null,
+    progression && firstTargetLabel && !startedMatchesCurrent ? {
+      label: "Started",
+      value: firstTargetLabel,
+      valueTone: "default",
+    } : null,
+    progression ? {
+      label: "Current",
+      value: currentTargetLabel || "No target",
+      valueTone: currentTargetLabel ? "default" : "muted",
+    } : null,
+    latestChangeSummary ? {
+      label: "Latest Change",
+      value: latestChangeSummary,
+      valueTone: resolveDirectionalMetricTone(latestChangeSummary, row.progressionSummary?.latestEventLabel) ?? "default",
+    } : null,
+    row.prCount > 0 ? {
+      label: "PRs",
+      value: row.prLabel || formatIntegerValue(row.prCount),
+      valueTone: "success",
+    } : null,
+    row.last_performed_at ? {
+      label: "Last Trained",
+      value: formatDateShort(row.last_performed_at),
+      valueTone: "default",
+    } : null,
     {
       label: "Sessions",
       value: formatIntegerValue(row.sessionCount),
@@ -452,12 +546,32 @@ function buildHistoryExerciseDetailedMetrics(row: ExerciseBrowserRow, family: Ex
       value: formatIntegerValue(row.setCount ?? 0),
       valueTone: positive(row.setCount) > 0 ? "default" : "muted",
     },
+    progression && progression.promotionCount > 0 ? {
+      label: "Promotions",
+      value: formatIntegerValue(progression.promotionCount),
+      valueTone: "success",
+    } : null,
+    regressionCount > 0 ? {
+      label: "Regressions",
+      value: formatIntegerValue(regressionCount),
+      valueTone: "danger",
+    } : null,
+    watchCount > 0 ? {
+      label: "Watch",
+      value: formatIntegerValue(watchCount),
+      valueTone: "warning",
+    } : null,
+    progression && progression.manualChangeCount > 0 ? {
+      label: "Manual",
+      value: formatIntegerValue(progression.manualChangeCount),
+      valueTone: "warning",
+    } : null,
     {
       label: "Tracking",
       value: resolveTrackingLabel(trackingPresentationKind),
       valueTone: "muted",
     },
-  ];
+  ].filter((item): item is MetricDatum => Boolean(item));
 
   return metrics;
 }
@@ -492,26 +606,35 @@ function buildHistoryExerciseBadgeItems(row: ExerciseBrowserRow) {
   return items.slice(0, 4);
 }
 
-function buildHistoryExerciseDetailedSections(row: ExerciseBrowserRow, family: ExerciseAnalyticsFamily) {
-  const cleanedBest = row.bestSummary?.replace(/^Best\s*[:|]\s*/i, "").trim() || null;
-  const historyItems = [
-    cleanedBest ? `Best | ${cleanedBest}` : null,
-    row.prCount > 0 ? (row.prLabel ? `PRs | ${row.prLabel}` : `${formatIntegerValue(row.prCount)} ${row.prCount === 1 ? "PR" : "PRs"} recorded`) : null,
-    row.last_performed_at ? `Last trained ${formatDateShort(row.last_performed_at)}` : null,
-  ].filter((value, index, items): value is string => Boolean(value) && items.indexOf(value) === index);
-  const progressionItems = [
-    row.progressionSummary?.latestChangeSummary,
-    ...(row.progressionSummary?.lifelineItems ?? []),
-    row.deltaFromBest && row.deltaFromBest !== buildHistoryExerciseComparison(row) ? row.deltaFromBest : null,
-  ].filter((value, index, items): value is string => Boolean(value) && items.indexOf(value) === index);
-  const sections: Array<{ title: string; items: string[] }> = [
-    {
-      title: "History",
-      items: historyItems.length > 0
-        ? historyItems.slice(0, 3)
-        : [row.lastSummary ?? (family === "timed-hold" ? "No timed effort logged yet." : "No logged history yet.")],
-    },
-  ];
+function isProgressionCountOnlyItem(item: string) {
+  const normalized = item.trim().toLowerCase();
+  return (
+    /^\d+\s+promotions?\s+applied\b/.test(normalized)
+    || /^\d+\s+regressions?\s+logged\b/.test(normalized)
+    || /^\d+\s+watch\s+logged\b/.test(normalized)
+    || /^\d+\s+manual changes?\s+recorded\b/.test(normalized)
+  );
+}
+
+function isGeneratedProgressionMetricItem(item: string) {
+  const normalized = item.trim().toLowerCase();
+  return (
+    isProgressionCountOnlyItem(item)
+    || /^latest\s*:/.test(normalized)
+    || /^target path\s*:/.test(normalized)
+    || /^lifeline\s*:/.test(normalized)
+    || /^recent activity\s*:/.test(normalized)
+    || /^recent\s*:/.test(normalized)
+    || /\bupdates?\b/.test(normalized)
+  );
+}
+
+function buildHistoryExerciseDetailedSections(row: ExerciseBrowserRow) {
+  const rawProgressionItems = row.progressionSummary?.lifelineItems ?? [];
+  const progressionItems = rawProgressionItems
+    .filter((item) => !isGeneratedProgressionMetricItem(item))
+    .filter((value, index, items): value is string => Boolean(value) && items.indexOf(value) === index);
+  const sections: Array<{ title: string; items: string[] }> = [];
 
   if (progressionItems.length > 0) {
     sections.push({
@@ -608,7 +731,7 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
     badgeItems,
     badgeText: badgeItems[0],
     detailedMetrics: buildHistoryExerciseDetailedMetrics(row, family),
-    detailedSections: buildHistoryExerciseDetailedSections(row, family),
+    detailedSections: buildHistoryExerciseDetailedSections(row),
     semanticTone,
   };
 }
@@ -672,11 +795,15 @@ function buildSessionCompactChips(session: SessionSummary, progress: string | nu
     chips.push({ label: formatCount(session.setCount, "set") });
   }
 
+  const progressionSummary = session.progressionSummary ?? null;
+  const shouldShowProgressChip = Boolean(progress) && !((progressionSummary?.promotionCount ?? 0) > 0);
   if (progress) {
-    chips.push({
-      label: progress,
-      tone: progress.startsWith("+") || progress.includes("PR") ? "success" : "default",
-    });
+    if (shouldShowProgressChip) {
+      chips.push({
+        label: progress,
+        tone: progress.startsWith("+") || progress.includes("PR") ? "success" : "default",
+      });
+    }
   } else if (session.completionRate !== undefined) {
     chips.push({ label: `${formatPercent(session.completionRate)} complete` });
   }
@@ -725,7 +852,21 @@ function buildSessionProgressionMetrics(session: SessionSummary): MetricDatum[] 
 }
 
 function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
+  const duration = session.durationSec ? formatDurationShort(session.durationSec) : null;
   const metrics: MetricDatum[] = [
+    ...(duration && duration !== "0m"
+      ? [{
+          label: "Session Time",
+          value: duration,
+        }]
+      : []),
+    ...(typeof session.completionRate === "number"
+      ? [{
+          label: "Completion",
+          value: formatPercent(session.completionRate),
+          valueTone: session.completionRate >= 1 ? "success" as const : "warning" as const,
+        }]
+      : []),
     {
       label: "Exercises",
       value: formatIntegerValue(session.exerciseCount),
@@ -745,26 +886,6 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
     });
   }
 
-  const duration = session.durationSec ? formatDurationShort(session.durationSec) : null;
-  if (duration && duration !== "0m") {
-    metrics.push({
-      label: "Duration",
-      value: duration,
-    });
-  }
-
-  const shouldShowCompletion = session.completionRate !== undefined && (
-    session.completionRate < 1
-    || !session.hasSetData
-    || session.setCount === 0
-  );
-  if (shouldShowCompletion) {
-    metrics.push({
-      label: "Completion",
-      value: formatPercent(session.completionRate ?? 0),
-    });
-  }
-
   if (session.hasNote) {
     metrics.push({
       label: "Note",
@@ -774,8 +895,8 @@ function buildSessionDetailedMetrics(session: SessionSummary): MetricDatum[] {
   }
 
   if (metrics.length <= 2) {
-    metrics.push({
-      label: "Duration",
+    metrics.unshift({
+      label: "Session Time",
       value: duration ?? "Open",
     });
   }

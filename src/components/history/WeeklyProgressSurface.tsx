@@ -45,7 +45,7 @@ function buildWeeklyHeaderTitle({
     <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
       <span className="min-w-0">{leadingLabel}</span>
       <span className="inline-flex items-center">
-        <SignatureMiniPipe className="w-[0.38rem]" />
+        <SignatureMiniPipe className="w-[0.38rem] translate-y-px" />
       </span>
       <span className="text-[rgb(var(--accent-yellow-on)/0.94)]">{rangeLabel}</span>
     </span>
@@ -70,40 +70,6 @@ function buildCurrentProgressionTitle(summary: WeeklyProgressSummary, routineTit
   });
 }
 
-function buildCurrentProgressionPreview(summary: WeeklyProgressSummary) {
-  const regressionCount = summary.progressionSummary.deloadCount + (summary.progressionSummary.revertCount ?? 0);
-  const coverageLabel = summary.primaryRoutineTargetCount > 0
-    ? `${summary.completedWorkoutCount}/${summary.primaryRoutineTargetCount} completed`
-    : `${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "session" : "sessions"}`;
-  const changeLabels = [
-    summary.progressionSummary.promotionCount > 0 ? `${summary.progressionSummary.promotionCount} ${summary.progressionSummary.promotionCount === 1 ? "promotion" : "promotions"}` : null,
-    regressionCount > 0 ? `${regressionCount} ${regressionCount === 1 ? "regression" : "regressions"}` : null,
-    summary.progressionSummary.manualChangeCount > 0 ? `${summary.progressionSummary.manualChangeCount} ${summary.progressionSummary.manualChangeCount === 1 ? "manual" : "manuals"}` : null,
-  ].filter((value): value is string => Boolean(value));
-  const changeLabel = changeLabels.length > 0 ? changeLabels.join(" | ") : "No changes yet";
-  const prLabel = summary.prMomentCount > 0
-    ? `${summary.prMomentCount} ${summary.prMomentCount === 1 ? "PR" : "PRs"}`
-    : "No PRs yet";
-
-  return [coverageLabel, changeLabel, prLabel].join(" | ");
-}
-
-function getTrendTone(direction: WeeklyProgressSummary["consistencyTrend"]["direction"]): MetricDatum["valueTone"] {
-  if (direction === "up" || direction === "new") {
-    return "success";
-  }
-
-  if (direction === "down") {
-    return "danger";
-  }
-
-  if (direction === "none") {
-    return "muted";
-  }
-
-  return "default";
-}
-
 function getCompletionTone(summary: WeeklyProgressSummary): MetricDatum["valueTone"] {
   if (summary.primaryRoutineTargetCount <= 0) {
     return "muted";
@@ -114,6 +80,60 @@ function getCompletionTone(summary: WeeklyProgressSummary): MetricDatum["valueTo
   }
 
   return summary.completedWorkoutCount > 0 ? "default" : "muted";
+}
+
+function getTodayKey(timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+function buildPlannedDayStatusMetric(summary: WeeklyProgressSummary): MetricDatum {
+  const remainingPlannedDayCount = Math.max(0, summary.primaryRoutineTargetCount - summary.completedWorkoutCount);
+  const todayKey = getTodayKey(summary.timezone);
+  const isCurrentOrFutureCycle = todayKey ? summary.weekEnd >= todayKey : true;
+  const label = summary.primaryRoutineTargetCount > 0 && isCurrentOrFutureCycle ? "Open Days" : "Skipped Days";
+
+  return {
+    label,
+    value: String(remainingPlannedDayCount),
+    valueTone: remainingPlannedDayCount > 0 ? (label === "Open Days" ? "warning" : "danger") : "muted",
+  };
+}
+
+function buildWeekComparisonMetric(summary: WeeklyProgressSummary): MetricDatum {
+  const delta = summary.completedWorkoutCount - summary.previousWeekWorkoutCount;
+  const absDelta = Math.abs(delta);
+  const unit = absDelta === 1 ? "workout" : "workouts";
+
+  if (delta > 0) {
+    return {
+      label: "Vs Last Week",
+      value: `+${absDelta} ${unit}`,
+      valueTone: "success",
+    };
+  }
+
+  if (delta < 0) {
+    return {
+      label: "Vs Last Week",
+      value: `-${absDelta} ${unit}`,
+      valueTone: "danger",
+    };
+  }
+
+  return {
+    label: "Vs Last Week",
+    value: "Even",
+    valueTone: summary.completedWorkoutCount > 0 ? "default" : "muted",
+  };
 }
 
 function buildCompletionValueNode(summary: WeeklyProgressSummary) {
@@ -129,34 +149,20 @@ function buildCompletionValueNode(summary: WeeklyProgressSummary) {
   );
 }
 
-function buildCompletionDetail(summary: WeeklyProgressSummary) {
-  if (summary.primaryRoutineTargetCount <= 0) {
-    return summary.activeDayCount > 0
-      ? `Logged across ${summary.activeDayCount} ${summary.activeDayCount === 1 ? "active day" : "active days"}.`
-      : "No routine target is set for this cycle yet.";
-  }
-
-  if (summary.completedWorkoutCount >= summary.primaryRoutineTargetCount) {
-    return `Completed all ${summary.primaryRoutineTargetCount} planned routine ${summary.primaryRoutineTargetCount === 1 ? "day" : "days"} this cycle.`;
-  }
-
-  return `${summary.completedWorkoutCount} of ${summary.primaryRoutineTargetCount} planned routine ${summary.primaryRoutineTargetCount === 1 ? "day" : "days"} completed so far.`;
+function formatCompletionPercent(value: number) {
+  return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
-function buildWorkoutPaceDetail(summary: WeeklyProgressSummary) {
-  if (summary.completedWorkoutCount > summary.previousWeekWorkoutCount) {
-    return `Workout pace is up: ${summary.completedWorkoutCount} this week vs ${summary.previousWeekWorkoutCount} last week.`;
+function getCycleCompletionTone(value: number | null | undefined): MetricDatum["valueTone"] {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "muted";
   }
 
-  if (summary.completedWorkoutCount < summary.previousWeekWorkoutCount) {
-    return `Workout pace is down: ${summary.completedWorkoutCount} this week vs ${summary.previousWeekWorkoutCount} last week.`;
+  if (value >= 1) {
+    return "success";
   }
 
-  if (summary.completedWorkoutCount > 0) {
-    return `Workout pace matched last week at ${summary.completedWorkoutCount} ${summary.completedWorkoutCount === 1 ? "workout" : "workouts"}.`;
-  }
-
-  return summary.consistencyTrend.detail;
+  return value > 0 ? "warning" : "muted";
 }
 
 function isOpenPlannedDaysAttentionItem(item: string) {
@@ -176,6 +182,15 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
       valueNode: summary.primaryRoutineTargetCount > 0 ? buildCompletionValueNode(summary) : undefined,
       valueTone: summary.primaryRoutineTargetCount > 0 ? getCompletionTone(summary) : undefined,
     },
+    typeof summary.cycleCompletionRate === "number" && Number.isFinite(summary.cycleCompletionRate)
+      ? {
+          label: "Completion",
+          value: formatCompletionPercent(summary.cycleCompletionRate),
+          valueTone: getCycleCompletionTone(summary.cycleCompletionRate),
+        }
+      : null,
+    buildWeekComparisonMetric(summary),
+    buildPlannedDayStatusMetric(summary),
     {
       label: "PRs",
       value: String(summary.prMomentCount),
@@ -201,7 +216,7 @@ function buildCurrentMetricItems(summary: WeeklyProgressSummary): MetricDatum[] 
       value: String(summary.progressionSummary.manualChangeCount),
       valueTone: summary.progressionSummary.manualChangeCount > 0 ? "warning" : "muted",
     },
-  ];
+  ].filter((item): item is MetricDatum => item !== null);
 }
 
 function CurrentWeeklyMetricGrid({ summary }: { summary: WeeklyProgressSummary }) {
@@ -247,25 +262,13 @@ function WeeklyProgressBody({
 }) {
   const hasProgressionData = summary.progressionSummary.totalEventCount > 0;
   const progressionReviewItems = reduceProgressionReviewItems(summary.progressionSummary.reviewItems);
-  const openPlanItems = summary.attentionItems.filter(isOpenPlannedDaysAttentionItem);
   const watchItems = summary.attentionItems.filter((item) => !isOpenPlannedDaysAttentionItem(item));
-  const cycleReviewItems = [
-    buildCompletionDetail(summary),
-    buildWorkoutPaceDetail(summary),
-    ...openPlanItems,
-  ];
 
   return (
     <div className={cn("space-y-4 px-4 pb-4 sm:px-5 sm:pb-5", topPaddingClassName)}>
       <CurrentWeeklyMetricGrid summary={summary} />
       <ProgressionRecapRow summary={summary} />
       <div className="space-y-3">
-        <DetailSectionBlock
-          title="Cycle Review"
-          items={cycleReviewItems}
-          tone="muted"
-          divider={false}
-        />
         <DetailSectionBlock
           title="Signals"
           items={summary.hotspotItems}
@@ -447,7 +450,6 @@ export function WeeklyProgressSurface({
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
   const progressionTitle = buildCurrentProgressionTitle(summary, titleRoutineOverride);
-  const progressionPreview = buildCurrentProgressionPreview(summary);
 
   if (presentation === "historical") {
     return <HistoricalWeeklyProgressSurface summary={summary} viewMode={viewMode} titleRoutineOverride={titleRoutineOverride} />;
@@ -475,7 +477,6 @@ export function WeeklyProgressSurface({
     <section>
       <HistoryGroupCompactHeader
         title={progressionTitle}
-        summary={progressionPreview}
         expanded={expanded}
         controlsId={panelId}
         onToggle={() => setExpanded((current) => !current)}

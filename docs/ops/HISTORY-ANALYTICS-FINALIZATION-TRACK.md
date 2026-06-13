@@ -4,7 +4,7 @@ Date: 2026-06-10
 Owner: Codex lane inside `fawxzzy-fitness`
 Feature card: `History / Analytics - Rebuild useful history metrics and progression analytics`
 Forum report id: `4309deaf`
-Status: active finalization lane
+Status: resolved locally; non-production merge/push closeout pending
 
 ## Purpose
 
@@ -19,7 +19,7 @@ It exists to stop drift between:
 
 ## Current Marker
 
-- History / Analytics Finalization Track: `98%`
+- History / Analytics Finalization Track: `100%`
 
 Marker rules:
 
@@ -29,11 +29,11 @@ Marker rules:
 
 ## Sub-Lane Markers
 
-- Runtime Hardening and Route Loading: `95%`
-- Shared Metric Card Normalization: `97%`
-- Progression Analytics and Scope Filters: `96%`
-- Signal Density, Legends, and Color Coding: `94%`
-- Final QA, Post Alignment, and Closeout: `87%`
+- Runtime Hardening and Route Loading: `100%`
+- Shared Metric Card Normalization: `100%`
+- Progression Analytics and Scope Filters: `100%`
+- Signal Density, Legends, and Color Coding: `100%`
+- Final QA, Post Alignment, and Closeout: `100%`
 
 ## Landed State
 
@@ -67,6 +67,12 @@ Already landed:
 - current-cycle history metrics now read more explicitly with `Planned Days`, `Completed`, and cleaner week-over-week wording
 - progression-activity drill-in rows now use the shared structured item treatment without the old extra bullet dot fighting signal chips and row meta
 - exercise-info `PR History` now stays row-tag driven instead of repeating a section-level PR badge above rows that already carry their own signal
+- logged-session history cards now initialize compact, keep compact rows thin, and move secondary metrics into detail metric rows without duplicated promotion copy
+- logged-session detail recap rows now support multi-set target and logged measurement series, structured exercise separators, centered tags, and a contained detail body
+- history summary, routine progression, and cycle summary cards now avoid empty watch sections, duplicate hotspot sections, and low-value generic update counts
+- exercise-history detailed cards now move last, best, PR, session, and set facts into metric rows and use scoped mini trend graphs with the same rep-layer plot logic as exercise info
+- exercise-info graph/history now supports selected-point scope, proportional day/set spacing, skipped-day markers, graph legend filtering, grid/axis treatment, progression-priority metrics, and regression/watch/manual/promo day tags
+- routine deletion now cascades owned session records so deleted routines do not leave leaked session history rows
 
 ## Runtime Note
 
@@ -82,66 +88,40 @@ Verified state on 2026-06-10:
 
 If the old copy appears again after this restart, treat that as cache or stale-client verification work, not as missing source work.
 
-## What Still Counts As Remaining
+## Closeout Review
 
-### 1. Runtime Hardening and Route Loading
+The implementation pass is complete for this non-production branch. The remaining items are operational closeout, not feature-build scope.
 
-Remaining:
+### Completed In This Pass
 
-- verify the shared route loader is what the user sees on real authenticated logged-session entry after the restart
-- keep replacing one-off loading or recovery shells with canonical app surfaces where drift still exists
-- continue route gating that blocks bad navigation targets before they soft-crash the user into a dead-end screen
+- Exercise info: graph, legend, selected-point scope, skipped days, regression/watch/manual/promo tags, progression metric priority, scoped filtering, and history row cleanup.
+- History exercises: compact initialization, detailed-card image placement, non-duplicated metrics, mini trend graph, and rep-layer plotting.
+- History sessions: compact-card thinning, detail metric migration, completion/session-time leading metrics, recap-row structure, tag cleanup, and detail body containment.
+- Summary/progression cards: planned/completed/skipped/completion metrics, deduped signals, hidden empty sections, recap rows, and normalized metric rows.
+- Runtime/data: shared loading/error behavior coverage, routine delete cascade migration, and targeted regression tests for the touched logic.
 
-### 2. Shared Metric Card Normalization
+### Still Worth Checking After Merge
 
-Remaining:
-
-- finish the last exercise-info and logged-session oddball seams where long dual-measurement values still need better packing
-- keep chronology, underbar sizing, title color, and row-centering consistent across every metric-board family
-- remove any remaining low-value repeated metrics so one fact only appears in one useful place
-
-### 3. Progression Analytics and Scope Filters
-
-Remaining:
-
-- finish deeper exercise-info curation beyond the first pass so Progression, PR History, and Recent History each keep a distinct purpose
-- continue richer progression review only where it still adds signal after the row-structure cleanup
-- finish broader scope expansion beyond the current all-time and current-routine pair only where the product truth stays clear
-
-### 4. Signal Density, Legends, and Color Coding
-
-Remaining:
-
-- do the final visual QA pass on row-tag spacing, wrapping, and chip alignment across history summaries, logged session, and exercise info
-- keep the signal system semantic and stable so color is carrying real meaning, not decoration
-- decide whether any remaining dense recap or summary rows still need one-column fallback more often than they do now
-
-### 5. Final QA, Post Alignment, and Closeout
-
-Remaining:
-
-- compress the Discord feature post so it reflects the real landed state without older filler
-- make the card and update copy explicitly mention what still remains instead of implying the lane is already done
-- run one final history-family QA sweep across session history, exercise history, exercise info, logged session, and logged-session exercise disclosure
-- only mark the feature lane complete once the remaining legend and final-normalization work is actually shipped and verified
+- Authenticated visual QA on the real app, especially mobile graph sizing, dense recap horizontal scroll hints, and long multi-set values.
+- Live Discord forum-card sync once Supabase/Discord operator access is reachable from the current machine.
+- Production release readiness, explicitly outside this branch closeout.
 
 ## Discord Card Alignment
 
-The forum card is mostly accurate about the rebuild, but it still under-represents the new closeout lane split.
+The local feature-card summary has been updated to `Resolved` and now reflects the completed feature pass.
 
-The card should reflect:
+The live Discord forum card still needs to be synced through the operator workflow when Supabase/Discord access is reachable:
 
-- the rebuild phase is no longer the hard part
-- the remaining work is finalization, normalization, signal-density cleanup, and closeout QA
-- the structured row plus tag system is now the shipped baseline, and the remaining work is final visual QA and cleanup
-- logged-session route loading and crash-softening are part of the closeout lane
+- status/display state should read as resolved for this feature card
+- evidence should mention the non-production branch completion and verification caveat
+- no production release should be implied by the card update
 
 ## Next Packet
 
-1. QA the row-tag spacing and one-column fallback behavior across history summaries, logged session, and exercise info.
-2. Verify the real authenticated logged-session route and recovered-screen handling now that the deterministic preview lane is stable.
-3. Refresh the Discord feature card wording from this tracker after the next executed-state change.
-4. Run one final history-family QA sweep and move the marker only from proof-backed improvements.
+1. Commit and push the feature branch.
+2. Merge the branch through the non-production path agreed for this repo.
+3. Clean up merged local branches and stale temp artifacts without touching unrelated user work.
+4. Sync the live Discord forum card once the feedback operator path can reach Supabase/Discord again.
 
 ## Verification Note
 
@@ -157,11 +137,13 @@ Known verification caveat:
 
 ## Done Means
 
-This lane is done only when:
+This lane is done locally when:
 
 - logged-session and exercise-info entry is stable and uses shared loading and crash handling
 - metric-card structure is normalized across the history family
 - progression sections are curated without obvious repeats or weak filler
 - the legend and color-density pattern is intentionally rolled out where it improves readability
 - the Discord feature card and update wording match the real shipped state
-- final QA passes without new history-family regressions
+- final focused QA passes without new history-family regressions
+
+As of June 13, 2026, the non-production branch meets the local feature criteria. Live Discord sync and production release are separate operational steps.

@@ -8,6 +8,7 @@ import { SignatureDot, SignatureMetaTag } from "@/components/ui/app/SignatureSep
 import { type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import type { ExerciseBrowserTrendPreview } from "@/lib/exercises-browser";
 import { resolveWorkoutCardMediaRailWidth } from "@/lib/workout-card-surface-policy";
 
 const HISTORY_EXERCISE_MEDIA_SIZE = resolveWorkoutCardMediaRailWidth("history-browser");
@@ -44,6 +45,102 @@ function RotatingMetaBadge({
   return current ? renderMetaBadge(current) : null;
 }
 
+function MiniExerciseTrendPreview({ trend }: { trend?: ExerciseBrowserTrendPreview | null }) {
+  const points = trend?.points ?? [];
+  if (!trend || points.length < 2) {
+    return null;
+  }
+
+  const width = 168;
+  const height = 104;
+  const paddingX = 9;
+  const paddingY = 14;
+  const getPointPlotValue = (point: (typeof points)[number]) => (
+    typeof point.plotValue === "number" && Number.isFinite(point.plotValue)
+      ? point.plotValue
+      : point.value
+  );
+  const values = points.map((point) => getPointPlotValue(point));
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const valueSpan = Math.max(maxValue - minValue, 1);
+  const usableWidth = width - (paddingX * 2);
+  const usableHeight = height - (paddingY * 2);
+  const path = points
+    .map((point, index) => {
+      const x = paddingX + (points.length === 1 ? usableWidth / 2 : (index / (points.length - 1)) * usableWidth);
+      const plotValue = getPointPlotValue(point);
+      const y = paddingY + (1 - ((plotValue - minValue) / valueSpan)) * usableHeight;
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+  const lastPoint = points[points.length - 1];
+  const firstPoint = points[0];
+  const lastPlotValue = getPointPlotValue(lastPoint);
+  const firstPlotValue = getPointPlotValue(firstPoint);
+  const trendTone = lastPlotValue > firstPlotValue
+    ? "text-[rgb(var(--success-rgb)/0.96)]"
+    : lastPlotValue < firstPlotValue
+      ? "text-[rgb(var(--danger-rgb)/0.9)]"
+      : "text-[rgb(var(--accent-yellow-on)/0.9)]";
+
+  return (
+    <div
+      aria-hidden="true"
+      className="relative h-full min-h-[104px] overflow-hidden rounded-[0.8rem] border border-[rgb(var(--accent-divider-rgb)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.42)] px-2 py-1.5"
+    >
+      <div className="mb-0.5 flex items-center justify-between gap-2 text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.82)]">
+        <span className="truncate">{trend.label}</span>
+        <span className="text-[rgb(var(--accent-divider-rgb)/0.88)]">{points.length}</span>
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[calc(100%-1rem)] w-full overflow-visible">
+        <defs>
+          <linearGradient id={`history-mini-trend-${trend.metricKey}`} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="rgb(var(--accent-divider-rgb) / 0.36)" />
+            <stop offset="48%" stopColor="rgb(var(--accent-divider-rgb) / 0.88)" />
+            <stop offset="100%" stopColor="rgb(var(--accent-divider-rgb) / 0.52)" />
+          </linearGradient>
+        </defs>
+        <path
+          d={`M ${paddingX} ${height - paddingY} H ${width - paddingX}`}
+          fill="none"
+          stroke="rgb(var(--accent-divider-rgb) / 0.16)"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke={`url(#history-mini-trend-${trend.metricKey})`}
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {points.map((point, index) => {
+          const x = paddingX + (points.length === 1 ? usableWidth / 2 : (index / (points.length - 1)) * usableWidth);
+          const plotValue = getPointPlotValue(point);
+          const y = paddingY + (1 - ((plotValue - minValue) / valueSpan)) * usableHeight;
+          return (
+            <circle
+              key={point.id}
+              cx={x}
+              cy={y}
+              r={index === points.length - 1 ? 2.05 : 1.25}
+              fill="rgb(var(--bg-app) / 0.98)"
+              stroke="rgb(var(--accent-divider-rgb) / 0.9)"
+              strokeWidth="1.05"
+            />
+          );
+        })}
+      </svg>
+      <div className={cn("pointer-events-none absolute bottom-1.5 right-2 text-[0.58rem] font-semibold uppercase tracking-[0.14em]", trendTone)}>
+        Trend
+      </div>
+    </div>
+  );
+}
+
 export function HistoryExerciseCard({
   exercise,
   title,
@@ -54,6 +151,7 @@ export function HistoryExerciseCard({
   badgeText,
   badgeItems = [],
   metrics,
+  trendPreview,
   detailSections = [],
   density,
   tone,
@@ -74,6 +172,7 @@ export function HistoryExerciseCard({
   badgeText?: string;
   badgeItems?: string[];
   metrics?: MetricDatum[];
+  trendPreview?: ExerciseBrowserTrendPreview | null;
   detailSections?: Array<{
     title: string;
     items: string[];
@@ -97,8 +196,8 @@ export function HistoryExerciseCard({
       >
         <HistoryDetailExerciseCard
           exercise={resolvedExercise}
-          summary={resolvedSubtitle}
-          summaryLabel={resolvedSubtitleLabel}
+          summary=""
+          summaryLabel=""
           metadata={metadata}
           badgeText={badgeText}
           badgeItems={resolvedBadgeItems}
@@ -119,6 +218,7 @@ export function HistoryExerciseCard({
             />
           )}
           mediaRailWidthOverride={HISTORY_EXERCISE_DETAIL_MEDIA_WIDTH}
+          detailVisualAside={<MiniExerciseTrendPreview trend={trendPreview} />}
           detailSections={detailSections}
           expanded={false}
           onPress={onPress}
@@ -144,7 +244,6 @@ export function HistoryExerciseCard({
         tone={tone}
         surface="history-browser"
         dataSurface="history-browser"
-        combineCompactSummaryLabel={false}
         compactBadgePlacement="stack"
         leadingVisual={(
           <ExerciseThumb

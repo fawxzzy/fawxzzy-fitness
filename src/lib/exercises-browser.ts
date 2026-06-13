@@ -22,6 +22,8 @@ import { formatCalories, formatDistance, formatDurationShort, formatPace, positi
 import { isStepDistanceUnit } from "@/lib/fitness-distance-units";
 import { chooseCardioBestMetric, getDisplayPace, isCardioMeasurementType, resolveEffectiveKind, shouldShowCardioBest } from "@/lib/cardio-best";
 import { aggregateCardioSessions, aggregateExerciseStatsFromSets, groupNormalizedSetsByExercise, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
+import { resolveHistorySetPlotY } from "@/lib/exercise-info-history-layout";
+import { resolveHistoryGraphMetricKey, type HistoryGraphMetricKey } from "@/lib/exercise-info-history-axis";
 import { formatWeight } from "@/lib/formatting";
 import { buildExerciseProgressionLifelineSummary, type ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { ProgressionEventRow } from "@/types/db";
@@ -106,6 +108,20 @@ export type ExerciseBrowserRow = {
   tagsSummary: string | null;
   analyticsFamily?: ExerciseAnalyticsFamily;
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
+  trendPreview?: ExerciseBrowserTrendPreview | null;
+};
+
+export type ExerciseBrowserTrendPreviewPoint = {
+  id: string;
+  performedAt: string;
+  plotValue?: number;
+  value: number;
+};
+
+export type ExerciseBrowserTrendPreview = {
+  metricKey: HistoryGraphMetricKey;
+  label: string;
+  points: ExerciseBrowserTrendPreviewPoint[];
 };
 
 export type ExerciseBrowserScopePayload = {
@@ -132,6 +148,149 @@ type ExerciseBrowserRoutineMeta = {
 
 function formatCompact(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
+
+function readTrendMetricValue(row: {
+  weight?: number | null;
+  reps?: number | null;
+  duration_seconds?: number | null;
+  distance?: number | null;
+  calories?: number | null;
+}, metricKey: HistoryGraphMetricKey) {
+  const weight = positive(row.weight);
+  const reps = positive(row.reps);
+  const duration = positive(row.duration_seconds);
+  const distance = positive(row.distance);
+  const calories = positive(row.calories);
+
+  if (metricKey === "weight") return weight > 0 ? weight : reps > 0 ? reps : null;
+  if (metricKey === "reps") return reps > 0 ? reps : weight > 0 ? weight : null;
+  if (metricKey === "distance") return distance > 0 ? distance : duration > 0 ? duration : null;
+  if (metricKey === "calories") return calories > 0 ? calories : distance > 0 ? distance : duration > 0 ? duration : null;
+  return duration > 0 ? duration : distance > 0 ? distance : null;
+}
+
+function resolveTrendPreviewPlotValues(
+  rows: Array<{
+    value: number;
+    reps?: number | null;
+  }>,
+  metricKey: HistoryGraphMetricKey,
+) {
+  if (metricKey !== "weight" || rows.length === 0) {
+    return rows.map((row) => row.value);
+  }
+
+  const numericValues = rows
+    .map((row) => row.value)
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const maxSecondaryReps = rows.reduce((max, row) => {
+    const reps = positive(row.reps);
+    return reps > 0 ? Math.max(max, reps) : max;
+  }, 0);
+  if (numericValues.length === 0 || maxSecondaryReps <= 1) {
+    return rows.map((row) => row.value);
+  }
+
+  const primaryLevelsDesc = Array.from(new Set(numericValues.map((value) => Number(value.toFixed(3))))).sort((left, right) => right - left);
+  const rawMinValue = Math.min(...numericValues);
+  const rawMaxValue = Math.max(...numericValues);
+  const rawValueRange = Math.max(rawMaxValue - rawMinValue, 1);
+  const valuePadding = rawValueRange * 0.14;
+  const minValue = rawMinValue - valuePadding;
+  const maxValue = rawMaxValue + valuePadding;
+  const valueRange = Math.max(maxValue - minValue, 1);
+  const setLaneHeight = 100;
+
+  return rows.map((row) => {
+    const y = resolveHistorySetPlotY({
+      metricKey,
+      maxSecondaryReps,
+      minValue,
+      primaryLevelsDesc,
+      primaryValue: row.value,
+      secondaryReps: positive(row.reps),
+      setLaneHeight,
+      setLaneTop: 0,
+      valueRange,
+    });
+
+    return setLaneHeight - y;
+  });
+}
+
+function formatTrendMetricLabel(metricKey: HistoryGraphMetricKey) {
+  if (metricKey === "weight") return "Weight";
+  if (metricKey === "reps") return "Reps";
+  if (metricKey === "distance") return "Distance";
+  if (metricKey === "calories") return "Calories";
+  return "Time";
+}
+
+export function buildExerciseBrowserTrendPreview(args: {
+  kind: "strength" | "cardio";
+  measurementType?: string | null;
+  rows: Array<{
+    sessionId: string;
+    performedAt: string;
+    set_index: number;
+    weight?: number | null;
+    reps?: number | null;
+    duration_seconds?: number | null;
+    distance?: number | null;
+    calories?: number | null;
+  }>;
+  latestWeight?: number | null;
+  latestDurationSeconds?: number | null;
+  latestDistance?: number | null;
+  latestCalories?: number | null;
+}) {
+  const metricKey = resolveHistoryGraphMetricKey({
+    kind: args.kind,
+    measurementType: args.measurementType,
+    latestWeight: args.latestWeight ?? null,
+    latestDurationSeconds: args.latestDurationSeconds ?? null,
+    latestDistance: args.latestDistance ?? null,
+    latestCalories: args.latestCalories ?? null,
+  });
+  const orderedRows = [...args.rows].sort((left, right) => {
+    if (left.performedAt !== right.performedAt) return left.performedAt.localeCompare(right.performedAt);
+    if (left.sessionId !== right.sessionId) return left.sessionId.localeCompare(right.sessionId);
+    return left.set_index - right.set_index;
+  });
+  const candidatePoints = orderedRows
+    .flatMap((row) => {
+      const value = readTrendMetricValue(row, metricKey);
+      return typeof value === "number" && Number.isFinite(value) && value > 0
+        ? [{
+            id: `${row.sessionId}-${row.set_index}`,
+            performedAt: row.performedAt,
+            reps: row.reps,
+            value,
+          }]
+        : [];
+    })
+    .slice(-48);
+  const plotValues = resolveTrendPreviewPlotValues(candidatePoints, metricKey);
+  const points = candidatePoints.map((point, index) => {
+    const plotValue = plotValues[index];
+    return {
+      id: point.id,
+      performedAt: point.performedAt,
+      ...(typeof plotValue === "number" && Number.isFinite(plotValue) ? { plotValue } : {}),
+      value: point.value,
+    };
+  });
+
+  if (points.length < 2) {
+    return null;
+  }
+
+  return {
+    metricKey,
+    label: formatTrendMetricLabel(metricKey),
+    points,
+  } satisfies ExerciseBrowserTrendPreview;
 }
 
 function formatStrengthSummary(weight: number | null, reps: number | null, unit: string | null) {
@@ -1324,6 +1483,15 @@ async function getExercisesWithStats(
         tagsSummary: formatTagSummary(exercise),
         analyticsFamily,
         progressionSummary: buildExerciseProgressionLifelineSummary(progressionEventsByExerciseId.get(exerciseId) ?? []),
+        trendPreview: buildExerciseBrowserTrendPreview({
+          kind,
+          measurementType: exercise.measurement_type,
+          rows: setRows,
+          latestWeight: stats?.last_weight ?? null,
+          latestDurationSeconds: latestCardioTrendSession?.durationSeconds ?? latestCardioSession?.durationSeconds ?? null,
+          latestDistance: latestCardioTrendSession?.distance ?? latestCardioSession?.distance ?? null,
+          latestCalories: latestCardioTrendSession?.calories ?? latestCardioSession?.calories ?? null,
+        }),
       };
 
       runDevExerciseBrowserVerification(nextRow);

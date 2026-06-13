@@ -32,6 +32,7 @@ import { ChevronDownIcon } from "@/components/ui/Chevrons";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
+import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import { getLiveSetInputOrder, type LiveSetMetricFlags } from "@/lib/live-set-input-order";
@@ -1671,9 +1672,7 @@ export function SetLoggerCard({
       )}
       data-testid="set-logger-set-list"
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-5 bg-gradient-to-b from-[rgb(var(--surface-1-rgb)/0.34)] via-[rgb(var(--surface-1-rgb)/0.16)] to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-7 bg-gradient-to-t from-[rgb(var(--surface-1-rgb)/0.38)] via-[rgb(var(--surface-1-rgb)/0.18)] to-transparent" />
-      <div className="filter-scroll-viewport max-h-[10.1rem] overflow-y-auto overscroll-contain py-1 pr-1 touch-pan-y">
+      <VerticalScrollHint scrollClassName="filter-scroll-viewport max-h-[10.1rem] py-1">
         <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
           {animatedSets.map((set, index) => {
             const isDeletePending = deletingSetIds.includes(set.stableId);
@@ -1742,7 +1741,7 @@ export function SetLoggerCard({
             );
           })}
         </ul>
-      </div>
+      </VerticalScrollHint>
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-3 bottom-0 h-px rounded-full bg-[rgb(var(--accent-divider-rgb)/0.82)]"
