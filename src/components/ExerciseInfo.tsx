@@ -134,6 +134,7 @@ export function ExerciseInfo({
     const cachedPayload = normalizeExerciseInfoClientPayload(cachedEntry?.payload ?? null);
     const canUseCachedPayload = Boolean(cachedPayload && cachedEntry?.source === "server" && !shouldFetchExerciseInfoClientPayload(cachedEntry));
     const localPayload = canUseCachedPayload ? cachedPayload : null;
+    const hasSeededStats = Boolean(seedPayload?.stats);
 
     if (!localPayload && seedPayload?.exercise) {
       setExercise(seedPayload.exercise);
@@ -145,11 +146,18 @@ export function ExerciseInfo({
         ...current,
         [currentScope]: localPayload.stats,
       }));
+    } else if (seedPayload) {
+      setExercise(seedPayload.exercise);
+      setStatsByScope((current) => ({
+        ...current,
+        [currentScope]: seedPayload.stats,
+      }));
+      writeExerciseInfoClientPayload(normalizedExerciseId, seedPayload, "seed", normalizedFilterState);
     }
 
     setStatsLoadingByScope((current) => ({
       ...current,
-      [currentScope]: !localPayload,
+      [currentScope]: !localPayload && !hasSeededStats,
     }));
 
     async function loadCurrentFilter() {
@@ -198,7 +206,7 @@ export function ExerciseInfo({
     }
 
     if (!canUseCachedPayload) {
-      if (!localPayload) {
+      if (!localPayload && !hasSeededStats) {
         setStatsLoadingByScope((current) => ({ ...current, [currentScope]: true }));
       }
       void loadCurrentFilter();

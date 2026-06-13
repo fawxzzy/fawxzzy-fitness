@@ -869,7 +869,7 @@ function FocusedExerciseContextPanels({
   return (
     <div className="space-y-2">
       {showOverview && (resolvedOverviewMetrics.length > 0 || resolvedOverviewSections.length > 0) ? (
-        <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+        <AppPanel className={cn(appTokens.detailSection, "space-y-2 !border-0 !bg-transparent p-2 !shadow-none")}>
           <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Overview</h3>
           {resolvedOverviewMetrics.length > 0 ? <ExerciseSurfaceMetricGrid items={resolvedOverviewMetrics} className="justify-center" scrollable /> : null}
           {resolvedOverviewSections.length > 0 ? (
