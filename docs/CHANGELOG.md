@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.1 ? 2026-06-13
+
+### WHAT
+- Updated the `qa:llel:progression` Today progression receipt contract to match the current inline promote-ready Today card instead of an older separate `Progress Status` pane.
+- Added a targeted regression test for the Today progression receipt scenario so future fixture changes cannot silently stale the release-readiness proof harness.
+
+### WHY
+- A fresh June 13 QA checkpoint showed the Today progression fixture itself was healthy, but the receipt harness was still waiting for text from an older UI shape and was falsely failing release readiness.
+- Locking the current fixture contract keeps the LLEL proof lane honest without forcing a product rollback to obsolete copy or layout.
+
 ## 1.0.0 ? 2026-05-09
 
 ### WHAT
