@@ -86,7 +86,12 @@ function MetricGrid({ summary }: { summary: HistoryScopeSummary }) {
 }
 
 function ProgressionRecapRow({ summary }: { summary: HistoryScopeSummary }) {
-  const items = summary.recapItems ?? [];
+  const items = (summary.recapItems ?? []).map((item) => ({
+    ...item,
+    signals: null,
+    tagLabels: null,
+    layout: "auto" as const,
+  }));
   if (items.length === 0) {
     return null;
   }
