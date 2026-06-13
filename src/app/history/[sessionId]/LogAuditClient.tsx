@@ -1461,12 +1461,12 @@ export function LogAuditClient({
             >
               <div
                 data-history-exercise-shell="true"
-                className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] pb-1"
+                className="grid h-full min-h-0 min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden pb-1"
               >
               {expandedExercise ? (
                   null
                 ) : !isEditing ? (
-                  <div className="sticky top-0 z-20 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
+                  <div className="sticky top-0 z-20 min-w-0 px-1 pb-2 pt-px [background:linear-gradient(180deg,rgba(var(--bg-app),0.985)_0%,rgba(var(--bg-app),0.94)_74%,rgba(var(--bg-app),0)_100%)] backdrop-blur-[8px]">
                     <HistorySessionCard
                       session={focusedSessionSummary}
                       viewMode="detailed"
@@ -1481,7 +1481,7 @@ export function LogAuditClient({
                     />
                   </div>
                 ) : null}
-                <div className="mx-1 min-h-0 overflow-hidden px-1 pb-2">
+                <div className="mx-1 min-h-0 min-w-0 overflow-hidden px-1 pb-2">
                   <div
                     className={cn(
                       appTokens.exercisePickerFilterPanel,
