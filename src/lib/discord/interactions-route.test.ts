@@ -3342,7 +3342,7 @@ test("Discord interactions route defers feedback submit and edits the original e
   }
 });
 
-test("Discord interactions route transfers active feedback submits to DiscordOS without Fitness writes", async () => {
+test("Discord interactions route posts feedback to the forum before mirroring to DiscordOS", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
@@ -3352,7 +3352,7 @@ test("Discord interactions route transfers active feedback submits to DiscordOS 
   process.env.DISCORDOS_FEEDBACK_TRANSFER_MODE = "discordos-primary";
   process.env.DISCORDOS_FEEDBACK_TRANSFER_ENDPOINT_URL = "https://fawxzzy-discordos.vercel.app/api/feedback-persist";
   process.env.DISCORDOS_FEEDBACK_TRANSFER_SECRET = "shared-transfer-secret";
-  delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
+  process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID = "1504673475489562744";
 
   const originalFetch = globalThis.fetch;
   const observedRequests = [];
@@ -3379,6 +3379,61 @@ test("Discord interactions route transfers active feedback submits to DiscordOS 
       });
     }
 
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "HEAD") {
+      return new Response(null, { status: 200, headers: { "content-range": "0-0/0" } });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "GET") {
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "POST") {
+      return new Response(JSON.stringify(buildFeedbackReportRow({
+        discord_forum_channel_id: null,
+        discord_forum_thread_id: null,
+        discord_forum_message_id: null,
+        discord_forum_applied_tag_ids: null,
+        discord_forum_title: null,
+      })), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562744",
+        available_tags: [
+          { id: "tag-bug", name: "Bug" },
+          { id: "tag-new", name: "New" },
+          { id: "tag-medium", name: "Medium" },
+        ],
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/api/v10/channels/1504673475489562744/threads") {
+      return new Response(JSON.stringify({
+        id: "1504673475489562745",
+        last_message_id: "1504673475489562746",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports") && method === "PATCH") {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     if (url.href === "https://fawxzzy-discordos.vercel.app/api/feedback-persist" && method === "POST") {
       return new Response(JSON.stringify({
         ok: true,
@@ -3388,10 +3443,6 @@ test("Discord interactions route transfers active feedback submits to DiscordOS 
         status: 201,
         headers: { "Content-Type": "application/json" },
       });
-    }
-
-    if (url.pathname.endsWith("/rest/v1/discord_feedback_reports")) {
-      throw new Error(`Fitness feedback write path should not run during DiscordOS transfer: ${method}`);
     }
 
     if (url.pathname === "/api/v10/webhooks/1504700208251146371/interaction-token/messages/@original") {
@@ -3442,16 +3493,21 @@ test("Discord interactions route transfers active feedback submits to DiscordOS 
       reporterUserKind: "human",
       transferSource: "fitness-discord-interaction",
       sourceProof: "discord-signature-verified-by-fitness",
-      forumTitle: "Bug: Settings - Token copy button failed",
+      forumChannelId: "1504673475489562744",
+      forumThreadId: "1504673475489562745",
+      forumMessageId: "1504673475489562746",
+      forumTitle: "Bug: Settings — Token copy button failed",
       statusNote: "I tapped Copy and nothing happened.",
     });
     assert.equal(transferCall?.headers.get("x-discordos-feedback-transfer-secret"), "shared-transfer-secret");
-    assert.equal(observedRequests.some((entry) => entry.path.endsWith("/rest/v1/discord_feedback_reports")), false);
+    assert.equal(observedRequests.some((entry) => entry.path === "/api/v10/channels/1504673475489562744/threads"), true);
+    assert.equal(observedRequests.some((entry) => entry.path.endsWith("/rest/v1/discord_feedback_reports") && entry.method === "POST"), true);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.DISCORDOS_FEEDBACK_TRANSFER_MODE;
     delete process.env.DISCORDOS_FEEDBACK_TRANSFER_ENDPOINT_URL;
     delete process.env.DISCORDOS_FEEDBACK_TRANSFER_SECRET;
+    delete process.env.DISCORD_BUG_REPORT_FORUM_CHANNEL_ID;
   }
 });
 

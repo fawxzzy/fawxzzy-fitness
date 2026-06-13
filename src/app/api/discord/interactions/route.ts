@@ -6242,38 +6242,6 @@ async function processFeedbackCreateModalSubmit(
 
   const modalFields = extractDiscordBugReportModalFields(interaction.data?.components, extractDiscordModalTextInputValue);
   const transferConfig = getDiscordOsFeedbackTransferConfig();
-  if (transferConfig.mode === "discordos-primary") {
-    if (!transferConfig.enabled || transferConfig.endpointUrl === null || transferConfig.transferSecret === null) {
-      console.error("[discord-interactions] DiscordOS feedback transfer disabled by config", {
-        requestId: randomUUID(),
-        blockedReasons: transferConfig.blockedReasons,
-      });
-      return "Could not save that feedback report right now. Try again in a moment.";
-    }
-
-    const transferResult = await submitDiscordOsFeedbackTransfer({
-      interactionId: typeof interaction.id === "string" ? interaction.id : null,
-      reporterDiscordUserId: discordUser.id,
-      reportType,
-      reporterUserKind: "human",
-      summary: modalFields.summary,
-      area: modalFields.area,
-      details: modalFields.details,
-      endpointUrl: transferConfig.endpointUrl,
-      transferSecret: transferConfig.transferSecret,
-    });
-
-    if (!transferResult.ok) {
-      console.error("[discord-interactions] DiscordOS feedback transfer failed", {
-        requestId: randomUUID(),
-        status: transferResult.status,
-        code: transferResult.code,
-      });
-      return "Could not save that feedback report right now. Try again in a moment.";
-    }
-
-    return "Feedback received. Thanks for helping improve Fitness.";
-  }
 
   await validateDiscordFeedbackEmojis();
   const creationResult = await createDiscordBugReport({
@@ -6305,6 +6273,10 @@ async function processFeedbackCreateModalSubmit(
   });
   const forumChannelId = DISCORD_BUG_REPORT_FORUM_CHANNEL_ID();
   let forumThreadCreationFailed = false;
+  let transferForumChannelId = creationResult.report.discord_forum_channel_id;
+  let transferForumThreadId = creationResult.report.discord_forum_thread_id;
+  let transferForumMessageId = creationResult.report.discord_forum_message_id;
+  let transferForumTitle = creationResult.report.discord_forum_title;
 
   if (forumChannelId && creationResult.duplicate && creationResult.report.discord_forum_thread_id) {
     try {
@@ -6440,6 +6412,10 @@ async function processFeedbackCreateModalSubmit(
           message: "Discord did not return a forum thread id.",
         });
       } else {
+        transferForumChannelId = forumChannelId;
+        transferForumThreadId = forumThreadResult.threadId;
+        transferForumMessageId = forumThreadResult.messageId;
+        transferForumTitle = forumTitle;
         const forumUpdateResult = await recordDiscordBugReportForumThread({
           reportId: creationResult.report.id,
           forumChannelId,
@@ -6465,6 +6441,41 @@ async function processFeedbackCreateModalSubmit(
         reportId: creationResult.report.id,
         error,
       });
+    }
+  }
+
+  if (transferConfig.mode === "discordos-primary") {
+    if (!transferConfig.enabled || transferConfig.endpointUrl === null || transferConfig.transferSecret === null) {
+      console.error("[discord-interactions] DiscordOS feedback transfer disabled by config", {
+        requestId: randomUUID(),
+        reportId: creationResult.report.id,
+        blockedReasons: transferConfig.blockedReasons,
+      });
+    } else {
+      const transferResult = await submitDiscordOsFeedbackTransfer({
+        interactionId: typeof interaction.id === "string" ? interaction.id : null,
+        reporterDiscordUserId: discordUser.id,
+        reportType,
+        reporterUserKind: "human",
+        summary: creationResult.report.summary,
+        area: creationResult.report.area,
+        details: creationResult.report.details,
+        forumChannelId: transferForumChannelId,
+        forumThreadId: transferForumThreadId,
+        forumMessageId: transferForumMessageId,
+        forumTitle: transferForumTitle,
+        endpointUrl: transferConfig.endpointUrl,
+        transferSecret: transferConfig.transferSecret,
+      });
+
+      if (!transferResult.ok) {
+        console.error("[discord-interactions] DiscordOS feedback transfer failed", {
+          requestId: randomUUID(),
+          reportId: creationResult.report.id,
+          status: transferResult.status,
+          code: transferResult.code,
+        });
+      }
     }
   }
 

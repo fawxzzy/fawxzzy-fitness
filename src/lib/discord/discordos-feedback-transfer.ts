@@ -18,6 +18,10 @@ type SubmitDiscordOsFeedbackTransferArgs = {
   summary: string | null;
   area: string | null;
   details: string | null;
+  forumChannelId?: string | null;
+  forumThreadId?: string | null;
+  forumMessageId?: string | null;
+  forumTitle?: string | null;
   endpointUrl: string;
   transferSecret: string;
   fetchImpl?: typeof fetch;
@@ -81,7 +85,10 @@ export function buildDiscordOsFeedbackTransferPayload(args: Omit<SubmitDiscordOs
     reporterUserKind: args.reporterUserKind ?? "human",
     transferSource: "fitness-discord-interaction",
     sourceProof: "discord-signature-verified-by-fitness",
-    forumTitle: `${args.reportType === "feature" ? "Feature" : "Bug"}: ${area} - ${summary}`.slice(0, 180),
+    forumChannelId: args.forumChannelId ?? null,
+    forumThreadId: args.forumThreadId ?? null,
+    forumMessageId: args.forumMessageId ?? null,
+    forumTitle: (args.forumTitle?.trim() || `${args.reportType === "feature" ? "Feature" : "Bug"}: ${area} - ${summary}`).slice(0, 180),
     statusNote: args.details?.trim().slice(0, 500) || null,
   };
 }
