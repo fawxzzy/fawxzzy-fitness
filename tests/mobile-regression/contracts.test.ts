@@ -224,7 +224,7 @@ test("standard exercise rows gate rail media behind the surface policy", () => {
   const source = readSource("../../src/components/StandardExerciseRow.tsx");
 
   assert.match(source, /resolveWorkoutCardSurfacePolicy/);
-  assert.match(source, /const mediaRailWidth = surfacePolicy\.mediaRailWidth/);
+  assert.match(source, /const mediaRailWidth = mediaRailWidthOverride \?\? surfacePolicy\.mediaRailWidth/);
   assert.match(source, /surfacePolicy\.showMedia && mediaRailWidth > 0/);
   assert.match(source, /leadingVisual=\{resolvedLeadingVisual\}/);
 });
@@ -265,11 +265,12 @@ test("history detail stays on explicit history wrappers instead of raw generic c
   assert.doesNotMatch(source, /<StandardExerciseRow/);
 });
 
-test("history detail progression uses the shared activity and chart lane", () => {
+test("history detail progression uses the focused metric lane without old activity charts", () => {
   const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
 
-  assert.match(source, /ExerciseProgressionActivityPanel/);
-  assert.match(source, /headingClassName=\{FOCUSED_SUBSECTION_HEADING_CLASS_NAME\}/);
+  assert.match(source, /buildFocusedProgressionMetrics/);
+  assert.match(source, /<FocusedExerciseContextPanels/);
+  assert.doesNotMatch(source, /ExerciseProgressionActivityPanel/);
   assert.doesNotMatch(source, /timelineSummary/);
   assert.doesNotMatch(source, /Progression Graphs/);
 });
