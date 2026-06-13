@@ -25,3 +25,9 @@ Canonical machine-readable release truth lives in `docs/releases/RELEASE_LEDGER.
 - Logged-session and exercise-history cards now use compact default cards, richer detail rows, multi-set target/logged displays, recap rows, and mini trend graphs.
 - Routine deletion now removes owned session history so deleted routines do not keep leaking old data into history screens.
 - Release note: [2026-06-13-fitness-2026.06.13-1.md](docs/releases/fitness/2026/2026-06-13-fitness-2026.06.13-1.md)
+
+## fitness-2026.06.13-2 - 2026-06-13
+
+- Logged-session exercise dropdown overview panels no longer carry the extra section border.
+- Exercise info sheets opened from seeded history cards now show available stats immediately instead of waiting blank on the network refresh.
+- Release note: [2026-06-13-fitness-2026.06.13-2.md](docs/releases/fitness/2026/2026-06-13-fitness-2026.06.13-2.md)
