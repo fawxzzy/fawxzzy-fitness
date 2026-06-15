@@ -10,7 +10,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rule: Routine progression, session settings, and info overlays should stay on the same dropdown and overlay shells used by routine setup so the workflow reads as one editor instead of stacked mini-systems.
 - Pattern: shared routine browse card + shared day snapshot presentation + shared routine/day creation helpers + route-specific action wiring.
 - Failure Mode: Splitting routine-template flows into screen-local card formats, duplicate record logic, or navigation rules causes routine home, duplicate setup, and workout-plan editing to drift and makes template reuse unsafe.
-- Evidence: `src/app/routines/CreateRoutineClient.tsx`, `src/app/routines/CreateRoutineDayClient.tsx`, `src/app/routines/RoutineHomeClient.tsx`, `src/components/routines/RoutineBrowseCard.tsx`, `src/components/day-list/RoutineDayCardPresentation.tsx`, `src/lib/routine-day-creation.ts`, `src/lib/routine-copy-rollback.ts`, `src/components/routines/ProgressionPlaybookEditor.tsx`
+- Evidence: `src/app/routines/CreateRoutineClient.tsx`, `src/app/routines/CreateRoutineDayClient.tsx`, `src/app/routines/RoutineHomeClient.tsx`, `src/components/routines/RoutineBrowseCard.tsx`, `src/components/day-list/RoutineDayCardPresentation.tsx`, `src/lib/routine-copy-name.ts`, `src/lib/routine-copy-name.test.ts`, `src/lib/routine-day-creation.ts`, `src/lib/routine-copy-rollback.ts`, `src/components/routines/ProgressionPlaybookEditor.tsx`
 - Status: Proposed
 
 ## 2026-06-10 - Feedback board roadmap sequencing should use explicit dependency metadata
