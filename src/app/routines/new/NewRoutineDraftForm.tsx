@@ -97,15 +97,7 @@ export function NewRoutineDraftForm({
       weightUnit: defaults.weightUnit,
       distanceUnit: defaults.distanceUnit === "km" ? "km" : "mi",
     }),
-    [
-      defaults.cycleLengthDays,
-      defaults.distanceUnit,
-      defaults.name,
-      defaults.startDate,
-      defaults.startWeekday,
-      defaults.timezone,
-      defaults.weightUnit,
-    ],
+    [defaults],
   );
   const [draft, setDraft] = useState<RoutineDetailsDraft>(normalizedDefaults);
   const [progressionDraft, setProgressionDraft] = useState(() => createNewRoutineProgressionDraft());

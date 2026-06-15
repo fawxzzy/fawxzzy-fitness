@@ -151,7 +151,7 @@ export function CreateRoutineDayClient({
         </BottomDockButton>
       )}
     />
-  ), [backHref, canCreate, createRoutineDayAction, creationMode, isPending, isRest, isTargetMode, name, populateRoutineDayFromSourceAction, routineId, router, selectedSourceDayId, targetDayEditHref, targetRoutineDayId, toast]);
+  ), [backHref, canCreate, createRoutineDayAction, creationMode, isPending, isRest, isTargetMode, name, populateRoutineDayFromSourceAction, primaryLabel, routineId, router, selectedSourceDayId, targetDayEditHref, targetRoutineDayId, toast]);
 
   usePublishBottomActions(actionsNode);
 

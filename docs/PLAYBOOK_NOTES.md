@@ -1,6 +1,18 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-06-15 - Routine template flows should share routine-home, duplicate, and workout-plan creation contracts
+- Type: Pattern
+- WHAT changed: The routine template overhaul now pushes routine home, new routine duplication, and per-day workout-plan creation through shared browse-card, day-snapshot, and creation-helper contracts so routines and workout plans can be copied, reordered, and edited without each route inventing separate card markup, naming, or navigation behavior.
+- WHY it changed: The feature work expanded routine setup, duplicate-source picking, inactive routine actions, and empty-day creation at the same time, which made the routine family prone to UI drift and duplicate ownership bugs unless those surfaces kept reusing the same preview depth, creation rules, and overlay shells.
+- Rule: Inactive routine selection, duplicate-source selection, and routine-home preview cards should reuse the same browse-card primitives with context-specific preview depth instead of separate card implementations.
+- Rule: New routine, new day, and duplicate workout-plan flows should create fresh routine-owned records, preserve reusable plan content, and avoid carrying active-state or logged-session ownership into duplicates.
+- Rule: Routine progression, session settings, and info overlays should stay on the same dropdown and overlay shells used by routine setup so the workflow reads as one editor instead of stacked mini-systems.
+- Pattern: shared routine browse card + shared day snapshot presentation + shared routine/day creation helpers + route-specific action wiring.
+- Failure Mode: Splitting routine-template flows into screen-local card formats, duplicate record logic, or navigation rules causes routine home, duplicate setup, and workout-plan editing to drift and makes template reuse unsafe.
+- Evidence: `src/app/routines/CreateRoutineClient.tsx`, `src/app/routines/CreateRoutineDayClient.tsx`, `src/app/routines/RoutineHomeClient.tsx`, `src/components/routines/RoutineBrowseCard.tsx`, `src/components/day-list/RoutineDayCardPresentation.tsx`, `src/lib/routine-day-creation.ts`, `src/lib/routine-copy-rollback.ts`, `src/components/routines/ProgressionPlaybookEditor.tsx`
+- Status: Proposed
+
 ## 2026-06-10 - Feedback board roadmap sequencing should use explicit dependency metadata
 - Type: Pattern
 - Summary: Feedback board cards that represent sequenced roadmap work should store explicit card ids, bounded priorities, rollout phases, and dependency links so Discord starter posts, board exports, and reviewed task packets all preserve the same execution order.

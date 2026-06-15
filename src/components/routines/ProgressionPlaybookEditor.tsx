@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, type ComponentPropsWithoutRef, type ReactNode, type Ref } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ACTION_CHROME_CONTROL_CLASS_NAME,
@@ -5227,7 +5227,7 @@ export function ProgressionPlaybookEditor({
     && shouldRenderDayAdjustmentSettings
     && daySettingFields.length > 0;
   const shouldRenderSetSettingsInfoSection = shouldRenderSetStepSettings;
-  const visibleInfoMiniSectionKeys: ProgressionInfoMiniSectionKey[] = [
+  const visibleInfoMiniSectionKeys = useMemo<ProgressionInfoMiniSectionKey[]>(() => [
     ...(shouldRenderRoutineSetupInfoSection ? ["routine_setup" as const] : []),
     ...(shouldRenderProgressionMethodInfoSection ? ["progression_method" as const] : []),
     ...(shouldRenderRegressionInfoSection ? ["regression_method" as const] : []),
@@ -5236,7 +5236,15 @@ export function ProgressionPlaybookEditor({
     ...(shouldRenderSetSettingsInfoSection ? ["set_step_settings" as const] : []),
     ...(failureToggleInfoContent ? ["failure_toggle" as const] : []),
     "progression_terms",
-  ];
+  ], [
+    failureToggleInfoContent,
+    shouldRenderDayAdjustmentInfoSection,
+    shouldRenderProgressionMethodInfoSection,
+    shouldRenderRegressionInfoSection,
+    shouldRenderRoutineSetupInfoSection,
+    shouldRenderSessionInfoSection,
+    shouldRenderSetSettingsInfoSection,
+  ]);
   const defaultInfoMiniSectionKey = visibleInfoMiniSectionKeys[0] ?? null;
   const visibleInfoMiniSectionKeySignature = visibleInfoMiniSectionKeys.join("|");
   useEffect(() => {
@@ -5247,7 +5255,7 @@ export function ProgressionPlaybookEditor({
 
       return defaultInfoMiniSectionKey;
     });
-  }, [defaultInfoMiniSectionKey, visibleInfoMiniSectionKeySignature]);
+  }, [defaultInfoMiniSectionKey, visibleInfoMiniSectionKeys, visibleInfoMiniSectionKeySignature]);
   const setFlowSettingsRow = (
     <SetFlowMeasurementStepRow
       measurements={renderedSetFlowMeasurements}
