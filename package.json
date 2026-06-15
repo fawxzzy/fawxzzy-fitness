@@ -77,6 +77,7 @@
     "cleanup:repo": "node scripts/cleanup-repo.mjs",
     "cleanup:repo:archive": "node scripts/cleanup-repo.mjs --archive",
     "cleanup:repo:full": "node scripts/cleanup-repo.mjs --include-build-cache",
+    "cleanup:repo:validation": "node scripts/cleanup-repo.mjs --include-build-cache --include-node-modules --include-playbook-state --relocate-to-tmp",
     "prepare": "node scripts/setup-githooks.mjs",
     "playbook-runtime:install-package": "node scripts/playbook-runtime.mjs --install-package",
     "playbook-runtime:install-official-fallback": "node scripts/playbook-runtime.mjs --install-official-fallback",

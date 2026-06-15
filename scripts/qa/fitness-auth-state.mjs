@@ -12,6 +12,7 @@ import {
   getOptionalEnv,
   getRequiredEnv,
   listMissingEnv,
+  resolveBaseUrl,
   runtimeRoot,
 } from "./fitness-qa-config.mjs";
 
@@ -43,7 +44,7 @@ export const LLEL_OPEN_ROUTES = [
 ];
 
 export function resolveFitnessAppUrl() {
-  return (getOptionalEnv(FITNESS_APP_URL_ENV) ?? "http://127.0.0.1:3002").replace(/\/$/, "");
+  return (getOptionalEnv(FITNESS_APP_URL_ENV) ?? resolveBaseUrl()).replace(/\/$/, "");
 }
 
 export function resolveSupabaseAuthStorageKey() {

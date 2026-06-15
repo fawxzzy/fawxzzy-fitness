@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
-import { RoutineEditorCycleAnchorField, RoutineEditorCycleLengthField, RoutineEditorFormFields, RoutineEditorInlineCycleControls, RoutineEditorInlineCycleModeControl } from "@/components/routines/RoutineEditorForm";
+import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { RoutineDetailsBottomActionPublisher, RoutineEditorPageBody, RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
 import {
   RoutineDetailsDiscardConfirmationDock,
@@ -30,7 +30,15 @@ import {
   isTrainingGoalCustomized,
 } from "@/lib/progression-playbook-form-state";
 import type { ProgressionPlaybookId, TrainingGoalId } from "@/lib/progression-playbooks";
-import { cycleSetFlowDirection } from "@/lib/set-flow-directions";
+
+function getDeviceTimezone(fallback: string) {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone?.trim();
+  return resolved || fallback;
+}
 
 type Props = {
   routineId: string;
@@ -219,7 +227,7 @@ export function EditRoutineAutosaveForm(props: Props) {
       formData.set("scheduleMode", nextDraft.scheduleMode);
       formData.set("startDate", nextDraft.startDate);
       formData.set("startWeekday", nextDraft.startWeekday);
-      formData.set("timezone", nextDraft.timezone);
+      formData.set("timezone", getDeviceTimezone(nextDraft.timezone));
       formData.set("weightUnit", nextDraft.weightUnit);
       formData.set("distanceUnit", nextDraft.distanceUnit);
       appendProgressionPlaybookFormData(formData, progressionDraft);
@@ -243,8 +251,8 @@ export function EditRoutineAutosaveForm(props: Props) {
         <RoutineEditorPageBody>
           <div className="space-y-2 pt-4">
             <RoutineEditorFormFields
-              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
-              showCycleSection={false}
+              fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
+              showCycleSection
               cycleLengthInputValue={cycleLengthInput}
               cycleLengthDefaultValue={draft.cycleLengthDays}
               scheduleModeDefaultValue={draft.scheduleMode}
@@ -271,93 +279,12 @@ export function EditRoutineAutosaveForm(props: Props) {
               weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
               distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
               cycleLengthDays={draft.cycleLengthDays}
-              topMethodRailContent={(
-                <RoutineEditorInlineCycleModeControl
-                  scheduleMode={draft.scheduleMode}
-                  onScheduleModeChange={(nextValue) => {
-                    setDraft((current) => ({ ...current, scheduleMode: nextValue }));
-                  }}
-                />
-              )}
-              preSessionSettingsGroups={[
-                {
-                  key: "cycle-settings",
-                  infoSection: "routine_setup",
-                  fields: [
-                    ...(draft.scheduleMode === "weekday_anchored"
-                      ? [(
-                        <div key="cycle-anchor" className="shrink-0">
-                          <RoutineEditorCycleAnchorField
-                            value={draft.startDate}
-                            onChange={(nextValue) => {
-                              setDraft((current) => ({ ...current, startDate: nextValue }));
-                            }}
-                          />
-                        </div>
-                      )]
-                      : []),
-                    <div key="cycle-count" className="shrink-0">
-                      <RoutineEditorCycleLengthField
-                        value={cycleLengthInput}
-                        onCycleLengthInputChange={setCycleLengthInput}
-                        onCycleLengthInputCommit={commitCycleLengthInput}
-                      />
-                    </div>,
-                  ],
-                },
-              ]}
-              preSessionSettingsContent={progressionDraft.progressionPlaybookId ? (
-                <RoutineEditorInlineCycleControls
-                  scheduleMode={draft.scheduleMode}
-                  startDate={draft.startDate}
-                  cycleLengthDays={draft.cycleLengthDays}
-                  cycleLengthInputValue={cycleLengthInput}
-                  effortWaveDirections={progressionDraft.progressionEffortWaveDirections}
-                  onStartDateChange={(nextValue) => {
-                    setDraft((current) => ({ ...current, startDate: nextValue }));
-                  }}
-                  onCycleLengthInputChange={setCycleLengthInput}
-                  onCycleLengthInputCommit={commitCycleLengthInput}
-                  onFieldChange={(field, nextValue) => {
-                    setDraft((current) => ({
-                      ...current,
-                      [field]: resolveRoutineDraftFieldValue(field, nextValue),
-                    }));
-                  }}
-                  showModeControl={false}
-                  showSectionTitle={false}
-                  showCycleFields={false}
-                  onToggleEffortWaveDirection={(dayIndex) => {
-                    setProgressionDraft((current) => {
-                      const visibleDayCount = (() => {
-                        const parsed = Number.parseInt(cycleLengthInput, 10);
-                        if (Number.isFinite(parsed) && parsed > 0) {
-                          return Math.min(parsed, 365);
-                        }
-                        return Math.max(1, draft.cycleLengthDays);
-                      })();
-                      const nextDirections = Array.from(
-                        { length: visibleDayCount },
-                        (_, index) => current.progressionEffortWaveDirections[index] ?? "straight",
-                      );
-                      const currentDirection = nextDirections[dayIndex] ?? "straight";
-                      nextDirections[dayIndex] = cycleSetFlowDirection({
-                        current: currentDirection,
-                        hasStepValue: false,
-                      });
-                      return {
-                        ...current,
-                        progressionEffortWaveDirections: nextDirections,
-                      };
-                    });
-                  }}
-                />
-              ) : null}
               context="routine-default"
               title=""
               defaultExpanded={false}
               collapsible={false}
               separateInfoBox
+              hideDayAdjustmentSettingsSection
               infoDockPlacement="above-bottom-actions"
               trainingFocusValue={selectedTrainingGoal}
               trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}

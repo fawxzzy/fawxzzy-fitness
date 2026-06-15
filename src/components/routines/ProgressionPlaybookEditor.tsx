@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ComponentPropsWithoutRef, type ReactNode, type Ref } from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -21,6 +21,7 @@ import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { ExpandingChoiceRow } from "@/components/ui/ExpandingChoiceRow";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { BOTTOM_ACTION_SHELL_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import type { BottomActionIntent } from "@/components/layout/bottomActionIntents";
@@ -1172,25 +1173,24 @@ function LoopingScrollRail({
   }, [children, isLoopEnabled]);
 
   return (
-    <div
-      ref={scrollRef}
-      className={cn(
-        "hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]",
-        className,
-      )}
+    <HorizontalScrollHint
+      className={className}
+      scrollRef={scrollRef}
+      scrollClassName="overflow-y-hidden overscroll-x-contain [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
+      contentClassName={cn("mx-auto flex w-max min-w-max", innerClassName)}
     >
       {isLoopEnabled ? (
-        <div className={cn("mx-auto flex w-max min-w-max", innerClassName)}>
+        <>
           <div aria-hidden="true" className={segmentClassName}>{children}</div>
           <div ref={segmentRef} className={segmentClassName}>{children}</div>
           <div aria-hidden="true" className={segmentClassName}>{children}</div>
-        </div>
+        </>
       ) : (
-        <div ref={segmentRef} className={cn("mx-auto flex w-max min-w-max", innerClassName, segmentClassName)}>
+        <div ref={segmentRef} className={segmentClassName}>
           {children}
         </div>
       )}
-    </div>
+    </HorizontalScrollHint>
   );
 }
 
@@ -1272,6 +1272,37 @@ function getRoutineDefaultVisualStepFieldIds(args: {
       return false;
     }
   });
+}
+
+function ProgressionHorizontalRail({
+  children,
+  className,
+  scrollClassName,
+  contentClassName,
+  scrollRef,
+  scrollProps,
+}: {
+  children: ReactNode;
+  className?: string;
+  scrollClassName?: string;
+  contentClassName?: string;
+  scrollRef?: Ref<HTMLDivElement>;
+  scrollProps?: (Omit<ComponentPropsWithoutRef<"div">, "children" | "ref"> & Record<string, unknown>);
+}) {
+  return (
+    <HorizontalScrollHint
+      className={className}
+      scrollRef={scrollRef}
+      scrollProps={scrollProps}
+      scrollClassName={cn(
+        "overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]",
+        scrollClassName,
+      )}
+      contentClassName={cn("mx-auto flex w-max min-w-max justify-center px-1", contentClassName)}
+    >
+      {children}
+    </HorizontalScrollHint>
+  );
 }
 
 const progressionInfoTitleClassName = "text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
@@ -1521,8 +1552,11 @@ function PromotionMeasurementOrderRow({
 }) {
   return (
     <div className="space-y-2" {...infoHandlers}>
-      <div className="max-w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mx-auto flex w-max min-w-max flex-row flex-nowrap items-stretch justify-center gap-2">
+      <HorizontalScrollHint
+        className="max-w-full"
+        scrollClassName="pb-1"
+        contentClassName="mx-auto flex w-max min-w-max flex-row flex-nowrap items-stretch justify-center gap-2"
+      >
           {measurements.map((measurement, index) => (
             <Fragment key={`promotion-order-${measurement}`}>
               <div className="flex items-center gap-1 px-1 py-1">
@@ -1565,8 +1599,7 @@ function PromotionMeasurementOrderRow({
               ) : null}
             </Fragment>
           ))}
-        </div>
-      </div>
+      </HorizontalScrollHint>
     </div>
   );
 }
@@ -1676,14 +1709,10 @@ function PromotionMeasurementStepRow({
 
   return (
     <div className="space-y-0" {...infoHandlers}>
-      <div
-        ref={scrollRef}
-        data-promotion-scroll="true"
-        className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
+      <ProgressionHorizontalRail
+        scrollRef={scrollRef}
+        scrollProps={{ "data-promotion-scroll": "true" }}
       >
-        <div
-          className="mx-auto flex w-max min-w-max justify-center px-1"
-        >
           <div
             className="inline-grid w-max min-w-max items-start gap-x-0 gap-y-0"
             style={{ gridTemplateColumns }}
@@ -1884,8 +1913,7 @@ function PromotionMeasurementStepRow({
               </Fragment>
             ))}
           </div>
-        </div>
-      </div>
+      </ProgressionHorizontalRail>
     </div>
   );
 }
@@ -2371,7 +2399,7 @@ function ProgressionOverlayPanel({
     <div
       className={cn(
         SHARED_OVERLAY_PANEL_SURFACE_CLASS_NAME,
-        "!bg-[rgb(var(--bg-app))] !backdrop-blur-none",
+        "!bg-transparent !backdrop-blur-[22px]",
       )}
     >
       <div className="pointer-events-none absolute inset-0 z-0 bg-transparent" aria-hidden="true" />
@@ -2509,7 +2537,7 @@ function RoutineEditorFloatingDropdownChrome({
           <button
             type="button"
             className={cn(
-              "group relative block w-full select-none appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
+              "group relative block w-full select-none appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-[22px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
               appTokens.routineEditorInlineTitle,
             )}
             onClick={() => onOpenChange((current) => !current)}
@@ -2677,7 +2705,6 @@ export function ProgressionPlaybookEditor({
     && typeof onAutoApplyUpdatesToExercisesChange === "function";
   const presetOptions = resolveProgressionDropdownPreset(dropdownPreset);
   const resolvedHideProgressionMethodControl = hideProgressionMethodControl ?? presetOptions.hideProgressionMethodControl;
-  const resolvedRenderRegressionAsSection = renderRegressionAsSection ?? presetOptions.renderRegressionAsSection;
   const resolvedHideDayAdjustmentSettingsSection = hideDayAdjustmentSettingsSection ?? presetOptions.hideDayAdjustmentSettingsSection;
   const resolvedHideSessionSettingsSection = hideSessionSettingsSection ?? presetOptions.hideSessionSettingsSection;
   const resolvedHideExerciseSessionSuccessCount = hideExerciseSessionSuccessCount ?? presetOptions.hideExerciseSessionSuccessCount;
@@ -2977,13 +3004,9 @@ export function ProgressionPlaybookEditor({
   const shouldRenderPromotionStepSettings = Boolean(selectedPlaybookId) && visiblePromotionStepFieldIds.length > 0;
   const shouldRenderRegressionControls = Boolean(selectedPlaybookId) && (isRoutineDefaultContext || visiblePromotionStepFieldIds.length > 0);
   const shouldRenderDeloadSettings = shouldRenderRegressionControls && value.progressionStallPolicy === "deload_after_stall";
-  const showRegressionTopRailControl = shouldRenderRegressionControls && !resolvedRenderRegressionAsSection;
-  const hasPreSessionInlineFieldGroups = (preSessionSettingsGroups?.some((group) => group.fields.length > 0) ?? false)
-    || (!resolvedRenderRegressionAsSection && selectedPlaybookId && shouldRenderDeloadSettings);
+  const hasPreSessionInlineFieldGroups = preSessionSettingsGroups?.some((group) => group.fields.length > 0) ?? false;
   const shouldRenderTopMethodRailCard = showLegacyTopMethodRail && (
     Boolean(topMethodRailContent)
-    || showProgressionMethodToggle
-    || showRegressionTopRailControl
     || showAutoApplyUpdatesControl
     || hasPreSessionInlineFieldGroups
   );
@@ -3001,7 +3024,8 @@ export function ProgressionPlaybookEditor({
       "Equipment step",
       "Session Settings",
       "Session count",
-      "Day Adjustment Settings",
+      "Workout Plan Adjustment Settings",
+      "Workout Plan Adjustments Settings",
       "Set Settings",
       "Stall",
       "Deload",
@@ -3133,13 +3157,13 @@ export function ProgressionPlaybookEditor({
       case "routine_setup":
         return {
           title: "Cycle Settings",
-          summary: "Cycle Settings control the routine cycle mode, cycle count, and the cycle anchor used for week-based schedules.",
-          rows: [
-            { label: "Routine Type", value: "Week-based anchors Day 1 to a weekday. Day-based repeats every N days from the anchor date." },
-            { label: "Routine Length", value: "Total routine days before the cycle repeats. In week-based mode, extra days can continue into the next week." },
-            { label: "Week Day Anchor", value: "Shown in week-based mode. This date places Day 1 inside the anchored week." },
-          ],
-        };
+            summary: "Cycle Settings control the routine cycle mode, cycle count, and the cycle anchor used for week-based schedules.",
+            rows: [
+              { label: "Routine Type", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
+              { label: "Routine Length", value: "Total workout plans before the cycle repeats. In week-based mode, extra plans can continue into the next week." },
+              { label: "Weekday Anchor", value: "Shown in week-based mode. This date places Slot 1 inside the anchored week." },
+            ],
+          };
       case "regression_method":
         return {
           title: "Regression",
@@ -3174,14 +3198,14 @@ export function ProgressionPlaybookEditor({
         };
       case "day_settings":
         return {
-          title: "Day Adjustment Settings",
-          summary: "Day Adjustment Settings shape the target for that cycle day before Session Settings and Set Settings continue the progression flow.",
+          title: "Workout Plan Adjustments Settings",
+          summary: "Workout Plan Adjustments Settings shape the target for that workout-plan slot before Session Settings and Set Settings continue the progression flow.",
           rows: [
             { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
             { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
             { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
             ...getPromotionStepInfoRows(),
-            { label: "Effort schedule", value: value.progressionEffortWaveDirections.map((direction, index) => `Day ${index + 1} ${formatSetFlowDirectionGlyph(direction)}`).join(" • ") },
+            { label: "Effort schedule", value: value.progressionEffortWaveDirections.map((direction, index) => `Slot ${index + 1} ${formatSetFlowDirectionGlyph(direction)}`).join(" | ") },
           ],
         };
       case "set_step_settings":
@@ -3922,18 +3946,19 @@ export function ProgressionPlaybookEditor({
   const progressionSettingsGroupLabelClassName = "text-[9.5px] font-semibold uppercase tracking-[0.15em]";
   const progressionSettingsFieldRowClassName = "flex w-max max-w-full flex-nowrap items-center justify-center gap-1.5 text-center";
   const progressionSettingsPipeClassName = "h-11 w-px shrink-0 self-end -translate-y-[31px] rounded-full bg-[rgb(var(--accent-strong)/0.82)]";
-  const progressionSettingsRailClassName = "hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
   const renderInlineSettingsFields = (fields: ReactNode[], infoSection: ActiveProgressionInfoSection) => {
     if (fields.length === 0) {
       return null;
     }
 
     return (
-      <div className={progressionSettingsRailClassName} {...getInfoSectionHandlers(infoSection)}>
-        <div className={cn(progressionSettingsFieldRowClassName, "mx-auto px-1")}>
+      <ProgressionHorizontalRail
+        scrollClassName="pt-1"
+        contentClassName={cn(progressionSettingsFieldRowClassName, "mx-auto px-1")}
+        scrollProps={getInfoSectionHandlers(infoSection)}
+      >
           {fields}
-        </div>
-      </div>
+      </ProgressionHorizontalRail>
     );
   };
   const renderInlineSettingsFieldGroups = (
@@ -3945,8 +3970,10 @@ export function ProgressionPlaybookEditor({
     }
 
     return (
-      <div className={progressionSettingsRailClassName}>
-        <div className={cn(progressionSettingsFieldRowClassName, "mx-auto items-end px-1")}>
+      <ProgressionHorizontalRail
+        scrollClassName="pt-1"
+        contentClassName={cn(progressionSettingsFieldRowClassName, "mx-auto items-end px-1")}
+      >
           {visibleGroups.map((group, groupIndex) => (
             <Fragment key={group.key}>
               {groupIndex > 0 ? <div className={progressionSettingsPipeClassName} aria-hidden="true" /> : null}
@@ -3968,8 +3995,7 @@ export function ProgressionPlaybookEditor({
               </div>
             </Fragment>
           ))}
-        </div>
-      </div>
+      </ProgressionHorizontalRail>
     );
   };
   const sessionSettingFields = visiblePromotionStepFieldIds.map((fieldId) => (
@@ -5294,8 +5320,7 @@ export function ProgressionPlaybookEditor({
       ))}
     >
       {shouldUsePromotionRepMeasurement && preCycleShiftRows.length > 0 ? (
-        <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-          <div className="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
+        <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
             <div className="w-fit max-w-full space-y-3 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
               <div className="mx-auto flex w-fit max-w-full flex-col gap-3 text-center">
                 {preCycleShiftRows.map((row) => (
@@ -5325,25 +5350,105 @@ export function ProgressionPlaybookEditor({
                 ))}
               </div>
             </div>
-          </div>
-        </div>
+        </ProgressionHorizontalRail>
       ) : null}
-      {rows.map((row, rowIndex) => {
+      {rows.length > 0 ? (
+        <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-start justify-start gap-4 px-1">
+            {rows.map((row, rowIndex) => (
+              <Fragment key={`measurement-group-${row.key}`}>
+                <div className="flex shrink-0 items-start gap-3">
+                  {row.sections.map((section) => (
+                    <div key={`measurement-column-${section.key}`} className="flex min-w-[18rem] shrink-0 flex-col items-stretch gap-2">
+                      <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
+                        <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                          <span className={progressionExampleMetricUnitClassName}>{row.headingMeasurement}</span>
+                        </p>
+                        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                      </div>
+                      <div
+                        className={cn(
+                          "w-full max-w-full space-y-3 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3",
+                          row.sections.length === 1 ? "min-w-[20rem]" : "min-w-[18rem]",
+                        )}
+                      >
+                        <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
+                          <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
+                            <span className={progressionExampleMeasurementLabelClassName}>{section.headingPrefix}</span>
+                          </p>
+                          <MetricAccentBar variant="thin" className="w-full opacity-80" />
+                        </div>
+                        <div className="space-y-2">
+                          <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                            Within Session
+                          </p>
+                          {shouldRenderPromotionStepSettings && activeDayStepMeasurements.length > 0 && shouldShowEffortShiftLabel(section.direction) ? (
+                            <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-primary)/0.96)]">
+                              <span className={getEffortShiftTitleClassName(section.direction)}>
+                                {`Day ${section.dayNumber} Shift ${section.direction === "up" ? "\u2191" : "\u2193"}`}
+                              </span>
+                            </p>
+                          ) : null}
+                          {shouldRenderPromotionStepSettings && activeDayStepMeasurements.length > 0 && shouldShowEffortShiftLabel(section.direction) ? (
+                            <div className="mx-auto flex w-fit max-w-full flex-col items-center justify-center text-center">
+                              {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.dayAfter, section.dayBefore))}
+                            </div>
+                          ) : null}
+                          <div className="mx-auto flex w-fit max-w-full flex-col gap-2 text-center">
+                            {section.setTargets.map((target) => (
+                              <div
+                                key={`${section.key}-${target.label}-value-inline`}
+                                className="flex flex-col items-center gap-1"
+                              >
+                                <p className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                                  {target.label}
+                                </p>
+                                <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                                  {renderExampleMetricUnderline(renderSetStepExampleMetricLine(target.value, target.compareValue))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      {section.isFinalSessionForGroup ? (
+                        <div className="w-full max-w-full space-y-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
+                          <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
+                            {getPostSessionTitle(section.headingMeasurement, section.sessionCount)}
+                          </p>
+                          <div className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+                            {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.postBefore, section.postAfter, "left"))}
+                            <span className="inline-flex min-w-4 items-center justify-center text-[rgb(var(--accent-divider-rgb)/0.95)]">
+                              <span className="text-[12px] font-bold leading-none">{"\u2192"}</span>
+                            </span>
+                            {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.postAfter, section.postBefore))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                {rowIndex < rows.length - 1 ? (
+                  <div className="flex shrink-0 items-center justify-center self-stretch px-1.5" aria-hidden="true">
+                    <MetricAccentBar variant="thin" className="!h-[8rem] !w-px rotate-90 opacity-80" />
+                  </div>
+                ) : null}
+              </Fragment>
+            ))}
+        </ProgressionHorizontalRail>
+      ) : null}
+      {false && rows.map((row, rowIndex) => {
         const finalSection = row.sections[row.sections.length - 1];
         return (
           <div key={row.key} className="space-y-2">
-            <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-              <div className="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
+            <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
                 <div className="mx-auto flex w-fit max-w-full flex-col items-center gap-[2px] text-center">
                   <p className={cn("px-1 text-[10px] font-semibold uppercase tracking-[0.12em]", progressionExampleTitleClassName)}>
                     <span className={progressionExampleMetricUnitClassName}>{row.headingMeasurement}</span>
                   </p>
                   <MetricAccentBar variant="thin" className="w-full opacity-80" />
                 </div>
-              </div>
-            </div>
-            <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-              <div className="mx-auto flex w-max min-w-max flex-nowrap items-stretch justify-center gap-0 px-1">
+            </ProgressionHorizontalRail>
+            <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-stretch justify-center gap-0 px-1">
                 {row.sections.map((section, index) => (
                   <Fragment key={section.key}>
                     <div
@@ -5431,11 +5536,9 @@ export function ProgressionPlaybookEditor({
                     ) : null}
                   </Fragment>
                 ))}
-              </div>
-            </div>
+            </ProgressionHorizontalRail>
             {finalSection?.isFinalSessionForGroup ? (
-              <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-                <div className="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
+              <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
                   <div className="w-fit max-w-full space-y-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
                     <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                       {getPostSessionTitle(finalSection.headingMeasurement, finalSection.sessionCount)}
@@ -5448,8 +5551,7 @@ export function ProgressionPlaybookEditor({
                       {renderExampleMetricUnderline(renderPromotionExampleMetricLine(finalSection.postAfter, finalSection.postBefore))}
                     </div>
                   </div>
-                </div>
-              </div>
+              </ProgressionHorizontalRail>
             ) : null}
           </div>
         );
@@ -5507,8 +5609,10 @@ export function ProgressionPlaybookEditor({
 
     return (
       <section className="pt-1.5">
-        <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1.5 pt-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-          <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1">
+        <ProgressionHorizontalRail
+          scrollClassName="pb-1.5 pt-1"
+          contentClassName="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5 px-1"
+        >
             {orderedFieldGroups.map((group, groupIndex) => (
               <div key={group.key} className="flex shrink-0 flex-nowrap items-stretch gap-2">
                 {groupIndex > 0 ? (
@@ -5536,8 +5640,7 @@ export function ProgressionPlaybookEditor({
                 </div>
               </div>
             ))}
-          </div>
-        </div>
+        </ProgressionHorizontalRail>
       </section>
     );
   };
@@ -5554,11 +5657,11 @@ export function ProgressionPlaybookEditor({
           >
             <ProgressionInfoRows
               rows={[
-                { label: "Schedule Mode", value: "Week-based anchors Day 1 to a weekday. Day-based repeats every N days from the anchor date." },
-                { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Day 1 inside the current anchored week." },
-                { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Day 1 anchors to. Covered days show how the current cycle spans forward from that anchor." },
-                { label: "Cycle Length", value: "Total routine days before the cycle repeats. In week-based mode, extra days continue into the next week." },
-                { label: "Timezone", value: "Controls Today rollover, routine cycle day rollover, and routine occurrence dates." },
+                { label: "Schedule Mode", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
+                { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Slot 1 inside the current anchored week." },
+                { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Slot 1 anchors to. Covered weekdays show how the current cycle spans forward from that anchor." },
+                { label: "Cycle Length", value: "Total workout plans before the cycle repeats. In week-based mode, extra plans continue into the next week." },
+                { label: "Timezone", value: "Controls Today rollover, workout-plan slot rollover, and routine occurrence dates." },
                 { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
               ]}
             />
@@ -5636,14 +5739,14 @@ export function ProgressionPlaybookEditor({
 
         {shouldRenderDayAdjustmentInfoSection ? (
           <ProgressionInfoMiniSection
-            title="Day Adjustment Settings"
+            title="Workout Plan Adjustments Settings"
             sectionKey="day_settings"
             openSectionKey={openInfoMiniSectionKey}
             onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
           >
             <ProgressionInfoRows
               rows={[
-                { label: "Purpose", value: "Controls how the effective target adjusts for a cycle day before Session Settings and Set Settings continue the workout flow." },
+                { label: "Purpose", value: "Controls how the effective target adjusts for a workout-plan slot before Session Settings and Set Settings continue the workout flow." },
                 { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
                 { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
                 { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
@@ -5701,60 +5804,17 @@ export function ProgressionPlaybookEditor({
     </div>
   );
   const progressionControlsContent = (
-    <div className="rounded-[1.1rem] border border-transparent bg-transparent px-2 py-3 text-left">
-      <div className="space-y-2.5">
+    <div className="space-y-2.5 text-left">
         {shouldRenderTopMethodRailCard ? (
         <section className={progressionInfoMiniCardClassName}>
           <div className="px-3 pb-3 pt-2.5">
             <div className="mx-auto w-full max-w-full space-y-3">
               <div className="space-y-2">
-                <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 pt-0 pl-1 pr-2 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-                  <div className="mx-auto flex w-max min-w-max flex-nowrap items-end justify-center gap-[3px]">
+                <ProgressionHorizontalRail
+                  scrollClassName="pb-1 pt-0 pl-1 pr-2"
+                  contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-end justify-center gap-[3px]"
+                >
                     {topMethodRailContent ? <>{topMethodRailContent}</> : null}
-                    {showProgressionMethodToggle ? (
-                      <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
-                        <div className="space-y-[2px]">
-                          <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                            Progression
-                          </div>
-                          <MetricAccentBar variant="thin" className="w-full opacity-80" />
-                        </div>
-                        <ProgressionBinaryToggleButton
-                          label={selectedPlaybookId ? "Auto" : "Manual"}
-                          ariaLabel="Progression method"
-                          onClick={() => {
-                            const nextValue = selectedPlaybookId ? "" : "double_progression";
-                            setPlaybookId(nextValue as ProgressionPlaybookId | "");
-                            showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
-                          }}
-                          className="min-w-[8.5rem]"
-                        />
-                      </div>
-                    ) : null}
-
-                    {showRegressionTopRailControl ? (
-                      <div className="min-w-0 shrink-0 space-y-[5px]" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
-                        <div className="space-y-[2px]">
-                          <div className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-yellow-on))]">
-                            Regression
-                          </div>
-                          <MetricAccentBar variant="thin" className="w-full opacity-80" />
-                        </div>
-                        <ProgressionBinaryToggleButton
-                          label={value.progressionStallPolicy === "deload_after_stall" ? "Deload" : "None"}
-                          ariaLabel="Regression policy"
-                          onClick={() => {
-                            const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
-                              ? "none"
-                              : "deload_after_stall";
-                            setStallPolicy(nextPolicy);
-                            showCustomInfo(getRegressionInfoPayload(nextPolicy));
-                          }}
-                          className="min-w-[8.5rem]"
-                        />
-                      </div>
-                    ) : null}
-
                     {showAutoApplyUpdatesControl ? (
                       <div className="min-w-0 shrink-0 space-y-[5px]">
                         <div className="space-y-[2px]">
@@ -5771,8 +5831,7 @@ export function ProgressionPlaybookEditor({
                         />
                       </div>
                     ) : null}
-                  </div>
-                </div>
+                </ProgressionHorizontalRail>
                 {hasPreSessionInlineFieldGroups ? renderInlineSettingsFieldGroups([
                   ...(preSessionSettingsGroups ?? []),
                   {
@@ -5793,12 +5852,31 @@ export function ProgressionPlaybookEditor({
           </div>
         ) : null}
 
-        {resolvedRenderRegressionAsSection && shouldRenderRegressionControls ? (
+        {showProgressionMethodToggle ? (
+          <ProgressionInfoMiniSection title="Progression Settings">
+            <div className="space-y-3" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
+              <div className="flex justify-center">
+                <ProgressionBinaryToggleButton
+                  label={selectedPlaybookId ? "Auto" : "Manual"}
+                  ariaLabel="Progression method"
+                  onClick={() => {
+                    const nextValue = selectedPlaybookId ? "" : "double_progression";
+                    setPlaybookId(nextValue as ProgressionPlaybookId | "");
+                    showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
+                  }}
+                  className="min-w-[8.5rem] shrink-0"
+                />
+              </div>
+            </div>
+          </ProgressionInfoMiniSection>
+        ) : null}
+
+        {shouldRenderRegressionControls ? (
           <ProgressionInfoMiniSection title="Regression Settings">
             <div className="space-y-3" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
               <div className="flex justify-center">
                 <ProgressionBinaryToggleButton
-                  label={value.progressionStallPolicy === "deload_after_stall" ? "Deload" : "None"}
+                  label={value.progressionStallPolicy === "deload_after_stall" ? "Deload" : "Manual"}
                   ariaLabel="Regression policy"
                   onClick={() => {
                     const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
@@ -5807,7 +5885,7 @@ export function ProgressionPlaybookEditor({
                     setStallPolicy(nextPolicy);
                     showCustomInfo(getRegressionInfoPayload(nextPolicy));
                   }}
-                  className="min-w-[8.5rem]"
+                  className="min-w-[8.5rem] shrink-0"
                 />
               </div>
               {shouldRenderDeloadSettings ? (
@@ -5822,7 +5900,7 @@ export function ProgressionPlaybookEditor({
         ) : null}
 
         {!resolvedHideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
-          <ProgressionInfoMiniSection title="Day Adjustment Settings">
+          <ProgressionInfoMiniSection title="Workout Plan Adjustments Settings">
             <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
               <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
                 {daySettingFields}
@@ -5916,12 +5994,9 @@ export function ProgressionPlaybookEditor({
         ) : null}
 
         {selectedPlaybookId && isRoutineDefaultContext && hasDetailedProgressionExampleContent ? (
-          <ProgressionControlsSection
-            title="Progression Example"
-            titleClassName={progressionExampleTitleClassName}
-          >
+          <ProgressionInfoMiniSection title={<span className={progressionExampleTitleClassName}>Progression Example</span>}>
             {renderDetailedProgressionExample(combinedProgressionExampleRows, uniquePreProgressionCycleShiftRows)}
-          </ProgressionControlsSection>
+          </ProgressionInfoMiniSection>
         ) : null}
 
         {false && selectedPlaybookId && !isRoutineDefaultContext ? (
@@ -5933,7 +6008,7 @@ export function ProgressionPlaybookEditor({
               {shouldRenderPromotionStepSettings ? (
                 <div className="space-y-2">
                   <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.94)]">
-                    Day Adjustment Settings
+                    Workout Plan Adjustments Settings
                   </p>
                   <LoopingScrollRail className="pb-1" innerClassName="items-start justify-center gap-4 px-1 text-center" segmentClassName="shrink-0">
                     <div className="flex w-max min-w-max flex-col gap-2">
@@ -6012,8 +6087,7 @@ export function ProgressionPlaybookEditor({
               ))}
             >
               {shouldUsePromotionRepMeasurement && uniquePreProgressionCycleShiftRows.length > 0 ? (
-                <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-                  <div className="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
+                <ProgressionHorizontalRail contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-center px-1">
                     <div className="w-fit max-w-full space-y-3 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
                       <div className="mx-auto flex w-fit max-w-full flex-col gap-3 text-center">
                         {uniquePreProgressionCycleShiftRows.map((row) => (
@@ -6043,8 +6117,7 @@ export function ProgressionPlaybookEditor({
                         ))}
                       </div>
                     </div>
-                  </div>
-                </div>
+                </ProgressionHorizontalRail>
               ) : null}
               {combinedProgressionExampleRows.map((row, rowIndex) => {
                 const finalSection = row.sections[row.sections.length - 1];
@@ -6221,7 +6294,6 @@ export function ProgressionPlaybookEditor({
         ) : null}
 
         {!separateInfoBox && shouldRenderProgressionInfo ? progressionInfoBox : null}
-      </div>
     </div>
   );
   const fixedPortalTriggerBottomClassName = "bottom-[calc(var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))-0.25rem)]";

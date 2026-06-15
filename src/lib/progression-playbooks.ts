@@ -779,7 +779,7 @@ export const STALL_POLICY_DEFINITIONS: Record<ProgressionStallPolicy, {
 }> = {
   none: {
     id: "none",
-    label: "None",
+    label: "Manual",
     whatItDoes: "No stall policy is attached.",
     useItFor: "Exercises where missed targets should not trigger an automatic recovery rule.",
     inputMeanings: [],

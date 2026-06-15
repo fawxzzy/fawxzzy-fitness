@@ -7,6 +7,7 @@ import {
   ACTION_CHROME_SEGMENTED_CLASS_NAME,
 } from "@/components/ui/actionChrome";
 import { appTokens } from "@/components/ui/app/tokens";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 import { listTrainingGoalDefinitions, type TrainingGoalId } from "@/lib/progression-playbooks";
@@ -47,8 +48,10 @@ export function TrainingGoalSelector({
         </p>
         {showTitleAccentBar ? <MetricAccentBar variant="thin" className="mt-2 w-full opacity-85" /> : null}
       </div>
-      <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}>
+      <HorizontalScrollHint
+        scrollClassName="pb-1"
+        contentClassName={cn(ACTION_CHROME_RAIL_CLASS_NAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "mx-auto w-max min-w-max justify-center")}
+      >
           {options.map((option) => {
             const isActive = value === option.id;
 
@@ -74,8 +77,7 @@ export function TrainingGoalSelector({
               </button>
             );
           })}
-        </div>
-      </div>
+      </HorizontalScrollHint>
     </section>
   );
 }

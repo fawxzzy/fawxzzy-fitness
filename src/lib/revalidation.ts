@@ -13,6 +13,10 @@ export function getRoutineEditPath(routineId: string) {
   return `${ROUTINES_PATH}/${routineId}/edit`;
 }
 
+export function getRoutineHomePath(routineId: string) {
+  return `${ROUTINES_PATH}/${routineId}`;
+}
+
 export function getTodayPath() {
   return TODAY_PATH;
 }

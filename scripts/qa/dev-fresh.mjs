@@ -5,15 +5,15 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { execFile, spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import {
-  DEFAULT_QA_HOST,
-  DEFAULT_QA_PORT,
-  atlasRoot,
-  loadPinnedEnv,
-  repoRoot,
-  runtimeRoot,
-} from "./fitness-qa-config.mjs";
+  assertExpectedFitnessSupabaseHost,
+  assertSafeLocalSupabaseDev,
+  parseDotenvFiles,
+  resolveEnvFilePath,
+  resolveEnvFilePaths,
+} from "../env-file.mjs";
 import {
   cleanNextOutput,
   isSafeRepoProcess,
@@ -29,6 +29,38 @@ const HEALTH_TIMEOUT_MS = 90000;
 const ROUTE_POLL_INTERVAL_MS = 750;
 const PORT_CLOSE_TIMEOUT_MS = 15000;
 const CHUNK_CHECK_LIMIT = 20;
+const DEFAULT_QA_PORT = 3002;
+const DEFAULT_QA_HOST = "127.0.0.1";
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, "..", "..");
+const atlasRoot = path.resolve(repoRoot, "..", "..");
+const runtimeRoot = path.join(atlasRoot, "runtime", "fitness");
+const envPaths = resolveEnvFilePaths(repoRoot);
+const envPath = resolveEnvFilePath(repoRoot);
+let cachedEnv = null;
+
+function loadPinnedEnv() {
+  if (cachedEnv) {
+    return cachedEnv;
+  }
+
+  const fileEnv = parseDotenvFiles(envPaths);
+  cachedEnv = {
+    ...process.env,
+    ...fileEnv,
+  };
+  assertSafeLocalSupabaseDev({
+    env: cachedEnv,
+    envFilePath: envPath,
+    commandName: "fitness QA workflow",
+  });
+  assertExpectedFitnessSupabaseHost({
+    env: cachedEnv,
+    commandName: "fitness QA workflow",
+  });
+
+  return cachedEnv;
+}
 
 function parseArgs(argv = process.argv.slice(2)) {
   const flags = {};

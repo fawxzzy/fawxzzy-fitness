@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import {
+  SCROLL_HINT_VERTICAL_BOTTOM_FADE_CLASS_NAME,
+  SCROLL_HINT_VERTICAL_THUMB_CLASS_NAME,
+  SCROLL_HINT_VERTICAL_TOP_FADE_CLASS_NAME,
+  SCROLL_HINT_VERTICAL_TRACK_CLASS_NAME,
+} from "@/components/ui/scrollHintStyles";
 
 type VerticalScrollHintState = {
   canScrollTop: boolean;
@@ -54,8 +60,31 @@ export function VerticalScrollHint({
   showRail?: boolean;
 }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const [state, setState] = useState<VerticalScrollHintState>(INITIAL_STATE);
-  const hasOverflow = state.canScrollTop || state.canScrollBottom;
+  const topFadeRef = useRef<HTMLDivElement | null>(null);
+  const bottomFadeRef = useRef<HTMLDivElement | null>(null);
+  const thumbRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const stateRef = useRef<VerticalScrollHintState>(INITIAL_STATE);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  const applyState = useCallback((nextState: VerticalScrollHintState) => {
+    stateRef.current = nextState;
+    const nextHasOverflow = nextState.canScrollTop || nextState.canScrollBottom;
+    setHasOverflow((current) => current === nextHasOverflow ? current : nextHasOverflow);
+
+    if (topFadeRef.current) {
+      topFadeRef.current.style.opacity = nextState.canScrollTop ? "1" : "0";
+    }
+
+    if (bottomFadeRef.current) {
+      bottomFadeRef.current.style.opacity = nextState.canScrollBottom ? "1" : "0";
+    }
+
+    if (thumbRef.current) {
+      thumbRef.current.style.top = `${nextState.thumbTop}%`;
+      thumbRef.current.style.height = `${nextState.thumbHeight}%`;
+    }
+  }, []);
 
   const refresh = useCallback(() => {
     const element = scrollerRef.current;
@@ -63,8 +92,19 @@ export function VerticalScrollHint({
       return;
     }
 
-    setState(resolveVerticalScrollHintState(element));
-  }, []);
+    applyState(resolveVerticalScrollHintState(element));
+  }, [applyState]);
+
+  const scheduleRefresh = useCallback(() => {
+    if (rafRef.current !== null) {
+      return;
+    }
+
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      refresh();
+    });
+  }, [refresh]);
 
   useEffect(() => {
     const element = scrollerRef.current;
@@ -73,11 +113,11 @@ export function VerticalScrollHint({
     }
 
     refresh();
-    element.addEventListener("scroll", refresh, { passive: true });
-    window.addEventListener("resize", refresh);
+    element.addEventListener("scroll", scheduleRefresh, { passive: true });
+    window.addEventListener("resize", scheduleRefresh);
 
     const resizeObserver = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(refresh)
+      ? new ResizeObserver(scheduleRefresh)
       : null;
     resizeObserver?.observe(element);
     if (element.firstElementChild) {
@@ -85,11 +125,20 @@ export function VerticalScrollHint({
     }
 
     return () => {
-      element.removeEventListener("scroll", refresh);
-      window.removeEventListener("resize", refresh);
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
+      element.removeEventListener("scroll", scheduleRefresh);
+      window.removeEventListener("resize", scheduleRefresh);
       resizeObserver?.disconnect();
     };
-  }, [refresh]);
+  }, [refresh, scheduleRefresh]);
+
+  useEffect(() => {
+    if (hasOverflow) {
+      refresh();
+    }
+  }, [hasOverflow, refresh]);
 
   return (
     <div className={cn("relative min-h-0", className)}>
@@ -108,18 +157,14 @@ export function VerticalScrollHint({
       {showFade ? (
         <>
           <div
+            ref={topFadeRef}
             aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-x-0 top-0 h-6 rounded-t-[inherit] bg-[linear-gradient(180deg,rgb(var(--surface-rgb)/0.94),rgb(var(--surface-rgb)/0))] transition-opacity duration-150",
-              state.canScrollTop ? "opacity-100" : "opacity-0",
-            )}
+            className={cn(SCROLL_HINT_VERTICAL_TOP_FADE_CLASS_NAME)}
           />
           <div
+            ref={bottomFadeRef}
             aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute bottom-0 inset-x-0 h-7 rounded-b-[inherit] bg-[linear-gradient(0deg,rgb(var(--surface-rgb)/0.94),rgb(var(--surface-rgb)/0))] transition-opacity duration-150",
-              state.canScrollBottom ? "opacity-100" : "opacity-0",
-            )}
+            className={cn(SCROLL_HINT_VERTICAL_BOTTOM_FADE_CLASS_NAME)}
           />
         </>
       ) : null}
@@ -128,13 +173,11 @@ export function VerticalScrollHint({
           aria-hidden="true"
           className={cn("pointer-events-none absolute bottom-2 right-0 top-2 w-[3px]", railClassName)}
         >
-          <div className="absolute inset-y-0 left-px w-px rounded-full bg-[rgb(var(--accent-divider-rgb)/0.16)]" />
+          <div className={SCROLL_HINT_VERTICAL_TRACK_CLASS_NAME} />
           <div
-            className="absolute left-0 w-[3px] rounded-full bg-[rgb(var(--accent-divider-rgb)/0.96)] shadow-[0_0_10px_rgb(var(--accent-divider-rgb)/0.42)] transition-[top,height] duration-100"
-            style={{
-              top: `${state.thumbTop}%`,
-              height: `${state.thumbHeight}%`,
-            }}
+            ref={thumbRef}
+            className={SCROLL_HINT_VERTICAL_THUMB_CLASS_NAME}
+            style={{ top: "0%", height: "100%" }}
           />
         </div>
       ) : null}

@@ -13,7 +13,7 @@ Fitness repo-local commands can verify, build, version, and prepare release arti
 Approved deploy authority:
 
 - `_stack` owns Fitness preview and production deploy orchestration
-- run preview and production deploys from `C:\ATLAS\repos\_stack`
+- run preview and production deploys from `repos/_stack`
 - use `_stack` `fitness:deploy:*` commands as the only approved operator path
 
 Non-authority surfaces in this repo:
@@ -183,11 +183,11 @@ npm run dev
 
 Use the existing mirror script for a one-time prod -> local data load before local launch or debugging. This is a controlled snapshot into local Postgres, not a live loop against production.
 
-Keep the mirror env file outside the repo root under `C:\ATLAS\secrets\local\...`. The current local target for this repo is Postgres on `127.0.0.1:5432`, so `LOCAL_DATABASE_URL` must point there rather than the Supabase CLI port `54322`.
+Keep the mirror env file outside the repo root under `secrets/local/...`. The current local target for this repo is Postgres on `127.0.0.1:5432`, so `LOCAL_DATABASE_URL` must point there rather than the Supabase CLI port `54322`.
 
 ```powershell
-cd C:\ATLAS\repos\fawxzzy-fitness
-node .\scripts\sync-prod-to-local.mjs --env C:\ATLAS\secrets\local\fitness-prod-to-local.env --yes
+cd repos\fawxzzy-fitness
+node .\scripts\sync-prod-to-local.mjs --env ..\..\secrets\local\fitness-prod-to-local.env --yes
 ```
 
 Required env keys:

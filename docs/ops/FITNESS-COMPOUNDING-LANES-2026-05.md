@@ -4,7 +4,7 @@ Date:
 - 2026-05-03
 
 Workspace:
-- `C:\ATLAS\repos\fawxzzy-fitness`
+- `repos/fawxzzy-fitness`
 
 Purpose:
 - Turn the highest-confidence Fitness systems into PR-sized implementation lanes that compound inside the current product instead of adding category noise.

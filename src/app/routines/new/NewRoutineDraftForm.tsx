@@ -2,21 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import {
-  RoutineDetailsBottomActionPublisher,
-  RoutineEditorPageBody,
-  RoutineEditorTitleInput,
-} from "@/components/routines/RoutineEditorShared";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { RoutineEditorPageBody, RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
 import { appTokens } from "@/components/ui/app/tokens";
 import {
-  RoutineDetailsBackSecondaryAction,
   RoutineDetailsDiscardConfirmationDock,
-  useRoutineDetailsDirtyState,
-  useRoutineDetailsExitGuard,
-  useRoutineDetailsHeaderTitle,
+  useOptionalRoutineDetailsExitGuard,
 } from "@/components/routines/RoutineDetailsExitGuard";
-import { RoutineEditorCycleAnchorField, RoutineEditorCycleLengthField, RoutineEditorFormFields, RoutineEditorInlineCycleControls, RoutineEditorInlineCycleModeControl } from "@/components/routines/RoutineEditorForm";
+import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 import {
@@ -36,7 +32,6 @@ import {
   isTrainingGoalCustomized,
 } from "@/lib/progression-playbook-form-state";
 import { TRAINING_GOAL_IDS, type TrainingGoalId } from "@/lib/progression-playbooks";
-import { cycleSetFlowDirection } from "@/lib/set-flow-directions";
 
 const STORAGE_KEY = "routine-new-draft-v1";
 const LEGACY_SET_FLOW_DRAFT_DEFAULTS = {
@@ -68,9 +63,29 @@ function normalizeTrainingGoalId(value: unknown): TrainingGoalId | "" {
   return TRAINING_GOAL_IDS.includes(value as TrainingGoalId) ? (value as TrainingGoalId) : "";
 }
 
-export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDefaults }) {
+function getDeviceTimezone(fallback: string) {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone?.trim();
+  return resolved || fallback;
+}
+
+export function NewRoutineDraftForm({
+  defaults,
+  embedded = false,
+  onCancel,
+  onCreated,
+}: {
+  defaults: NewRoutineDraftDefaults;
+  embedded?: boolean;
+  onCancel?: () => void;
+  onCreated?: (routineId: string) => void;
+}) {
   const toast = useToast();
   const router = useRouter();
+  const exitGuard = useOptionalRoutineDetailsExitGuard();
   const normalizedDefaults = useMemo(
     () => normalizeRoutineDetailsDraft(defaults, {
       name: defaults.name,
@@ -99,6 +114,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEmbeddedConfirmingDiscard, setIsEmbeddedConfirmingDiscard] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSaving, startTransition] = useTransition();
 
@@ -261,7 +277,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
   const isDirty = currentSnapshot !== initialSnapshot || currentProgressionSnapshot !== initialProgressionSnapshot;
   const hasDirtyChanges = hasUserEdited && isDirty;
   const canCreate = validation.valid && isDirty && !isSaving;
-  const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
+  const isUsingExitGuard = !embedded && Boolean(exitGuard);
+  const isConfirmingDiscard = isUsingExitGuard ? Boolean(exitGuard?.isConfirmingDiscard) : isEmbeddedConfirmingDiscard;
   const trimmedRoutineName = draft.name.trim().slice(0, 15);
   const routineHeaderTitle = useMemo(() => (
     <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
@@ -285,8 +302,21 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     </div>
   ), [draft.name]);
 
-  useRoutineDetailsHeaderTitle(routineHeaderTitle);
-  useRoutineDetailsDirtyState(hasDirtyChanges);
+  useEffect(() => {
+    if (!isUsingExitGuard) {
+      return;
+    }
+
+    exitGuard?.setHeaderTitle(routineHeaderTitle);
+  }, [exitGuard, isUsingExitGuard, routineHeaderTitle]);
+
+  useEffect(() => {
+    if (!isUsingExitGuard) {
+      return;
+    }
+
+    exitGuard?.setHasUnsavedChanges(hasDirtyChanges);
+  }, [exitGuard, hasDirtyChanges, isUsingExitGuard]);
 
   useEffect(() => {
     if (!hasDirtyChanges) return;
@@ -316,13 +346,105 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
     return nextDraft;
   };
 
+  const handleRequestCancel = () => {
+    if (!hasDirtyChanges) {
+      if (isUsingExitGuard) {
+        exitGuard?.requestExit();
+      } else {
+        onCancel?.();
+      }
+      return;
+    }
+
+    if (isUsingExitGuard) {
+      exitGuard?.requestExit();
+      return;
+    }
+
+    setIsEmbeddedConfirmingDiscard(true);
+  };
+
+  const handleDiscardEmbeddedDraft = () => {
+    setIsEmbeddedConfirmingDiscard(false);
+    onCancel?.();
+  };
+
+  const handleStayOnEmbeddedDraft = () => {
+    setIsEmbeddedConfirmingDiscard(false);
+  };
+
+  const handleCreateRoutine = () => {
+    setError(null);
+    startTransition(async () => {
+      const nextDraft = commitCycleLengthInput();
+      const nextValidation = validateRoutineDetailsDraft(nextDraft);
+      if (!nextValidation.valid) {
+        const nextError = nextValidation.error ?? "Please complete all required routine fields.";
+        setError(nextError);
+        toast.error(nextError);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("name", trimmedRoutineName);
+      formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
+      formData.set("scheduleMode", nextDraft.scheduleMode);
+      formData.set("startDate", nextDraft.startDate);
+      formData.set("startWeekday", nextDraft.startWeekday);
+      formData.set("timezone", getDeviceTimezone(nextDraft.timezone));
+      formData.set("weightUnit", nextDraft.weightUnit);
+      formData.set("distanceUnit", nextDraft.distanceUnit);
+      appendProgressionPlaybookFormData(formData, progressionDraft);
+      const result = await createRoutineAction(formData);
+      if (!result.ok) {
+        const nextError = result.error ?? "Could not create routine.";
+        setError(nextError);
+        toast.error(nextError);
+        return;
+      }
+      if (!result.routineId) {
+        const nextError = "Could not create routine.";
+        setError(nextError);
+        toast.error(nextError);
+        return;
+      }
+      window.localStorage.removeItem(STORAGE_KEY);
+      toast.success("Routine created");
+      if (embedded && onCreated) {
+        onCreated(result.routineId);
+        return;
+      }
+      router.push("/routines");
+    });
+  };
+
+  const localEmbeddedFooter = (
+    <div className="border-t border-[rgb(var(--border-strong)/0.14)] px-4 pb-4 pt-3">
+      <BottomActionSingle>
+          <BottomDockButton
+            type="button"
+            intent="positive"
+            disabled={!canCreate}
+            onClick={handleCreateRoutine}
+          >
+            Create
+          </BottomDockButton>
+      </BottomActionSingle>
+    </div>
+  );
+
   return (
     <>
       <RoutineEditorPageBody className={appTokens.routineEditorSectionStack}>
         <div className="space-y-2 pt-4">
+          {embedded ? (
+            <div className="px-1 pb-2">
+              {routineHeaderTitle}
+            </div>
+          ) : null}
           <RoutineEditorFormFields
-            fields={["cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]}
-            showCycleSection={false}
+            fields={["cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]}
+            showCycleSection
             cycleLengthInputValue={cycleLengthInput}
             cycleLengthDefaultValue={draft.cycleLengthDays}
             scheduleModeDefaultValue={draft.scheduleMode}
@@ -345,113 +467,21 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
               }));
             }}
           />
-          <ProgressionPlaybookEditor
-            value={progressionDraft}
-            onChange={(nextValue) => {
-              setHasUserEdited(true);
-              setProgressionDraft(nextValue);
-            }}
-            weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
-            distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
-            cycleLengthDays={draft.cycleLengthDays}
-            topMethodRailContent={(
-              <RoutineEditorInlineCycleModeControl
-                scheduleMode={draft.scheduleMode}
-                onScheduleModeChange={(nextValue) => {
-                  setHasUserEdited(true);
-                  setDraft((current) => ({ ...current, scheduleMode: nextValue }));
-                }}
-              />
-            )}
-            preSessionSettingsGroups={[
-              {
-                key: "cycle-settings",
-                infoSection: "routine_setup",
-                fields: [
-                  ...(draft.scheduleMode === "weekday_anchored"
-                    ? [(
-                      <div key="cycle-anchor" className="shrink-0">
-                        <RoutineEditorCycleAnchorField
-                          value={draft.startDate}
-                          onChange={(nextValue) => {
-                            setHasUserEdited(true);
-                            setDraft((current) => ({ ...current, startDate: nextValue }));
-                          }}
-                        />
-                      </div>
-                    )]
-                    : []),
-                  <div key="cycle-count" className="shrink-0">
-                    <RoutineEditorCycleLengthField
-                      value={cycleLengthInput}
-                      onCycleLengthInputChange={(nextValue) => {
-                        setHasUserEdited(true);
-                        setCycleLengthInput(nextValue);
-                      }}
-                      onCycleLengthInputCommit={commitCycleLengthInput}
-                    />
-                  </div>,
-                ],
-              },
-            ]}
-            preSessionSettingsContent={progressionDraft.progressionPlaybookId ? (
-              <RoutineEditorInlineCycleControls
-                scheduleMode={draft.scheduleMode}
-                startDate={draft.startDate}
-                cycleLengthDays={draft.cycleLengthDays}
-                cycleLengthInputValue={cycleLengthInput}
-                effortWaveDirections={progressionDraft.progressionEffortWaveDirections}
-                onStartDateChange={(nextValue) => {
-                  setHasUserEdited(true);
-                  setDraft((current) => ({ ...current, startDate: nextValue }));
-                }}
-                onCycleLengthInputChange={(nextValue) => {
-                  setHasUserEdited(true);
-                  setCycleLengthInput(nextValue);
-                }}
-                onCycleLengthInputCommit={commitCycleLengthInput}
-                onFieldChange={(field, nextValue) => {
-                  setHasUserEdited(true);
-                  setDraft((current) => ({
-                    ...current,
-                    [field]: resolveRoutineDraftFieldValue(field, nextValue),
-                  }));
-                }}
-                showModeControl={false}
-                showSectionTitle={false}
-                showCycleFields={false}
-                onToggleEffortWaveDirection={(dayIndex) => {
-                  setHasUserEdited(true);
-                  setProgressionDraft((current) => {
-                    const visibleDayCount = (() => {
-                      const parsed = Number.parseInt(cycleLengthInput, 10);
-                      if (Number.isFinite(parsed) && parsed > 0) {
-                        return Math.min(parsed, 365);
-                      }
-                      return Math.max(1, draft.cycleLengthDays);
-                    })();
-                    const nextDirections = Array.from(
-                      { length: visibleDayCount },
-                      (_, index) => current.progressionEffortWaveDirections[index] ?? "straight",
-                    );
-                    const currentDirection = nextDirections[dayIndex] ?? "straight";
-                    nextDirections[dayIndex] = cycleSetFlowDirection({
-                      current: currentDirection,
-                      hasStepValue: false,
-                    });
-                    return {
-                      ...current,
-                      progressionEffortWaveDirections: nextDirections,
-                    };
-                  });
-                }}
-              />
-            ) : null}
-            context="routine-default"
-            title=""
+            <ProgressionPlaybookEditor
+              value={progressionDraft}
+              onChange={(nextValue) => {
+                setHasUserEdited(true);
+                setProgressionDraft(nextValue);
+              }}
+              weightUnit={draft.weightUnit === "kg" ? "kg" : "lbs"}
+              distanceUnit={draft.distanceUnit === "km" ? "km" : "mi"}
+              cycleLengthDays={draft.cycleLengthDays}
+              context="routine-default"
+              title=""
             defaultExpanded={false}
             collapsible={false}
             separateInfoBox
+            hideDayAdjustmentSettingsSection
             infoDockPlacement="above-bottom-actions"
             trainingFocusValue={selectedTrainingGoal}
             trainingFocusCustomized={isTrainingGoalCustomized(selectedTrainingGoal, progressionDraft)}
@@ -466,60 +496,32 @@ export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDef
       </RoutineEditorPageBody>
 
       {isConfirmingDiscard ? (
-        <RoutineDetailsDiscardConfirmationDock />
+        isUsingExitGuard ? (
+          <RoutineDetailsDiscardConfirmationDock />
+        ) : (
+          <ConfirmDestructiveModal
+            open
+            title="Discard changes?"
+            confirmLabel="Discard"
+            onCancel={handleStayOnEmbeddedDraft}
+            onConfirm={handleDiscardEmbeddedDraft}
+          />
+        )
+      ) : embedded ? (
+        localEmbeddedFooter
       ) : (
-        <RoutineDetailsBottomActionPublisher
-          secondary={<RoutineDetailsBackSecondaryAction label="Cancel" intent="danger" />}
-          primary={(
+        <PublishBottomActions>
+          <BottomActionSingle>
             <BottomDockButton
               type="button"
               intent="positive"
               disabled={!canCreate}
-              onClick={() => {
-                setError(null);
-                startTransition(async () => {
-                  const nextDraft = commitCycleLengthInput();
-                  const nextValidation = validateRoutineDetailsDraft(nextDraft);
-                  if (!nextValidation.valid) {
-                    const nextError = nextValidation.error ?? "Please complete all required routine fields.";
-                    setError(nextError);
-                    toast.error(nextError);
-                    return;
-                  }
-
-                  const formData = new FormData();
-                  formData.set("name", trimmedRoutineName);
-                  formData.set("cycleLengthDays", String(nextDraft.cycleLengthDays));
-                  formData.set("scheduleMode", nextDraft.scheduleMode);
-                  formData.set("startDate", nextDraft.startDate);
-                  formData.set("startWeekday", nextDraft.startWeekday);
-                  formData.set("timezone", nextDraft.timezone);
-                  formData.set("weightUnit", nextDraft.weightUnit);
-                  formData.set("distanceUnit", nextDraft.distanceUnit);
-                  appendProgressionPlaybookFormData(formData, progressionDraft);
-                  const result = await createRoutineAction(formData);
-                  if (!result.ok) {
-                    const nextError = result.error ?? "Could not create routine.";
-                    setError(nextError);
-                    toast.error(nextError);
-                    return;
-                  }
-                  if (!result.routineId) {
-                    const nextError = "Could not create routine.";
-                    setError(nextError);
-                    toast.error(nextError);
-                    return;
-                  }
-                  window.localStorage.removeItem(STORAGE_KEY);
-                  toast.success("Routine created");
-                  router.push("/routines");
-                });
-              }}
+              onClick={handleCreateRoutine}
             >
               Create
             </BottomDockButton>
-          )}
-        />
+          </BottomActionSingle>
+        </PublishBottomActions>
       )}
     </>
   );

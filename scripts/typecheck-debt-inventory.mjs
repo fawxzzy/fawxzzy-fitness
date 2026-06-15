@@ -6,12 +6,17 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { ensureRepoDependencies } from "./ensure-repo-deps.mjs";
 
-const require = createRequire(import.meta.url);
-const tscBin = require.resolve("typescript/bin/tsc");
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
 const repoRoot = path.resolve(scriptDir, "..");
+await ensureRepoDependencies({
+  repoRoot,
+  reason: "typecheck debt inventory",
+});
+const require = createRequire(import.meta.url);
+const tscBin = require.resolve("typescript/bin/tsc");
 const typecheckArgs = ["-p", "tsconfig.json", "--pretty", "false"];
 const groupDefinitions = [
   {

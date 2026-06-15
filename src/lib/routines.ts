@@ -362,6 +362,42 @@ export function getRoutineDayWeekdayLabel(dayIndex: number, startDate: string | 
   return getWeekdayNameFromUtcDate(new Date(startTimestamp + ((dayIndex - 1) * MS_PER_DAY)), weekday);
 }
 
+export function getRoutineDayResolvedWeekdayLabel(params: {
+  dayIndex: number;
+  startDate: string | null | undefined;
+  cycleLengthDays?: number | null;
+  scheduleMode?: "weekday_anchored" | "rolling_n_day" | null;
+  profileTimeZone?: string | null;
+  referenceDate?: string | null;
+  weekday?: "long" | "short";
+}) {
+  const weekday = params.weekday ?? "short";
+  const normalizedTimeZone = params.profileTimeZone?.trim();
+  const normalizedCycleLengthDays = Number.isFinite(params.cycleLengthDays ?? null) && Number(params.cycleLengthDays) > 0
+    ? Math.floor(Number(params.cycleLengthDays))
+    : null;
+
+  if (
+    params.scheduleMode === "rolling_n_day"
+    && normalizedTimeZone
+    && normalizedCycleLengthDays
+    && typeof params.startDate === "string"
+    && params.startDate.trim().length > 0
+  ) {
+    const occurrence = getRoutineCycleOccurrence({
+      cycleLengthDays: normalizedCycleLengthDays,
+      startDate: params.startDate,
+      profileTimeZone: normalizedTimeZone,
+      dayIndex: params.dayIndex,
+      referenceDate: params.referenceDate ?? null,
+    });
+
+    return getWeekdayNameFromUtcDate(new Date(parseDateStringAsUtc(occurrence.occurrenceDate)), weekday);
+  }
+
+  return getRoutineDayWeekdayLabel(params.dayIndex, params.startDate, weekday);
+}
+
 export function formatRoutineOccurrenceDateLabel(dateString: string) {
   const timestamp = Date.parse(`${dateString}T00:00:00Z`);
   if (!Number.isFinite(timestamp)) {

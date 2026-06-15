@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
@@ -1211,18 +1212,20 @@ export function MeasurementPanelV2({
           }) : null}
 
           {useHorizontalScrollLayout ? (
-            <div className="relative overflow-visible">
-              <div
-                ref={horizontalRailRef}
-                data-measurement-horizontal-rail="true"
-                className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
-                onPointerDownCapture={handleHorizontalRailPointerDownCapture}
-                onPointerMoveCapture={handleHorizontalRailPointerMoveCapture}
-                onPointerUpCapture={handleHorizontalRailPointerUpCapture}
-                onPointerCancelCapture={handleHorizontalRailPointerCancelCapture}
-                onClickCapture={handleHorizontalRailClickCapture}
-              >
-                <div className="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5">
+            <HorizontalScrollHint
+              className="relative overflow-visible"
+              scrollRef={horizontalRailRef}
+              scrollClassName="overflow-y-hidden overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-y] [overscroll-behavior-y:auto]"
+              contentClassName="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5"
+              scrollProps={{
+                "data-measurement-horizontal-rail": "true",
+                onPointerDownCapture: handleHorizontalRailPointerDownCapture,
+                onPointerMoveCapture: handleHorizontalRailPointerMoveCapture,
+                onPointerUpCapture: handleHorizontalRailPointerUpCapture,
+                onPointerCancelCapture: handleHorizontalRailPointerCancelCapture,
+                onClickCapture: handleHorizontalRailClickCapture,
+              }}
+            >
                   {horizontalRowPrefix ? (
                     <div className="shrink-0">
                       {horizontalRowPrefix}
@@ -1233,9 +1236,7 @@ export function MeasurementPanelV2({
                       {field.node}
                     </div>
                   ))}
-                </div>
-              </div>
-            </div>
+            </HorizontalScrollHint>
           ) : metricRows.map((row, rowIndex) => {
             if (row.length === 1) {
               return (

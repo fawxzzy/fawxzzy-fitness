@@ -68,8 +68,8 @@ export function EditDayAddExerciseScreen({
       customExerciseEnabled
       backHref={backHref}
       addExerciseAction={addExerciseAction}
-      successMessage="Exercise added to the day."
-      errorMessage="Could not add exercise to the day."
+      successMessage="Exercise added to the workout plan."
+      errorMessage="Could not add exercise to the workout plan."
     />
   );
 }

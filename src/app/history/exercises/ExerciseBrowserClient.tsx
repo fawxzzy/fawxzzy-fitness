@@ -12,6 +12,7 @@ import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { PillButton } from "@/components/ui/Pill";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -124,8 +125,10 @@ function FilterSection({
         <p className={appTokens.exercisePickerFilterGroupLabel}>{title}</p>
         <MetricAccentBar variant="thin" className="w-full opacity-80" />
       </div>
-      <div className={FILTER_SECTION_RAIL_CLASS_NAME}>
-        <div className="flex min-w-max flex-nowrap gap-1.5 pt-0">
+      <HorizontalScrollHint
+        scrollClassName={FILTER_SECTION_RAIL_CLASS_NAME}
+        contentClassName="flex min-w-max flex-nowrap gap-1.5 pt-0"
+      >
           {showClear && onClear ? (
             <button
               type="button"
@@ -140,8 +143,7 @@ function FilterSection({
             </button>
           ) : null}
           {children}
-        </div>
-      </div>
+      </HorizontalScrollHint>
       <div className="px-[4px] pt-0.5">
         <MetricAccentBar variant="thin" className="w-full opacity-80" />
       </div>

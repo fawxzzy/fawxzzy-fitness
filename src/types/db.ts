@@ -80,6 +80,7 @@ export type RoutineRow = {
   schedule_mode?: "weekday_anchored" | "rolling_n_day" | null;
   start_date: string;
   timezone: string;
+  created_at?: string | null;
   updated_at: string;
   weight_unit: "lbs" | "kg";
   default_progression_playbook_id?: "double_progression" | "fixed_load_rep_range_progression" | "deload_after_stall" | null;

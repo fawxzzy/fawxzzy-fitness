@@ -27,14 +27,14 @@ Refresh the stale or missing release-readiness evidence surfaces as far as hones
 - `scripts/migration/validate-supabase-chain.mjs`
 - `docs/ops/FITNESS-LLEL-CHECKLIST.md`
 - `runtime/fitness/release-draft.json`
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/report.json`
+- `runtime/fitness/llel-captures/latest/report.json`
 
 ## Exact Evidence Surfaces Refreshed
 
 1. LLEL receipt freshness
    - patched `scripts/qa/progression-visual-receipt.mjs` so the receipt records the same pending local migration subset that `release:fitness:ready` compares against
    - reran `npm run qa:llel:progression`
-   - refreshed `C:/ATLAS/runtime/fitness/llel-captures/latest/report.json`
+   - refreshed `runtime/fitness/llel-captures/latest/report.json`
 
 2. Release draft freshness
    - generated the missing local draft with `npm run release:fitness:prepare`
@@ -59,10 +59,10 @@ Refresh the stale or missing release-readiness evidence surfaces as far as hones
 
 Related refreshed runtime evidence:
 
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/report.json`
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/today-progression-status.png`
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/progression-history.png`
-- `C:/ATLAS/runtime/fitness/llel-captures/latest/progression-history-filtered.png`
+- `runtime/fitness/llel-captures/latest/report.json`
+- `runtime/fitness/llel-captures/latest/today-progression-status.png`
+- `runtime/fitness/llel-captures/latest/progression-history.png`
+- `runtime/fitness/llel-captures/latest/progression-history-filtered.png`
 
 ## Exact Commands Run
 
@@ -145,7 +145,7 @@ Proof rerun set:
 ### 1. What exact evidence surfaces were stale or missing?
 
 - missing local release draft at `runtime/fitness/release-draft.json`
-- stale LLEL report migration snapshot in `C:/ATLAS/runtime/fitness/llel-captures/latest/report.json`
+- stale LLEL report migration snapshot in `runtime/fitness/llel-captures/latest/report.json`
 - release-note markdown generated from placeholder draft metadata
 - migration-gate state needed rerun to distinguish stale evidence from real linked drift
 

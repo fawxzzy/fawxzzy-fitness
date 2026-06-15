@@ -12,7 +12,7 @@ import { isCardioExercise } from "@/lib/exercise-metadata";
 import { resolveEditDayAutoProgressionState } from "@/lib/edit-day-progression";
 import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
-import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
+import { getRoutineDayCreateHref, getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import type { SetFlowDirection } from "@/lib/set-flow-directions";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
@@ -95,6 +95,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   });
   const backHref = resolveRoutineDayEditBackHref(params.id, params.dayId, searchParams?.returnTo);
   const addExerciseHref = `${getRoutineDayEditHref(params.id, params.dayId)}/add-exercise`;
+  const duplicateWorkoutPlanHref = `${getRoutineDayCreateHref(params.id)}?targetDayId=${encodeURIComponent(params.dayId)}`;
   // NOTE: Edit Day rows own a stable `orderNumber` so ORDER badges remain canonical even when the list is filtered.
   const editableExercises = dayExercises.map((exercise) => {
     const canonicalExerciseId = canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id;
@@ -235,6 +236,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           reorderAction={reorderRoutineDayExercisesAction}
           initialIsRest={(day as RoutineDayRow).is_rest}
           addExerciseHref={addExerciseHref}
+          duplicateWorkoutPlanHref={duplicateWorkoutPlanHref}
           routineDefaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
           routineDefaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
           showDayAdjustmentControl={showDayAdjustmentControl}

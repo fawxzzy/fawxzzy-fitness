@@ -4,9 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { execFile, spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { ensureRepoDependencies } from "../ensure-repo-deps.mjs";
 import {
   buildCookiesFromArtifactSession,
   ensureFreshSessionArtifactFile,
@@ -17,6 +18,12 @@ const execFileAsync = promisify(execFile);
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
 const repoRoot = path.resolve(scriptDir, "..", "..");
+await ensureRepoDependencies({
+  repoRoot,
+  reason: "cdp edge QA helper",
+});
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
 const atlasRoot = path.resolve(repoRoot, "..", "..");
 const runtimeRoot = path.join(atlasRoot, "runtime", "fitness");
 const DEFAULT_EDGE_PATHS = [

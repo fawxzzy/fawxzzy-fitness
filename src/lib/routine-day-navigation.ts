@@ -16,14 +16,21 @@ export function getRoutineOverviewHref() {
   return "/routines";
 }
 
+export function getRoutineHomeHref(routineId: string) {
+  return `/routines/${routineId}`;
+}
+
 export function getRoutineEditHref(routineId: string) {
   return `/routines/${routineId}/edit`;
 }
 
+export function getRoutineDayCreateHref(routineId: string) {
+  return `/routines/${routineId}/new-workout-plan`;
+}
+
 export function getRoutineDayViewHref(routineId: string, dayId: string) {
-  void routineId;
   void dayId;
-  return getRoutineOverviewHref();
+  return getRoutineHomeHref(routineId);
 }
 
 export function getRoutineDayEditHref(routineId: string, dayId: string, returnTo?: string | null) {
@@ -42,9 +49,9 @@ export function resolveRoutineDayViewBackHref(rawReturnTo: string | null | undef
 }
 
 export function resolveRoutineDayEditBackHref(routineId: string, dayId: string, rawReturnTo: string | null | undefined) {
-  const routineOverviewHref = getRoutineOverviewHref();
+  const routineHomeHref = getRoutineHomeHref(routineId);
   const canonicalDayViewHref = `/routines/${routineId}/days/${dayId}`;
-  const resolvedReturnTo = resolveReturnHref(decodeReturnTo(rawReturnTo), routineOverviewHref);
+  const resolvedReturnTo = resolveReturnHref(decodeReturnTo(rawReturnTo), routineHomeHref);
 
   // View Day has been retired; Edit Day should always close back to routine home
   // instead of looping through edit routes or the legacy day detail route.
@@ -53,8 +60,8 @@ export function resolveRoutineDayEditBackHref(routineId: string, dayId: string, 
     || resolvedReturnTo === getRoutineEditHref(routineId)
     || resolvedReturnTo.startsWith(`${getRoutineEditHref(routineId)}/`)
   ) {
-    return routineOverviewHref;
+    return routineHomeHref;
   }
 
-  return routineOverviewHref;
+  return routineHomeHref;
 }

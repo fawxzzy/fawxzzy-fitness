@@ -17,6 +17,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
+import { RoutinesRouteHeaderCard } from "@/components/routines/RoutinesScreenFamily";
 import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -94,6 +95,10 @@ const RoutinesPageClient = nextDynamic(
   () => import("@/app/routines/RoutinesPageClient").then((mod) => mod.RoutinesPageClient),
   { ssr: true },
 );
+const RoutineHomeClient = nextDynamic(
+  () => import("@/app/routines/RoutineHomeClient").then((mod) => mod.RoutineHomeClient),
+  { ssr: true },
+);
 const HistorySessionsClient = nextDynamic(
   () => import("@/app/history/HistorySessionsClient").then((mod) => mod.HistorySessionsClient),
   { ssr: true },
@@ -149,11 +154,17 @@ const PREVIEW_SECONDARY_ROUTINE_SUMMARY = "4 days • 4 training • 0 rest • 
 const PREVIEW_DAY_LABEL = "Lower A";
 const PREVIEW_CREATE_ROUTINE_NAME = "Atlas Builder";
 
-async function noopRoutineSwitchAction(_: FormData) {
+async function noopActionResult(_: unknown) {
   "use server";
+  return { ok: true as const };
 }
 
-async function noopActionResult(_: unknown) {
+async function noopAppendDayAction(_: unknown) {
+  "use server";
+  return { ok: true as const, routineDayId: "regression-day" };
+}
+
+async function noopDeleteRoutineDayAction(_: unknown) {
   "use server";
   return { ok: true as const };
 }
@@ -2171,6 +2182,54 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
     summary: PREVIEW_ROUTINE_SUMMARY,
   } as const;
   const isListView = scenario.id === "routines-list-view";
+  const previewDays = [
+    { id: "preview-rd-1", dayIndex: 1, title: "Hunt", weekdayLabel: "Mon", isRest: false, exerciseCount: 8 },
+    { id: "preview-rd-2", dayIndex: 2, title: "Forge", weekdayLabel: "Tue", isRest: false, exerciseCount: 8 },
+    { id: "preview-rd-3", dayIndex: 3, title: "Rest", weekdayLabel: "Wed", isRest: true, exerciseCount: 0 },
+  ];
+
+  if (isListView) {
+    return (
+      <MainTabScreen topNavMode="none" ambientPreset="viewDay">
+        <RegressionMarker scenario={scenario} />
+        <ScrollScreenWithBottomActions
+          topChrome={<AppNav mode="topChrome" />}
+          floatingHeader={(
+            <ContentRail>
+              <RoutinesRouteHeaderCard
+                title="Routines"
+                subtitle="2 routines • Active routine pinned to Today"
+              />
+            </ContentRail>
+          )}
+        >
+          <ContentRail className="space-y-3">
+            <RoutinesPageClient
+              newRoutineHref="/routines/new"
+              routines={[
+                {
+                  id: "routine-1",
+                  name: PREVIEW_ROUTINE_NAME,
+                  summaryParts: ["16 exercises", "4 train", "1 rest", "5 workout plans"],
+                  href: `/routines/${activeRoutine.id}`,
+                  isActive: true,
+                  previewDays,
+                },
+                {
+                  id: "routine-2",
+                  name: PREVIEW_SECONDARY_ROUTINE_NAME,
+                  summaryParts: ["14 exercises", "4 train", "0 rest", "4 workout plans"],
+                  href: "/routines/routine-2",
+                  isActive: false,
+                  previewDays: previewDays.slice(0, 2),
+                },
+              ]}
+            />
+          </ContentRail>
+        </ScrollScreenWithBottomActions>
+      </MainTabScreen>
+    );
+  }
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
@@ -2179,24 +2238,22 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
           <ContentRail>
-            <div id="routines-floating-header" />
+            <RoutinesRouteHeaderCard
+              title={activeRoutine.name}
+              subtitle={activeRoutine.summary}
+              action={<AppBadge tone="success">ACTIVE</AppBadge>}
+            />
           </ContentRail>
         )}
       >
         <ContentRail className="space-y-3">
-          <RoutinesPageClient
-            activeRoutineId={activeRoutine.id}
-            activeRoutineName={activeRoutine.name}
-            activeRoutineSummary={activeRoutine.summary}
-            activeRoutineStartDate="2026-04-21"
-            activeRoutineEditHref={`/routines/${activeRoutine.id}/edit`}
-            newRoutineHref="/routines/new"
-            initialRoutineListOpen={isListView}
-            setActiveRoutineAction={noopRoutineSwitchAction}
-            routines={[
-              { id: "routine-1", name: PREVIEW_ROUTINE_NAME, summary: PREVIEW_ROUTINE_SUMMARY },
-              { id: "routine-2", name: PREVIEW_SECONDARY_ROUTINE_NAME, summary: PREVIEW_SECONDARY_ROUTINE_SUMMARY },
-            ]}
+          <RoutineHomeClient
+            routineId={activeRoutine.id}
+            routineStartDate="2026-04-21"
+            isActiveRoutine
+            appendRoutineDayAction={noopAppendDayAction}
+            deleteRoutineDayAction={noopDeleteRoutineDayAction}
+            reorderRoutineDaysAction={noopActionResult}
             days={[
               { id: "rd-1", dayIndex: 1, title: "Push", isRest: false, exerciseSummary: "3 strength • 1 cardio", notes: null, href: "#", isToday: false, isCompleted: true, isInSession: false, loggedSetCount: 0 },
               { id: "rd-2", dayIndex: 2, title: PREVIEW_DAY_LABEL, isRest: false, exerciseSummary: "2 strength • 1 cardio", notes: "Heavy compound focus with accessory finishers", href: "#", isToday: true, isCompleted: false, isInSession: false, loggedSetCount: 0 },

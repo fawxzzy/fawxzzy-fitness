@@ -23,12 +23,12 @@ export function EditRoutineDaysSection({
 }) {
   return (
     <RoutineEditorSection
-      title="Days"
+      title="Workout Plans"
       description={days.length === 0
-        ? "No days yet"
+        ? "No workout plans yet"
         : days.length === 1
-          ? "1 day"
-          : `${days.length} days`}
+          ? "1 workout plan"
+          : `${days.length} workout plans`}
     >
       {days.length > 0 ? (
         <div className="flex justify-end">
@@ -43,11 +43,13 @@ export function EditRoutineDaysSection({
       {days.length > 0 ? (
         <ul className={appTokens.routineEditorDayList}>
           {days.map((day) => {
-            const subtitle = day.needsSetup ? "Not configured yet • Tap to set up this day" : [day.summary, day.notes?.trim() || null].filter(Boolean).join(" • ");
+            const subtitle = day.needsSetup
+              ? "Not configured yet • Tap to set up this workout plan"
+              : [day.summary, day.notes?.trim() || null].filter(Boolean).join(" • ");
             return (
               <li key={day.id}>
                 <RoutineEditorDayRow
-                  title={`Day ${day.dayIndex} | ${day.title}`}
+                  title={`Slot ${day.dayIndex} | ${day.title}`}
                   subtitle={subtitle}
                   badgeText={day.needsSetup ? "Needs Setup" : undefined}
                   state={day.isRest || day.needsSetup ? "empty" : "default"}
@@ -59,7 +61,9 @@ export function EditRoutineDaysSection({
           })}
         </ul>
       ) : (
-        <p className={appTokens.routineEditorHelperText}>Set a cycle length above to generate days, then open a day here to edit its details.</p>
+        <p className={appTokens.routineEditorHelperText}>
+          Set a cycle length above to generate workout plans, then open one here to edit its details.
+        </p>
       )}
     </RoutineEditorSection>
   );

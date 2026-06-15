@@ -9,10 +9,8 @@ import { deleteRoutineAction } from "@/app/routines/actions";
 
 export function DeleteRoutineButton({
   routineId,
-  routineName,
 }: {
   routineId: string;
-  routineName: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -32,9 +30,9 @@ export function DeleteRoutineButton({
 
       <ConfirmDestructiveModal
         open={isOpen}
-        title="Delete routine?"
-        details={routineName}
+        title="Confirm Delete"
         confirmLabel="Delete"
+        titleVariant="raw"
         isLoading={isPending}
         onCancel={() => {
           if (!isPending) {

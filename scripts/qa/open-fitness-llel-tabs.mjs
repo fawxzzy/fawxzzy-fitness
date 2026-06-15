@@ -2,8 +2,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { ensureRepoDependencies } from "../ensure-repo-deps.mjs";
 import {
   ensureBrowserSupabaseStorageState,
   LLEL_OPEN_ROUTES,
@@ -14,6 +15,13 @@ import {
 } from "./fitness-auth-state.mjs";
 
 const currentFilePath = fileURLToPath(import.meta.url);
+const repoRoot = path.resolve(path.dirname(currentFilePath), "..", "..");
+await ensureRepoDependencies({
+  repoRoot,
+  reason: "open fitness LLEL tabs",
+});
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
 
 function parseArgs(argv = process.argv.slice(2)) {
   return {

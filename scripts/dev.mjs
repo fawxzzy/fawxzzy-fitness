@@ -19,11 +19,16 @@ import {
   resolveUrlHost,
   resolveEnvFilePath,
 } from "./env-file.mjs";
+import { ensureRepoDependencies } from "./ensure-repo-deps.mjs";
 
-const require = createRequire(import.meta.url);
-const nextBin = require.resolve("next/dist/bin/next");
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
+await ensureRepoDependencies({
+  repoRoot,
+  reason: "fitness dev server",
+});
+const require = createRequire(import.meta.url);
+const nextBin = require.resolve("next/dist/bin/next");
 const DEV_ENV_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",

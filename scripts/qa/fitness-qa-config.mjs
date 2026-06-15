@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { createClient } from "@supabase/supabase-js";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import {
   assertExpectedFitnessSupabaseHost,
@@ -11,11 +11,18 @@ import {
   resolveEnvFilePaths,
   resolveEnvFilePath,
 } from "../env-file.mjs";
+import { ensureRepoDependencies } from "../ensure-repo-deps.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
 
 export const repoRoot = path.resolve(scriptDir, "..", "..");
+await ensureRepoDependencies({
+  repoRoot,
+  reason: "fitness QA config",
+});
+const require = createRequire(import.meta.url);
+const { createClient } = require("@supabase/supabase-js");
 export const atlasRoot = path.resolve(repoRoot, "..", "..");
 export const envPaths = resolveEnvFilePaths(repoRoot);
 export const envPath = resolveEnvFilePath(repoRoot);
@@ -27,6 +34,7 @@ export const devServerLogPath = path.join(runtimeRoot, "fitness-dev-server.log")
 export const devServerErrorLogPath = path.join(runtimeRoot, "fitness-dev-server.err.log");
 export const tunnelLogPath = path.join(runtimeRoot, "fitness-tunnel.log");
 export const tunnelErrorLogPath = path.join(runtimeRoot, "fitness-tunnel.err.log");
+export const freshDevReceiptPath = path.join(atlasRoot, "runtime", "receipts", "dev", "dev-server.latest.json");
 
 export const FITNESS_QA_EMAIL_ENV = "FITNESS_QA_EMAIL";
 export const FITNESS_QA_PASSWORD_ENV = "FITNESS_QA_PASSWORD";
@@ -202,7 +210,25 @@ export function getRequiredEnv(name) {
 
 export function resolveBaseUrl() {
   const configured = getOptionalEnv("APP_URL") ?? getOptionalEnv("NEXT_PUBLIC_APP_URL");
-  return (configured ?? `http://${DEFAULT_QA_HOST}:${DEFAULT_QA_PORT}`).replace(/\/$/, "");
+  if (configured) {
+    return configured.replace(/\/$/, "");
+  }
+
+  try {
+    if (fs.existsSync(freshDevReceiptPath)) {
+      const receipt = JSON.parse(fs.readFileSync(freshDevReceiptPath, "utf8"));
+      const receiptBaseUrl = typeof receipt?.baseUrl === "string" ? receipt.baseUrl.trim() : "";
+      const receiptHealthy = receipt?.healthStatus?.status === "healthy";
+      const receiptMatchesRepo = receipt?.repoRoot === repoRoot;
+      if (receiptHealthy && receiptMatchesRepo && receiptBaseUrl) {
+        return receiptBaseUrl.replace(/\/$/, "");
+      }
+    }
+  } catch {
+    // Ignore malformed or stale receipts and fall back to the canonical default port.
+  }
+
+  return `http://${DEFAULT_QA_HOST}:${DEFAULT_QA_PORT}`;
 }
 
 export function hasOptionalEnv(name) {

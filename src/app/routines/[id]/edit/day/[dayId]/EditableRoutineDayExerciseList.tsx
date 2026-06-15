@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -112,6 +112,7 @@ type Props = {
   reorderAction: (formData: FormData) => Promise<ActionResult>;
   initialIsRest: boolean;
   addExerciseHref: string;
+  duplicateWorkoutPlanHref: string;
   routineDefaultProgressionPlaybookId?: ProgressionPlaybookId | null;
   routineDefaultProgressionPlaybookConfig?: Record<string, unknown> | null;
   showDayAdjustmentControl: boolean;
@@ -330,6 +331,7 @@ export function EditableRoutineDayExerciseList({
   reorderAction,
   initialIsRest,
   addExerciseHref,
+  duplicateWorkoutPlanHref,
   routineDefaultProgressionPlaybookId,
   routineDefaultProgressionPlaybookConfig,
   showDayAdjustmentControl,
@@ -760,6 +762,20 @@ export function EditableRoutineDayExerciseList({
       </BottomDockButton>
     </BottomActionSingle>
   );
+  const emptyWorkoutPlanDock = (
+    <BottomActionSplit
+      secondary={(
+        <BottomDockLink href={duplicateWorkoutPlanHref} intent="toggleInactive">
+          Duplicate Workout Plan
+        </BottomDockLink>
+      )}
+      primary={(
+        <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress}>
+          {addExerciseLabel}
+        </BottomDockButton>
+      )}
+    />
+  );
   const expandedExerciseDock = activeExercise ? (
     <BottomActionSplit
       secondary={(
@@ -787,7 +803,10 @@ export function EditableRoutineDayExerciseList({
       onPointerCancel={() => finishReorder()}
       onClick={(event) => event.preventDefault()}
     >
-      <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>::</span>
+      <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
+        <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
+        <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
+      </span>
     </button>
   );
 
@@ -798,24 +817,24 @@ export function EditableRoutineDayExerciseList({
           {modeViewModel.sections.restDayCardVisible ? (
             <DayDetailStateCard
               tone="rest"
-              title="Rest day enabled"
+              title="Rest workout plan enabled"
               body={REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
               meta={items.length > 0 ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled : undefined}
             />
           ) : (
             <DayDetailStateCard
               tone="neutral"
-              title="No exercises planned"
-              body="Add an exercise to start building this day."
+              title="No workout plan built yet"
+              body="Add an exercise to build this workout plan from scratch, or duplicate an existing workout plan into this day."
             />
           )}
         </SharedSectionShell>
         <PublishBottomActions>
-          {ctaDockState.variant === "add_exercise" ? (
+          {modeViewModel.sections.restDayCardVisible ? ctaDockState.variant === "add_exercise" ? (
             addExerciseDock
           ) : ctaDockState.variant === "edit_exercise" ? (
             expandedExerciseDock
-          ) : null}
+          ) : null : emptyWorkoutPlanDock}
         </PublishBottomActions>
       </>
     );

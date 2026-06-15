@@ -40,7 +40,7 @@ As of 2026-04-16, the linked replacement project is `lpswxoyfniocuhljgzbc`.
 
 ## Canonical Snapshot Contract
 
-The canonical payload lives in [fitness-legacy-contract.ts](/C:/ATLAS/repos/fawxzzy-fitness/src/lib/migration/fitness-legacy-contract.ts) and is the only supported exporter/importer contract.
+The canonical payload lives in [fitness-legacy-contract.ts](../../src/lib/migration/fitness-legacy-contract.ts) and is the only supported exporter/importer contract.
 
 Canonical tables:
 

@@ -29,14 +29,26 @@ export function ActiveRoutineSummaryCard({
 
 export function RoutinesRouteHeaderCard({
   title,
+  titleClassName,
   subtitle,
   action,
 }: {
   title: ReactNode;
+  titleClassName?: string;
   subtitle?: ReactNode;
   action?: ReactNode;
 }) {
-  return <SharedScreenHeader recipe="routinesOverview" withPanel={false} title={title} subtitle={subtitle} action={action} align="center" />;
+  return (
+    <SharedScreenHeader
+      recipe="routinesOverview"
+      withPanel={false}
+      title={title}
+      titleClassName={titleClassName}
+      subtitle={subtitle}
+      action={action}
+      align="center"
+    />
+  );
 }
 
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
@@ -88,7 +100,12 @@ export function SharedDayListSection({
   return <div className={appTokens.dayListStack}>{children}</div>;
 }
 
-
 export function RoutinesListItemCard(props: ComponentProps<typeof ExerciseCard>) {
-  return <ExerciseCard {...props} className={cn(appTokens.routinesOverviewCardFlat, props.className)} variant="compact" />;
+  return (
+    <ExerciseCard
+      {...props}
+      className={cn(appTokens.routinesOverviewCardFlat, props.className)}
+      variant={props.variant ?? "compact"}
+    />
+  );
 }

@@ -1,7 +1,7 @@
 # Fitness Quarantine Audit
 
-Canonical repo: C:\ATLAS\repos\fawxzzy-fitness
-Quarantine folder: C:\ATLAS\repos\fawxzzy-fitness-quarantine
+Canonical repo: `repos/fawxzzy-fitness`
+Quarantine folder: `repos/fawxzzy-fitness-quarantine`
 
 ## Counts by target/status
 - src/components /  different: 67
@@ -24,6 +24,6 @@ Quarantine folder: C:\ATLAS\repos\fawxzzy-fitness-quarantine
 - docs/LOCAL-PROD-DATA-SYNC.md /  different: 1
 
 ## Notes
-- Quarantine is not a standalone app repo; its Git top-level resolves to C:\ATLAS and remote is ATLAS.git.
+- Quarantine is not a standalone app repo; its Git top-level resolves to the ATLAS root and remote is ATLAS.git.
 - This inventory is filesystem content comparison only.
 - No files were modified by this audit.

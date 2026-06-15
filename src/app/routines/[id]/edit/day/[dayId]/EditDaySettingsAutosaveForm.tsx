@@ -79,7 +79,7 @@ function EditDayAdjustmentButton({
             ? "hover:bg-[rgb(var(--danger-rgb)/0.12)] focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]"
             : "hover:bg-[rgb(var(--accent-yellow-on)/0.12)] focus-visible:ring-[rgb(var(--accent-yellow-on)/0.22)]",
       )}
-      aria-label={`Cycle day ${dayNumber} adjustment`}
+      aria-label={`Cycle slot ${dayNumber} adjustment`}
     >
       <span className="flex h-4.5 items-center justify-center">
         <EditDayDirectionGlyph
@@ -215,7 +215,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
   });
   const previewDayParts = splitWeekdayDisplayLabel(previewDayName);
   const previewWeekdayLabel = previewDayParts?.weekday ?? previewDayName;
-  const compactDayNameWidthCh = Math.min(Math.max((draft.name.trim() || "Day name").length + 2, 14), 20);
+  const compactDayNameWidthCh = Math.min(Math.max((draft.name.trim() || "Workout Plan").length + 2, 14), 20);
 
   const headerNode = (
     <RoutineEditorPageHeader
@@ -225,7 +225,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
           <SignatureMiniPipe />
           <div className="w-fit max-w-[14.5rem] shrink-0">
             <LabeledEditorField
-              label="Day name"
+              label="Workout plan"
               className="min-w-0 rounded-[var(--radius-pill)] bg-[rgb(var(--surface-1-rgb)/0.2)] shadow-[0_6px_18px_rgba(0,0,0,0.1)]"
               labelClassName="ml-3 mr-auto max-w-[calc(100%-0.8rem)] px-0 text-[8px] tracking-[0.14em]"
             >
@@ -238,8 +238,8 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
                   setDraft(nextSnapshot);
                   scheduleAutosave(nextSnapshot);
                 }}
-                placeholder="Day name"
-                aria-label="Day name"
+                placeholder="Workout plan"
+                aria-label="Workout plan"
                 maxLength={15}
                 className={cn(
                   labeledEditorFieldControlClassName,
@@ -282,7 +282,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
           {isDayAdjustmentVisible ? (
             <div className="mx-auto flex w-full max-w-[18rem] flex-col items-center gap-1.5">
               <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                Day Adjustment
+                Workout Plan Adjustments
               </p>
               <div className="w-fit max-w-full">
                 <EditDayAdjustmentButton

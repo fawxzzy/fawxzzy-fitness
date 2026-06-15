@@ -235,6 +235,11 @@ function handleInstallPackage() {
 }
 
 async function handleInstallOfficialFallback() {
+  const status = await installOfficialFallback();
+  process.exit(status);
+}
+
+async function installOfficialFallback() {
   let resolvedFallback;
   try {
     resolvedFallback = await normalizeFallbackInstallTarget({
@@ -244,7 +249,7 @@ async function handleInstallOfficialFallback() {
     });
   } catch (error) {
     console.error(`[playbook-runtime] ${error.message}`);
-    process.exit(1);
+    return 1;
   }
 
   const { fallbackSpec } = resolvedFallback;
@@ -259,7 +264,7 @@ async function handleInstallOfficialFallback() {
       console.error('[playbook-runtime] Registry-style package specs are not part of the canonical fallback distribution contract.');
     }
 
-    process.exit(1);
+    return 1;
   }
 
   console.log(`[playbook-runtime] Official acquisition target (original): ${fallbackSpec.normalized}`);
@@ -277,7 +282,7 @@ async function handleInstallOfficialFallback() {
   });
   console.log(`[playbook-runtime] Command shape: ${formatNpmInstallCommand(installPlan.args)}`);
 
-  process.exit(installPlan.result.status ?? 1);
+  return installPlan.result.status ?? 1;
 }
 
 async function main() {
@@ -397,16 +402,25 @@ async function main() {
   }
 
   const passthroughArgs = process.argv.slice(3);
-  const resolution = resolveRuntimeBin();
+  let resolution = resolveRuntimeBin();
 
   if (!resolution.bin) {
-    console.error('[playbook-runtime] Unable to resolve a Playbook executable.');
+    console.error(`[playbook-runtime] No Playbook binary resolved for ${command}. Attempting official fallback install.`);
     console.error(`[playbook-runtime] Checked: ${resolution.checks.join(' -> ')}`);
-    console.error('[playbook-runtime] Fix one of the following:');
-    console.error('  1) Set PLAYBOOK_BIN to an explicit Playbook executable path.');
-    console.error(`  2) Install the official fallback distribution into ${OFFICIAL_FALLBACK_ROOT} (canonical path: node scripts/playbook-runtime.mjs --install-official-fallback).`);
-    console.error('  3) If you explicitly need the package path, enable it with PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1 and run node scripts/playbook-runtime.mjs --install-package.');
-    process.exit(1);
+    const installStatus = await installOfficialFallback();
+    if (installStatus === 0) {
+      resolution = resolveRuntimeBin();
+    }
+
+    if (!resolution.bin) {
+      console.error('[playbook-runtime] Unable to resolve a Playbook executable.');
+      console.error(`[playbook-runtime] Checked: ${resolution.checks.join(' -> ')}`);
+      console.error('[playbook-runtime] Fix one of the following:');
+      console.error('  1) Set PLAYBOOK_BIN to an explicit Playbook executable path.');
+      console.error(`  2) Install the official fallback distribution into ${OFFICIAL_FALLBACK_ROOT} (canonical path: node scripts/playbook-runtime.mjs --install-official-fallback).`);
+      console.error('  3) If you explicitly need the package path, enable it with PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1 and run node scripts/playbook-runtime.mjs --install-package.');
+      process.exit(1);
+    }
   }
 
   const result = spawnSync(resolution.bin, [command, ...passthroughArgs], {

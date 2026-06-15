@@ -2,8 +2,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { ensureRepoDependencies } from "../ensure-repo-deps.mjs";
 import {
   atlasRoot,
   buildSessionCookies,
@@ -13,6 +14,7 @@ import {
 } from "./fitness-qa-config.mjs";
 import {
   ensureBrowserSupabaseStorageState,
+  normalizeStorageCookie,
   QA_STORAGE_STATE_PATH,
 } from "./fitness-auth-state.mjs";
 import { inspectQaSession } from "./fitness-qa-user.mjs";
@@ -25,6 +27,12 @@ import {
 const DEV_RECEIPT_PATH = path.join(atlasRoot, "runtime", "receipts", "dev", "dev-server.latest.json");
 const LOADING_RECEIPT_DIR = path.join(atlasRoot, "runtime", "receipts", "loading");
 const currentFilePath = fileURLToPath(import.meta.url);
+await ensureRepoDependencies({
+  repoRoot,
+  reason: "visual fitness runner",
+});
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
 const DEFAULT_EDGE_PATHS = [
   process.env.QA_EDGE_PATH,
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
@@ -241,10 +249,50 @@ async function resolveQaSession(baseUrl) {
 async function loadQaStorageState(baseUrl) {
   try {
     const storageState = JSON.parse(await fs.readFile(QA_STORAGE_STATE_PATH, "utf8"));
-    return ensureBrowserSupabaseStorageState(storageState, { baseUrl });
+    if (hasUsableQaStorageState(storageState)) {
+      return ensureBrowserSupabaseStorageState(storageState, { baseUrl });
+    }
   } catch {
+    // Fall through to the fresh session-cookie bootstrap path below.
+  }
+
+  return null;
+}
+
+function getAuthCookie(storageState, name) {
+  return (storageState?.cookies ?? []).find((cookie) => cookie?.name === name) ?? null;
+}
+
+function hasFreshCookie(cookie, minimumRemainingSeconds = 60) {
+  if (!cookie) {
+    return false;
+  }
+
+  if (!Number.isFinite(cookie.expires)) {
+    return true;
+  }
+
+  return cookie.expires > (Math.floor(Date.now() / 1000) + minimumRemainingSeconds);
+}
+
+export function hasUsableQaStorageState(storageState) {
+  return hasFreshCookie(getAuthCookie(storageState, "sb-access-token"))
+    && hasFreshCookie(getAuthCookie(storageState, "sb-refresh-token"));
+}
+
+export function buildQaBrowserStorageStateFromSessionCookies(sessionCookies, baseUrl) {
+  if (!Array.isArray(sessionCookies) || sessionCookies.length === 0) {
     return null;
   }
+
+  const storageState = ensureBrowserSupabaseStorageState({
+    cookies: sessionCookies
+      .map((cookie) => normalizeStorageCookie(cookie, baseUrl))
+      .filter(Boolean),
+    origins: [],
+  }, { baseUrl });
+
+  return hasUsableQaStorageState(storageState) ? storageState : null;
 }
 
 function normalizePlaywrightCookies(cookies, fallbackBaseUrl) {
@@ -367,6 +415,28 @@ function isAuthRedirect(finalUrl, baseUrl) {
   return typeof finalUrl === "string" && finalUrl.startsWith(`${baseUrl}/login`);
 }
 
+function resolveExpectedPathname(route, baseUrl) {
+  try {
+    return new URL(route, `${baseUrl}/`).pathname;
+  } catch {
+    return null;
+  }
+}
+
+function resolveUnexpectedFinalPathReason({ finalUrl, suite, baseUrl }) {
+  try {
+    const expectedPathname = resolveExpectedPathname(suite.route, baseUrl);
+    const actualUrl = new URL(finalUrl);
+    if (!expectedPathname || actualUrl.pathname === expectedPathname) {
+      return null;
+    }
+
+    return `Route resolved to ${actualUrl.pathname} instead of ${expectedPathname}.`;
+  } catch {
+    return null;
+  }
+}
+
 async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
   const baseUrl = normalizeBaseUrl(flags.__resolvedBaseUrl ?? receipt?.value?.baseUrl ?? resolveBaseUrl());
   const viewport = resolveViewport(flags.viewport, suite.viewport);
@@ -386,9 +456,14 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
         path: sessionArtifactPath,
         cookies: [],
       };
-  const qaStorageState = suite.authRequired && qaSession.available
+  const qaStorageStateFromFile = suite.authRequired && qaSession.available
     ? await loadQaStorageState(baseUrl)
     : null;
+  const qaStorageState = qaStorageStateFromFile ?? (
+    suite.authRequired && qaSession.available
+      ? buildQaBrowserStorageStateFromSessionCookies(qaSession.cookies, baseUrl)
+      : null
+  );
 
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -462,15 +537,22 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
             : null)
       )
       : null;
+    const unexpectedFinalPathReason = resolveUnexpectedFinalPathReason({
+      finalUrl,
+      suite,
+      baseUrl,
+    });
     const blockedReason = sessionMissingForProtectedRoute
       ? (qaSession.reason ?? qaSession.summary)
       : authBlockedReason === "blocked: auth redirect"
         ? "Protected route redirected to /login despite a valid QA session."
         : interactionResult.blockedReason
           ? interactionResult.blockedReason
-        : (responseStatus !== null && responseStatus >= 400
-          ? `Route returned HTTP ${responseStatus}.`
-          : null);
+          : unexpectedFinalPathReason
+            ? unexpectedFinalPathReason
+            : (responseStatus !== null && responseStatus >= 400
+              ? `Route returned HTTP ${responseStatus}.`
+              : null);
     const authOutcome = suite.authRequired
       ? (blockedReason
         ? authBlockedReason ?? "blocked: route HTTP failure"
@@ -514,6 +596,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       themePreset: suite.themePreset,
       httpStatus: responseStatus,
       finalUrl,
+      expectedPathname: resolveExpectedPathname(suite.route, baseUrl),
       bodyPreview: bodyText,
       interaction: {
         performed: interactionResult.performed,
@@ -583,6 +666,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       themePreset: suite.themePreset,
       httpStatus: null,
       finalUrl,
+      expectedPathname: resolveExpectedPathname(suite.route, baseUrl),
       bodyPreview: null,
       interaction: {
         performed: false,

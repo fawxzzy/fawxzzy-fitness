@@ -3,22 +3,1019 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
-import { revalidateRoutinesViews, getRoutineEditPath } from "@/lib/revalidation";
+import { getRoutineEditPath, getRoutineHomePath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { deleteRoutineMutation, type RoutineDeleteClient } from "@/lib/dal/routine-delete";
 import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { appendProgressionPlaybookFormData, createProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { ROUTINE_SCHEDULE_MODE_VALUES, type RoutineDetailsScheduleMode } from "@/lib/routine-details-form";
-import { ROUTINE_START_WEEKDAYS, createRoutineDaySeedsFromStartDate, getRoutineStartDateForWeekday } from "@/lib/routines";
+import { ROUTINE_START_WEEKDAYS, createRoutineDaySeedsFromStartDate, getRoutineStartDateForWeekday, getRoutineStartWeekdayFromDate } from "@/lib/routines";
+import {
+  resolveDuplicatedRoutineDayName,
+  resolveRoutineDayCreationOverrides,
+  shouldApplyRoutineDayCreationOverrides,
+} from "@/lib/routine-day-creation";
+import { resolveUniqueRoutineCopyName } from "@/lib/routine-copy-name";
 import { toCanonicalRoutineTimezone } from "@/lib/timezones";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
 import {
   getSchemaMismatchMessage,
   isMissingProgressionPlaybookColumnError,
   isMissingRoutineDefaultProgressionColumnError,
+  omitProgressionPlaybookColumns,
   omitRoutineDefaultProgressionColumns,
 } from "@/lib/progression-schema-compat";
+import { rollbackAppendedRoutineDay, rollbackDuplicatedRoutine } from "@/lib/routine-copy-rollback";
 
 type CreateRoutineResult = ActionResult & { routineId?: string; firstDayId?: string };
+type AppendRoutineDayResult = ActionResult & { routineDayId?: string };
+type DuplicateRoutineDayResult = ActionResult & { routineDayId?: string };
+type ReorderRoutineDaysResult = ActionResult;
+type CreateRoutineDayResult = ActionResult & { routineDayId?: string };
+type PopulateRoutineDayResult = ActionResult & { routineDayId?: string };
+
+const ROUTINE_COPY_SELECT_LEGACY = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, weight_unit";
+const ROUTINE_COPY_SELECT_WITH_DEFAULT_PROGRESSION = `${ROUTINE_COPY_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
+const ROUTINE_DAY_COPY_SELECT = "id, day_index, name, is_rest, notes";
+const ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY = "exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes";
+const ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION = `${ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY}, progression_playbook_id, progression_playbook_config`;
+const ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_LEGACY = `routine_day_id, ${ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY}`;
+const ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_WITH_PROGRESSION = `routine_day_id, ${ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION}`;
+
+async function reindexRoutineDaysDirect(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  routineId: string;
+  userId: string;
+  orderedRoutineDayIds: string[];
+}) {
+  for (let index = 0; index < args.orderedRoutineDayIds.length; index += 1) {
+    const routineDayId = args.orderedRoutineDayIds[index];
+    const temporaryIndex = -1 * (index + 1);
+    const { error } = await args.supabase
+      .from("routine_days")
+      .update({ day_index: temporaryIndex })
+      .eq("id", routineDayId)
+      .eq("routine_id", args.routineId)
+      .eq("user_id", args.userId);
+
+    if (error) {
+      return error;
+    }
+  }
+
+  for (let index = 0; index < args.orderedRoutineDayIds.length; index += 1) {
+    const routineDayId = args.orderedRoutineDayIds[index];
+    const nextDayIndex = index + 1;
+    const { error } = await args.supabase
+      .from("routine_days")
+      .update({ day_index: nextDayIndex })
+      .eq("id", routineDayId)
+      .eq("routine_id", args.routineId)
+      .eq("user_id", args.userId);
+
+    if (error) {
+      return error;
+    }
+  }
+
+  return null;
+}
+
+export async function setActiveRoutineAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+
+  if (!routineId) {
+    return { ok: false, error: "Missing routine ID." };
+  }
+
+  const { error: routineCheckError } = await supabase
+    .from("routines")
+    .select("id")
+    .eq("id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (routineCheckError) {
+    return { ok: false, error: routineCheckError.message };
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ active_routine_id: routineId })
+    .eq("id", user.id);
+
+  if (profileError) {
+    return { ok: false, error: profileError.message };
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
+
+  return { ok: true };
+}
+
+export async function appendRoutineDayAction(formData: FormData): Promise<AppendRoutineDayResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+
+  if (!routineId) {
+    return { ok: false, error: "Missing routine ID." };
+  }
+
+  const { data: routine, error: routineError } = await supabase
+    .from("routines")
+    .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, weight_unit, default_progression_playbook_id, default_progression_playbook_config")
+    .eq("id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (routineError || !routine) {
+    return { ok: false, error: routineError?.message ?? "Routine not found." };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("preferred_distance_unit")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return { ok: false, error: profileError?.message ?? "Profile not found." };
+  }
+
+  const { data: highestDay, error: highestDayError } = await supabase
+    .from("routine_days")
+    .select("id, day_index")
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .order("day_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (highestDayError) {
+    return { ok: false, error: highestDayError.message };
+  }
+
+  const nextCycleLength = Math.max(routine.cycle_length_days ?? 0, highestDay?.day_index ?? 0) + 1;
+  const nextStartWeekday = getRoutineStartWeekdayFromDate(routine.start_date) ?? ROUTINE_START_WEEKDAYS[0];
+  const nextProgressionState = createProgressionPlaybookFormState({
+    playbookId: routine.default_progression_playbook_id ?? null,
+    config: routine.default_progression_playbook_config ?? null,
+  });
+  const updateFormData = new FormData();
+  updateFormData.set("routineId", routineId);
+  updateFormData.set("existingStartDate", routine.start_date ?? "");
+  updateFormData.set("name", routine.name);
+  updateFormData.set("cycleLengthDays", String(nextCycleLength));
+  updateFormData.set("scheduleMode", routine.schedule_mode === "rolling_n_day" ? "rolling_n_day" : "weekday_anchored");
+  updateFormData.set("startDate", routine.start_date ?? "");
+  updateFormData.set("startWeekday", nextStartWeekday);
+  updateFormData.set("timezone", routine.timezone);
+  updateFormData.set("weightUnit", routine.weight_unit ?? "lbs");
+  updateFormData.set("distanceUnit", profile.preferred_distance_unit ?? "mi");
+  appendProgressionPlaybookFormData(updateFormData, nextProgressionState);
+
+  const updateResult = await updateRoutineAction(updateFormData);
+  if (!updateResult.ok) {
+    return updateResult;
+  }
+
+  const { data: appendedDay, error: appendedDayError } = await supabase
+    .from("routine_days")
+    .select("id, day_index")
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .eq("day_index", nextCycleLength)
+    .maybeSingle();
+
+  if (appendedDayError || !appendedDay) {
+    return { ok: false, error: appendedDayError?.message ?? "New workout plan was not created." };
+  }
+
+  return { ok: true, routineDayId: appendedDay.id };
+}
+
+export async function deleteRoutineDayAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+  const routineDayId = String(formData.get("routineDayId") ?? "").trim();
+
+  if (!routineId || !routineDayId) {
+    return { ok: false, error: "Missing workout plan info." };
+  }
+
+  const { data: routine, error: routineError } = await supabase
+    .from("routines")
+    .select("id, cycle_length_days")
+    .eq("id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (routineError || !routine) {
+    return { ok: false, error: routineError?.message ?? "Routine not found." };
+  }
+
+  const { data: routineDays, error: routineDaysError } = await supabase
+    .from("routine_days")
+    .select("id, day_index")
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .order("day_index", { ascending: true });
+
+  if (routineDaysError) {
+    return { ok: false, error: routineDaysError.message };
+  }
+
+  const existingDays = routineDays ?? [];
+  if (!existingDays.some((day) => day.id === routineDayId)) {
+    return { ok: false, error: "Workout plan not found." };
+  }
+
+  if (existingDays.length <= 1) {
+    return { ok: false, error: "A routine must keep at least one workout plan." };
+  }
+
+  const { error: deleteError } = await supabase
+    .from("routine_days")
+    .delete()
+    .eq("id", routineDayId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    return { ok: false, error: deleteError.message };
+  }
+
+  const remainingDayIds = existingDays
+    .filter((day) => day.id !== routineDayId)
+    .sort((left, right) => left.day_index - right.day_index)
+    .map((day) => day.id);
+
+  const reorderError = await reindexRoutineDaysDirect({
+    supabase,
+    routineId,
+    userId: user.id,
+    orderedRoutineDayIds: remainingDayIds,
+  });
+
+  if (reorderError) {
+    return { ok: false, error: reorderError.message };
+  }
+
+  const { error: routineUpdateError } = await supabase
+    .from("routines")
+    .update({
+      cycle_length_days: remainingDayIds.length,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", routineId)
+    .eq("user_id", user.id);
+
+  if (routineUpdateError) {
+    return { ok: false, error: routineUpdateError.message };
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
+  revalidatePath(getRoutineEditPath(routineId));
+  return { ok: true };
+}
+
+export async function duplicateRoutineDayAction(formData: FormData): Promise<DuplicateRoutineDayResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+  const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
+
+  if (!routineId || !sourceRoutineDayId) {
+    return { ok: false, error: "Missing workout plan info." };
+  }
+
+  const { data: routine, error: routineError } = await supabase
+    .from("routines")
+    .select("id, user_id, start_date, cycle_length_days")
+    .eq("id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (routineError || !routine) {
+    return { ok: false, error: routineError?.message ?? "Routine not found." };
+  }
+
+  const { data: sourceDay, error: sourceDayError } = await supabase
+    .from("routine_days")
+    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+    .eq("id", sourceRoutineDayId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (sourceDayError || !sourceDay) {
+    return { ok: false, error: sourceDayError?.message ?? "Source workout plan not found." };
+  }
+
+  const { data: sourceRoutine, error: sourceRoutineError } = await supabase
+    .from("routines")
+    .select("id, user_id, start_date")
+    .eq("id", sourceDay.routine_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (sourceRoutineError || !sourceRoutine) {
+    return { ok: false, error: sourceRoutineError?.message ?? "Source routine not found." };
+  }
+
+  const appendFormData = new FormData();
+  appendFormData.set("routineId", routineId);
+  const appendResult = await appendRoutineDayAction(appendFormData);
+  if (!appendResult.ok || !appendResult.routineDayId) {
+    return { ok: false, error: appendResult.ok ? "Could not create destination workout plan." : appendResult.error ?? "Could not create destination workout plan." };
+  }
+
+  const { data: destinationDay, error: destinationDayError } = await supabase
+    .from("routine_days")
+    .select("id, day_index")
+    .eq("id", appendResult.routineDayId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (destinationDayError || !destinationDay) {
+    await rollbackAppendedRoutineDay({
+      client: supabase,
+      userId: user.id,
+      routineId,
+      routineDayId: appendResult.routineDayId,
+      previousCycleLength: routine.cycle_length_days,
+    });
+    return { ok: false, error: destinationDayError?.message ?? "Destination workout plan not found." };
+  }
+
+  const duplicatedName = resolveDuplicatedRoutineDayName({
+    sourceDayName: sourceDay.name,
+    sourceDayIndex: sourceDay.day_index,
+    sourceRoutineStartDate: sourceRoutine.start_date,
+    destinationDayIndex: destinationDay.day_index,
+  });
+
+  const { error: destinationUpdateError } = await supabase
+    .from("routine_days")
+    .update({
+      name: duplicatedName,
+      is_rest: sourceDay.is_rest,
+      notes: sourceDay.notes,
+    })
+    .eq("id", destinationDay.id)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (destinationUpdateError) {
+    await rollbackAppendedRoutineDay({
+      client: supabase,
+      userId: user.id,
+      routineId,
+      routineDayId: destinationDay.id,
+      previousCycleLength: destinationDay.day_index - 1,
+    });
+    return { ok: false, error: destinationUpdateError.message };
+  }
+
+  const { data: sourceExercisesWithProgression, error: sourceExercisesWithProgressionError } = await supabase
+    .from("routine_day_exercises")
+    .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION)
+    .eq("routine_day_id", sourceRoutineDayId)
+    .eq("user_id", user.id)
+    .order("position", { ascending: true });
+  const sourceExercisesLegacyFallback = sourceExercisesWithProgressionError && isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)
+    ? await supabase
+        .from("routine_day_exercises")
+        .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY)
+        .eq("routine_day_id", sourceRoutineDayId)
+        .eq("user_id", user.id)
+        .order("position", { ascending: true })
+    : null;
+  const sourceExercisesLegacy = sourceExercisesLegacyFallback?.data ?? null;
+  const sourceExercisesLegacyError = sourceExercisesLegacyFallback?.error ?? null;
+
+  if (sourceExercisesWithProgressionError && !isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)) {
+    await rollbackAppendedRoutineDay({
+      client: supabase,
+      userId: user.id,
+      routineId,
+      routineDayId: destinationDay.id,
+      previousCycleLength: destinationDay.day_index - 1,
+    });
+    return { ok: false, error: sourceExercisesWithProgressionError.message };
+  }
+
+  if (sourceExercisesLegacyError) {
+    await rollbackAppendedRoutineDay({
+      client: supabase,
+      userId: user.id,
+      routineId,
+      routineDayId: destinationDay.id,
+      previousCycleLength: destinationDay.day_index - 1,
+    });
+    return { ok: false, error: sourceExercisesLegacyError.message };
+  }
+
+  const sourceExercises = sourceExercisesWithProgression ?? sourceExercisesLegacy ?? [];
+  if (sourceExercises.length > 0) {
+    const copiedExercises = sourceExercises.map((exercise) => ({
+      ...exercise,
+      user_id: user.id,
+      routine_day_id: destinationDay.id,
+    }));
+
+    let { error: copyExercisesError } = await supabase
+      .from("routine_day_exercises")
+      .insert(copiedExercises);
+
+    if (copyExercisesError && isMissingProgressionPlaybookColumnError(copyExercisesError)) {
+      const fallback = await supabase
+        .from("routine_day_exercises")
+        .insert(copiedExercises.map((exercise) => omitProgressionPlaybookColumns(exercise)));
+      copyExercisesError = fallback.error;
+    }
+
+    if (copyExercisesError) {
+      await rollbackAppendedRoutineDay({
+        client: supabase,
+        userId: user.id,
+        routineId,
+        routineDayId: destinationDay.id,
+        previousCycleLength: destinationDay.day_index - 1,
+      });
+      return { ok: false, error: copyExercisesError.message };
+    }
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
+  revalidatePath(getRoutineEditPath(routineId));
+  return { ok: true, routineDayId: destinationDay.id };
+}
+
+export async function populateRoutineDayFromSourceAction(formData: FormData): Promise<PopulateRoutineDayResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+  const targetRoutineDayId = String(formData.get("targetRoutineDayId") ?? "").trim();
+  const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
+
+  if (!routineId || !targetRoutineDayId || !sourceRoutineDayId) {
+    return { ok: false, error: "Missing workout plan info." };
+  }
+
+  const { data: targetDay, error: targetDayError } = await supabase
+    .from("routine_days")
+    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+    .eq("id", targetRoutineDayId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (targetDayError || !targetDay) {
+    return { ok: false, error: targetDayError?.message ?? "Target workout plan not found." };
+  }
+
+  const { data: existingTargetExercises, error: existingTargetExercisesError } = await supabase
+    .from("routine_day_exercises")
+    .select("id")
+    .eq("routine_day_id", targetRoutineDayId)
+    .eq("user_id", user.id)
+    .limit(1);
+
+  if (existingTargetExercisesError) {
+    return { ok: false, error: existingTargetExercisesError.message };
+  }
+
+  if ((existingTargetExercises ?? []).length > 0) {
+    return { ok: false, error: "This workout plan already has exercises." };
+  }
+
+  const { data: sourceDay, error: sourceDayError } = await supabase
+    .from("routine_days")
+    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+    .eq("id", sourceRoutineDayId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (sourceDayError || !sourceDay) {
+    return { ok: false, error: sourceDayError?.message ?? "Source workout plan not found." };
+  }
+
+  const { data: sourceRoutine, error: sourceRoutineError } = await supabase
+    .from("routines")
+    .select("id, user_id, start_date")
+    .eq("id", sourceDay.routine_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (sourceRoutineError || !sourceRoutine) {
+    return { ok: false, error: sourceRoutineError?.message ?? "Source routine not found." };
+  }
+
+  const duplicatedName = resolveDuplicatedRoutineDayName({
+    sourceDayName: sourceDay.name,
+    sourceDayIndex: sourceDay.day_index,
+    sourceRoutineStartDate: sourceRoutine.start_date,
+    destinationDayIndex: targetDay.day_index,
+  });
+
+  const { error: destinationUpdateError } = await supabase
+    .from("routine_days")
+    .update({
+      name: duplicatedName,
+      is_rest: sourceDay.is_rest,
+      notes: sourceDay.notes,
+    })
+    .eq("id", targetDay.id)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (destinationUpdateError) {
+    return { ok: false, error: destinationUpdateError.message };
+  }
+
+  const { data: sourceExercisesWithProgression, error: sourceExercisesWithProgressionError } = await supabase
+    .from("routine_day_exercises")
+    .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION)
+    .eq("routine_day_id", sourceRoutineDayId)
+    .eq("user_id", user.id)
+    .order("position", { ascending: true });
+  const sourceExercisesLegacyFallback = sourceExercisesWithProgressionError && isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)
+    ? await supabase
+        .from("routine_day_exercises")
+        .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY)
+        .eq("routine_day_id", sourceRoutineDayId)
+        .eq("user_id", user.id)
+        .order("position", { ascending: true })
+    : null;
+  const sourceExercisesLegacy = sourceExercisesLegacyFallback?.data ?? null;
+  const sourceExercisesLegacyError = sourceExercisesLegacyFallback?.error ?? null;
+
+  if (sourceExercisesWithProgressionError && !isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)) {
+    return { ok: false, error: sourceExercisesWithProgressionError.message };
+  }
+
+  if (sourceExercisesLegacyError) {
+    return { ok: false, error: sourceExercisesLegacyError.message };
+  }
+
+  const sourceExercises = sourceExercisesWithProgression ?? sourceExercisesLegacy ?? [];
+  if (sourceExercises.length > 0) {
+    const copiedExercises = sourceExercises.map((exercise) => ({
+      ...exercise,
+      user_id: user.id,
+      routine_day_id: targetDay.id,
+    }));
+
+    let { error: copyExercisesError } = await supabase
+      .from("routine_day_exercises")
+      .insert(copiedExercises);
+
+    if (copyExercisesError && isMissingProgressionPlaybookColumnError(copyExercisesError)) {
+      const fallback = await supabase
+        .from("routine_day_exercises")
+        .insert(copiedExercises.map((exercise) => omitProgressionPlaybookColumns(exercise)));
+      copyExercisesError = fallback.error;
+    }
+
+    if (copyExercisesError) {
+      await supabase
+        .from("routine_day_exercises")
+        .delete()
+        .eq("routine_day_id", targetDay.id)
+        .eq("user_id", user.id);
+      await supabase
+        .from("routine_days")
+        .update({
+          name: targetDay.name,
+          is_rest: targetDay.is_rest,
+          notes: targetDay.notes,
+        })
+        .eq("id", targetDay.id)
+        .eq("routine_id", routineId)
+        .eq("user_id", user.id);
+      return { ok: false, error: copyExercisesError.message };
+    }
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
+  revalidatePath(getRoutineEditPath(routineId));
+  return { ok: true, routineDayId: targetDay.id };
+}
+
+async function loadOwnedRoutineForCopy(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  routineId: string;
+  userId: string;
+}) {
+  const { data: routineWithDefaults, error: routineWithDefaultsError } = await args.supabase
+    .from("routines")
+    .select(ROUTINE_COPY_SELECT_WITH_DEFAULT_PROGRESSION)
+    .eq("id", args.routineId)
+    .eq("user_id", args.userId)
+    .single();
+
+  if (!routineWithDefaultsError) {
+    return { data: routineWithDefaults, error: null };
+  }
+
+  if (!isMissingRoutineDefaultProgressionColumnError(routineWithDefaultsError)) {
+    return { data: null, error: routineWithDefaultsError };
+  }
+
+  const fallback = await args.supabase
+    .from("routines")
+    .select(ROUTINE_COPY_SELECT_LEGACY)
+    .eq("id", args.routineId)
+    .eq("user_id", args.userId)
+    .single();
+
+  return { data: fallback.data, error: fallback.error };
+}
+
+export async function duplicateRoutineAction(formData: FormData): Promise<CreateRoutineResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const sourceRoutineId = String(formData.get("sourceRoutineId") ?? "").trim();
+  const requestedName = String(formData.get("name") ?? "").trim().slice(0, 15);
+
+  if (!sourceRoutineId) {
+    return { ok: false, error: "Missing routine info." };
+  }
+
+  const { data: sourceRoutine, error: sourceRoutineError } = await loadOwnedRoutineForCopy({
+    supabase,
+    routineId: sourceRoutineId,
+    userId: user.id,
+  });
+
+  if (sourceRoutineError || !sourceRoutine) {
+    return { ok: false, error: sourceRoutineError?.message ?? "Source routine not found." };
+  }
+
+  const { data: existingRoutines, error: existingRoutinesError } = await supabase
+    .from("routines")
+    .select("name")
+    .eq("user_id", user.id);
+
+  if (existingRoutinesError) {
+    return { ok: false, error: existingRoutinesError.message };
+  }
+
+  const routineName = resolveUniqueRoutineCopyName({
+    sourceName: sourceRoutine.name,
+    requestedName,
+    existingNames: (existingRoutines ?? []).map((routine) => routine.name),
+  });
+
+  const routinePayload = {
+    user_id: user.id,
+    name: routineName,
+    cycle_length_days: sourceRoutine.cycle_length_days,
+    schedule_mode: sourceRoutine.schedule_mode ?? "weekday_anchored",
+    timezone: sourceRoutine.timezone,
+    start_date: sourceRoutine.start_date,
+    weight_unit: sourceRoutine.weight_unit ?? "lbs",
+    default_progression_playbook_id: "default_progression_playbook_id" in sourceRoutine
+      ? sourceRoutine.default_progression_playbook_id ?? null
+      : null,
+    default_progression_playbook_config: "default_progression_playbook_config" in sourceRoutine
+      ? sourceRoutine.default_progression_playbook_config ?? null
+      : null,
+  };
+
+  let { data: duplicatedRoutine, error: duplicatedRoutineError } = await supabase
+    .from("routines")
+    .insert(routinePayload)
+    .select("id")
+    .single();
+
+  if (
+    duplicatedRoutineError
+    && isMissingRoutineDefaultProgressionColumnError(duplicatedRoutineError)
+    && !selectedRoutineDefaultProgressionPlaybook(routinePayload)
+  ) {
+    const fallback = await supabase
+      .from("routines")
+      .insert(omitRoutineDefaultProgressionColumns(routinePayload))
+      .select("id")
+      .single();
+    duplicatedRoutine = fallback.data;
+    duplicatedRoutineError = fallback.error;
+  }
+
+  if (
+    duplicatedRoutineError
+    && isMissingRoutineDefaultProgressionColumnError(duplicatedRoutineError)
+    && selectedRoutineDefaultProgressionPlaybook(routinePayload)
+  ) {
+    return {
+      ok: false,
+      error: getSchemaMismatchMessage(duplicatedRoutineError, {
+        operation: "duplicate routine progression default",
+        progressionMigration: "046",
+      }) ?? "Progression schema is missing. Apply migration 046.",
+    };
+  }
+
+  if (duplicatedRoutineError || !duplicatedRoutine) {
+    return { ok: false, error: duplicatedRoutineError?.message ?? "Could not duplicate routine." };
+  }
+
+  const { data: sourceDays, error: sourceDaysError } = await supabase
+    .from("routine_days")
+    .select(ROUTINE_DAY_COPY_SELECT)
+    .eq("routine_id", sourceRoutineId)
+    .eq("user_id", user.id)
+    .order("day_index", { ascending: true });
+
+  if (sourceDaysError) {
+    await rollbackDuplicatedRoutine({
+      client: supabase,
+      userId: user.id,
+      routineId: duplicatedRoutine.id,
+    });
+    return { ok: false, error: sourceDaysError.message };
+  }
+
+  const copiedDayRows = (sourceDays ?? []).map((day) => ({
+    user_id: user.id,
+    routine_id: duplicatedRoutine.id,
+    day_index: day.day_index,
+    name: day.name,
+    is_rest: day.is_rest,
+    notes: day.notes,
+  }));
+
+  const { data: copiedDays, error: copiedDaysError } = copiedDayRows.length > 0
+    ? await supabase
+        .from("routine_days")
+        .insert(copiedDayRows)
+        .select("id, day_index")
+        .order("day_index", { ascending: true })
+    : { data: [] as Array<{ id: string; day_index: number }>, error: null };
+
+  if (copiedDaysError) {
+    await rollbackDuplicatedRoutine({
+      client: supabase,
+      userId: user.id,
+      routineId: duplicatedRoutine.id,
+    });
+    return { ok: false, error: copiedDaysError.message };
+  }
+
+  const destinationDayIdBySourceDayId = new Map<string, string>();
+  for (const sourceDay of sourceDays ?? []) {
+    const copiedDay = copiedDays?.find((candidate) => candidate.day_index === sourceDay.day_index);
+    if (copiedDay) {
+      destinationDayIdBySourceDayId.set(sourceDay.id, copiedDay.id);
+    }
+  }
+
+  const sourceDayIds = (sourceDays ?? []).map((day) => day.id);
+  const { data: sourceExercisesWithProgression, error: sourceExercisesWithProgressionError } = sourceDayIds.length > 0
+    ? await supabase
+        .from("routine_day_exercises")
+        .select(ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_WITH_PROGRESSION)
+        .in("routine_day_id", sourceDayIds)
+        .eq("user_id", user.id)
+        .order("position", { ascending: true })
+    : { data: [], error: null };
+  const sourceExercisesLegacyFallback = sourceExercisesWithProgressionError && isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)
+    ? await supabase
+        .from("routine_day_exercises")
+        .select(ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_LEGACY)
+        .in("routine_day_id", sourceDayIds)
+        .eq("user_id", user.id)
+        .order("position", { ascending: true })
+    : null;
+  const sourceExercisesLegacy = sourceExercisesLegacyFallback?.data ?? null;
+  const sourceExercisesLegacyError = sourceExercisesLegacyFallback?.error ?? null;
+
+  if (sourceExercisesWithProgressionError && !isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)) {
+    await rollbackDuplicatedRoutine({
+      client: supabase,
+      userId: user.id,
+      routineId: duplicatedRoutine.id,
+      copiedDayIds: copiedDays?.map((day) => day.id) ?? [],
+    });
+    return { ok: false, error: sourceExercisesWithProgressionError.message };
+  }
+
+  if (sourceExercisesLegacyError) {
+    await rollbackDuplicatedRoutine({
+      client: supabase,
+      userId: user.id,
+      routineId: duplicatedRoutine.id,
+      copiedDayIds: copiedDays?.map((day) => day.id) ?? [],
+    });
+    return { ok: false, error: sourceExercisesLegacyError.message };
+  }
+
+  const sourceExercises = sourceExercisesWithProgression ?? sourceExercisesLegacy ?? [];
+  if (sourceExercises.length > 0) {
+    const copiedExercises = sourceExercises.flatMap((exercise) => {
+      const destinationDayId = destinationDayIdBySourceDayId.get(exercise.routine_day_id);
+      if (!destinationDayId) {
+        return [];
+      }
+
+      return [{
+        ...exercise,
+        user_id: user.id,
+        routine_day_id: destinationDayId,
+      }];
+    });
+
+    let { error: copyExercisesError } = await supabase
+      .from("routine_day_exercises")
+      .insert(copiedExercises);
+
+    if (copyExercisesError && isMissingProgressionPlaybookColumnError(copyExercisesError)) {
+      const fallback = await supabase
+        .from("routine_day_exercises")
+        .insert(copiedExercises.map((exercise) => omitProgressionPlaybookColumns(exercise)));
+      copyExercisesError = fallback.error;
+    }
+
+    if (copyExercisesError) {
+      await rollbackDuplicatedRoutine({
+        client: supabase,
+        userId: user.id,
+        routineId: duplicatedRoutine.id,
+        copiedDayIds: copiedDays?.map((day) => day.id) ?? [],
+      });
+      return { ok: false, error: copyExercisesError.message };
+    }
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(duplicatedRoutine.id));
+  revalidatePath(getRoutineEditPath(duplicatedRoutine.id));
+  return { ok: true, routineId: duplicatedRoutine.id, firstDayId: copiedDays?.[0]?.id };
+}
+
+export async function reorderRoutineDaysAction(formData: FormData): Promise<ReorderRoutineDaysResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+  const orderedRoutineDayIds = String(formData.get("orderedRoutineDayIds") ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (!routineId || orderedRoutineDayIds.length === 0) {
+    return { ok: false, error: "Missing reorder info." };
+  }
+
+  const { data: existingDays, error: existingDaysError } = await supabase
+    .from("routine_days")
+    .select("id")
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .order("day_index", { ascending: true });
+
+  if (existingDaysError) {
+    return { ok: false, error: existingDaysError.message };
+  }
+
+  const existingDayIds = (existingDays ?? []).map((day) => day.id);
+  if (
+    existingDayIds.length !== orderedRoutineDayIds.length
+    || existingDayIds.some((dayId) => !orderedRoutineDayIds.includes(dayId))
+  ) {
+    return { ok: false, error: "Invalid reorder payload." };
+  }
+
+  const { error } = await supabase.rpc("reorder_routine_days", {
+    target_routine_id: routineId,
+    target_user_id: user.id,
+    ordered_routine_day_ids: orderedRoutineDayIds,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
+  revalidatePath(getRoutineEditPath(routineId));
+  return { ok: true };
+}
+
+export async function createRoutineDayAction(formData: FormData): Promise<CreateRoutineDayResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+  const creationMode = String(formData.get("creationMode") ?? "blank").trim();
+  const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
+  const requestedName = String(formData.get("name") ?? "").trim();
+  const blankModeIsRest = formData.get("isRest") === "on";
+
+  if (!routineId) {
+    return { ok: false, error: "Missing routine ID." };
+  }
+
+  const { data: routine, error: routineError } = await supabase
+    .from("routines")
+    .select("id, cycle_length_days")
+    .eq("id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (routineError || !routine) {
+    return { ok: false, error: routineError?.message ?? "Routine not found." };
+  }
+
+  if (creationMode !== "blank" && creationMode !== "duplicate") {
+    return { ok: false, error: "Invalid workout plan creation mode." };
+  }
+
+  const actionFormData = new FormData();
+  actionFormData.set("routineId", routineId);
+  if (creationMode === "duplicate") {
+    actionFormData.set("sourceRoutineDayId", sourceRoutineDayId);
+  }
+
+  const routineDayResult = creationMode === "duplicate"
+    ? await duplicateRoutineDayAction(actionFormData)
+    : await appendRoutineDayAction(actionFormData);
+
+  if (!routineDayResult.ok || !routineDayResult.routineDayId) {
+    return {
+      ok: false,
+      error: routineDayResult.ok ? "Could not create workout plan." : routineDayResult.error ?? "Could not create workout plan.",
+    };
+  }
+
+  if (!shouldApplyRoutineDayCreationOverrides({
+    creationMode: creationMode as "blank" | "duplicate",
+    requestedName,
+    blankModeIsRest,
+  })) {
+    return { ok: true, routineDayId: routineDayResult.routineDayId };
+  }
+
+  const { data: createdDay, error: createdDayError } = await supabase
+    .from("routine_days")
+    .select("id, day_index, is_rest, name")
+    .eq("id", routineDayResult.routineDayId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (createdDayError || !createdDay) {
+    await rollbackAppendedRoutineDay({
+      client: supabase,
+      userId: user.id,
+      routineId,
+      routineDayId: routineDayResult.routineDayId,
+      previousCycleLength: routine.cycle_length_days,
+    });
+    return { ok: false, error: createdDayError?.message ?? "Created workout plan not found." };
+  }
+
+  const resolvedOverrides = resolveRoutineDayCreationOverrides({
+    creationMode: creationMode as "blank" | "duplicate",
+    requestedName,
+    blankModeIsRest,
+    createdDay,
+  });
+
+  const { error: updateError } = await supabase
+    .from("routine_days")
+    .update({
+      name: resolvedOverrides.nextName,
+      is_rest: resolvedOverrides.nextIsRest,
+    })
+    .eq("id", createdDay.id)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    await rollbackAppendedRoutineDay({
+      client: supabase,
+      userId: user.id,
+      routineId,
+      routineDayId: createdDay.id,
+      previousCycleLength: routine.cycle_length_days,
+    });
+    return { ok: false, error: updateError.message };
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
+  revalidatePath(getRoutineEditPath(routineId));
+  return { ok: true, routineDayId: createdDay.id };
+}
 
 function isMissingProfilePreferenceColumnError(error: { message?: string } | null | undefined) {
   const message = error?.message?.toLowerCase() ?? "";
@@ -94,8 +1091,14 @@ function parseRoutineForm(formData: FormData) {
   };
 }
 
-function selectedRoutineDefaultProgressionPlaybook(payload: { defaultProgressionPlaybookId: unknown }) {
-  return typeof payload.defaultProgressionPlaybookId === "string" && payload.defaultProgressionPlaybookId.length > 0;
+function selectedRoutineDefaultProgressionPlaybook(payload: {
+  defaultProgressionPlaybookId?: unknown;
+  default_progression_playbook_id?: unknown;
+}) {
+  const selectedPlaybookId =
+    payload.defaultProgressionPlaybookId ?? payload.default_progression_playbook_id;
+
+  return typeof selectedPlaybookId === "string" && selectedPlaybookId.length > 0;
 }
 
 function normalizeStretchValue(value: string | null | undefined) {
@@ -187,7 +1190,6 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
-      active_routine_id: routine.id,
       preferred_distance_unit: parsed.payload.distanceUnit,
     })
     .eq("id", user.id);
@@ -195,6 +1197,7 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
   if (profileError && !isMissingProfilePreferenceColumnError(profileError)) return { ok: false, error: profileError.message };
 
   revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routine.id));
   revalidatePath(getRoutineEditPath(routine.id));
 
   return { ok: true, routineId: routine.id, firstDayId: insertedDays?.[0]?.id };
@@ -377,6 +1380,7 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
   }
 
   revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
   revalidatePath(getRoutineEditPath(routineId));
   return { ok: true };
 }
@@ -422,6 +1426,7 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
   }
 
   revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
   revalidatePath(`/routines/${routineId}/edit`);
 
   return { ok: true };

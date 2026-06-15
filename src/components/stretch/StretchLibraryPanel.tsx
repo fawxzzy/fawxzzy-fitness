@@ -5,6 +5,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { SearchField } from "@/components/ui/SearchField";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SignatureDot, SignatureInlineList, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
@@ -195,8 +196,11 @@ export function StretchLibraryPanel({
 
                 <div className="h-px bg-[linear-gradient(90deg,rgb(var(--accent-divider-rgb)/0),rgb(var(--accent-divider-rgb)/0.5),rgb(var(--accent-divider-rgb)/0))]" />
 
-            <div className="-mx-0.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex min-w-max gap-1.5 px-0.5">
+            <HorizontalScrollHint
+              className="-mx-0.5"
+              scrollClassName="px-0.5 pb-0.5"
+              contentClassName="flex min-w-max gap-1.5"
+            >
                 {STRETCH_LIBRARY_FILTERS.map((filter) => {
                   const isActive = filter.id === selectedFilter;
 
@@ -217,8 +221,7 @@ export function StretchLibraryPanel({
                     </button>
                   );
                 })}
-              </div>
-            </div>
+            </HorizontalScrollHint>
           </div>
 
           <PickerListViewport

@@ -8,7 +8,7 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
   return (
     <TodayExerciseRows
       exercises={exercises}
-      emptyMessage="No runnable exercises planned for this day."
+      emptyMessage="No runnable exercises planned for this workout plan."
       showProgress={false}
       sourceContext="RoutineDayExerciseList"
       density="compact"

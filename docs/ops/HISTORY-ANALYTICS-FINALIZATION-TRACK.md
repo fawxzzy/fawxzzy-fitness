@@ -80,11 +80,11 @@ The stale `Loading session detail` screen was not present in current source duri
 
 Verified state on 2026-06-10:
 
-- [src/app/history/[sessionId]/loading.tsx](C:/ATLAS/repos/fawxzzy-fitness/src/app/history/[sessionId]/loading.tsx) uses the shared route loader
+- `src/app/history/[sessionId]/loading.tsx` uses the shared route loader
 - the old `Loading session detail` string was absent from `src/`
 - the repo-local dev server on `127.0.0.1:3002` was restarted from recorded runtime state so live output stops lagging behind source
 - the dedicated local preview lane on `http://localhost:3004/history` now renders deterministic history fixtures directly when `HISTORY_QA_PREVIEW_ENABLED=1`
-- the preview helper at [src/app/dev/history-preview/page.tsx](C:/ATLAS/repos/fawxzzy-fitness/src/app/dev/history-preview/page.tsx) now matches that direct-preview behavior instead of describing a stale cookie-only flow
+- the preview helper at `src/app/dev/history-preview/page.tsx` now matches that direct-preview behavior instead of describing a stale cookie-only flow
 
 If the old copy appears again after this restart, treat that as cache or stale-client verification work, not as missing source work.
 

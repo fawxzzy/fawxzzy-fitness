@@ -26,6 +26,7 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
 import { DetailSectionBlock, DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem, type DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
 import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -2313,8 +2314,10 @@ export function ExerciseInfoSheet({
                     <p className={appTokens.exercisePickerFilterGroupLabel}>Scope</p>
                     <MetricAccentBar variant="thin" className="w-full opacity-80" />
                   </div>
-                  <div className={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}>
-                    <div className="flex min-w-max flex-nowrap gap-1.5">
+                  <HorizontalScrollHint
+                    scrollClassName={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}
+                    contentClassName="flex min-w-max flex-nowrap gap-1.5"
+                  >
                       {showFilterClearButton ? (
                         <button
                           type="button"
@@ -2344,8 +2347,7 @@ export function ExerciseInfoSheet({
                           {option.label}
                         </PillButton>
                       ))}
-                    </div>
-                  </div>
+                  </HorizontalScrollHint>
                 </div>
 
                 {headerFilterMode === "current_routine" || headerFilterMode === "current_cycle" ? (
@@ -2354,8 +2356,10 @@ export function ExerciseInfoSheet({
                       <p className={appTokens.exercisePickerFilterGroupLabel}>Routine</p>
                       <MetricAccentBar variant="thin" className="w-full opacity-80" />
                     </div>
-                    <div className={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}>
-                      <div className="flex min-w-max flex-nowrap gap-1.5">
+                    <HorizontalScrollHint
+                      scrollClassName={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}
+                      contentClassName="flex min-w-max flex-nowrap gap-1.5"
+                    >
                         {showRoutineClearButton ? (
                           <button
                             type="button"
@@ -2390,12 +2394,11 @@ export function ExerciseInfoSheet({
                               )}
                               onClick={() => handleRoutineFilterSelect(routine)}
                             >
-                              {routine.title}
-                            </PillButton>
-                          );
-                        })}
-                      </div>
-                    </div>
+                            {routine.title}
+                          </PillButton>
+                        );
+                      })}
+                    </HorizontalScrollHint>
                   </div>
                 ) : null}
 
@@ -2410,8 +2413,10 @@ export function ExerciseInfoSheet({
                         Choose a routine first.
                       </p>
                     ) : (
-                      <div className={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}>
-                        <div className="flex min-w-max flex-nowrap gap-1.5">
+                      <HorizontalScrollHint
+                        scrollClassName={cn(exerciseInfoFilterCompactRailClassName, exerciseInfoFilterCompactRailTopPaddingClassName)}
+                        contentClassName="flex min-w-max flex-nowrap gap-1.5"
+                      >
                           {showCycleClearButton ? (
                             <button
                               type="button"
@@ -2448,8 +2453,7 @@ export function ExerciseInfoSheet({
                               No saved cycles for this routine yet.
                             </p>
                           )}
-                        </div>
-                      </div>
+                      </HorizontalScrollHint>
                     )}
                   </div>
                 ) : null}

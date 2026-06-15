@@ -133,6 +133,10 @@ export function useRoutineDetailsExitGuard() {
   return context;
 }
 
+export function useOptionalRoutineDetailsExitGuard() {
+  return useContext(RoutineDetailsExitGuardContext);
+}
+
 export function useRoutineDetailsDirtyState(hasUnsavedChanges: boolean) {
   const { setHasUnsavedChanges } = useRoutineDetailsExitGuard();
 

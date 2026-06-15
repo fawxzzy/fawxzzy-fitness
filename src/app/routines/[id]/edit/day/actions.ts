@@ -6,7 +6,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { validateExerciseEquipment, validateExerciseName, validateMovementPattern } from "@/lib/exercises";
 import { buildCustomExerciseInsertPayload } from "@/lib/custom-exercise-payload";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getRoutineEditPath, getTodayPath, revalidateRoutinesViews } from "@/lib/revalidation";
+import { getRoutineEditPath, getRoutineHomePath, getTodayPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import { insertRoutineDayExerciseAtEnd } from "@/lib/ordered-position-insert";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
@@ -22,8 +22,10 @@ import {
 import type { RoutineDayExerciseRow } from "@/types/db";
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
+  revalidatePath(getRoutineHomePath(routineId));
   revalidatePath(getRoutineEditPath(routineId));
   revalidatePath(getTodayPath());
+  revalidatePath(`/routines/${routineId}/days/${dayId}`);
 }
 
 
@@ -104,7 +106,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
   const dayAdjustmentRaw = String(formData.get("dayAdjustmentDirection") ?? "").trim();
   const dayAdjustmentDirection = isSetFlowDirection(dayAdjustmentRaw) ? dayAdjustmentRaw : null;
   if (!routineId || !routineDayId) {
-    return { ok: false, error: "Missing day info" };
+    return { ok: false, error: "Missing workout plan info" };
   }
 
   const { data: existingDay, error: existingDayError } = await supabase
@@ -116,7 +118,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     .single();
 
   if (existingDayError || !existingDay) {
-    return { ok: false, error: existingDayError?.message ?? "Routine day not found" };
+    return { ok: false, error: existingDayError?.message ?? "Workout plan not found" };
   }
 
   const safeName = name.slice(0, 15) || String(existingDay.day_index);
@@ -221,6 +223,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
   }
 
   revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
   return { ok: true };
 }
 
@@ -349,6 +352,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
   }
 
   revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
   return { ok: true };
 }
 
@@ -441,6 +445,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
   }
 
   revalidateRoutinesViews();
+  revalidatePath(getRoutineHomePath(routineId));
   return { ok: true };
 }
 

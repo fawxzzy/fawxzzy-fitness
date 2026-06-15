@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildCurrentSessionHeaderInfoRailItems,
   buildCurrentRoutineInfoRailItems,
+  buildRoutineWorkoutPlanEditorInfoRailItems,
   buildRoutineBrowseInfoRailItems,
   buildRoutineTrainingRestInfoRailItems,
   buildTodayHeaderInfoRailItems,
@@ -200,6 +201,71 @@ test("current routine rail falls back to today state when no live session exists
       tone: "default",
       title: "Total exercises currently configured in this routine",
       valuePosition: "after",
+    },
+  ]);
+});
+
+test("routine workout-plan editor rail keeps the screen focused on structure and current slot context", () => {
+  assert.deepEqual(buildRoutineWorkoutPlanEditorInfoRailItems({
+    trainingDays: 5,
+    restDays: 2,
+    days: [
+      {
+        dayIndex: 1,
+        isRest: false,
+        isToday: false,
+        isCompleted: true,
+        isInSession: false,
+        splitSummary: { total: 6 },
+      },
+      {
+        dayIndex: 2,
+        isRest: false,
+        isToday: true,
+        isCompleted: false,
+        isSkipped: true,
+        isInSession: false,
+        splitSummary: { total: 5 },
+      },
+      {
+        dayIndex: 3,
+        isRest: true,
+        isToday: false,
+        isCompleted: false,
+        isInSession: false,
+        splitSummary: { total: 0 },
+      },
+    ],
+  }), [
+    {
+      id: "today-state",
+      label: "Today",
+      value: "Workout Day",
+      tone: "accent",
+      title: "Today resolves to a routine workout day",
+      valuePosition: "after",
+    },
+    {
+      id: "cycle-progress",
+      label: "Cycle Slot",
+      value: "Day 2 of 7",
+      tone: "default",
+      title: "Current day position inside this routine cycle",
+      valuePosition: "after",
+    },
+    {
+      id: "workout-plan-count",
+      label: "workout plans",
+      value: 5,
+      tone: "accent",
+      title: "Configured workout plans in this routine",
+    },
+    {
+      id: "rest-count",
+      label: "rest days",
+      value: 2,
+      tone: "muted",
+      title: "Configured rest days in this routine",
     },
   ]);
 });

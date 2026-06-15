@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
 import { isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
+import { getRoutineHomeHref } from "@/lib/routine-day-navigation";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
   if (!routine) notFound();
 
-  const returnHref = "/routines";
+  const returnHref = getRoutineHomeHref(params.id);
   const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
   const startWeekdayDefault = getRoutineStartWeekdayFromDate((routine as RoutineRow).start_date) ?? ROUTINE_START_WEEKDAYS[0];
 
@@ -64,7 +65,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         defaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
         defaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         error={searchParams?.error}
-        deleteAction={<DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />}
+        deleteAction={<DeleteRoutineButton routineId={routine.id} />}
       />
     </RoutineDetailsScreenShell>
   );

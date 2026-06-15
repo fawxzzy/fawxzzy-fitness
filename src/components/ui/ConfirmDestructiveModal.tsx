@@ -5,11 +5,25 @@ import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSplit, BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
+import { cn } from "@/lib/cn";
 
 const MODAL_BACKDROP_CLASSNAME =
   "bg-[rgba(7,17,27,0.015)]";
 const MODAL_BOTTOM_BAR_SURFACE_CLASSNAME =
   "bg-[linear-gradient(180deg,rgba(var(--bg-app),0.28)_0%,rgba(var(--bg-app),0.86)_18%,rgba(var(--bg-app),0.97)_100%)] backdrop-blur-[14px]";
+const DELETE_MODAL_CANCEL_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "toggleInactive",
+  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.22)]",
+});
+const DELETE_MODAL_CONFIRM_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "danger",
+  className: "translate-x-px focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]",
+});
+const DELETE_MODAL_PRIMARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "positive",
+  className: "translate-x-px focus-visible:ring-[rgb(var(--accent)/0.24)]",
+});
 
 function resolveConfirmTitle(title: string, confirmLabel: string) {
   const trimmedLabel = confirmLabel.trim();
@@ -64,8 +78,10 @@ export function ConfirmDestructiveModal({
   const titleId = useId();
   const modalRootRef = useRef<HTMLDivElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
+  const normalizedConfirmLabel = confirmLabel.trim().toLowerCase();
   const resolvedTitle = titleVariant === "raw" ? title : resolveConfirmTitle(title, confirmLabel);
   const confirmActionLabel = confirmActionLabelOverride ?? resolveConfirmActionLabel(confirmLabel);
+  const usesDeleteLayout = normalizedConfirmLabel === "delete";
   const supportingLines = [
     consequenceText,
     description,
@@ -140,7 +156,10 @@ export function ConfirmDestructiveModal({
   return createPortal(
     <div
       ref={modalRootRef}
-      className="fixed inset-0 z-[120] flex items-center justify-center p-4 pb-[calc(var(--app-safe-bottom)+5.5rem)] pt-[max(1rem,var(--app-safe-top))]"
+      className={cn(
+        "fixed inset-0 z-[120] flex items-center justify-center p-4 pt-[max(1rem,var(--app-safe-top))]",
+        usesDeleteLayout ? "pb-4" : "pb-[calc(var(--app-safe-bottom)+5.5rem)]",
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -153,54 +172,85 @@ export function ConfirmDestructiveModal({
       />
       <div
         ref={modalRef}
-        className="relative z-10 w-full max-w-[22rem] rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.96)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-[14px]"
+        className="relative z-10 w-full max-w-[22rem]"
       >
-        <h2 id={titleId} className="text-center text-[1.3125rem] font-semibold leading-tight tracking-[-0.03em] text-text">{resolvedTitle}</h2>
-        {supportingLines.length > 0 ? (
-          <div className="mt-3 space-y-1.5 text-center text-[0.82rem] font-medium leading-snug text-[rgb(var(--text-muted)/0.84)]">
-            {supportingLines.map((line, index) => (
-              <p key={`${index}-${line}`}>{line}</p>
-            ))}
-          </div>
-        ) : null}
-        {children ? (
-          <div className="mt-3">
-            {children}
-          </div>
+        <div
+          className={cn(
+            "rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.96)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-[14px]",
+            usesDeleteLayout ? "rounded-b-none border-b-0 pb-4" : undefined,
+          )}
+        >
+          <h2 id={titleId} className="text-center text-[1.3125rem] font-semibold leading-tight tracking-[-0.03em] text-text">{resolvedTitle}</h2>
+          {!usesDeleteLayout && supportingLines.length > 0 ? (
+            <div className="mt-3 space-y-1.5 text-center text-[0.82rem] font-medium leading-snug text-[rgb(var(--text-muted)/0.84)]">
+              {supportingLines.map((line, index) => (
+                <p key={`${index}-${line}`}>{line}</p>
+              ))}
+            </div>
+          ) : null}
+          {!usesDeleteLayout && children ? (
+            <div className="mt-3">
+              {children}
+            </div>
+          ) : null}
+        </div>
+        {usesDeleteLayout ? (
+          <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isLoading}
+              data-confirm-modal-action="cancel"
+              className={DELETE_MODAL_CANCEL_BUTTON_CLASS_NAME}
+            >
+              <span className="bottom-action__label">{cancelLabel}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isLoading || confirmDisabled}
+              data-confirm-modal-action="confirm"
+              className={confirmVariant === "destructive" ? DELETE_MODAL_CONFIRM_BUTTON_CLASS_NAME : DELETE_MODAL_PRIMARY_BUTTON_CLASS_NAME}
+            >
+              <span className="bottom-action__label">{isLoading ? `${confirmActionLabel}...` : confirmActionLabel}</span>
+            </button>
+          </AttachedCardActionStripFrame>
         ) : null}
       </div>
-      <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-20 ${MODAL_BOTTOM_BAR_SURFACE_CLASSNAME}`}>
-        <div className="pointer-events-auto mx-auto w-full max-w-[720px] px-4">
-          <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
-            <BottomActionSplit
-              secondary={(
-                <BottomDockButton
-                  type="button"
-                  intent="toggleInactive"
-                  onClick={onCancel}
-                  disabled={isLoading}
-                  data-confirm-modal-action="cancel"
-                >
-                  {cancelLabel}
-                </BottomDockButton>
-              )}
-              primary={(
-                <BottomDockButton
-                  type="button"
-                  variant={confirmVariant}
-                  onClick={onConfirm}
-                  disabled={isLoading || confirmDisabled}
-                  loading={isLoading}
-                  loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
-                  data-confirm-modal-action="confirm"
-                >
-                  {confirmActionLabel}
-                </BottomDockButton>
-              )}
-            />
+      {!usesDeleteLayout ? (
+        <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-20 ${MODAL_BOTTOM_BAR_SURFACE_CLASSNAME}`}>
+          <div className="pointer-events-auto mx-auto w-full max-w-[720px] px-4">
+            <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
+              <BottomActionSplit
+                secondary={(
+                  <BottomDockButton
+                    type="button"
+                    intent="toggleInactive"
+                    onClick={onCancel}
+                    disabled={isLoading}
+                    data-confirm-modal-action="cancel"
+                  >
+                    {cancelLabel}
+                  </BottomDockButton>
+                )}
+                primary={(
+                  <BottomDockButton
+                    type="button"
+                    variant={confirmVariant}
+                    onClick={onConfirm}
+                    disabled={isLoading || confirmDisabled}
+                    loading={isLoading}
+                    loadingLabel={isLoading ? `${confirmActionLabel}...` : undefined}
+                    data-confirm-modal-action="confirm"
+                  >
+                    {confirmActionLabel}
+                  </BottomDockButton>
+                )}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>,
     portalTarget,
   );

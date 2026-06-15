@@ -7,6 +7,7 @@ import {
   formatRoutineDayStableDisplayName,
   getRoutineCycleOccurrence,
   getRoutineDayEditableName,
+  getRoutineDayResolvedWeekdayLabel,
   resolveCompletedRoutineDayIndexesForOccurrence,
   resolveRoutineScheduleForToday,
 } from "./routines.ts";
@@ -107,6 +108,36 @@ test("getRoutineCycleOccurrence returns next occurrence for previous cycle days"
   assert.equal(occurrence.currentDayIndex, 3);
   assert.equal(occurrence.occurrenceDate, "2026-05-14");
   assert.equal(occurrence.occurrenceLabel, "Thu, May 14");
+});
+
+test("getRoutineDayResolvedWeekdayLabel keeps anchored routines on the stored weekday slot", () => {
+  assert.equal(
+    getRoutineDayResolvedWeekdayLabel({
+      dayIndex: 2,
+      startDate: "2026-05-11",
+      cycleLengthDays: 3,
+      scheduleMode: "weekday_anchored",
+      profileTimeZone: "America/New_York",
+      referenceDate: "2026-05-14",
+      weekday: "short",
+    }),
+    "Tue",
+  );
+});
+
+test("getRoutineDayResolvedWeekdayLabel rolls weekday labels forward for rolling cycles", () => {
+  assert.equal(
+    getRoutineDayResolvedWeekdayLabel({
+      dayIndex: 2,
+      startDate: "2026-05-11",
+      cycleLengthDays: 3,
+      scheduleMode: "rolling_n_day",
+      profileTimeZone: "America/New_York",
+      referenceDate: "2026-05-14",
+      weekday: "short",
+    }),
+    "Fri",
+  );
 });
 
 test("formatRoutineDayOccurrenceDisplayName preserves routine day name and appends occurrence date", () => {

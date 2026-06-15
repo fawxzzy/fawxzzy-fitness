@@ -91,7 +91,10 @@ export function ReorderExerciseRow({
             onPointerUp={onHandlePointerUp}
             onPointerCancel={onHandlePointerCancel}
           >
-            <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>::</span>
+            <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
+              <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
+              <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
+            </span>
           </button>
         )}
       />

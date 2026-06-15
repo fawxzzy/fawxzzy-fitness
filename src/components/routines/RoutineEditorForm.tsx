@@ -12,21 +12,16 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 import type { RoutineDetailsScheduleMode } from "@/lib/routine-details-form";
 import { getRoutineStartWeekdayFromDate, ROUTINE_START_WEEKDAYS } from "@/lib/routines";
 import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
-import { getRoutineTimezoneLabel, ROUTINE_TIMEZONE_OPTIONS } from "@/lib/timezones";
 
 const weekdayOptions = ROUTINE_START_WEEKDAYS.map((weekday) => ({
   value: weekday,
   label: weekday.slice(0, 1).toUpperCase() + weekday.slice(1, 3),
-}));
-
-const timezoneOptions = ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => ({
-  value: timeZoneOption,
-  label: getRoutineTimezoneLabel(timeZoneOption),
 }));
 
 const weightUnitOptions = [
@@ -43,15 +38,6 @@ const scheduleModeOptions = [
   { value: "weekday_anchored", label: "Week-based" },
   { value: "rolling_n_day", label: "# day-based" },
 ] as const;
-
-function getTimezoneInfoPayload(value: string): RoutineEditorInfoPayload {
-  const label = getRoutineTimezoneLabel(value as (typeof ROUTINE_TIMEZONE_OPTIONS)[number]);
-  return {
-    title: "Timezone",
-    summary: `${label} controls when the routine day rolls over for Today and for cycle day changes.`,
-    sectionKey: "routine_setup",
-  };
-}
 
 function getWeightUnitInfoPayload(value: string): RoutineEditorInfoPayload {
   return {
@@ -264,17 +250,10 @@ function RoutineEditorSegmentedField({
     <div {...(resolvedInfo ? routineEditorInfoHandlers(resolvedInfo) : {})}>
       {showLabel ? <RoutineEditorControlCaption label={label} detail={detail} /> : null}
       <div className={cn(showLabel ? "mt-2" : undefined, "flex justify-center")}>
-        <div
-          className={cn(
-            "max-w-full pb-1",
-            isExpandingDisplay
-              ? "w-full"
-              : "overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          )}
-        >
-          <div className={cn(isExpandingDisplay ? "mx-auto w-full" : "mx-auto w-max min-w-max")}>
-            {isExpandingDisplay ? (
-              shouldToggleWhenBinary ? (
+        {isExpandingDisplay ? (
+          <div className="w-full max-w-full pb-1">
+            <div className="mx-auto w-full">
+              {shouldToggleWhenBinary ? (
                 <div className="mx-auto flex justify-center">
                   <RoutineEditorBinaryToggleButton
                     label={activeOption?.label ?? resolvedValue}
@@ -301,22 +280,28 @@ function RoutineEditorSegmentedField({
                       : "mx-auto min-w-[14.75rem]",
                   )}
                 />
-              )
-            ) : (
-              <SegmentedControl
-                ariaLabel={ariaLabel}
-                options={options.map((option) => ({ label: option.label, value: option.value }))}
-                value={resolvedValue}
-                onChange={handleValueChange}
-                size="sm"
-                activeIntent="positive"
-                fitContent
-                className="mx-auto flex-wrap justify-center"
-              />
-            )}
-            {showDivider ? <RoutineEditorSectionDivider className="mx-auto w-[calc(100%+0.65rem)] max-w-full" /> : null}
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <HorizontalScrollHint
+            className="max-w-full"
+            scrollClassName="pb-1"
+            contentClassName="mx-auto w-max min-w-max"
+          >
+            <SegmentedControl
+              ariaLabel={ariaLabel}
+              options={options.map((option) => ({ label: option.label, value: option.value }))}
+              value={resolvedValue}
+              onChange={handleValueChange}
+              size="sm"
+              activeIntent="positive"
+              fitContent
+              className="mx-auto flex-wrap justify-center"
+            />
+            {showDivider ? <RoutineEditorSectionDivider className="mx-auto w-[calc(100%+0.65rem)] max-w-full" /> : null}
+          </HorizontalScrollHint>
+        )}
       </div>
     </div>
   );
@@ -338,11 +323,11 @@ function RoutineEditorCollapsibleSection({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div>
+    <section className="w-full max-w-full rounded-[1rem] bg-transparent shadow-none">
       <button
         type="button"
         className={cn(
-          "group relative block w-full select-none appearance-none !border-0 !bg-transparent px-0 text-center caret-transparent shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
+          "group block w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pt-3 pb-2 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0",
           appTokens.routineEditorInlineTitle,
         )}
         onClick={() => {
@@ -360,10 +345,10 @@ function RoutineEditorCollapsibleSection({
         aria-expanded={isExpanded}
         {...(info ? routineEditorInfoHandlers(info) : {})}
       >
-        <span className="grid min-h-[2rem] grid-cols-[2rem_minmax(0,1fr)_2rem] items-end px-4 pb-3">
+        <span className="grid grid-cols-[1.25rem_minmax(0,1fr)_1.25rem] items-center">
           <span aria-hidden="true" />
           <span className="min-w-0 w-full text-center">
-            <span className="block text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">{title}</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]">{title}</span>
           </span>
           <span
             className={cn(
@@ -374,15 +359,15 @@ function RoutineEditorCollapsibleSection({
             {isExpanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
           </span>
         </span>
-        <MetricAccentBar variant="thin" className="opacity-85 transition-opacity group-hover:opacity-100" />
+        <MetricAccentBar variant="thin" className="mt-1 opacity-80 transition-opacity group-hover:opacity-100" />
       </button>
 
       {isExpanded ? (
-        <div className={cn(appTokens.routineEditorCompactStack, "pt-2")}>
+        <div className={cn(appTokens.routineEditorCompactStack, "px-3 pb-3 pt-1")}>
           {children}
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }
 
@@ -425,8 +410,8 @@ function RoutineEditorWeekdayField({
           info={{
             title: "Schedule Mode",
             summary: scheduleMode === "rolling_n_day"
-              ? "Day-based schedules repeat every N days from the Day 1 anchor date and do not use a weekday cycle anchor."
-              : "Week-based schedules anchor Day 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
+              ? "Day-based schedules repeat every N days from the Slot 1 anchor date and do not use a weekday cycle anchor."
+              : "Week-based schedules anchor Slot 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
             sectionKey: "routine_setup",
           }}
           showDivider={false}
@@ -436,7 +421,7 @@ function RoutineEditorWeekdayField({
       ) : null}
       {overflowDays > 0 ? (
         <p className="text-center text-[10px] text-[rgb(var(--text-muted)/0.82)]">
-          +{overflowDays} more day{overflowDays === 1 ? "" : "s"} continue into next week
+          +{overflowDays} more workout plan{overflowDays === 1 ? "" : "s"} continue into next week
         </p>
       ) : null}
       <div className="mx-auto mt-2 flex w-fit max-w-full flex-wrap items-start justify-center gap-2">
@@ -463,7 +448,7 @@ function RoutineEditorWeekdayField({
       title="Routine Type"
       info={{
         title: "Routine Type",
-        summary: "Controls the cycle shape: schedule mode, Day 1 anchor, cycle length, and weekday anchor behavior for week-based schedules.",
+        summary: "Controls the cycle shape: schedule mode, Slot 1 anchor, cycle length, and weekday anchor behavior for week-based schedules.",
         sectionKey: "routine_setup",
       }}
     >
@@ -505,8 +490,8 @@ export function RoutineEditorInlineCycleModeControl({
       {...routineEditorInfoHandlers({
         title: "Routine Type",
         summary: scheduleMode === "rolling_n_day"
-          ? "Day-based schedules repeat every N days from the Day 1 anchor date and do not use a weekday cycle anchor."
-          : "Week-based schedules anchor Day 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
+          ? "Day-based schedules repeat every N days from the Slot 1 anchor date and do not use a weekday cycle anchor."
+          : "Week-based schedules anchor Slot 1 to a weekday. If the cycle is shorter than a week, uncovered weekdays stay unscheduled.",
         sectionKey: "routine_setup",
       })}
     >
@@ -571,7 +556,7 @@ function RoutineCycleDayDirectionButton({
             ? "hover:bg-[rgb(var(--danger-rgb)/0.12)] focus-visible:ring-[rgb(var(--danger-rgb)/0.22)]"
             : "hover:bg-[rgb(var(--accent-yellow-on)/0.12)] focus-visible:ring-[rgb(var(--accent-yellow-on)/0.22)]",
       )}
-      aria-label={`Cycle day ${dayNumber} adjustment`}
+      aria-label={`Cycle slot ${dayNumber} adjustment`}
     >
       <span className="flex h-3.5 items-center justify-center">
         <RoutineCycleDirectionGlyph
@@ -636,7 +621,7 @@ export function RoutineEditorCycleLengthField({
       className={cn("block", routineEditorCycleFieldWidthClassName)}
       {...routineEditorInfoHandlers({
         title: "Routine Length",
-        summary: "Total routine days before the cycle repeats. In week-based mode, extra days continue into the next week.",
+        summary: "Total workout plans before the cycle repeats. In week-based mode, extra plans continue into the next week.",
         sectionKey: "routine_setup",
       })}
     >
@@ -695,8 +680,8 @@ export function RoutineEditorCycleAnchorField({
     <label
       className={cn("block", routineEditorCycleFieldWidthClassName)}
       {...routineEditorInfoHandlers({
-        title: "Week Day Anchor",
-        summary: "Calendar date that places Day 1 inside the current anchored week.",
+        title: "Weekday Anchor",
+        summary: "Calendar date that places Slot 1 inside the current anchored week.",
         sectionKey: "routine_setup",
       })}
     >
@@ -707,7 +692,7 @@ export function RoutineEditorCycleAnchorField({
       )}>
         <fieldset className={routineEditorCycleFieldShellClassName}>
           <legend className={cn(labeledEditorFieldFloatingLabelClassName, routineEditorCycleFieldLegendClassName)}>
-            Week Day Anchor
+            Weekday Anchor
           </legend>
           <input
             type="date"
@@ -776,12 +761,14 @@ export function RoutineEditorInlineCycleControls({
     <div className="space-y-2">
       <div className="mx-auto w-fit max-w-full space-y-1 text-center">
         <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-          Day Adjustment
+          Workout Plan Adjustments
         </p>
         <MetricAccentBar variant="thin" className="w-full opacity-85" />
       </div>
-      <div className="hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]">
-        <div className="mx-auto flex w-max min-w-max items-start justify-center gap-3 px-1">
+      <HorizontalScrollHint
+        scrollClassName="overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
+        contentClassName="mx-auto flex w-max min-w-max items-start justify-center gap-3 px-1"
+      >
           {Array.from({ length: visibleDayCount }, (_, index) => {
             const direction = effortWaveDirections?.[index] ?? "straight";
             return (
@@ -798,8 +785,7 @@ export function RoutineEditorInlineCycleControls({
               </div>
             );
           })}
-        </div>
-      </div>
+      </HorizontalScrollHint>
     </div>
   ) : null;
 
@@ -867,12 +853,11 @@ export function RoutineEditorFormFields({
   fields?: readonly RoutineEditorFieldName[];
   showCycleSection?: boolean;
 }) {
-  const visibleFields = new Set<RoutineEditorFieldName>(fields ?? ["name", "cycleLengthDays", "scheduleMode", "startWeekday", "timezone", "weightUnit", "distanceUnit"]);
+  const visibleFields = new Set<RoutineEditorFieldName>(fields ?? ["name", "cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]);
   const showName = visibleFields.has("name");
   const showCycleLength = visibleFields.has("cycleLengthDays");
   const showScheduleMode = visibleFields.has("scheduleMode");
   const showStartWeekday = visibleFields.has("startWeekday") || visibleFields.has("startDate");
-  const showTimezone = visibleFields.has("timezone");
   const showWeightUnit = visibleFields.has("weightUnit");
   const showDistanceUnit = visibleFields.has("distanceUnit");
   const resolvedCycleLength = values?.cycleLengthDays ?? cycleLengthDefaultValue;
@@ -926,8 +911,68 @@ export function RoutineEditorFormFields({
         </div>
       ) : null}
 
+      {showWeightUnit || showDistanceUnit ? (
+        <div
+          className="pt-1"
+          {...routineEditorInfoHandlers({
+            title: "Measurement Labels",
+            summary: "Default measurement units used for routine targets, progression values, and logged workout values.",
+            sectionKey: "routine_setup",
+          })}
+        >
+          <RoutineEditorCollapsibleSection
+            title="Measurement Labels"
+            info={{
+              title: "Measurement Labels",
+              summary: "Default measurement units used for routine targets, progression values, and logged workout values.",
+              sectionKey: "routine_setup",
+            }}
+          >
+            <div className="flex flex-wrap items-start justify-center gap-2">
+              {showWeightUnit ? (
+                <RoutineEditorInlineUnitGroup title="Weight">
+                  <RoutineEditorSegmentedField
+                    label="Weight"
+                    ariaLabel="Routine weight unit"
+                    value={values?.weightUnit ?? weightUnitDefaultValue}
+                    onChange={(nextValue) => onFieldChange?.("weightUnit", nextValue)}
+                    options={weightUnitOptions}
+                    display="expanding"
+                    fullWidthWhenExpanded
+                    getInfoForValue={getWeightUnitInfoPayload}
+                    showLabel={false}
+                    showDivider={false}
+                    toggleWhenBinary
+                    expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
+                  />
+                </RoutineEditorInlineUnitGroup>
+              ) : null}
+
+              {showDistanceUnit ? (
+                <RoutineEditorInlineUnitGroup title="Distance">
+                  <RoutineEditorSegmentedField
+                    label="Distance"
+                    ariaLabel="Routine distance unit"
+                    value={values?.distanceUnit ?? distanceUnitDefaultValue}
+                    onChange={(nextValue) => onFieldChange?.("distanceUnit", nextValue)}
+                    options={distanceUnitOptions}
+                    display="expanding"
+                    fullWidthWhenExpanded
+                    getInfoForValue={getDistanceUnitInfoPayload}
+                    showLabel={false}
+                    showDivider={false}
+                    toggleWhenBinary
+                    expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
+                  />
+                </RoutineEditorInlineUnitGroup>
+              ) : null}
+            </div>
+          </RoutineEditorCollapsibleSection>
+        </div>
+      ) : null}
+
       {showStartWeekday && showCycleSection ? (
-        <div className="pt-2">
+        <div className="pt-1">
           <RoutineEditorWeekdayField
             scheduleMode={showScheduleMode ? (values?.scheduleMode ?? scheduleModeDefaultValue) : "weekday_anchored"}
             startDate={values?.startDate ?? startDateDefaultValue}
@@ -936,74 +981,6 @@ export function RoutineEditorFormFields({
             onChange={(nextValue) => onFieldChange?.("startDate", nextValue)}
             trailingControl={cycleLengthField}
           />
-        </div>
-      ) : null}
-
-      {showTimezone ? (
-        <div className="pt-1">
-          <RoutineEditorSegmentedField
-            label="Timezone"
-            ariaLabel="Routine timezone"
-            value={values?.timezone ?? timezoneDefaultValue}
-            onChange={(nextValue) => onFieldChange?.("timezone", nextValue)}
-            options={timezoneOptions}
-            display="expanding"
-            fullWidthWhenExpanded
-            getInfoForValue={getTimezoneInfoPayload}
-            showLabel={false}
-            showDivider={false}
-          />
-        </div>
-      ) : null}
-
-      {showWeightUnit || showDistanceUnit ? (
-        <div
-          className="pt-1"
-          {...routineEditorInfoHandlers({
-            title: "Units",
-            summary: "Default measurement units used for routine targets, progression values, and logged workout values.",
-            sectionKey: "routine_setup",
-          })}
-        >
-          <div className="flex flex-wrap items-start justify-center gap-2">
-            {showWeightUnit ? (
-              <RoutineEditorInlineUnitGroup title="Weight">
-                <RoutineEditorSegmentedField
-                  label="Weight"
-                  ariaLabel="Routine weight unit"
-                  value={values?.weightUnit ?? weightUnitDefaultValue}
-                  onChange={(nextValue) => onFieldChange?.("weightUnit", nextValue)}
-                  options={weightUnitOptions}
-                  display="expanding"
-                  fullWidthWhenExpanded
-                  getInfoForValue={getWeightUnitInfoPayload}
-                  showLabel={false}
-                  showDivider={false}
-                  toggleWhenBinary
-                  expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
-                />
-              </RoutineEditorInlineUnitGroup>
-            ) : null}
-
-            {showDistanceUnit ? (
-              <RoutineEditorInlineUnitGroup title="Distance">
-                <RoutineEditorSegmentedField
-                  label="Distance"
-                  ariaLabel="Routine distance unit"
-                  value={values?.distanceUnit ?? distanceUnitDefaultValue}
-                  onChange={(nextValue) => onFieldChange?.("distanceUnit", nextValue)}
-                  options={distanceUnitOptions}
-                  display="expanding"
-                  fullWidthWhenExpanded
-                  getInfoForValue={getDistanceUnitInfoPayload}
-                  showLabel={false}
-                  showDivider={false}
-                  toggleWhenBinary
-                  expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
-                />
-              </RoutineEditorInlineUnitGroup>
-            ) : null}
-          </div>
         </div>
       ) : null}
     </>
