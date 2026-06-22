@@ -523,6 +523,7 @@ export type SetFlowStepConfig = {
 export type ProgressionDayMode = "synced" | "unsynced";
 
 export type SetFlowConfigFields = {
+  setSettingsEnabled?: boolean;
   setFlowSteps?: SetFlowStepConfig;
   setFlow?: SetFlowId;
   setFlowDirections?: SetFlowDirectionConfig;
@@ -540,6 +541,7 @@ export type ProgressionDayConfigFields = {
 };
 
 export type ProgressionPromotionConfigFields = {
+  sessionSettingsEnabled?: boolean;
   setsMin?: number | null;
   setsMax?: number | null;
   promotionDirectionMap?: PromotionDirectionMap;
@@ -1006,6 +1008,10 @@ function normalizeSetFlowId(value: unknown): SetFlowId | undefined {
 
 function normalizeAutoUpdateRoutineGoals(value: unknown) {
   return value === true;
+}
+
+function normalizeProgressionSectionEnabled(value: unknown) {
+  return value !== false;
 }
 
 function resolveStallPolicyFromSelection(selection: ProgressionPlaybookSelection): ProgressionStallPolicy {
@@ -2231,6 +2237,7 @@ export function validateProgressionPlaybookSelection(args: {
   const setFlowGroupedDirectionMap = hasSetFlowGroupedDirectionMap
     ? resolveConfiguredSetFlowGroupedDirectionMap(config.setFlowGroupedDirectionMap)
     : undefined;
+  const setSettingsEnabled = normalizeProgressionSectionEnabled(config.setSettingsEnabled);
   const hasPromotionMeasurementOrderMap = Object.prototype.hasOwnProperty.call(config, "promotionMeasurementOrderMap");
   const promotionMeasurementOrderMap = hasPromotionMeasurementOrderMap
     ? resolveConfiguredPromotionMeasurementOrderMap(config.promotionMeasurementOrderMap)
@@ -2255,6 +2262,7 @@ export function validateProgressionPlaybookSelection(args: {
   const promotionGroupedSessionCountMap = hasPromotionGroupedSessionCountMap
     ? resolveConfiguredPromotionGroupedSessionCountMap(config.promotionGroupedSessionCountMap)
     : undefined;
+  const sessionSettingsEnabled = normalizeProgressionSectionEnabled(config.sessionSettingsEnabled);
   const hasPromotionRepRangePreview = Object.prototype.hasOwnProperty.call(config, "promotionRepRangePreview");
   const promotionRepRangePreview = hasPromotionRepRangePreview
     ? resolveConfiguredPromotionRepRangePreview(config.promotionRepRangePreview)
@@ -2334,6 +2342,9 @@ export function validateProgressionPlaybookSelection(args: {
     if (promotionRepRangePreview) {
       nextConfig.promotionRepRangePreview = promotionRepRangePreview;
     }
+    if (!sessionSettingsEnabled) {
+      nextConfig.sessionSettingsEnabled = false;
+    }
     if (setFlowDirections) {
       nextConfig.setFlowDirections = setFlowDirections;
     }
@@ -2348,6 +2359,9 @@ export function validateProgressionPlaybookSelection(args: {
     }
     if (setFlowGroupedDirectionMap) {
       nextConfig.setFlowGroupedDirectionMap = setFlowGroupedDirectionMap;
+    }
+    if (!setSettingsEnabled) {
+      nextConfig.setSettingsEnabled = false;
     }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
@@ -2417,6 +2431,9 @@ export function validateProgressionPlaybookSelection(args: {
     if (promotionRepRangePreview) {
       nextConfig.promotionRepRangePreview = promotionRepRangePreview;
     }
+    if (!sessionSettingsEnabled) {
+      nextConfig.sessionSettingsEnabled = false;
+    }
     if (setFlowDirections) {
       nextConfig.setFlowDirections = setFlowDirections;
     }
@@ -2431,6 +2448,9 @@ export function validateProgressionPlaybookSelection(args: {
     }
     if (setFlowGroupedDirectionMap) {
       nextConfig.setFlowGroupedDirectionMap = setFlowGroupedDirectionMap;
+    }
+    if (!setSettingsEnabled) {
+      nextConfig.setSettingsEnabled = false;
     }
     const setFlow = normalizeSetFlowId(config.setFlow);
     if (setFlow) {
@@ -2484,6 +2504,12 @@ export function validateProgressionPlaybookSelection(args: {
   }
   if (setFlowGroupedDirectionMap) {
     nextConfig.setFlowGroupedDirectionMap = setFlowGroupedDirectionMap;
+  }
+  if (!sessionSettingsEnabled) {
+    nextConfig.sessionSettingsEnabled = false;
+  }
+  if (!setSettingsEnabled) {
+    nextConfig.setSettingsEnabled = false;
   }
   const setFlow = normalizeSetFlowId(config.setFlow);
   if (setFlow) {
@@ -2594,6 +2620,7 @@ export function parseProgressionPlaybookPayload(formData: FormData):
       }
     })()
     : undefined;
+  const setSettingsEnabled = formData.get("progressionSetSettingsEnabled") !== "0";
   const setCount = parseOptionalPositiveInteger(formData.get("progressionSetCount")) ?? 3;
   const defaultSetFlowCountMap = serializeSetFlowCountFieldMap(buildDefaultSetFlowCountFieldMap("3"));
   const shouldSerializeSetFlowCountMap = JSON.stringify(setFlowCountMap ?? null)
@@ -2686,6 +2713,7 @@ export function parseProgressionPlaybookPayload(formData: FormData):
       }
     })()
     : undefined;
+  const sessionSettingsEnabled = formData.get("progressionSessionSettingsEnabled") !== "0";
   const defaultPromotionSessionCountMap = serializePromotionSessionCountFieldMap(
     buildDefaultPromotionSessionCountFieldMap(String(qualificationWindow.requiredQualifiedSessions)),
   );
@@ -2730,10 +2758,12 @@ export function parseProgressionPlaybookPayload(formData: FormData):
       ...(promotionGroupedDirectionMap ? { promotionGroupedDirectionMap } : {}),
       ...(shouldSerializePromotionSessionCountMap ? { promotionSessionCountMap } : {}),
       ...(promotionGroupedSessionCountMap ? { promotionGroupedSessionCountMap } : {}),
+      ...(!sessionSettingsEnabled ? { sessionSettingsEnabled: false } : {}),
       ...(setFlowMeasurementSequence ? { setFlowMeasurementSequence } : {}),
       ...(shouldSerializeSetFlowCountMap ? { setFlowCountMap } : {}),
       ...(setFlowGroupedCountMap ? { setFlowGroupedCountMap } : {}),
       ...(setFlowGroupedDirectionMap ? { setFlowGroupedDirectionMap } : {}),
+      ...(!setSettingsEnabled ? { setSettingsEnabled: false } : {}),
       ...(shouldSerializePromotionRepRangePreview ? { promotionRepRangePreview } : {}),
       repPromotionThreshold: promotionConfig.repPromotionThreshold,
       ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
@@ -2780,10 +2810,12 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     ...(promotionGroupedDirectionMap ? { promotionGroupedDirectionMap } : {}),
     ...(shouldSerializePromotionSessionCountMap ? { promotionSessionCountMap } : {}),
     ...(promotionGroupedSessionCountMap ? { promotionGroupedSessionCountMap } : {}),
+    ...(!sessionSettingsEnabled ? { sessionSettingsEnabled: false } : {}),
     ...(setFlowMeasurementSequence ? { setFlowMeasurementSequence } : {}),
     ...(shouldSerializeSetFlowCountMap ? { setFlowCountMap } : {}),
     ...(setFlowGroupedCountMap ? { setFlowGroupedCountMap } : {}),
     ...(setFlowGroupedDirectionMap ? { setFlowGroupedDirectionMap } : {}),
+    ...(!setSettingsEnabled ? { setSettingsEnabled: false } : {}),
     ...(shouldSerializePromotionRepRangePreview ? { promotionRepRangePreview } : {}),
     repPromotionThreshold: promotionConfig.repPromotionThreshold,
     ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),

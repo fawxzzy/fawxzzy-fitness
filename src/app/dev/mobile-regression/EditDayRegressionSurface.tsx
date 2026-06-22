@@ -7,6 +7,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { cn } from "@/lib/cn";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
@@ -91,14 +92,7 @@ export function EditDayRegressionSurface({
         "z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
       )}
       >
-        <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
-          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-        </span>
+        <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
       </button>
   );
 

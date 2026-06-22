@@ -332,6 +332,7 @@ export type ProgressionPlaybookFormState = {
   progressionSetFlowCountMap: SetFlowCountFieldMap;
   progressionSetFlowGroupedCountMap: SetFlowGroupedCountFieldMap;
   progressionSetFlowGroupedDirectionMap: Record<string, SetFlowDirection>;
+  progressionSetSettingsEnabled: boolean;
   progressionPromotionBasis: ProgressionPromotionBasis;
   progressionStrengthPromotionMeasurements: ProgressionMeasurementKey[];
   progressionBodyweightPromotionMeasurements: ProgressionMeasurementKey[];
@@ -347,6 +348,7 @@ export type ProgressionPlaybookFormState = {
   progressionPromotionGroupedDirectionMap: PromotionGroupedDirectionFieldMap;
   progressionPromotionSessionCountMap: PromotionSessionCountFieldMap;
   progressionPromotionGroupedSessionCountMap: PromotionGroupedSessionCountFieldMap;
+  progressionSessionSettingsEnabled: boolean;
   progressionTargetMutation: ProgressionTargetMutationId;
   progressionHasExplicitTargetMutation: boolean;
   progressionRequiredQualifiedSessions: string;
@@ -500,14 +502,14 @@ export function createProgressionPlaybookFormState({
     progressionSetFlowDurationStep: explicitSetFlowSteps?.durationSecondsStep ? formatNumber(explicitSetFlowSteps.durationSecondsStep) : "",
     progressionSetFlowDistanceStep: explicitSetFlowSteps?.distanceStep ? formatNumber(explicitSetFlowSteps.distanceStep) : "",
     progressionDayMode: defaultConfig?.dayProgressionMode ?? "unsynced",
-    progressionDayLoadStep: formatNumber(dayProgressionSteps?.loadStep ?? defaultConfig?.stepOverrides?.barbellLoadIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.barbellLoadIncrement),
-    progressionDayRepStep: formatNumber(dayProgressionSteps?.repStep ?? defaultConfig?.stepOverrides?.bodyweightRepIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.bodyweightRepIncrement),
-    progressionDayDurationStep: formatNumber(dayProgressionSteps?.durationSecondsStep ?? defaultConfig?.stepOverrides?.durationSecondsIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.durationSecondsIncrement),
-    progressionDayDistanceStep: formatNumber(dayProgressionSteps?.distanceStep ?? defaultConfig?.stepOverrides?.distanceIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.distanceIncrement),
-    progressionDayLoweredLoadStep: formatNumber(dayLoweredProgressionSteps?.loadStep ?? dayProgressionSteps?.loadStep ?? defaultConfig?.stepOverrides?.barbellLoadIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.barbellLoadIncrement),
-    progressionDayLoweredRepStep: formatNumber(dayLoweredProgressionSteps?.repStep ?? dayProgressionSteps?.repStep ?? defaultConfig?.stepOverrides?.bodyweightRepIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.bodyweightRepIncrement),
-    progressionDayLoweredDurationStep: formatNumber(dayLoweredProgressionSteps?.durationSecondsStep ?? dayProgressionSteps?.durationSecondsStep ?? defaultConfig?.stepOverrides?.durationSecondsIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.durationSecondsIncrement),
-    progressionDayLoweredDistanceStep: formatNumber(dayLoweredProgressionSteps?.distanceStep ?? dayProgressionSteps?.distanceStep ?? defaultConfig?.stepOverrides?.distanceIncrement ?? DEFAULT_PROGRESSION_STEP_OVERRIDES.distanceIncrement),
+    progressionDayLoadStep: "0",
+    progressionDayRepStep: "0",
+    progressionDayDurationStep: "0",
+    progressionDayDistanceStep: "0",
+    progressionDayLoweredLoadStep: "0",
+    progressionDayLoweredRepStep: "0",
+    progressionDayLoweredDurationStep: "0",
+    progressionDayLoweredDistanceStep: "0",
     progressionEffortWaveDirections: effortWaveDirections,
     progressionSetFlowTimeDirection: setFlowDirections.time,
     progressionSetFlowDistanceDirection: setFlowDirections.distance,
@@ -518,6 +520,7 @@ export function createProgressionPlaybookFormState({
     progressionSetFlowCountMap: setFlowCountMap,
     progressionSetFlowGroupedCountMap: setFlowGroupedCountMap,
     progressionSetFlowGroupedDirectionMap: setFlowGroupedDirectionMap,
+    progressionSetSettingsEnabled: defaultConfig?.setSettingsEnabled !== false,
     progressionStallThreshold: deloadConfig ? String(deloadConfig.stallThreshold) : "2",
     progressionDeloadPercent: deloadConfig ? formatNumber(deloadConfig.deloadPercent) : "10",
     progressionAutoUpdateRoutineGoals: Boolean(selection?.id !== "deload_after_stall" && selection?.config.autoUpdateRoutineGoals),
@@ -539,6 +542,7 @@ export function createProgressionPlaybookFormState({
     progressionPromotionGroupedDirectionMap: promotionGroupedDirectionMap,
     progressionPromotionSessionCountMap: promotionSessionCountMap,
     progressionPromotionGroupedSessionCountMap: promotionGroupedSessionCountMap,
+    progressionSessionSettingsEnabled: defaultConfig?.sessionSettingsEnabled !== false,
     progressionTargetMutation: targetMutation,
     progressionHasExplicitTargetMutation: hasExplicitTargetMutation,
     progressionRequiredQualifiedSessions,
@@ -628,6 +632,7 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionSetFlowCountMap: state.progressionSetFlowCountMap,
     progressionSetFlowGroupedCountMap: state.progressionSetFlowGroupedCountMap,
     progressionSetFlowGroupedDirectionMap: state.progressionSetFlowGroupedDirectionMap,
+    progressionSetSettingsEnabled: state.progressionSetSettingsEnabled,
     progressionPromotionBasis: state.progressionPromotionBasis,
     progressionStrengthPromotionMeasurements: state.progressionStrengthPromotionMeasurements,
     progressionBodyweightPromotionMeasurements: state.progressionBodyweightPromotionMeasurements,
@@ -643,6 +648,7 @@ export function buildProgressionPlaybookFormSnapshot(state: ProgressionPlaybookF
     progressionPromotionGroupedDirectionMap: state.progressionPromotionGroupedDirectionMap,
     progressionPromotionSessionCountMap: state.progressionPromotionSessionCountMap,
     progressionPromotionGroupedSessionCountMap: state.progressionPromotionGroupedSessionCountMap,
+    progressionSessionSettingsEnabled: state.progressionSessionSettingsEnabled,
     progressionTargetMutation: state.progressionTargetMutation,
     progressionHasExplicitTargetMutation: state.progressionHasExplicitTargetMutation,
     progressionRequiredQualifiedSessions: state.progressionRequiredQualifiedSessions,
@@ -837,6 +843,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     ...(serializedPromotionGroupedDirectionMap ? { promotionGroupedDirectionMap: serializedPromotionGroupedDirectionMap } : {}),
     ...(shouldSerializePromotionSessionCountMap ? { promotionSessionCountMap: serializedPromotionSessionCountMap } : {}),
     ...(serializedPromotionGroupedSessionCountMap ? { promotionGroupedSessionCountMap: serializedPromotionGroupedSessionCountMap } : {}),
+    ...(!state.progressionSessionSettingsEnabled ? { sessionSettingsEnabled: false } : {}),
     repPromotionThreshold: promotionConfig.repPromotionThreshold,
     ...(promotionConfig.customRepPromotionTarget !== null ? { customRepPromotionTarget: promotionConfig.customRepPromotionTarget } : {}),
     ...(state.progressionHasExplicitTargetMutation || state.progressionTargetMutation !== "increase_load_reset_reps"
@@ -876,6 +883,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
       ...(shouldSerializeSetFlowCountMap ? { setFlowCountMap: serializedSetFlowCountMap } : {}),
       ...(serializedSetFlowGroupedCountMap ? { setFlowGroupedCountMap: serializedSetFlowGroupedCountMap } : {}),
       ...(serializedSetFlowGroupedDirectionMap ? { setFlowGroupedDirectionMap: serializedSetFlowGroupedDirectionMap } : {}),
+      ...(!state.progressionSetSettingsEnabled ? { setSettingsEnabled: false } : {}),
       stallPolicy: "none",
       autoUpdateRoutineGoals: state.progressionAutoUpdateRoutineGoals,
       ...serializedPromotionConfig,
@@ -906,6 +914,7 @@ export function buildProgressionPlaybookConfigFromFormState(state: ProgressionPl
     ...(shouldSerializeSetFlowCountMap ? { setFlowCountMap: serializedSetFlowCountMap } : {}),
     ...(serializedSetFlowGroupedCountMap ? { setFlowGroupedCountMap: serializedSetFlowGroupedCountMap } : {}),
     ...(serializedSetFlowGroupedDirectionMap ? { setFlowGroupedDirectionMap: serializedSetFlowGroupedDirectionMap } : {}),
+    ...(!state.progressionSetSettingsEnabled ? { setSettingsEnabled: false } : {}),
     stallPolicy: "deload_after_stall",
     stallThreshold,
     deloadPercent,
@@ -998,6 +1007,7 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionSetFlowCountMapJson", JSON.stringify(serializeSetFlowCountFieldMap(state.progressionSetFlowCountMap) ?? {}));
   formData.set("progressionSetFlowGroupedCountMapJson", JSON.stringify(serializeSetFlowGroupedCountFieldMap(state.progressionSetFlowGroupedCountMap) ?? {}));
   formData.set("progressionSetFlowGroupedDirectionMapJson", JSON.stringify(state.progressionSetFlowGroupedDirectionMap));
+  formData.set("progressionSetSettingsEnabled", state.progressionSetSettingsEnabled ? "1" : "0");
   formData.set("progressionPromotionBasis", state.progressionPromotionBasis);
   formData.set("progressionPromotionMeasurementOrdersJson", JSON.stringify({
     strength: state.progressionStrengthPromotionMeasurements,
@@ -1026,6 +1036,7 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionPromotionGroupedDirectionMapJson", JSON.stringify(state.progressionPromotionGroupedDirectionMap));
   formData.set("progressionPromotionSessionCountMapJson", JSON.stringify(serializePromotionSessionCountFieldMap(state.progressionPromotionSessionCountMap) ?? {}));
   formData.set("progressionPromotionGroupedSessionCountMapJson", JSON.stringify(serializePromotionGroupedSessionCountFieldMap(state.progressionPromotionGroupedSessionCountMap) ?? {}));
+  formData.set("progressionSessionSettingsEnabled", state.progressionSessionSettingsEnabled ? "1" : "0");
   formData.set("progressionRepPromotionThreshold", state.progressionRepPromotionThreshold);
   formData.set("progressionCustomRepPromotionTarget", state.progressionCustomRepPromotionTarget);
   formData.set("progressionTargetMutation", state.progressionTargetMutation);

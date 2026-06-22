@@ -1,6 +1,7 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { appTokens } from "@/components/ui/app/tokens";
+import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
 import { cn } from "@/lib/cn";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
@@ -91,10 +92,7 @@ export function ReorderExerciseRow({
             onPointerUp={onHandlePointerUp}
             onPointerCancel={onHandlePointerCancel}
           >
-            <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
-              <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
-              <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
-            </span>
+            <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
           </button>
         )}
       />

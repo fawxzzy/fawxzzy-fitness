@@ -21,6 +21,7 @@ import {
 import { appTokens } from "@/components/ui/app/tokens";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
@@ -479,10 +480,7 @@ export function RoutineHomeClient({
                           event.stopPropagation();
                         }}
                       >
-                        <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
-                          <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
-                          <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
-                        </span>
+                        <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
                       </button>
                     ) : undefined}
                     wrapper={(card) => (

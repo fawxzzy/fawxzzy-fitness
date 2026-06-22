@@ -22,6 +22,7 @@ import {
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { appTokens } from "@/components/ui/app/tokens";
+import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
@@ -767,14 +768,7 @@ export function NewRoutineDraftForm({
                                     event.stopPropagation();
                                   }}
                                 >
-                                  <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
-                                    <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-                                    <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-                                    <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-                                    <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-                                    <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-                                    <span className="block h-[3px] w-[3px] rounded-full bg-current" />
-                                  </span>
+                                  <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
                                 </button>
                               </div>
                             </div>

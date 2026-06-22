@@ -14,9 +14,15 @@ import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerc
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
-import { ChevronDownIcon } from "@/components/ui/Chevrons";
+import {
+  GlowSwitch,
+  GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
+} from "@/components/ui/GlowSwitch";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
+import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
+import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
@@ -30,7 +36,6 @@ import {
   resolveEditDayExercisePreview,
   type EditDayExerciseDraft,
 } from "@/lib/edit-day-exercise-draft";
-import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import {
   getDefaultProgressionPlaybookConfig,
   parseProgressionPlaybookPayload,
@@ -122,6 +127,9 @@ type Props = {
 type DragState = {
   id: string;
   pointerId: number;
+  startX: number;
+  startY: number;
+  moved: boolean;
 };
 
 function resolveInlineModality(
@@ -137,13 +145,15 @@ function RoutineTargetInputs({
   onStateChange,
   modality,
   onInfoRequest,
-  companionToggleCard,
+  auxiliaryFields,
+  inlineFailureToggle,
 }: {
   state: ExerciseGoalFormState;
   onStateChange: (next: ExerciseGoalFormState) => void;
   modality: GoalModality;
   onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
-  companionToggleCard?: ReactNode;
+  auxiliaryFields?: MeasurementPanelAuxiliaryField[];
+  inlineFailureToggle?: boolean;
 }) {
   return (
     <div className={appTokens.routineEditorCompactStack}>
@@ -166,7 +176,9 @@ function RoutineTargetInputs({
         hideSummary
         measurementLayoutMode="horizontal-scroll"
         onInfoRequest={onInfoRequest}
-        companionToggleCard={companionToggleCard}
+        auxiliaryFields={auxiliaryFields}
+        showInlineStepControls
+        inlineFailureToggle={inlineFailureToggle}
       />
     </div>
   );
@@ -211,10 +223,9 @@ function HiddenRoutineTargetInputs({
 
 const CARD_REORDER_HANDLE_CLASS_NAME = cn(
   appTokens.routineEditorReorderHandle,
-  "relative z-[1] h-8 w-8 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
+  "z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
-const EDIT_DAY_SECONDARY_TOGGLE_CARD_CLASS_NAME = "w-[calc((100%-0.75rem)/2)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center";
 type EditDayProgressionMethodId = Exclude<ProgressionPlaybookId, "deload_after_stall"> | "";
 
 function createEditDayProgressionMethodInfoPayload(playbookId: EditDayProgressionMethodId) {
@@ -232,6 +243,20 @@ function createEditDayProgressionMethodInfoPayload(playbookId: EditDayProgressio
     ],
     sectionKey: "progression_method" as const,
   };
+}
+
+function normalizeExerciseStallThresholdDraftValue(value: string, fallback = "2") {
+  const trimmed = value.trim();
+  if (!/^\d+$/u.test(trimmed)) {
+    return fallback;
+  }
+
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return String(Math.floor(parsed));
 }
 
 function applyEditDayProgressionMethod(
@@ -349,6 +374,7 @@ export function EditableRoutineDayExerciseList({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
+  const draftsByIdRef = useRef<Record<string, EditDayExerciseDraft>>({});
   const [trainingFocusById, setTrainingFocusById] = useState<Record<string, TrainingGoalId | "">>({});
   const [isDayAdjustmentVisible, setIsDayAdjustmentVisible] = useState(showDayAdjustmentControl);
   const [dayAdjustmentDirection, setDayAdjustmentDirection] = useState<SetFlowDirection>(initialDayAdjustmentDirection);
@@ -366,6 +392,10 @@ export function EditableRoutineDayExerciseList({
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  useEffect(() => {
+    draftsByIdRef.current = draftsById;
+  }, [draftsById]);
 
   useEffect(() => {
     setDraftsById((current) => Object.fromEntries(
@@ -451,7 +481,13 @@ export function EditableRoutineDayExerciseList({
   };
 
   const handleHandlePointerDown = (exerciseId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
-    dragStateRef.current = { id: exerciseId, pointerId: event.pointerId };
+    dragStateRef.current = {
+      id: exerciseId,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
     setActiveDragId(exerciseId);
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
@@ -460,10 +496,19 @@ export function EditableRoutineDayExerciseList({
   const handleHandlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
+    const pointerDistance = Math.hypot(event.clientX - dragState.startX, event.clientY - dragState.startY);
+    if (pointerDistance >= 4) {
+      dragState.moved = true;
+    }
     const elementBelow = document.elementFromPoint(event.clientX, event.clientY);
     const row = elementBelow?.closest("[data-exercise-row-id]") as HTMLElement | null;
     const targetId = row?.dataset.exerciseRowId;
-    if (targetId) moveItem(dragState.id, targetId);
+    if (targetId) {
+      if (targetId !== dragState.id) {
+        dragState.moved = true;
+      }
+      moveItem(dragState.id, targetId);
+    }
     event.preventDefault();
   };
 
@@ -585,6 +630,10 @@ export function EditableRoutineDayExerciseList({
     orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
     modality: resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name),
   }), [canonicalOrderById, weightUnit]);
+  const getLatestExerciseDraft = useCallback(
+    (exercise: EditableRoutineDayExerciseItem) => draftsByIdRef.current[exercise.id] ?? buildExerciseDraft(exercise),
+    [buildExerciseDraft],
+  );
   const getExerciseDraft = useCallback(
     (exercise: EditableRoutineDayExerciseItem) => draftsById[exercise.id] ?? buildExerciseDraft(exercise),
     [buildExerciseDraft, draftsById],
@@ -593,9 +642,14 @@ export function EditableRoutineDayExerciseList({
     (exercise: EditableRoutineDayExerciseItem, updater: (draft: EditDayExerciseDraft) => EditDayExerciseDraft) => {
       setDraftsById((current) => {
         const baseDraft = current[exercise.id] ?? buildExerciseDraft(exercise);
+        const nextDraft = updater(baseDraft);
+        draftsByIdRef.current = {
+          ...current,
+          [exercise.id]: nextDraft,
+        };
         return {
           ...current,
-          [exercise.id]: updater(baseDraft),
+          [exercise.id]: nextDraft,
         };
       });
     },
@@ -607,6 +661,22 @@ export function EditableRoutineDayExerciseList({
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : null;
   }, []);
+  const sanitizeExerciseFormData = useCallback((
+    exercise: EditableRoutineDayExerciseItem,
+    formData: FormData,
+  ) => {
+    const sanitized = new FormData();
+    for (const [key, value] of formData.entries()) {
+      sanitized.append(key, value);
+    }
+
+    const draft = getLatestExerciseDraft(exercise);
+    sanitized.set(
+      "progressionStallThreshold",
+      normalizeExerciseStallThresholdDraftValue(draft.progressionStallThreshold, "2"),
+    );
+    return sanitized;
+  }, [getLatestExerciseDraft]);
   const submitExerciseUpdate = useCallback((
     exercise: EditableRoutineDayExerciseItem,
     formData: FormData,
@@ -614,7 +684,8 @@ export function EditableRoutineDayExerciseList({
   ) => {
     startAutosaveTransition(() => {
       void (async () => {
-        const result = await updateAction(formData);
+        const sanitizedFormData = sanitizeExerciseFormData(exercise, formData);
+        const result = await updateAction(sanitizedFormData);
         if (!result.ok) {
           const nextError = result.error ?? "Could not update exercise.";
           toast.error(nextError);
@@ -622,21 +693,21 @@ export function EditableRoutineDayExerciseList({
         }
 
         if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
-        const snapshot = snapshotOverride ?? pendingSnapshotRef.current ?? createDraftSnapshot(formData);
-        const submittedDraft = getExerciseDraft(exercise);
+        const snapshot = snapshotOverride ?? pendingSnapshotRef.current ?? createDraftSnapshot(sanitizedFormData);
+        const submittedDraft = getLatestExerciseDraft(exercise);
         lastSavedSnapshotRef.current[exercise.id] = snapshot;
         pendingSnapshotRef.current = null;
-        const targetSets = Number(formData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
-        const targetRepsMin = parseFormOptionalNumber(formData.get("targetRepsMin"));
-        const targetRepsMax = parseFormOptionalNumber(formData.get("targetRepsMax"));
-        const targetWeight = parseFormOptionalNumber(formData.get("targetWeight"));
-        const targetDuration = String(formData.get("targetDuration") ?? "");
-        const targetDistance = parseFormOptionalNumber(formData.get("targetDistance"));
-        const targetCalories = parseFormOptionalNumber(formData.get("targetCalories"));
-        const targetWeightUnit = String(formData.get("targetWeightUnit") ?? weightUnit);
-        const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? exercise.defaultDistanceUnit);
-        const measurementSelections = new Set(formData.getAll("measurementSelections").map((value) => String(value)));
-        const progression = parseProgressionPlaybookPayload(formData);
+        const targetSets = Number(sanitizedFormData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
+        const targetRepsMin = parseFormOptionalNumber(sanitizedFormData.get("targetRepsMin"));
+        const targetRepsMax = parseFormOptionalNumber(sanitizedFormData.get("targetRepsMax"));
+        const targetWeight = parseFormOptionalNumber(sanitizedFormData.get("targetWeight"));
+        const targetDuration = String(sanitizedFormData.get("targetDuration") ?? "");
+        const targetDistance = parseFormOptionalNumber(sanitizedFormData.get("targetDistance"));
+        const targetCalories = parseFormOptionalNumber(sanitizedFormData.get("targetCalories"));
+        const targetWeightUnit = String(sanitizedFormData.get("targetWeightUnit") ?? weightUnit);
+        const targetDistanceUnit = String(sanitizedFormData.get("targetDistanceUnit") ?? exercise.defaultDistanceUnit);
+        const measurementSelections = new Set(sanitizedFormData.getAll("measurementSelections").map((value) => String(value)));
+        const progression = parseProgressionPlaybookPayload(sanitizedFormData);
         const durationRaw = targetDuration.trim();
         const durationSeconds = durationRaw
           ? (durationRaw.includes(":")
@@ -669,8 +740,9 @@ export function EditableRoutineDayExerciseList({
     });
   }, [
     createDraftSnapshot,
-    getExerciseDraft,
+    getLatestExerciseDraft,
     parseFormOptionalNumber,
+    sanitizeExerciseFormData,
     toast,
     updateAction,
     weightUnit,
@@ -685,7 +757,7 @@ export function EditableRoutineDayExerciseList({
     const form = activeEditFormRef.current;
     const exercise = activeExercise;
     const submit = () => {
-      const formData = new FormData(form);
+      const formData = sanitizeExerciseFormData(exercise, new FormData(form));
       const snapshot = createDraftSnapshot(formData);
       const lastSavedSnapshot = lastSavedSnapshotRef.current[exercise.id] ?? null;
       if (snapshot === lastSavedSnapshot) {
@@ -777,18 +849,11 @@ export function EditableRoutineDayExerciseList({
     />
   );
   const expandedExerciseDock = activeExercise ? (
-    <BottomActionSplit
-      secondary={(
-        <BottomDockButton type="button" intent="toggleInactive" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
-          {NORMALIZED_ACTION_LABELS.view}
-        </BottomDockButton>
-      )}
-      primary={(
-        <BottomDockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
-          Delete
-        </BottomDockButton>
-      )}
-    />
+    <BottomActionSingle>
+      <BottomDockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
+        Delete
+      </BottomDockButton>
+    </BottomActionSingle>
   ) : null;
 
   const renderReorderHandle = (exerciseId: string, exerciseName: string) => (
@@ -796,17 +861,31 @@ export function EditableRoutineDayExerciseList({
       type="button"
       aria-label={`Reorder ${exerciseName}`}
       title="Drag to reorder"
-      className={cn(CARD_REORDER_HANDLE_CLASS_NAME, activeDragId === exerciseId ? "ring-2 ring-[rgb(var(--selection-rgb)/0.26)]" : undefined)}
+      className={cn(
+        CARD_REORDER_HANDLE_CLASS_NAME,
+        "pointer-events-auto",
+        "absolute right-0 top-1/2 -translate-y-1/2",
+        "touch-none",
+        activeDragId === exerciseId ? "ring-2 ring-[rgb(var(--selection-rgb)/0.26)]" : undefined,
+      )}
       onPointerDown={(event) => handleHandlePointerDown(exerciseId, event)}
       onPointerMove={handleHandlePointerMove}
       onPointerUp={handleHandlePointerUp}
       onPointerCancel={() => finishReorder()}
-      onClick={(event) => event.preventDefault()}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const dragState = dragStateRef.current;
+        if (dragState?.id === exerciseId && dragState.moved) {
+          return;
+        }
+        toast.info("Reorder button. Drag to reorder.", {
+          id: "edit-day-reorder-hint",
+          durationMs: 2200,
+        });
+      }}
     >
-      <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
-        <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
-        <span className="block h-[1.5px] w-[10px] rounded-full bg-current" />
-      </span>
+      <ReorderHandleGlyph className={appTokens.routineEditorHandleGlyph} />
     </button>
   );
 
@@ -873,31 +952,20 @@ export function EditableRoutineDayExerciseList({
           showOrderBadges={false}
           items={visibleItems.map((exercise) => ({
             ...(() => {
-              const draftForPreview = expandedId === exercise.id
-                ? getExerciseDraft(exercise)
-                : createEditDayExerciseDraft({
-                    defaults: exercise.defaults,
-                    weightUnit,
-                    distanceUnit: exercise.defaultDistanceUnit,
-                    orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
-                    modality: resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name),
-                  });
-              const preview = resolveEditDayExercisePreview({
-              savedSummary: exercise.targetSummary,
-              savedOrderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
-              draft: expandedId === exercise.id ? draftForPreview : null,
-              listLength: items.length,
+              const persistedPreviewDraft = draftsById[exercise.id] ?? null;
+              const draftForPreview = persistedPreviewDraft ?? createEditDayExerciseDraft({
+                defaults: exercise.defaults,
+                weightUnit,
+                distanceUnit: exercise.defaultDistanceUnit,
+                orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+                modality: resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name),
               });
-              const adjustedPreview = isDayAdjustmentVisible
-                ? resolveEditDayAdjustedSummary({
-                    draft: draftForPreview,
-                    measurementType: exercise.measurementType,
-                    dayIndex: dayIndex ?? 1,
-                    cycleLengthDays,
-                    direction: dayAdjustmentDirection,
-                  })
-                : null;
-
+              const preview = resolveEditDayExercisePreview({
+                savedSummary: exercise.targetSummary,
+                savedOrderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+                draft: draftForPreview,
+                listLength: items.length,
+              });
               return {
                 ...preview,
                 id: exercise.id,
@@ -915,18 +983,15 @@ export function EditableRoutineDayExerciseList({
                 image_path: exercise.image_path,
                 image_icon_path: exercise.image_icon_path,
                 image_howto_path: exercise.image_howto_path,
-                summaryContent: adjustedPreview ? (
-                  <EditDayAdjustedSummaryPreview
-                    currentSummary={adjustedPreview.currentSummary}
-                    adjustedSummary={adjustedPreview.adjustedSummary}
-                    direction={dayAdjustmentDirection}
-                  />
-                ) : undefined,
               };
             })()
           }))}
           activeItemId={expandedId}
-          renderOverlayActions={(item) => expandedId === item.id ? null : renderReorderHandle(item.id, item.name)}
+          renderRowActions={(item) => expandedId === item.id ? null : renderReorderHandle(item.id, item.name)}
+          onInfoItem={(item) => {
+            const selectedExercise = items.find((entry) => entry.id === item.id);
+            setSelectedExerciseId(item.exerciseId ?? selectedExercise?.exerciseId ?? null);
+          }}
           onSelectItem={!modeViewModel.exerciseListInteractive ? undefined : (item) => {
             setExpandedId((current) => {
               if (current === item.id) {
@@ -969,53 +1034,41 @@ export function EditableRoutineDayExerciseList({
               ? draft.progressionPlaybookId
               : "";
             const progressionMethodInfoPayload = createEditDayProgressionMethodInfoPayload(currentProgressionMethodId);
-            const progressionMethodToggleCard = (
-              <div
-                className={EDIT_DAY_SECONDARY_TOGGLE_CARD_CLASS_NAME}
-                onFocusCapture={() => {
-                  window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
-                    detail: progressionMethodInfoPayload,
-                  }));
-                }}
-                onPointerDownCapture={() => {
-                  window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
-                    detail: progressionMethodInfoPayload,
-                  }));
-                }}
-              >
-                <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
-                  <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                    Progression
-                  </p>
-                  <MetricAccentBar variant="thin" className="w-full opacity-80" />
-                </div>
-                <button
-                  type="button"
-                  className={cn(
-                    ACTION_CHROME_CONTROL_CLASS_NAME,
-                    ACTION_CHROME_SEGMENTED_CLASS_NAME,
-                    "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
-                  )}
-                  aria-pressed={Boolean(draft.progressionPlaybookId)}
-                  aria-label={draft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
-                  onClick={() => {
-                    const nextPlaybookId: EditDayProgressionMethodId = draft.progressionPlaybookId ? "" : "double_progression";
-                    const nextDraft = applyEditDayProgressionMethod(draft, nextPlaybookId);
-                    updateExerciseDraft(exercise, () => nextDraft);
-                    window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
-                      detail: createEditDayProgressionMethodInfoPayload(nextPlaybookId),
-                    }));
-                  }}
+            const publishProgressionMethodInfo = (playbookId: EditDayProgressionMethodId = currentProgressionMethodId) => {
+              window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+                detail: createEditDayProgressionMethodInfoPayload(playbookId),
+              }));
+            };
+            const progressionAuxiliaryField: MeasurementPanelAuxiliaryField = {
+              title: "Progression",
+              input: null,
+              inlineLabel: "PROGRESSION",
+              useInlineFieldShell: false,
+              showEmptyValue: false,
+              hasValue: true,
+              renderInput: () => (
+                <div
+                  className={GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME}
+                  onFocusCapture={() => publishProgressionMethodInfo()}
+                  onPointerDownCapture={() => publishProgressionMethodInfo()}
                 >
-                  <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-                    <span className="measurement-toggle__label">
-                      {draft.progressionPlaybookId ? "Auto" : "Manual"}
-                    </span>
-                    <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-                  </span>
-                </button>
-              </div>
-            );
+                  <GlowSwitch
+                    checked={Boolean(draft.progressionPlaybookId)}
+                    ariaLabel={draft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
+                    onLabel="Auto"
+                    offLabel="Manual"
+                    onClick={() => {
+                      const nextPlaybookId: EditDayProgressionMethodId = draft.progressionPlaybookId ? "" : "double_progression";
+                      const nextDraft = applyEditDayProgressionMethod(draft, nextPlaybookId);
+                      updateExerciseDraft(exercise, () => nextDraft);
+                      publishProgressionMethodInfo(nextPlaybookId);
+                    }}
+                    className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+                    stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+                  />
+                </div>
+              ),
+            };
             return (
               <div className={appTokens.routineEditorCompactStack}>
                 <form
@@ -1030,7 +1083,7 @@ export function EditableRoutineDayExerciseList({
                     }}
                     onSubmit={(event) => {
                       event.preventDefault();
-                      const formData = new FormData(event.currentTarget);
+                      const formData = sanitizeExerciseFormData(exercise, new FormData(event.currentTarget));
                       submitExerciseUpdate(exercise, formData);
                     }}
                     className={cn(appTokens.routineEditorCompactStack, "pt-[2px]")}
@@ -1046,7 +1099,8 @@ export function EditableRoutineDayExerciseList({
                           goalState: nextState,
                         }))}
                         modality={modality}
-                        companionToggleCard={progressionMethodToggleCard}
+                        auxiliaryFields={showProgressionInputs ? [progressionAuxiliaryField] : undefined}
+                        inlineFailureToggle
                       />
                     ) : (
                       <HiddenRoutineTargetInputs state={draft.goalState} modality={modality} />

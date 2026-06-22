@@ -539,7 +539,7 @@ export function ExerciseCard({
   const overlayActionsNode = hasOverlayActions ? (
     <div
       className={cn(
-        "pointer-events-auto absolute right-[var(--exercise-row-shell-padding-x)] top-1/2 z-[2] flex -translate-y-1/2 items-center justify-center",
+        "pointer-events-none absolute right-[var(--exercise-row-shell-padding-x)] top-1/2 z-[2] flex -translate-y-1/2 items-center justify-center",
         overlayActionsClassName,
       )}
     >

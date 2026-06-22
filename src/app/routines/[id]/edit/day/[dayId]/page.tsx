@@ -212,7 +212,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <EditDaySettingsAutosaveForm
           routineId={params.id}
           daySummaryCounts={activeExerciseCountSummary}
-          routineName={(routine as RoutineRow).name}
           backHref={backHref}
           routineDayId={params.dayId}
           dayIndex={day.day_index}

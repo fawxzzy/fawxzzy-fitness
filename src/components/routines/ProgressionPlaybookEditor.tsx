@@ -61,6 +61,7 @@ import {
   type ProgressionExampleMetricChange,
 } from "@/lib/progression-example-visuals";
 import {
+  getNextRepRangeValue,
   getRepPromotionTarget,
   usesRepsForPromotion,
 } from "@/lib/progression-promotion";
@@ -103,6 +104,22 @@ const progressionMeasurementTitleClassName = "!text-[rgb(var(--accent-strong)/0.
 const progressionExampleTitleClassName = "text-[rgb(var(--accent)/0.82)] tracking-[0.15em]";
 const progressionExampleMeasurementLabelClassName = "text-[rgb(var(--accent)/0.82)]";
 const progressionExampleMetricUnitClassName = "text-[rgb(var(--accent-strong)/0.98)]";
+
+function getNextClampedRepRangeValue(args: {
+  currentReps: number;
+  direction: SetFlowDirection;
+  minReps: number;
+  maxReps: number;
+  step: number;
+}) {
+  return getNextRepRangeValue({
+    currentReps: args.currentReps,
+    minReps: args.minReps,
+    maxReps: args.maxReps,
+    step: args.step,
+    direction: args.direction === "down" ? "down" : "up",
+  });
+}
 
 function getDistanceMeasurementLabel(distanceUnit: FitnessDistanceUnit) {
   return `DIST (${distanceUnit})`;
@@ -789,6 +806,20 @@ function parseOptionalPositiveInteger(value: string | null | undefined) {
   return parsePositiveIntegerInput(value);
 }
 
+function parseOptionalNonNegativeInteger(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!/^\d+$/u.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
 function parseOptionalPositiveNumber(value: string | null | undefined) {
   if (typeof value !== "string") {
     return null;
@@ -796,6 +827,15 @@ function parseOptionalPositiveNumber(value: string | null | undefined) {
 
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseOptionalNonNegativeNumber(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function isAllowedNumericDraftValue(value: string, inputMode: "decimal" | "numeric") {
@@ -808,7 +848,7 @@ function isAllowedNumericDraftValue(value: string, inputMode: "decimal" | "numer
     : /^(?:\d+|\d+\.\d*|\d*\.\d+)$/u.test(value);
 }
 
-function isValidCommittedNumericValue(value: string, inputMode: "decimal" | "numeric") {
+function isValidCommittedNumericValue(value: string, inputMode: "decimal" | "numeric", allowZero = false) {
   const trimmed = value.trim();
   if (!trimmed) {
     return false;
@@ -823,7 +863,7 @@ function isValidCommittedNumericValue(value: string, inputMode: "decimal" | "num
   }
 
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) && parsed > 0;
+  return Number.isFinite(parsed) && (allowZero ? parsed >= 0 : parsed > 0);
 }
 
 function ValidatedNumericTextInput({
@@ -836,6 +876,7 @@ function ValidatedNumericTextInput({
   className,
   style,
   tabIndex,
+  allowZero = false,
 }: {
   name: string;
   inputMode: "decimal" | "numeric";
@@ -846,6 +887,7 @@ function ValidatedNumericTextInput({
   className?: string;
   style?: React.CSSProperties;
   tabIndex?: number;
+  allowZero?: boolean;
 }) {
   const [draftValue, setDraftValue] = useState(value);
 
@@ -866,7 +908,7 @@ function ValidatedNumericTextInput({
       return;
     }
 
-    if (isValidCommittedNumericValue(draftValue, inputMode)) {
+    if (isValidCommittedNumericValue(draftValue, inputMode, allowZero)) {
       const trimmed = draftValue.trim();
       setDraftValue(trimmed);
       if (trimmed !== value) {
@@ -925,6 +967,7 @@ export function ProgressionNumberField({
   attachedBottom = false,
   attachedFooter,
   stepper,
+  allowZero = false,
 }: {
   label: string;
   name: string;
@@ -943,6 +986,7 @@ export function ProgressionNumberField({
     onDecrement: () => void;
     onIncrement: () => void;
   };
+  allowZero?: boolean;
 }) {
   return (
     <div className={cn(
@@ -964,6 +1008,7 @@ export function ProgressionNumberField({
           inputMode={inputMode}
           value={value}
           onCommit={onChange}
+          allowZero={allowZero}
           readOnly={readOnly}
           tabIndex={readOnly ? -1 : undefined}
           className={cn(
@@ -1023,6 +1068,7 @@ function CompactProgressionNumberField({
   startAdornment,
   endAdornment,
   stepper,
+  allowZero = false,
 }: {
   label: string;
   name: string;
@@ -1046,6 +1092,7 @@ function CompactProgressionNumberField({
     onDecrement: () => void;
     onIncrement: () => void;
   };
+  allowZero?: boolean;
 }) {
   const hasLeftOuterControl = Boolean(startAdornment);
   const hasRightOuterControl = Boolean(endAdornment);
@@ -1079,6 +1126,7 @@ function CompactProgressionNumberField({
             inputMode={inputMode}
             value={value}
             onCommit={onChange}
+            allowZero={allowZero}
             className={cn(
               "absolute top-1/2 z-10 h-6 -translate-y-1/2 border-0 bg-transparent px-0 py-0 text-center text-[0.88rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-secondary)/0.46)]",
               inputClassName,
@@ -1132,38 +1180,58 @@ function normalizeCommittedSuccessCount(value: string) {
   return String(Math.floor(parsed));
 }
 
+function normalizePositiveIntegerDraftValue(value: string, fallback = "1") {
+  const trimmed = value.trim();
+  if (!/^\d+$/u.test(trimmed)) {
+    return fallback;
+  }
+
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return String(Math.floor(parsed));
+}
+
 function incrementProgressionNumericValue({
   value,
   inputMode,
   step = 1,
+  minimum,
 }: {
   value: string;
   inputMode: "decimal" | "numeric";
   step?: number;
+  minimum?: number;
 }) {
   const current = Number.parseFloat(value);
-  const baseValue = Number.isFinite(current) ? current : 0;
+  const resolvedMinimum = minimum ?? (inputMode === "decimal" ? 0 : 1);
+  const baseValue = Number.isFinite(current) ? current : resolvedMinimum;
   const nextValue = baseValue + step;
   return inputMode === "decimal"
     ? String(Number(nextValue.toFixed(2)))
-    : String(Math.max(1, Math.round(nextValue)));
+    : String(Math.max(resolvedMinimum, Math.round(nextValue)));
 }
 
 function decrementProgressionNumericValue({
   value,
   inputMode,
   step = 1,
+  minimum,
 }: {
   value: string;
   inputMode: "decimal" | "numeric";
   step?: number;
+  minimum?: number;
 }) {
   const current = Number.parseFloat(value);
-  const baseValue = Number.isFinite(current) ? current : (inputMode === "decimal" ? step : 1);
-  const nextValue = Math.max(inputMode === "decimal" ? 0 : 1, baseValue - step);
+  const resolvedMinimum = minimum ?? (inputMode === "decimal" ? 0 : 1);
+  const baseValue = Number.isFinite(current) ? current : (inputMode === "decimal" ? step : resolvedMinimum);
+  const nextValue = Math.max(resolvedMinimum, baseValue - step);
   return inputMode === "decimal"
     ? (nextValue <= 0 ? "" : String(Number(nextValue.toFixed(2))))
-    : String(Math.max(1, Math.round(nextValue)));
+    : String(Math.max(resolvedMinimum, Math.round(nextValue)));
 }
 
 function CountDirectionPillControl({
@@ -1572,7 +1640,7 @@ function resolveProgressionDropdownPreset(preset: ProgressionDropdownPreset) {
     return {
       hideProgressionMethodControl: true,
       renderRegressionAsSection: true,
-      hideDayAdjustmentSettingsSection: false,
+      hideDayAdjustmentSettingsSection: true,
       hideSessionSettingsSection: false,
       hideExerciseSessionSuccessCount: false,
       hideExerciseSetSuccessCount: true,
@@ -1595,7 +1663,7 @@ function resolveProgressionDropdownPreset(preset: ProgressionDropdownPreset) {
     return {
       hideProgressionMethodControl: false,
       renderRegressionAsSection: false,
-      hideDayAdjustmentSettingsSection: false,
+      hideDayAdjustmentSettingsSection: true,
       hideSessionSettingsSection: false,
       hideExerciseSessionSuccessCount: false,
       hideExerciseSetSuccessCount: false,
@@ -2477,6 +2545,7 @@ function SetFlowMeasurementStepRow({
                     labelStyle={{ color: "rgb(var(--accent-strong) / 0.98)" }}
                     inputClassName={getDirectionAccentTextClassName(sharedDirectionValue)}
                     fieldShellClassName={compactFieldShellClassName}
+                    allowZero={measurement === "reps"}
                     startAdornment={showLeftMoveButton ? (
                       <AlignedInlineMoveArrowButton
                         direction="left"
@@ -2495,8 +2564,16 @@ function SetFlowMeasurementStepRow({
                       stepper={{
                         decrementAriaLabel: `Decrease ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} set step`,
                         incrementAriaLabel: `Increase ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} set step`,
-                        onDecrement: () => onStepChange(measurement, decrementProgressionNumericValue({ value: values[measurement], inputMode: inputModes[measurement] })),
-                        onIncrement: () => onStepChange(measurement, incrementProgressionNumericValue({ value: values[measurement], inputMode: inputModes[measurement] })),
+                        onDecrement: () => onStepChange(measurement, decrementProgressionNumericValue({
+                          value: values[measurement],
+                          inputMode: inputModes[measurement],
+                          minimum: measurement === "reps" ? 0 : undefined,
+                        })),
+                        onIncrement: () => onStepChange(measurement, incrementProgressionNumericValue({
+                          value: values[measurement],
+                          inputMode: inputModes[measurement],
+                          minimum: measurement === "reps" ? 0 : undefined,
+                        })),
                       }}
                     />
                 </div>
@@ -3011,6 +3088,7 @@ export function ProgressionPlaybookEditor({
   failureToggleInfoContent = null,
   infoDockPlacement,
   defaultSettingsSectionsOpen,
+  exampleTargetValues,
 }: {
   value: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -3067,6 +3145,14 @@ export function ProgressionPlaybookEditor({
   } | null;
   infoDockPlacement?: "default" | "above-bottom-actions";
   defaultSettingsSectionsOpen?: boolean;
+  exampleTargetValues?: Partial<{
+    sets: number | null;
+    time: number | null;
+    distance: number | null;
+    reps: number | null;
+    repsMax: number | null;
+    weight: number | null;
+  }>;
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [activeInfoSection, setActiveInfoSection] = useState<ActiveProgressionInfoSection>("progression_method");
@@ -3082,6 +3168,7 @@ export function ProgressionPlaybookEditor({
     && typeof autoApplyUpdatesToExercises === "boolean"
     && typeof onAutoApplyUpdatesToExercisesChange === "function";
   const presetOptions = resolveProgressionDropdownPreset(dropdownPreset);
+  const isExerciseInlineDropdownPreset = dropdownPreset === "exercise-inline";
   const resolvedHideProgressionMethodControl = hideProgressionMethodControl ?? presetOptions.hideProgressionMethodControl;
   const resolvedHideDayAdjustmentSettingsSection = hideDayAdjustmentSettingsSection ?? presetOptions.hideDayAdjustmentSettingsSection;
   const resolvedHideSessionSettingsSection = hideSessionSettingsSection ?? presetOptions.hideSessionSettingsSection;
@@ -3090,6 +3177,8 @@ export function ProgressionPlaybookEditor({
   const resolvedShowProgressionSettingsRow = showProgressionSettingsRow ?? presetOptions.showProgressionSettingsRow;
   const resolvedInfoDockPlacement = infoDockPlacement ?? presetOptions.infoDockPlacement;
   const resolvedDefaultSettingsSectionsOpen = defaultSettingsSectionsOpen ?? false;
+  const sessionSettingsEnabled = value.progressionSessionSettingsEnabled;
+  const setSettingsEnabled = value.progressionSetSettingsEnabled;
   const [activeSettingsPanelKey, setActiveSettingsPanelKey] = useState<ProgressionSettingsPanelKey | null>(
     resolvedDefaultSettingsSectionsOpen ? "progression" : null,
   );
@@ -3112,6 +3201,7 @@ export function ProgressionPlaybookEditor({
       nextValue: value.progressionSetFlowLoadStep,
     }),
   } as const;
+  const resolvedProgressionStallThreshold = normalizePositiveIntegerDraftValue(value.progressionStallThreshold, "2");
   const derivedSetFlowId = inferLegacySetFlowFromDirections(setFlowDirections);
   const selectedSetFlowInfo = SET_FLOW_DEFINITIONS[derivedSetFlowId] ?? SET_FLOW_DEFINITIONS.straight_sets;
   const isCustomSetFlow = derivedSetFlowId === "straight_sets" && !areSetFlowDirectionsStraight(setFlowDirections);
@@ -3153,6 +3243,8 @@ export function ProgressionPlaybookEditor({
       progressionPromotionDirectionMap: value.progressionPromotionDirectionMap,
       progressionPromotionSessionCountMap: value.progressionPromotionSessionCountMap,
       progressionPromotionGroupedSessionCountMap: value.progressionPromotionGroupedSessionCountMap,
+      progressionSessionSettingsEnabled: value.progressionSessionSettingsEnabled,
+      progressionSetSettingsEnabled: value.progressionSetSettingsEnabled,
       progressionTargetMutation: value.progressionTargetMutation,
       progressionHasExplicitTargetMutation: value.progressionHasExplicitTargetMutation,
       progressionRequiredQualifiedSessions: value.progressionRequiredQualifiedSessions,
@@ -3308,14 +3400,14 @@ export function ProgressionPlaybookEditor({
       measurement !== "calories" && visibleSessionPromotionMeasurementsForSettings.includes(measurement)
     )))
     .filter((group): group is ProgressionMeasurementKey[] => group.length > 0);
-  const renderedSessionPromotionMeasurements = filteredSessionPromotionMeasurementGroupsForSettings.length > 0
+  const renderedSessionPromotionMeasurements = sessionSettingsEnabled && filteredSessionPromotionMeasurementGroupsForSettings.length > 0
     ? flattenPromotionMeasurementGroups(filteredSessionPromotionMeasurementGroupsForSettings)
-    : isRoutineDefaultContext
+    : sessionSettingsEnabled && isRoutineDefaultContext
       ? routinePromotionMeasurements
       : [];
-  const renderedSessionPromotionLinks = filteredSessionPromotionMeasurementGroupsForSettings.length > 0
+  const renderedSessionPromotionLinks = sessionSettingsEnabled && filteredSessionPromotionMeasurementGroupsForSettings.length > 0
     ? buildPromotionLinksFromGroups(filteredSessionPromotionMeasurementGroupsForSettings)
-    : isRoutineDefaultContext
+    : sessionSettingsEnabled && isRoutineDefaultContext
       ? routinePromotionLinks
       : [];
   const visibleSetFlowMeasurementsForSettings: SetFlowMeasurementKey[] = isRoutineDefaultContext
@@ -3328,19 +3420,25 @@ export function ProgressionPlaybookEditor({
   const filteredSetFlowMeasurementGroupsForSettings = setFlowMeasurementGroups
     .map((group) => group.filter((measurement) => visibleSetFlowMeasurementsForSettings.includes(measurement)))
     .filter((group): group is SetFlowMeasurementKey[] => group.length > 0);
-  const renderedSetFlowMeasurements = filteredSetFlowMeasurementGroupsForSettings.length > 0
+  const renderedSetFlowMeasurements = setSettingsEnabled && filteredSetFlowMeasurementGroupsForSettings.length > 0
     ? flattenPromotionMeasurementGroups(filteredSetFlowMeasurementGroupsForSettings) as SetFlowMeasurementKey[]
-    : isRoutineDefaultContext
+    : setSettingsEnabled && isRoutineDefaultContext
       ? setFlowMeasurements
       : [];
-  const renderedSetFlowLinks = filteredSetFlowMeasurementGroupsForSettings.length > 0
+  const renderedSetFlowLinks = setSettingsEnabled && filteredSetFlowMeasurementGroupsForSettings.length > 0
     ? buildPromotionLinksFromGroups(filteredSetFlowMeasurementGroupsForSettings as ProgressionMeasurementKey[][])
-    : isRoutineDefaultContext
+    : setSettingsEnabled && isRoutineDefaultContext
       ? setFlowLinks
       : [];
-  const activeSessionMeasurementOrderLabel = formatPromotionMeasurementSequence(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks);
-  const activeSetMeasurementOrderLabel = formatPromotionMeasurementSequence(renderedSetFlowMeasurements as ProgressionMeasurementKey[], renderedSetFlowLinks as PromotionMeasurementConnector[]);
-  const activeSetStepSummary = renderedSetFlowMeasurements.length > 0
+  const activeSessionMeasurementOrderLabel = sessionSettingsEnabled
+    ? formatPromotionMeasurementSequence(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks)
+    : "Section off";
+  const activeSetMeasurementOrderLabel = setSettingsEnabled
+    ? formatPromotionMeasurementSequence(renderedSetFlowMeasurements as ProgressionMeasurementKey[], renderedSetFlowLinks as PromotionMeasurementConnector[])
+    : "Section off";
+  const activeSetStepSummary = !setSettingsEnabled
+    ? "Section off"
+    : renderedSetFlowMeasurements.length > 0
     ? renderedSetFlowMeasurements.map((measurement) => {
       const label = ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement];
       const valueLabel = measurement === "weight"
@@ -3563,7 +3661,7 @@ export function ProgressionPlaybookEditor({
           title: "Regression",
           summary: "These inputs define when a miss streak becomes a stall and when the current target reverses one cycle step.",
           rows: [
-            { label: "Failure count", value: `${value.progressionStallThreshold || "-"} missed attempts` },
+            { label: "Failure count", value: `${resolvedProgressionStallThreshold || "-"} missed attempts` },
             { label: "Regression", value: "Reverse the current target by one cycle step using the active progression method." },
             { label: "Applies to", value: "The target dimensions the exercise is currently progressing on, not an unrelated percent drop." },
           ],
@@ -3837,6 +3935,12 @@ export function ProgressionPlaybookEditor({
     }, groups));
     showCustomInfo(getRoutinePromotionOrderInfoPayload(nextMeasurements, nextLinks));
   };
+  const toggleSessionSettingsEnabled = () => {
+    onChange({
+      ...value,
+      progressionSessionSettingsEnabled: !value.progressionSessionSettingsEnabled,
+    });
+  };
   const moveRoutinePromotionMeasurement = (measurement: ProgressionMeasurementKey, direction: "left" | "right") => {
     const currentGroups = routinePromotionMeasurementGroups.map((group) => [...group]);
     const currentIndex = currentGroups.findIndex((group) => group.includes(measurement));
@@ -4019,6 +4123,12 @@ export function ProgressionPlaybookEditor({
       progressionSetFlowMeasurements: nextMeasurements,
       progressionSetFlowLinks: nextLinks,
     }, groups));
+  };
+  const toggleSetSettingsEnabled = () => {
+    onChange({
+      ...value,
+      progressionSetSettingsEnabled: !value.progressionSetSettingsEnabled,
+    });
   };
   const moveSetFlowMeasurement = (measurement: SetFlowMeasurementKey, direction: "left" | "right") => {
     const currentGroups = setFlowMeasurementGroups.map((group) => [...group]);
@@ -4465,16 +4575,16 @@ export function ProgressionPlaybookEditor({
   const promotionRepStepValue = parseOptionalPositiveInteger(value.progressionBodyweightRepIncrement) ?? 1;
   const promotionDurationStepValue = parseOptionalPositiveInteger(value.progressionDurationIncrementSeconds) ?? 60;
   const promotionDistanceStepValue = parseOptionalPositiveNumber(value.progressionDistanceIncrement) ?? 1;
-  const raisedDayLoadStepValue = parseOptionalPositiveNumber(value.progressionDayLoadStep) ?? promotionLoadStepValue;
-  const raisedDayRepStepValue = parseOptionalPositiveInteger(value.progressionDayRepStep) ?? promotionRepStepValue;
-  const raisedDayDurationStepValue = parseOptionalPositiveInteger(value.progressionDayDurationStep) ?? promotionDurationStepValue;
-  const raisedDayDistanceStepValue = parseOptionalPositiveNumber(value.progressionDayDistanceStep) ?? promotionDistanceStepValue;
-  const loweredDayLoadStepValue = parseOptionalPositiveNumber(value.progressionDayLoweredLoadStep) ?? raisedDayLoadStepValue;
-  const loweredDayRepStepValue = parseOptionalPositiveInteger(value.progressionDayLoweredRepStep) ?? raisedDayRepStepValue;
-  const loweredDayDurationStepValue = parseOptionalPositiveInteger(value.progressionDayLoweredDurationStep) ?? raisedDayDurationStepValue;
-  const loweredDayDistanceStepValue = parseOptionalPositiveNumber(value.progressionDayLoweredDistanceStep) ?? raisedDayDistanceStepValue;
+  const raisedDayLoadStepValue = parseOptionalNonNegativeNumber(value.progressionDayLoadStep) ?? 0;
+  const raisedDayRepStepValue = parseOptionalNonNegativeInteger(value.progressionDayRepStep) ?? 0;
+  const raisedDayDurationStepValue = parseOptionalNonNegativeInteger(value.progressionDayDurationStep) ?? 0;
+  const raisedDayDistanceStepValue = parseOptionalNonNegativeNumber(value.progressionDayDistanceStep) ?? 0;
+  const loweredDayLoadStepValue = parseOptionalNonNegativeNumber(value.progressionDayLoweredLoadStep) ?? raisedDayLoadStepValue;
+  const loweredDayRepStepValue = parseOptionalNonNegativeInteger(value.progressionDayLoweredRepStep) ?? raisedDayRepStepValue;
+  const loweredDayDurationStepValue = parseOptionalNonNegativeInteger(value.progressionDayLoweredDurationStep) ?? raisedDayDurationStepValue;
+  const loweredDayDistanceStepValue = parseOptionalNonNegativeNumber(value.progressionDayLoweredDistanceStep) ?? raisedDayDistanceStepValue;
   const setFlowLoadStepValue = parseOptionalPositiveNumber(value.progressionSetFlowLoadStep) ?? 5;
-  const setFlowRepStepValue = parseOptionalPositiveInteger(value.progressionSetFlowRepStep) ?? 2;
+  const setFlowRepStepValue = parseOptionalNonNegativeInteger(value.progressionSetFlowRepStep) ?? 0;
   const setFlowDurationStepValue = parseOptionalPositiveInteger(value.progressionSetFlowDurationStep) ?? 60;
   const setFlowDistanceStepValue = parseOptionalPositiveNumber(value.progressionSetFlowDistanceStep) ?? 1;
   const setCountValue = parseOptionalPositiveInteger(resolveTotalSetCountFromGroups({
@@ -4489,10 +4599,28 @@ export function ProgressionPlaybookEditor({
     groupedCounts: value.progressionSetFlowGroupedCountMap,
     fallbackCount: value.progressionSetCount || defaultSetFlowCount,
   })) ?? 3;
+  const hasActiveDayStepMeasurement = (measurement: SetFlowMeasurementKey) => {
+    if (resolvedHideDayAdjustmentSettingsSection) {
+      return false;
+    }
+
+    switch (measurement) {
+    case "weight":
+      return raisedDayLoadStepValue > 0 || loweredDayLoadStepValue > 0;
+    case "reps":
+      return raisedDayRepStepValue > 0 || loweredDayRepStepValue > 0;
+    case "time":
+      return raisedDayDurationStepValue > 0 || loweredDayDurationStepValue > 0;
+    case "distance":
+      return raisedDayDistanceStepValue > 0 || loweredDayDistanceStepValue > 0;
+    default:
+      return false;
+    }
+  };
   const activeDayStepMeasurements = Array.from(new Set(
     visiblePromotionStepFieldIds
       .map((fieldId) => getDayAdjustmentMeasurementKey(fieldId))
-      .filter((measurement): measurement is SetFlowMeasurementKey => measurement !== null),
+      .filter((measurement): measurement is SetFlowMeasurementKey => measurement !== null && hasActiveDayStepMeasurement(measurement)),
   ));
   const deloadSettingFields = shouldRenderDeloadSettings
     ? [
@@ -4501,22 +4629,22 @@ export function ProgressionPlaybookEditor({
           label="Failure Count"
           name="progressionStallThreshold"
           inputMode="numeric"
-          value={value.progressionStallThreshold}
+          value={resolvedProgressionStallThreshold}
           labelClassName="!mx-auto !mr-auto block w-fit text-center normal-case text-[10px] tracking-[0.06em]"
           onChange={(nextValue) => onChange({
             ...value,
-            progressionStallThreshold: nextValue,
+            progressionStallThreshold: normalizePositiveIntegerDraftValue(nextValue, resolvedProgressionStallThreshold),
           })}
           stepper={{
             decrementAriaLabel: "Decrease failure count",
             incrementAriaLabel: "Increase failure count",
             onDecrement: () => onChange({
               ...value,
-              progressionStallThreshold: decrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+              progressionStallThreshold: decrementProgressionNumericValue({ value: resolvedProgressionStallThreshold, inputMode: "numeric" }),
             }),
             onIncrement: () => onChange({
               ...value,
-              progressionStallThreshold: incrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+              progressionStallThreshold: incrementProgressionNumericValue({ value: resolvedProgressionStallThreshold, inputMode: "numeric" }),
             }),
           }}
         />
@@ -4612,6 +4740,9 @@ export function ProgressionPlaybookEditor({
     }
     return 0;
   };
+  const resolvePositiveExampleTargetValue = (currentValue: number | null | undefined, fallback: number) => {
+    return Number.isFinite(currentValue) && (currentValue ?? 0) > 0 ? Number(currentValue) : fallback;
+  };
   const formatTargetMeasurements = (
     measurements: ProgressionMeasurementKey[],
     target: { time: number; distance: number; reps: number; weight: number },
@@ -4637,6 +4768,17 @@ export function ProgressionPlaybookEditor({
 
     return parts.length > 0 ? parts.join(" • ") : "—";
   };
+  const exampleTargetSeed = {
+    sets: resolvePositiveExampleTargetValue(exampleTargetValues?.sets, setCountValue),
+    time: resolvePositiveExampleTargetValue(exampleTargetValues?.time, 630),
+    distance: resolvePositiveExampleTargetValue(exampleTargetValues?.distance, 1.5),
+    reps: resolvePositiveExampleTargetValue(exampleTargetValues?.reps, 10),
+    repsMax: resolvePositiveExampleTargetValue(
+      exampleTargetValues?.repsMax,
+      resolvePositiveExampleTargetValue(exampleTargetValues?.reps, 10),
+    ),
+    weight: resolvePositiveExampleTargetValue(exampleTargetValues?.weight, 140),
+  };
   const setStepMeasurementValues: Record<ProgressionMeasurementKey, string> = {
     time: value.progressionSetFlowDurationStep,
     distance: value.progressionSetFlowDistanceStep,
@@ -4645,14 +4787,16 @@ export function ProgressionPlaybookEditor({
     calories: "",
   };
   const hasConfiguredPromotionStepValue = (rawValue: string) => rawValue.trim().length > 0;
-  const activeSetStepMeasurements = (["time", "distance", "reps", "weight"] as const).filter((measurement) => (
-    hasConfiguredPromotionStepValue(setStepMeasurementValues[measurement])
-  ));
+  const activeSetStepMeasurements = (setSettingsEnabled
+    ? (["time", "distance", "reps", "weight"] as const).filter((measurement) => (
+      hasConfiguredPromotionStepValue(setStepMeasurementValues[measurement])
+    ))
+    : []) as Array<"time" | "distance" | "reps" | "weight">;
   const modularSetExampleEntries = Array.from({ length: setCountValue }, (_, setIndex) => {
-    const durationSeconds = clampProgressionMeasurementValue("time", 600 + (setFlowDurationStepValue * resolveSetFlowDirectionOffset(setFlowDirections.time, setIndex)));
-    const distance = clampProgressionMeasurementValue("distance", 1 + (setFlowDistanceStepValue * resolveSetFlowDirectionOffset(setFlowDirections.distance, setIndex)));
-    const reps = clampProgressionMeasurementValue("reps", 8 + (setFlowRepStepValue * resolveSetFlowDirectionOffset(setFlowDirections.reps, setIndex)));
-    const weight = clampProgressionMeasurementValue("weight", 185 + (setFlowLoadStepValue * resolveSetFlowDirectionOffset(setFlowDirections.weight, setIndex)));
+    const durationSeconds = clampProgressionMeasurementValue("time", exampleTargetSeed.time + (setFlowDurationStepValue * resolveSetFlowDirectionOffset(setFlowDirections.time, setIndex)));
+    const distance = clampProgressionMeasurementValue("distance", exampleTargetSeed.distance + (setFlowDistanceStepValue * resolveSetFlowDirectionOffset(setFlowDirections.distance, setIndex)));
+    const reps = clampProgressionMeasurementValue("reps", exampleTargetSeed.reps + (setFlowRepStepValue * resolveSetFlowDirectionOffset(setFlowDirections.reps, setIndex)));
+    const weight = clampProgressionMeasurementValue("weight", exampleTargetSeed.weight + (setFlowLoadStepValue * resolveSetFlowDirectionOffset(setFlowDirections.weight, setIndex)));
     return {
       label: `Set ${setIndex + 1}`,
       value: `${formatSetFlowDuration(durationSeconds)} • ${formatSetFlowDistance(distance)} • ${reps} reps • ${formatSetFlowWeight(weight)}`,
@@ -4661,16 +4805,16 @@ export function ProgressionPlaybookEditor({
   const setStepExampleRows = Array.from({ length: setCountValue }, (_, setIndex) => {
     const previousIndex = setIndex === 0 ? 0 : setIndex - 1;
     const previousTarget = {
-      time: clampProgressionMeasurementValue("time", 630 + (setFlowDurationStepValue * resolveSetFlowDirectionOffset(setFlowDirections.time, previousIndex))),
-      distance: clampProgressionMeasurementValue("distance", 1.5 + (setFlowDistanceStepValue * resolveSetFlowDirectionOffset(setFlowDirections.distance, previousIndex))),
-      reps: clampProgressionMeasurementValue("reps", 10 + (setFlowRepStepValue * resolveSetFlowDirectionOffset(setFlowDirections.reps, previousIndex))),
-      weight: clampProgressionMeasurementValue("weight", 140 + (setFlowLoadStepValue * resolveSetFlowDirectionOffset(setFlowDirections.weight, previousIndex))),
+      time: clampProgressionMeasurementValue("time", exampleTargetSeed.time + (setFlowDurationStepValue * resolveSetFlowDirectionOffset(setFlowDirections.time, previousIndex))),
+      distance: clampProgressionMeasurementValue("distance", exampleTargetSeed.distance + (setFlowDistanceStepValue * resolveSetFlowDirectionOffset(setFlowDirections.distance, previousIndex))),
+      reps: clampProgressionMeasurementValue("reps", exampleTargetSeed.reps + (setFlowRepStepValue * resolveSetFlowDirectionOffset(setFlowDirections.reps, previousIndex))),
+      weight: clampProgressionMeasurementValue("weight", exampleTargetSeed.weight + (setFlowLoadStepValue * resolveSetFlowDirectionOffset(setFlowDirections.weight, previousIndex))),
     };
     const nextTarget = {
-      time: clampProgressionMeasurementValue("time", 630 + (setFlowDurationStepValue * resolveSetFlowDirectionOffset(setFlowDirections.time, setIndex))),
-      distance: clampProgressionMeasurementValue("distance", 1.5 + (setFlowDistanceStepValue * resolveSetFlowDirectionOffset(setFlowDirections.distance, setIndex))),
-      reps: clampProgressionMeasurementValue("reps", 10 + (setFlowRepStepValue * resolveSetFlowDirectionOffset(setFlowDirections.reps, setIndex))),
-      weight: clampProgressionMeasurementValue("weight", 140 + (setFlowLoadStepValue * resolveSetFlowDirectionOffset(setFlowDirections.weight, setIndex))),
+      time: clampProgressionMeasurementValue("time", exampleTargetSeed.time + (setFlowDurationStepValue * resolveSetFlowDirectionOffset(setFlowDirections.time, setIndex))),
+      distance: clampProgressionMeasurementValue("distance", exampleTargetSeed.distance + (setFlowDistanceStepValue * resolveSetFlowDirectionOffset(setFlowDirections.distance, setIndex))),
+      reps: clampProgressionMeasurementValue("reps", exampleTargetSeed.reps + (setFlowRepStepValue * resolveSetFlowDirectionOffset(setFlowDirections.reps, setIndex))),
+      weight: clampProgressionMeasurementValue("weight", exampleTargetSeed.weight + (setFlowLoadStepValue * resolveSetFlowDirectionOffset(setFlowDirections.weight, setIndex))),
     };
 
     return {
@@ -4689,10 +4833,10 @@ export function ProgressionPlaybookEditor({
     return 0;
   });
   const setExampleEntries = setExampleMultipliers.map((multiplier, index) => {
-    const durationSeconds = clampProgressionMeasurementValue("time", 630 + (setFlowDurationStepValue * multiplier));
-    const distance = clampProgressionMeasurementValue("distance", 1.5 + (setFlowDistanceStepValue * multiplier));
-    const reps = clampProgressionMeasurementValue("reps", 10 + (setFlowRepStepValue * multiplier));
-    const weight = clampProgressionMeasurementValue("weight", 140 + (setFlowLoadStepValue * multiplier));
+    const durationSeconds = clampProgressionMeasurementValue("time", exampleTargetSeed.time + (setFlowDurationStepValue * multiplier));
+    const distance = clampProgressionMeasurementValue("distance", exampleTargetSeed.distance + (setFlowDistanceStepValue * multiplier));
+    const reps = clampProgressionMeasurementValue("reps", exampleTargetSeed.reps + (setFlowRepStepValue * multiplier));
+    const weight = clampProgressionMeasurementValue("weight", exampleTargetSeed.weight + (setFlowLoadStepValue * multiplier));
     return {
       label: `Set ${index + 1}`,
       value: `${formatSetFlowDuration(durationSeconds)} • ${formatSetFlowDistance(distance)} • ${reps} reps • ${formatSetFlowWeight(weight)}`,
@@ -4713,9 +4857,13 @@ export function ProgressionPlaybookEditor({
   const promotionRepStepConfiguredValue = parseOptionalPositiveInteger(value.progressionBodyweightRepIncrement);
   const shouldUsePromotionRepMeasurement = hasConfiguredPromotionRepStep;
   const examplePromotionMeasurementGroupsSource = (
-    isRoutineDefaultContext
-      ? routinePromotionMeasurementGroups
-      : buildPromotionMeasurementGroups(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks)
+    sessionSettingsEnabled
+      ? (
+        isRoutineDefaultContext
+          ? routinePromotionMeasurementGroups
+          : buildPromotionMeasurementGroups(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks)
+      )
+      : []
   )
     .map((group) => group.filter((measurement) => (
       measurement !== "calories" && visibleCurrentInputMeasurements.includes(measurement as SetFlowMeasurementKey)
@@ -4777,16 +4925,25 @@ export function ProgressionPlaybookEditor({
       directions: value.progressionPromotionDirectionMap,
     });
   })();
-  const promotionRepRangeMinValue = promotionRepMinConfiguredValue ?? promotionRepMaxConfiguredValue ?? 8;
-  const promotionRepRangeMaxValue = promotionRepMinConfiguredValue != null && promotionRepMaxConfiguredValue != null
-    ? Math.max(promotionRepRangeMinValue, promotionRepMaxConfiguredValue)
+  const exampleRepRangeMinSource = !isRoutineDefaultContext && resolvedRepRangeMin !== null
+    ? resolvedRepRangeMin
+    : promotionRepMinConfiguredValue;
+  const exampleRepRangeMaxSource = !isRoutineDefaultContext && resolvedRepRangeMax !== null
+    ? resolvedRepRangeMax
+    : promotionRepMaxConfiguredValue;
+  const promotionRepRangeMinValue = exampleRepRangeMinSource ?? exampleRepRangeMaxSource ?? 8;
+  const promotionRepRangeMaxValue = exampleRepRangeMinSource != null && exampleRepRangeMaxSource != null
+    ? Math.max(promotionRepRangeMinValue, exampleRepRangeMaxSource)
     : promotionRepRangeMinValue + (promotionRepStepConfiguredValue ?? 1);
   const shouldUsePromotionRepRangeExample = Boolean(
     shouldUsePromotionRepMeasurement
-    && promotionRepMinConfiguredValue != null
-    && promotionRepMaxConfiguredValue != null
+    && exampleRepRangeMinSource != null
+    && exampleRepRangeMaxSource != null
     && promotionRepRangeMaxValue > promotionRepRangeMinValue,
   );
+  const progressionExampleRequiredRepSessions = shouldUsePromotionRepRangeExample
+    ? Math.max(1, Math.ceil((promotionRepRangeMaxValue - promotionRepRangeMinValue) / Math.max(1, promotionRepStepValue)))
+    : 1;
   const visibleRoutinePromotionMeasurements = flattenPromotionMeasurementGroups(
     visibleRoutinePromotionGroupMeta.map((entry) => entry.activeGroup),
   );
@@ -4805,12 +4962,17 @@ export function ProgressionPlaybookEditor({
   const visibleProgressionExampleGroups = (
     visibleRoutinePromotionMeasurementGroups.length > 0
       ? visibleRoutinePromotionMeasurementGroups
-      : visibleCurrentInputMeasurements.length > 0
+      : sessionSettingsEnabled && visibleCurrentInputMeasurements.length > 0
         ? [visibleCurrentInputMeasurements as ProgressionMeasurementKey[]]
         : []
   ).map((group) => ({
     measurements: [...group],
-    sessionCount: resolveExampleGroupSessionCount(group),
+    sessionCount: Math.max(
+      resolveExampleGroupSessionCount(group),
+      shouldUsePromotionRepRangeExample && group.includes("reps")
+        ? progressionExampleRequiredRepSessions
+        : 1,
+    ),
   }));
   const visibleProgressionMeasurementKeys: Array<"time" | "distance" | "reps" | "weight"> = (["time", "distance", "reps", "weight"] as const).filter((measurement) => {
     return visibleRoutinePromotionMeasurements.includes(measurement);
@@ -4854,17 +5016,22 @@ export function ProgressionPlaybookEditor({
       </div>,
     ]
     : [];
+  const resolvedExampleBaseReps = Math.max(
+    1,
+    shouldUsePromotionRepRangeExample && promotionRepDirection === "down"
+      ? promotionRepRangeMaxValue
+      : exampleTargetSeed.reps || promotionRepRangeMinValue || 10,
+  );
+  const resolvedExampleBaseRepsCap = Math.max(
+    resolvedExampleBaseReps,
+    exampleTargetSeed.repsMax || promotionRepRangeMaxValue || resolvedExampleBaseReps,
+  );
   const exampleBaseTarget = {
-    time: 630,
-    distance: 1.5,
-    reps: Math.max(
-      1,
-      shouldUsePromotionRepRangeExample && promotionRepDirection === "down"
-        ? promotionRepRangeMaxValue
-        : promotionRepRangeMinValue || 10,
-    ),
-    repsCap: Math.max(promotionRepRangeMinValue || 10, promotionRepRangeMaxValue || 12),
-    weight: 140,
+    time: exampleTargetSeed.time,
+    distance: exampleTargetSeed.distance,
+    reps: resolvedExampleBaseReps,
+    repsCap: resolvedExampleBaseRepsCap,
+    weight: exampleTargetSeed.weight,
   };
   const dayExampleRows = effortWaveDirections.map((direction, dayIndex) => {
     const baseTarget = {
@@ -4907,12 +5074,7 @@ export function ProgressionPlaybookEditor({
     const lastVisibleGroup = visibleRoutinePromotionMeasurementGroups[visibleRoutinePromotionMeasurementGroups.length - 1] ?? null;
     const renderTarget = (target: { time: number; distance: number; reps: number; repsCap: number; weight: number }) => formatTargetMeasurements(
       visibleRoutinePromotionMeasurements,
-      {
-        time: target.time,
-        distance: target.distance,
-        reps: target.reps,
-        weight: target.weight,
-      },
+      target,
     );
     const applyPromotionStep = (
       target: { time: number; distance: number; reps: number; repsCap: number; weight: number },
@@ -4943,9 +5105,13 @@ export function ProgressionPlaybookEditor({
               ? promotionRepRangeMaxValue
               : promotionRepRangeMinValue;
           } else if (shouldUsePromotionRepRangeExample) {
-            nextTarget.reps = groupDirection === "down"
-              ? clampProgressionMeasurementValue("reps", Math.max(promotionRepRangeMinValue, target.reps - promotionRepStepValue))
-              : clampProgressionMeasurementValue("reps", Math.min(target.repsCap, target.reps + promotionRepStepValue));
+            nextTarget.reps = clampProgressionMeasurementValue("reps", getNextClampedRepRangeValue({
+              currentReps: target.reps,
+              direction: groupDirection,
+              minReps: promotionRepRangeMinValue,
+              maxReps: target.repsCap,
+              step: promotionRepStepValue,
+            }));
           } else {
             nextTarget.reps = groupDirection === "down"
               ? clampProgressionMeasurementValue("reps", target.reps - promotionRepStepValue)
@@ -5234,6 +5400,61 @@ export function ProgressionPlaybookEditor({
       {renderExampleMetricUnderline(renderPromotionExampleMetricLine(afterLine, beforeLine), "w-fit")}
     </div>
   );
+  const formatExampleRepRange = (target: {
+    reps: number;
+    repsCap: number;
+  }) => {
+    if (!shouldUsePromotionRepRangeExample) {
+      return `${target.reps} reps`;
+    }
+
+    if (promotionRepDirection === "down") {
+      const rangeLow = Math.max(promotionRepRangeMinValue, target.reps - promotionRepStepValue);
+      const rangeHigh = target.reps;
+      return rangeLow === rangeHigh ? `${rangeHigh} reps` : `${rangeLow}-${rangeHigh} reps`;
+    }
+
+    const rangeLow = target.reps;
+    const rangeHigh = Math.min(target.repsCap, target.reps + promotionRepStepValue);
+    return rangeLow === rangeHigh ? `${rangeLow} reps` : `${rangeLow}-${rangeHigh} reps`;
+  };
+  const formatExampleRepCount = (target: {
+    reps: number;
+  }) => `${target.reps} reps`;
+  const formatExampleTargetMeasurementLine = (
+    measurements: ProgressionMeasurementKey[],
+    target: {
+      time: number;
+      distance: number;
+      reps: number;
+      repsCap: number;
+      weight: number;
+    },
+    options?: {
+      repDisplay?: "count" | "range";
+    },
+  ) => {
+    const parts = measurements
+      .filter((measurement) => measurement !== "calories")
+      .map((measurement) => {
+        if (measurement === "time") {
+          return formatSetFlowDuration(target.time);
+        }
+        if (measurement === "distance") {
+          return formatSetFlowDistance(target.distance);
+        }
+        if (measurement === "reps") {
+          return options?.repDisplay === "range" ? formatExampleRepRange(target) : formatExampleRepCount(target);
+        }
+        if (measurement === "weight") {
+          return formatSetFlowWeight(target.weight);
+        }
+        return null;
+      })
+      .filter((part): part is string => Boolean(part));
+
+    return parts.length > 0 ? parts.join(" • ") : "—";
+  };
   const formatExampleTargetMeasurements = (target: {
     time: number;
     distance: number;
@@ -5249,15 +5470,7 @@ export function ProgressionPlaybookEditor({
       return "—";
     }
 
-    return formatTargetMeasurements(
-      measurements,
-      {
-        time: target.time,
-        distance: target.distance,
-        reps: target.reps,
-        weight: target.weight,
-      },
-    );
+    return formatExampleTargetMeasurementLine(measurements, target);
   };
   const formatExampleTargetMeasurementsFor = (
     measurements: ProgressionMeasurementKey[],
@@ -5269,16 +5482,42 @@ export function ProgressionPlaybookEditor({
       weight: number;
     },
   ) => measurements.length > 0
-    ? formatTargetMeasurements(
+    ? formatExampleTargetMeasurementLine(
       measurements,
-      {
-        time: target.time,
-        distance: target.distance,
-        reps: target.reps,
-        weight: target.weight,
-      },
+      target,
     )
     : "—";
+  const formatExampleRepOnlyMeasurements = (target: {
+    time: number;
+    distance: number;
+    reps: number;
+    repsCap: number;
+    weight: number;
+  }) => formatExampleTargetMeasurementsFor(["reps"], target);
+  const resolveExampleRepSessionStageValue = (stageIndex: number, sessionCount: number) => {
+    if (!shouldUsePromotionRepRangeExample) {
+      return exampleBaseTarget.reps;
+    }
+
+    const totalTransitions = Math.max(1, sessionCount);
+    const stageOffset = Math.max(0, stageIndex - 1);
+    const sessionStep = Math.max(
+      1,
+      Math.ceil((promotionRepRangeMaxValue - promotionRepRangeMinValue) / totalTransitions),
+    );
+
+    if (promotionRepDirection === "down") {
+      return Math.max(
+        promotionRepRangeMinValue,
+        promotionRepRangeMaxValue - (sessionStep * stageOffset),
+      );
+    }
+
+    return Math.min(
+      promotionRepRangeMaxValue,
+      promotionRepRangeMinValue + (sessionStep * stageOffset),
+    );
+  };
   const applyExampleDayShift = (
     target: { time: number; distance: number; reps: number; repsCap: number; weight: number },
     direction: SetFlowDirection,
@@ -5334,7 +5573,15 @@ export function ProgressionPlaybookEditor({
       } else if (measurement === "distance") {
         nextTarget.distance = clampProgressionMeasurementValue("distance", target.distance + (setFlowDistanceStepValue * offset));
       } else if (measurement === "reps") {
-        nextTarget.reps = clampProgressionMeasurementValue("reps", target.reps + (setFlowRepStepValue * offset));
+        const nextReps = groupDirection === "down"
+          ? target.reps - (setFlowRepStepValue * setIndex)
+          : target.reps + (setFlowRepStepValue * setIndex);
+        nextTarget.reps = clampProgressionMeasurementValue(
+          "reps",
+          shouldUsePromotionRepRangeExample
+            ? Math.min(target.repsCap, Math.max(promotionRepRangeMinValue, nextReps))
+            : nextReps,
+        );
       } else if (measurement === "weight") {
         nextTarget.weight = clampProgressionMeasurementValue("weight", target.weight + (setFlowLoadStepValue * offset));
       }
@@ -5373,9 +5620,18 @@ export function ProgressionPlaybookEditor({
   const buildWithinSessionTargets = (
     dayShiftedTarget: { time: number; distance: number; reps: number; repsCap: number; weight: number },
   ) => {
+    const exampleSetCount = Math.max(1, Math.floor(exampleTargetSeed.sets));
+
+    if (!setSettingsEnabled) {
+      return Array.from(
+        { length: exampleSetCount },
+        (_, setIndex) => applyExampleSetShift(dayShiftedTarget, fallbackSetFlowExampleMeasurements, setIndex),
+      );
+    }
+
     if (visibleSetFlowMeasurementGroups.length === 0) {
       return Array.from(
-        { length: Math.max(1, setCountValue) },
+        { length: exampleSetCount },
         (_, setIndex) => applyExampleSetShift(dayShiftedTarget, fallbackSetFlowExampleMeasurements, setIndex),
       );
     }
@@ -5419,9 +5675,13 @@ export function ProgressionPlaybookEditor({
         );
       } else if (measurement === "reps") {
         if (shouldUsePromotionRepRangeExample) {
-          nextTarget.reps = groupDirection === "down"
-            ? clampProgressionMeasurementValue("reps", Math.max(promotionRepRangeMinValue, target.reps - promotionRepStepValue))
-            : clampProgressionMeasurementValue("reps", Math.min(target.repsCap, target.reps + promotionRepStepValue));
+          nextTarget.reps = clampProgressionMeasurementValue("reps", getNextClampedRepRangeValue({
+            currentReps: target.reps,
+            direction: groupDirection,
+            minReps: promotionRepRangeMinValue,
+            maxReps: target.repsCap,
+            step: promotionRepStepValue,
+          }));
         } else {
           nextTarget.reps = groupDirection === "down"
             ? clampProgressionMeasurementValue("reps", target.reps - promotionRepStepValue)
@@ -5472,24 +5732,39 @@ export function ProgressionPlaybookEditor({
       let repResetAfter: string | undefined;
 
       if (step.isFirstStepOfRound && sections.length > 0 && pendingRepReset) {
-        repResetBefore = `${currentTarget.reps} reps`;
+        repResetBefore = formatExampleRepOnlyMeasurements(currentTarget);
         currentTarget = {
           ...currentTarget,
-          reps: promotionRepDirection === "down" ? promotionRepRangeMaxValue : promotionRepRangeMinValue,
+          reps: exampleBaseTarget.reps,
         };
-        repResetAfter = `${currentTarget.reps} reps`;
+        repResetAfter = formatExampleRepOnlyMeasurements(currentTarget);
         pendingRepReset = false;
       }
 
       const direction = effortWaveDirections[step.dayIndex] ?? "straight";
-      const dayBaseTarget = { ...currentTarget };
+      const shouldAdvanceRepRangeThisSession = shouldUsePromotionRepRangeExample && step.measurements.includes("reps");
+      const dayBaseTarget = shouldAdvanceRepRangeThisSession
+        ? {
+          ...currentTarget,
+          reps: resolveExampleRepSessionStageValue(step.sessionIndex, step.sessionCount),
+        }
+        : { ...currentTarget };
       const dayShiftedTarget = shouldRenderPromotionStepSettings
         ? applyExampleDayShift(dayBaseTarget, direction)
         : dayBaseTarget;
       const withinSessionTargets = buildWithinSessionTargets(dayShiftedTarget);
-      const postSessionTarget = step.isFinalSessionForGroup
-        ? applyFocusedPromotionMeasurements(dayBaseTarget, step.measurements)
+      const postRepRangeTarget = shouldAdvanceRepRangeThisSession
+        ? {
+          ...dayBaseTarget,
+          reps: resolveExampleRepSessionStageValue(step.sessionIndex + 1, step.sessionCount),
+        }
         : { ...dayBaseTarget };
+      const postSessionMeasurements = step.isFinalSessionForGroup
+        ? step.measurements.filter((measurement) => !(shouldAdvanceRepRangeThisSession && measurement === "reps"))
+        : [];
+      const postSessionTarget = postSessionMeasurements.length > 0
+        ? applyFocusedPromotionMeasurements(postRepRangeTarget, postSessionMeasurements)
+        : postRepRangeTarget;
 
       if (
         step.isFinalSessionForGroup
@@ -5498,7 +5773,7 @@ export function ProgressionPlaybookEditor({
         && (
           promotionRepDirection === "down"
             ? postSessionTarget.reps <= promotionRepRangeMinValue
-            : postSessionTarget.reps >= postSessionTarget.repsCap
+            : postSessionTarget.reps >= promotionRepRangeMaxValue
         )
       ) {
         pendingRepReset = true;
@@ -5530,8 +5805,8 @@ export function ProgressionPlaybookEditor({
             )
             : formatExampleTargetMeasurementsFor(visibleSetFlowExampleMeasurements, dayShiftedTarget),
         })),
-        postBefore: formatExampleTargetMeasurements(dayBaseTarget),
-        postAfter: formatExampleTargetMeasurements(postSessionTarget),
+        postBefore: formatExampleTargetMeasurementsFor(visibleCurrentInputMeasurements, dayBaseTarget),
+        postAfter: formatExampleTargetMeasurementsFor(visibleCurrentInputMeasurements, postSessionTarget),
       });
 
       currentTarget = postSessionTarget;
@@ -5540,11 +5815,11 @@ export function ProgressionPlaybookEditor({
     if (pendingRepReset && combinedProgressionExampleSequence.length > 0) {
       const resetTarget = {
         ...currentTarget,
-        reps: promotionRepDirection === "down" ? promotionRepRangeMaxValue : promotionRepRangeMinValue,
+        reps: exampleBaseTarget.reps,
       };
       pendingRepResetPreview = {
-        before: `${currentTarget.reps} reps`,
-        after: `${resetTarget.reps} reps`,
+        before: formatExampleRepOnlyMeasurements(currentTarget),
+        after: formatExampleRepOnlyMeasurements(resetTarget),
       };
     }
 
@@ -5586,11 +5861,14 @@ export function ProgressionPlaybookEditor({
     ? combinedProgressionExampleSections
     : combinedProgressionExampleSections
       .filter((section) => section.roundIndex === 0)
-      .map((section) => ({
-        ...section,
-        dayNumber: progressionExampleFocusDayNumber,
-        headingPrefix: `Day ${progressionExampleFocusDayNumber} | Session ${section.sessionIndex}`,
-      }));
+      .map((section) => {
+        const continuousDayNumber = progressionExampleFocusDayNumber + section.dayNumber - 1;
+        return {
+          ...section,
+          dayNumber: continuousDayNumber,
+          headingPrefix: `Day ${continuousDayNumber} | Session ${section.sessionIndex}`,
+        };
+      });
   const scopedCombinedProgressionExampleRows = (() => {
     const rows: Array<{
       key: string;
@@ -5651,6 +5929,12 @@ export function ProgressionPlaybookEditor({
       after: pendingRepResetPreview.after,
     });
   }
+  if (scopedPreProgressionCycleShiftRows.length === 0 && uniquePreProgressionCycleShiftRows.length > 0) {
+    scopedPreProgressionCycleShiftRows.push(...uniquePreProgressionCycleShiftRows.map((row) => ({
+      ...row,
+      key: `scoped-fallback-${row.key}`,
+    })));
+  }
   const hasDetailedProgressionExampleContent = combinedProgressionExampleRows.length > 0
     || (shouldUsePromotionRepMeasurement && uniquePreProgressionCycleShiftRows.length > 0);
   const hasScopedDetailedProgressionExampleContent = scopedCombinedProgressionExampleRows.length > 0
@@ -5664,8 +5948,8 @@ export function ProgressionPlaybookEditor({
     context,
     hasPlaybook: Boolean(selectedPlaybookId),
     visiblePromotionStepFieldIds,
-    renderedSessionMeasurementCount: renderedSessionPromotionMeasurements.length,
-    renderedSetMeasurementCount: renderedSetFlowMeasurements.length,
+    renderedSessionMeasurementCount: visibleSessionPromotionMeasurementsForSettings.length,
+    renderedSetMeasurementCount: visibleSetFlowMeasurementsForSettings.length,
     daySettingFieldCount: daySettingFields.length,
     stallPolicy: value.progressionStallPolicy,
     showProgressionSettingsRow: resolvedShowProgressionSettingsRow,
@@ -5871,17 +6155,17 @@ export function ProgressionPlaybookEditor({
                           </div>
                         </div>
                       </div>
-                      {section.isFinalSessionForGroup ? (
+                      {section.postBefore !== section.postAfter ? (
                         <div className="w-full max-w-full space-y-2 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.16)] px-3 py-3 text-center">
                           <p className={cn("text-center text-[10px] font-semibold uppercase tracking-[0.14em]", progressionExampleMeasurementLabelClassName)}>
                             {getPostSessionTitle(section.headingMeasurement, section.sessionCount)}
                           </p>
                           <div className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
-                            {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.postBefore, section.postAfter, "left"))}
+                            {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.postBefore, section.postAfter, "left"), "w-fit")}
                             <span className="inline-flex min-w-4 items-center justify-center text-[rgb(var(--accent-divider-rgb)/0.95)]">
                               <span className="text-[12px] font-bold leading-none">{"\u2192"}</span>
                             </span>
-                            {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.postAfter, section.postBefore))}
+                            {renderExampleMetricUnderline(renderPromotionExampleMetricLine(section.postAfter, section.postBefore), "w-fit")}
                           </div>
                         </div>
                       ) : null}
@@ -6039,21 +6323,21 @@ export function ProgressionPlaybookEditor({
               showLabel={false}
               name="progressionStallThreshold"
               inputMode="numeric"
-              value={value.progressionStallThreshold}
+              value={resolvedProgressionStallThreshold}
               onChange={(nextValue) => onChange({
                 ...value,
-                progressionStallThreshold: nextValue,
+                progressionStallThreshold: normalizePositiveIntegerDraftValue(nextValue, resolvedProgressionStallThreshold),
               })}
               stepper={{
                 decrementAriaLabel: "Decrease failure count",
                 incrementAriaLabel: "Increase failure count",
                 onDecrement: () => onChange({
                   ...value,
-                  progressionStallThreshold: decrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+                  progressionStallThreshold: decrementProgressionNumericValue({ value: resolvedProgressionStallThreshold, inputMode: "numeric" }),
                 }),
                 onIncrement: () => onChange({
                   ...value,
-                  progressionStallThreshold: incrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+                  progressionStallThreshold: incrementProgressionNumericValue({ value: resolvedProgressionStallThreshold, inputMode: "numeric" }),
                 }),
               }}
             />
@@ -6401,15 +6685,15 @@ export function ProgressionPlaybookEditor({
             progressionSettingsPanels.push({
               key: "regression",
               title: "Regression",
-              summary: value.progressionStallPolicy === "deload_after_stall" ? "Deload on stall" : "Manual review",
+              summary: value.progressionStallPolicy === "deload_after_stall" ? "On" : "Off",
               widthClassName: "w-[11.5rem] min-w-[11.5rem]",
               content: (
                 <div className="space-y-3" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
                   <div className="flex justify-center">
                     <ProgressionBinaryToggleButton
                       checked={value.progressionStallPolicy === "deload_after_stall"}
-                      onLabel="Deload"
-                      offLabel="Manual"
+                      onLabel="On"
+                      offLabel="Off"
                       ariaLabel="Regression policy"
                       onClick={() => {
                         const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
@@ -6432,58 +6716,66 @@ export function ProgressionPlaybookEditor({
             });
           }
 
-          if (!resolvedHideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0) {
-            progressionSettingsPanels.push({
-              key: "day_adjustments",
-              title: "Day",
-              summary: "Shifts",
-              widthClassName: "w-[9.5rem] min-w-[9.5rem]",
-              content: (
-                <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
-                  {daySettingFields}
-                </div>
-              ),
-            });
-          }
-
           if (!resolvedHideSessionSettingsSection && shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0)) {
             progressionSettingsPanels.push({
               key: "session",
               title: "Session",
-              summary: `${renderedSessionPromotionMeasurements.length || routinePromotionMeasurements.length} metrics`,
+              summary: sessionSettingsEnabled
+                ? `${renderedSessionPromotionMeasurements.length || routinePromotionMeasurements.length} metrics`
+                : "Off",
               widthClassName: "w-[10.5rem] min-w-[10.5rem]",
               content: isRoutineDefaultContext ? (
                 <div className="space-y-3.5" {...getInfoSectionHandlers("session_settings")}>
-                  <PromotionMeasurementStepRow
-                    measurements={routinePromotionMeasurements}
-                    links={routinePromotionLinks}
-                    weightUnit={weightUnit}
-                    distanceUnit={distanceUnit}
-                    values={routinePromotionStepValues}
-                    directions={value.progressionPromotionDirectionMap}
-                    groupedDirections={value.progressionPromotionGroupedDirectionMap}
-                    sessionCounts={value.progressionPromotionSessionCountMap}
-                    groupedSessionCounts={value.progressionPromotionGroupedSessionCountMap}
-                    defaultSessionCount={defaultRoutineSessionCount}
-                    repRangeMin={value.progressionPromotionRepRangeMin}
-                    repRangeMax={value.progressionPromotionRepRangeMax}
-                    repRangeStep={value.progressionBodyweightRepIncrement}
-                    onMove={moveRoutinePromotionMeasurement}
-                    onToggleConnector={toggleRoutinePromotionConnector}
-                    onStepChange={setRoutinePromotionStep}
-                    onDirectionToggle={setRoutinePromotionDirection}
-                    onGroupedDirectionToggle={setRoutinePromotionGroupedDirection}
-                    onSessionCountChange={setRoutinePromotionSessionCount}
-                    onGroupedSessionCountChange={setRoutinePromotionGroupedSessionCount}
-                    onRepRangeMinChange={setRoutinePromotionRepRangeMin}
-                    onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
-                    onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
-                    infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(routinePromotionMeasurements, routinePromotionLinks))}
-                  />
+                  <div className="flex justify-center">
+                    <ProgressionBinaryToggleButton
+                      checked={sessionSettingsEnabled}
+                      onLabel="On"
+                      offLabel="Off"
+                      ariaLabel="Session settings"
+                      onClick={toggleSessionSettingsEnabled}
+                    />
+                  </div>
+                  {sessionSettingsEnabled ? (
+                    <PromotionMeasurementStepRow
+                      measurements={routinePromotionMeasurements}
+                      links={routinePromotionLinks}
+                      weightUnit={weightUnit}
+                      distanceUnit={distanceUnit}
+                      values={routinePromotionStepValues}
+                      directions={value.progressionPromotionDirectionMap}
+                      groupedDirections={value.progressionPromotionGroupedDirectionMap}
+                      sessionCounts={value.progressionPromotionSessionCountMap}
+                      groupedSessionCounts={value.progressionPromotionGroupedSessionCountMap}
+                      defaultSessionCount={defaultRoutineSessionCount}
+                      repRangeMin={value.progressionPromotionRepRangeMin}
+                      repRangeMax={value.progressionPromotionRepRangeMax}
+                      repRangeStep={value.progressionBodyweightRepIncrement}
+                      onMove={moveRoutinePromotionMeasurement}
+                      onToggleConnector={toggleRoutinePromotionConnector}
+                      onStepChange={setRoutinePromotionStep}
+                      onDirectionToggle={setRoutinePromotionDirection}
+                      onGroupedDirectionToggle={setRoutinePromotionGroupedDirection}
+                      onSessionCountChange={setRoutinePromotionSessionCount}
+                      onGroupedSessionCountChange={setRoutinePromotionGroupedSessionCount}
+                      onRepRangeMinChange={setRoutinePromotionRepRangeMin}
+                      onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
+                      onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
+                      infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(routinePromotionMeasurements, routinePromotionLinks))}
+                    />
+                  ) : null}
                 </div>
               ) : (
                 <div className="space-y-3" {...getCustomInfoHandlers(() => getPromotionBasisInfoPayload(selectedPromotionOptionId ?? "weight_and_reps"))}>
-                  {sessionSettingFields.length > 0 ? (
+                  <div className="flex justify-center">
+                    <ProgressionBinaryToggleButton
+                      checked={sessionSettingsEnabled}
+                      onLabel="On"
+                      offLabel="Off"
+                      ariaLabel="Session settings"
+                      onClick={toggleSessionSettingsEnabled}
+                    />
+                  </div>
+                  {sessionSettingsEnabled && sessionSettingFields.length > 0 ? (
                     <div {...getInfoSectionHandlers("session_settings")}>
                       <PromotionMeasurementStepRow
                         measurements={renderedSessionPromotionMeasurements}
@@ -6524,11 +6816,34 @@ export function ProgressionPlaybookEditor({
             progressionSettingsPanels.push({
               key: "set",
               title: "Set",
-              summary: "Flow",
+              summary: setSettingsEnabled ? "Flow" : "Off",
               widthClassName: "w-[9.75rem] min-w-[9.75rem]",
               content: (
                 <div className="space-y-3" {...getInfoSectionHandlers("set_step_settings")}>
-                  {setFlowSettingsRow}
+                  <div className="flex justify-center">
+                    <ProgressionBinaryToggleButton
+                      checked={setSettingsEnabled}
+                      onLabel="On"
+                      offLabel="Off"
+                      ariaLabel="Set settings"
+                      onClick={toggleSetSettingsEnabled}
+                    />
+                  </div>
+                  {setSettingsEnabled ? setFlowSettingsRow : null}
+                </div>
+              ),
+            });
+          }
+
+          if (!resolvedHideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0) {
+            progressionSettingsPanels.push({
+              key: "day_adjustments",
+              title: "Day",
+              summary: "Shifts",
+              widthClassName: "w-[9.5rem] min-w-[9.5rem]",
+              content: (
+                <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
+                  {daySettingFields}
                 </div>
               ),
             });
@@ -6582,7 +6897,7 @@ export function ProgressionPlaybookEditor({
                 summary={activePanel.summary}
                 accent={activePanel.accent}
                 showHeader={false}
-                stageClassName="h-[12.25rem]"
+                stageClassName={isExerciseInlineDropdownPreset ? "h-[30rem]" : "h-[12.25rem]"}
               >
                 {activePanel.content}
               </ProgressionSettingsStage>
@@ -7004,6 +7319,7 @@ export function ProgressionPlaybookEditor({
         name="progressionPromotionDirectionMapJson"
         value={JSON.stringify(value.progressionPromotionDirectionMap)}
       />
+      <input type="hidden" name="progressionSessionSettingsEnabled" value={value.progressionSessionSettingsEnabled ? "1" : "0"} />
       <input type="hidden" name="progressionDurationIncrementSeconds" value={value.progressionDurationIncrementSeconds} />
       <input type="hidden" name="progressionDistanceIncrement" value={value.progressionDistanceIncrement} />
       <input type="hidden" name="progressionDayMode" value="unsynced" />
@@ -7020,6 +7336,7 @@ export function ProgressionPlaybookEditor({
         name="progressionEffortWaveDirectionsJson"
         value={JSON.stringify(value.progressionEffortWaveDirections)}
       />
+      <input type="hidden" name="progressionSetSettingsEnabled" value={value.progressionSetSettingsEnabled ? "1" : "0"} />
       <input type="hidden" name="progressionSetFlowLoadStep" value={value.progressionSetFlowLoadStep} />
       <input type="hidden" name="progressionSetFlowRepStep" value={value.progressionSetFlowRepStep} />
       <input type="hidden" name="progressionSetFlowDurationStep" value={value.progressionSetFlowDurationStep} />
@@ -7054,7 +7371,7 @@ export function ProgressionPlaybookEditor({
       <input type="hidden" name="progressionLoadIncrement" value={value.progressionLoadIncrement} />
       {!(isExpanded && selectedPlaybookId && value.progressionStallPolicy === "deload_after_stall") ? (
         <>
-          <input type="hidden" name="progressionStallThreshold" value={value.progressionStallThreshold} />
+          <input type="hidden" name="progressionStallThreshold" value={resolvedProgressionStallThreshold} />
           <input type="hidden" name="progressionDeloadPercent" value={value.progressionDeloadPercent} />
         </>
       ) : null}

@@ -23,6 +23,24 @@ function hasTextValue(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function parseDurationInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d+$/u.test(trimmed)) return Number(trimmed);
+  const match = trimmed.match(/^(\d+):(\d{1,2})$/u);
+  if (!match) return null;
+  return (Number(match[1]) * 60) + Number(match[2]);
+}
+
+function parsePositiveNumber(value: string | null | undefined) {
+  if (!hasTextValue(value)) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 function getProgressionStepFieldLabel(policy: ReturnType<typeof inferProgressionStepPolicy>, weightUnit: "lbs" | "kg") {
   if (!policy.label) {
     return `WEIGHT (${weightUnit})`;
@@ -155,6 +173,17 @@ export function ExerciseProgressionEditorSurface({
 
   const repRangeMin = hasTextValue(goalState.repsMin) ? Number(goalState.repsMin) : null;
   const repRangeMax = hasTextValue(goalState.repsMax) ? Number(goalState.repsMax) : repRangeMin;
+  const exampleTargetValues = useMemo(
+    () => ({
+      sets: parsePositiveNumber(goalState.sets),
+      time: parseDurationInput(goalState.duration),
+      distance: parsePositiveNumber(goalState.distance),
+      reps: parsePositiveNumber(goalState.repsMin),
+      repsMax: parsePositiveNumber(goalState.repsMax) ?? parsePositiveNumber(goalState.repsMin),
+      weight: parsePositiveNumber(goalState.weight),
+    }),
+    [goalState.distance, goalState.duration, goalState.repsMax, goalState.repsMin, goalState.sets, goalState.weight],
+  );
 
   const failureToggleInfoContent = useMemo(
     () => buildFailureToggleInfoPayload({
@@ -196,6 +225,7 @@ export function ExerciseProgressionEditorSurface({
       hideProgressionMethodControl={hideProgressionMethodControl}
       renderRegressionAsSection={renderRegressionAsSection}
       infoDockPlacement={infoDockPlacement}
+      exampleTargetValues={exampleTargetValues}
     />
   );
 }

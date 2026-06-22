@@ -77,9 +77,13 @@ function parseDurationDisplayValue(input: string) {
 export function buildProgressionExampleSequence(args: {
   cycleLengthDays: number;
   groups: ProgressionExampleSequenceGroup[];
+  minimumRounds?: number;
 }) {
   const normalizedCycleLength = Number.isFinite(args.cycleLengthDays)
     ? Math.max(1, Math.floor(args.cycleLengthDays))
+    : 1;
+  const normalizedMinimumRounds = Number.isFinite(args.minimumRounds)
+    ? Math.max(1, Math.floor(args.minimumRounds as number))
     : 1;
   const normalizedGroups = args.groups
     .map((group) => ({
@@ -103,7 +107,10 @@ export function buildProgressionExampleSequence(args: {
     }),
   ));
 
-  const totalSections = Math.max(normalizedCycleLength, perRoundSteps.length);
+  const totalSections = Math.max(
+    normalizedCycleLength,
+    perRoundSteps.length * normalizedMinimumRounds,
+  );
 
   return Array.from({ length: totalSections }, (_, sectionIndex) => {
     const roundStepIndex = sectionIndex % perRoundSteps.length;
@@ -112,7 +119,9 @@ export function buildProgressionExampleSequence(args: {
 
     return {
       dayIndex: sectionIndex % normalizedCycleLength,
-      dayNumber: (sectionIndex % normalizedCycleLength) + 1,
+      // Keep the displayed example timeline continuous even when the
+      // cycle-slot index wraps for day-shift logic.
+      dayNumber: sectionIndex + 1,
       roundIndex,
       groupIndex: step.groupIndex,
       sessionIndex: step.sessionIndex,
@@ -129,6 +138,12 @@ export function parseComparableProgressionExampleValue(part: string) {
   const trimmed = part.trim();
   if (!trimmed) {
     return null;
+  }
+
+  const rangeMatch = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)(.*)$/u);
+  if (rangeMatch) {
+    const rangeUpperBound = Number(rangeMatch[2]);
+    return Number.isFinite(rangeUpperBound) ? rangeUpperBound : null;
   }
 
   const durationValue = parseDurationDisplayValue(trimmed);
@@ -149,6 +164,14 @@ export function splitProgressionExampleMetricPart(part: string) {
   const trimmed = part.trim();
   if (!trimmed) {
     return { valueText: "", labelText: "" };
+  }
+
+  const rangeMatch = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*([-–])\s*(-?\d+(?:\.\d+)?)(.*)$/u);
+  if (rangeMatch) {
+    return {
+      valueText: `${rangeMatch[1]}${rangeMatch[2]}${rangeMatch[3]}`,
+      labelText: rangeMatch[4]?.trim() ?? "",
+    };
   }
 
   const durationValue = parseDurationDisplayValue(trimmed);

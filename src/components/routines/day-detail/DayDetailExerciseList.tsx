@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
+import { StateChevron } from "@/components/ui/StateChevron";
 import { appTokens } from "@/components/ui/app/tokens";
 import { AccentDotSeparatedText, SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
@@ -42,6 +43,7 @@ type Props = {
   onSelectItem?: (item: DayDetailExerciseListItem) => void;
   onInfoItem?: (item: DayDetailExerciseListItem) => void;
   renderOverlayActions?: (item: DayDetailExerciseListItem) => React.ReactNode;
+  renderRowActions?: (item: DayDetailExerciseListItem) => React.ReactNode;
   renderExpandedContent?: (item: DayDetailExerciseListItem) => React.ReactNode;
   className?: string;
 };
@@ -127,10 +129,10 @@ function DayDetailExerciseTitle({
         </span>
       </span>
       {formattedSummary ? (
-        <span className="inline-flex min-w-0 shrink-0 items-stretch gap-1.25 pt-[1px]">
+        <span className="inline-flex min-w-0 shrink-0 items-start gap-1.25 pt-[1px]">
           <SignatureMiniPipe
-            className="mt-[1px] h-auto min-h-[2.85rem] self-stretch"
-            barClassName="h-full min-h-[2.85rem]"
+            className="mb-[1px] mt-[1px] h-auto self-stretch"
+            barClassName="h-full"
           />
           <span className="inline-flex max-w-[8.35rem] min-w-0 flex-col items-start gap-y-1 text-left">
             <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
@@ -139,7 +141,7 @@ function DayDetailExerciseTitle({
               </span>
               <MetricAccentBar variant="thin" className="w-full opacity-75" />
             </span>
-            <span className="min-w-0 max-w-full overflow-hidden whitespace-nowrap text-ellipsis">
+            <span className="mt-[1px] min-w-0 max-w-full overflow-hidden whitespace-nowrap text-ellipsis text-[9.75px] font-medium leading-[1.08] text-[rgb(var(--text-secondary)/0.88)]">
               {formattedSummary}
             </span>
           </span>
@@ -150,6 +152,8 @@ function DayDetailExerciseTitle({
 }
 
 const dayDetailInfoButtonClassName = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
+const dayDetailEditableChevronRailClassName = "!right-[0.58rem] !top-[0.58rem] !translate-y-0";
+const dayDetailEditableChevronClassName = cn("h-[1.05rem] w-[1.05rem] shrink-0", appTokens.historyChevronIcon);
 
 export function DayDetailExerciseList({
   items,
@@ -160,6 +164,7 @@ export function DayDetailExerciseList({
   onSelectItem,
   onInfoItem,
   renderOverlayActions,
+  renderRowActions,
   renderExpandedContent,
   className,
 }: Props) {
@@ -205,65 +210,82 @@ export function DayDetailExerciseList({
           image_icon_path: item.image_icon_path,
           image_howto_path: item.image_howto_path,
         };
+        const editableChevron = (
+          <StateChevron
+            expanded={isActive}
+            className={dayDetailEditableChevronClassName}
+            expandedClassName="text-[rgb(var(--accent-strong)/0.98)]"
+            collapsedClassName="text-[rgb(var(--text-muted)/0.88)]"
+          />
+        );
 
         return (
-          <li key={item.id} className={appTokens.routineEditorReorderItem} data-exercise-row-id={item.id}>
-            {mode === "editable" && interactive ? (
-              <ExerciseDisclosureCard
-                scope="day-detail"
-                itemId={item.id}
-                expanded={isActive}
-                onToggle={() => onSelectItem?.(item)}
-                exercise={exerciseVisual}
-                title={<DayDetailExerciseTitle item={item} summary={editableCompanionSummary} />}
-                summary={mode === "editable" ? undefined : resolvedSummary}
-                summaryContent={resolvedSummaryContent}
-                summaryLabel={undefined}
-                state={isActive ? "selected" : "default"}
-                semanticTone="current"
-                badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
-                bodyClassName={appTokens.routineEditorReorderBody}
-                contentClassName="pr-10"
-                subtitleTone="plain"
-                showLeadingVisual={policy.showMedia}
-                showAccentRail
-                hideEmptySummary
-                rightIconMode="overlay"
-                overlayActions={editableOverlayActions}
-                overlayActionsClassName={editableOverlayActionsClassName}
-                rightIcon={null}
-                surface="edit-day"
-                stickyHeaderWhenExpanded={mode === "editable"}
-              >
-                {renderExpandedContent?.(item)}
-              </ExerciseDisclosureCard>
-            ) : (
-              <StandardExerciseRow
-                title={mode === "editable" ? <DayDetailExerciseTitle item={item} summary={editableCompanionSummary} /> : undefined}
-                exercise={exerciseVisual}
-                summary={mode === "editable" ? undefined : resolvedSummary}
-                summaryContent={resolvedSummaryContent}
-                summaryLabel={mode === "editable" ? (isStretchHub ? "" : "Goal") : undefined}
-                subtitleTone="plain"
-                variant={interactive ? "interactive" : "standard"}
-                density={density}
-                state="default"
-                semanticTone="current"
-                onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                badgeText={mode === "editable" && showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
-                bodyClassName={mode === "editable" ? appTokens.routineEditorReorderBody : undefined}
-                className={cn("w-full", appTokens.routineEditorReorderBase)}
-                contentClassName={mode === "editable" ? "pr-10" : "pl-3"}
-                showLeadingVisual={policy.showMedia}
-                showAccentRail
-                hideEmptySummary={mode === "editable" || isStretchHub}
-                overlayActions={mode === "editable" ? editableOverlayActions : undefined}
-                overlayActionsClassName={mode === "editable" ? editableOverlayActionsClassName : undefined}
-                rightIcon={mode === "editable" ? null : undefined}
-                rightIconMode={mode === "editable" ? "overlay" : undefined}
-                surface={mode === "editable" ? "edit-day" : undefined}
-              />
-            )}
+          <li
+            key={item.id}
+            className={cn(appTokens.routineEditorReorderItem, mode === "editable" ? "relative" : undefined)}
+            data-exercise-row-id={item.id}
+          >
+            <div className={mode === "editable" ? "pr-[40px]" : undefined}>
+              {mode === "editable" && interactive ? (
+                <ExerciseDisclosureCard
+                  scope="day-detail"
+                  itemId={item.id}
+                  expanded={isActive}
+                  onToggle={() => onSelectItem?.(item)}
+                  exercise={exerciseVisual}
+                  title={<DayDetailExerciseTitle item={item} summary={editableCompanionSummary} />}
+                  summary={mode === "editable" ? undefined : resolvedSummary}
+                  summaryContent={resolvedSummaryContent}
+                  summaryLabel={undefined}
+                  state={isActive ? "selected" : "default"}
+                  semanticTone="current"
+                  badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
+                  bodyClassName={appTokens.routineEditorReorderBody}
+                  contentClassName="pr-[2.45rem]"
+                  subtitleTone="plain"
+                  showLeadingVisual={policy.showMedia}
+                  showAccentRail
+                  hideEmptySummary
+                  rightIconMode="overlay"
+                  overlayActions={editableOverlayActions}
+                  overlayActionsClassName={editableOverlayActionsClassName}
+                  rightIcon={editableChevron}
+                  rightRailClassName={dayDetailEditableChevronRailClassName}
+                  surface="edit-day"
+                  stickyHeaderWhenExpanded={mode === "editable"}
+                >
+                  {renderExpandedContent?.(item)}
+                </ExerciseDisclosureCard>
+              ) : (
+                <StandardExerciseRow
+                  title={mode === "editable" ? <DayDetailExerciseTitle item={item} summary={editableCompanionSummary} /> : undefined}
+                  exercise={exerciseVisual}
+                  summary={mode === "editable" ? undefined : resolvedSummary}
+                  summaryContent={resolvedSummaryContent}
+                  summaryLabel={mode === "editable" ? (isStretchHub ? "" : "Goal") : undefined}
+                  subtitleTone="plain"
+                  variant={interactive ? "interactive" : "standard"}
+                  density={density}
+                  state="default"
+                  semanticTone="current"
+                  onPress={interactive ? () => onSelectItem?.(item) : undefined}
+                  badgeText={mode === "editable" && showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
+                  bodyClassName={mode === "editable" ? appTokens.routineEditorReorderBody : undefined}
+                  className={cn("w-full", appTokens.routineEditorReorderBase)}
+                  contentClassName={mode === "editable" ? "pr-[2.45rem]" : "pl-3"}
+                  showLeadingVisual={policy.showMedia}
+                  showAccentRail
+                  hideEmptySummary={mode === "editable" || isStretchHub}
+                  overlayActions={mode === "editable" ? editableOverlayActions : undefined}
+                  overlayActionsClassName={mode === "editable" ? editableOverlayActionsClassName : undefined}
+                  rightIcon={mode === "editable" ? editableChevron : undefined}
+                  rightIconMode={mode === "editable" ? "overlay" : undefined}
+                  rightRailClassName={mode === "editable" ? dayDetailEditableChevronRailClassName : undefined}
+                  surface={mode === "editable" ? "edit-day" : undefined}
+                />
+              )}
+            </div>
+            {mode === "editable" ? renderRowActions?.(item) : null}
           </li>
         );
       })}

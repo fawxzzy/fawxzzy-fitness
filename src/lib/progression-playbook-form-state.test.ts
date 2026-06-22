@@ -35,17 +35,6 @@ const defaultSetFlowSteps = {
   repStep: 2,
 };
 
-const defaultDayProgressionSteps = {
-  loadStep: 10,
-  repStep: 5,
-  durationSecondsStep: 30,
-  distanceStep: 0.5,
-};
-
-const defaultDayLoweredProgressionSteps = {
-  ...defaultDayProgressionSteps,
-};
-
 test("progression form equality normalizes numeric config values", () => {
   const left = createProgressionPlaybookFormState({
     playbookId: "double_progression",
@@ -90,8 +79,6 @@ test("legacy deload playbook id maps to double progression plus deload policy", 
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "deload_after_stall",
     stallThreshold: 2,
@@ -162,8 +149,6 @@ test("advanced step options persist in progression config", () => {
       distanceStep: 0.2,
     },
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
@@ -222,8 +207,6 @@ test("set count restores from saved config", () => {
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     setFlowCountMap: {
       time: 4,
@@ -262,8 +245,6 @@ test("promotion directions restore and round-trip through progression config ser
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
@@ -299,8 +280,6 @@ test("grouped promotion directions restore and round-trip through progression co
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
@@ -331,14 +310,14 @@ test("day settings and effort schedule restore from saved config", () => {
   });
 
   assert.equal(state.progressionDayMode, "synced");
-  assert.equal(state.progressionDayLoadStep, "7.5");
-  assert.equal(state.progressionDayRepStep, "3");
-  assert.equal(state.progressionDayDurationStep, "120");
-  assert.equal(state.progressionDayDistanceStep, "0.4");
-  assert.equal(state.progressionDayLoweredLoadStep, "7.5");
-  assert.equal(state.progressionDayLoweredRepStep, "3");
-  assert.equal(state.progressionDayLoweredDurationStep, "120");
-  assert.equal(state.progressionDayLoweredDistanceStep, "0.4");
+  assert.equal(state.progressionDayLoadStep, "0");
+  assert.equal(state.progressionDayRepStep, "0");
+  assert.equal(state.progressionDayDurationStep, "0");
+  assert.equal(state.progressionDayDistanceStep, "0");
+  assert.equal(state.progressionDayLoweredLoadStep, "0");
+  assert.equal(state.progressionDayLoweredRepStep, "0");
+  assert.equal(state.progressionDayLoweredDurationStep, "0");
+  assert.equal(state.progressionDayLoweredDistanceStep, "0");
   assert.deepEqual(state.progressionEffortWaveDirections, ["up", "straight", "down", "straight", "up", "down", "straight"]);
 });
 
@@ -543,8 +522,6 @@ test("apply routine default can copy normalized default form values", () => {
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "deload_after_stall",
     stallThreshold: 3,
@@ -589,8 +566,6 @@ test("promotion controls round-trip through progression config serialization", (
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
@@ -624,8 +599,6 @@ test("routine promotion measurement family order restores and round-trips throug
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
@@ -659,8 +632,6 @@ test("target changes and required successful sessions round-trip through progres
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
@@ -701,8 +672,6 @@ test("promotion session count memory round-trips through progression config seri
     stepOverrides: defaultStepOverrides,
     setFlowSteps: defaultSetFlowSteps,
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     stallPolicy: "none",
     autoUpdateRoutineGoals: false,
@@ -794,8 +763,6 @@ test("set flow grouping restores blank time and distance defaults and round-trip
       repStep: 2,
     },
     dayProgressionMode: "unsynced",
-    dayProgressionSteps: defaultDayProgressionSteps,
-    dayLoweredProgressionSteps: defaultDayLoweredProgressionSteps,
     setFlow: "straight_sets",
     setFlowMeasurementSequence: [
       ["time", "distance"],

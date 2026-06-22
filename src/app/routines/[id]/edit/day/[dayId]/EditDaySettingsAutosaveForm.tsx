@@ -4,19 +4,17 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   RoutineEditorPageHeader,
+  RoutineEditorTitleInput,
 } from "@/components/routines/RoutineEditorShared";
-import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
-import { SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { cn } from "@/lib/cn";
-import { splitWeekdayDisplayLabel } from "@/lib/header-meta";
 import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import { getRoutineOverviewHref } from "@/lib/routine-day-navigation";
-import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "@/lib/routines";
+import { getRoutineDayEditableName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { publishEditDayAdjustmentDirection, subscribeEditDayAutoProgressionVisibility, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
 
@@ -29,7 +27,6 @@ type Props = {
     unknown: number;
   };
   routineDayId: string;
-  routineName: string;
   backHref: string;
   dayIndex: number;
   name: string | null;
@@ -97,7 +94,7 @@ function EditDayAdjustmentButton({
   );
 }
 
-export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _daySummaryCounts, routineDayId, routineName, backHref, dayIndex, name, startDate, isRest, showDayAdjustmentControl = false, initialDayAdjustmentDirection = "straight", floatingHeaderSlotId }: Props) {
+export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _daySummaryCounts, routineDayId, backHref, dayIndex, name, startDate, isRest, showDayAdjustmentControl = false, initialDayAdjustmentDirection = "straight", floatingHeaderSlotId }: Props) {
   const toast = useToast();
   const formRef = useRef<HTMLFormElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -208,55 +205,25 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
     timeoutRef.current = setTimeout(submitAutosave, 500);
   }, [submitAutosave]);
 
-  const previewDayName = formatRoutineDayDisplayName({
-    name: draft.name,
-    dayIndex,
-    startDate,
-  });
-  const previewDayParts = splitWeekdayDisplayLabel(previewDayName);
-  const previewWeekdayLabel = previewDayParts?.weekday ?? previewDayName;
-  const compactDayNameWidthCh = Math.min(Math.max((draft.name.trim() || "Workout Plan").length + 2, 14), 20);
-
   const headerNode = (
     <RoutineEditorPageHeader
       title={(
-        <div className="mx-auto flex min-w-0 max-w-full items-center justify-center gap-2">
-          <span className="min-w-0 max-w-[7.5rem] truncate">{routineName.trim() || "Routine"}</span>
-          <SignatureMiniPipe />
-          <div className="w-fit max-w-[14.5rem] shrink-0">
-            <LabeledEditorField
-              label="Workout plan"
-              className="min-w-0 rounded-[var(--radius-pill)] bg-[rgb(var(--surface-1-rgb)/0.2)] shadow-[0_6px_18px_rgba(0,0,0,0.1)]"
-              labelClassName="ml-3 mr-auto max-w-[calc(100%-0.8rem)] px-0 text-[8px] tracking-[0.14em]"
-            >
-              <input
-                form="routine-day-settings-form"
-                name="name"
-                value={draft.name}
-                onChange={(event) => {
-                  const nextSnapshot: typeof draft = { ...draft, name: event.target.value };
-                  setDraft(nextSnapshot);
-                  scheduleAutosave(nextSnapshot);
-                }}
-                placeholder="Workout plan"
-                aria-label="Workout plan"
-                maxLength={15}
-                className={cn(
-                  labeledEditorFieldControlClassName,
-                  "h-8 min-w-0 px-3 pb-2 pt-1 text-center text-[0.82rem] font-semibold leading-none",
-                )}
-                style={{ width: `${compactDayNameWidthCh}ch` }}
-              />
-            </LabeledEditorField>
-          </div>
-          {previewWeekdayLabel ? (
-            <span className="inline-flex min-w-0 shrink-0 items-center gap-2">
-              <SignatureDot />
-              <span className={cn(appTokens.accentText, "text-[rgb(var(--accent-divider-rgb)/0.96)]")}>
-                {previewWeekdayLabel}
-              </span>
-            </span>
-          ) : null}
+        <div data-app-header-raw-title="true" className="mx-auto block w-fit max-w-full">
+          <RoutineEditorTitleInput
+            name="name"
+            value={draft.name}
+            onChange={(nextValue) => {
+              const nextSnapshot: typeof draft = { ...draft, name: nextValue };
+              setDraft(nextSnapshot);
+              scheduleAutosave(nextSnapshot);
+            }}
+            placeholder="Workout Plan"
+            ariaLabel="Workout Plan Name"
+            maxLength={15}
+            className="text-center"
+            hideLabel
+            plainShell
+          />
         </div>
       )}
       action={(
@@ -268,6 +235,8 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
         />
       )}
       align="center"
+      withPanel={false}
+      showSeparator={false}
     />
   );
 
@@ -277,39 +246,6 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
       <input type="hidden" name="routineDayId" value={routineDayId} />
       <NavigationReturnInput fallbackHref={getRoutineOverviewHref()} value={backHref} />
       {!isFocusModeActive ? (floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode) : null}
-      {!isFocusModeActive && !isReorderModeActive ? (
-        <div className="space-y-3 px-1">
-          {isDayAdjustmentVisible ? (
-            <div className="mx-auto flex w-full max-w-[18rem] flex-col items-center gap-1.5">
-              <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-                Workout Plan Adjustments
-              </p>
-              <div className="w-fit max-w-full">
-                <EditDayAdjustmentButton
-                  dayNumber={dayIndex}
-                  direction={draft.dayAdjustmentDirection}
-                  onClick={() => {
-                    const nextDirection = cycleSetFlowDirection({
-                      current: draft.dayAdjustmentDirection,
-                      hasStepValue: false,
-                    });
-                    const nextSnapshot: typeof draft = {
-                      ...draft,
-                      dayAdjustmentDirection: nextDirection,
-                    };
-                    setDraft(nextSnapshot);
-                    publishEditDayAdjustmentDirection({
-                      screen: "edit-day",
-                      direction: nextDirection,
-                    });
-                    scheduleAutosave(nextSnapshot);
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </form>
   );
 }

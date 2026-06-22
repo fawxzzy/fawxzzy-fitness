@@ -52,6 +52,7 @@ export function RoutineEditorPageHeader({
   recipe = "editDay",
   align = "left",
   withPanel = true,
+  showSeparator = true,
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -65,6 +66,7 @@ export function RoutineEditorPageHeader({
   recipe?: ScreenContractName;
   align?: "left" | "center";
   withPanel?: boolean;
+  showSeparator?: boolean;
 }) {
   return (
     <SharedScreenHeader
@@ -79,6 +81,7 @@ export function RoutineEditorPageHeader({
       className={className}
       actionClassName={actionClassName}
       withPanel={withPanel}
+      showSeparator={showSeparator}
     >
       {children}
     </SharedScreenHeader>

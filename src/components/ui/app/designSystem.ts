@@ -392,7 +392,7 @@ export const fitnessDesignPrimitiveClassNames = {
     routineEditorReorderDraggingClassName: "scale-[0.99] opacity-85",
     routineEditorReorderTrailingStackClassName: `gap-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
     routineEditorReorderItemClassName: `rounded-[${fitnessDesignTokens.radii.xl}] transition-all`,
-    routineEditorHandleGlyphClassName: "grid h-full w-full grid-cols-2 place-items-center content-center justify-items-center gap-x-[3px] gap-y-[2px]",
+    routineEditorHandleGlyphClassName: "grid h-full w-full grid-cols-[auto_auto_auto] place-items-center content-center justify-items-center gap-x-[2px]",
     curatedOuterStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
     curatedCompactStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}]`,
     curatedLooseStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}]`,

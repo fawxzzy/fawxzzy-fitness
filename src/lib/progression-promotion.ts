@@ -140,6 +140,35 @@ export function getRepPromotionTarget(args: {
   return range.maxReps;
 }
 
+export function getNextRepRangeValue(args: {
+  currentReps?: unknown;
+  minReps?: unknown;
+  maxReps?: unknown;
+  step?: unknown;
+  direction?: "up" | "down";
+}) {
+  const range = normalizeRepRange({
+    minReps: args.minReps,
+    maxReps: args.maxReps,
+  });
+  const fallbackCurrentReps = normalizePositiveInteger(args.currentReps) ?? 1;
+  if (!range) {
+    return fallbackCurrentReps;
+  }
+
+  const resolvedStep = normalizePositiveInteger(args.step) ?? 1;
+  const boundedCurrentReps = Math.min(
+    range.maxReps,
+    Math.max(range.minReps, normalizePositiveInteger(args.currentReps) ?? range.minReps),
+  );
+
+  if (args.direction === "down") {
+    return Math.max(range.minReps, boundedCurrentReps - resolvedStep);
+  }
+
+  return Math.min(range.maxReps, boundedCurrentReps + resolvedStep);
+}
+
 export function normalizeProgressionPromotionConfig(args: {
   promotionBasis?: unknown;
   repPromotionThreshold?: unknown;

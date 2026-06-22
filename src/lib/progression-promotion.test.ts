@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_PROGRESSION_PROMOTION_BASIS,
+  getNextRepRangeValue,
   getRepPromotionTarget,
   normalizeProgressionPromotionConfig,
   normalizePromotionBasis,
@@ -88,4 +89,24 @@ test("legacy custom threshold without a usable custom target falls back to top-o
     repPromotionThreshold: "top_of_range",
     customRepPromotionTarget: null,
   });
+});
+
+test("rep-range stepping clamps upward progress at the configured max", () => {
+  assert.equal(getNextRepRangeValue({
+    currentReps: 7,
+    minReps: 4,
+    maxReps: 8,
+    step: 3,
+    direction: "up",
+  }), 8);
+});
+
+test("rep-range stepping clamps downward progress at the configured min", () => {
+  assert.equal(getNextRepRangeValue({
+    currentReps: 5,
+    minReps: 4,
+    maxReps: 8,
+    step: 3,
+    direction: "down",
+  }), 4);
 });

@@ -27,6 +27,10 @@ test("splits numeric text from measurement labels", () => {
     valueText: "140",
     labelText: "lbs",
   });
+  assert.deepEqual(splitProgressionExampleMetricPart("6-8 reps"), {
+    valueText: "6-8",
+    labelText: "reps",
+  });
   assert.deepEqual(splitProgressionExampleMetricPart("10:30 time"), {
     valueText: "10:30",
     labelText: "time",
@@ -96,6 +100,34 @@ test("repeats cycle days when one promotion round outlasts the routine cycle", (
 
   assert.deepEqual(
     sequence.map((step) => step.dayNumber),
-    [1, 2, 3, 1],
+    [1, 2, 3, 4],
+  );
+});
+
+test("classifies rep ranges by their upper bound for progression comparisons", () => {
+  assert.equal(classifyProgressionExampleMetricChange("6-8 reps", "4-6 reps"), "higher");
+  assert.equal(classifyProgressionExampleMetricChange("4-6 reps", "6-8 reps"), "lower");
+});
+
+test("extends the example across enough rounds to show the full rep range", () => {
+  const sequence = buildProgressionExampleSequence({
+    cycleLengthDays: 1,
+    minimumRounds: 2,
+    groups: [
+      { measurements: ["reps"], sessionCount: 1 },
+    ],
+  });
+
+  assert.deepEqual(
+    sequence.map((step) => ({
+      day: step.dayNumber,
+      round: step.roundIndex,
+      session: step.sessionIndex,
+      measurement: step.measurements.join("+"),
+    })),
+    [
+      { day: 1, round: 0, session: 1, measurement: "reps" },
+      { day: 2, round: 1, session: 1, measurement: "reps" },
+    ],
   );
 });
