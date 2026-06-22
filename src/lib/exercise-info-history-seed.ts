@@ -38,6 +38,8 @@ export function buildExerciseInfoSeedFromHistoryRow(row: ExerciseBrowserRow): {
       exercise_id: row.exerciseId,
       name: row.name,
       primary_muscle: row.primary_muscle,
+      primary_muscles: row.primary_muscles ?? null,
+      secondary_muscles: row.secondary_muscles ?? null,
       equipment: row.equipment,
       movement_pattern: row.movement_pattern,
       image_howto_path: row.image_howto_path,

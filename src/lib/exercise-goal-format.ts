@@ -65,7 +65,7 @@ export function formatExerciseGoalSummary(goal: ExerciseGoalSummaryFields) {
   }
 
   const [first, second, ...rest] = labels;
-  return [`${first} | ${second}`, ...rest].join(" \u00e2\u20ac\u00a2 ");
+  return [`${first} | ${second}`, ...rest].join(" \u2022 ");
 }
 
 export function formatExerciseGoal(goal: GoalFields) {

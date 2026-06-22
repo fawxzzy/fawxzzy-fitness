@@ -25,11 +25,17 @@ type EditDayAdjustmentDirectionDetail = {
   direction: "straight" | "up" | "down";
 };
 
+type EditDayTitleValidityDetail = {
+  screen: "edit-day";
+  canAddExercise: boolean;
+};
+
 const SCREEN_FOCUS_MODE_EVENT = "atlas:screen-focus-mode";
 const SCREEN_MODE_EVENT = "atlas:screen-mode";
 const EDIT_DAY_CLOSE_EXPANDED_CARD_EVENT = "atlas:edit-day-close-expanded-card";
 const EDIT_DAY_AUTO_PROGRESSION_VISIBILITY_EVENT = "atlas:edit-day-auto-progression-visibility";
 const EDIT_DAY_ADJUSTMENT_DIRECTION_EVENT = "atlas:edit-day-adjustment-direction";
+const EDIT_DAY_TITLE_VALIDITY_EVENT = "atlas:edit-day-title-validity";
 
 export function publishScreenFocusMode(detail: ScreenFocusModeDetail) {
   if (typeof window === "undefined") {
@@ -180,5 +186,35 @@ export function subscribeEditDayAdjustmentDirection(
   window.addEventListener(EDIT_DAY_ADJUSTMENT_DIRECTION_EVENT, handleEvent as EventListener);
   return () => {
     window.removeEventListener(EDIT_DAY_ADJUSTMENT_DIRECTION_EVENT, handleEvent as EventListener);
+  };
+}
+
+export function publishEditDayTitleValidity(detail: EditDayTitleValidityDetail) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent<EditDayTitleValidityDetail>(EDIT_DAY_TITLE_VALIDITY_EVENT, { detail }));
+}
+
+export function subscribeEditDayTitleValidity(
+  onChange: (canAddExercise: boolean) => void,
+) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleEvent = (event: Event) => {
+    const nextDetail = (event as CustomEvent<EditDayTitleValidityDetail>).detail;
+    if (!nextDetail || nextDetail.screen !== "edit-day") {
+      return;
+    }
+
+    onChange(nextDetail.canAddExercise);
+  };
+
+  window.addEventListener(EDIT_DAY_TITLE_VALIDITY_EVENT, handleEvent as EventListener);
+  return () => {
+    window.removeEventListener(EDIT_DAY_TITLE_VALIDITY_EVENT, handleEvent as EventListener);
   };
 }

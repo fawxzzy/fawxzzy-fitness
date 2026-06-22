@@ -3,11 +3,12 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { FilterToggleButton } from "@/components/ui/FilterToggleButton";
 import { SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
-import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { Input } from "@/components/ui/Input";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
+import { PillButton } from "@/components/ui/Pill";
 import { cn } from "@/lib/cn";
 import {
   dispatchFitnessOverlayExclusiveOpen,
@@ -104,6 +105,13 @@ export function ExerciseSearchFilters({
   };
 
   const selectedFilterCount = selectedTags.length;
+  const selectedTagEntries = useMemo(() => {
+    const labelByValue = new Map(groups.flatMap((group) => group.tags.map((tag) => [tag.value, tag.label] as const)));
+    return selectedTags.map((tag) => ({
+      value: tag,
+      label: labelByValue.get(tag) ?? tag,
+    }));
+  }, [groups, selectedTags]);
   const searchPlaceholderText = useMemo(() => {
     if (typeof resultCount !== "number") {
       return searchPlaceholder.endsWith("..") ? searchPlaceholder : `${searchPlaceholder}..`;
@@ -145,25 +153,19 @@ export function ExerciseSearchFilters({
           </button>
         ) : null}
         {trailingControls}
-        <button
-          type="button"
+        <FilterToggleButton
+          open={isFilterOpen}
+          active={selectedFilterCount > 0}
           onClick={() => updateFilterOpen((previous) => !previous)}
-          aria-expanded={isFilterOpen}
-          aria-label={toggleFiltersAriaLabel}
-          data-action-chrome-intent={isFilterOpen || selectedFilterCount > 0 ? "toggleActive" : "neutral"}
-          data-action-chrome-selected={isFilterOpen || selectedFilterCount > 0 ? "true" : undefined}
+          ariaLabel={toggleFiltersAriaLabel}
+          countBadge={selectedFilterCount > 0 ? selectedFilterCount : null}
           className={cn(
-            ACTION_CHROME_CONTROL_CLASS_NAME,
-            ACTION_CHROME_SEGMENTED_CLASS_NAME,
-            "inline-flex h-8 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
             chromeVariant === "history" && !(isFilterOpen || selectedFilterCount > 0)
-              ? "border-transparent bg-transparent shadow-none text-[rgb(var(--text-muted)/0.96)]"
+              ? "border-transparent bg-transparent shadow-none"
               : "",
+            filterButtonClassName,
           )}
-        >
-          <span>{selectedFilterCount > 0 ? selectedFilterCount : "Filter"}</span>
-          {isFilterOpen ? <ChevronUpIcon className="h-3.5 w-3.5" /> : <ChevronDownIcon className="h-3.5 w-3.5" />}
-        </button>
+        />
       </div>
     </div>
   );
@@ -184,17 +186,53 @@ export function ExerciseSearchFilters({
       panelClassName={filterPanelClassName}
       variant="compact"
       viewportMode={filterViewportMode}
+      autoHeightViewportClassName={
+        filterViewportMode === "auto-height"
+          ? "max-h-[calc(100dvh-var(--bottom-actions-height,var(--app-mobile-bottom-dock-height,0px))-11.5rem)]"
+          : undefined
+      }
       horizontalRailOverrideClassName={filterHorizontalRailOverrideClassName}
       compactDensity={filterCompactDensity}
       extraContent={filterExtraContent}
     />
   );
+  const activeFilterRail = selectedTagEntries.length > 0 && !isFilterOpen ? (
+    <div className="space-y-0.5 px-0.5">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <p className={appTokens.exercisePickerFilterGroupLabel}>Active Filters</p>
+        <button
+          type="button"
+          onClick={() => onTagsChange([])}
+          className={cn(appTokens.exercisePickerFilterClearButton, "!border-[rgb(var(--accent-yellow-on)/0.58)] px-2 py-1 text-[10px]")}
+        >
+          Clear all
+        </button>
+      </div>
+      <HorizontalScrollHint
+        scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-0.5 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
+        contentClassName="flex min-w-max flex-nowrap gap-1.5"
+      >
+        {selectedTagEntries.map((tag) => (
+          <PillButton
+            key={tag.value}
+            type="button"
+            active
+            className="shrink-0 whitespace-nowrap px-2 py-1 text-[10px] !border-[rgb(var(--accent)/0.82)] !bg-[rgb(var(--accent)/0.42)] !text-[rgb(240_255_251)] shadow-[0_0_0_1px_rgba(71,215,196,0.22),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+            onClick={() => onTagsChange(selectedTags.filter((value) => value !== tag.value))}
+          >
+            {tag.label}
+          </PillButton>
+        ))}
+      </HorizontalScrollHint>
+    </div>
+  ) : null;
 
   return (
     <div className={cn("relative", className)}>
       {searchControl}
+      {activeFilterRail}
       {isFilterOpen ? (
-        <div className={cn("absolute left-1/2 top-[calc(100%+0.625rem)] z-60 -translate-x-1/2", SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME)}>
+        <div className={cn("absolute left-1/2 top-[calc(100%+0.625rem)] z-[96] -translate-x-1/2", SHARED_OVERLAY_PANEL_BREAKOUT_WIDTH_CLASS_NAME)}>
           {filterControl}
         </div>
       ) : null}

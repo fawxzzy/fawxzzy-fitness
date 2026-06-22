@@ -327,7 +327,7 @@ export function ExerciseCard({
           aria-hidden="true"
           data-exercise-card-accent-rail="true"
           className={cn(
-            "pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full",
+            "pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full z-[2]",
             cardAccentRailClassNames[resolvedSemanticTone],
           )}
         />

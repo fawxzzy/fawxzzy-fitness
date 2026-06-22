@@ -12,9 +12,9 @@ export function SignatureMiniPipe({
   return (
     <span
       aria-hidden="true"
-      className={cn("inline-flex h-[1em] w-[0.465rem] shrink-0 items-center justify-center align-middle", className)}
+      className={cn("inline-flex h-[0.94em] w-[0.465rem] shrink-0 self-center items-center justify-center leading-none", className)}
     >
-      <span className={cn("block h-[0.88em] w-[3px] rounded-full bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.96),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.94))] shadow-[0_0_14px_rgb(var(--accent-divider-rgb)/0.58)]", barClassName)} />
+      <span className={cn("block h-full w-[3px] rounded-full bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.96),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.94))] shadow-[0_0_14px_rgb(var(--accent-divider-rgb)/0.58)]", barClassName)} />
     </span>
   );
 }

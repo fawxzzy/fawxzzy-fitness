@@ -2488,6 +2488,7 @@ function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
         initialCustomExerciseDraft={isCustomTaxonomyFixture ? {
           name: "Hip Flexor Stretch",
           primaryMuscle: "Recovery",
+          secondaryMuscle: "Core",
           movementPattern: "Stretch",
           equipment: "Bodyweight",
         } : undefined}

@@ -54,7 +54,12 @@ export function AppHeader({
   const isCentered = align === "center";
   const copyStackAlignmentClassName = isCentered ? "items-center text-center" : "items-start text-left";
   const copyColumnClassName = isCentered
-    ? cn("mx-auto w-fit min-w-0 flex-none", hasRightRail ? "max-w-[calc(100%-4.35rem)] pr-1" : "max-w-full")
+    ? cn(
+      "mx-auto w-fit min-w-0 flex-none",
+      hasRightRail
+        ? "max-w-[calc(100%-6.6rem)] px-[3rem]"
+        : "max-w-[calc(100%-1rem)] px-1",
+    )
     : "flex-1";
   const copyStackClassName = isCentered
     ? "inline-flex min-w-0 max-w-full flex-col"

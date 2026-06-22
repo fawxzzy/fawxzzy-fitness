@@ -1,48 +1,54 @@
 # Fitness Playbook Adoption
 
-This repo claims the Playbook owner contract `playbook_convergence_contract` at version `1.0.0` from `repos/fawxzzy-playbook/exports/playbook.contract.example.v1.json`.
+This repo claims the Playbook owner contract `playbook_convergence_contract` at version `1.0.0` from `repos/playbook/exports/playbook.contract.example.v1.json`.
 
 It does not copy the Playbook contract locally. Repo-owned evidence for this tranche lives in:
 
 - `exports/repo.playbook.adoption.evidence.schema.v1.json`
 - `exports/fitness.playbook.adoption.evidence.v1.json`
 - `tests/playbook-adoption-evidence.test.mjs`
-- `exports/fitness.playbook.verification.report.v1.json`
-- `tests/playbook-verification-report.test.mjs`
-- `docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md`
 
 ## Current Status
 
 - adoption status: `adopted`
 - verification state: `targeted`
-- verification report status: `verified`
 - continuity status: `structured`
 - drift status: `none_detected`
 
-The repo is intentionally conservative about what it claims. This tranche proves the repo can declare its contract version, export repo-local adoption evidence, and validate that evidence against the owner contract ids and local schema. It does not claim to own stack-level approval or execution boundaries that belong elsewhere.
+This tranche proves that Fitness can declare its Playbook contract version, publish one stable repo-local adoption export, and validate that export against the owner contract ids and the repo schema without moving Playbook truth into the app repo.
 
-Verified promotion is now carried by the separate repo-owned verification report. That keeps the adoption export honest about scope while still allowing ATLAS root to project `verification_status=verified` when the repo-owned gate is green.
+## Repo-Owned Truth Boundaries
+
+Fitness keeps its owned workflow and runtime truth here:
+
+- `README.md`
+- `truth-pack/fitness/README.md`
+- `truth-pack/fitness/governance-loop.md`
+- `docs/architecture/fitness-integration.md`
+- `docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md`
+
+Those surfaces define the governed loop, repo-local boundary posture, and reusable ecosystem contract for the app. ATLAS root consumes the resulting evidence read-only instead of synthesizing a second owner-truth store.
 
 ## Implemented Patterns
 
 Implemented in this repo:
 
 - `pattern_ground_work_in_current_awareness`
-  Evidence: `README.md`, `docs/PROJECT_GOVERNANCE.md`
+  Evidence: `README.md`, `truth-pack/fitness/README.md`, `docs/architecture/fitness-integration.md`
 - `pattern_explicit_trust_posture`
-  Evidence: `exports/fitness.playbook.adoption.evidence.v1.json`, this doc
+  Evidence: `truth-pack/fitness/governance-loop.md`, this doc, `exports/fitness.playbook.adoption.evidence.v1.json`
 - `pattern_owner_repo_keeps_owner_truth`
-  Evidence: local export points back to the Playbook owner export
+  Evidence: `truth-pack/fitness/README.md`, this doc, `exports/fitness.playbook.adoption.evidence.v1.json`
 - `pattern_convergence_is_measurable`
-  Evidence: `tests/playbook-adoption-evidence.test.mjs`
+  Evidence: `tests/playbook-adoption-evidence.test.mjs`, `package.json`
 - `pattern_structured_handoff_and_promotion`
-  Evidence: this doc, `docs/PLAYBOOK_NOTES.md`, `docs/CHANGELOG.md`
+  Evidence: `README.md`, `truth-pack/fitness/governance-loop.md`, this doc
 
 Not applicable in this repo:
 
 - `pattern_proposal_before_execution`
 
-That pattern is scoped by the Playbook contract to `atlas_root`, `lifeline`, and `stack_orchestrator`. Fitness is a `vertical_owner_repo`, so the repo records the non-applicability explicitly instead of omitting it.
+That boundary is currently owned by ATLAS root, Lifeline, and `_stack`. Fitness records the non-applicability explicitly rather than implying the app repo owns those governed proposal lanes.
 
 ## Adoption Checks
 
@@ -57,15 +63,15 @@ Not applicable here:
 - `adoption_atlas_consumes_owner_truth_read_only`
 - `adoption_proposal_and_execution_are_separate`
 
-Those remain owned by Playbook, ATLAS root, and Lifeline or `_stack` rather than by this repo.
+Those remain owned by Playbook, ATLAS root, Lifeline, and `_stack` rather than by the Fitness repo.
 
 ## Continuity Posture
 
-Fitness follows the ATLAS continuity lane for serious Codex or ChatGPT work:
+Fitness follows the ATLAS continuity contract for serious Codex or ChatGPT work:
 
 - raw transcript is `trace_only`
 - structured handoff is required
-- durable facts promote into repo docs, truth-pack evidence, or stack continuity artifacts
+- durable repo facts promote into repo-owned docs, truth-pack surfaces, exports, and receipts rather than staying as transcript residue
 
 Current handoff contract reference:
 
@@ -73,25 +79,20 @@ Current handoff contract reference:
 
 Current durable promotion targets for repo-local work:
 
-- `docs/PLAYBOOK_NOTES.md` for repo-specific Playbook notes and promotion candidates
-- `docs/CHANGELOG.md` for durable shipped change notes
-- `truth-pack/fitness/` for governed ecosystem-facing receipts and state surfaces
+- `truth-pack/fitness/` for governed ecosystem truth
+- `docs/architecture/fitness-integration.md` for durable seam and boundary doctrine
+- `docs/ops/` for repo-owned operator receipts and verification notes
+- `exports/` for machine-readable owner evidence
 
-## Repo-Local Evidence
+Transcript residue is never the durable endpoint by itself.
 
-Evidence for this slice should stay stable and repo-owned:
+## Trust And Boundary Notes
 
-- repo identity and role: `exports/fitness.playbook.adoption.evidence.v1.json`
-- local Playbook runtime and bootstrap posture: `README.md`, `docs/PROJECT_GOVERNANCE.md`
-- targeted validation: `tests/playbook-adoption-evidence.test.mjs`
-- verified-gate evidence: `exports/fitness.playbook.verification.report.v1.json`, `tests/playbook-verification-report.test.mjs`, `docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md`
-- stack-facing receipt or action posture: `.lifeline/fitness.lifeline.yml`, `truth-pack/fitness/actions-and-receipts.json`
+The repo keeps restricted posture explicit:
 
-## Out Of Scope
+- the governed loop remains `signal -> plan -> action -> receipt`
+- direct bypass of the Playbook or Lifeline seam is not allowed
+- root projection must consume repo evidence read-only
+- targeted verification for this tranche does not imply broader product certification
 
-This tranche does not:
-
-- duplicate the Playbook contract text in Fitness
-- claim stack-owned approval or execution controls as repo-local features
-- treat transcripts as durable memory
-- invent a second root-owned truth store for repo doctrine
+This keeps repo-local truth honest without widening the repo’s authority claim.

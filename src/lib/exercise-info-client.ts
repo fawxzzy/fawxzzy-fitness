@@ -706,6 +706,12 @@ export function normalizeExerciseInfoClientPayload(value: unknown): ExerciseInfo
       name,
       ...(readOptionalString(value.exercise.exercise_id) ? { exercise_id: readOptionalString(value.exercise.exercise_id) } : {}),
       primary_muscle: readOptionalString(value.exercise.primary_muscle),
+      ...(Array.isArray(value.exercise.primary_muscles)
+        ? { primary_muscles: value.exercise.primary_muscles.map((item) => readOptionalString(item)).filter((item): item is string => Boolean(item)) }
+        : {}),
+      ...(Array.isArray(value.exercise.secondary_muscles)
+        ? { secondary_muscles: value.exercise.secondary_muscles.map((item) => readOptionalString(item)).filter((item): item is string => Boolean(item)) }
+        : {}),
       equipment: readOptionalString(value.exercise.equipment),
       movement_pattern: readOptionalString(value.exercise.movement_pattern),
       image_howto_path: readOptionalString(value.exercise.image_howto_path),

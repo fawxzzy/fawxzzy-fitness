@@ -1,25 +1,25 @@
 {
   "artifact_id": "fitness_playbook_adoption_evidence_v1",
-  "generated_at": "2026-04-17T15:30:00Z",
+  "generated_at": "2026-06-19T17:05:00Z",
   "repo": {
     "repo_id": "fitness",
     "role": "vertical_owner_repo",
     "repo_identity": "remote",
     "repo_path": "repos/fawxzzy-fitness",
     "notes": [
-      "First vertical Playbook adoption tranche grounded to the live repo tree.",
-      "This export is repo-owned evidence for ATLAS root to consume later without custom scraping."
+      "Main live application repo for the current governed Fitness rollout tranche.",
+      "This export is repo-owned evidence for ATLAS root to consume read-only without repo-specific scraping."
     ]
   },
   "contract_claim": {
     "contract_id": "playbook_convergence_contract",
     "contract_version": "1.0.0",
     "source_repo_id": "playbook",
-    "source_export_path": "repos/fawxzzy-playbook/exports/playbook.contract.example.v1.json",
+    "source_export_path": "repos/playbook/exports/playbook.contract.example.v1.json",
     "claim_state": "declared",
     "notes": [
-      "The repo references the Playbook owner export directly instead of copying the contract into local doctrine.",
-      "Move this claim to verified only when the targeted adoption test and repo verify surface stay green."
+      "Fitness references the Playbook owner export directly instead of copying the contract into local doctrine.",
+      "Move this claim to verified only when the targeted adoption test, verification report, and repo command surfaces stay green reproducibly."
     ]
   },
   "summary": {
@@ -28,11 +28,13 @@
     "continuity_status": "structured",
     "drift_status": "none_detected",
     "initiative_refs": [
-      "initiative-playbook-convergence-and-continuity"
+      "initiative-playbook-convergence-and-continuity",
+      "initiative-atlas-platform-v1"
     ],
     "notes": [
-      "Fitness now publishes one stable repo-local adoption export, one local adoption note, and one targeted validation test.",
-      "Proposal or execution separation for this stack stays owned by Lifeline and stack-level execution lanes rather than a repo-local approval surface."
+      "Fitness keeps repo-owned workflow and integration truth in the app repo, truth-pack, exports, and tests.",
+      "The governed loop remains explicit and negative-safe: signal, plan, action, receipt.",
+      "This export covers the repo-owned convergence slice only and does not imply broader deployment or approval authority."
     ]
   },
   "implemented_patterns": [
@@ -41,39 +43,45 @@
       "status": "implemented",
       "evidence_refs": [
         "README.md",
-        "docs/PROJECT_GOVERNANCE.md"
+        "truth-pack/fitness/README.md",
+        "docs/architecture/fitness-integration.md"
       ],
       "notes": [
-        "Repo-local Playbook workflow starts with ai-context, ai-contract, and index before verify or plan."
+        "Current repo truth starts from the live app boundary, governed ecosystem contract, and explicit repo docs rather than transcript residue."
       ]
     },
     {
       "id": "pattern_proposal_before_execution",
       "status": "not_applicable",
+      "evidence_refs": [
+        "truth-pack/fitness/governance-loop.md"
+      ],
       "notes": [
-        "The Playbook contract marks this pattern as applicable to atlas_root, lifeline, and stack_orchestrator rather than a vertical owner repo."
+        "Proposal state and governed approval boundaries are currently owned by ATLAS root, Lifeline, and _stack rather than by a repo-local Fitness proposal surface."
       ]
     },
     {
       "id": "pattern_explicit_trust_posture",
       "status": "implemented",
       "evidence_refs": [
-        "exports/fitness.playbook.adoption.evidence.v1.json",
-        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md"
+        "truth-pack/fitness/governance-loop.md",
+        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md",
+        "exports/fitness.playbook.adoption.evidence.v1.json"
       ],
       "notes": [
-        "Repo-local adoption, verification, and continuity states are rendered explicitly and negative-safe in this export."
+        "The repo makes the governed loop, seam restrictions, and targeted verification scope explicit rather than implying broad trust from visibility alone."
       ]
     },
     {
       "id": "pattern_owner_repo_keeps_owner_truth",
       "status": "implemented",
       "evidence_refs": [
-        "exports/fitness.playbook.adoption.evidence.v1.json",
-        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md"
+        "truth-pack/fitness/README.md",
+        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md",
+        "exports/fitness.playbook.adoption.evidence.v1.json"
       ],
       "notes": [
-        "The repo claims the Playbook contract by id or version and points back to the owner export path."
+        "Repo-owned app truth stays in Fitness while Playbook contract truth and root projection remain external references."
       ]
     },
     {
@@ -84,19 +92,19 @@
         "package.json"
       ],
       "notes": [
-        "A targeted node test validates the local export, schema conformance, and contract-id or check-id alignment."
+        "A targeted node test validates schema conformance, contract-id coverage, and continuity posture against the Playbook owner export."
       ]
     },
     {
       "id": "pattern_structured_handoff_and_promotion",
       "status": "implemented",
       "evidence_refs": [
-        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md",
-        "docs/PLAYBOOK_NOTES.md",
-        "docs/CHANGELOG.md"
+        "README.md",
+        "truth-pack/fitness/governance-loop.md",
+        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md"
       ],
       "notes": [
-        "Serious planning work uses the ATLAS continuity handoff contract and promotes durable repo facts into repo-local docs and truth-pack surfaces."
+        "Serious work promotes into repo-owned docs, truth-pack surfaces, exports, and receipts rather than leaving transcript residue as the durable endpoint."
       ]
     }
   ],
@@ -105,43 +113,48 @@
       "id": "adoption_playbook_exports_contract",
       "status": "not_applicable",
       "notes": [
-        "This check belongs to the Playbook owner repo, not the downstream fitness repo."
+        "This check belongs to the Playbook owner repo, not the downstream Fitness repo."
       ]
     },
     {
       "id": "adoption_atlas_consumes_owner_truth_read_only",
       "status": "not_applicable",
       "notes": [
-        "This check belongs to ATLAS root as the read-only consumer surface."
+        "This check belongs to ATLAS root as the read-only consumer of owner truth."
       ]
     },
     {
       "id": "adoption_proposal_and_execution_are_separate",
       "status": "not_applicable",
+      "evidence_refs": [
+        "truth-pack/fitness/governance-loop.md"
+      ],
       "notes": [
-        "Governed proposal or execution separation for this stack lives in Lifeline and stack-level execution lanes rather than a repo-local fitness approval surface."
+        "The governed boundary is real, but the proposal and approval ownership does not live in the Fitness repo."
       ]
     },
     {
       "id": "adoption_continuity_lane_is_structured",
       "status": "implemented",
       "evidence_refs": [
-        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md",
-        "docs/PLAYBOOK_NOTES.md"
+        "README.md",
+        "truth-pack/fitness/governance-loop.md",
+        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md"
       ],
       "notes": [
-        "The repo explicitly routes serious work through the ATLAS continuity handoff schema and durable promotion targets."
+        "Fitness routes serious Codex or ChatGPT work through the structured ATLAS continuity contract and promotes durable outcomes into repo-owned surfaces."
       ]
     },
     {
       "id": "adoption_trust_posture_is_negative_safe",
       "status": "implemented",
       "evidence_refs": [
-        "exports/fitness.playbook.adoption.evidence.v1.json",
-        "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md"
+        "truth-pack/fitness/governance-loop.md",
+        "docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md",
+        "exports/fitness.playbook.verification.report.v1.json"
       ],
       "notes": [
-        "Adoption, verification, and continuity claims remain explicit instead of implied by repo visibility."
+        "The repo names the targeted verification slice explicitly and does not widen it into broader product or operator trust."
       ]
     }
   ],
@@ -152,35 +165,41 @@
       "schemas/atlas.continuity.handoff.v1.json"
     ],
     "promotion_targets": [
-      "initiative",
       "plan",
       "knowledge",
       "receipt"
     ],
     "search_surfaces": [
-      "docs/PLAYBOOK_NOTES.md",
-      "docs/CHANGELOG.md",
+      "README.md",
+      "docs/architecture/fitness-integration.md",
+      "docs/ops/",
       "truth-pack/fitness/",
-      "runtime/receipts/handoffs/"
+      "exports/",
+      "tests/"
     ],
     "notes": [
-      "Raw transcript history remains traceability only.",
-      "Durable repo facts promote into repo docs, truth-pack evidence, and stack continuity artifacts rather than living in chat residue."
+      "Raw transcript history stays traceability-only.",
+      "Durable workflow, contract, and repo-truth outcomes promote into repo-owned docs, truth-pack surfaces, exports, and receipts."
     ]
   },
   "verification_commands": [
     "npm run test:playbook-adoption",
+    "npm run test:playbook-verification",
     "npm run verify"
   ],
   "evidence_refs": [
     "README.md",
-    "docs/PROJECT_GOVERNANCE.md",
-    "docs/PLAYBOOK_NOTES.md",
+    "docs/architecture/fitness-integration.md",
     "docs/ops/FITNESS-PLAYBOOK-ADOPTION.md",
+    "docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md",
+    "docs/COMMANDS.md",
+    "truth-pack/fitness/README.md",
+    "truth-pack/fitness/governance-loop.md",
     "exports/repo.playbook.adoption.evidence.schema.v1.json",
     "exports/fitness.playbook.adoption.evidence.v1.json",
+    "exports/fitness.playbook.verification.report.v1.json",
     "tests/playbook-adoption-evidence.test.mjs",
-    ".lifeline/fitness.lifeline.yml",
-    "truth-pack/fitness/actions-and-receipts.json"
+    "tests/playbook-verification-report.test.mjs",
+    "package.json"
   ]
 }

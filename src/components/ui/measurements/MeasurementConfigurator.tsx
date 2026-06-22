@@ -23,6 +23,8 @@ export function MeasurementConfigurator({
   betweenInputsAndFooterContent,
   footerContent,
   footerClassName,
+  repRangeFooterContent,
+  repReplacementContent,
   topField,
   auxiliaryFields,
   repRangeLabels,
@@ -30,6 +32,7 @@ export function MeasurementConfigurator({
   metricOrder,
   layoutMode,
   labelTreatment,
+  showInlineStepControls,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -49,6 +52,8 @@ export function MeasurementConfigurator({
   betweenInputsAndFooterContent?: ReactNode;
   footerContent?: ReactNode;
   footerClassName?: string;
+  repRangeFooterContent?: ReactNode;
+  repReplacementContent?: ReactNode;
   topField?: {
     title: string;
     suffix?: string;
@@ -60,6 +65,12 @@ export function MeasurementConfigurator({
     valueLabelClassName?: string;
     emptyValueClassName?: string;
     renderInput?: (options: { inputClassName: string }) => ReactNode;
+    stepper?: {
+      decrementAriaLabel: string;
+      incrementAriaLabel: string;
+      onDecrement: () => void;
+      onIncrement: () => void;
+    };
   };
   auxiliaryFields?: Array<{
     title: string;
@@ -73,6 +84,12 @@ export function MeasurementConfigurator({
     valueLabelClassName?: string;
     emptyValueClassName?: string;
     renderInput?: (options: { inputClassName: string }) => ReactNode;
+    stepper?: {
+      decrementAriaLabel: string;
+      incrementAriaLabel: string;
+      onDecrement: () => void;
+      onIncrement: () => void;
+    };
   }>;
   repRangeLabels?: {
     min: string;
@@ -82,6 +99,7 @@ export function MeasurementConfigurator({
   metricOrder?: Array<keyof MeasurementMetrics>;
   layoutMode?: "grid" | "horizontal-scroll";
   labelTreatment?: "inline" | "floating-border";
+  showInlineStepControls?: boolean;
 }) {
   return (
     <MeasurementPanelV2
@@ -103,6 +121,8 @@ export function MeasurementConfigurator({
       betweenInputsAndFooterContent={betweenInputsAndFooterContent}
       footerContent={footerContent}
       footerClassName={footerClassName}
+      repRangeFooterContent={repRangeFooterContent}
+      repReplacementContent={repReplacementContent}
       topField={topField}
       auxiliaryFields={auxiliaryFields}
       repRangeLabels={repRangeLabels}
@@ -110,6 +130,7 @@ export function MeasurementConfigurator({
       metricOrder={metricOrder}
       layoutMode={layoutMode}
       labelTreatment={labelTreatment}
+      showInlineStepControls={showInlineStepControls}
     />
   );
 }

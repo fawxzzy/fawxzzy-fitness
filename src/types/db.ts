@@ -95,6 +95,7 @@ export type RoutineDayRow = {
   name: string | null;
   is_rest: boolean;
   notes: string | null;
+  duplicate_source_routine_day_id?: string | null;
 };
 
 export type RoutineDayExerciseRow = {
@@ -144,6 +145,8 @@ export type ExerciseRow = {
   user_id: string | null;
   is_global: boolean;
   primary_muscle: string | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
   equipment: string | null;
   movement_pattern: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";

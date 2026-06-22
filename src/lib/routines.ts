@@ -468,6 +468,14 @@ export function getRoutineDayEditableName(args: {
   return isRoutineDayDefaultName({ ...args, name: trimmedName }) ? "" : trimmedName;
 }
 
+export function hasCustomRoutineDayTitle(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+}) {
+  return getRoutineDayEditableName(args).length > 0;
+}
+
 export function formatRoutineDayDisplayName(args: {
   name: string | null | undefined;
   dayIndex: number;

@@ -122,26 +122,16 @@ function isFailureRepTarget({
     return true;
   }
 
-  const normalizeFailureValue = (value: string | number | null | undefined) => {
-    if (typeof value === "number") {
-      return Number.isFinite(value) ? value : null;
-    }
-    if (typeof value !== "string") {
-      return value ?? null;
-    }
+  // Only preserve zero-based failure inference for numeric legacy payloads.
+  // String "0" values can be produced transiently by UI editing and should not
+  // silently flip the goal into failure mode.
+  if (typeof repsMin !== "number" && typeof repsMax !== "number") {
+    return false;
+  }
 
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return "";
-    }
-
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : trimmed;
-  };
-
-  const normalizedMin = normalizeFailureValue(repsMin);
-  const normalizedMax = normalizeFailureValue(repsMax);
-  return normalizedMin === 0 && (normalizedMax === 0 || normalizedMax === "" || normalizedMax === null || normalizedMax === undefined);
+  const normalizedMin = typeof repsMin === "number" && Number.isFinite(repsMin) ? repsMin : null;
+  const normalizedMax = typeof repsMax === "number" && Number.isFinite(repsMax) ? repsMax : null;
+  return normalizedMin === 0 && (normalizedMax === 0 || normalizedMax === null);
 }
 
 export function isFailureGoalSelection(values: {
@@ -293,7 +283,7 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
   }
 
   if (!isFailureTarget && repsMax !== null && (!Number.isInteger(repsMax) || repsMax < 1)) {
-    return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
+    return { isValid: false, requiredFields: ["repsMin"], message: "Missing Max Rep" };
   }
 
   if (!isFailureTarget && repsMax !== null && repsMin === null) {
@@ -301,7 +291,7 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
   }
 
   if (!isFailureTarget && repsMin !== null && repsMax !== null && repsMin > repsMax) {
-    return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
+    return { isValid: false, requiredFields: ["repsMin"], message: "Min Rep exceeds Max Rep" };
   }
 
   if (weight !== null && (!Number.isFinite(weight) || weight < 0)) {

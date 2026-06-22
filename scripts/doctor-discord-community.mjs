@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import fs from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
@@ -8,12 +9,15 @@ import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(scriptDir, "..");
+export const repoRoot = path.resolve(scriptDir, "..");
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
 const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
 const discordApiBaseUrl = "https://discord.com/api/v10";
 const discordApiUserAgent = "fawxzzy-fitness-discord-community-doctor/1.0";
+export const DISCORD_COMMUNITY_DOCTOR_DOC_PATH = path.join(repoRoot, "docs", "ops", "FITNESS-DISCORD-COMMUNITY-DOCTOR-REPORTS.md");
+export const DISCORD_COMMUNITY_DOCTOR_JSON_PATH = path.join(repoRoot, "runtime", "discord-community", "latest.json");
+export const DISCORD_COMMUNITY_DOCTOR_MARKDOWN_PATH = path.join(repoRoot, "runtime", "discord-community", "latest.md");
 const currentFeedbackPanelTitles = ["Feedback Submission"];
 const legacyFeedbackPanelTitles = ["Feedback Actions", "Fawxzzy Feedback"];
 const currentFeedbackPanelButtons = ["Submit", "Edit"];
@@ -141,7 +145,7 @@ for (const [key, value] of Object.entries(fileEnv)) {
   }
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv = process.argv.slice(2)) {
   return {
     json: argv.includes("--json"),
     debug: argv.includes("--debug"),
@@ -1252,6 +1256,102 @@ function printPlainReport(report) {
   console.log(`Summary: ${report.summary.pass} pass, ${report.summary.warn} warn, ${report.summary.fail} fail`);
 }
 
+function buildMarkdownDetailLines(check) {
+  const lines = [];
+
+  if (Array.isArray(check.requiredMissing) && check.requiredMissing.length > 0) {
+    lines.push(`- missing required env: ${check.requiredMissing.join(", ")}`);
+  }
+  if (Array.isArray(check.requiredEitherMissing) && check.requiredEitherMissing.length > 0) {
+    lines.push(`- missing required env groups: ${check.requiredEitherMissing.join(", ")}`);
+  }
+  if (Array.isArray(check.recommendedMissing) && check.recommendedMissing.length > 0) {
+    lines.push(`- missing recommended env: ${check.recommendedMissing.join(", ")}`);
+  }
+  if (Array.isArray(check.localMirrorMissing) && check.localMirrorMissing.length > 0) {
+    lines.push(`- local doctor env missing: ${check.localMirrorMissing.join(", ")}`);
+  }
+  if (Array.isArray(check.missingTables) && check.missingTables.length > 0) {
+    lines.push(`- missing tables: ${check.missingTables.join(", ")}`);
+  }
+  if (Array.isArray(check.missingColumns) && check.missingColumns.length > 0) {
+    lines.push(`- missing columns: ${check.missingColumns.join(", ")}`);
+  }
+  if (Array.isArray(check.missingExpected) && check.missingExpected.length > 0) {
+    lines.push(`- missing commands: ${check.missingExpected.join(", ")}`);
+  }
+  if (Array.isArray(check.presentForbidden) && check.presentForbidden.length > 0) {
+    lines.push(`- forbidden commands still live: ${check.presentForbidden.join(", ")}`);
+  }
+  if (Array.isArray(check.missingTags) && check.missingTags.length > 0) {
+    lines.push(`- missing tags: ${check.missingTags.join(", ")}`);
+  }
+  if (Array.isArray(check.presentObsoleteTags) && check.presentObsoleteTags.length > 0) {
+    lines.push(`- obsolete tags still present: ${check.presentObsoleteTags.join(", ")}`);
+  }
+  if (Array.isArray(check.mismatches) && check.mismatches.length > 0) {
+    lines.push(`- emoji mismatches: ${check.mismatches.join(", ")}`);
+  }
+  if (check.zeroCount !== undefined) {
+    lines.push(`- #0 count: ${check.zeroCount}`);
+    lines.push(`- positive gaps: ${check.positiveGapCount}`);
+    lines.push(`- automation profiles with numbers: ${check.automationProfilesWithNumbers}`);
+    lines.push(`- stale discord_member_links rows: ${check.staleDiscordLinkRows}`);
+    if (check.ownerZeroFailure) {
+      lines.push(`- owner #0 sync warning: ${check.ownerZeroFailure.lastErrorCode ?? check.ownerZeroFailure.nicknameSyncStatus}`);
+    }
+  }
+  if (check.countByStatus && typeof check.countByStatus === "object") {
+    lines.push(`- counts by status: ${JSON.stringify(check.countByStatus)}`);
+  }
+  if (Array.isArray(check.latestDrafts) && check.latestDrafts.length > 0) {
+    lines.push(`- latest drafts: ${check.latestDrafts.map((draft) => `${draft.id}:${draft.status}`).join(", ")}`);
+  }
+  if (Array.isArray(check.remediation) && check.remediation.length > 0) {
+    lines.push(`- remediation: ${check.remediation.join(" | ")}`);
+  }
+  if (typeof check.error === "string" && check.error.length > 0) {
+    lines.push(`- error: ${check.error}`);
+  }
+
+  return lines;
+}
+
+export function renderDoctorMarkdown(report) {
+  const lines = [
+    "# Discord community systems doctor",
+    "",
+    `Generated at: ${report.generatedAt}`,
+    `Env file: ${report.envFile}`,
+    `Summary: ${report.summary.pass} pass, ${report.summary.warn} warn, ${report.summary.fail} fail`,
+    "",
+  ];
+
+  for (const check of report.checks) {
+    lines.push(`## ${check.id}`);
+    lines.push(`- status: ${String(check.status ?? "unknown").toUpperCase()}`);
+    lines.push(`- summary: ${check.summary}`);
+    lines.push(...buildMarkdownDetailLines(check));
+    lines.push("");
+  }
+
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
+export function getDiscordCommunityDoctorArtifactPaths() {
+  return {
+    json: DISCORD_COMMUNITY_DOCTOR_JSON_PATH,
+    markdown: DISCORD_COMMUNITY_DOCTOR_MARKDOWN_PATH,
+  };
+}
+
+export async function writeDiscordCommunityDoctorArtifacts(report, paths = getDiscordCommunityDoctorArtifactPaths()) {
+  await fs.mkdir(path.dirname(paths.json), { recursive: true });
+  await fs.mkdir(path.dirname(paths.markdown), { recursive: true });
+  await fs.writeFile(paths.json, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  await fs.writeFile(paths.markdown, renderDoctorMarkdown(report), "utf8");
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const adminClient = getRequiredSupabaseClient();
@@ -1289,6 +1389,8 @@ async function main() {
     },
   };
 
+  await writeDiscordCommunityDoctorArtifacts(report);
+
   if (args.json) {
     console.log(JSON.stringify(report, null, 2));
   } else {
@@ -1298,7 +1400,11 @@ async function main() {
   process.exitCode = checks.some(isCritical) ? 1 : 0;
 }
 
-main().catch((error) => {
-  console.error(`doctor-discord-community failed: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
-});
+const isEntrypoint = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isEntrypoint) {
+  main().catch((error) => {
+    console.error(`doctor-discord-community failed: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  });
+}

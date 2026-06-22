@@ -21,6 +21,8 @@ import {
   shouldIncludeInTaskPackets,
 } from "./generate-feedback-task-packets.mjs";
 
+const reviewedTasksDocPath = path.join(repoRoot, "docs", "ops", "FITNESS-FEEDBACK-REVIEWED-TASKS.md");
+
 function buildRecord(overrides = {}) {
   return {
     id: "11111111-1111-4111-8111-111111111111",
@@ -408,6 +410,36 @@ test("task packet generation writes markdown json and optional codex prompts", a
   assert.equal(fs.existsSync(outputPaths.decisionsExample), true);
   assert.match(fs.readFileSync(outputPaths.markdown, "utf8"), /# Feedback Reviewed Task Packets/);
   assert.match(fs.readFileSync(outputPaths.prompts, "utf8"), /Draft only — requires human review before execution\./);
+});
+
+test("feature task packets reference a live reviewed-task operator doc and keep the lane local-only", () => {
+  const featureRecord = loadBoardRecords(
+    writeBoardFixture([
+      buildRecord({
+        report_type: "feature",
+        area: "Feedback",
+        title: "Generate reviewed implementation packets",
+        description: "Reviewed packets should stay draft-only and local-only until a human approves execution.",
+      }),
+    ]).sourcePath,
+  )[0];
+  const result = buildTaskPacketResult({
+    records: [featureRecord],
+    inputCount: 1,
+    args: parseArgs(["--type", "feature"]),
+    sourcePath: "fixture.json",
+  });
+  const prompts = renderCodexPrompts(result);
+
+  assert.equal(fs.existsSync(reviewedTasksDocPath), true);
+  assert.equal(
+    result.packets[0].docsUpdateNeeded.suggestedPaths.includes("docs/ops/FITNESS-FEEDBACK-REVIEWED-TASKS.md"),
+    true,
+  );
+  assert.match(prompts, /Do not write to ATLAS automatically\./);
+  assert.match(prompts, /Do not mutate Discord or Supabase from the task-packet generator lane\./);
+  assert.match(prompts, /Keep the one-board, reviewed-export workflow intact\./);
+  assert.match(prompts, /docs\/ops\/FITNESS-FEEDBACK-REVIEWED-TASKS\.md/);
 });
 
 test("codex prompts include the exact draft-only warning", () => {

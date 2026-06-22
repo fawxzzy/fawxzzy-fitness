@@ -7,7 +7,7 @@ import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagn
 import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
-import { duplicateRoutineAction, setActiveRoutineAction } from "@/app/routines/actions";
+import { deleteRoutineAction, duplicateRoutineAction, setActiveRoutineAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { buildRoutineBrowseInfoRailItems } from "@/lib/header-info-rail";
@@ -32,6 +32,7 @@ import {
 } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
+import { ROUTINE_DRAFT_COOKIE_NAME } from "@/lib/routine-draft-session";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 import { formatCount, formatDateShort } from "@/lib/formatting";
 
@@ -101,7 +102,14 @@ export default async function RoutinesPage() {
   const visibleRoutines = showQaLlelData
     ? routines
     : filterQaLlelRows(routines, (routine) => [routine.name]);
-  const routineIds = visibleRoutines.map((routine) => routine.id);
+  const draftRoutineId = cookies().get(ROUTINE_DRAFT_COOKIE_NAME)?.value?.trim() || null;
+  const draftRoutineName = draftRoutineId
+    ? visibleRoutines.find((routine) => routine.id === draftRoutineId)?.name ?? null
+    : null;
+  const publishedVisibleRoutines = draftRoutineId
+    ? visibleRoutines.filter((routine) => routine.id !== draftRoutineId)
+    : visibleRoutines;
+  const routineIds = publishedVisibleRoutines.map((routine) => routine.id);
 
   const { data: allRoutineDaysData } = routineIds.length
     ? await diagnostics.measure("routines.days.fetch", async () => await supabase
@@ -196,7 +204,7 @@ export default async function RoutinesPage() {
     }
   }
 
-  const activeRoutineName = visibleRoutines.find((routine) => routine.id === profile.active_routine_id)?.name ?? null;
+  const activeRoutineName = publishedVisibleRoutines.find((routine) => routine.id === profile.active_routine_id)?.name ?? null;
   const completedSessionsByRoutineId = new Map<string, Array<{ routine_day_index: number | null; performed_at: string | null }>>();
   for (const session of routineSessionsData ?? []) {
     const routineId = typeof session.routine_id === "string" ? session.routine_id.trim() : "";
@@ -213,7 +221,7 @@ export default async function RoutinesPage() {
   }
   const headerInfoItems = buildRoutineBrowseInfoRailItems({
     activeRoutineName,
-    routineCount: visibleRoutines.length,
+    routineCount: publishedVisibleRoutines.length,
   });
   const headerSubtitle = (
     <HeaderInfoRail
@@ -223,7 +231,7 @@ export default async function RoutinesPage() {
       className="justify-center text-center"
     />
   );
-  const routineBrowseItems = visibleRoutines.map((routine) => {
+  const routineBrowseItems = publishedVisibleRoutines.map((routine) => {
     const dayStats = routineDayStatsByRoutineId.get(routine.id);
     const totalDays = dayStats?.totalDays ?? routine.cycle_length_days;
     const restDays = dayStats?.restDays ?? 0;
@@ -374,8 +382,10 @@ export default async function RoutinesPage() {
         <ContentRail className="space-y-3">
           <RoutinesPageClient
             routines={routineBrowseItems}
+            draftRoutineName={draftRoutineName}
             duplicateRoutineAction={duplicateRoutineAction}
             setActiveRoutineAction={setActiveRoutineAction}
+            deleteRoutineAction={deleteRoutineAction}
           />
         </ContentRail>
       </ScrollScreenWithBottomActions>

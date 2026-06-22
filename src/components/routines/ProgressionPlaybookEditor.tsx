@@ -9,7 +9,7 @@ import {
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
   ACTION_CHROME_SEGMENTED_CLASS_NAME,
 } from "@/components/ui/actionChrome";
-import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import {
   SHARED_OVERLAY_PANEL_COMPACT_VIEWPORT_CLASS_NAME,
   SHARED_OVERLAY_PANEL_EXPANDED_VIEWPORT_CLASS_NAME,
@@ -17,13 +17,15 @@ import {
 } from "@/components/ui/app/overlayPanelTokens";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
-import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { ExpandingChoiceRow } from "@/components/ui/ExpandingChoiceRow";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { BOTTOM_ACTION_SHELL_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
+import { GlowSwitch, GLOW_SWITCH_STANDARD_CLASS_NAME, GLOW_SWITCH_STANDARD_STATE_CLASS_NAME } from "@/components/ui/GlowSwitch";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
+import { InlineEdgeControlButton, INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME } from "@/components/ui/InlineEdgeControlButton";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
+import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
 import type { BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { cn } from "@/lib/cn";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -309,33 +311,30 @@ function ConnectorGlyph({
 }
 
 function ProgressionBinaryToggleButton({
-  label,
+  checked,
+  onLabel,
+  offLabel,
   ariaLabel,
   onClick,
   className,
 }: {
-  label: string;
+  checked: boolean;
+  onLabel: string;
+  offLabel: string;
   ariaLabel: string;
   onClick: () => void;
   className?: string;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
+    <GlowSwitch
+      checked={checked}
+      ariaLabel={ariaLabel}
       onClick={onClick}
-      className={cn(
-        ACTION_CHROME_CONTROL_CLASS_NAME,
-        ACTION_CHROME_SEGMENTED_CLASS_NAME,
-        "inline-flex min-h-10 items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
-        className,
-      )}
-    >
-      <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-        <span>{label}</span>
-        <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-      </span>
-    </button>
+      onLabel={onLabel}
+      offLabel={offLabel}
+      className={cn(GLOW_SWITCH_STANDARD_CLASS_NAME, className)}
+      stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+    />
   );
 }
 
@@ -613,11 +612,87 @@ function getInlineMeasurementFieldWidthRem(args: {
 }) {
   const trimmedValue = args.value.trim();
   const visibleCharacterCount = Math.max(1, trimmedValue.length);
-  const baseWidthRem = 6.2;
-  const reservedCharacterCount = args.arrowCount === 2 ? 2 : args.arrowCount === 1 ? 3 : 4;
+  const baseWidthRem = 6.45 + (args.arrowCount * 1.95);
+  const reservedCharacterCount = 4;
   const extraCharacterCount = Math.max(0, visibleCharacterCount - reservedCharacterCount);
 
   return baseWidthRem + (extraCharacterCount * 0.72);
+}
+
+const INLINE_EDGE_CONTROL_SIZE_REM = 2;
+const INLINE_EDGE_CONTROL_EDGE_INSET_REM = 0.375;
+const INLINE_FIELD_INPUT_EDGE_INSET_REM = INLINE_EDGE_CONTROL_SIZE_REM + INLINE_EDGE_CONTROL_EDGE_INSET_REM - 0.025;
+const INLINE_FIELD_STACKED_CONTROL_INSET_REM = INLINE_FIELD_INPUT_EDGE_INSET_REM + 2.2;
+const INLINE_FIELD_STACKED_CONTROL_OFFSET_REM = INLINE_FIELD_INPUT_EDGE_INSET_REM + 0.2;
+
+function getCompactFieldInputInsetStyle(args: {
+  hasStepper: boolean;
+  hasLeftOuterControl: boolean;
+  hasRightOuterControl: boolean;
+}): React.CSSProperties {
+  if (args.hasStepper) {
+    if (args.hasLeftOuterControl && args.hasRightOuterControl) {
+      return {
+        left: `${INLINE_FIELD_STACKED_CONTROL_INSET_REM}rem`,
+        right: `${INLINE_FIELD_STACKED_CONTROL_INSET_REM}rem`,
+      };
+    }
+
+    if (args.hasLeftOuterControl) {
+      return {
+        left: `${INLINE_FIELD_STACKED_CONTROL_INSET_REM}rem`,
+        right: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+      };
+    }
+
+    if (args.hasRightOuterControl) {
+      return {
+        left: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+        right: `${INLINE_FIELD_STACKED_CONTROL_INSET_REM}rem`,
+      };
+    }
+
+    return {
+      left: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+      right: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+    };
+  }
+
+  if (args.hasLeftOuterControl && args.hasRightOuterControl) {
+    return {
+      left: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+      right: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+    };
+  }
+
+  if (args.hasLeftOuterControl) {
+    return {
+      left: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+      right: "0.5rem",
+    };
+  }
+
+  if (args.hasRightOuterControl) {
+    return {
+      left: "0.5rem",
+      right: `${INLINE_FIELD_INPUT_EDGE_INSET_REM}rem`,
+    };
+  }
+
+  return {
+    left: "0",
+    right: "0",
+  };
+}
+
+function getCompactFieldStepperOffsetStyle(side: "left" | "right", hasOuterControl: boolean): React.CSSProperties | undefined {
+  if (!hasOuterControl) {
+    return undefined;
+  }
+
+  return side === "left"
+    ? { left: `${INLINE_FIELD_STACKED_CONTROL_OFFSET_REM + 0.08}rem` }
+    : { right: `${INLINE_FIELD_STACKED_CONTROL_OFFSET_REM + 0.08}rem` };
 }
 
 function inferRoutineDefaultTargetMutation(args: {
@@ -759,6 +834,7 @@ function ValidatedNumericTextInput({
   readOnly = false,
   placeholder = "-",
   className,
+  style,
   tabIndex,
 }: {
   name: string;
@@ -768,6 +844,7 @@ function ValidatedNumericTextInput({
   readOnly?: boolean;
   placeholder?: string;
   className?: string;
+  style?: React.CSSProperties;
   tabIndex?: number;
 }) {
   const [draftValue, setDraftValue] = useState(value);
@@ -830,6 +907,7 @@ function ValidatedNumericTextInput({
         }
       }}
       className={className}
+      style={style}
     />
   );
 }
@@ -846,6 +924,7 @@ export function ProgressionNumberField({
   showLabel = true,
   attachedBottom = false,
   attachedFooter,
+  stepper,
 }: {
   label: string;
   name: string;
@@ -858,6 +937,12 @@ export function ProgressionNumberField({
   showLabel?: boolean;
   attachedBottom?: boolean;
   attachedFooter?: ReactNode;
+  stepper?: {
+    decrementAriaLabel: string;
+    incrementAriaLabel: string;
+    onDecrement: () => void;
+    onIncrement: () => void;
+  };
 }) {
   return (
     <div className={cn(
@@ -881,8 +966,34 @@ export function ProgressionNumberField({
           onCommit={onChange}
           readOnly={readOnly}
           tabIndex={readOnly ? -1 : undefined}
-          className={cn(progressionFieldInputClassName, suffix ? "pr-7" : undefined, readOnly ? "pointer-events-none" : undefined)}
+          className={cn(
+            progressionFieldInputClassName,
+            stepper ? "px-10" : undefined,
+            suffix ? (stepper ? "pr-14" : "pr-7") : undefined,
+            readOnly ? "pointer-events-none" : undefined,
+          )}
         />
+        {stepper ? (
+          <>
+            <InlineEdgeControlButton
+              side="left"
+              ariaLabel={stepper.decrementAriaLabel}
+              onClick={stepper.onDecrement}
+              contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+            >
+              -
+            </InlineEdgeControlButton>
+            <InlineEdgeControlButton
+              side="right"
+              ariaLabel={stepper.incrementAriaLabel}
+              onClick={stepper.onIncrement}
+              className={suffix ? "right-6" : undefined}
+              contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+            >
+              +
+            </InlineEdgeControlButton>
+          </>
+        ) : null}
         {suffix && value.trim().length > 0 ? (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[0.82rem] font-semibold text-[rgb(var(--text-secondary)/0.92)]">
             {suffix}
@@ -911,6 +1022,7 @@ function CompactProgressionNumberField({
   fieldShellClassName,
   startAdornment,
   endAdornment,
+  stepper,
 }: {
   label: string;
   name: string;
@@ -928,14 +1040,20 @@ function CompactProgressionNumberField({
   fieldShellClassName?: string;
   startAdornment?: ReactNode;
   endAdornment?: ReactNode;
+  stepper?: {
+    decrementAriaLabel: string;
+    incrementAriaLabel: string;
+    onDecrement: () => void;
+    onIncrement: () => void;
+  };
 }) {
-  const inputInsetClassName = startAdornment && endAdornment
-    ? "left-7 right-7"
-    : startAdornment
-      ? "left-7 right-2"
-      : endAdornment
-        ? "left-2 right-7"
-        : "inset-x-0";
+  const hasLeftOuterControl = Boolean(startAdornment);
+  const hasRightOuterControl = Boolean(endAdornment);
+  const inputInsetStyle = getCompactFieldInputInsetStyle({
+    hasStepper: Boolean(stepper),
+    hasLeftOuterControl,
+    hasRightOuterControl,
+  });
 
   return (
     <div className={cn(
@@ -963,10 +1081,34 @@ function CompactProgressionNumberField({
             onCommit={onChange}
             className={cn(
               "absolute top-1/2 z-10 h-6 -translate-y-1/2 border-0 bg-transparent px-0 py-0 text-center text-[0.88rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-secondary)/0.46)]",
-              inputInsetClassName,
               inputClassName,
             )}
+            style={inputInsetStyle}
           />
+          {stepper ? (
+            <>
+              <InlineEdgeControlButton
+                side="left"
+                ariaLabel={stepper.decrementAriaLabel}
+                onClick={stepper.onDecrement}
+                className="z-30"
+                style={getCompactFieldStepperOffsetStyle("left", hasLeftOuterControl)}
+                contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+              >
+                -
+              </InlineEdgeControlButton>
+              <InlineEdgeControlButton
+                side="right"
+                ariaLabel={stepper.incrementAriaLabel}
+                onClick={stepper.onIncrement}
+                className="z-30"
+                style={getCompactFieldStepperOffsetStyle("right", hasRightOuterControl)}
+                contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+              >
+                +
+              </InlineEdgeControlButton>
+            </>
+          ) : null}
           {startAdornment}
           {endAdornment}
         </div>
@@ -988,6 +1130,40 @@ function normalizeCommittedSuccessCount(value: string) {
   }
 
   return String(Math.floor(parsed));
+}
+
+function incrementProgressionNumericValue({
+  value,
+  inputMode,
+  step = 1,
+}: {
+  value: string;
+  inputMode: "decimal" | "numeric";
+  step?: number;
+}) {
+  const current = Number.parseFloat(value);
+  const baseValue = Number.isFinite(current) ? current : 0;
+  const nextValue = baseValue + step;
+  return inputMode === "decimal"
+    ? String(Number(nextValue.toFixed(2)))
+    : String(Math.max(1, Math.round(nextValue)));
+}
+
+function decrementProgressionNumericValue({
+  value,
+  inputMode,
+  step = 1,
+}: {
+  value: string;
+  inputMode: "decimal" | "numeric";
+  step?: number;
+}) {
+  const current = Number.parseFloat(value);
+  const baseValue = Number.isFinite(current) ? current : (inputMode === "decimal" ? step : 1);
+  const nextValue = Math.max(inputMode === "decimal" ? 0 : 1, baseValue - step);
+  return inputMode === "decimal"
+    ? (nextValue <= 0 ? "" : String(Number(nextValue.toFixed(2))))
+    : String(Math.max(1, Math.round(nextValue)));
 }
 
 function CountDirectionPillControl({
@@ -1019,26 +1195,33 @@ function CountDirectionPillControl({
   const ariaLabel = isDisplayOnly
     ? `${ariaPrefix} adjustment`
     : `Flip ${ariaPrefix.toLowerCase()}`;
+  const incrementSuccessCount = () => onChange(String((Number.parseInt(value, 10) || 0) + 1));
+  const decrementSuccessCount = () => onChange(String(Math.max(1, (Number.parseInt(value, 10) || 1) - 1)));
+  const valueInputInsetStyle = getCompactFieldInputInsetStyle({
+    hasStepper: true,
+    hasLeftOuterControl: false,
+    hasRightOuterControl: true,
+  });
 
   return (
-    <div className={cn("flex flex-col items-center", showValueInput ? "gap-1" : "gap-0")}>
-      {showValueInput ? (
-        <span
-          className={cn(
-            "block px-1 text-[7px] font-semibold uppercase tracking-[0.08em] leading-none whitespace-nowrap",
-            progressionMeasurementTitleClassName,
-          )}
-        >
-          {label}
-        </span>
-      ) : null}
+    <div className="flex flex-col items-center gap-0 pt-2">
       <div
         className={cn(
           progressionFieldShellClassName,
           "relative min-h-0 rounded-full",
-          showValueInput ? "w-[6.6rem] px-2.5 py-1" : "h-[2.4rem] w-[2.4rem] p-[3px]",
+          showValueInput ? "min-h-[3rem] w-[7.35rem] px-2.5 py-1.5" : "h-[2.4rem] w-[2.4rem] p-[3px]",
         )}
       >
+        {showValueInput ? (
+          <span
+            className={cn(
+              "pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2 px-1 text-[9px] font-semibold uppercase tracking-[0.11em] leading-none whitespace-nowrap",
+              progressionMeasurementTitleClassName,
+            )}
+          >
+            {label}
+          </span>
+        ) : null}
         {showValueInput ? (
           <>
             <ValidatedNumericTextInput
@@ -1047,9 +1230,29 @@ function CountDirectionPillControl({
               value={value}
               onCommit={(nextValue) => onChange(normalizeCommittedSuccessCount(nextValue))}
               className={cn(
-                "h-6 w-full border-0 bg-transparent pl-2 pr-10 py-0 text-left text-[0.88rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-secondary)/0.46)]",
+                "absolute inset-y-0 z-10 h-8 my-auto border-0 bg-transparent px-0 py-0 text-center text-[0.9rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.96)] outline-none placeholder:text-[rgb(var(--text-secondary)/0.46)]",
               )}
+              style={valueInputInsetStyle}
             />
+            <InlineEdgeControlButton
+              side="left"
+              ariaLabel={`Decrease ${label.toLowerCase()}`}
+              onClick={decrementSuccessCount}
+              className="z-30"
+              contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+            >
+              -
+            </InlineEdgeControlButton>
+            <InlineEdgeControlButton
+              side="right"
+              ariaLabel={`Increase ${label.toLowerCase()}`}
+              onClick={incrementSuccessCount}
+              className="z-30"
+              style={{ right: `${INLINE_FIELD_STACKED_CONTROL_OFFSET_REM + 0.08}rem` }}
+              contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+            >
+              +
+            </InlineEdgeControlButton>
             <InlineDirectionToggleButton
               value={direction}
               onToggle={onToggle}
@@ -1307,9 +1510,22 @@ function ProgressionHorizontalRail({
 
 const progressionInfoTitleClassName = "text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
 const progressionInfoBodyClassName = "text-[0.78rem] leading-5 text-[rgb(var(--text-secondary)/0.94)]";
-const progressionInfoMiniCardClassName = "w-full max-w-full rounded-[1rem] bg-transparent shadow-none";
-const progressionInfoMiniCardButtonClassName = "group block w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pt-3 pb-2 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
+const progressionInfoMiniCardClassName = cn(
+  "inline-flex w-[17.75rem] min-w-[17.75rem] max-w-[min(22rem,calc(100vw-4.25rem))] shrink-0 flex-col self-start shadow-none",
+  appTokens.curatedInfoCard,
+  appTokens.curatedInfoCardCompact,
+  appTokens.curatedInfoCardDefault,
+);
+const progressionInfoMiniCardButtonClassName = "group block w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3.5 pb-2.5 pt-3 text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
 const progressionInfoMutedClassName = "text-[0.78rem] leading-5 text-[rgb(var(--text-muted)/0.9)]";
+const progressionPrimaryMeasurementFieldWidthClassName = "w-[7.35rem] shrink-0";
+const progressionSettingsMeasurementFieldWidthClassName = "w-[6.65rem] shrink-0";
+const progressionSettingsRailCardClassName = cn(
+  "inline-flex shrink-0 flex-col overflow-hidden shadow-none",
+  appTokens.curatedInfoCard,
+  appTokens.curatedInfoCardCompact,
+  appTokens.curatedInfoCardDefault,
+);
 
 type ActiveProgressionInfoSection =
   | "custom"
@@ -1332,6 +1548,14 @@ type ProgressionInfoMiniSectionKey =
   | "deload_settings"
   | "progression_terms"
   | "sets_flow";
+
+type ProgressionSettingsPanelKey =
+  | "progression"
+  | "regression"
+  | "day_adjustments"
+  | "session"
+  | "set"
+  | "example";
 
 type ActiveProgressionInfoContent = {
   title: string;
@@ -1395,21 +1619,27 @@ function ProgressionInfoRows({
   rows: Array<{ label: string; value: string }>;
 }) {
   return (
-    <dl className="space-y-2 text-left">
+    <dl className="space-y-1 text-left">
       {rows.map((row) => (
         <div
           key={row.label}
-          className="rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.1)] bg-[rgb(var(--surface-1-rgb)/0.14)] px-3 py-2 text-center sm:grid sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-start sm:gap-3 sm:text-left"
+          className={cn(
+            "px-3 py-1 text-center sm:grid sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-start sm:gap-2 sm:text-left",
+            appTokens.curatedInfoCard,
+            appTokens.curatedInfoCardCompact,
+            appTokens.curatedInfoCardDefault,
+          )}
         >
           <dt className={cn(progressionInfoBodyClassName, "inline-flex items-center justify-center gap-2 font-semibold text-[rgb(var(--text-primary)/0.96)] sm:justify-start")}>
             <span>{row.label}</span>
-            <SignatureDot />
+            <SignatureMiniPipe />
           </dt>
-          <dd className={cn(progressionInfoBodyClassName, "min-w-0 pt-1 sm:pt-0")}>
+          <dd className={cn(progressionInfoBodyClassName, "min-w-0 pt-0 sm:pt-0")}>
             <AccentDotSeparatedText
-              text={row.value}
+              text={row.value.replace(/\s*[•·]\s*/gu, " | ")}
               className="justify-center text-center sm:justify-start sm:text-left"
-              separatorClassName="h-[4px] w-[4px]"
+              pipeClassName="h-[1em] w-[0.45rem]"
+              pipeBarClassName="h-[0.84em] w-[2px]"
             />
           </dd>
         </div>
@@ -1604,6 +1834,130 @@ function PromotionMeasurementOrderRow({
   );
 }
 
+function ProgressionSettingsRailCard({
+  title,
+  isOpen,
+  onClick,
+  accent = "primary",
+  widthClassName = "w-[11.25rem] min-w-[11.25rem]",
+}: {
+  title: ReactNode;
+  summary?: ReactNode;
+  isOpen: boolean;
+  onClick: () => void;
+  accent?: "primary" | "secondary";
+  widthClassName?: string;
+}) {
+  return (
+    <section className={cn(progressionSettingsRailCardClassName, "h-auto min-h-0", widthClassName)}>
+      <button
+        type="button"
+        className="group block h-auto w-full select-none appearance-none !border-0 !border-transparent !bg-transparent px-3 pb-[4px] pt-[4px] text-center caret-transparent shadow-none outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+        onClick={onClick}
+        aria-expanded={isOpen}
+      >
+        <div className="flex flex-col gap-[1px]">
+          <div className="grid grid-cols-[1rem_minmax(0,1fr)_1rem] items-center gap-1.5">
+            <span aria-hidden="true" />
+            <span
+              className={cn(
+                progressionInfoTitleClassName,
+                "min-w-0 text-center leading-none",
+                accent === "secondary" ? "text-[rgb(var(--secondary-action-rgb)/0.92)]" : undefined,
+                isOpen ? "text-[rgb(var(--text-primary)/0.98)]" : undefined,
+              )}
+            >
+              {title}
+            </span>
+            <span
+              className={cn(
+                "flex justify-end transition-colors",
+                isOpen ? "text-[rgb(var(--accent-divider-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.84)] group-hover:text-[rgb(var(--text-secondary)/0.96)]",
+              )}
+            >
+              {isOpen ? <ChevronDownIcon className="h-3.5 w-3.5" /> : <ChevronRightIcon className="h-3.5 w-3.5" />}
+            </span>
+          </div>
+          <MetricAccentBar variant="thin" className="mx-auto w-full opacity-80 transition-opacity group-hover:opacity-100" />
+        </div>
+      </button>
+    </section>
+  );
+}
+
+function ProgressionSettingsStage({
+  title,
+  summary,
+  children,
+  accent = "primary",
+  showHeader = true,
+  stageClassName,
+  useVerticalHintScroll = false,
+}: {
+  title: ReactNode;
+  summary?: ReactNode;
+  children: ReactNode;
+  accent?: "primary" | "secondary";
+  showHeader?: boolean;
+  stageClassName?: string;
+  useVerticalHintScroll?: boolean;
+}) {
+  return (
+    <section
+      className={cn(
+        "h-[13rem] w-full max-w-full overflow-hidden shadow-none",
+        appTokens.curatedInfoCard,
+        appTokens.curatedInfoCardCompact,
+        appTokens.curatedInfoCardDefault,
+        stageClassName,
+      )}
+    >
+      <div className={cn("flex h-full flex-col px-4 pb-2 pt-1.5", showHeader ? undefined : "pb-1.5 pt-1")}>
+        {showHeader ? (
+          <div className="mx-auto mb-0.5 w-fit max-w-full space-y-0 text-center">
+            <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 text-center">
+              <p
+                className={cn(
+                  progressionInfoTitleClassName,
+                  "text-center",
+                  accent === "secondary" ? "text-[rgb(var(--secondary-action-rgb)/0.92)]" : undefined,
+                )}
+              >
+                {title}
+              </p>
+              {summary ? (
+                <>
+                  <SignatureMiniPipe />
+                  <div className="text-[0.74rem] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-secondary)/0.9)]">
+                    {summary}
+                  </div>
+                </>
+              ) : null}
+            </div>
+            <MetricAccentBar variant="thin" className="w-full opacity-85" />
+          </div>
+        ) : null}
+        {useVerticalHintScroll ? (
+          <VerticalScrollHint
+            className="min-h-0 flex-1"
+            scrollClassName="h-full pr-1"
+            contentClassName="min-h-full"
+            railClassName="left-auto right-0"
+            showFade
+            showRail
+          >
+            {children}
+          </VerticalScrollHint>
+        ) : (
+          <div className="filter-scroll-viewport scroll-y min-h-0 flex-1 pr-1">
+            {children}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function PromotionMeasurementStepRow({
   measurements,
   links,
@@ -1696,7 +2050,7 @@ function PromotionMeasurementStepRow({
     return getInlineMeasurementFieldWidthRem({
       value: displayedValue,
       arrowCount: arrowCount as 0 | 1 | 2,
-    });
+    }) + 2.2;
   });
   const gridTemplateColumns = measurements.flatMap((measurement, index) => {
     const columns = [`${measurementColumnWidths[index] ?? 6.2}rem`];
@@ -1855,6 +2209,12 @@ function PromotionMeasurementStepRow({
                                 />
                               ) : undefined}
                               onChange={onRepRangeStepChange}
+                              stepper={{
+                                decrementAriaLabel: "Decrease session rep step",
+                                incrementAriaLabel: "Increase session rep step",
+                                onDecrement: () => onRepRangeStepChange(decrementProgressionNumericValue({ value: repRangeStep, inputMode: "numeric" })),
+                                onIncrement: () => onRepRangeStepChange(incrementProgressionNumericValue({ value: repRangeStep, inputMode: "numeric" })),
+                              }}
                             />
                           ) : (
                             <CompactProgressionNumberField
@@ -1883,6 +2243,12 @@ function PromotionMeasurementStepRow({
                                 />
                               ) : undefined}
                               onChange={(nextValue) => onStepChange(measurement, nextValue)}
+                              stepper={{
+                                decrementAriaLabel: `Decrease ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} session step`,
+                                incrementAriaLabel: `Increase ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} session step`,
+                                onDecrement: () => onStepChange(measurement, decrementProgressionNumericValue({ value: values[measurement], inputMode: inputModes[measurement] })),
+                                onIncrement: () => onStepChange(measurement, incrementProgressionNumericValue({ value: values[measurement], inputMode: inputModes[measurement] })),
+                              }}
                             />
                           )}
                         </div>
@@ -1996,7 +2362,7 @@ function SetFlowMeasurementStepRow({
     return getInlineMeasurementFieldWidthRem({
       value: values[measurement],
       arrowCount: arrowCount as 0 | 1 | 2,
-    });
+    }) + 2.2;
   });
   const gridTemplateColumns = measurements.flatMap((measurement, index) => {
     const columns = [`${measurementColumnWidths[index] ?? 6.2}rem`];
@@ -2005,140 +2371,135 @@ function SetFlowMeasurementStepRow({
     }
     return columns;
   }).join(" ");
-  return (
-    <div className="space-y-0" {...infoHandlers}>
-      <div
-        ref={scrollRef}
-        className={useScrollRail
-          ? "hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [touch-action:pan-x_pan-y] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]"
-          : "w-max min-w-max"}
-      >
-        <div className="mx-auto flex w-max min-w-max justify-center px-1">
-          <div
-            className="inline-grid w-max min-w-max items-start gap-x-0 gap-y-0"
-            style={{ gridTemplateColumns }}
-          >
-            {measurements.map((measurement, index) => (
-              <Fragment key={`set-flow-step-${measurement}`}>
-                {(() => {
-                  const groupIndex = measurementGroupIndex.get(measurement) ?? -1;
-                  const group = groupIndex >= 0 ? measurementGroups[groupIndex] ?? [measurement] : [measurement];
-                  const activeGroup = getActiveSetFlowMeasurementGroup(group, values);
-                  const groupLeadMeasurement = group[0] ?? measurement;
-                  const countLeadMeasurement = activeGroup[0] ?? group[0] ?? measurement;
-                  const shouldRenderGroupedControls = group.length > 1;
-                  const countSpanStartMeasurement = group[0] ?? measurement;
-                  const countSpanEndMeasurement = group[group.length - 1] ?? measurement;
-                  const countSpanStartIndex = measurementIndexMap.get(countSpanStartMeasurement) ?? index;
-                  const countSpanEndIndex = measurementIndexMap.get(countSpanEndMeasurement) ?? index;
-                  const countSpanWidthRem = measurementColumnWidths
-                    .slice(countSpanStartIndex, countSpanEndIndex + 1)
-                    .reduce((sum, widthRem) => sum + widthRem, 0)
-                    + ((countSpanEndIndex - countSpanStartIndex) * 3.05);
-                  const countSpanColumnStart = (countSpanStartIndex * 2) + 1;
-                  const countSpanColumnCount = ((countSpanEndIndex - countSpanStartIndex) * 2) + 1;
-                  const countValue = resolveSetFlowGroupCountValue({
-                    fullGroup: group,
-                    activeGroup,
-                    counts,
-                    groupedCounts,
-                    defaultCount,
-                  });
-                  const sharedDirectionValue = resolveSetFlowGroupDirection({
-                    fullGroup: group,
-                    activeGroup,
-                    values,
-                    directions,
-                    groupedDirections,
-                  });
-                  const sharedDirectionHasStepValue = activeGroup.some((entry) => hasSetFlowDirectionStepValue(
-                    getSetFlowMeasurementStepValue(entry, values),
-                  ));
-                  const sharedDirectionAriaPrefix = shouldRenderGroupedControls
-                    ? `${(activeGroup.length > 0 ? activeGroup : group).map((entry) => ROUTINE_PROMOTION_MEASUREMENT_LABELS[entry] ?? entry).join(" and ")} group`
-                    : `${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} adjustment`;
-                  const showLeftMoveButton = index > 0 && links[index - 1] !== "and";
-                  const showRightMoveButton = index < measurements.length - 1 && links[index] !== "and";
-                  const touchesLeftConnector = index > 0;
-                  const touchesRightConnector = index < measurements.length - 1;
-                  const compactFieldShellClassName = cn(
-                    "relative z-10",
-                    index > 0 ? "-ml-px" : undefined,
-                    index < measurements.length - 1 ? "-mr-px" : undefined,
-                    touchesLeftConnector ? "!rounded-l-none ![border-top-left-radius:0] ![border-bottom-left-radius:0]" : undefined,
-                    touchesRightConnector ? "!rounded-r-none ![border-top-right-radius:0] ![border-bottom-right-radius:0]" : undefined,
-                  );
+  const rowContent = (
+    <div
+      className="inline-grid w-max min-w-max items-start gap-x-0 gap-y-0"
+      style={{ gridTemplateColumns }}
+    >
+      {measurements.map((measurement, index) => (
+        <Fragment key={`set-flow-step-${measurement}`}>
+          {(() => {
+            const groupIndex = measurementGroupIndex.get(measurement) ?? -1;
+            const group = groupIndex >= 0 ? measurementGroups[groupIndex] ?? [measurement] : [measurement];
+            const activeGroup = getActiveSetFlowMeasurementGroup(group, values);
+            const groupLeadMeasurement = group[0] ?? measurement;
+            const countLeadMeasurement = activeGroup[0] ?? group[0] ?? measurement;
+            const shouldRenderGroupedControls = group.length > 1;
+            const countSpanStartMeasurement = group[0] ?? measurement;
+            const countSpanEndMeasurement = group[group.length - 1] ?? measurement;
+            const countSpanStartIndex = measurementIndexMap.get(countSpanStartMeasurement) ?? index;
+            const countSpanEndIndex = measurementIndexMap.get(countSpanEndMeasurement) ?? index;
+            const countSpanWidthRem = measurementColumnWidths
+              .slice(countSpanStartIndex, countSpanEndIndex + 1)
+              .reduce((sum, widthRem) => sum + widthRem, 0)
+              + ((countSpanEndIndex - countSpanStartIndex) * 3.05);
+            const countSpanColumnStart = (countSpanStartIndex * 2) + 1;
+            const countSpanColumnCount = ((countSpanEndIndex - countSpanStartIndex) * 2) + 1;
+            const countValue = resolveSetFlowGroupCountValue({
+              fullGroup: group,
+              activeGroup,
+              counts,
+              groupedCounts,
+              defaultCount,
+            });
+            const sharedDirectionValue = resolveSetFlowGroupDirection({
+              fullGroup: group,
+              activeGroup,
+              values,
+              directions,
+              groupedDirections,
+            });
+            const sharedDirectionHasStepValue = activeGroup.some((entry) => hasSetFlowDirectionStepValue(
+              getSetFlowMeasurementStepValue(entry, values),
+            ));
+            const sharedDirectionAriaPrefix = shouldRenderGroupedControls
+              ? `${(activeGroup.length > 0 ? activeGroup : group).map((entry) => ROUTINE_PROMOTION_MEASUREMENT_LABELS[entry] ?? entry).join(" and ")} group`
+              : `${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} adjustment`;
+            const showLeftMoveButton = index > 0 && links[index - 1] !== "and";
+            const showRightMoveButton = index < measurements.length - 1 && links[index] !== "and";
+            const touchesLeftConnector = index > 0;
+            const touchesRightConnector = index < measurements.length - 1;
+            const compactFieldShellClassName = cn(
+              "relative z-10",
+              index > 0 ? "-ml-px" : undefined,
+              index < measurements.length - 1 ? "-mr-px" : undefined,
+              touchesLeftConnector ? "!rounded-l-none ![border-top-left-radius:0] ![border-bottom-left-radius:0]" : undefined,
+              touchesRightConnector ? "!rounded-r-none ![border-top-right-radius:0] ![border-bottom-right-radius:0]" : undefined,
+            );
 
-                  return (
-                    <>
-                      {groupLeadMeasurement === measurement ? (
-                        <div
-                          className="shrink-0 self-start"
-                          style={{ gridColumn: `${countSpanColumnStart} / span ${countSpanColumnCount}`, gridRow: 3 }}
-                        >
-                          <div className="flex min-h-[2rem] justify-center" style={{ width: `${countSpanWidthRem}rem` }}>
-                            <CountDirectionPillControl
-                              label="Success count"
-                              name={`set-flow-count-${measurement}`}
-                              value={countValue}
-                              onChange={(nextValue) => {
-                                if (activeGroup.length > 1) {
-                                  onGroupedCountChange(activeGroup, nextValue);
-                                  return;
-                                }
-                                onCountChange(countLeadMeasurement, nextValue);
-                              }}
-                              direction={sharedDirectionValue}
-                              onToggle={() => {
-                                if (activeGroup.length > 1) {
-                                  onGroupedDirectionToggle(activeGroup);
-                                  return;
-                                }
-                                const leadMeasurement = activeGroup[0] ?? measurement;
-                                onDirectionToggle(leadMeasurement, getSetFlowMeasurementStepValue(leadMeasurement, values));
-                              }}
-                              hasStepValue={sharedDirectionHasStepValue}
-                              ariaPrefix={sharedDirectionAriaPrefix}
-                              showValueInput={showCountInput}
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                      <div
-                        className="shrink-0 self-start"
-                        style={{ gridColumn: index * 2 + 1, gridRow: 2 }}
-                      >
-                        <CompactProgressionNumberField
-                          label={labels[measurement]}
-                          name={`set-flow-${measurement}-step`}
-                          inputMode={inputModes[measurement]}
-                          value={values[measurement]}
-                          className="shrink-0"
-                          style={{ width: `${measurementColumnWidths[index] ?? 6.2}rem` }}
-                          labelClassName={cn(progressionMeasurementTitleClassName, "mx-auto block w-fit text-center")}
-                          labelStyle={{ color: "rgb(var(--accent-strong) / 0.98)" }}
-                          inputClassName={getDirectionAccentTextClassName(sharedDirectionValue)}
-                          fieldShellClassName={compactFieldShellClassName}
-                          startAdornment={showLeftMoveButton ? (
-                            <AlignedInlineMoveArrowButton
-                              direction="left"
-                              onClick={() => onMove(measurements[index]!, "left")}
-                              ariaLabel={`Move ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement]} left`}
-                            />
-                          ) : undefined}
-                          endAdornment={showRightMoveButton ? (
-                            <AlignedInlineMoveArrowButton
-                              direction="right"
-                              onClick={() => onMove(measurement, "right")}
-                              ariaLabel={`Move ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement]} right`}
-                            />
-                          ) : undefined}
-                          onChange={(nextValue) => onStepChange(measurement, nextValue)}
+            return (
+              <Fragment key={`set-flow-step-${measurement}`}>
+                {groupLeadMeasurement === measurement ? (
+                  <div
+                    className="shrink-0 self-start"
+                    style={{ gridColumn: `${countSpanColumnStart} / span ${countSpanColumnCount}`, gridRow: 3 }}
+                  >
+                    <div className="flex min-h-[2rem] justify-center" style={{ width: `${countSpanWidthRem}rem` }}>
+                      <CountDirectionPillControl
+                        label="Success count"
+                        name={`set-flow-count-${measurement}`}
+                        value={countValue}
+                        onChange={(nextValue) => {
+                          if (activeGroup.length > 1) {
+                            onGroupedCountChange(activeGroup, nextValue);
+                            return;
+                          }
+                          onCountChange(countLeadMeasurement, nextValue);
+                        }}
+                        direction={sharedDirectionValue}
+                        onToggle={() => {
+                          if (activeGroup.length > 1) {
+                            onGroupedDirectionToggle(activeGroup);
+                            return;
+                          }
+                          const leadMeasurement = activeGroup[0] ?? measurement;
+                          onDirectionToggle(leadMeasurement, getSetFlowMeasurementStepValue(leadMeasurement, values));
+                        }}
+                        hasStepValue={sharedDirectionHasStepValue}
+                        ariaPrefix={sharedDirectionAriaPrefix}
+                        showValueInput={showCountInput}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+                <div
+                  className="shrink-0 self-start"
+                  style={{ gridColumn: index * 2 + 1, gridRow: 2 }}
+                >
+                    <CompactProgressionNumberField
+                      label={labels[measurement]}
+                      name={`set-flow-${measurement}-step`}
+                      inputMode={inputModes[measurement]}
+                      value={values[measurement]}
+                    className="shrink-0"
+                    style={{ width: `${measurementColumnWidths[index] ?? 6.2}rem` }}
+                    labelClassName={cn(progressionMeasurementTitleClassName, "mx-auto block w-fit text-center")}
+                    labelStyle={{ color: "rgb(var(--accent-strong) / 0.98)" }}
+                    inputClassName={getDirectionAccentTextClassName(sharedDirectionValue)}
+                    fieldShellClassName={compactFieldShellClassName}
+                    startAdornment={showLeftMoveButton ? (
+                      <AlignedInlineMoveArrowButton
+                        direction="left"
+                        onClick={() => onMove(measurements[index]!, "left")}
+                        ariaLabel={`Move ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement]} left`}
+                      />
+                    ) : undefined}
+                      endAdornment={showRightMoveButton ? (
+                        <AlignedInlineMoveArrowButton
+                          direction="right"
+                          onClick={() => onMove(measurement, "right")}
+                          ariaLabel={`Move ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement]} right`}
                         />
-                      </div>
-                    </>
-                  );
-                })()}
+                      ) : undefined}
+                      onChange={(nextValue) => onStepChange(measurement, nextValue)}
+                      stepper={{
+                        decrementAriaLabel: `Decrease ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} set step`,
+                        incrementAriaLabel: `Increase ${ROUTINE_PROMOTION_MEASUREMENT_LABELS[measurement] ?? measurement} set step`,
+                        onDecrement: () => onStepChange(measurement, decrementProgressionNumericValue({ value: values[measurement], inputMode: inputModes[measurement] })),
+                        onIncrement: () => onStepChange(measurement, incrementProgressionNumericValue({ value: values[measurement], inputMode: inputModes[measurement] })),
+                      }}
+                    />
+                </div>
                 {index < measurements.length - 1 ? (
                   <div
                     className="flex self-start items-start px-0 pt-px text-[9px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-yellow-on))]"
@@ -2160,10 +2521,27 @@ function SetFlowMeasurementStepRow({
                   </div>
                 ) : null}
               </Fragment>
-            ))}
-          </div>
+            );
+          })()}
+        </Fragment>
+      ))}
+    </div>
+  );
+  return (
+    <div className="space-y-0" {...infoHandlers}>
+      {useScrollRail ? (
+        <ProgressionHorizontalRail
+          className="max-w-full"
+          scrollRef={scrollRef}
+          contentClassName="mx-auto flex w-max min-w-max justify-center px-1"
+        >
+          {rowContent}
+        </ProgressionHorizontalRail>
+      ) : (
+        <div className="mx-auto flex w-max min-w-max justify-center px-1">
+          {rowContent}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -2227,7 +2605,7 @@ function InlineDirectionToggleButton({
     <button
       type="button"
       className={cn(
-        "absolute right-1 top-1/2 inline-flex h-7 min-w-7 -translate-y-1/2 items-center justify-center rounded-full bg-transparent px-1 transition-colors focus-visible:outline-none focus-visible:ring-2",
+        "absolute right-1.5 top-1/2 inline-flex h-8 min-w-8 -translate-y-1/2 items-center justify-center rounded-full bg-transparent px-0 transition-colors focus-visible:outline-none focus-visible:ring-2",
         toneClassName,
         isDisplayOnly ? "cursor-default pointer-events-none" : undefined,
       )}
@@ -2367,24 +2745,21 @@ function AlignedInlineMoveArrowButton({
   ariaLabel: string;
 }) {
   return (
-    <button
-      type="button"
+    <InlineEdgeControlButton
+      side={direction}
       onClick={onClick}
-      aria-label={ariaLabel}
-      className={cn(
-        "absolute top-1/2 z-10 inline-flex h-6 w-7 -translate-y-1/2 appearance-none items-center justify-center border-0 bg-transparent p-0 shadow-none outline-none ring-0 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-0",
-        direction === "left" ? "left-0.5" : "right-0.5",
-      )}
-      style={{ border: "0", borderWidth: 0, boxShadow: "none", color: "rgb(var(--accent))" }}
+      ariaLabel={ariaLabel}
+      className="z-20"
+      contentClassName="text-[rgb(var(--accent))]"
     >
       <ChevronRightIcon
         aria-hidden="true"
         className={cn(
-          "block h-[1.15rem] w-[1.15rem]",
+          "block h-[0.95rem] w-[0.95rem]",
           direction === "left" ? "rotate-180" : undefined,
         )}
       />
-    </button>
+    </InlineEdgeControlButton>
   );
 }
 
@@ -2399,17 +2774,18 @@ function ProgressionOverlayPanel({
     <div
       className={cn(
         SHARED_OVERLAY_PANEL_SURFACE_CLASS_NAME,
-        "!bg-transparent !backdrop-blur-[22px]",
+        "!bg-[rgb(var(--bg-app)/0.88)] !backdrop-blur-[22px] before:!hidden after:!hidden [--glass-current-sheen-strength:0] !shadow-[0_22px_60px_rgb(0_0_0_/0.32)]",
       )}
     >
-      <div className="pointer-events-none absolute inset-0 z-0 bg-transparent" aria-hidden="true" />
-      <FilterScrollPanel
-        className="relative z-[1] !bg-transparent"
-        showEdgeFades={false}
-        viewportClassName={viewportClassName}
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[rgb(var(--bg-app)/0.22)]" aria-hidden="true" />
+      <VerticalScrollHint
+        className="relative z-[1] w-full rounded-[0.95rem]"
+        scrollClassName={cn("w-full overflow-y-auto overscroll-contain touch-pan-y py-1", viewportClassName)}
+        showFade
+        showRail
       >
         {children}
-      </FilterScrollPanel>
+      </VerticalScrollHint>
     </div>
   );
 }
@@ -2537,7 +2913,7 @@ function RoutineEditorFloatingDropdownChrome({
           <button
             type="button"
             className={cn(
-              "group relative block w-full select-none appearance-none !border-0 !bg-transparent px-1 pt-3 pb-2 text-center caret-transparent shadow-none backdrop-blur-[22px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
+              "group relative block w-full select-none appearance-none rounded-[1rem] !border-0 !ring-0 bg-[rgb(var(--bg-app)/0.88)] px-1 pt-3 pb-2 text-center caret-transparent shadow-[0_18px_44px_rgba(0,0,0,0.24)] backdrop-blur-[22px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] before:!hidden after:!hidden [--glass-current-sheen-strength:0] [--action-chrome-shell-highlight:transparent]",
               appTokens.routineEditorInlineTitle,
             )}
             onClick={() => onOpenChange((current) => !current)}
@@ -2634,6 +3010,7 @@ export function ProgressionPlaybookEditor({
   separateInfoReserveLayoutSpace = true,
   failureToggleInfoContent = null,
   infoDockPlacement,
+  defaultSettingsSectionsOpen,
 }: {
   value: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
@@ -2689,6 +3066,7 @@ export function ProgressionPlaybookEditor({
     sectionKey?: "failure_toggle" | null;
   } | null;
   infoDockPlacement?: "default" | "above-bottom-actions";
+  defaultSettingsSectionsOpen?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [activeInfoSection, setActiveInfoSection] = useState<ActiveProgressionInfoSection>("progression_method");
@@ -2711,6 +3089,10 @@ export function ProgressionPlaybookEditor({
   const resolvedHideExerciseSetSuccessCount = hideExerciseSetSuccessCount ?? presetOptions.hideExerciseSetSuccessCount;
   const resolvedShowProgressionSettingsRow = showProgressionSettingsRow ?? presetOptions.showProgressionSettingsRow;
   const resolvedInfoDockPlacement = infoDockPlacement ?? presetOptions.infoDockPlacement;
+  const resolvedDefaultSettingsSectionsOpen = defaultSettingsSectionsOpen ?? false;
+  const [activeSettingsPanelKey, setActiveSettingsPanelKey] = useState<ProgressionSettingsPanelKey | null>(
+    resolvedDefaultSettingsSectionsOpen ? "progression" : null,
+  );
   const showProgressionMethodToggle = !resolvedHideProgressionMethodControl;
   const setFlowDirections = {
     time: normalizeSetFlowDirectionForStepValue({
@@ -3477,10 +3859,6 @@ export function ProgressionPlaybookEditor({
     applyRoutinePromotionGrouping(buildPromotionMeasurementGroups(routinePromotionMeasurements, nextLinks));
   };
   const setRoutinePromotionStep = (measurement: ProgressionMeasurementKey, nextValue: string) => {
-    if (!isRoutineDefaultContext) {
-      return;
-    }
-
     const currentDirection = value.progressionPromotionDirectionMap[measurement] ?? "up";
     const normalizedDirection = hasSetFlowDirectionStepValue(nextValue)
       ? normalizeSetFlowDirectionForStepValue({
@@ -3780,19 +4158,23 @@ export function ProgressionPlaybookEditor({
     const distanceValue = isRaised ? value.progressionDayDistanceStep : value.progressionDayLoweredDistanceStep;
     const setLoadValue = (nextValue: string) => onChange({
       ...value,
-      ...(isRaised ? { progressionDayLoadStep: nextValue } : { progressionDayLoweredLoadStep: nextValue }),
+      progressionDayLoadStep: nextValue,
+      progressionDayLoweredLoadStep: nextValue,
     });
     const setRepValue = (nextValue: string) => onChange({
       ...value,
-      ...(isRaised ? { progressionDayRepStep: nextValue } : { progressionDayLoweredRepStep: nextValue }),
+      progressionDayRepStep: nextValue,
+      progressionDayLoweredRepStep: nextValue,
     });
     const setDurationValue = (nextValue: string) => onChange({
       ...value,
-      ...(isRaised ? { progressionDayDurationStep: nextValue } : { progressionDayLoweredDurationStep: nextValue }),
+      progressionDayDurationStep: nextValue,
+      progressionDayLoweredDurationStep: nextValue,
     });
     const setDistanceValue = (nextValue: string) => onChange({
       ...value,
-      ...(isRaised ? { progressionDayDistanceStep: nextValue } : { progressionDayLoweredDistanceStep: nextValue }),
+      progressionDayDistanceStep: nextValue,
+      progressionDayLoweredDistanceStep: nextValue,
     });
 
     switch (fieldId) {
@@ -3804,44 +4186,68 @@ export function ProgressionPlaybookEditor({
       return (
         <ProgressionNumberField
           label={`WEIGHT (${weightUnit})`}
-          labelClassName={progressionMeasurementTitleClassName}
+          labelClassName={cn(progressionMeasurementTitleClassName, "mx-auto block w-fit text-center")}
           name={loadFieldName}
           inputMode="decimal"
           value={loadValue}
           onChange={setLoadValue}
+          stepper={{
+            decrementAriaLabel: "Decrease workout plan weight adjustment",
+            incrementAriaLabel: "Increase workout plan weight adjustment",
+            onDecrement: () => setLoadValue(decrementProgressionNumericValue({ value: loadValue, inputMode: "decimal" })),
+            onIncrement: () => setLoadValue(incrementProgressionNumericValue({ value: loadValue, inputMode: "decimal" })),
+          }}
         />
       );
     case "bodyweightReps":
       return (
         <ProgressionNumberField
           label="REPS"
-          labelClassName={progressionMeasurementTitleClassName}
+          labelClassName={cn(progressionMeasurementTitleClassName, "mx-auto block w-fit text-center")}
           name={repFieldName}
           inputMode="numeric"
           value={repValue}
           onChange={setRepValue}
+          stepper={{
+            decrementAriaLabel: "Decrease workout plan rep adjustment",
+            incrementAriaLabel: "Increase workout plan rep adjustment",
+            onDecrement: () => setRepValue(decrementProgressionNumericValue({ value: repValue, inputMode: "numeric" })),
+            onIncrement: () => setRepValue(incrementProgressionNumericValue({ value: repValue, inputMode: "numeric" })),
+          }}
         />
       );
     case "duration":
       return (
         <ProgressionNumberField
           label="TIME (S)"
-          labelClassName={progressionMeasurementTitleClassName}
+          labelClassName={cn(progressionMeasurementTitleClassName, "mx-auto block w-fit text-center")}
           name={durationFieldName}
           inputMode="numeric"
           value={durationValue}
           onChange={setDurationValue}
+          stepper={{
+            decrementAriaLabel: "Decrease workout plan time adjustment",
+            incrementAriaLabel: "Increase workout plan time adjustment",
+            onDecrement: () => setDurationValue(decrementProgressionNumericValue({ value: durationValue, inputMode: "numeric" })),
+            onIncrement: () => setDurationValue(incrementProgressionNumericValue({ value: durationValue, inputMode: "numeric" })),
+          }}
         />
       );
     case "distance":
       return (
         <ProgressionNumberField
           label={getDistanceMeasurementLabel(distanceUnit)}
-          labelClassName={progressionMeasurementTitleClassName}
+          labelClassName={cn(progressionMeasurementTitleClassName, "mx-auto block w-fit text-center")}
           name={distanceFieldName}
           inputMode="decimal"
           value={distanceValue}
           onChange={setDistanceValue}
+          stepper={{
+            decrementAriaLabel: "Decrease workout plan distance adjustment",
+            incrementAriaLabel: "Increase workout plan distance adjustment",
+            onDecrement: () => setDistanceValue(decrementProgressionNumericValue({ value: distanceValue, inputMode: "decimal" })),
+            onIncrement: () => setDistanceValue(incrementProgressionNumericValue({ value: distanceValue, inputMode: "decimal" })),
+          }}
         />
       );
     default:
@@ -3859,6 +4265,12 @@ export function ProgressionPlaybookEditor({
             inputMode="decimal"
             value={value.progressionBarbellLoadIncrement}
             onChange={(nextValue) => onChange({ ...value, progressionBarbellLoadIncrement: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease barbell progression step",
+              incrementAriaLabel: "Increase barbell progression step",
+              onDecrement: () => onChange({ ...value, progressionBarbellLoadIncrement: decrementProgressionNumericValue({ value: value.progressionBarbellLoadIncrement, inputMode: "decimal" }) }),
+              onIncrement: () => onChange({ ...value, progressionBarbellLoadIncrement: incrementProgressionNumericValue({ value: value.progressionBarbellLoadIncrement, inputMode: "decimal" }) }),
+            }}
           />
         );
       case "dumbbellLoad":
@@ -3870,6 +4282,12 @@ export function ProgressionPlaybookEditor({
             inputMode="decimal"
             value={value.progressionDumbbellLoadIncrement}
             onChange={(nextValue) => onChange({ ...value, progressionDumbbellLoadIncrement: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease dumbbell progression step",
+              incrementAriaLabel: "Increase dumbbell progression step",
+              onDecrement: () => onChange({ ...value, progressionDumbbellLoadIncrement: decrementProgressionNumericValue({ value: value.progressionDumbbellLoadIncrement, inputMode: "decimal" }) }),
+              onIncrement: () => onChange({ ...value, progressionDumbbellLoadIncrement: incrementProgressionNumericValue({ value: value.progressionDumbbellLoadIncrement, inputMode: "decimal" }) }),
+            }}
           />
         );
       case "machineLoad":
@@ -3881,6 +4299,12 @@ export function ProgressionPlaybookEditor({
             inputMode="decimal"
             value={value.progressionMachineLoadIncrement}
             onChange={(nextValue) => onChange({ ...value, progressionMachineLoadIncrement: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease machine progression step",
+              incrementAriaLabel: "Increase machine progression step",
+              onDecrement: () => onChange({ ...value, progressionMachineLoadIncrement: decrementProgressionNumericValue({ value: value.progressionMachineLoadIncrement, inputMode: "decimal" }) }),
+              onIncrement: () => onChange({ ...value, progressionMachineLoadIncrement: incrementProgressionNumericValue({ value: value.progressionMachineLoadIncrement, inputMode: "decimal" }) }),
+            }}
           />
         );
       case "cableLoad":
@@ -3892,6 +4316,12 @@ export function ProgressionPlaybookEditor({
             inputMode="decimal"
             value={value.progressionCableLoadIncrement}
             onChange={(nextValue) => onChange({ ...value, progressionCableLoadIncrement: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease cable progression step",
+              incrementAriaLabel: "Increase cable progression step",
+              onDecrement: () => onChange({ ...value, progressionCableLoadIncrement: decrementProgressionNumericValue({ value: value.progressionCableLoadIncrement, inputMode: "decimal" }) }),
+              onIncrement: () => onChange({ ...value, progressionCableLoadIncrement: incrementProgressionNumericValue({ value: value.progressionCableLoadIncrement, inputMode: "decimal" }) }),
+            }}
           />
         );
       case "genericLoad":
@@ -3903,6 +4333,12 @@ export function ProgressionPlaybookEditor({
             inputMode="decimal"
             value={value.progressionLoadIncrement}
             onChange={(nextValue) => onChange({ ...value, progressionLoadIncrement: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease progression load step",
+              incrementAriaLabel: "Increase progression load step",
+              onDecrement: () => onChange({ ...value, progressionLoadIncrement: decrementProgressionNumericValue({ value: value.progressionLoadIncrement, inputMode: "decimal" }) }),
+              onIncrement: () => onChange({ ...value, progressionLoadIncrement: incrementProgressionNumericValue({ value: value.progressionLoadIncrement, inputMode: "decimal" }) }),
+            }}
           />
         );
       case "bodyweightReps":
@@ -3914,6 +4350,12 @@ export function ProgressionPlaybookEditor({
             inputMode="numeric"
             value={value.progressionBodyweightRepIncrement}
             onChange={(nextValue) => onChange({ ...value, progressionBodyweightRepIncrement: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease progression rep step",
+              incrementAriaLabel: "Increase progression rep step",
+              onDecrement: () => onChange({ ...value, progressionBodyweightRepIncrement: decrementProgressionNumericValue({ value: value.progressionBodyweightRepIncrement, inputMode: "numeric" }) }),
+              onIncrement: () => onChange({ ...value, progressionBodyweightRepIncrement: incrementProgressionNumericValue({ value: value.progressionBodyweightRepIncrement, inputMode: "numeric" }) }),
+            }}
           />
         );
       case "duration":
@@ -3925,6 +4367,12 @@ export function ProgressionPlaybookEditor({
             inputMode="numeric"
             value={value.progressionDurationIncrementSeconds}
             onChange={(nextValue) => onChange({ ...value, progressionDurationIncrementSeconds: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease progression time step",
+              incrementAriaLabel: "Increase progression time step",
+              onDecrement: () => onChange({ ...value, progressionDurationIncrementSeconds: decrementProgressionNumericValue({ value: value.progressionDurationIncrementSeconds, inputMode: "numeric" }) }),
+              onIncrement: () => onChange({ ...value, progressionDurationIncrementSeconds: incrementProgressionNumericValue({ value: value.progressionDurationIncrementSeconds, inputMode: "numeric" }) }),
+            }}
           />
         );
       case "distance":
@@ -3936,6 +4384,12 @@ export function ProgressionPlaybookEditor({
             inputMode="decimal"
             value={value.progressionDistanceIncrement}
             onChange={(nextValue) => onChange({ ...value, progressionDistanceIncrement: nextValue })}
+            stepper={{
+              decrementAriaLabel: "Decrease progression distance step",
+              incrementAriaLabel: "Increase progression distance step",
+              onDecrement: () => onChange({ ...value, progressionDistanceIncrement: decrementProgressionNumericValue({ value: value.progressionDistanceIncrement, inputMode: "decimal" }) }),
+              onIncrement: () => onChange({ ...value, progressionDistanceIncrement: incrementProgressionNumericValue({ value: value.progressionDistanceIncrement, inputMode: "decimal" }) }),
+            }}
           />
         );
       default:
@@ -3999,7 +4453,7 @@ export function ProgressionPlaybookEditor({
     );
   };
   const sessionSettingFields = visiblePromotionStepFieldIds.map((fieldId) => (
-    <div key={`session-${fieldId}`} className="w-[6.65rem] shrink-0">
+    <div key={`session-${fieldId}`} className={progressionSettingsMeasurementFieldWidthClassName}>
       {renderPromotionStepField(fieldId)}
     </div>
   ));
@@ -4048,11 +4502,23 @@ export function ProgressionPlaybookEditor({
           name="progressionStallThreshold"
           inputMode="numeric"
           value={value.progressionStallThreshold}
-          labelClassName="normal-case text-[10px] tracking-[0.06em]"
+          labelClassName="!mx-auto !mr-auto block w-fit text-center normal-case text-[10px] tracking-[0.06em]"
           onChange={(nextValue) => onChange({
             ...value,
             progressionStallThreshold: nextValue,
           })}
+          stepper={{
+            decrementAriaLabel: "Decrease failure count",
+            incrementAriaLabel: "Increase failure count",
+            onDecrement: () => onChange({
+              ...value,
+              progressionStallThreshold: decrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+            }),
+            onIncrement: () => onChange({
+              ...value,
+              progressionStallThreshold: incrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+            }),
+          }}
         />
       </div>,
     ]
@@ -4366,38 +4832,25 @@ export function ProgressionPlaybookEditor({
     : visiblePromotionStepFieldIds;
   const buildDayAdjustmentFields = (variant: "raised" | "lowered") => shouldRenderPromotionStepSettings
     ? visibleDayStepFieldIds.map((fieldId) => (
-      <div key={`${variant}-${fieldId}`} className="w-[6.65rem] shrink-0">
+      <div key={`${variant}-${fieldId}`} className={progressionPrimaryMeasurementFieldWidthClassName}>
         {renderDayProgressionField(fieldId, variant)}
       </div>
     ))
     : [];
-  const raisedDaySettingFields = buildDayAdjustmentFields("raised");
-  const loweredDaySettingFields = buildDayAdjustmentFields("lowered");
-  const daySettingFields = shouldRenderPromotionStepSettings && (raisedDaySettingFields.length > 0 || loweredDaySettingFields.length > 0)
+  const unifiedDaySettingFields = buildDayAdjustmentFields("raised");
+  const daySettingFields = shouldRenderPromotionStepSettings && unifiedDaySettingFields.length > 0
     ? [
-      <div key="day-adjustment-settings" className="space-y-3">
-        <div className="space-y-2">
-          <div className="mx-auto w-fit max-w-full space-y-[2px]">
-            <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-              Raised
-            </p>
-            <MetricAccentBar variant="thin" className="w-full opacity-80" />
-          </div>
-          <div className={progressionSettingsFieldRowClassName}>
-            {raisedDaySettingFields}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="mx-auto w-fit max-w-full space-y-[2px]">
-            <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--danger-rgb)/0.94)]">
-              Lowered
-            </p>
-            <MetricAccentBar variant="thin" className="w-full opacity-80" />
-          </div>
-          <div className={progressionSettingsFieldRowClassName}>
-            {loweredDaySettingFields}
-          </div>
-        </div>
+      <div
+        key="day-adjustment-settings"
+        className="mx-auto max-w-full"
+      >
+        <ProgressionHorizontalRail
+          className="max-w-full"
+          scrollClassName="pb-1"
+          contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-start justify-center gap-1.5 px-1"
+        >
+          {unifiedDaySettingFields}
+        </ProgressionHorizontalRail>
       </div>,
     ]
     : [];
@@ -5435,11 +5888,6 @@ export function ProgressionPlaybookEditor({
                     </div>
                   ))}
                 </div>
-                {rowIndex < rows.length - 1 ? (
-                  <div className="flex shrink-0 items-center justify-center self-stretch px-1.5" aria-hidden="true">
-                    <MetricAccentBar variant="thin" className="!h-[8rem] !w-px rotate-90 opacity-80" />
-                  </div>
-                ) : null}
               </Fragment>
             ))}
         </ProgressionHorizontalRail>
@@ -5596,6 +6044,18 @@ export function ProgressionPlaybookEditor({
                 ...value,
                 progressionStallThreshold: nextValue,
               })}
+              stepper={{
+                decrementAriaLabel: "Decrease failure count",
+                incrementAriaLabel: "Increase failure count",
+                onDecrement: () => onChange({
+                  ...value,
+                  progressionStallThreshold: decrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+                }),
+                onIncrement: () => onChange({
+                  ...value,
+                  progressionStallThreshold: incrementProgressionNumericValue({ value: value.progressionStallThreshold, inputMode: "numeric" }),
+                }),
+              }}
             />
           </div>,
         ],
@@ -5653,162 +6113,202 @@ export function ProgressionPlaybookEditor({
     );
   };
   const progressionInfoBox = (
-    <div className="rounded-[1.1rem] border border-transparent bg-transparent px-2 py-3 text-left">
-      <div className="space-y-2.5">
-        {shouldRenderRoutineSetupInfoSection ? (
-          <ProgressionInfoMiniSection
-            title="Routine setup"
-            defaultOpen
-            sectionKey="routine_setup"
-            openSectionKey={openInfoMiniSectionKey}
-            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-          >
+    <div className="px-2 py-3 text-left">
+      {(() => {
+        const infoPanels: Array<{
+          key: ProgressionInfoMiniSectionKey;
+          title: ReactNode;
+          summary: ReactNode;
+          accent?: "primary" | "secondary";
+          widthClassName?: string;
+          content: ReactNode;
+        }> = [];
+
+        if (shouldRenderRoutineSetupInfoSection) {
+          infoPanels.push({
+            key: "routine_setup",
+            title: "Routine Setup",
+            summary: "Cycle",
+            widthClassName: "w-[12.5rem] min-w-[12.5rem]",
+            content: (
+              <ProgressionInfoRows
+                rows={[
+                  { label: "Schedule Mode", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
+                  { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Slot 1 inside the current anchored week." },
+                  { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Slot 1 anchors to. Covered weekdays show how the current cycle spans forward from that anchor." },
+                  { label: "Cycle Length", value: "Total workout plans before the cycle repeats. In week-based mode, extra plans continue into the next week." },
+                  { label: "Timezone", value: "Controls Today rollover, workout-plan slot rollover, and routine occurrence dates." },
+                  { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
+                ]}
+              />
+            ),
+          });
+        }
+
+        infoPanels.push({
+          key: "progression_method",
+            title: "Progression",
+          summary: selectedPlaybookId ? "Auto" : "Manual",
+          widthClassName: "w-[11.5rem] min-w-[11.5rem]",
+          content: (
             <ProgressionInfoRows
               rows={[
-                { label: "Schedule Mode", value: "Week-based anchors Slot 1 to a weekday. Day-based repeats every N days from the anchor date." },
-                { label: "Cycle Start", value: "In day-based mode, this date anchors the repeating N-day cycle. In week-based mode, it places Slot 1 inside the current anchored week." },
-                { label: "Weekday Cycle Anchor", value: "Week-based only. Pick which weekday Slot 1 anchors to. Covered weekdays show how the current cycle spans forward from that anchor." },
-                { label: "Cycle Length", value: "Total workout plans before the cycle repeats. In week-based mode, extra plans continue into the next week." },
-                { label: "Timezone", value: "Controls Today rollover, workout-plan slot rollover, and routine occurrence dates." },
-                { label: "Units", value: "Default weight and distance units used for routine targets, progression values, and logged workout values." },
+                { label: "What it does", value: selectedMethodInfo.id === "manual" ? "Uses the target you enter. No automatic target changes are generated." : selectedMethodInfo.whatItDoes },
+                { label: "Use it for", value: selectedMethodInfo.id === "manual" ? "Anything you want to control directly." : selectedMethodInfo.useItFor },
+                { label: "Promotion proof", value: "The app only suggests updates from completed logged work, not from planned targets alone." },
+                { label: "Apply/Revert", value: "Ready updates require approval, keep a quick undo pin, and can be locked in once you train on the new target." },
               ]}
             />
-          </ProgressionInfoMiniSection>
-        ) : null}
+          ),
+        });
 
-        <ProgressionInfoMiniSection
-          title={(
-            <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 text-center">
-              <span>Progression type</span>
-              <SignatureMiniPipe />
-              <span className="text-[rgb(var(--secondary-action-rgb)/0.94)]">{selectedPlaybookId ? "Auto" : "Manual"}</span>
-            </span>
-          )}
-          defaultOpen
-          sectionKey="progression_method"
-          openSectionKey={openInfoMiniSectionKey}
-          onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-        >
-          <ProgressionInfoRows
-            rows={[
-              { label: "What it does", value: selectedMethodInfo.id === "manual" ? "Uses the target you enter. No automatic target changes are generated." : selectedMethodInfo.whatItDoes },
-              { label: "Use it for", value: selectedMethodInfo.id === "manual" ? "Anything you want to control directly." : selectedMethodInfo.useItFor },
-              { label: "Promotion proof", value: "The app only suggests updates from completed logged work, not from planned targets alone." },
-              { label: "Apply/Revert", value: "Ready updates require approval, keep a quick undo pin, and can be locked in once you train on the new target." },
-            ]}
-          />
-        </ProgressionInfoMiniSection>
+        if (shouldRenderRegressionInfoSection) {
+          infoPanels.push({
+            key: "regression_method",
+            title: "Regression",
+            summary: selectedStallPolicyInfo.label,
+            widthClassName: "w-[11.5rem] min-w-[11.5rem]",
+            content: (
+              <ProgressionInfoRows
+                rows={[
+                  { label: "What it does", value: selectedStallPolicyInfo.whatItDoes },
+                  { label: "Use it for", value: selectedStallPolicyInfo.useItFor },
+                  { label: "When it runs", value: "Only after repeated misses against the current target. Deleted evidence recomputes status but does not silently rewrite goals." },
+                  { label: "Review", value: "A regression candidate is still an explicit update; it is not auto-applied from the settings screen." },
+                ]}
+              />
+            ),
+          });
+        }
 
-        {shouldRenderRegressionInfoSection ? (
-          <ProgressionInfoMiniSection
-            title={(
-              <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 text-center">
-                <span className="text-[rgb(var(--accent-divider-rgb)/0.92)]">Regression Type</span>
-                <SignatureMiniPipe />
-                <span className="text-[rgb(var(--secondary-action-rgb)/0.94)]">{selectedStallPolicyInfo.label}</span>
-              </span>
-            )}
-            accent="secondary"
-            sectionKey="regression_method"
-            openSectionKey={openInfoMiniSectionKey}
-            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-          >
-            <ProgressionInfoRows
-              rows={[
-                { label: "What it does", value: selectedStallPolicyInfo.whatItDoes },
-                { label: "Use it for", value: selectedStallPolicyInfo.useItFor },
-                { label: "When it runs", value: "Only after repeated misses against the current target. Deleted evidence recomputes status but does not silently rewrite goals." },
-                { label: "Review", value: "A regression candidate is still an explicit update; it is not auto-applied from the settings screen." },
-              ]}
-            />
-          </ProgressionInfoMiniSection>
-        ) : null}
+        if (shouldRenderSessionInfoSection) {
+          infoPanels.push({
+            key: "session_settings",
+            title: "Session",
+            summary: "Flow",
+            widthClassName: "w-[11rem] min-w-[11rem]",
+            content: (
+              <ProgressionInfoRows
+                rows={[
+                  { label: "Purpose", value: "Controls measurement order, grouping, session count span, and direction for the measurements that can progress." },
+                  { label: "Order", value: activeSessionMeasurementOrderLabel },
+                  { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
+                  { label: "Grouped sessions", value: "Active AND groups share one session count and one direction until the session flow advances." },
+                  { label: "Empty inputs", value: "Blank measurements stay straight, do not show active direction behavior, and are omitted from active grouped session behavior." },
+                  { label: "Cycle effect", value: "Session Settings drive how progression advances across the routine cycle and how the progression example sequences its session steps." },
+                  { label: "Scope", value: "Session Settings affect progression order and qualification flow. They do not change within-session set sequencing." },
+                ]}
+              />
+            ),
+          });
+        }
 
-        {shouldRenderSessionInfoSection ? (
-          <ProgressionInfoMiniSection
-            title="Session Settings"
-            sectionKey="session_settings"
-            openSectionKey={openInfoMiniSectionKey}
-            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-          >
-            <ProgressionInfoRows
-              rows={[
-                { label: "Purpose", value: "Controls measurement order, grouping, session count span, and direction for the measurements that can progress." },
-                { label: "Order", value: activeSessionMeasurementOrderLabel },
-                { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
-                { label: "Grouped sessions", value: "Active AND groups share one session count and one direction until the session flow advances." },
-                { label: "Empty inputs", value: "Blank measurements stay straight, do not show active direction behavior, and are omitted from active grouped session behavior." },
-                { label: "Cycle effect", value: "Session Settings drive how progression advances across the routine cycle and how the progression example sequences its session steps." },
-                { label: "Scope", value: "Session Settings affect progression order and qualification flow. They do not change within-session set sequencing." },
-              ]}
-            />
-          </ProgressionInfoMiniSection>
-        ) : null}
+        if (shouldRenderDayAdjustmentInfoSection) {
+          infoPanels.push({
+            key: "day_settings",
+            title: "Day",
+            summary: "Shifts",
+            widthClassName: "w-[9.5rem] min-w-[9.5rem]",
+            content: (
+              <ProgressionInfoRows
+                rows={[
+                  { label: "Purpose", value: "Controls how the effective target adjusts for a workout-plan slot before Session Settings and Set Settings continue the workout flow." },
+                  { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
+                  { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
+                  { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
+                ]}
+              />
+            ),
+          });
+        }
 
-        {shouldRenderDayAdjustmentInfoSection ? (
-          <ProgressionInfoMiniSection
-            title="Workout Plan Adjustments Settings"
-            sectionKey="day_settings"
-            openSectionKey={openInfoMiniSectionKey}
-            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-          >
-            <ProgressionInfoRows
-              rows={[
-                { label: "Purpose", value: "Controls how the effective target adjusts for a workout-plan slot before Session Settings and Set Settings continue the workout flow." },
-                { label: "Active measurements", value: formatActiveMeasurementList(renderedSessionPromotionMeasurements) },
-                { label: "Raised", value: getDayAdjustmentStepSummary("raised") },
-                { label: "Lowered", value: getDayAdjustmentStepSummary("lowered") },
-              ]}
-            />
-          </ProgressionInfoMiniSection>
-        ) : null}
+        if (shouldRenderSetSettingsInfoSection) {
+          infoPanels.push({
+            key: "set_step_settings",
+            title: "Set",
+            summary: "Flow",
+            widthClassName: "w-[11rem] min-w-[11rem]",
+            content: (
+              <ProgressionInfoRows
+                rows={[
+                  { label: "Purpose", value: "Controls within-session set order, grouping, set count span, and direction for the active set measurements." },
+                  { label: "Order", value: activeSetMeasurementOrderLabel },
+                  { label: "Active measurements", value: formatActiveMeasurementList(renderedSetFlowMeasurements as ProgressionMeasurementKey[]) },
+                  {
+                    label: "Current flow",
+                    value: isCustomSetFlow
+                      ? "Custom order and grouping per measurement: each active metric can move independently or share grouped set behavior."
+                      : `${selectedSetFlowInfo.label}: ${selectedSetFlowInfo.shortExplanation}`,
+                  },
+                  { label: "Step", value: activeSetStepSummary },
+                  { label: "Quick Log", value: "Quick Log uses these settings to suggest the next set target inside the current set sequence." },
+                  { label: "Grouped sets", value: "Active AND groups share one set count and one direction until the set flow advances." },
+                  { label: "Empty inputs", value: "Blank measurements stay straight and are omitted from active grouped set behavior." },
+                  { label: SET_FLOW_DEFINITIONS.straight_sets.label, value: `${SET_FLOW_DEFINITIONS.straight_sets.shortExplanation} Best when every work set should hold the same active target.` },
+                  { label: SET_FLOW_DEFINITIONS.ascending_ramp.label, value: `${SET_FLOW_DEFINITIONS.ascending_ramp.shortExplanation} Set Settings define the per-set measurement movement and count span.` },
+                  { label: SET_FLOW_DEFINITIONS.descending_backoff.label, value: `${SET_FLOW_DEFINITIONS.descending_backoff.shortExplanation} Useful when the first set is heaviest and later sets back off across the active measurements.` },
+                  { label: "Scope", value: "Set Settings affect the within-session example and session suggestions. They do not change post-session qualification or target updates." },
+                ]}
+              />
+            ),
+          });
+        }
 
-        {shouldRenderSetSettingsInfoSection ? (
-          <ProgressionInfoMiniSection
-            title="Set Settings"
-            sectionKey="set_step_settings"
-            openSectionKey={openInfoMiniSectionKey}
-            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-          >
-            <ProgressionInfoRows
-              rows={[
-                { label: "Purpose", value: "Controls within-session set order, grouping, set count span, and direction for the active set measurements." },
-                { label: "Order", value: activeSetMeasurementOrderLabel },
-                { label: "Active measurements", value: formatActiveMeasurementList(renderedSetFlowMeasurements as ProgressionMeasurementKey[]) },
-                {
-                  label: "Current flow",
-                  value: isCustomSetFlow
-                    ? "Custom order and grouping per measurement: each active metric can move independently or share grouped set behavior."
-                    : `${selectedSetFlowInfo.label}: ${selectedSetFlowInfo.shortExplanation}`,
-                },
-                { label: "Step", value: activeSetStepSummary },
-                { label: "Quick Log", value: "Quick Log uses these settings to suggest the next set target inside the current set sequence." },
-                { label: "Grouped sets", value: "Active AND groups share one set count and one direction until the set flow advances." },
-                { label: "Empty inputs", value: "Blank measurements stay straight and are omitted from active grouped set behavior." },
-                { label: SET_FLOW_DEFINITIONS.straight_sets.label, value: `${SET_FLOW_DEFINITIONS.straight_sets.shortExplanation} Best when every work set should hold the same active target.` },
-                { label: SET_FLOW_DEFINITIONS.ascending_ramp.label, value: `${SET_FLOW_DEFINITIONS.ascending_ramp.shortExplanation} Set Settings define the per-set measurement movement and count span.` },
-                { label: SET_FLOW_DEFINITIONS.descending_backoff.label, value: `${SET_FLOW_DEFINITIONS.descending_backoff.shortExplanation} Useful when the first set is heaviest and later sets back off across the active measurements.` },
-                { label: "Scope", value: "Set Settings affect the within-session example and session suggestions. They do not change post-session qualification or target updates." },
-              ]}
-            />
-          </ProgressionInfoMiniSection>
-        ) : null}
+        if (failureToggleInfoContent) {
+          infoPanels.push({
+            key: "failure_toggle",
+            title: "Reps / Failure",
+            summary: "Mode",
+            widthClassName: "w-[10.75rem] min-w-[10.75rem]",
+            content: <ProgressionInfoRows rows={failureToggleInfoContent.rows ?? []} />,
+          });
+        }
 
-        {failureToggleInfoContent ? (
-          <ProgressionInfoMiniSection
-            title={failureToggleInfoContent.title}
-            sectionKey="failure_toggle"
-            openSectionKey={openInfoMiniSectionKey}
-            onOpenSectionKeyChange={setOpenInfoMiniSectionKey}
-          >
-            <ProgressionInfoRows rows={failureToggleInfoContent.rows ?? []} />
-          </ProgressionInfoMiniSection>
-        ) : null}
+        infoPanels.push({
+          key: "progression_terms",
+          title: "Terms",
+          summary: "Reference",
+          widthClassName: "w-[11.5rem] min-w-[11.5rem]",
+          content: <ProgressionInfoRows rows={keyTermRows} />,
+        });
 
-        <ProgressionInfoMiniSection title="Progression terms">
-          <ProgressionInfoRows rows={keyTermRows} />
-        </ProgressionInfoMiniSection>
-      </div>
+        const activeInfoPanel = infoPanels.find((panel) => panel.key === openInfoMiniSectionKey) ?? null;
+
+        return (
+          <div className="min-h-[16.75rem] max-h-[16.75rem] space-y-0.5">
+            <ProgressionHorizontalRail
+              className="-mx-1"
+              scrollClassName="pb-0 pl-1 pr-2"
+              contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-stretch gap-2 px-1"
+            >
+              {infoPanels.map((panel) => (
+                <ProgressionSettingsRailCard
+                  key={panel.key}
+                  title={panel.title}
+                  summary={panel.summary}
+                  accent={panel.accent}
+                  widthClassName={panel.widthClassName}
+                  isOpen={openInfoMiniSectionKey === panel.key}
+                  onClick={() => setOpenInfoMiniSectionKey((current) => current === panel.key ? null : panel.key)}
+                />
+              ))}
+            </ProgressionHorizontalRail>
+
+            {activeInfoPanel ? (
+              <ProgressionSettingsStage
+                title={activeInfoPanel.title}
+                summary={activeInfoPanel.summary}
+                accent={activeInfoPanel.accent}
+                showHeader={false}
+                stageClassName="h-[13.25rem]"
+                useVerticalHintScroll
+              >
+                {activeInfoPanel.content}
+              </ProgressionSettingsStage>
+            ) : null}
+          </div>
+        );
+      })()}
     </div>
   );
   const progressionControlsContent = (
@@ -5832,10 +6332,11 @@ export function ProgressionPlaybookEditor({
                           <MetricAccentBar variant="thin" className="w-full opacity-80" />
                         </div>
                         <ProgressionBinaryToggleButton
-                          label={autoApplyUpdatesToExercises ? "Active" : "Inactive"}
+                          checked={autoApplyUpdatesToExercises}
+                          onLabel="Active"
+                          offLabel="Inactive"
                           ariaLabel="Auto apply updates to current exercises"
                           onClick={() => onAutoApplyUpdatesToExercisesChange(!autoApplyUpdatesToExercises)}
-                          className="min-w-[8.5rem]"
                         />
                       </div>
                     ) : null}
@@ -5860,155 +6361,238 @@ export function ProgressionPlaybookEditor({
           </div>
         ) : null}
 
-        {showProgressionMethodToggle ? (
-          <ProgressionInfoMiniSection title="Progression Settings">
-            <div className="space-y-3" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
-              <div className="flex justify-center">
-                <ProgressionBinaryToggleButton
-                  label={selectedPlaybookId ? "Auto" : "Manual"}
-                  ariaLabel="Progression method"
-                  onClick={() => {
-                    const nextValue = selectedPlaybookId ? "" : "double_progression";
-                    setPlaybookId(nextValue as ProgressionPlaybookId | "");
-                    showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
-                  }}
-                  className="min-w-[8.5rem] shrink-0"
-                />
-              </div>
-            </div>
-          </ProgressionInfoMiniSection>
-        ) : null}
+        {(() => {
+          const progressionSettingsPanels: Array<{
+            key: ProgressionSettingsPanelKey;
+            title: ReactNode;
+            summary: ReactNode;
+            accent?: "primary" | "secondary";
+            widthClassName?: string;
+            content: ReactNode;
+          }> = [];
 
-        {shouldRenderRegressionControls ? (
-          <ProgressionInfoMiniSection title="Regression Settings">
-            <div className="space-y-3" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
-              <div className="flex justify-center">
-                <ProgressionBinaryToggleButton
-                  label={value.progressionStallPolicy === "deload_after_stall" ? "Deload" : "Manual"}
-                  ariaLabel="Regression policy"
-                  onClick={() => {
-                    const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
-                      ? "none"
-                      : "deload_after_stall";
-                    setStallPolicy(nextPolicy);
-                    showCustomInfo(getRegressionInfoPayload(nextPolicy));
-                  }}
-                  className="min-w-[8.5rem] shrink-0"
-                />
-              </div>
-              {shouldRenderDeloadSettings ? (
-                <div {...getInfoSectionHandlers("deload_settings")}>
-                  <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
-                    {deloadSettingFields}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </ProgressionInfoMiniSection>
-        ) : null}
-
-        {!resolvedHideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0 ? (
-          <ProgressionInfoMiniSection title="Workout Plan Adjustments Settings">
-            <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
-              <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
-                {daySettingFields}
-              </div>
-            </div>
-          </ProgressionInfoMiniSection>
-        ) : null}
-
-        {!resolvedHideSessionSettingsSection && shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0) ? (
-          <ProgressionInfoMiniSection title="Session Settings">
-            {isRoutineDefaultContext ? (
-              <div className="space-y-3.5" {...getInfoSectionHandlers("session_settings")}>
-                <PromotionMeasurementStepRow
-                  measurements={routinePromotionMeasurements}
-                  links={routinePromotionLinks}
-                  weightUnit={weightUnit}
-                  distanceUnit={distanceUnit}
-                  values={routinePromotionStepValues}
-                  directions={value.progressionPromotionDirectionMap}
-                  groupedDirections={value.progressionPromotionGroupedDirectionMap}
-                  sessionCounts={value.progressionPromotionSessionCountMap}
-                  groupedSessionCounts={value.progressionPromotionGroupedSessionCountMap}
-                  defaultSessionCount={defaultRoutineSessionCount}
-                  repRangeMin={value.progressionPromotionRepRangeMin}
-                  repRangeMax={value.progressionPromotionRepRangeMax}
-                  repRangeStep={value.progressionBodyweightRepIncrement}
-                  onMove={moveRoutinePromotionMeasurement}
-                  onToggleConnector={toggleRoutinePromotionConnector}
-                  onStepChange={setRoutinePromotionStep}
-                  onDirectionToggle={setRoutinePromotionDirection}
-                  onGroupedDirectionToggle={setRoutinePromotionGroupedDirection}
-                  onSessionCountChange={setRoutinePromotionSessionCount}
-                  onGroupedSessionCountChange={setRoutinePromotionGroupedSessionCount}
-                  onRepRangeMinChange={setRoutinePromotionRepRangeMin}
-                  onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
-                  onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
-                  infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(routinePromotionMeasurements, routinePromotionLinks))}
-                />
-              </div>
-            ) : (
-              <div className="space-y-3" {...getCustomInfoHandlers(() => getPromotionBasisInfoPayload(selectedPromotionOptionId ?? "weight_and_reps"))}>
-                {sessionSettingFields.length > 0 ? (
-                  <div {...getInfoSectionHandlers("session_settings")}>
-                    <PromotionMeasurementStepRow
-                      measurements={renderedSessionPromotionMeasurements}
-                      links={renderedSessionPromotionLinks}
-                      weightUnit={weightUnit}
-                      distanceUnit={distanceUnit}
-                      values={routinePromotionStepValues}
-                      directions={value.progressionPromotionDirectionMap}
-                      groupedDirections={value.progressionPromotionGroupedDirectionMap}
-                      sessionCounts={value.progressionPromotionSessionCountMap}
-                      groupedSessionCounts={value.progressionPromotionGroupedSessionCountMap}
-                      defaultSessionCount={defaultRoutineSessionCount}
-                      repRangeMin={value.progressionPromotionRepRangeMin}
-                      repRangeMax={value.progressionPromotionRepRangeMax}
-                      repRangeStep={value.progressionBodyweightRepIncrement}
-                      onMove={moveRoutinePromotionMeasurement}
-                      onToggleConnector={toggleRoutinePromotionConnector}
-                      onStepChange={setRoutinePromotionStep}
-                      onDirectionToggle={setRoutinePromotionDirection}
-                      onGroupedDirectionToggle={setRoutinePromotionGroupedDirection}
-                      onSessionCountChange={setRoutinePromotionSessionCount}
-                      onGroupedSessionCountChange={setRoutinePromotionGroupedSessionCount}
-                      onRepRangeMinChange={setRoutinePromotionRepRangeMin}
-                      onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
-                      onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
-                      infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks))}
-                      showCountInput={!(context === "exercise" && resolvedHideExerciseSessionSuccessCount)}
+          if (showProgressionMethodToggle) {
+            progressionSettingsPanels.push({
+              key: "progression",
+              title: "Progression",
+              summary: selectedPlaybookId ? selectedMethodInfo.label : "Manual targets",
+              widthClassName: "w-[11rem] min-w-[11rem]",
+              content: (
+                <div className="space-y-3" {...getCustomInfoHandlers(() => getProgressionMethodInfoPayload(value.progressionPlaybookId ?? ""))}>
+                  <div className="flex justify-center">
+                    <ProgressionBinaryToggleButton
+                      checked={Boolean(selectedPlaybookId)}
+                      onLabel="Auto"
+                      offLabel="Manual"
+                      ariaLabel="Progression method"
+                      onClick={() => {
+                        const nextValue = selectedPlaybookId ? "" : "double_progression";
+                        setPlaybookId(nextValue as ProgressionPlaybookId | "");
+                        showCustomInfo(getProgressionMethodInfoPayload(nextValue as ProgressionPlaybookId | ""));
+                      }}
                     />
                   </div>
-                ) : null}
-                {isRoutineDefaultContext ? renderSessionMetaControls() : null}
-              </div>
-            )}
-          </ProgressionInfoMiniSection>
-        ) : null}
+                </div>
+              ),
+            });
+          }
 
-        {shouldRenderSetStepSettings ? (
-          <ProgressionInfoMiniSection title="Set Settings">
-            <div className="space-y-3" {...getInfoSectionHandlers("set_step_settings")}>
-              {setFlowSettingsRow}
+          if (shouldRenderRegressionControls) {
+            progressionSettingsPanels.push({
+              key: "regression",
+              title: "Regression",
+              summary: value.progressionStallPolicy === "deload_after_stall" ? "Deload on stall" : "Manual review",
+              widthClassName: "w-[11.5rem] min-w-[11.5rem]",
+              content: (
+                <div className="space-y-3" {...getCustomInfoHandlers(() => getRegressionInfoPayload(value.progressionStallPolicy))}>
+                  <div className="flex justify-center">
+                    <ProgressionBinaryToggleButton
+                      checked={value.progressionStallPolicy === "deload_after_stall"}
+                      onLabel="Deload"
+                      offLabel="Manual"
+                      ariaLabel="Regression policy"
+                      onClick={() => {
+                        const nextPolicy: ProgressionStallPolicy = value.progressionStallPolicy === "deload_after_stall"
+                          ? "none"
+                          : "deload_after_stall";
+                        setStallPolicy(nextPolicy);
+                        showCustomInfo(getRegressionInfoPayload(nextPolicy));
+                      }}
+                    />
+                  </div>
+                  {shouldRenderDeloadSettings ? (
+                    <div {...getInfoSectionHandlers("deload_settings")}>
+                      <div className={cn(progressionSettingsFieldRowClassName, "mx-auto")}>
+                        {deloadSettingFields}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            });
+          }
+
+          if (!resolvedHideDayAdjustmentSettingsSection && shouldRenderDayAdjustmentSettings && daySettingFields.length > 0) {
+            progressionSettingsPanels.push({
+              key: "day_adjustments",
+              title: "Day",
+              summary: "Shifts",
+              widthClassName: "w-[9.5rem] min-w-[9.5rem]",
+              content: (
+                <div className="space-y-3" {...getInfoSectionHandlers("day_settings")}>
+                  {daySettingFields}
+                </div>
+              ),
+            });
+          }
+
+          if (!resolvedHideSessionSettingsSection && shouldRenderSessionSettings && (isRoutineDefaultContext || sessionSettingFields.length > 0)) {
+            progressionSettingsPanels.push({
+              key: "session",
+              title: "Session",
+              summary: `${renderedSessionPromotionMeasurements.length || routinePromotionMeasurements.length} metrics`,
+              widthClassName: "w-[10.5rem] min-w-[10.5rem]",
+              content: isRoutineDefaultContext ? (
+                <div className="space-y-3.5" {...getInfoSectionHandlers("session_settings")}>
+                  <PromotionMeasurementStepRow
+                    measurements={routinePromotionMeasurements}
+                    links={routinePromotionLinks}
+                    weightUnit={weightUnit}
+                    distanceUnit={distanceUnit}
+                    values={routinePromotionStepValues}
+                    directions={value.progressionPromotionDirectionMap}
+                    groupedDirections={value.progressionPromotionGroupedDirectionMap}
+                    sessionCounts={value.progressionPromotionSessionCountMap}
+                    groupedSessionCounts={value.progressionPromotionGroupedSessionCountMap}
+                    defaultSessionCount={defaultRoutineSessionCount}
+                    repRangeMin={value.progressionPromotionRepRangeMin}
+                    repRangeMax={value.progressionPromotionRepRangeMax}
+                    repRangeStep={value.progressionBodyweightRepIncrement}
+                    onMove={moveRoutinePromotionMeasurement}
+                    onToggleConnector={toggleRoutinePromotionConnector}
+                    onStepChange={setRoutinePromotionStep}
+                    onDirectionToggle={setRoutinePromotionDirection}
+                    onGroupedDirectionToggle={setRoutinePromotionGroupedDirection}
+                    onSessionCountChange={setRoutinePromotionSessionCount}
+                    onGroupedSessionCountChange={setRoutinePromotionGroupedSessionCount}
+                    onRepRangeMinChange={setRoutinePromotionRepRangeMin}
+                    onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
+                    onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
+                    infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(routinePromotionMeasurements, routinePromotionLinks))}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3" {...getCustomInfoHandlers(() => getPromotionBasisInfoPayload(selectedPromotionOptionId ?? "weight_and_reps"))}>
+                  {sessionSettingFields.length > 0 ? (
+                    <div {...getInfoSectionHandlers("session_settings")}>
+                      <PromotionMeasurementStepRow
+                        measurements={renderedSessionPromotionMeasurements}
+                        links={renderedSessionPromotionLinks}
+                        weightUnit={weightUnit}
+                        distanceUnit={distanceUnit}
+                        values={routinePromotionStepValues}
+                        directions={value.progressionPromotionDirectionMap}
+                        groupedDirections={value.progressionPromotionGroupedDirectionMap}
+                        sessionCounts={value.progressionPromotionSessionCountMap}
+                        groupedSessionCounts={value.progressionPromotionGroupedSessionCountMap}
+                        defaultSessionCount={defaultRoutineSessionCount}
+                        repRangeMin={value.progressionPromotionRepRangeMin}
+                        repRangeMax={value.progressionPromotionRepRangeMax}
+                        repRangeStep={value.progressionBodyweightRepIncrement}
+                        onMove={moveRoutinePromotionMeasurement}
+                        onToggleConnector={toggleRoutinePromotionConnector}
+                        onStepChange={setRoutinePromotionStep}
+                        onDirectionToggle={setRoutinePromotionDirection}
+                        onGroupedDirectionToggle={setRoutinePromotionGroupedDirection}
+                        onSessionCountChange={setRoutinePromotionSessionCount}
+                        onGroupedSessionCountChange={setRoutinePromotionGroupedSessionCount}
+                        onRepRangeMinChange={setRoutinePromotionRepRangeMin}
+                        onRepRangeMaxChange={setRoutinePromotionRepRangeMax}
+                        onRepRangeStepChange={(nextValue) => setRoutinePromotionStep("reps", nextValue)}
+                        infoHandlers={getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(renderedSessionPromotionMeasurements, renderedSessionPromotionLinks))}
+                        showCountInput={!(context === "exercise" && resolvedHideExerciseSessionSuccessCount)}
+                      />
+                    </div>
+                  ) : null}
+                  {isRoutineDefaultContext ? renderSessionMetaControls() : null}
+                </div>
+              ),
+            });
+          }
+
+          if (shouldRenderSetStepSettings) {
+            progressionSettingsPanels.push({
+              key: "set",
+              title: "Set",
+              summary: "Flow",
+              widthClassName: "w-[9.75rem] min-w-[9.75rem]",
+              content: (
+                <div className="space-y-3" {...getInfoSectionHandlers("set_step_settings")}>
+                  {setFlowSettingsRow}
+                </div>
+              ),
+            });
+          }
+
+          if (selectedPlaybookId && !isRoutineDefaultContext && hasScopedDetailedProgressionExampleContent) {
+            progressionSettingsPanels.push({
+              key: "example",
+              title: <span className={progressionExampleTitleClassName}>Example</span>,
+              summary: "Current exercise",
+              widthClassName: "w-[10.5rem] min-w-[10.5rem]",
+              content: renderDetailedProgressionExample(scopedCombinedProgressionExampleRows, scopedPreProgressionCycleShiftRows),
+            });
+          }
+
+          if (selectedPlaybookId && isRoutineDefaultContext && hasDetailedProgressionExampleContent) {
+            progressionSettingsPanels.push({
+              key: "example",
+              title: <span className={progressionExampleTitleClassName}>Example</span>,
+              summary: "Current exercise",
+              widthClassName: "w-[10.5rem] min-w-[10.5rem]",
+              content: renderDetailedProgressionExample(combinedProgressionExampleRows, uniquePreProgressionCycleShiftRows),
+            });
+          }
+
+          const activePanel = progressionSettingsPanels.find((panel) => panel.key === activeSettingsPanelKey) ?? null;
+
+          return progressionSettingsPanels.length > 0 ? (
+            <div className="space-y-1 pt-0.5">
+              <ProgressionHorizontalRail
+                className="-mx-1"
+                scrollClassName="pb-0.5 pl-1 pr-2"
+                contentClassName="mx-auto flex w-max min-w-full flex-nowrap items-stretch justify-center gap-2 px-1"
+              >
+                {progressionSettingsPanels.map((panel) => (
+                  <ProgressionSettingsRailCard
+                    key={panel.key}
+                    title={panel.title}
+                    summary={panel.summary}
+                    accent={panel.accent}
+                    widthClassName={panel.widthClassName}
+                    isOpen={activeSettingsPanelKey === panel.key}
+                    onClick={() => setActiveSettingsPanelKey((current) => current === panel.key ? null : panel.key)}
+                  />
+                ))}
+              </ProgressionHorizontalRail>
+
+              {activePanel ? (
+              <ProgressionSettingsStage
+                title={activePanel.title}
+                summary={activePanel.summary}
+                accent={activePanel.accent}
+                showHeader={false}
+                stageClassName="h-[12.25rem]"
+              >
+                {activePanel.content}
+              </ProgressionSettingsStage>
+              ) : null}
             </div>
-          </ProgressionInfoMiniSection>
-        ) : null}
-
-        {selectedPlaybookId && !isRoutineDefaultContext && hasScopedDetailedProgressionExampleContent ? (
-          <ProgressionInfoMiniSection title={<span className={progressionExampleTitleClassName}>Progression Example</span>}>
-            {renderDetailedProgressionExample(scopedCombinedProgressionExampleRows, scopedPreProgressionCycleShiftRows)}
-          </ProgressionInfoMiniSection>
-        ) : null}
-
-        {selectedPlaybookId && isRoutineDefaultContext && hasDetailedProgressionExampleContent ? (
-          <ProgressionInfoMiniSection title={<span className={progressionExampleTitleClassName}>Progression Example</span>}>
-            {renderDetailedProgressionExample(combinedProgressionExampleRows, uniquePreProgressionCycleShiftRows)}
-          </ProgressionInfoMiniSection>
-        ) : null}
+          ) : null;
+        })()}
 
         {false && selectedPlaybookId && !isRoutineDefaultContext ? (
-          <ProgressionInfoMiniSection title={<span className={progressionExampleTitleClassName}>Progression Example</span>}>
+          <ProgressionInfoMiniSection title={<span className={progressionExampleTitleClassName}>Progression Example</span>} defaultOpen={resolvedDefaultSettingsSectionsOpen}>
             <div className="space-y-3" {...getCustomInfoHandlers(() => getRoutinePromotionOrderInfoPayload(
               visibleRoutinePromotionMeasurements,
               buildPromotionLinksFromGroups(visibleRoutinePromotionMeasurementGroups),

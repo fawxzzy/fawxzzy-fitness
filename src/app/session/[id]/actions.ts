@@ -558,6 +558,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
         userId: user.id,
         name,
         primaryMuscle,
+        secondaryMuscle: null,
         equipment,
         movementPattern,
         measurementType: customMeasurementType,

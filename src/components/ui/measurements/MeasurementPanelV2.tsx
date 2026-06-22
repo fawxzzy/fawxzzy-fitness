@@ -3,6 +3,8 @@
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
+import { GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME } from "@/components/ui/GlowSwitch";
+import { InlineEdgeControlButton, INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME } from "@/components/ui/InlineEdgeControlButton";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
@@ -32,7 +34,7 @@ const compactTopRowInlineLabelClassName = cn(lowerBottomRightInlineLabelClassNam
 const topRightInlineLabelClassName = "top-2.5 right-2.5 translate-y-0 text-[8px] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
 const floatingBorderLabelClassName = cn(
   labeledEditorFieldFloatingLabelClassName,
-  "px-1 py-0 leading-none",
+  "mx-auto mr-auto px-1 py-0 text-center leading-none",
 );
 const topRightInlineLabelBaseClassName = "pointer-events-none absolute whitespace-nowrap text-right text-[8px] font-semibold uppercase leading-[1.02] tracking-[0.06em] text-[rgb(var(--accent)/0.92)]";
 const floatingBorderFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] [touch-action:pan-x_pan-y] [-webkit-tap-highlight-color:transparent] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
@@ -63,9 +65,38 @@ function sanitizeDurationTextInput(value: string) {
   return `${minutes}:${secondsParts.replace(/:/g, "")}`;
 }
 
+function parseDurationSecondsForSteppedValue(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return 0;
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  const match = trimmed.match(/^(\d+):(\d{1,2})$/);
+  if (!match) return 0;
+  return (Number(match[1]) * 60) + Number(match[2]);
+}
+
+function formatDurationSecondsForSteppedValue(seconds: number) {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = safeSeconds % 60;
+  return `${minutes}:${String(remainder).padStart(2, "0")}`;
+}
+
+function formatDecimalStepValue(value: number, precision = 2) {
+  return value.toFixed(precision).replace(/\.?0+$/, "");
+}
+
+function decrementRepFieldValue(value: string | undefined) {
+  const current = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(current) || current <= 1) {
+    return "";
+  }
+
+  return String(current - 1);
+}
+
 type FieldWidth = "compact" | "standard" | "wide";
 
-type MeasurementPanelAuxiliaryField = {
+export type MeasurementPanelAuxiliaryField = {
   title: string;
   suffix?: string;
   input: ReactNode;
@@ -77,6 +108,12 @@ type MeasurementPanelAuxiliaryField = {
   valueLabelClassName?: string;
   emptyValueClassName?: string;
   renderInput?: (options: { inputClassName: string }) => ReactNode;
+  stepper?: {
+    decrementAriaLabel: string;
+    incrementAriaLabel: string;
+    onDecrement: () => void;
+    onIncrement: () => void;
+  };
 };
 
 type HorizontalRailPointerState = {
@@ -311,19 +348,24 @@ function getInputClassName({
   hasValue = false,
   topRightLabel = false,
   floatingBorder = false,
+  withEdgeControls = false,
   extraClassName,
 }: {
   tripleRow?: boolean;
   hasValue?: boolean;
   topRightLabel?: boolean;
   floatingBorder?: boolean;
+  withEdgeControls?: boolean;
   extraClassName?: string;
 }) {
   if (floatingBorder) {
     return cn(
       valueInputClassName,
       labeledEditorFieldControlClassName,
-      "h-11 rounded-[inherit] !border-0 !bg-transparent px-3 py-0 text-center !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+      cn(
+        "h-11 rounded-[inherit] !border-0 !bg-transparent py-0 text-center !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+        withEdgeControls ? "px-[2.35rem]" : "px-3",
+      ),
       extraClassName,
     );
   }
@@ -368,6 +410,8 @@ export function MeasurementPanelV2({
   betweenInputsAndFooterContent,
   footerContent,
   footerClassName,
+  repRangeFooterContent,
+  repReplacementContent,
   showInnerHeader = false,
   topField,
   auxiliaryFields,
@@ -379,6 +423,7 @@ export function MeasurementPanelV2({
   dimmedMetrics,
   layoutMode = "grid",
   labelTreatment = "inline",
+  showInlineStepControls = false,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -406,6 +451,8 @@ export function MeasurementPanelV2({
   betweenInputsAndFooterContent?: ReactNode;
   footerContent?: ReactNode;
   footerClassName?: string;
+  repRangeFooterContent?: ReactNode;
+  repReplacementContent?: ReactNode;
   showInnerHeader?: boolean;
   topField?: {
     title: string;
@@ -419,6 +466,12 @@ export function MeasurementPanelV2({
     valueLabelClassName?: string;
     emptyValueClassName?: string;
     renderInput?: (options: { inputClassName: string }) => ReactNode;
+    stepper?: {
+      decrementAriaLabel: string;
+      incrementAriaLabel: string;
+      onDecrement: () => void;
+      onIncrement: () => void;
+    };
   };
   auxiliaryFields?: MeasurementPanelAuxiliaryField[];
   horizontalRowPrefix?: ReactNode;
@@ -432,6 +485,7 @@ export function MeasurementPanelV2({
   dimmedMetrics?: Array<keyof MeasurementMetrics>;
   layoutMode?: "grid" | "horizontal-scroll";
   labelTreatment?: "inline" | "floating-border";
+  showInlineStepControls?: boolean;
 }) {
   const horizontalRailRef = useRef<HTMLDivElement | null>(null);
   const horizontalRailPointerStateRef = useRef<HorizontalRailPointerState | null>(null);
@@ -460,6 +514,7 @@ export function MeasurementPanelV2({
   const shareSingleMetricRowWithRpe = hasRpeInput && standardMetrics.length === 1;
   const useThreeAcrossMetrics = visibleInlineFieldCount >= 3 && !belowRpeContent;
   const useFloatingBorderLabels = labelTreatment === "floating-border";
+  const useSteppedControls = showInlineStepControls && useFloatingBorderLabels;
   const useCenteredLowerLabels = false;
   const useTopRightInlineLabels = !useFloatingBorderLabels;
   const useTopAnchoredLabels = !useCenteredLowerLabels && (useTopRightInlineLabels || useFloatingBorderLabels);
@@ -488,6 +543,40 @@ export function MeasurementPanelV2({
   );
   const resolveMetricLabel = (metric: keyof MeasurementMetrics, fallback: string) => metricLabelOverrides?.[metric] ?? resolveDefaultMeasurementMetricLabel(metric, fallback);
 
+  function renderStepperButtons(stepper?: {
+    decrementAriaLabel: string;
+    incrementAriaLabel: string;
+    onDecrement: () => void;
+    onIncrement: () => void;
+  }) {
+    if (!useSteppedControls || !stepper) {
+      return null;
+    }
+
+    return (
+      <>
+        <InlineEdgeControlButton
+          side="left"
+          ariaLabel={stepper.decrementAriaLabel}
+          onClick={stepper.onDecrement}
+          className="left-1 h-6 w-6 z-20"
+          contentClassName="text-[18px] font-semibold"
+        >
+          -
+        </InlineEdgeControlButton>
+        <InlineEdgeControlButton
+          side="right"
+          ariaLabel={stepper.incrementAriaLabel}
+          onClick={stepper.onIncrement}
+          className="right-1 h-6 w-6 z-20"
+          contentClassName="text-[18px] font-semibold"
+        >
+          +
+        </InlineEdgeControlButton>
+      </>
+    );
+  }
+
   function pushAuxiliaryField(field: MeasurementPanelAuxiliaryField, index: number) {
     const useInlineFieldShell = field.useInlineFieldShell ?? true;
     metricFields.push({
@@ -513,9 +602,11 @@ export function MeasurementPanelV2({
                   hasValue: field.hasValue,
                   topRightLabel: useTopAnchoredLabels,
                   floatingBorder: useFloatingBorderLabels,
+                  withEdgeControls: useSteppedControls && Boolean(field.stepper),
                 }),
               })
               : field.input}
+            {renderStepperButtons(field.stepper)}
           </InlineFieldControl>
         ) : field.inlineLabel !== undefined ? (
           <div className="flex h-full items-center justify-center">
@@ -565,9 +656,11 @@ export function MeasurementPanelV2({
                   hasValue: topField.hasValue,
                   topRightLabel: useTopAnchoredLabels,
                   floatingBorder: useFloatingBorderLabels,
+                  withEdgeControls: useSteppedControls && Boolean(topField.stepper),
                 }),
               })
               : topField.input}
+            {renderStepperButtons(topField.stepper)}
           </InlineFieldControl>
         ) : topField.inlineLabel !== undefined ? (
           <div className="flex h-full items-center justify-center">
@@ -596,80 +689,120 @@ export function MeasurementPanelV2({
 
   if (allowedMetrics.has("reps")) {
     if (usesRepRange) {
-      metricFields.push({
-        id: "reps-min",
-        node: renderMetricCard({
-          testId: "measurement-field-reps-min",
-          width: useThreeAcrossMetrics ? "compact" : "standard",
-          gridColumnCount,
-          dimmed: dimmedMetricSet.has("reps"),
-          children: (
-            <InlineFieldControl
-              label={resolvedRepRangeLabels.min}
-              showEmptyValue={!values.reps.trim()}
-              hasValue={Boolean(values.reps.trim())}
-              labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
-              valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
-              emptyValueClassName={undefined}
-              labelPlacement={resolvedFloatingLabelPlacement}
-            >
-              <input
-                name={names?.reps}
-                type="text"
-                inputMode="text"
-                value={values.reps}
-                onChange={(event) => {
-                  onChange({ reps: sanitizeIntegerInput(event.target.value) });
-                }}
-                className={getInputClassName({
-                  tripleRow: useThreeAcrossMetrics,
-                  hasValue: Boolean(values.reps.trim()),
-                  topRightLabel: useTopAnchoredLabels,
-                  floatingBorder: useFloatingBorderLabels,
-                })}
-                placeholder=""
-              />
-            </InlineFieldControl>
-          ),
-        }),
-      });
-      metricFields.push({
-        id: "reps-max",
-        node: renderMetricCard({
-          testId: "measurement-field-reps-max",
-          width: useThreeAcrossMetrics ? "compact" : "standard",
-          gridColumnCount,
-          dimmed: dimmedMetricSet.has("reps"),
-          children: (
-            <InlineFieldControl
-              label={resolvedRepRangeLabels.max}
-              showEmptyValue={!(values.repsMax ?? "").trim()}
-              hasValue={Boolean((values.repsMax ?? "").trim())}
-              labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
-              valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
-              emptyValueClassName={undefined}
-              labelPlacement={resolvedFloatingLabelPlacement}
-            >
-              <input
-                name={names?.repsMax}
-                type="text"
-                inputMode="text"
-                value={values.repsMax ?? ""}
-                onChange={(event) => {
-                  onChange({ repsMax: sanitizeIntegerInput(event.target.value) });
-                }}
-                className={getInputClassName({
-                  tripleRow: useThreeAcrossMetrics,
-                  hasValue: Boolean((values.repsMax ?? "").trim()),
-                  topRightLabel: useTopAnchoredLabels,
-                  floatingBorder: useFloatingBorderLabels,
-                })}
-                placeholder=""
-              />
-            </InlineFieldControl>
-          ),
-        }),
-      });
+      const repsMinControl = (
+        <InlineFieldControl
+          label={resolvedRepRangeLabels.min}
+          showEmptyValue={!values.reps.trim()}
+          hasValue={Boolean(values.reps.trim())}
+          labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
+          valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
+          emptyValueClassName={undefined}
+          labelPlacement={resolvedFloatingLabelPlacement}
+        >
+          <input
+            name={names?.reps}
+            type="text"
+            inputMode="text"
+            value={values.reps}
+            onChange={(event) => {
+              onChange({ reps: sanitizeIntegerInput(event.target.value) });
+            }}
+            className={getInputClassName({
+              tripleRow: useThreeAcrossMetrics,
+              hasValue: Boolean(values.reps.trim()),
+              topRightLabel: useTopAnchoredLabels,
+              floatingBorder: useFloatingBorderLabels,
+              withEdgeControls: useSteppedControls,
+            })}
+            placeholder=""
+          />
+          {renderStepperButtons({
+            decrementAriaLabel: `Decrease ${resolvedRepRangeLabels.min.toLowerCase()}`,
+            incrementAriaLabel: `Increase ${resolvedRepRangeLabels.min.toLowerCase()}`,
+            onDecrement: () => onChange({ reps: decrementRepFieldValue(values.reps) }),
+            onIncrement: () => onChange({ reps: String((Number.parseInt(values.reps, 10) || 0) + 1) }),
+          })}
+        </InlineFieldControl>
+      );
+      const repsMaxControl = (
+        <InlineFieldControl
+          label={resolvedRepRangeLabels.max}
+          showEmptyValue={!(values.repsMax ?? "").trim()}
+          hasValue={Boolean((values.repsMax ?? "").trim())}
+          labelClassName={resolveInlineLabelClassName(compactTopRowInlineLabelClassName)}
+          valueLabelClassName={resolveValueLabelClassName(compactTopRowInlineLabelClassName)}
+          emptyValueClassName={undefined}
+          labelPlacement={resolvedFloatingLabelPlacement}
+        >
+          <input
+            name={names?.repsMax}
+            type="text"
+            inputMode="text"
+            value={values.repsMax ?? ""}
+            onChange={(event) => {
+              onChange({ repsMax: sanitizeIntegerInput(event.target.value) });
+            }}
+            className={getInputClassName({
+              tripleRow: useThreeAcrossMetrics,
+              hasValue: Boolean((values.repsMax ?? "").trim()),
+              topRightLabel: useTopAnchoredLabels,
+              floatingBorder: useFloatingBorderLabels,
+              withEdgeControls: useSteppedControls,
+            })}
+            placeholder=""
+          />
+          {renderStepperButtons({
+            decrementAriaLabel: `Decrease ${resolvedRepRangeLabels.max.toLowerCase()}`,
+            incrementAriaLabel: `Increase ${resolvedRepRangeLabels.max.toLowerCase()}`,
+            onDecrement: () => onChange({ repsMax: decrementRepFieldValue(values.repsMax) }),
+            onIncrement: () => onChange({ repsMax: String((Number.parseInt(values.repsMax ?? "", 10) || 0) + 1) }),
+          })}
+        </InlineFieldControl>
+      );
+
+      if (repRangeFooterContent) {
+        metricFields.push({
+          id: "reps-group",
+          node: renderMetricCard({
+            testId: "measurement-field-reps-group",
+            width: "wide",
+            gridColumnCount,
+            dimmed: dimmedMetricSet.has("reps"),
+            children: (
+              <div className="relative pb-[3.6rem]">
+                <div className="flex items-start justify-center gap-1.5">
+                  <div className="w-[7.35rem] shrink-0">{repsMinControl}</div>
+                  <div className="w-[7.35rem] shrink-0">{repsMaxControl}</div>
+                </div>
+                <div className="absolute left-1/2 top-full flex -translate-x-1/2 -translate-y-[2.9rem] justify-center">
+                  {repRangeFooterContent}
+                </div>
+              </div>
+            ),
+          }),
+        });
+      } else {
+        metricFields.push({
+          id: "reps-min",
+          node: renderMetricCard({
+            testId: "measurement-field-reps-min",
+            width: useThreeAcrossMetrics ? "compact" : "standard",
+            gridColumnCount,
+            dimmed: dimmedMetricSet.has("reps"),
+            children: repsMinControl,
+          }),
+        });
+        metricFields.push({
+          id: "reps-max",
+          node: renderMetricCard({
+            testId: "measurement-field-reps-max",
+            width: useThreeAcrossMetrics ? "compact" : "standard",
+            gridColumnCount,
+            dimmed: dimmedMetricSet.has("reps"),
+            children: repsMaxControl,
+          }),
+        });
+      }
     } else {
       metricFields.push({ id: "reps", node: renderMetricCard({
               testId: "measurement-field-reps",
@@ -703,9 +836,16 @@ export function MeasurementPanelV2({
                       hasValue: Boolean(values.reps.trim()),
                       topRightLabel: useTopAnchoredLabels,
                       floatingBorder: useFloatingBorderLabels,
+                      withEdgeControls: useSteppedControls,
                     })}
                     placeholder=""
                   />
+                  {renderStepperButtons({
+                    decrementAriaLabel: "Decrease reps",
+                    incrementAriaLabel: "Increase reps",
+                    onDecrement: () => onChange({ reps: decrementRepFieldValue(values.reps) }),
+                    onIncrement: () => onChange({ reps: String((Number.parseInt(values.reps, 10) || 0) + 1) }),
+                  })}
                 </InlineFieldControl>
               ),
             })});
@@ -742,9 +882,16 @@ export function MeasurementPanelV2({
                       hasValue: Boolean(values.weight.trim()),
                       topRightLabel: useTopAnchoredLabels,
                       floatingBorder: useFloatingBorderLabels,
+                      withEdgeControls: useSteppedControls,
                     })}
                     placeholder=""
                   />
+                  {renderStepperButtons({
+                    decrementAriaLabel: "Decrease weight",
+                    incrementAriaLabel: "Increase weight",
+                    onDecrement: () => onChange({ weight: formatDecimalStepValue(Math.max(0, (Number.parseFloat(values.weight) || 0) - 1), 2) }),
+                    onIncrement: () => onChange({ weight: formatDecimalStepValue((Number.parseFloat(values.weight) || 0) + 1, 2) }),
+                  })}
                 </InlineFieldControl>
                 {names?.weightUnit ? <input type="hidden" name={names.weightUnit} value={values.weightUnit} /> : null}
               </>
@@ -782,9 +929,16 @@ export function MeasurementPanelV2({
                       hasValue: Boolean(values.duration.trim()),
                       topRightLabel: useTopAnchoredLabels,
                       floatingBorder: useFloatingBorderLabels,
+                      withEdgeControls: useSteppedControls,
                     })}
                     placeholder=""
                   />
+                  {renderStepperButtons({
+                    decrementAriaLabel: "Decrease time",
+                    incrementAriaLabel: "Increase time",
+                    onDecrement: () => onChange({ duration: formatDurationSecondsForSteppedValue(Math.max(0, parseDurationSecondsForSteppedValue(values.duration) - 15)) }),
+                    onIncrement: () => onChange({ duration: formatDurationSecondsForSteppedValue(parseDurationSecondsForSteppedValue(values.duration) + 15) }),
+                  })}
                 </InlineFieldControl>
               </>
             ),
@@ -821,9 +975,16 @@ export function MeasurementPanelV2({
                       hasValue: Boolean(values.distance.trim()),
                       topRightLabel: useTopAnchoredLabels,
                       floatingBorder: useFloatingBorderLabels,
+                      withEdgeControls: useSteppedControls,
                     })}
                     placeholder=""
                   />
+                  {renderStepperButtons({
+                    decrementAriaLabel: "Decrease distance",
+                    incrementAriaLabel: "Increase distance",
+                    onDecrement: () => onChange({ distance: formatDecimalStepValue(Math.max(0, (Number.parseFloat(values.distance) || 0) - 1), 2) }),
+                    onIncrement: () => onChange({ distance: formatDecimalStepValue((Number.parseFloat(values.distance) || 0) + 1, 2) }),
+                  })}
                 </InlineFieldControl>
                 {names?.distanceUnit ? <input type="hidden" name={names.distanceUnit} value={resolvedDistanceUnit} /> : null}
               </>
@@ -861,10 +1022,17 @@ export function MeasurementPanelV2({
                       hasValue: Boolean(values.calories.trim()),
                       topRightLabel: useTopAnchoredLabels,
                       floatingBorder: useFloatingBorderLabels,
+                      withEdgeControls: useSteppedControls,
                       extraClassName: useThreeAcrossMetrics ? undefined : "pr-16",
                     })}
                     placeholder=""
                   />
+                  {renderStepperButtons({
+                    decrementAriaLabel: "Decrease calories",
+                    incrementAriaLabel: "Increase calories",
+                    onDecrement: () => onChange({ calories: String(Math.max(0, (Number.parseInt(values.calories, 10) || 0) - 1)) }),
+                    onIncrement: () => onChange({ calories: String((Number.parseInt(values.calories, 10) || 0) + 1) }),
+                  })}
                 </InlineFieldControl>
               </>
             ),
@@ -907,14 +1075,32 @@ export function MeasurementPanelV2({
           })});
   }
 
+  if (!allowedMetrics.has("reps") && repReplacementContent) {
+    metricFields.push({
+      id: "reps-replacement",
+      node: renderMetricCard({
+        testId: "measurement-field-reps-replacement",
+        width: "standard",
+        gridColumnCount,
+        children: (
+          <div className={GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME}>
+            {repReplacementContent}
+          </div>
+        ),
+      }),
+    });
+  }
+
   const metricSortOrder = new Map<string, number>();
   metricSortOrder.set("top-field", -10);
+  metricSortOrder.set("reps-replacement", -15);
   resolvedMetricOrder.forEach((metric, index) => {
     const baseOrder = index * 10;
     if (metric === "reps") {
       metricSortOrder.set("reps", baseOrder);
       metricSortOrder.set("reps-min", baseOrder);
       metricSortOrder.set("reps-max", baseOrder + 1);
+      metricSortOrder.set("reps-group", baseOrder);
       return;
     }
 
@@ -1063,16 +1249,68 @@ export function MeasurementPanelV2({
   }, [useHorizontalScrollLayout]);
 
   function getHorizontalFieldWidthClassName(fieldId: string) {
-    if (fieldId === "top-field") return "w-[6.35rem]";
-    if (fieldId.startsWith("aux-field-")) return "w-[8.75rem]";
-    if (fieldId === "reps-min" || fieldId === "reps-max") return "w-[6.35rem]";
-    if (fieldId === "reps") return "w-[5.85rem]";
-    if (fieldId === "weight") return "w-[5.95rem]";
-    if (fieldId === "time") return "w-[5.6rem]";
-    if (fieldId === "distance") return "w-[5.75rem]";
-    if (fieldId === "calories") return "w-[5.55rem]";
-    if (fieldId === "rpe") return "w-[7.25rem]";
-    return "w-[5.75rem]";
+    if (fieldId === "top-field") return "w-[7.35rem]";
+    if (fieldId === "aux-field-0") return "w-[7.35rem]";
+    if (fieldId.startsWith("aux-field-")) return "w-[7.35rem]";
+    if (fieldId === "reps-min" || fieldId === "reps-max") return "w-[7.35rem]";
+    if (fieldId === "reps-group") return "w-[15.3rem]";
+    if (fieldId === "reps-replacement") return "w-[10.35rem]";
+    if (fieldId === "reps") return "w-[6.85rem]";
+    if (fieldId === "weight") return "w-[7.2rem]";
+    if (fieldId === "time") return "w-[7.15rem]";
+    if (fieldId === "distance") return "w-[7.15rem]";
+    if (fieldId === "calories") return "w-[6.85rem]";
+    if (fieldId === "rpe") return "w-[7.6rem]";
+    return "w-[6.9rem]";
+  }
+
+  function getHorizontalFieldWidthStyle(fieldId: string) {
+    const getBaseWidthRem = () => {
+      if (fieldId === "top-field") return 7.35;
+      if (fieldId === "aux-field-0") return 7.35;
+      if (fieldId.startsWith("aux-field-")) return 7.35;
+      if (fieldId === "reps-min" || fieldId === "reps-max") return 7.35;
+      if (fieldId === "reps-group") return 15.3;
+      if (fieldId === "reps-replacement") return 10.35;
+      if (fieldId === "reps") return 6.85;
+      if (fieldId === "weight") return 7.2;
+      if (fieldId === "time") return 7.15;
+      if (fieldId === "distance") return 7.15;
+      if (fieldId === "calories") return 6.85;
+      if (fieldId === "rpe") return 7.6;
+      return 6.9;
+    };
+
+    const resolveValueLength = () => {
+      if (fieldId === "reps-min") return values.reps.trim().length;
+      if (fieldId === "reps-max") return (values.repsMax ?? "").trim().length;
+      if (fieldId === "reps") return values.reps.trim().length;
+      if (fieldId === "weight") return values.weight.trim().length;
+      if (fieldId === "time") return values.duration.trim().length;
+      if (fieldId === "distance") return values.distance.trim().length;
+      if (fieldId === "calories") return values.calories.trim().length;
+      if (fieldId === "rpe") return (rpe ?? "").trim().length;
+      return 0;
+    };
+
+    const valueLength = resolveValueLength();
+    if (valueLength <= 1) {
+      return undefined;
+    }
+
+    const extraCharacters = Math.max(0, valueLength - 2);
+    if (extraCharacters === 0) {
+      return undefined;
+    }
+
+    const boundedExtraWidthRem = Math.min(extraCharacters, 4) * 0.38;
+    const resolvedWidthRem = getBaseWidthRem() + boundedExtraWidthRem;
+
+    return {
+      width: `${resolvedWidthRem}rem`,
+      minWidth: `${resolvedWidthRem}rem`,
+      maxWidth: `${resolvedWidthRem}rem`,
+    };
   }
 
   function releaseHorizontalRailPointerCapture(target: HTMLDivElement, pointerId: number) {
@@ -1213,10 +1451,10 @@ export function MeasurementPanelV2({
 
           {useHorizontalScrollLayout ? (
             <HorizontalScrollHint
-              className="relative overflow-visible"
+              className="-mx-1 relative overflow-visible"
               scrollRef={horizontalRailRef}
-              scrollClassName="overflow-y-hidden overscroll-x-contain pb-0.5 pt-1.5 [touch-action:pan-y] [overscroll-behavior-y:auto]"
-              contentClassName="mx-auto flex min-w-full w-max flex-nowrap items-center justify-center gap-1.5"
+              scrollClassName="overflow-y-hidden overscroll-x-contain px-1 pb-1 pt-1 [touch-action:pan-x_pan-y] [overscroll-behavior-y:auto]"
+              contentClassName="mx-auto flex w-max min-w-max flex-nowrap items-center justify-start gap-[3px]"
               scrollProps={{
                 "data-measurement-horizontal-rail": "true",
                 onPointerDownCapture: handleHorizontalRailPointerDownCapture,
@@ -1232,7 +1470,11 @@ export function MeasurementPanelV2({
                     </div>
                   ) : null}
                   {orderedMetricFields.map((field) => (
-                    <div key={field.id} className={cn("shrink-0", getHorizontalFieldWidthClassName(field.id))}>
+                    <div
+                      key={field.id}
+                      className={cn("shrink-0", getHorizontalFieldWidthClassName(field.id))}
+                      style={getHorizontalFieldWidthStyle(field.id)}
+                    >
                       {field.node}
                     </div>
                   ))}

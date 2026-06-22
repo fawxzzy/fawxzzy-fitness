@@ -14,6 +14,7 @@ import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
 import { resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 type StandardExerciseRowProps = {
+  title?: ReactNode;
   exercise: {
     name: string;
     cardSrc?: string | null;
@@ -69,6 +70,7 @@ type StandardExerciseRowProps = {
 };
 
 export function StandardExerciseRow({
+  title,
   exercise,
   summary,
   summaryContent,
@@ -144,7 +146,7 @@ export function StandardExerciseRow({
 
   return (
     <ExerciseCard
-      title={exercise.name}
+      title={title ?? exercise.name}
       titleMeta={titleMeta}
       subtitle={resolvedSubtitle}
       variant={variant}

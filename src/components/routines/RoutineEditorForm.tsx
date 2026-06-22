@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/actionChrome";
 import { ExpandingChoiceRow } from "@/components/ui/ExpandingChoiceRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { InlineEdgeControlButton, INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME } from "@/components/ui/InlineEdgeControlButton";
 import { labeledEditorFieldControlClassName, labeledEditorFieldFloatingLabelClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -36,7 +37,7 @@ const distanceUnitOptions = [
 
 const scheduleModeOptions = [
   { value: "weekday_anchored", label: "Week-based" },
-  { value: "rolling_n_day", label: "# day-based" },
+  { value: "rolling_n_day", label: "#-based" },
 ] as const;
 
 function getWeightUnitInfoPayload(value: string): RoutineEditorInfoPayload {
@@ -167,7 +168,7 @@ function RoutineEditorBinaryToggleButton({
 const routineEditorCycleInputClassName = cn(
   appTokens.measurementInput,
   labeledEditorFieldControlClassName,
-  "h-11 rounded-[inherit] !border-0 !bg-transparent px-3 py-0 text-center !shadow-none placeholder:text-[rgb(var(--text-muted)/0.7)] focus-visible:!border-0 focus-visible:!ring-0 tabular-nums",
+  "h-11 rounded-[inherit] !border-0 !bg-transparent px-8 py-0 text-center !shadow-none placeholder:text-[rgb(var(--text-muted)/0.7)] focus-visible:!border-0 focus-visible:!ring-0 tabular-nums",
 );
 const routineEditorCycleFieldWidthClassName = "w-[9.75rem]";
 const routineEditorCycleFieldShellClassName = "relative min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.22)] transition-[border-color,box-shadow] focus-within:border-[rgb(var(--button-primary-border)/0.42)] focus-within:ring-2 focus-within:ring-[rgb(var(--button-primary-border)/0.18)]";
@@ -381,6 +382,7 @@ function RoutineEditorWeekdayField({
   middleContent,
   renderContentOnly = false,
   showScheduleModeControl = true,
+  defaultExpanded = false,
 }: {
   scheduleMode: RoutineDetailsScheduleMode;
   startDate: string | undefined;
@@ -391,9 +393,10 @@ function RoutineEditorWeekdayField({
   middleContent?: ReactNode;
   renderContentOnly?: boolean;
   showScheduleModeControl?: boolean;
+  defaultExpanded?: boolean;
 }) {
   const startWeekday = getRoutineStartWeekdayFromDate(startDate) ?? ROUTINE_START_WEEKDAYS[0];
-  const { coveredIndexSet, normalizedStartIndex, overflowDays } = buildCoveredWeekdayIndexes(startWeekday, cycleLengthDays);
+  const { coveredIndexSet, normalizedStartIndex } = buildCoveredWeekdayIndexes(startWeekday, cycleLengthDays);
 
   const content = (
     <>
@@ -419,11 +422,6 @@ function RoutineEditorWeekdayField({
           expandedControlWidthClassName={routineEditorCompactExpandingControlWidthClassName}
         />
       ) : null}
-      {overflowDays > 0 ? (
-        <p className="text-center text-[10px] text-[rgb(var(--text-muted)/0.82)]">
-          +{overflowDays} more workout plan{overflowDays === 1 ? "" : "s"} continue into next week
-        </p>
-      ) : null}
       <div className="mx-auto mt-2 flex w-fit max-w-full flex-wrap items-start justify-center gap-2">
         {trailingControl ? <div className="flex shrink-0 items-start">{trailingControl}</div> : null}
         {scheduleMode === "weekday_anchored" ? (
@@ -446,6 +444,7 @@ function RoutineEditorWeekdayField({
   return (
     <RoutineEditorCollapsibleSection
       title="Routine Type"
+      defaultExpanded={defaultExpanded}
       info={{
         title: "Routine Type",
         summary: "Controls the cycle shape: schedule mode, Slot 1 anchor, cycle length, and weekday anchor behavior for week-based schedules.",
@@ -609,13 +608,40 @@ export function RoutineEditorCycleLengthField({
   value,
   onCycleLengthInputChange,
   onCycleLengthInputCommit,
+  onCycleLengthStepChange,
   onFieldChange,
 }: {
   value: string;
   onCycleLengthInputChange?: (value: string) => void;
   onCycleLengthInputCommit?: () => void;
+  onCycleLengthStepChange?: (value: string) => void;
   onFieldChange?: (field: string, value: string) => void;
 }) {
+  const applyInputValue = (nextValue: string) => {
+    if (onCycleLengthInputChange) {
+      onCycleLengthInputChange(nextValue);
+      return;
+    }
+
+    onFieldChange?.("cycleLengthDays", nextValue);
+  };
+
+  const applySteppedValue = (direction: "decrement" | "increment") => {
+    const parsed = Number.parseInt(value, 10);
+    const currentValue = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    const nextValue = direction === "decrement"
+      ? Math.max(1, currentValue - 1)
+      : Math.min(365, currentValue + 1);
+    const nextValueString = String(nextValue);
+
+    if (onCycleLengthStepChange) {
+      onCycleLengthStepChange(nextValueString);
+      return;
+    }
+
+    applyInputValue(nextValueString);
+  };
+
   return (
     <label
       className={cn("block", routineEditorCycleFieldWidthClassName)}
@@ -634,6 +660,14 @@ export function RoutineEditorCycleLengthField({
           <legend className={cn(labeledEditorFieldFloatingLabelClassName, routineEditorCycleFieldLegendClassName)}>
             Routine Length
           </legend>
+          <InlineEdgeControlButton
+            side="left"
+            ariaLabel="Decrease routine length"
+            onClick={() => applySteppedValue("decrement")}
+            contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+          >
+            −
+          </InlineEdgeControlButton>
           <input
             type="text"
             inputMode="numeric"
@@ -644,14 +678,7 @@ export function RoutineEditorCycleLengthField({
             max={365}
             required
             value={value}
-            onChange={(event) => {
-              if (onCycleLengthInputChange) {
-                onCycleLengthInputChange(event.target.value);
-                return;
-              }
-
-              onFieldChange?.("cycleLengthDays", event.target.value);
-            }}
+            onChange={(event) => applyInputValue(event.target.value)}
             onBlur={() => onCycleLengthInputCommit?.()}
             onKeyDown={(event) => {
               if (event.key !== "Enter") {
@@ -663,6 +690,14 @@ export function RoutineEditorCycleLengthField({
             }}
             className={routineEditorCycleInputClassName}
           />
+          <InlineEdgeControlButton
+            side="right"
+            ariaLabel="Increase routine length"
+            onClick={() => applySteppedValue("increment")}
+            contentClassName={INLINE_EDGE_CONTROL_NUMERIC_GLYPH_CLASS_NAME}
+          >
+            +
+          </InlineEdgeControlButton>
         </fieldset>
       </div>
     </label>
@@ -721,6 +756,7 @@ export function RoutineEditorInlineCycleControls({
   onStartDateChange,
   onCycleLengthInputChange,
   onCycleLengthInputCommit,
+  onCycleLengthStepChange,
   onFieldChange,
   onToggleEffortWaveDirection,
   showModeControl = true,
@@ -736,6 +772,7 @@ export function RoutineEditorInlineCycleControls({
   onStartDateChange?: (value: string) => void;
   onCycleLengthInputChange?: (value: string) => void;
   onCycleLengthInputCommit?: () => void;
+  onCycleLengthStepChange?: (value: string) => void;
   onFieldChange?: (field: string, value: string) => void;
   onToggleEffortWaveDirection?: (dayIndex: number) => void;
   showModeControl?: boolean;
@@ -754,6 +791,7 @@ export function RoutineEditorInlineCycleControls({
       value={cycleLengthInputValue ?? String(visibleDayCount)}
       onCycleLengthInputChange={onCycleLengthInputChange}
       onCycleLengthInputCommit={onCycleLengthInputCommit}
+      onCycleLengthStepChange={onCycleLengthStepChange}
       onFieldChange={onFieldChange}
     />
   );
@@ -833,8 +871,10 @@ export function RoutineEditorFormFields({
   onFieldChange,
   onCycleLengthInputChange,
   onCycleLengthInputCommit,
+  onCycleLengthStepChange,
   fields,
   showCycleSection = true,
+  sectionsDefaultExpanded = false,
 }: {
   nameDefaultValue?: string;
   cycleLengthDefaultValue: number;
@@ -850,8 +890,10 @@ export function RoutineEditorFormFields({
   onFieldChange?: (field: string, value: string) => void;
   onCycleLengthInputChange?: (value: string) => void;
   onCycleLengthInputCommit?: () => void;
+  onCycleLengthStepChange?: (value: string) => void;
   fields?: readonly RoutineEditorFieldName[];
   showCycleSection?: boolean;
+  sectionsDefaultExpanded?: boolean;
 }) {
   const visibleFields = new Set<RoutineEditorFieldName>(fields ?? ["name", "cycleLengthDays", "scheduleMode", "startWeekday", "weightUnit", "distanceUnit"]);
   const showName = visibleFields.has("name");
@@ -866,6 +908,7 @@ export function RoutineEditorFormFields({
       value={cycleLengthInputValue ?? String(values?.cycleLengthDays ?? cycleLengthDefaultValue)}
       onCycleLengthInputChange={onCycleLengthInputChange}
       onCycleLengthInputCommit={onCycleLengthInputCommit}
+      onCycleLengthStepChange={onCycleLengthStepChange}
       onFieldChange={onFieldChange}
     />
   ) : null;
@@ -922,6 +965,7 @@ export function RoutineEditorFormFields({
         >
           <RoutineEditorCollapsibleSection
             title="Measurement Labels"
+            defaultExpanded={sectionsDefaultExpanded}
             info={{
               title: "Measurement Labels",
               summary: "Default measurement units used for routine targets, progression values, and logged workout values.",
@@ -980,6 +1024,7 @@ export function RoutineEditorFormFields({
             onScheduleModeChange={(nextValue) => onFieldChange?.("scheduleMode", nextValue)}
             onChange={(nextValue) => onFieldChange?.("startDate", nextValue)}
             trailingControl={cycleLengthField}
+            defaultExpanded={sectionsDefaultExpanded}
           />
         </div>
       ) : null}

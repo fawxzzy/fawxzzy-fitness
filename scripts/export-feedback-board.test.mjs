@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   DEFAULT_JSON_OUT,
   DEFAULT_MARKDOWN_OUT,
+  FEEDBACK_BOARD_EXPORTS_DOC_PATH,
   exportFeedbackBoard,
   formatDisplayStatusLabel,
   parseArgs,
@@ -381,6 +382,23 @@ test("codex draft output includes the draft-only warning", () => {
   assert.match(drafts, /^# Feedback Board Codex Drafts/m);
   assert.match(drafts, /Draft only — review before execution\./);
   assert.match(drafts, /Feedback report IDs: `11111111`/);
+});
+
+test("codex drafts reference a live board-export operator doc and preserve local-only constraints", () => {
+  const drafts = renderCodexDrafts([
+    toBoardRecord(buildRow({
+      status: "confirmed",
+      report_type: "feature",
+      area: "Feedback",
+      summary: "Add reaction option",
+    })),
+  ]);
+
+  assert.equal(fs.existsSync(path.join(repoRoot, FEEDBACK_BOARD_EXPORTS_DOC_PATH)), true);
+  assert.match(drafts, /Keep the one-board export workflow intact\./);
+  assert.match(drafts, /Do not write to ATLAS automatically\./);
+  assert.match(drafts, /Do not add direct Discord mutation from the board-export draft lane\./);
+  assert.match(drafts, /docs\/ops\/FITNESS-FEEDBACK-BOARD-EXPORTS\.md/);
 });
 
 test("board export writes markdown json and optional codex drafts", async () => {

@@ -1,58 +1,67 @@
 {
   "contract_version": "atlas.event.v1",
-  "event_type": "fitness.shadow.signal.recorded",
-  "event_id": "evt-20260509-fitness-shadow-001",
-  "occurred_at": "2026-05-09T23:30:00Z",
+  "event_type": "validation_complete",
+  "event_id": "fitness-atlas-contract-validation-2026-06-19",
+  "occurred_at": "2026-06-19T17:15:00Z",
   "repo_id": "fitness",
   "app_id": "fawxzzy-fitness",
-  "environment": "preview",
+  "environment": "ci",
   "producer": {
-    "kind": "service",
-    "name": "fitness-shadow-emitter",
-    "version": "1",
-    "host": "ci"
+    "kind": "test",
+    "name": "tests/atlas-platform-contracts.test.mjs",
+    "version": "v1",
+    "host": "github-actions"
   },
   "session": {
-    "session_id": "sess-20260509-wave2a",
-    "workspace_root": ".",
-    "operator": "codex",
-    "run_label": "fitness-atlas-contract-adoption-wave2a"
+    "session_id": "fitness-atlas-contracts",
+    "workspace_root": "repos/fawxzzy-fitness",
+    "operator": "repo-test",
+    "run_label": "atlas-contracts"
   },
   "task": {
-    "task_id": "task-20260509-atlas-contracts",
-    "task_name": "adopt-atlas-contracts",
+    "task_id": "fitness-atlas-platform-adoption",
+    "task_name": "ATLAS platform contract validation",
     "scope_paths": [
-      "exports",
-      "src/app/api/health",
-      "docs",
-      "tests",
-      ".github/workflows"
+      "exports/",
+      "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md",
+      ".github/workflows/atlas-contracts.yml"
     ],
     "repo_ids": [
-      "fitness",
-      "stack"
+      "fitness"
     ],
-    "mutation_mode": "owner_repo"
+    "mutation_mode": "read_only"
   },
   "trace": {
-    "correlation_id": "corr-20260509-fitness-wave2a",
-    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
-    "span_id": "00f067aa0ba902b7"
+    "correlation_id": "fitness-atlas-contracts-2026-06-19",
+    "trace_id": "1234567890abcdef1234567890abcdef",
+    "span_id": "1234567890abcdef"
   },
   "subject": {
-    "kind": "receipt-sink",
-    "id": "fitness-shadow-events",
-    "path": "runtime/receipts/events"
+    "kind": "repo",
+    "id": "fitness",
+    "path": "repos/fawxzzy-fitness"
   },
   "payload": {
-    "summary": "Record Fitness shadow telemetry in the ATLAS receipt sink behind a stable platform event envelope.",
-    "source_contract": "atlas.fitness.shadow-event.v1",
-    "receipt_contract": "atlas.fitness.shadow-event.receipt.v1"
+    "contract_files": [
+      "exports/fitness.atlas.app-registration.v1.json",
+      "exports/fitness.atlas.env.v1.json",
+      "exports/fitness.atlas.health.v1.json",
+      "exports/fitness.atlas.event.v1.json",
+      "exports/fitness.atlas.receipt.v1.json"
+    ],
+    "verification_commands": [
+      "npm run test:atlas-contracts",
+      "npm run verify"
+    ]
   },
   "links": [
     {
-      "rel": "truth-pack",
-      "href": "truth-pack/fitness/event-contract/atlas-fitness-growth-pack.v1.json"
+      "rel": "adoption_doc",
+      "href": "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md"
+    },
+    {
+      "rel": "health_route",
+      "href": "src/app/api/health/route.ts"
     }
   ]
 }

@@ -16,6 +16,9 @@ const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const defaultRepoRoot = path.resolve(currentDir, "..", "..");
 const DEFAULT_LLEL_REPORT_PATH = path.join(QA_LLEL_CAPTURE_ROOT, "latest", "report.json");
+export const RELEASE_READINESS_MARKDOWN_PATH = "runtime/fitness/release-readiness.latest.md";
+export const RELEASE_READINESS_JSON_PATH = "runtime/fitness/release-readiness.latest.json";
+export const RELEASE_READINESS_DOC_PATH = path.join(defaultRepoRoot, "docs", "ops", "FITNESS-RELEASE-READINESS-REPORTS.md");
 const REQUIRED_LLEL_ROUTES = [
   "today-progression-status",
   "progression-history",
@@ -449,9 +452,25 @@ function parseArgs(argv = process.argv.slice(2)) {
   };
 }
 
+export function getReleaseReadinessArtifactPaths(repoRoot = defaultRepoRoot) {
+  return {
+    markdown: path.join(repoRoot, RELEASE_READINESS_MARKDOWN_PATH),
+    json: path.join(repoRoot, RELEASE_READINESS_JSON_PATH),
+  };
+}
+
+export async function writeFitnessReleaseReadinessArtifacts(report, { repoRoot = defaultRepoRoot } = {}) {
+  const paths = getReleaseReadinessArtifactPaths(repoRoot);
+  await fs.mkdir(path.dirname(paths.markdown), { recursive: true });
+  await fs.writeFile(paths.markdown, formatFitnessReleaseReadinessReport(report), "utf8");
+  await fs.writeFile(paths.json, formatFitnessReleaseReadinessReport(report, { json: true }), "utf8");
+  return paths;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const report = await buildFitnessReleaseReadinessReport();
+  await writeFitnessReleaseReadinessArtifacts(report);
   process.stdout.write(formatFitnessReleaseReadinessReport(report, { json: args.json }));
   process.exit(report.productionDeployReady ? 0 : 1);
 }

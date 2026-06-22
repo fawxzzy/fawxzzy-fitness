@@ -22,7 +22,7 @@ import "./globals.css";
 
 const APP_NAME = "FawxzzyFitness";
 const APP_DESCRIPTION = "Track sessions and progress with a focused training workflow.";
-const APP_PREVIEW_IMAGE = "/brand/atlas-sigil-master.png";
+const APP_PREVIEW_IMAGE = "/brand/fitness-app-icon.png";
 const DEFAULT_APP_SHELL_COLOR = "#07111b";
 // iOS home-screen PWAs misplace bottom-anchored UI when black-translucent is
 // combined with viewport-fit=cover, so keep the status bar in default mode.
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
         url: APP_PREVIEW_IMAGE,
         width: 1280,
         height: 1280,
-        alt: "FawxzzyFitness sigil and barbell brand art",
+        alt: "FawxzzyFitness neon fox dumbbell app icon",
       },
     ],
   },

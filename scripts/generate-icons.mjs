@@ -1,89 +1,145 @@
 import fs from "node:fs/promises";
-import crypto from "node:crypto";
 import path from "node:path";
+import process from "node:process";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
-const atlasRoot = path.resolve(rootDir, "..", "..");
-const manifestPath = path.join(atlasRoot, "branding", "manifest.json");
-const iconSourcePath = path.join(rootDir, "public", "brand", "atlas-sigil-master.png");
-const canonicalSourceSha256 = "E20A9FE2E42585ED1EC818D13EC80AA8CED89F15F82A35C51269C1B794F07F51";
+
+const iconSourcePath = path.join(rootDir, "public", "brand", "fitness-app-icon-source.jpg");
+const generatedPngPath = path.join(rootDir, "public", "brand", "fitness-app-icon.png");
+const compatibilityBrandPath = path.join(rootDir, "public", "brand", "atlas-sigil-master.png");
+const outputTargets = [
+  { type: "png", size: 1024, targetPath: generatedPngPath },
+  { type: "png", size: 1024, targetPath: compatibilityBrandPath },
+  { type: "png", size: 1024, targetPath: path.join(rootDir, "public", "app", "loader-sigil.png") },
+  { type: "png", size: 512, targetPath: path.join(rootDir, "public", "app", "icon-512.png") },
+  { type: "png", size: 192, targetPath: path.join(rootDir, "public", "app", "icon-192.png") },
+  { type: "png", size: 512, targetPath: path.join(rootDir, "public", "icons", "icon-512.png") },
+  { type: "png", size: 192, targetPath: path.join(rootDir, "public", "icons", "icon-192.png") },
+  { type: "png", size: 180, targetPath: path.join(rootDir, "public", "icons", "apple-touch-icon.png") },
+  { type: "png", size: 32, targetPath: path.join(rootDir, "public", "favicon-32x32.png") },
+  { type: "png", size: 16, targetPath: path.join(rootDir, "public", "favicon-16x16.png") },
+  { type: "ico", sizes: [16, 32, 48], targetPath: path.join(rootDir, "public", "favicon.ico") },
+];
+
+function parseArguments(argv) {
+  return {
+    check: argv.includes("--check"),
+  };
+}
 
 function sha256(buffer) {
   return crypto.createHash("sha256").update(buffer).digest("hex").toUpperCase();
 }
 
-function resolveAtlasPath(relativePath) {
-  return path.resolve(atlasRoot, relativePath);
+let sharpPromise;
+
+async function loadSharp() {
+  if (!sharpPromise) {
+    sharpPromise = import("sharp").then((module) => module.default);
+  }
+  return sharpPromise;
 }
 
-async function loadFitnessConsumers() {
-  let manifest;
+async function renderPngBuffer(sourceBuffer, size) {
+  const sharp = await loadSharp();
+  return sharp(sourceBuffer)
+    .resize(size, size, {
+      fit: "cover",
+      position: "centre",
+    })
+    .png({ quality: 100, compressionLevel: 9 })
+    .toBuffer();
+}
+
+function buildIcoBuffer(frameBuffers) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(frameBuffers.length, 4);
+
+  const directory = Buffer.alloc(frameBuffers.length * 16);
+  let offset = header.length + directory.length;
+
+  frameBuffers.forEach(({ size, buffer }, index) => {
+    const entryOffset = index * 16;
+    directory.writeUInt8(size >= 256 ? 0 : size, entryOffset);
+    directory.writeUInt8(size >= 256 ? 0 : size, entryOffset + 1);
+    directory.writeUInt8(0, entryOffset + 2);
+    directory.writeUInt8(0, entryOffset + 3);
+    directory.writeUInt16LE(1, entryOffset + 4);
+    directory.writeUInt16LE(32, entryOffset + 6);
+    directory.writeUInt32LE(buffer.length, entryOffset + 8);
+    directory.writeUInt32LE(offset, entryOffset + 12);
+    offset += buffer.length;
+  });
+
+  return Buffer.concat([header, directory, ...frameBuffers.map(({ buffer }) => buffer)]);
+}
+
+async function renderOutputBuffer(sourceBuffer, target) {
+  if (target.type === "png") {
+    return renderPngBuffer(sourceBuffer, target.size);
+  }
+
+  const frameBuffers = [];
+  for (const size of target.sizes) {
+    frameBuffers.push({
+      size,
+      buffer: await renderPngBuffer(sourceBuffer, size),
+    });
+  }
+  return buildIcoBuffer(frameBuffers);
+}
+
+async function readExistingBuffer(filePath) {
   try {
-    manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    return await fs.readFile(filePath);
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return null;
     }
-    throw new Error(`Unable to read ATLAS branding manifest at ${manifestPath}: ${error.message}`);
+    throw error;
   }
-
-  if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest?.consumers)) {
-    throw new Error(`Unsupported ATLAS branding manifest at ${manifestPath}.`);
-  }
-
-  return manifest.consumers
-    .filter((consumer) => consumer?.repoId === "fitness")
-    .filter((consumer) => typeof consumer?.source === "string" && typeof consumer?.target === "string")
-    .filter((consumer) => !consumer.target.endsWith(path.join("public", "brand", "atlas-sigil-master.png")))
-    .map((consumer) => ({
-      id: String(consumer.id ?? consumer.target),
-      sourcePath: resolveAtlasPath(consumer.source),
-      targetPath: resolveAtlasPath(consumer.target),
-    }));
 }
 
 async function main() {
-  let sourcePng;
-  try {
-    sourcePng = await fs.readFile(iconSourcePath);
-  } catch (error) {
-    throw new Error(
-      `Unable to read canonical icon source at ${iconSourcePath}: ${error.message}. Restore the Fitness icon master before building.`,
-    );
+  const options = parseArguments(process.argv.slice(2));
+  const sourceBuffer = await fs.readFile(iconSourcePath);
+  const staleTargets = [];
+
+  for (const target of outputTargets) {
+    const nextBuffer = await renderOutputBuffer(sourceBuffer, target);
+    const currentBuffer = await readExistingBuffer(target.targetPath);
+    const relativePath = path.relative(rootDir, target.targetPath);
+
+    if (currentBuffer && sha256(currentBuffer) === sha256(nextBuffer)) {
+      console.log(`ok    ${relativePath}`);
+      continue;
+    }
+
+    staleTargets.push(relativePath);
+
+    if (options.check) {
+      console.log(`${currentBuffer ? "stale" : "miss "} ${relativePath}`);
+      continue;
+    }
+
+    await fs.mkdir(path.dirname(target.targetPath), { recursive: true });
+    await fs.writeFile(target.targetPath, nextBuffer);
+    console.log(`sync  ${relativePath}`);
   }
 
-  const sourceHash = sha256(sourcePng);
-  if (sourceHash !== canonicalSourceSha256) {
-    throw new Error(
-      `Unexpected Fitness icon source hash ${sourceHash} at ${iconSourcePath}. Restore the canonical sigil artwork before generating icons.`,
-    );
+  if (options.check && staleTargets.length > 0) {
+    console.error(`Fitness icon drift detected in ${staleTargets.length} target(s).`);
+    process.exit(1);
   }
-
-  const consumers = await loadFitnessConsumers();
-  if (consumers === null) {
-    console.log(`Skipped external Fitness brand sync; no ATLAS branding manifest found at ${manifestPath}`);
-    return;
-  }
-
-  if (consumers.length === 0) {
-    console.log(`Skipped external Fitness brand sync; no Fitness brand consumers were declared in ${manifestPath}`);
-    return;
-  }
-
-  await Promise.all(
-    consumers.map(async ({ sourcePath, targetPath }) => {
-      await fs.mkdir(path.dirname(targetPath), { recursive: true });
-      await fs.copyFile(sourcePath, targetPath);
-    }),
-  );
-
-  console.log(`Synced ${consumers.length} Fitness brand consumers from ${manifestPath}`);
 }
 
 main().catch((error) => {
-  console.error("Icon generation failed:", error.message);
+  console.error("Icon generation failed:", error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

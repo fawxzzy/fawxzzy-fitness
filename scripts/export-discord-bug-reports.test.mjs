@@ -1,8 +1,10 @@
+import fs from "node:fs";
 import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 import {
   DEFAULT_MARKDOWN_OUT,
+  DISCORD_FEEDBACK_EXPORTS_DOC_PATH,
   MAX_LIMIT,
   parseArgs,
   repoRoot,
@@ -57,4 +59,13 @@ test("export masks discord ids unless debug is passed and includes forum metadat
     masked.discord_forum_thread_link,
     "https://discord.com/channels/1504668396338413670/1504673475489562745",
   );
+});
+
+test("discord feedback export lane has a durable local-only operator contract", () => {
+  assert.equal(fs.existsSync(DISCORD_FEEDBACK_EXPORTS_DOC_PATH), true);
+  const doc = fs.readFileSync(DISCORD_FEEDBACK_EXPORTS_DOC_PATH, "utf8");
+
+  assert.match(doc, /review-only snapshots for human inspection/i);
+  assert.match(doc, /Discord ids must stay masked/i);
+  assert.match(doc, /Do not use this lane to create forum threads, change report state, create GitHub issues, or write directly into ATLAS receipts/i);
 });

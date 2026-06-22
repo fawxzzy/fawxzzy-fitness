@@ -114,6 +114,7 @@ export type DayCardProps = {
   onPress?: () => void;
   title: ReactNode;
   titleMeta?: ReactNode;
+  headerDivider?: ReactNode;
   subtitle?: ReactNode;
   subtitleLabel?: string;
   subtitleTone?: "panel" | "plain";
@@ -130,6 +131,7 @@ export type DayCardProps = {
   titleClassName?: string;
   subtitleClassName?: string;
   contentVerticalAlign?: ComponentProps<typeof ExerciseCard>["contentVerticalAlign"];
+  rightIconMode?: ComponentProps<typeof ExerciseCard>["rightIconMode"];
   className?: string;
 };
 
@@ -147,6 +149,7 @@ export function DayCard({
   titleClassName,
   subtitleClassName,
   contentVerticalAlign,
+  rightIconMode,
   className,
   rightRailClassName,
   trailingStackClassName,
@@ -172,6 +175,7 @@ export function DayCard({
       rightRailClassName={rightRailClassName}
       trailingStackClassName={trailingStackClassName}
       contentVerticalAlign={contentVerticalAlign}
+      rightIconMode={rightIconMode}
       variant="list"
       showAccentRail={showAccentRail}
     />

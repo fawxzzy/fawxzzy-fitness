@@ -1,40 +1,40 @@
 {
   "contract_version": "atlas.receipt.v1",
-  "receipt_id": "rcpt-20260509-fitness-atlas-wave2a",
-  "recorded_at": "2026-05-09T23:30:00Z",
+  "receipt_id": "fitness-atlas-contracts-receipt-2026-06-19",
+  "recorded_at": "2026-06-19T17:16:00Z",
   "repo_id": "fitness",
   "app_id": "fawxzzy-fitness",
-  "kind": "contract-adoption",
+  "kind": "verification",
   "status": "passed",
   "subject": {
-    "kind": "atlas-contracts",
-    "id": "fitness-wave-2a",
-    "path": "exports/fitness.atlas.app-registration.v1.json"
+    "kind": "verification_lane",
+    "id": "fitness-atlas-contracts",
+    "path": "repos/fawxzzy-fitness"
   },
   "evidence": [
     {
-      "kind": "json",
-      "ref": "exports/fitness.atlas.app-registration.v1.json",
+      "kind": "test",
+      "ref": "tests/atlas-platform-contracts.test.mjs",
       "digest": null,
-      "summary": "Repo-owned ATLAS app registration declaration."
+      "summary": "Schema validation and workflow linkage checks for the repo-owned ATLAS exports."
     },
     {
-      "kind": "workflow",
-      "ref": ".github/workflows/atlas-contracts.yml",
+      "kind": "doc",
+      "ref": "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md",
       "digest": null,
-      "summary": "Reusable ATLAS contract lane for Fitness."
+      "summary": "Repo-owned operator note for the ATLAS platform v1 adoption slice."
     }
   ],
   "links": [
     {
-      "rel": "health",
-      "href": "/api/health"
+      "rel": "event",
+      "href": "exports/fitness.atlas.event.v1.json"
     },
     {
-      "rel": "adoption-doc",
-      "href": "docs/ops/FITNESS-ATLAS-CONTRACT-ADOPTION.md"
+      "rel": "health",
+      "href": "exports/fitness.atlas.health.v1.json"
     }
   ],
-  "summary": "Fitness owner-lane ATLAS platform v1 adoption is declared and validated.",
-  "event_id": "evt-20260509-fitness-shadow-001"
+  "summary": "Fitness ATLAS platform v1 exports, workflow, and docs remain aligned to the pinned root schemas.",
+  "event_id": "fitness-atlas-contract-validation-2026-06-19"
 }

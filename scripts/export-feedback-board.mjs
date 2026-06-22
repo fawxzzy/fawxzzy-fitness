@@ -28,6 +28,7 @@ export const MAX_LIMIT = 200;
 export const DEFAULT_MARKDOWN_OUT = "runtime/feedback-board/latest.md";
 export const DEFAULT_JSON_OUT = "runtime/feedback-board/latest.json";
 export const DEFAULT_DRAFTS_OUT = "runtime/feedback-board/codex-drafts.md";
+export const FEEDBACK_BOARD_EXPORTS_DOC_PATH = "docs/ops/FITNESS-FEEDBACK-BOARD-EXPORTS.md";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
@@ -642,7 +643,7 @@ function inferFilesToInspect(record) {
   } else if (area.includes("history")) {
     files.push("src/app/history/page.tsx", "src/app/history/[sessionId]/page.tsx");
   } else if (area.includes("feedback")) {
-    files.push("docs/ops/FITNESS-DISCORD-FEEDBACK.md");
+    files.push(FEEDBACK_BOARD_EXPORTS_DOC_PATH);
   }
 
   return [...new Set(files)];
@@ -704,6 +705,14 @@ export function renderCodexDrafts(records) {
       lines.push(`- ${file}`);
     }
     lines.push("");
+    lines.push("Constraints");
+    lines.push("");
+    lines.push("- Draft only — review before execution.");
+    lines.push("- Keep the one-board export workflow intact.");
+    lines.push("- Do not create automatic GitHub issues.");
+    lines.push("- Do not write to ATLAS automatically.");
+    lines.push("- Do not add direct Discord mutation from the board-export draft lane.");
+    lines.push("");
     lines.push("Acceptance criteria");
     lines.push("");
     for (const criterion of record.card_sections?.acceptance_criteria ?? []) {
@@ -720,6 +729,7 @@ export function renderCodexDrafts(records) {
     lines.push("");
     lines.push("Docs update");
     lines.push("");
+    lines.push(`- ${FEEDBACK_BOARD_EXPORTS_DOC_PATH}`);
     lines.push("- Update product or ops docs if the user-facing workflow or board behavior changes.");
     lines.push("");
   });

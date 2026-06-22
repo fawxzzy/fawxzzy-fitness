@@ -14,7 +14,7 @@ import {
 } from "@/lib/routine-day-card-summary";
 
 export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
-export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[3.2rem] !py-[0.28rem]";
+export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[4.1rem] !py-[0.38rem]";
 export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !py-0";
 export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 py-0 !space-y-0";
 export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.14]";
@@ -23,7 +23,9 @@ export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
 export const ROUTINE_TRAINING_DAY_CARD_CLASS_NAME = "[&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-divider-rgb)/0.96)]";
 export const ROUTINE_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
 export const ROUTINE_TAG_CLASS_NAME = "text-[11px] tracking-[0.12em]";
-export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "!h-auto !min-h-0 !items-center";
+export const ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[0.38rem] !top-auto !bottom-[0.58rem] !min-w-0 !translate-y-0";
+export const ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[0.38rem] !top-auto !bottom-[0.58rem] !min-w-0 !translate-y-0";
+export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "h-full w-[1.05rem] items-center justify-center rounded-r-[inherit] bg-[linear-gradient(270deg,rgba(var(--surface-rgb),0.38)_0%,rgba(var(--surface-rgb),0.18)_56%,rgba(var(--surface-rgb),0.03)_100%)] shadow-[-6px_0_14px_rgb(0_0_0/0.08)] backdrop-blur-[14px]";
 export const ROUTINE_SURFACE_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
 export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
 export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] ${ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME}`;
@@ -169,7 +171,20 @@ export function RoutineDayCardTitle({
 
 export function renderRoutineDaySubtitle(day: RoutineDayCardPresentationItem): ReactNode {
   if (day.isRest) {
-    return undefined;
+    const restSummary = day.exerciseSummary?.trim() || "No exercises";
+
+    return (
+      <HorizontalScrollHint
+        className="-mx-1"
+        scrollClassName="px-1 pb-0.5"
+        contentClassName={ROUTINE_SURFACE_TAG_ROW_CLASS_NAME}
+        showEdgeFades={false}
+      >
+        <AppBadge tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
+          {renderRoutineMetricTagLabel(restSummary)}
+        </AppBadge>
+      </HorizontalScrollHint>
+    );
   }
 
   if (day.splitSummary) {
@@ -288,7 +303,6 @@ function renderRoutineDaySnapshot(day: RoutineOverviewDayCardItem) {
 
   return (
     <div className="grid gap-1.5 px-0.5 pt-1">
-      <MetricAccentBar variant="thin" className="mx-auto w-16 opacity-85" />
       <DetailSectionItems
         items={recapItems}
         layout="inline"
@@ -307,6 +321,7 @@ export function RoutineOverviewDayCard({
   showSelectedTag = false,
   isExpanded = false,
   reorderHandle,
+  rightRailClassName,
   wrapper,
 }: {
   day: RoutineOverviewDayCardItem;
@@ -316,49 +331,43 @@ export function RoutineOverviewDayCard({
   showSelectedTag?: boolean;
   isExpanded?: boolean;
   reorderHandle?: ReactNode;
+  rightRailClassName?: string;
   wrapper?: (child: ReactNode) => ReactNode;
 }) {
   const selectedTag = showSelectedTag ? renderRoutineTag("SELECTED") : null;
+  const chevron = (
+    <StateChevron
+      expanded={Boolean(isExpanded)}
+      className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
+      expandedClassName="text-[rgb(var(--accent)/0.92)]"
+      collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
+    />
+  );
+
   const card = (
     <DayCard
       title={(
         <span className="flex w-full justify-center text-center">
-          <RoutineDayCardTitle
-            name={day.title ?? day.name ?? null}
-            dayIndex={day.dayIndex}
-            startDate={startDate}
-            weekdayLabel={day.occurrenceWeekday}
-            className="justify-center text-center"
-          />
+          <span className="inline-flex min-w-0 max-w-full flex-col items-center gap-1 text-center">
+            <RoutineDayCardTitle
+              name={day.title ?? day.name ?? null}
+              dayIndex={day.dayIndex}
+              startDate={startDate}
+              weekdayLabel={day.occurrenceWeekday}
+              className="justify-center text-center"
+            />
+            <MetricAccentBar variant="thin" className="w-full max-w-full self-stretch" />
+          </span>
         </span>
       )}
       subtitle={renderRoutineDaySubtitle(day)}
       subtitleTone="plain"
-      rightIcon={day.isRest
-        ? (
-            <span className="inline-flex items-center gap-2.5">
-              {selectedTag}
-              {reorderHandle}
-              <StateChevron
-                expanded={Boolean(isExpanded)}
-                className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
-                expandedClassName="text-[rgb(var(--accent)/0.92)]"
-                collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
-              />
-            </span>
-          )
-        : (
-            <span className="inline-flex items-center gap-2.5">
-              {selectedTag}
-              {reorderHandle}
-              <StateChevron
-                expanded={Boolean(isExpanded)}
-                className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
-                expandedClassName="text-[rgb(var(--accent)/0.92)]"
-                collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
-              />
-            </span>
-          )}
+      rightIcon={(
+        <span className={cn("inline-flex items-center justify-center", selectedTag ? "gap-1.5" : undefined)}>
+          {selectedTag}
+          {chevron}
+        </span>
+      )}
       state={resolveDayCardState({
         isToday: day.isToday,
         isSelected,
@@ -375,7 +384,8 @@ export function RoutineOverviewDayCard({
       titleClassName={day.isRest ? cn(ROUTINE_DAY_CARD_TITLE_CLASS_NAME, "leading-none") : ROUTINE_DAY_CARD_TITLE_CLASS_NAME}
       subtitleClassName={ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME}
       contentVerticalAlign={day.isRest ? "auto" : undefined}
-      rightRailClassName="!items-center"
+      rightIconMode="overlay"
+      rightRailClassName={rightRailClassName ?? (day.isRest ? ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME : ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME)}
       trailingStackClassName={ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME}
       onPress={onPress}
     >

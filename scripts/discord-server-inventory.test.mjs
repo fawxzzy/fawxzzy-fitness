@@ -1,6 +1,8 @@
+import fs from "node:fs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DISCORD_INVENTORY_NOISE_DOC_PATH,
   parseInventoryArgs,
   renderDiscordServerInventoryMarkdown,
 } from "./discord-server-ops-utils.mjs";
@@ -54,4 +56,13 @@ test("renderDiscordServerInventoryMarkdown includes channels, roles, emojis, and
   assert.match(markdown, /Verified \| `role-1`/);
   assert.match(markdown, /Bug \| `emoji-1`/);
   assert.match(markdown, /Feature \| `tag-1`/);
+});
+
+test("discord inventory lane has a durable local-only operator contract", () => {
+  assert.equal(fs.existsSync(DISCORD_INVENTORY_NOISE_DOC_PATH), true);
+  const doc = fs.readFileSync(DISCORD_INVENTORY_NOISE_DOC_PATH, "utf8");
+
+  assert.match(doc, /review-only snapshots for human inspection/i);
+  assert.match(doc, /recommendation-only in v1/i);
+  assert.match(doc, /does not mutate Discord permissions, channels, or notification settings/i);
 });

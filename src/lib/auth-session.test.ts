@@ -65,6 +65,7 @@ test("shouldRefreshAuthSession skips public auth and install routes", () => {
   assert.equal(shouldRefreshAuthSession("/install"), false);
   assert.equal(shouldRefreshAuthSession("/api/app-version"), false);
   assert.equal(shouldRefreshAuthSession("/api/discord/interactions"), false);
+  assert.equal(shouldRefreshAuthSession("/api/discord/message-commands/poll"), false);
 });
 
 test("classifyAuthSessionFailure treats expired and invalid tokens as session-expired logins", () => {

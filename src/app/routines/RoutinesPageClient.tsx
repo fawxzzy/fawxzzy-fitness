@@ -35,13 +35,17 @@ const INACTIVE_ROUTINE_EDIT_BUTTON_CLASS_NAME = getAttachedCardActionButtonClass
 export function RoutinesPageClient({
   routines,
   newRoutineHref,
+  draftRoutineName,
   duplicateRoutineAction,
   setActiveRoutineAction,
+  deleteRoutineAction,
 }: {
   routines: RoutineBrowseCardItem[];
   newRoutineHref?: string;
+  draftRoutineName?: string | null;
   duplicateRoutineAction?: Parameters<typeof CreateRoutineClient>[0]["duplicateRoutineAction"];
   setActiveRoutineAction?: (formData: FormData) => Promise<ActionResult>;
+  deleteRoutineAction?: Parameters<typeof CreateRoutineClient>[0]["deleteRoutineAction"];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -57,8 +61,8 @@ export function RoutinesPageClient({
       return;
     }
 
-    router.prefetch("/routines/new?mode=blank");
-  }, [canOpenInlineCreate, router]);
+    router.prefetch(newRoutineHref ?? "/routines/new");
+  }, [canOpenInlineCreate, newRoutineHref, router]);
 
   const actionsNode = useMemo(() => (
     <BottomActionSingle>
@@ -196,7 +200,9 @@ export function RoutinesPageClient({
         <CreateRoutineClient
           backHref="/routines"
           routines={routines}
+          draftRoutineName={draftRoutineName}
           duplicateRoutineAction={duplicateRoutineAction}
+          deleteRoutineAction={deleteRoutineAction}
           onRequestClose={() => setIsCreateRoutineOpen(false)}
         />
       ) : null}

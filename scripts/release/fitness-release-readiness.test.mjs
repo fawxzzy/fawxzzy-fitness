@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -6,6 +7,11 @@ import { fileURLToPath } from "node:url";
 import {
   buildFitnessReleaseReadinessReport,
   formatFitnessReleaseReadinessReport,
+  getReleaseReadinessArtifactPaths,
+  RELEASE_READINESS_DOC_PATH,
+  RELEASE_READINESS_JSON_PATH,
+  RELEASE_READINESS_MARKDOWN_PATH,
+  writeFitnessReleaseReadinessArtifacts,
 } from "./fitness-release-readiness.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -210,4 +216,42 @@ test("json output remains stable when requested", async () => {
   assert.equal(parsed.command, "npm run release:fitness:ready");
   assert.equal(parsed.status, "pass");
   assert.equal(parsed.productionDeployReady, true);
+});
+
+test("release readiness artifact paths stay under runtime fitness", () => {
+  const paths = getReleaseReadinessArtifactPaths(repoRoot);
+  assert.equal(paths.markdown, path.join(repoRoot, RELEASE_READINESS_MARKDOWN_PATH));
+  assert.equal(paths.json, path.join(repoRoot, RELEASE_READINESS_JSON_PATH));
+});
+
+test("release readiness lane has a durable local-only operator contract", async () => {
+  const doc = await fs.readFile(RELEASE_READINESS_DOC_PATH, "utf8");
+  assert.match(doc, /review-only snapshots for human inspection/i);
+  assert.match(doc, /must not mutate production, deploy state, release ledger entries, or ATLAS receipts/i);
+  assert.match(doc, /failing readiness result is still a valid report outcome/i);
+});
+
+test("release readiness artifacts are written for failing reports too", async () => {
+  const tempRoot = path.join(repoRoot, "tmp", "fitness-release-readiness-test");
+  const report = await buildFitnessReleaseReadinessReport({
+    repoRoot,
+    gitState: createCleanGitState({ dirty: true, dirtyFiles: [" M src/example.ts"] }),
+    verifyResult: createVerifyResult(),
+    migrationState: createCleanMigrationState(),
+    draft: createBaseDraft(),
+    llelReport: createBaseReport({
+      migrationValidation: { missingRemoteVersions: [] },
+    }),
+    ledgerRaw: "",
+  });
+
+  const artifactPaths = await writeFitnessReleaseReadinessArtifacts(report, { repoRoot: tempRoot });
+  const markdown = await fs.readFile(artifactPaths.markdown, "utf8");
+  const json = JSON.parse(await fs.readFile(artifactPaths.json, "utf8"));
+
+  assert.match(markdown, /Fitness release readiness: FAIL/);
+  assert.equal(json.status, "fail");
+  assert.equal(json.productionDeployReady, false);
+
+  await fs.rm(tempRoot, { recursive: true, force: true });
 });

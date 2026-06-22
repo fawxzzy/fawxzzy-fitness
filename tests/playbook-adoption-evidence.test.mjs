@@ -10,13 +10,22 @@ const repoRoot = path.resolve(__dirname, "..");
 const exportsDir = path.join(repoRoot, "exports");
 const evidencePath = path.join(exportsDir, "fitness.playbook.adoption.evidence.v1.json");
 const schemaPath = path.join(exportsDir, "repo.playbook.adoption.evidence.schema.v1.json");
-const playbookContractPath = path.resolve(
-  repoRoot,
-  "..",
-  "fawxzzy-playbook",
-  "exports",
-  "playbook.contract.example.v1.json"
-);
+function resolvePlaybookContractPath() {
+  const candidates = [
+    path.resolve(repoRoot, "..", "playbook", "exports", "playbook.contract.example.v1.json"),
+    path.resolve(repoRoot, "..", "fawxzzy-playbook", "exports", "playbook.contract.example.v1.json"),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`Could not find playbook.contract.example.v1.json in any supported repo path.`);
+}
+
+const playbookContractPath = resolvePlaybookContractPath();
 
 function loadJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));

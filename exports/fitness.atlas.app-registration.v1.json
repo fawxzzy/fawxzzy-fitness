@@ -3,45 +3,41 @@
   "repo_id": "fitness",
   "app_id": "fawxzzy-fitness",
   "repo_class": "application",
-  "status": "unmanaged",
+  "status": "managed",
   "owner_repo": "fitness",
-  "root_path": ".",
-  "validation_entrypoint": "npm run verify",
+  "root_path": "repos/fawxzzy-fitness",
+  "validation_entrypoint": "npm run test:atlas-contracts",
   "health_endpoint": "/api/health",
-  "event_sink": "runtime/receipts/events",
-  "receipt_root": "runtime/receipts",
+  "event_sink": "truth-pack/fitness/event-contract/",
+  "receipt_root": "truth-pack/fitness/actions-and-receipts.json",
   "admission": {
     "owner": "fitness",
     "contract_status": "adopted",
     "required_receipts": [
-      "contract-check",
-      "verify"
-    ],
-    "promotion_blockers": [
-      "ATLAS root still records the repo as unmanaged until owner-lane adoption evidence is promoted."
+      "fitness-atlas-contracts-validated",
+      "fitness-shadow-warehouse-validated"
     ]
   },
   "dependencies": [
     {
-      "repo_id": "stack",
-      "app_id": null,
-      "kind": "workflow",
-      "required": true
-    },
-    {
       "repo_id": "playbook",
-      "app_id": null,
       "kind": "workflow",
       "required": true
     },
     {
-      "repo_id": "lifeline",
-      "app_id": null,
+      "repo_id": "atlas",
+      "kind": "catalog",
+      "required": true
+    },
+    {
+      "repo_id": "fitness",
+      "app_id": "fawxzzy-fitness",
       "kind": "runtime",
-      "required": false
+      "required": true
     }
   ],
   "notes": [
-    "Wave 2A starts owner-lane contract adoption against the merged ATLAS platform v1 surface."
+    "Fitness owns the app implementation while consuming the frozen ATLAS platform contract surface from root.",
+    "The repo-owned health route and event-contract truth pack are the primary local admission surfaces for this tranche."
   ]
 }

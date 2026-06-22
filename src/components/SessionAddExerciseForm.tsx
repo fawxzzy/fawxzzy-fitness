@@ -69,17 +69,17 @@ export function SessionAddExerciseForm({
           initialSelectedId={initialSelectedId}
           routineTargetConfig={{ weightUnit }}
           exerciseStats={exerciseStats}
-          renderFooter={({ goalValidation, selectedCanonicalExerciseId, openExerciseInfo }) => (
+          renderFooter={({ goalValidation, canToggleLastSelection, didApplyLastSelection, onToggleLastSelection }) => (
             <PublishBottomActions>
               <BottomActionSplit
                 secondary={(
                   <BottomDockButton
                     type="button"
-                    intent="toggleActive"
-                    onClick={openExerciseInfo}
-                    disabled={!selectedCanonicalExerciseId}
+                    intent="info"
+                    onClick={onToggleLastSelection}
+                    disabled={!canToggleLastSelection}
                   >
-                    Inspect
+                    {didApplyLastSelection ? "Clear Last" : "Use Last"}
                   </BottomDockButton>
                 )}
                 primary={(
@@ -94,7 +94,7 @@ export function SessionAddExerciseForm({
                       toast.warning(goalValidation.message, { id: "exercise-goal-validation" });
                     }}
                   >
-                    Add
+                    Confirm
                   </BottomDockButton>
                 )}
               />

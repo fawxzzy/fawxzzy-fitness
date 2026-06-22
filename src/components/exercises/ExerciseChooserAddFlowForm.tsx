@@ -6,11 +6,15 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
-import { ChevronDownIcon } from "@/components/ui/Chevrons";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
+import {
+  GlowSwitch,
+  GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
+} from "@/components/ui/GlowSwitch";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
-import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
+import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -135,6 +139,7 @@ export function ExerciseChooserAddFlowForm({
   initialCustomExerciseDraft?: {
     name?: string;
     primaryMuscle?: string | null;
+    secondaryMuscle?: string | null;
     movementPattern?: string | null;
     equipment?: string | null;
   };
@@ -203,55 +208,41 @@ export function ExerciseChooserAddFlowForm({
     || progressionDraft.progressionPlaybookId === "fixed_load_rep_range_progression"
     ? progressionDraft.progressionPlaybookId
     : "";
-  const progressionMethodInfoPayload = createAddExerciseProgressionMethodInfoPayload(currentProgressionMethodId);
-  const addExerciseSecondaryToggleCardClassName = "w-[calc((100%-1.5rem)/3)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center";
-  const progressionToggleCard = (
-    <div
-      className={addExerciseSecondaryToggleCardClassName}
-      onFocusCapture={() => {
-        window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
-          detail: progressionMethodInfoPayload,
-        }));
-      }}
-      onPointerDownCapture={() => {
-        window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
-          detail: progressionMethodInfoPayload,
-        }));
-      }}
-    >
-      <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
-        <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-          Progression
-        </p>
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
-      <button
-        type="button"
-        className={[
-          ACTION_CHROME_CONTROL_CLASS_NAME,
-          ACTION_CHROME_SEGMENTED_CLASS_NAME,
-          "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
-        ].join(" ")}
-        aria-pressed={Boolean(progressionDraft.progressionPlaybookId)}
-        aria-label={progressionDraft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
-        onClick={() => {
-          const nextPlaybookId: AddExerciseProgressionMethodId = progressionDraft.progressionPlaybookId ? "" : "double_progression";
-          setHasCustomizedProgression(true);
-          setProgressionDraft(applyAddExerciseProgressionMethod(progressionDraft, nextPlaybookId));
-          window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
-            detail: createAddExerciseProgressionMethodInfoPayload(nextPlaybookId),
-          }));
-        }}
+  const publishProgressionMethodInfo = (playbookId: AddExerciseProgressionMethodId = currentProgressionMethodId) => {
+    window.dispatchEvent(new CustomEvent("fitness:routine-editor-info", {
+      detail: createAddExerciseProgressionMethodInfoPayload(playbookId),
+    }));
+  };
+  const progressionAuxiliaryField: MeasurementPanelAuxiliaryField = {
+    title: "Progression",
+    input: null,
+    inlineLabel: "PROGRESSION",
+    useInlineFieldShell: false,
+    showEmptyValue: false,
+    hasValue: true,
+    renderInput: () => (
+      <div
+        className={GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME}
+        onFocusCapture={() => publishProgressionMethodInfo()}
+        onPointerDownCapture={() => publishProgressionMethodInfo()}
       >
-        <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-          <span className="measurement-toggle__label">
-            {progressionDraft.progressionPlaybookId ? "Auto" : "Manual"}
-          </span>
-          <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-        </span>
-      </button>
-    </div>
-  );
+        <GlowSwitch
+          checked={Boolean(progressionDraft.progressionPlaybookId)}
+          ariaLabel={progressionDraft.progressionPlaybookId ? "Automatic progression enabled" : "Manual progression enabled"}
+          onLabel="Auto"
+          offLabel="Manual"
+          onClick={() => {
+            const nextPlaybookId: AddExerciseProgressionMethodId = progressionDraft.progressionPlaybookId ? "" : "double_progression";
+            setHasCustomizedProgression(true);
+            setProgressionDraft(applyAddExerciseProgressionMethod(progressionDraft, nextPlaybookId));
+            publishProgressionMethodInfo(nextPlaybookId);
+          }}
+          className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+          stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+        />
+      </div>
+    ),
+  };
 
   return (
     <>
@@ -298,17 +289,18 @@ export function ExerciseChooserAddFlowForm({
             setHasCustomizedProgression(false);
             setProgressionDraft(seededExerciseProgression);
           }}
-          goalCompanionToggleCards={[progressionToggleCard]}
-          renderFooter={({ goalValidation, selectedCanonicalExerciseId, openExerciseInfo, isCustomExerciseSelected, customExerciseError }) => (
+          goalAuxiliaryFields={shouldShowProgression ? [progressionAuxiliaryField] : []}
+          goalInlineFailureToggle
+          renderFooter={({ goalValidation, isCustomExerciseSelected, customExerciseError, canToggleLastSelection, didApplyLastSelection, onToggleLastSelection }) => (
             <BottomActionSplit
               secondary={(
                 <BottomDockButton
                   type="button"
-                  intent="toggleActive"
-                  onClick={openExerciseInfo}
-                  disabled={!selectedCanonicalExerciseId}
+                  intent="info"
+                  onClick={onToggleLastSelection}
+                  disabled={!canToggleLastSelection}
                 >
-                  Inspect
+                  {didApplyLastSelection ? "Clear Last" : "Use Last"}
                 </BottomDockButton>
               )}
               primary={(

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
 import path from "node:path";
+import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
@@ -14,6 +15,9 @@ const discordApiBaseUrl = "https://discord.com/api/v10";
 const resolvedReactionEmojiName = "fawxzzy";
 const resolvedReactionEmojiId = "1507384062166302851";
 const resolvedReactionLabel = `${resolvedReactionEmojiName}:${resolvedReactionEmojiId}`;
+export const FEEDBACK_PHASE_READINESS_DOC_PATH = path.join(repoRoot, "docs", "ops", "FITNESS-FEEDBACK-PHASE-READINESS-REPORTS.md");
+export const FEEDBACK_PHASE_READINESS_JSON_PATH = path.join(repoRoot, "runtime", "feedback-phase", "latest.json");
+export const FEEDBACK_PHASE_READINESS_MARKDOWN_PATH = path.join(repoRoot, "runtime", "feedback-phase", "latest.md");
 
 for (const [key, value] of Object.entries(fileEnv)) {
   if (explicitEnvFileOverride || !process.env[key]) {
@@ -26,7 +30,7 @@ function isUuidLike(value) {
 }
 
 function getRequiredEnv(name) {
-  const value = process.env[name]?.trim();
+  const value = getOptionalEnv(name);
   if (!value) {
     throw new Error(`Missing required env: ${name}. Set it in ${envPath} or the current shell.`);
   }
@@ -35,8 +39,13 @@ function getRequiredEnv(name) {
 }
 
 function getOptionalEnv(name) {
-  const value = process.env[name]?.trim();
-  return value && value.length > 0 ? value : null;
+  const fileValue = fileEnv[name]?.trim();
+  if (fileValue) {
+    return fileValue;
+  }
+
+  const shellValue = process.env[name]?.trim();
+  return shellValue && shellValue.length > 0 ? shellValue : null;
 }
 
 function getSupabaseUrl() {
@@ -227,9 +236,57 @@ export async function checkFeedbackPhaseReadiness(args, { client = createService
   };
 }
 
+export function renderFeedbackPhaseReadinessMarkdown(result, args) {
+  const lines = [
+    "# Feedback Phase Readiness",
+    "",
+    `Generated: ${new Date().toISOString()}`,
+    `Status: ${result.ok ? "PASS" : "FAIL"}`,
+    `Next report: ${result.nextReport?.id ?? "<unknown>"}`,
+    `Requires: ${result.requiredReport?.id ?? "<unknown>"}`,
+    `Required status: ${result.requiredReport?.status ?? "<unknown>"}`,
+    `Required completion review: ${result.requiredReport?.completion_review_status ?? "<unknown>"}`,
+    "",
+  ];
+
+  if (result.ok) {
+    lines.push(`The required prior card is fixed, completion-review approved, and carries ${resolvedReactionLabel}.`);
+  } else {
+    lines.push("## Failures");
+    for (const failure of result.failures ?? []) {
+      lines.push(`- ${failure}`);
+    }
+  }
+
+  lines.push("");
+  lines.push("## Invocation");
+  lines.push(`- report-id: ${args.reportId}`);
+  lines.push(`- requires: ${args.requires}`);
+
+  return `${lines.join("\n")}\n`;
+}
+
+export function getFeedbackPhaseReadinessArtifactPaths() {
+  return {
+    json: FEEDBACK_PHASE_READINESS_JSON_PATH,
+    markdown: FEEDBACK_PHASE_READINESS_MARKDOWN_PATH,
+  };
+}
+
+export async function writeFeedbackPhaseReadinessArtifacts(result, args, paths = getFeedbackPhaseReadinessArtifactPaths()) {
+  await fs.mkdir(path.dirname(paths.json), { recursive: true });
+  await fs.writeFile(paths.markdown, renderFeedbackPhaseReadinessMarkdown(result, args), "utf8");
+  await fs.writeFile(paths.json, `${JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    args,
+    ...result,
+  }, null, 2)}\n`, "utf8");
+}
+
 async function main() {
   const args = parseArgs();
   const result = await checkFeedbackPhaseReadiness(args);
+  await writeFeedbackPhaseReadinessArtifacts(result, args);
   if (!result.ok) {
     process.exitCode = 1;
   }

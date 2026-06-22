@@ -19,10 +19,12 @@ let hasLoggedMissingExerciseId = false;
 const VALID_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
 const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight", "cardio machine", "plate", "sled", "smith machine"] as const;
 const EXERCISE_LIST_SELECT =
-  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, kind, type, tags, categories, how_to_short, curation_tags, created_at";
+  "id, name, user_id, is_global, primary_muscle, primary_muscles, secondary_muscles, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, kind, type, tags, categories, how_to_short, curation_tags, created_at";
 const EXERCISE_LIST_SELECT_LEGACY =
   "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, created_at";
 const EXERCISE_OPTIONAL_METADATA_COLUMNS = [
+  "primary_muscles",
+  "secondary_muscles",
   "image_path",
   "image_icon_path",
   "image_howto_path",
@@ -105,6 +107,8 @@ function hydrateExerciseRow(row: Partial<ExerciseRow>): ExerciseRow {
     user_id: row.user_id ?? null,
     is_global: row.is_global ?? false,
     primary_muscle: row.primary_muscle ?? null,
+    primary_muscles: row.primary_muscles ?? null,
+    secondary_muscles: row.secondary_muscles ?? null,
     equipment: row.equipment ?? null,
     movement_pattern: row.movement_pattern ?? null,
     measurement_type: row.measurement_type ?? "reps",
@@ -163,6 +167,8 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     user_id: null,
     is_global: true,
     primary_muscle: exercise.primary_muscle,
+    primary_muscles: null,
+    secondary_muscles: null,
     equipment: exercise.equipment,
     movement_pattern: exercise.movement_pattern,
     measurement_type: "reps",

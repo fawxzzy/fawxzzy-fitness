@@ -3,11 +3,16 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ChevronDownIcon } from "@/components/ui/Chevrons";
+import {
+  GlowSwitch,
+  GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
+} from "@/components/ui/GlowSwitch";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
-import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
+import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { deriveGoalMeasurementSelections, getGoalMeasurementOrder, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -104,6 +109,10 @@ export function ExerciseGoalForm({
   onInfoRequest,
   companionToggleCard,
   companionToggleCards,
+  lowerCompanionToggleCards,
+  auxiliaryFields,
+  showInlineStepControls = false,
+  inlineFailureToggle = false,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -124,6 +133,10 @@ export function ExerciseGoalForm({
   onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
   companionToggleCard?: ReactNode;
   companionToggleCards?: ReactNode[];
+  lowerCompanionToggleCards?: ReactNode[];
+  auxiliaryFields?: MeasurementPanelAuxiliaryField[];
+  showInlineStepControls?: boolean;
+  inlineFailureToggle?: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
   const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
@@ -204,34 +217,20 @@ export function ExerciseGoalForm({
     ],
     [companionToggleCard, companionToggleCards],
   );
-  const secondaryToggleCount = resolvedCompanionToggleCards.length + (supportsFailure ? 1 : 0);
+  const secondaryToggleCount = resolvedCompanionToggleCards.length;
   const multiToggleLayoutActive = secondaryToggleCount > 1;
-  const secondaryToggleCardClassName = secondaryToggleCount >= 3
-    ? "w-[calc((100%-1.5rem)/3)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center"
-    : multiToggleLayoutActive
-      ? "w-[calc((100%-0.75rem)/2)] max-w-[12rem] min-w-0 flex-1 basis-0 space-y-[5px] text-center"
-      : "w-full max-w-[12rem] space-y-[5px] text-center";
+  const secondaryToggleCardClassName = "relative inline-flex w-[7.35rem] min-w-[7.35rem] max-w-[7.35rem] shrink-0 flex-col text-center";
   const failureToggleCard = supportsFailure ? (
     <div
       className={secondaryToggleCardClassName}
       onFocusCapture={() => publishFailureToggleInfo()}
       onPointerDownCapture={() => publishFailureToggleInfo()}
     >
-      <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
-        <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-          Reps / Failure Toggle
-        </p>
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
-      <button
-        type="button"
-        className={cn(
-          ACTION_CHROME_CONTROL_CLASS_NAME,
-          ACTION_CHROME_SEGMENTED_CLASS_NAME,
-          "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
-        )}
-        aria-pressed={isFailureMode}
-        aria-label={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+      <GlowSwitch
+        checked={isFailureMode}
+        ariaLabel={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+        onLabel="Failure"
+        offLabel="Reps"
         onClick={() => {
           const nextIsFailureMode = !isFailureMode;
           onStateChange({
@@ -240,25 +239,71 @@ export function ExerciseGoalForm({
           });
           publishFailureToggleInfo(nextIsFailureMode);
         }}
-      >
-        <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-          <span className="measurement-toggle__label">
-          {isFailureMode ? "Till Failure" : "Reps-Based"}
-          </span>
-          <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-        </span>
-      </button>
+        className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+        stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+      />
     </div>
   ) : null;
-  const secondaryToggleRow = failureToggleCard || resolvedCompanionToggleCards.length > 0 ? (
-    <div className={multiToggleLayoutActive ? "flex items-start justify-center gap-3" : "flex justify-center"}>
+  const resolvedAuxiliaryFields = useMemo(
+    () => {
+      if (!supportsFailure || !failureToggleCard || !inlineFailureToggle) {
+        return auxiliaryFields;
+      }
+
+      return [
+        ...(auxiliaryFields ?? []),
+        {
+          title: "Reps / Failure",
+          input: null,
+          inlineLabel: "REPS / FAILURE",
+          useInlineFieldShell: false,
+          showEmptyValue: false,
+          hasValue: true,
+          renderInput: () => (
+            <div
+              className={GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME}
+              onFocusCapture={() => publishFailureToggleInfo()}
+              onPointerDownCapture={() => publishFailureToggleInfo()}
+            >
+              <GlowSwitch
+                checked={isFailureMode}
+                ariaLabel={isFailureMode ? "Failure target enabled" : "Failure target disabled"}
+                onLabel="Failure"
+                offLabel="Reps"
+                onClick={() => {
+                  const nextIsFailureMode = !isFailureMode;
+                  onStateChange({
+                    ...state,
+                    failure: nextIsFailureMode,
+                  });
+                  publishFailureToggleInfo(nextIsFailureMode);
+                }}
+                className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+                stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+              />
+            </div>
+          ),
+        } satisfies MeasurementPanelAuxiliaryField,
+      ];
+    },
+    [auxiliaryFields, failureToggleCard, inlineFailureToggle, supportsFailure],
+  );
+  const secondaryToggleRow = resolvedCompanionToggleCards.length > 0 ? (
+    <div className={multiToggleLayoutActive ? "flex flex-wrap items-start justify-center gap-2" : "flex justify-center"}>
       {resolvedCompanionToggleCards}
-      {failureToggleCard}
     </div>
   ) : null;
-  const resolvedBetweenInputsAndFooterContent = secondaryToggleRow || betweenInputsAndFooterContent ? (
-    <div className="space-y-3">
+  const lowerCompanionToggleRow = lowerCompanionToggleCards && lowerCompanionToggleCards.length > 0 ? (
+    <div className="flex justify-center">
+      <div className="w-[7.35rem] min-w-[7.35rem] max-w-[7.35rem]">
+        {lowerCompanionToggleCards[0]}
+      </div>
+    </div>
+  ) : null;
+  const resolvedBetweenInputsAndFooterContent = secondaryToggleRow || lowerCompanionToggleRow || betweenInputsAndFooterContent ? (
+    <div className="space-y-2">
       {secondaryToggleRow}
+      {lowerCompanionToggleRow}
       {betweenInputsAndFooterContent}
     </div>
   ) : null;
@@ -307,17 +352,33 @@ export function ExerciseGoalForm({
         betweenInputsAndFooterContent={resolvedBetweenInputsAndFooterContent}
         footerContent={footerContent}
         footerClassName={footerClassName}
+        auxiliaryFields={resolvedAuxiliaryFields}
+        repRangeFooterContent={!inlineFailureToggle && supportsFailure && !isFailureMode ? failureToggleCard : undefined}
+        repReplacementContent={!inlineFailureToggle && supportsFailure && isFailureMode ? failureToggleCard : undefined}
         repRangeLabels={{ min: "MIN REPS", max: "MAX REPS" }}
         metricOrder={resolvedMetricOrder}
         visibleMetrics={resolvedVisibleMetrics}
         layoutMode={measurementLayoutMode}
         labelTreatment="floating-border"
+        showInlineStepControls={showInlineStepControls}
         topField={{
           title: "Sets",
           suffix: "target",
           inlineLabel: "SETS",
           showEmptyValue: false,
           hasValue: setsHasValue,
+          stepper: showInlineStepControls ? {
+            decrementAriaLabel: "Decrease sets",
+            incrementAriaLabel: "Increase sets",
+            onDecrement: () => onStateChange({
+              ...state,
+              sets: String(Math.max(1, (Number.parseInt(state.sets, 10) || 1) - 1)),
+            }),
+            onIncrement: () => onStateChange({
+              ...state,
+              sets: String((Number.parseInt(state.sets, 10) || 0) + 1),
+            }),
+          } : undefined,
           input: null,
           renderInput: ({ inputClassName }) => (
             <input

@@ -24,6 +24,7 @@ export async function createCustomExerciseAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") ?? "").trim();
   const rawName = String(formData.get("name") ?? "");
   const primaryMuscle = String(formData.get("primaryMuscle") ?? "").trim() || null;
+  const secondaryMuscle = String(formData.get("secondaryMuscle") ?? "").trim() || null;
   const rawEquipment = String(formData.get("equipment") ?? "");
 
   let name: string;
@@ -47,6 +48,8 @@ export async function createCustomExerciseAction(formData: FormData) {
       user_id: user.id,
       is_global: false,
       primary_muscle: primaryMuscle,
+      primary_muscles: primaryMuscle ? [primaryMuscle] : null,
+      secondary_muscles: secondaryMuscle ? [secondaryMuscle] : null,
       equipment,
     })
     .select("id")

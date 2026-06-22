@@ -302,11 +302,8 @@ export function SetLoggerCard({
   routineDayExerciseId,
   planTargetsHash,
   deleteSetAction,
-  resetSignal,
   secondaryActionLabel,
   onSecondaryAction,
-  warmupValue,
-  onWarmupValueChange,
   progressionFormState,
   progressionStepPolicy,
   visiblePromotionStepFields,
@@ -350,11 +347,8 @@ export function SetLoggerCard({
   routineDayExerciseId?: string | null;
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
-  resetSignal?: number;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => Promise<void> | void;
-  warmupValue?: boolean;
-  onWarmupValueChange?: (value: boolean) => void;
   progressionFormState?: ProgressionPlaybookFormState | null;
   progressionStepPolicy?: ProgressionStepPolicy | null;
   visiblePromotionStepFields?: PromotionStepFieldId[] | null;
@@ -389,15 +383,7 @@ export function SetLoggerCard({
   const [didApplyLastTarget, setDidApplyLastTarget] = useState(false);
   const [progressionDraft, setProgressionDraft] = useState<ProgressionPlaybookFormState | null>(progressionFormState ?? null);
   const [progressionSaveError, setProgressionSaveError] = useState<string | null>(null);
-  const resolvedIsWarmup = warmupValue ?? isWarmup;
-
-  const setWarmupValue = useCallback((value: boolean) => {
-    if (onWarmupValueChange) {
-      onWarmupValueChange(value);
-      return;
-    }
-    setIsWarmup(value);
-  }, [onWarmupValueChange]);
+  const resolvedIsWarmup = isWarmup;
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLogRequestPending, setIsLogRequestPending] = useState(false);
@@ -522,7 +508,7 @@ export function SetLoggerCard({
   useEffect(() => {
     resetLoggerMeasurementInputs();
     setRpe("");
-    setWarmupValue(false);
+    setIsWarmup(false);
     setIsFailure(false);
     setDidApplyLastTarget(false);
     setError(null);
@@ -531,7 +517,7 @@ export function SetLoggerCard({
     setSets(nextDisplaySets);
     setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = nextDisplaySets.length;
-  }, [initialSets, resetLoggerMeasurementInputs, sessionExerciseId, setWarmupValue]);
+  }, [initialSets, resetLoggerMeasurementInputs, sessionExerciseId]);
 
   useEffect(() => {
     if (lastCaloriesAutoResetKeyRef.current === caloriesAutoResetKey) {
@@ -649,7 +635,7 @@ export function SetLoggerCard({
         if (isFitnessDistanceUnit(parsed.form.distanceUnit)) setDistanceUnit(parsed.form.distanceUnit);
         if (typeof sanitizedForm.calories === "string") setCalories(sanitizedForm.calories);
         if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
-        if (typeof parsed.form.isWarmup === "boolean") setWarmupValue(parsed.form.isWarmup);
+        if (typeof parsed.form.isWarmup === "boolean") setIsWarmup(parsed.form.isWarmup);
         if (typeof parsed.form.isFailure === "boolean") setIsFailure(parsed.form.isFailure);
         if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
           setSelectedWeightUnit(parsed.form.selectedWeightUnit);
@@ -658,7 +644,7 @@ export function SetLoggerCard({
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [initialSets, sessionExerciseId, sessionId, setWarmupValue, userId]);
+  }, [initialSets, sessionExerciseId, sessionId, userId]);
 
   useEffect(() => {
     const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
@@ -963,21 +949,6 @@ export function SetLoggerCard({
   const resolvedIsFailure = showFailureToggle && !resolvedIsWarmup && isFailure;
   const isSaveDisabled = isSubmitting || isLogRequestPending;
 
-  const resetLoggerState = useCallback(() => {
-    setDurationInput("");
-    if (liveSetInputOrder.visibleMetrics.includes("reps")) {
-      setReps("");
-    }
-  }, [liveSetInputOrder.visibleMetrics]);
-
-  useEffect(() => {
-    if (!resetSignal) {
-      return;
-    }
-
-    resetLoggerState();
-  }, [resetLoggerState, resetSignal]);
-
   const applyQuickLogTargetToInputs = useCallback((target: SessionQuickLogTarget | null | undefined) => {
     if (!target) {
       return false;
@@ -1031,8 +1002,8 @@ export function SetLoggerCard({
     }
     setRpe(args.parsedRpe === null ? "" : String(args.parsedRpe));
     setIsFailure(false);
-    setWarmupValue(args.resolvedIsWarmup);
-  }, [applyNextSetFlowTarget, setWarmupValue]);
+    setIsWarmup(args.resolvedIsWarmup);
+  }, [applyNextSetFlowTarget]);
   const releaseLogRequest = useCallback(() => {
     logRequestInFlightRef.current = false;
     setIsLogRequestPending(false);
@@ -1323,7 +1294,6 @@ export function SetLoggerCard({
     sessionExerciseId,
     sessionId,
     setSets,
-    setWarmupValue,
     sets,
     toast,
     unitLabel,
@@ -1596,7 +1566,7 @@ export function SetLoggerCard({
             setIsFailure((current) => {
               const nextValue = !current;
               if (nextValue) {
-                setWarmupValue(false);
+                setIsWarmup(false);
               }
               return nextValue;
             });
@@ -1634,7 +1604,7 @@ export function SetLoggerCard({
           aria-label={resolvedIsWarmup ? "Warm-up set enabled" : "Working set enabled"}
           onClick={() => {
             const nextWarmup = !resolvedIsWarmup;
-            setWarmupValue(nextWarmup);
+            setIsWarmup(nextWarmup);
             if (nextWarmup) {
               setIsFailure(false);
             }

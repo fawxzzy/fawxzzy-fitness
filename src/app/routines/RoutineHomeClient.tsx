@@ -32,6 +32,7 @@ import {
   getRoutineDayEditableName,
   getRoutineDayResolvedWeekdayLabel,
 } from "@/lib/routines";
+import type { WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
 
 export type RoutineHomeDayCardItem = {
   id: string;
@@ -117,6 +118,14 @@ export function RoutineHomeClient({
   appendRoutineDayAction,
   deleteRoutineDayAction,
   reorderRoutineDaysAction,
+  footerMode = "edit",
+  onPublishDraft,
+  isPublishDraftPending = false,
+  onOpenWorkoutPlan,
+  deleteRoutineAction: _deleteRoutineAction,
+  workoutPlanChooserDayId: _workoutPlanChooserDayId,
+  workoutPlanSources: _workoutPlanSources,
+  onDismissWorkoutPlanChooser: _onDismissWorkoutPlanChooser,
 }: {
   routineId: string;
   routineStartDate?: string | null;
@@ -129,6 +138,14 @@ export function RoutineHomeClient({
   appendRoutineDayAction: (formData: FormData) => Promise<ActionResult & { routineDayId?: string }>;
   deleteRoutineDayAction: (formData: FormData) => Promise<ActionResult>;
   reorderRoutineDaysAction?: (formData: FormData) => Promise<ActionResult>;
+  footerMode?: "edit" | "draftPublish";
+  onPublishDraft?: () => void;
+  isPublishDraftPending?: boolean;
+  onOpenWorkoutPlan?: (day: RoutineHomeDayCardItem) => void | Promise<void>;
+  deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
+  workoutPlanChooserDayId?: string | null;
+  workoutPlanSources?: WorkoutPlanSourceListItem[];
+  onDismissWorkoutPlanChooser?: () => void;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -328,13 +345,30 @@ export function RoutineHomeClient({
     finishReorder();
   }, [finishReorder]);
 
-  const actionsNode = useMemo(() => (
-    <BottomActionSingle>
-      <BottomDockButton type="button" intent="positive" disabled={isPending} onClick={handleAppendDay}>
-        <span>{isPending ? "Adding..." : "Add Day"}</span>
-      </BottomDockButton>
-    </BottomActionSingle>
-  ), [handleAppendDay, isPending]);
+  const actionsNode = useMemo(() => {
+    if (footerMode === "draftPublish") {
+      return (
+        <BottomActionSingle>
+          <BottomDockButton
+            type="button"
+            intent="positive"
+            disabled={isPublishDraftPending}
+            onClick={onPublishDraft}
+          >
+            <span>{isPublishDraftPending ? "Creating..." : "Create Routine"}</span>
+          </BottomDockButton>
+        </BottomActionSingle>
+      );
+    }
+
+    return (
+      <BottomActionSingle>
+        <BottomDockButton type="button" intent="positive" disabled={isPending} onClick={handleAppendDay}>
+          <span>{isPending ? "Adding..." : "Add Day"}</span>
+        </BottomDockButton>
+      </BottomActionSingle>
+    );
+  }, [footerMode, handleAppendDay, isPending, isPublishDraftPending, onPublishDraft]);
 
   usePublishBottomActions(actionsNode);
 
@@ -498,7 +532,14 @@ export function RoutineHomeClient({
                               <button
                                 type="button"
                                 data-bottom-action-intent="positive"
-                                onClick={() => router.push(day.href)}
+                                onClick={() => {
+                                  if (onOpenWorkoutPlan) {
+                                    void onOpenWorkoutPlan(sourceDay);
+                                    return;
+                                  }
+
+                                  router.push(day.href);
+                                }}
                                 className={ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME}
                               >
                                 <span className="bottom-action__label">Open Workout Plan</span>

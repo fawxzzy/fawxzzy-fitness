@@ -429,7 +429,7 @@ export function resolveDiscordMessageCommandPollUrl(env = process.env) {
     ?? readEnv("VERCEL_PROJECT_PRODUCTION_URL", env)
     ?? "https://fawxzzy-fitness-local.vercel.app";
   const baseUrl = siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`;
-  return `${baseUrl.replace(/\/+$/, "")}/api/discord/interactions`;
+  return `${baseUrl.replace(/\/+$/, "")}/api/discord/message-commands/poll`;
 }
 
 export function resolveDiscordMessageCommandPollSecret(env = process.env) {

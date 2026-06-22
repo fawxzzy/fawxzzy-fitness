@@ -80,6 +80,27 @@ export function EditDayRegressionSurface({
       modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null, activeExercise.name),
     }
     : null;
+  const renderMockReorderHandle = (exerciseName: string) => (
+    <button
+      type="button"
+      aria-label={`Reorder ${exerciseName}`}
+      title="Drag to reorder"
+      className={cn(
+        appTokens.routineEditorReorderHandle,
+        "absolute right-[0.22rem] top-[0.12rem]",
+        "z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
+      )}
+      >
+        <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>
+          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+          <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+        </span>
+      </button>
+  );
 
   if (fixture === "empty") {
     return (
@@ -232,6 +253,8 @@ export function EditDayRegressionSurface({
         items={items}
         showOrderBadges={false}
         activeItemId={expandedId}
+        onInfoItem={() => {}}
+        renderOverlayActions={(item) => expandedId === item.id ? null : renderMockReorderHandle(item.name)}
         onSelectItem={fixture === "default" ? undefined : (item) => setExpandedId((current) => current === item.id ? null : item.id)}
         renderExpandedContent={(item) => {
           if (fixture !== "edit-exercise" || expandedId !== item.id) return null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useId, useMemo, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DetailHeader } from "@/components/DetailSurface";
@@ -19,11 +19,12 @@ import {
   SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME,
 } from "@/components/ui/app/overlayPanelTokens";
 import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
-import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AccentDotSeparatedText, SignatureDot, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
+import { FilterToggleButton } from "@/components/ui/FilterToggleButton";
 import { DetailSectionBlock, DetailSectionBlocks, DetailSectionItems, type DetailSectionListItem, type DetailSectionListItemInput } from "@/components/ui/DetailSectionList";
 import { FilterScrollPanel } from "@/components/ui/FilterScrollPanel";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
@@ -31,7 +32,6 @@ import { MetricAccentBar, type MetricDatum } from "@/components/ui/MetricItem";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
-import { EyebrowText } from "@/components/ui/text-roles";
 import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
 import { cn } from "@/lib/cn";
@@ -69,11 +69,20 @@ function toTitleCase(value: string) {
   return value.replace(/\b([a-z])/g, (match) => match.toUpperCase());
 }
 
+function normalizeExerciseInfoTagValue(value: string | null | undefined) {
+  return (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ");
+}
+
 export type ExerciseInfoSheetExercise = {
   id: string;
   exercise_id?: string | null;
   name: string;
   primary_muscle: string | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
   equipment: string | null;
   movement_pattern: string | null;
   image_howto_path?: string | null;
@@ -309,11 +318,10 @@ function normalizeExerciseInfoComparisonValue(value: string | null | undefined) 
 }
 
 function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
-  return [
+  return Array.from(new Set([
     exercise.equipment ? toTitleCase(exercise.equipment) : null,
-    exercise.primary_muscle ? toTitleCase(exercise.primary_muscle) : null,
     exercise.movement_pattern ? toTitleCase(exercise.movement_pattern) : null,
-  ].filter((item): item is string => Boolean(item));
+  ].filter((item): item is string => Boolean(item))));
 }
 
 function ExerciseInfoHeaderMetaLine({
@@ -326,10 +334,10 @@ function ExerciseInfoHeaderMetaLine({
   }
 
   return (
-    <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-[5px] text-center text-[11px] font-medium leading-[1.15] text-[rgb(var(--text-secondary)/0.84)]">
+    <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 px-[3.15rem] pt-[5px] text-center text-[11px] font-medium leading-[1.15] text-[rgb(var(--text-secondary)/0.84)]">
       {items.map((item, index) => (
         <div key={`${item}-${index}`} className="flex min-w-0 max-w-full items-center gap-2">
-          {index > 0 ? <SignatureDot /> : null}
+          {index > 0 ? <SignatureMiniPipe /> : null}
           <p className="min-w-0 [text-wrap:balance]">{item}</p>
         </div>
       ))}
@@ -366,7 +374,7 @@ function renderMetricMetaLine(parts: string[]) {
     <div className={cn(appTokens.workoutMetricMeta, "mt-0 justify-center px-px leading-[1.02] flex flex-wrap items-center gap-x-2 gap-y-1")}>
       {parts.map((part, index) => (
         <div key={`${part}-${index}`} className="flex min-w-0 items-center gap-2">
-          {index > 0 ? <SignatureDot /> : null}
+          {index > 0 ? <SignatureMiniPipe /> : null}
           <p className="min-w-0">{part}</p>
         </div>
       ))}
@@ -393,18 +401,19 @@ function normalizeCompactProgressionComparisonValue(value: string | null | undef
   return compactProgressionMetricValue(value).toLowerCase().replace(/\s+/g, " ").trim();
 }
 
-const exerciseInfoSectionTitleClassName = "px-2 pt-0.5 text-center text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
+const exerciseInfoSectionTitleClassName = "px-0 pt-0.5 text-[1.18rem] text-[rgb(var(--accent-divider-rgb)/0.96)]";
 const exerciseInfoSubsectionTitleClassName = "text-[rgb(var(--accent-divider-rgb)/0.92)]";
-const exerciseInfoHeaderTitleClassName = "pl-[4px] pt-[5px] pr-3 text-[1.02rem] leading-[1.12] text-[rgb(var(--accent-divider-rgb)/0.98)]";
+const exerciseInfoHeaderTitleClassName = "px-[3.45rem] pt-[5px] text-[1.02rem] leading-[1.12] text-[rgb(var(--accent-divider-rgb)/0.98)]";
 const exerciseInfoSectionTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.96)" } as const;
 const exerciseInfoHeaderTitleStyle = { color: "rgb(var(--accent-divider-rgb) / 0.98)" } as const;
 const exerciseInfoTightLabelSlotClassName = "min-h-[1.45rem]";
 const exerciseInfoDenseLabelClassName = "text-[9px] tracking-[0.11em]";
 const exerciseInfoSubsectionHeadingClassName = "px-2 text-center text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
-const exerciseInfoFilterCompactSectionStackClassName = "space-y-1.5";
-const exerciseInfoFilterCompactHeaderWrapClassName = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[4px]";
-const exerciseInfoFilterCompactRailClassName = "hide-scrollbar -mx-1 max-w-none overflow-x-auto overflow-y-visible px-1 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
-const exerciseInfoFilterCompactRailTopPaddingClassName = "pt-0.5";
+const exerciseInfoFilterCompactSectionStackClassName = "space-y-1";
+const exerciseInfoFilterCompactHeaderWrapClassName = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[2px]";
+const exerciseInfoFilterCompactRailClassName = "hide-scrollbar -mx-1 max-w-none overflow-x-auto overflow-y-visible px-1 pb-0.5 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
+const exerciseInfoFilterCompactRailTopPaddingClassName = "pt-0";
+const exerciseInfoStripCardClassName = "rounded-[1.35rem] border border-[rgb(var(--border-strong)/0.16)] bg-[linear-gradient(180deg,rgb(var(--surface-1-rgb)/0.24),rgb(var(--surface-1-rgb)/0.12))] shadow-none";
 
 type ExerciseInfoMetricGridVariant = "default" | "progression";
 
@@ -519,9 +528,11 @@ function getExerciseInfoMetricGridProps(items: MetricDatum[], variant: ExerciseI
 function ExerciseInfoSectionHeader({
   title,
   subtitle,
+  align = "center",
 }: {
   title: string;
   subtitle?: string | null;
+  align?: "start" | "center";
   section?: ExerciseInfoSectionScopeKey;
   analyticsScope?: ExerciseInfoAnalyticsScope;
   activeRoutineTitle?: string | null;
@@ -529,12 +540,23 @@ function ExerciseInfoSectionHeader({
   resyncActive?: boolean;
 }) {
   return (
-    <div className="flex min-h-[2.1rem] flex-col items-center justify-center gap-0.5">
-      <h3 className={cn(appTokens.detailSectionTitle, exerciseInfoSectionTitleClassName)} style={exerciseInfoSectionTitleStyle}>
-        {title}
-      </h3>
+    <div className={cn(
+      "flex min-h-[2.1rem] flex-col justify-center gap-0.5",
+      align === "center" ? "items-center text-center" : "items-start text-left",
+    )}>
+      <div className={cn("flex w-full", align === "center" ? "justify-center" : "justify-start")}>
+        <div className={cn("flex max-w-full flex-col gap-1", align === "center" ? "items-center text-center" : "items-start text-left")}>
+          <h3 className={cn(appTokens.detailSectionTitle, exerciseInfoSectionTitleClassName)} style={exerciseInfoSectionTitleStyle}>
+            {title}
+          </h3>
+          <MetricAccentBar variant="thin" className="w-full max-w-full opacity-85" />
+        </div>
+      </div>
       {subtitle ? (
-        <p className="px-2 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]">
+        <p className={cn(
+          "text-[10px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]",
+          align === "center" ? "px-2 text-center" : "text-left",
+        )}>
           {subtitle}
         </p>
       ) : null}
@@ -576,31 +598,150 @@ function ExerciseInfoOverviewMedia({
   const overviewCopy = exercise.how_to_short?.trim() || fallbackDescription;
 
   return (
-    <div className={cn(appTokens.detailMediaCard, "gap-0 overflow-hidden border-transparent bg-transparent p-0 shadow-none")}>
-      <div className={cn(appTokens.detailMediaFrame, "border-transparent bg-transparent shadow-none")}>
+    <div className={cn(appTokens.detailMediaCard, "gap-0 overflow-hidden rounded-[1.4rem] border border-[rgb(var(--border-strong)/0.16)] bg-[linear-gradient(180deg,rgb(var(--surface-1-rgb)/0.28),rgb(var(--surface-1-rgb)/0.12))] p-0 shadow-none")}>
+      <div className={cn(appTokens.detailMediaFrame, "border-transparent bg-transparent px-2 pt-2 shadow-none")}>
         <ExerciseAssetImage
           src={howToImageSrc}
           alt={`${exercise.name} demonstration`}
           className="h-full w-full"
           preferNaturalAspectRatio
-          containerStyle={{ minHeight: "11.4rem", maxHeight: "16.25rem" }}
+          containerStyle={{ minHeight: "10.6rem", maxHeight: "15.5rem" }}
           imageClassName="object-contain object-center"
-          imageStyle={{ padding: "clamp(0.12rem, 0.7vw, 0.26rem)" }}
+          imageStyle={{ padding: "clamp(0.08rem, 0.55vw, 0.22rem)" }}
           sizes="(max-width: 768px) 100vw, 520px"
           priority
         />
       </div>
-      <MetricAccentBar variant="thin" className="mx-3 mt-1.5" />
-      <p className={cn(exerciseInfoSubsectionHeadingClassName, "pt-2")}>How To</p>
+      <div className="px-3 pb-3 pt-1.5">
+        <div className="flex w-full justify-center">
+          <div className="flex max-w-full flex-col items-center gap-1 text-center">
+            <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0 pt-0.5 text-center")}>How To</p>
+            <MetricAccentBar variant="thin" className="w-full max-w-full opacity-85" />
+          </div>
+        </div>
+      </div>
       {overviewCopy ? (
-        <p className={cn(appTokens.detailBodyText, "px-3 pb-2 pt-1 text-center text-[13px] leading-[1.55] [text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
+        <p className={cn(appTokens.detailBodyText, "px-3 pb-3 pt-0 text-center text-[13px] leading-[1.55] [text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
           {overviewCopy}
         </p>
       ) : (
-        <p className={cn(appTokens.detailBodyMutedText, "px-3 pb-2 pt-1 text-center text-[13px] leading-[1.5]")}>
+        <p className={cn(appTokens.detailBodyMutedText, "px-3 pb-3 pt-0 text-center text-[13px] leading-[1.5]")}>
           Log a few sessions to unlock more specific cues and trends for this exercise.
         </p>
       )}
+    </div>
+  );
+}
+
+function ExerciseInfoSummaryPanel({
+  panelId,
+  loading,
+  metrics,
+  subtitle,
+  title = "At a Glance",
+  className,
+  titleVariant = "section",
+}: {
+  panelId: string;
+  loading: boolean;
+  metrics: MetricDatum[];
+  subtitle?: string | null;
+  title?: string;
+  className?: string;
+  titleVariant?: "section" | "strip";
+}) {
+  return (
+    <div
+      id={panelId}
+      data-testid="exercise-info-stats-box"
+      className={cn(
+        "rounded-[1.4rem] border border-[rgb(var(--border-strong)/0.16)] bg-[linear-gradient(180deg,rgb(var(--surface-1-rgb)/0.22),rgb(var(--surface-1-rgb)/0.1))] px-3 py-3 text-xs text-muted",
+        className,
+      )}
+    >
+      <div className="space-y-2">
+        {titleVariant === "strip" ? (
+          <div className="space-y-1 text-center">
+            <div className="flex w-full justify-center">
+              <div className="flex max-w-full flex-col items-center gap-1 text-center">
+                <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0 text-center text-[0.72rem]")}>{title}</p>
+                <MetricAccentBar variant="thin" className="w-full max-w-full opacity-85" />
+              </div>
+            </div>
+            {subtitle ? (
+              <p className="px-2 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.7)]">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <ExerciseInfoSectionHeader title={title} subtitle={subtitle} />
+        )}
+        {loading ? <ExerciseInfoLoadingMetrics /> : null}
+        {!loading && metrics.length > 0 ? (
+          <ExerciseSurfaceMetricGrid
+            items={metrics}
+            {...getExerciseInfoMetricGridProps(metrics)}
+          />
+        ) : null}
+        {!loading && metrics.length === 0 ? (
+          <p className={appTokens.detailBodyMutedText}>
+            No stats yet. Log a set to generate performance history for this exercise.
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function prioritizeExerciseInfoSummaryMetrics(items: MetricDatum[]) {
+  const scoreMetric = (item: MetricDatum) => {
+    const label = normalizeMetricKey(item.label).replace(/\s+/g, " ");
+    const timeframe = normalizeMetricKey(item.timeframe).replace(/\s+/g, " ");
+    if (label === "last" || label.includes("last")) return 0;
+    if (label === "best" || label.includes("best")) return 1;
+    if (label === "sessions" || label.includes("sessions")) return 2;
+    if (label === "sets" || label.includes("sets")) return 3;
+    if (label === "prs" || label === "prs" || label.includes("pr")) return 4;
+    if (label === "30d" || label.includes("30 day") || timeframe.includes("30")) return 5;
+    if (label === "current") return 6;
+    return 99;
+  };
+
+  return [...items]
+    .sort((left, right) => {
+      const scoreDelta = scoreMetric(left) - scoreMetric(right);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      return left.label.localeCompare(right.label);
+    })
+    .slice(0, 6);
+}
+
+function ExerciseInfoStripCard({
+  title,
+  children,
+  className,
+  widthClassName = "w-[19rem] min-w-[19rem]",
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+  widthClassName?: string;
+}) {
+  return (
+    <div className={cn(exerciseInfoStripCardClassName, widthClassName, "shrink-0 px-3 py-3", className)}>
+      <div className="space-y-2">
+        <div className="flex w-full justify-center">
+          <div className="flex max-w-full flex-col items-center gap-1 text-center">
+            <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0 text-center text-[0.72rem]")}>{title}</p>
+            <MetricAccentBar variant="thin" className="w-full max-w-full opacity-85" />
+          </div>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
@@ -1012,11 +1153,11 @@ function HistoryGraphLegend({
     <div className="rounded-[0.9rem] border border-[rgb(var(--accent-strong)/0.34)] bg-[rgb(var(--surface-1-rgb)/0.14)] px-2.5 py-2">
       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
         {items.map((item) => (
-          <div key={item.kind} className="flex min-w-0 items-center gap-2">
-            <span className="flex h-5 w-8 shrink-0 items-center justify-center">
+          <div key={item.kind} className="flex min-w-0 items-start gap-2">
+            <span className="flex h-5 w-8 shrink-0 items-center justify-center pt-[1px]">
               <HistoryGraphLegendIcon kind={item.kind} />
             </span>
-            <span className="truncate text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.84)]">
+            <span className="min-w-0 whitespace-normal break-words text-[0.68rem] font-semibold uppercase leading-[1.3] tracking-[0.12em] text-[rgb(var(--text-secondary)/0.84)]">
               {item.label}
             </span>
           </div>
@@ -2087,6 +2228,11 @@ export function ExerciseInfoSheet({
     (selectedCycleOption ?? pendingCycleOption)?.startDate === cycle.startDate
   ));
   const hasAppliedFilter = currentScope !== "all_time";
+  const appliedFilterCount = currentScope === "current_cycle"
+    ? 2
+    : currentScope === "current_routine"
+      ? 1
+      : 0;
   const showFilterClearButton = hasAppliedFilter || headerFilterMode !== "all_time";
   const showRoutineClearButton = headerFilterMode === "current_routine"
     ? Boolean(routineModeSelectedRoutine)
@@ -2255,7 +2401,6 @@ export function ExerciseInfoSheet({
   const metadata = exercise && !isStretchHub ? buildExerciseInfoMeta(exercise) : [];
   const howToImageSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const stretchHeroImageSrc = howToImageSrc.includes("/placeholders/") ? STRETCH_HUB_HERO_SRC : howToImageSrc;
-  const activeRoutineTitle = statsByScope.current_routine?.activeRoutineTitle ?? statsByScope.all_time?.activeRoutineTitle ?? null;
   const filterResyncActive = Boolean(selectedHistoryPointId);
   const toggleHeaderFilterOpen = () => {
     setIsHeaderFilterOpen((previous) => {
@@ -2273,22 +2418,34 @@ export function ExerciseInfoSheet({
     <div className="sticky top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.25rem)] z-30">
       <div className="pointer-events-none absolute inset-x-0 inset-y-0 z-10 flex items-center justify-start px-2">
         <div className="pointer-events-auto flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={filterResyncActive ? handlePointSelectionResync : toggleHeaderFilterOpen}
-            aria-expanded={filterResyncActive ? undefined : isHeaderFilterOpen}
-            aria-label={filterResyncActive ? "Re-sync exercise info filters" : "Toggle exercise info filters"}
-            data-action-chrome-intent={filterResyncActive || isHeaderFilterOpen ? "toggleActive" : "neutral"}
-            data-action-chrome-selected={filterResyncActive || isHeaderFilterOpen ? "true" : undefined}
-            className={cn(
-              ACTION_CHROME_CONTROL_CLASS_NAME,
-              ACTION_CHROME_SEGMENTED_CLASS_NAME,
-              "inline-flex h-8 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
-            )}
-          >
-            <span>{filterResyncActive ? "Re-sync" : "Filter"}</span>
-            {!filterResyncActive ? (isHeaderFilterOpen ? <ChevronUpIcon className="h-3.5 w-3.5" /> : <ChevronDownIcon className="h-3.5 w-3.5" />) : null}
-          </button>
+          {filterResyncActive ? (
+            <button
+              type="button"
+              onClick={handlePointSelectionResync}
+              aria-label="Re-sync exercise info filters"
+              data-action-chrome-intent="toggleActive"
+              data-action-chrome-selected="true"
+              className={cn(
+                ACTION_CHROME_CONTROL_CLASS_NAME,
+                ACTION_CHROME_SEGMENTED_CLASS_NAME,
+                "inline-flex h-8 min-w-[3.55rem] items-center justify-center gap-1 rounded-[999px] px-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-[rgb(var(--accent)/0.22)]",
+              )}
+            >
+              <span>Re-sync</span>
+            </button>
+          ) : (
+            <FilterToggleButton
+              open={isHeaderFilterOpen}
+              active={hasAppliedFilter}
+              onClick={toggleHeaderFilterOpen}
+              ariaLabel="Open exercise info filters"
+              countBadge={appliedFilterCount > 0 ? appliedFilterCount : null}
+              className={cn(
+                appTokens.exercisePickerFilterToggle,
+                "!w-auto !min-w-[3.45rem] !border-[rgb(var(--accent)/0.52)] !bg-[rgb(var(--surface-2-rgb)/0.28)] !px-2.5 !pl-3 !pr-1.5",
+              )}
+            />
+          )}
         </div>
         {isHeaderFilterOpen && !filterResyncActive ? (
           <div
@@ -2301,7 +2458,7 @@ export function ExerciseInfoSheet({
               aria-label="Exercise info filters"
               className={cn(
                 appTokens.exercisePickerFilterPanel,
-                `mx-auto w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} !border-[rgb(var(--accent)/0.42)] !bg-[rgb(var(--bg-app))] !shadow-none !backdrop-blur-none`,
+                `mx-auto w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} !space-y-1.5 !border-[rgb(var(--accent)/0.42)] !bg-[rgb(var(--bg-app)/0.92)] !px-2 !py-2 !shadow-none !backdrop-blur-[18px]`,
               )}
             >
               <FilterScrollPanel
@@ -2522,6 +2679,7 @@ export function ExerciseInfoSheet({
     : [];
   const statsProgressState = getExerciseInfoProgressState(statsSectionState.stats);
   const statsProgressMetrics = statsProgressState.metrics.filter((item) => !isThirtyDayFrequencyMetric(item));
+  const progressReviewSections = statsProgressState.reviewSections;
   const surfaceMetrics = buildExerciseInfoSurfaceMetrics({
     quickMetrics: statsQuickMetrics.length > 0 ? statsQuickMetrics : baseSurfaceMetrics,
     performanceMetrics: statsPerformanceMetrics,
@@ -2549,6 +2707,7 @@ export function ExerciseInfoSheet({
       ].filter((item): item is MetricDatum => Boolean(item)))
     : [];
   const displayedSurfaceMetrics = graphSelectionActive ? selectedPointMetrics : surfaceMetrics;
+  const summaryRailMetrics = prioritizeExerciseInfoSummaryMetrics(displayedSurfaceMetrics);
   const selectedHistoryPointStatsSubtitle = graphSelectionActive
     ? buildSelectedHistoryPointStatsSubtitle(selectedHistoryPoint)
     : null;
@@ -2585,9 +2744,58 @@ export function ExerciseInfoSheet({
     </BottomActionUtilityCluster>
   ) : null;
   const progression = progressionSectionState.stats?.progression ?? null;
+  const progressionDerived = statsSectionState.stats?.progressionDerived ?? null;
+  const overviewCopy = exercise ? (exercise.how_to_short?.trim() || getRecoveryExerciseFallbackDescription(exercise)) : "";
+  const normalizedPresentationKind = normalizeExerciseInfoTagValue(statsSectionState.stats?.presentationKind ?? null);
+  const normalizedEquipment = normalizeExerciseInfoTagValue(exercise?.equipment ?? null);
+  const showEquipmentOverviewTag = Boolean(normalizedEquipment) && normalizedEquipment !== normalizedPresentationKind;
+  const overviewTags = filterUniqueMetricItems([
+    statsSectionState.stats?.presentationKind ? { label: "Style", value: toTitleCase(statsSectionState.stats.presentationKind) } : null,
+    showEquipmentOverviewTag && exercise?.equipment ? { label: "Equipment", value: toTitleCase(exercise.equipment) } : null,
+    exercise?.primary_muscle ? { label: "Primary Muscle", value: toTitleCase(exercise.primary_muscle) } : null,
+    ...(exercise?.secondary_muscles ?? []).map((value) => ({ label: "Secondary Muscle", value: toTitleCase(value) } satisfies MetricDatum)),
+    exercise?.movement_pattern ? { label: "Pattern", value: toTitleCase(exercise.movement_pattern) } : null,
+  ].filter((item): item is MetricDatum => Boolean(item)));
   const hasProgressionLoadingPanel = progressionSectionState.loading;
-  const hasProgressionPanel = Boolean(progression);
   const hasHistoryPanel = historySectionState.loading || Boolean(historySectionState.stats);
+  const progressionPanelMetrics = progression ? (() => {
+    const currentTargetValue = compactProgressionMetricValue(progression.currentTargetLabel);
+    const startedTargetValue = compactProgressionMetricValue(progression.firstTargetLabel);
+    const startedMatchesCurrent = Boolean(startedTargetValue)
+      && normalizeCompactProgressionComparisonValue(startedTargetValue) === normalizeCompactProgressionComparisonValue(currentTargetValue);
+    const regressionCount = progression.deloadCount + progression.revertCount;
+    const watchCount = progression.watchCount ?? 0;
+    const items: MetricDatum[] = [];
+    if (progression.firstTargetLabel && !startedMatchesCurrent) {
+      items.push((() => {
+        const value = startedTargetValue;
+        return { label: "Started", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
+      })());
+    }
+    if (progression.currentTargetLabel) {
+      items.push((() => {
+        const value = currentTargetValue;
+        return { label: "Current", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
+      })());
+    }
+    if (progression.latestChangeSummary) {
+      items.push((() => {
+        const value = compactProgressionMetricValue(progression.latestChangeSummary);
+        return { label: "Latest Change", value, valueNode: buildCompactMetricValueNode(value) } satisfies MetricDatum;
+      })());
+    }
+    items.push({ label: "Promotions", value: `${progression.promotionCount}`, valueTone: progression.promotionCount > 0 ? "success" : "muted" } satisfies MetricDatum);
+    if (regressionCount > 0) {
+      items.push({ label: "Regressions", value: `${regressionCount}`, valueTone: "danger" } satisfies MetricDatum);
+    }
+    if (watchCount > 0) {
+      items.push({ label: "Watch", value: `${watchCount}`, valueTone: "warning" } satisfies MetricDatum);
+    }
+    if (progression.manualChangeCount > 0) {
+      items.push({ label: "Manual", value: `${progression.manualChangeCount}`, valueTone: "warning" } satisfies MetricDatum);
+    }
+    return filterUniqueMetricItems(items);
+  })() : [];
 
   const sheetBody = (
     <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
@@ -2610,83 +2818,155 @@ export function ExerciseInfoSheet({
                   />
                 ) : (
                   <>
-                    <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "p-0")}>
-                      <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
+                    <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "p-2.5")}>
+                      <div className="grid gap-2.5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-stretch">
+                        <div className={cn(exerciseInfoStripCardClassName, "min-w-0 px-3 py-3 lg:flex lg:h-full lg:flex-col lg:justify-between")}>
+                          <div className="space-y-2">
+                            <div className="overflow-hidden rounded-[1rem] border border-[rgb(var(--border-strong)/0.12)] bg-[rgb(var(--surface-1-rgb)/0.12)]">
+                              <ExerciseAssetImage
+                                src={howToImageSrc}
+                                alt={`${exercise.name} demonstration`}
+                                className="h-full w-full"
+                                preferNaturalAspectRatio
+                                containerStyle={{ minHeight: "8.4rem", maxHeight: "9.8rem" }}
+                                imageClassName="object-contain object-center"
+                                imageStyle={{ padding: "0.28rem" }}
+                                sizes="220px"
+                                priority
+                              />
+                            </div>
+                            {overviewTags.length > 0 ? (
+                              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                                {overviewTags.slice(0, 3).map((item) => (
+                                  <Pill key={`${item.label}-${item.value}`} className="normal-case tracking-[0.08em]">
+                                    {item.value}
+                                  </Pill>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className={cn(exerciseInfoStripCardClassName, "min-w-0 px-3 py-3 lg:flex lg:h-full lg:flex-col")}>
+                          <div className="space-y-2 lg:flex lg:h-full lg:flex-col">
+                            <ExerciseInfoSectionHeader title="Overview" />
+                            <HorizontalScrollHint
+                              scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 [touch-action:pan-x] lg:flex-1"
+                              contentClassName="flex min-w-max gap-2 lg:min-w-0 lg:w-full lg:flex-nowrap lg:items-stretch"
+                            >
+                              <ExerciseInfoStripCard title="How To" className="h-full" widthClassName="w-[19rem] min-w-[19rem] lg:h-full lg:w-auto lg:min-w-0 lg:flex-[1.12]">
+                                <p className="text-[13px] leading-[1.55] text-[rgb(var(--text)/0.94)] [text-wrap:pretty]">
+                                  {overviewCopy || "Log a few sessions to unlock more specific cues and trends for this exercise."}
+                                </p>
+                              </ExerciseInfoStripCard>
+                              <ExerciseInfoStripCard title="Context" className="h-full" widthClassName="w-[17rem] min-w-[17rem] lg:h-full lg:w-auto lg:min-w-0 lg:flex-[0.92]">
+                                {overviewTags.length > 0 ? (
+                                  <ExerciseSurfaceMetricGrid
+                                    items={overviewTags}
+                                    {...getExerciseInfoMetricGridProps(overviewTags)}
+                                  />
+                                ) : (
+                                  <p className={appTokens.detailBodyMutedText}>No exercise context available yet.</p>
+                                )}
+                              </ExerciseInfoStripCard>
+                              {progressionDerived ? (
+                                <ExerciseInfoStripCard title="Current State" className="h-full" widthClassName="w-[19rem] min-w-[19rem] lg:h-full lg:w-auto lg:min-w-0 lg:flex-1">
+                                  {(() => {
+                                    const items: DetailSectionListItemInput[] = [
+                                      { id: "state-signal", primary: progressionDerived.signalLabel, value: progressionDerived.methodLabel },
+                                    ];
+                                    if (progressionDerived.currentTargetLabel) {
+                                      items.push({ id: "state-current", primary: "Current", value: progressionDerived.currentTargetLabel });
+                                    }
+                                    if (progressionDerived.nextTargetLabel) {
+                                      items.push({ id: "state-next", primary: "Next", value: progressionDerived.nextTargetLabel });
+                                    }
+                                    items.push({ id: "state-reason", primary: progressionDerived.reason });
+
+                                    return (
+                                      <DetailSectionItems
+                                        items={items}
+                                        className="pl-0"
+                                        showBullets={false}
+                                      />
+                                    );
+                                  })()}
+                                </ExerciseInfoStripCard>
+                              ) : null}
+                            </HorizontalScrollHint>
+                          </div>
+                        </div>
+                      </div>
                     </AppPanel>
 
                     <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "p-2.5")}>
-                      <div
-                        id={statsPanelId}
-                        data-testid="exercise-info-stats-box"
-                        className="space-y-2 text-xs text-muted"
-                      >
-                        <ExerciseInfoSectionHeader
-                          title="Stats"
-                          subtitle={selectedHistoryPointStatsSubtitle}
-                          section="stats"
-                          analyticsScope={statsSectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                          resyncActive={graphSelectionActive}
-                        />
-                        {statsSectionState.loading ? <ExerciseInfoLoadingMetrics /> : null}
-                        {!statsSectionState.loading && statsSectionState.stats ? (
-                          <ExerciseSurfaceMetricGrid
-                            items={displayedSurfaceMetrics}
-                            {...getExerciseInfoMetricGridProps(displayedSurfaceMetrics)}
+                      <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch">
+                        <div className="min-w-0">
+                          <ExerciseInfoSummaryPanel
+                            panelId={statsPanelId}
+                            loading={statsSectionState.loading}
+                            metrics={summaryRailMetrics}
+                            subtitle={selectedHistoryPointStatsSubtitle}
+                            title="Progress"
+                            className="h-full"
+                            titleVariant="strip"
                           />
-                        ) : null}
-                        {!statsSectionState.loading && !statsSectionState.stats ? (
-                          <p className={appTokens.detailBodyMutedText}>
-                            No stats yet. Log a set to generate performance history for this exercise.
-                          </p>
+                        </div>
+                        {!graphSelectionActive && (hasProgressionLoadingPanel || progressReviewSections.length > 0 || statsProgressMetrics.length > 0) ? (
+                          hasProgressionLoadingPanel ? (
+                            <div className={cn(exerciseInfoStripCardClassName, "h-full px-3 py-3")}>
+                              <div className="inline-flex max-w-full flex-col items-center gap-1 text-center">
+                                <p className={cn(exerciseInfoSubsectionHeadingClassName, "px-0 text-center text-[0.72rem]")}>Review</p>
+                                <MetricAccentBar variant="thin" className="w-full max-w-full opacity-85" />
+                              </div>
+                              <div className="pt-2">
+                                <ExerciseInfoLoadingRows />
+                              </div>
+                            </div>
+                          ) : (
+                            <ExerciseInfoStripCard title="Review" className="h-full" widthClassName="w-full min-w-0 lg:h-full">
+                              <ExerciseInfoProgressReview metrics={statsProgressMetrics} sections={progressReviewSections} />
+                            </ExerciseInfoStripCard>
+                          )
                         ) : null}
                       </div>
                     </AppPanel>
 
-                    {!graphSelectionActive && hasProgressionLoadingPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "space-y-2 p-2")}>
-                        <ExerciseInfoSectionHeader
-                          title="Progression"
-                          section="progression"
-                          analyticsScope={progressionSectionState.scope}
-                          activeRoutineTitle={activeRoutineTitle}
-                          onScopeClick={handleSectionScopeToggle}
-                          resyncActive={graphSelectionActive}
-                        />
-                        <ExerciseInfoLoadingRows />
+                    {!graphSelectionActive && (hasProgressionLoadingPanel || progressionPanelMetrics.length > 0) ? (
+                      <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "space-y-2 p-2.5")}>
+                        <ExerciseInfoSectionHeader title="Signals" />
+                        {hasProgressionLoadingPanel ? (
+                          <ExerciseInfoLoadingRows />
+                        ) : (
+                          <HorizontalScrollHint
+                            scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 [touch-action:pan-x]"
+                            contentClassName="flex min-w-max gap-2 lg:min-w-0 lg:w-full"
+                          >
+                            {progressionPanelMetrics.length > 0 ? (
+                              <ExerciseInfoStripCard title="Signal" widthClassName="w-[22rem] min-w-[22rem] lg:w-full lg:min-w-0">
+                                <ExerciseSurfaceMetricGrid
+                                  items={progressionPanelMetrics}
+                                  {...getExerciseInfoMetricGridProps(progressionPanelMetrics, "progression")}
+                                />
+                              </ExerciseInfoStripCard>
+                            ) : null}
+                          </HorizontalScrollHint>
+                        )}
                       </AppPanel>
-                    ) : !graphSelectionActive && hasProgressionPanel ? (
-                      <ExerciseInfoProgressionPanel
-                        progression={progression!}
-                        excludedMetricKeys={[...usedMetricKeys]}
-                        analyticsScope={progressionSectionState.scope}
-                        activeRoutineTitle={activeRoutineTitle}
-                        onScopeClick={handleSectionScopeToggle}
-                        resyncActive={graphSelectionActive}
-                      />
                     ) : null}
 
                     {hasHistoryPanel ? (
-                      <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "space-y-1.5 p-0")}>
-                        <div className="px-2 pt-2">
-                          <ExerciseInfoSectionHeader
-                            title="History"
-                            section="history"
-                            analyticsScope={historySectionState.scope}
-                            activeRoutineTitle={activeRoutineTitle}
-                            onScopeClick={handleSectionScopeToggle}
-                            resyncActive={graphSelectionActive}
-                          />
+                      <AppPanel className={cn(appTokens.detailSection, exerciseInfoBorderlessPanelClassName, "space-y-2 p-2.5")}>
+                        <ExerciseInfoSectionHeader title="History" />
+                        <div className={cn(exerciseInfoStripCardClassName, "px-2 py-2")}>
+                          {historySectionState.loading ? <ExerciseInfoLoadingRows /> : historySectionState.stats ? (
+                            <ExerciseInfoHistoryList
+                              stats={historySectionState.stats}
+                              analyticsScope={historySectionState.scope}
+                              selectedPointId={selectedHistoryPoint?.id ?? null}
+                              onSelectedPointChange={setSelectedHistoryPointId}
+                            />
+                          ) : null}
                         </div>
-                        {historySectionState.loading ? <ExerciseInfoLoadingRows /> : historySectionState.stats ? (
-                          <ExerciseInfoHistoryList
-                            stats={historySectionState.stats}
-                            analyticsScope={historySectionState.scope}
-                            selectedPointId={selectedHistoryPoint?.id ?? null}
-                            onSelectedPointChange={setSelectedHistoryPointId}
-                          />
-                        ) : null}
                       </AppPanel>
                     ) : null}
 
@@ -2719,7 +2999,7 @@ export function ExerciseInfoSheet({
 
   return createPortal(
     <div
-      className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto overscroll-none bg-[rgb(var(--bg))]"
+      className="pointer-events-auto fixed inset-0 z-50 hide-scrollbar overflow-y-auto overscroll-none bg-[rgb(var(--bg))]"
       role="dialog"
       aria-modal="true"
       aria-label="Exercise info"

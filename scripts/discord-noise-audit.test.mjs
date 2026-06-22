@@ -52,4 +52,6 @@ test("parseNoiseApplyArgs defaults to dry-run and apply plan does not mutate", (
   assert.equal(plan.mode, "dry-run");
   assert.equal(plan.mutated, false);
   assert.deepEqual(plan.mutations, []);
+  assert.match(plan.note, /Dry-run only\./);
+  assert.match(plan.note, /No Discord permissions or notification settings were changed\./);
 });

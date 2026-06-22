@@ -41,6 +41,8 @@ type ExerciseCatalogRow = {
   name: string;
   slug: string | null;
   primary_muscle: string | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
   equipment: string | null;
   movement_pattern: string | null;
   image_path: string | null;
@@ -77,6 +79,8 @@ export type ExerciseBrowserRow = {
   measurement_type?: string | null;
   default_unit?: string | null;
   primary_muscle: string | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
   equipment: string | null;
   movement_pattern: string | null;
   curation_tags?: ExerciseCurationTags | null;

@@ -53,6 +53,10 @@ export function resolveRoutineDayEditBackHref(routineId: string, dayId: string, 
   const canonicalDayViewHref = `/routines/${routineId}/days/${dayId}`;
   const resolvedReturnTo = resolveReturnHref(decodeReturnTo(rawReturnTo), routineHomeHref);
 
+  if (resolvedReturnTo === "/routines/new") {
+    return resolvedReturnTo;
+  }
+
   // View Day has been retired; Edit Day should always close back to routine home
   // instead of looping through edit routes or the legacy day detail route.
   if (

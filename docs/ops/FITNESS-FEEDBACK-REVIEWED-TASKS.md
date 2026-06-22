@@ -1,167 +1,47 @@
 # Fitness Feedback Reviewed Tasks
 
 ## Purpose
-This lane turns reviewed Feedback Board exports into implementation-ready task packets and draft Codex prompts without creating duplicate task truth.
 
-Rule:
-- Feedback cards are signals, not automatic implementation authority.
+This lane turns one reviewed Fitness feedback-board export into bounded local task-packet outputs for human review.
 
-Pattern:
-- feedback board export -> reviewed task packet -> Codex draft prompt -> human approval -> implementation -> feedback status update -> curated update post
-- shipped implementation -> fixed/completed card -> completion review queue -> approved or follow-up
+Current local outputs:
 
-Failure mode:
-- running Codex directly from raw forum cards creates noisy sprint churn and duplicate task truth
-
-## Inputs
-Start from the existing board export:
-
-```txt
-npm run feedback:board:export
-```
-
-Default inputs:
-- `runtime/feedback-board/latest.md`
-- `runtime/feedback-board/latest.json`
-
-The task-packet lane consumes `runtime/feedback-board/latest.json` by default.
-
-## Generate task packets
-Run:
-
-```txt
-npm run feedback:tasks:generate
-```
-
-Default outputs:
 - `runtime/feedback-tasks/latest.md`
 - `runtime/feedback-tasks/latest.json`
+- `runtime/feedback-tasks/codex-prompts.md`
 - `runtime/feedback-tasks/review-decisions.example.json`
 
-Optional flags:
-- `--from <path>`
-- `--type bug,feature`
-- `--status confirmed,in_progress`
-- `--area <area>`
-- `--limit 25`
-- `--out <dir>`
-- `--debug`
-- `--codex-prompts`
-- `--decisions <path>`
-- `--include-completed-review`
+## Input Boundary
 
-Default included statuses:
-- `confirmed`
-- `in_progress`
+Use one board export as the source of truth:
 
-Default excluded statuses:
-- `withdrawn`
-- `spam`
-- `duplicate`
-- `closed`
-- `fixed`
+- `runtime/feedback-board/*.json`
 
-Completion Review:
-- `--include-completed-review` surfaces public non-testing `fixed`/`closed` cards whose `completion_review_status` is `pending` or `needs_followup`
-- those cards generate review packets and review prompts, not new implementation prompts by default
+Do not treat ad hoc notes, chat transcripts, or direct ATLAS edits as the canonical source for this lane.
 
-## Review packets
-Each packet is an implementation candidate, not an automatic task. Packets include:
-- packet id
-- feedback report ids
-- report type
-- area
-- title
-- problem statement
-- evidence summary
-- attachment count
-- forum thread links
-- duplicate count
-- suggested priority
-- implementation hypothesis
-- files to inspect first
-- acceptance criteria
-- verification checklist
-- docs update needed
-- reviewer decision
-- carried-through card sections such as Feature `User Story` or Bug `Expected behavior`
-- evidence summary from the user-facing card
+## Workflow Contract
 
-Review rules:
-- no direct Discord-to-GitHub writes
-- no direct Discord-to-ATLAS writes
-- no automatic Codex execution
-- no Discord or Supabase mutation from the packet generator
-- visible card Acceptance Criteria stay concise and user-facing
-- reviewed task packets may add deeper implementation and verification expectations on top
+- Draft-only packets require human review before execution.
+- Keep the one-board, reviewed-export workflow intact.
+- Do not create automatic GitHub issues from this lane.
+- Do not write to ATLAS automatically from this lane.
+- Do not mutate Discord or Supabase from this lane.
+- Card mutation audit comments stay in the Feedback thread.
+- Do not post to `#updates` unless the shipped change is user-facing and separately approved.
 
-Two-level criteria model:
-- Discord card Acceptance Criteria = readable board criteria for community and triage visibility
-- reviewed task packet Acceptance Criteria = implementation-ready criteria for the approved Codex pass
+## Completion Review Contract
 
-Use `runtime/feedback-tasks/review-decisions.example.json` as the template for reviewed decisions.
+Completed cards can generate completion-review prompts, but those prompts stay review-only:
 
-Decision shape:
+- review the shipped work against the declared acceptance criteria
+- do not treat completion review as a new implementation packet
+- do not post completion-review state changes to `#updates`
 
-```json
-[
-  {
-    "packetId": "packet-0000000000",
-    "decision": "approve",
-    "reviewer": "reviewer-name",
-    "notes": "Scoped and approved for a reviewed Codex implementation pass.",
-    "approvedAt": "2026-05-17T00:00:00.000Z"
-  }
-]
-```
+## Proof Surface
 
-Supported decisions:
-- `approve`
-- `defer`
-- `reject`
-- `needs_info`
+The current owner-side contract is backed by:
 
-If decisions are supplied, approved packets appear first and the others are summarized separately.
+- `scripts/generate-feedback-task-packets.mjs`
+- `scripts/generate-feedback-task-packets.test.mjs`
 
-## Generate draft Codex prompts
-Run:
-
-```txt
-npm run feedback:tasks:generate -- --codex-prompts
-```
-
-Additional output:
-- `runtime/feedback-tasks/codex-prompts.md`
-
-Prompt rules:
-- Draft only — requires human review before execution.
-- no automatic run
-- no automatic issue creation
-- no automatic ATLAS write
-- no Discord or Supabase mutation from this lane
-- implementation prompts for mutating work are not governed unless they declare `Acceptance Criteria`, `Expected Changed Paths`, `Expected Unchanged Paths`, and `Blocked / Skipped Reporting Rules`
-- summary text is not proof; any satisfied criterion must be supportable from the final diff and verification output
-- if a generated draft prompt is still missing the mutating-task contract, treat it as review-only until that contract is completed
-
-## After implementation
-This lane stops at reviewed packet and prompt generation.
-
-Follow-up happens through existing workflows:
-- implementation happens only after human approval
-- feedback status is updated manually through the existing commands
-- curated user-facing release notes may be posted through Update Bot when appropriate
-
-Examples:
-- reviewed packet approved -> Codex implementation starts
-- work ships -> `/feedback-status fixed`
-- shipped work -> `/feedback-completion-review report_id:<id> decision:approved`
-- user-facing ship -> curated `#updates` post
-
-## Scope guardrails
-- no Spotify work
-- no routine-sharing work
-- no workout-sharing work
-- no import/copy flows
-- no moderation changes
-- no automatic GitHub issue creation
-- no automatic ATLAS writes
+The generator must preserve local-only reviewed-task behavior, bounded documentation suggestions, and the no-mutation constraints above.

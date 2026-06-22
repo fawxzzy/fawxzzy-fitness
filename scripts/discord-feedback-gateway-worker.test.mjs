@@ -654,11 +654,11 @@ test("feedback gateway worker creates scheduled channel messages through Discord
 test("feedback gateway worker resolves the production poll URL safely", () => {
   assert.equal(
     resolveDiscordMessageCommandPollUrl({ NEXT_PUBLIC_SITE_URL: "https://fitness.example.com/" }),
-    "https://fitness.example.com/api/discord/interactions",
+    "https://fitness.example.com/api/discord/message-commands/poll",
   );
   assert.equal(
     resolveDiscordMessageCommandPollUrl({ VERCEL_PROJECT_PRODUCTION_URL: "fitness.example.com" }),
-    "https://fitness.example.com/api/discord/interactions",
+    "https://fitness.example.com/api/discord/message-commands/poll",
   );
   assert.equal(
     resolveDiscordMessageCommandPollUrl({ DISCORD_MESSAGE_COMMAND_POLL_URL: "https://worker.example.com/poll" }),

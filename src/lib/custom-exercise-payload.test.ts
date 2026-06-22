@@ -8,6 +8,7 @@ test("custom exercise payload stays user-owned and non-global", () => {
     userId: "user-1",
     name: "Hip Flexor Stretch",
     primaryMuscle: "Recovery",
+    secondaryMuscle: "Core",
     equipment: "Bodyweight",
     movementPattern: "Stretch",
     measurementType: "time",
@@ -18,6 +19,8 @@ test("custom exercise payload stays user-owned and non-global", () => {
   assert.equal(payload.is_global, false);
   assert.equal(payload.name, "Hip Flexor Stretch");
   assert.equal(payload.primary_muscle, "Recovery");
+  assert.deepEqual(payload.primary_muscles, ["Recovery"]);
+  assert.deepEqual(payload.secondary_muscles, ["Core"]);
   assert.equal(payload.equipment, "Bodyweight");
   assert.equal(payload.movement_pattern, "Stretch");
   assert.equal(payload.measurement_type, "time");
@@ -29,6 +32,7 @@ test("custom exercise payload falls back measurement_type none to reps", () => {
     userId: "user-1",
     name: "Open Workout",
     primaryMuscle: null,
+    secondaryMuscle: null,
     equipment: null,
     movementPattern: null,
     measurementType: "none",
@@ -43,6 +47,7 @@ test("custom exercise payload trims optional taxonomy fields without mutating in
     userId: "user-2",
     name: "  Custom Row  ",
     primaryMuscle: "  Recovery  ",
+    secondaryMuscle: "  Glutes  ",
     equipment: "  Bodyweight  ",
     movementPattern: "  Stretch  ",
     measurementType: "time" as const,
@@ -55,6 +60,8 @@ test("custom exercise payload trims optional taxonomy fields without mutating in
   assert.deepEqual(input, snapshot);
   assert.equal(payload.name, "Custom Row");
   assert.equal(payload.primary_muscle, "Recovery");
+  assert.deepEqual(payload.primary_muscles, ["Recovery"]);
+  assert.deepEqual(payload.secondary_muscles, ["Glutes"]);
   assert.equal(payload.equipment, "Bodyweight");
   assert.equal(payload.movement_pattern, "Stretch");
   assert.equal(payload.default_unit, "seconds");

@@ -23,13 +23,16 @@ import { ROUTINE_COPY_NAME_MAX_LENGTH, resolveUniqueRoutineCopyName } from "@/li
 type Props = {
   backHref: string;
   routines: RoutineBrowseCardItem[];
+  draftRoutineName?: string | null;
   duplicateRoutineAction: (formData: FormData) => Promise<ActionResult & { routineId?: string }>;
+  deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
   onRequestClose?: () => void;
 };
 
 export function CreateRoutineClient({
   backHref,
   routines,
+  draftRoutineName,
   duplicateRoutineAction,
   onRequestClose,
 }: Props) {
@@ -217,6 +220,27 @@ export function CreateRoutineClient({
         >
           <div className="space-y-3">
             <RoutinesCardList>
+              {draftRoutineName?.trim() ? (
+                <RoutinesListItem>
+                  <RoutinesListItemCard
+                    title={(
+                      <span className="inline-flex items-center gap-1.5">
+                        <span>Continue Draft:</span>
+                        <span className="text-[rgb(var(--accent))]">{draftRoutineName.trim()}</span>
+                      </span>
+                    )}
+                    onPress={isPending ? undefined : () => {
+                      setIsDuplicateExpanded(false);
+                      router.push("/routines/new", { scroll: false });
+                    }}
+                    className={isPending ? "opacity-70" : undefined}
+                    bodyClassName="min-h-[4.4rem] py-[0.72rem]"
+                    contentClassName="gap-0 py-0"
+                    state="selected"
+                    variant="standard"
+                  />
+                </RoutinesListItem>
+              ) : null}
               <RoutinesListItem>
                 <RoutinesListItemCard
                   title="Blank routine"

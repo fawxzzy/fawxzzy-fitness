@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, isValidElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -42,6 +42,8 @@ export function RoutineDetailsScreenShellClient({
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
   const [headerTitle, setHeaderTitle] = useState<ReactNode>(title);
   const hasFormOwnedHeaderTitleRef = useRef(false);
+  const usesRawHeaderTitle = isValidElement<{ "data-app-header-raw-title"?: string }>(headerTitle)
+    && headerTitle.props["data-app-header-raw-title"] === "true";
 
   useEffect(() => {
     if (!hasUnsavedChanges) {
@@ -102,6 +104,7 @@ export function RoutineDetailsScreenShellClient({
                   subtitle={subtitle}
                   align={align}
                   withPanel={false}
+                  showSeparator={!usesRawHeaderTitle}
                   action={(
                     <TopRightBackButton
                       href={backHref}

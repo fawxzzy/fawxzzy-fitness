@@ -66,6 +66,7 @@ export function VerticalScrollHint({
   const rafRef = useRef<number | null>(null);
   const stateRef = useRef<VerticalScrollHintState>(INITIAL_STATE);
   const [hasOverflow, setHasOverflow] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const applyState = useCallback((nextState: VerticalScrollHintState) => {
     stateRef.current = nextState;
@@ -107,6 +108,10 @@ export function VerticalScrollHint({
   }, [refresh]);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     const element = scrollerRef.current;
     if (!element) {
       return undefined;
@@ -141,12 +146,12 @@ export function VerticalScrollHint({
   }, [hasOverflow, refresh]);
 
   return (
-    <div className={cn("relative min-h-0", className)}>
+    <div className={cn("relative min-h-0", showRail ? "pl-2" : undefined, className)}>
       <div
         ref={scrollerRef}
         className={cn(
           "hide-scrollbar min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] [-webkit-overflow-scrolling:touch]",
-          showRail ? "pr-2" : undefined,
+          isMounted ? "will-change-[scroll-position]" : undefined,
           scrollClassName,
         )}
       >
@@ -171,7 +176,7 @@ export function VerticalScrollHint({
       {showRail && hasOverflow ? (
         <div
           aria-hidden="true"
-          className={cn("pointer-events-none absolute bottom-2 right-0 top-2 w-[3px]", railClassName)}
+          className={cn("pointer-events-none absolute bottom-2 left-0 top-2 w-[3px]", railClassName)}
         >
           <div className={SCROLL_HINT_VERTICAL_TRACK_CLASS_NAME} />
           <div

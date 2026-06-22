@@ -2,6 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState, type RoutineEditorInfoPayload } from "@/components/ui/measurements/ExerciseGoalForm";
+import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { deriveGoalMeasurementSelections, type GoalModality } from "@/lib/exercise-goal-validation";
 import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
@@ -42,6 +43,10 @@ export function SharedExerciseGoalForm({
   onInfoRequest,
   companionToggleCard,
   companionToggleCards,
+  lowerCompanionToggleCards,
+  auxiliaryFields,
+  showInlineStepControls,
+  inlineFailureToggle,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -61,6 +66,10 @@ export function SharedExerciseGoalForm({
   onInfoRequest?: (payload: RoutineEditorInfoPayload) => void;
   companionToggleCard?: ReactNode;
   companionToggleCards?: ReactNode[];
+  lowerCompanionToggleCards?: ReactNode[];
+  auxiliaryFields?: MeasurementPanelAuxiliaryField[];
+  showInlineStepControls?: boolean;
+  inlineFailureToggle?: boolean;
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
@@ -88,6 +97,10 @@ export function SharedExerciseGoalForm({
         onInfoRequest={onInfoRequest}
         companionToggleCard={companionToggleCard}
         companionToggleCards={companionToggleCards}
+        lowerCompanionToggleCards={lowerCompanionToggleCards}
+        auxiliaryFields={auxiliaryFields}
+        showInlineStepControls={showInlineStepControls}
+        inlineFailureToggle={inlineFailureToggle}
       />
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
       <input type="hidden" name="defaultUnit" value={state.distanceUnit} />

@@ -54,6 +54,8 @@
     "moderation:purgatory:release-expired": "node scripts/release-expired-purgatory-cases.mjs",
     "prebuild": "npm run build:guard -- --stop-dev && npm run build:prepare",
     "dev:assets": "node scripts/generate-icons.mjs",
+    "brand:build": "node scripts/generate-icons.mjs",
+    "brand:check": "node scripts/generate-icons.mjs --check",
     "gen:stretch-library-split": "node scripts/generate-stretch-library-split.mjs",
     "sync:exercise-icons": "node scripts/syncExerciseIcons.mjs",
     "sync:assets": "npm run sync:exercise-icons",

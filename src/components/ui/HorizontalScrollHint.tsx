@@ -162,7 +162,7 @@ export function HorizontalScrollHint({
         {...resolvedScrollProps}
         ref={handleScrollerRef}
         className={cn(
-          "hide-scrollbar min-w-0 overflow-x-auto overflow-y-visible [touch-action:pan-x] [-webkit-overflow-scrolling:touch]",
+          "hide-scrollbar min-w-0 overflow-x-auto overflow-y-hidden [touch-action:pan-x] [-webkit-overflow-scrolling:touch]",
           scrollPropsClassName,
           scrollClassName,
         )}

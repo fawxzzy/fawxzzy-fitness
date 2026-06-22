@@ -284,6 +284,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
         userId: user.id,
         name,
         primaryMuscle,
+        secondaryMuscle: null,
         equipment,
         movementPattern,
         measurementType: parsedPayload.payload.measurement_type,

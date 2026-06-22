@@ -259,13 +259,11 @@ export function SessionExerciseFocus({
   const contract = resolveScreenContract("exerciseLog");
   const surfacePolicy = resolveWorkoutCardSurfacePolicy("current-session", "compact");
   const [removingExerciseIds] = useState<string[]>([]);
-  const [setLoggerResetSignal, setSetLoggerResetSignal] = useState(0);
   const [persistedLoggerExerciseId, setPersistedLoggerExerciseId] = useState<string | null>(selectedExerciseId);
   const [rowClientStateBySessionExerciseId, setRowClientStateBySessionExerciseId] = useState<Record<string, SessionRowClientState>>(() =>
     buildInitialSessionRowClientState(exercises),
   );
   const [setSnapshotsBySessionExerciseId, setSetSnapshotsBySessionExerciseId] = useState<Record<string, SetLoggerSeedSet[]>>({});
-  const [warmupDraft, setWarmupDraft] = useState(false);
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const rowViewModelBySessionExerciseId = useMemo(() => {
     const fallbackWeightUnit = unitLabel === "lbs" ? "lbs" : "kg";
@@ -320,10 +318,6 @@ export function SessionExerciseFocus({
   }, [exercises, rowClientStateBySessionExerciseId, unitLabel]);
   const toast = useToast();
   void removeExerciseAction;
-  useEffect(() => {
-    setWarmupDraft(false);
-  }, [selectedExerciseId]);
-
   useEffect(() => {
     if (!selectedExerciseId) {
       return;
@@ -468,7 +462,6 @@ export function SessionExerciseFocus({
         ...current,
         showWhenCompleted: true,
       }));
-      setSetLoggerResetSignal((value) => value + 1);
       onSelectedExerciseIdChange(exerciseId);
       return;
     }
@@ -482,7 +475,6 @@ export function SessionExerciseFocus({
         showWhenCompleted: true,
       }));
     }
-    setSetLoggerResetSignal((value) => value + 1);
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
   }, [exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, rowViewModelBySessionExerciseId, selectedExerciseId]);
 
@@ -749,11 +741,8 @@ export function SessionExerciseFocus({
                   routineDayExerciseId={exercise.routineDayExerciseId}
                   planTargetsHash={exercise.planTargetsHash}
                   deleteSetAction={deleteSetAction}
-                  resetSignal={setLoggerResetSignal}
                   secondaryActionLabel="Inspect"
                   onSecondaryAction={() => setExerciseInfoExerciseId(exercise.exerciseId)}
-                  warmupValue={warmupDraft}
-                  onWarmupValueChange={setWarmupDraft}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
                   visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}

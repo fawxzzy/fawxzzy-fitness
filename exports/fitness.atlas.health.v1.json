@@ -2,11 +2,11 @@
   "contract_version": "atlas.health.v1",
   "repo_id": "fitness",
   "app_id": "fawxzzy-fitness",
-  "checked_at": "2026-05-09T23:30:00Z",
-  "status": "ok",
-  "environment": "production",
+  "checked_at": "2026-06-19T17:12:00Z",
+  "status": "degraded",
+  "environment": "local",
   "version": "1.0.0",
-  "commit": "b48f820d3eca094800c2f3ccb36901dadfd259a9",
+  "commit": "0000000",
   "checks": [
     {
       "name": "supabase-browser-env",
@@ -16,25 +16,20 @@
     },
     {
       "name": "supabase-admin-env",
-      "status": "ok",
-      "summary": "Service-role access is available for admin and recovery flows.",
+      "status": "degraded",
+      "summary": "SUPABASE_SERVICE_ROLE_KEY is missing, so admin-only auth helpers stay limited.",
       "latency_ms": null
     },
     {
-      "name": "contract-check",
+      "name": "app-origin-env",
       "status": "ok",
-      "summary": "Repo-owned ATLAS v1 exports validate against the pinned root schemas.",
-      "latency_ms": 82
+      "summary": "An application origin is configured for auth redirect flows.",
+      "latency_ms": null
     }
   ],
-  "receipts": [
-    {
-      "kind": "contract-check",
-      "status": "passed",
-      "ref": ".github/workflows/atlas-contracts.yml"
-    }
-  ],
+  "receipts": [],
   "notes": [
-    "Wave 2A health is repo-owned and intentionally limited to owner-lane readiness signals."
+    "Commit SHA was unavailable in this local export context, so the payload uses the repo-local placeholder commit.",
+    "The live implementation surface is src/app/api/health/route.ts backed by src/lib/atlas-contracts.ts."
   ]
 }

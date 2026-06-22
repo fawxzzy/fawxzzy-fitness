@@ -16,6 +16,7 @@ export const DEFAULT_MARKDOWN_OUT = "runtime/discord-feedback/latest.md";
 export const DEFAULT_JSON_OUT = "runtime/discord-feedback/latest.json";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
+export const DISCORD_FEEDBACK_EXPORTS_DOC_PATH = path.join(repoRoot, "docs", "ops", "FITNESS-DISCORD-FEEDBACK-EXPORTS.md");
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
 const explicitEnvFileOverride = Boolean(process.env.FITNESS_ENV_FILE?.trim());
@@ -78,7 +79,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
 }
 
 function getRequiredEnv(name) {
-  const value = process.env[name]?.trim();
+  const value = getOptionalEnv(name);
   if (!value) {
     throw new Error(`Missing required env: ${name}. Set it in ${envPath} or the current shell.`);
   }
@@ -87,8 +88,13 @@ function getRequiredEnv(name) {
 }
 
 function getOptionalEnv(name) {
-  const value = process.env[name]?.trim();
-  return value && value.length > 0 ? value : null;
+  const fileValue = fileEnv[name]?.trim();
+  if (fileValue) {
+    return fileValue;
+  }
+
+  const shellValue = process.env[name]?.trim();
+  return shellValue && shellValue.length > 0 ? shellValue : null;
 }
 
 function getOptionalGuildId() {

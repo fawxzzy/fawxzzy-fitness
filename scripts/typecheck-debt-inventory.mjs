@@ -10,7 +10,8 @@ import { ensureRepoDependencies } from "./ensure-repo-deps.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
-const repoRoot = path.resolve(scriptDir, "..");
+export const repoRoot = path.resolve(scriptDir, "..");
+export const TYPECHECK_DEBT_DOC_PATH = path.join(repoRoot, "docs", "ops", "FITNESS-TYPECHECK-DEBT-INVENTORY-REPORTS.md");
 await ensureRepoDependencies({
   repoRoot,
   reason: "typecheck debt inventory",
@@ -278,6 +279,57 @@ function formatCommand(command, args) {
     .join(" ");
 }
 
+export function renderTypecheckDebtMarkdown(receipt) {
+  const lines = [
+    "# Typecheck debt inventory",
+    "",
+    `Generated at: ${receipt.generatedAt}`,
+    `Receipt root: ${receipt.receiptRoot}`,
+    `Command: ${receipt.command}`,
+    `Typecheck success: ${receipt.typecheck?.success === true ? "yes" : "no"}`,
+    `Exit code: ${receipt.typecheck?.exitCode ?? "<none>"}`,
+    `Summary: ${receipt.summary.totalErrors} errors across ${receipt.summary.fileCount} files in ${receipt.summary.groupCount} groups`,
+    "",
+    "## Scope counts",
+    `- product-runtime errors: ${receipt.summary.productRuntimeErrorCount}`,
+    `- test-only errors: ${receipt.summary.testOnlyErrorCount}`,
+    `- migration-only errors: ${receipt.summary.migrationOnlyErrorCount}`,
+    `- evidence-only errors: ${receipt.summary.evidenceOnlyErrorCount}`,
+    "",
+    "## Failing groups",
+  ];
+
+  if (Array.isArray(receipt.groups) && receipt.groups.length > 0) {
+    for (const group of receipt.groups) {
+      lines.push(`- ${group.label}: ${group.errorCount} errors across ${group.fileCount} files [${group.scope}]`);
+    }
+  } else {
+    lines.push("- none");
+  }
+
+  lines.push("");
+  lines.push("## Recommended lanes");
+  if (Array.isArray(receipt.recommendedPullRequestLanes) && receipt.recommendedPullRequestLanes.length > 0) {
+    for (const lane of receipt.recommendedPullRequestLanes) {
+      lines.push(`- ${lane.lane}: ${lane.errorCount} errors across ${lane.fileCount} files`);
+    }
+  } else {
+    lines.push("- none");
+  }
+
+  lines.push("");
+  lines.push("## Top files");
+  if (Array.isArray(receipt.topFiles) && receipt.topFiles.length > 0) {
+    for (const file of receipt.topFiles.slice(0, 10)) {
+      lines.push(`- ${file.file}: ${file.errorCount} errors [${file.scope}]`);
+    }
+  } else {
+    lines.push("- none");
+  }
+
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
 function runTypecheck() {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [tscBin, ...typecheckArgs], {
@@ -316,15 +368,23 @@ function runTypecheck() {
   });
 }
 
-async function writeReceipt(receiptRoot, receipt) {
+export function getTypecheckDebtArtifactPaths(receiptRoot, generatedAt) {
+  const timestamp = generatedAt.replace(/[:.]/g, "-");
+  return {
+    timestampedJson: path.join(receiptRoot, `typecheck-debt-${timestamp}.json`),
+    latestJson: path.join(receiptRoot, "typecheck-debt.latest.json"),
+    latestMarkdown: path.join(receiptRoot, "typecheck-debt.latest.md"),
+  };
+}
+
+export async function writeTypecheckDebtArtifacts(receiptRoot, receipt) {
   await fs.mkdir(receiptRoot, { recursive: true });
-  const timestamp = receipt.generatedAt.replace(/[:.]/g, "-");
-  const timestampedPath = path.join(receiptRoot, `typecheck-debt-${timestamp}.json`);
-  const latestPath = path.join(receiptRoot, "typecheck-debt.latest.json");
+  const paths = getTypecheckDebtArtifactPaths(receiptRoot, receipt.generatedAt);
   const payload = `${JSON.stringify(receipt, null, 2)}\n`;
-  await fs.writeFile(timestampedPath, payload, "utf8");
-  await fs.writeFile(latestPath, payload, "utf8");
-  return { latestPath, timestampedPath };
+  await fs.writeFile(paths.timestampedJson, payload, "utf8");
+  await fs.writeFile(paths.latestJson, payload, "utf8");
+  await fs.writeFile(paths.latestMarkdown, renderTypecheckDebtMarkdown(receipt), "utf8");
+  return paths;
 }
 
 function printSummary(receipt, latestPath) {
@@ -385,15 +445,19 @@ async function main() {
     errors,
   };
 
-  const paths = await writeReceipt(receiptRoot, receipt);
-  printSummary(receipt, paths.latestPath);
+  const paths = await writeTypecheckDebtArtifacts(receiptRoot, receipt);
+  printSummary(receipt, paths.latestJson);
 
   if (typecheck.exitCode === null && typecheck.signal) {
     process.exitCode = 1;
   }
 }
 
-main().catch((error) => {
-  console.error("Typecheck debt inventory failed:", error);
-  process.exit(1);
-});
+const isEntrypoint = process.argv[1] && path.resolve(process.argv[1]) === scriptPath;
+
+if (isEntrypoint) {
+  main().catch((error) => {
+    console.error("Typecheck debt inventory failed:", error);
+    process.exit(1);
+  });
+}

@@ -64,6 +64,9 @@ export function ExerciseDisclosureCard({
   contentVerticalAlign,
   progressFill,
   stickyHeaderWhenExpanded = false,
+  title,
+  rightIcon,
+  surface,
 }: {
   scope: DisclosureScope;
   itemId: string;
@@ -104,9 +107,12 @@ export function ExerciseDisclosureCard({
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
   progressFill?: ProgressionProgressFill | null;
   stickyHeaderWhenExpanded?: boolean;
+  title?: ReactNode;
+  rightIcon?: ReactNode;
+  surface?: WorkoutCardSurface;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
-  const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
+  const resolvedSurface: WorkoutCardSurface = surface ?? (scope === "session-exercise" ? "current-session" : "view-day");
   const isCompletedSessionCard = scope === "session-exercise" && state === "completed";
   const resolvedRightIconMode = rightIconMode ?? (scope === "session-exercise" ? "overlay" : "rail");
   const resolvedRightRailClassName = cn(
@@ -127,6 +133,7 @@ export function ExerciseDisclosureCard({
         )}
       >
         <StandardExerciseRow
+          title={title}
           exercise={exercise}
           summary={summary}
           summaryContent={summaryContent}
@@ -135,7 +142,7 @@ export function ExerciseDisclosureCard({
           density={density}
           state={state}
           semanticTone={semanticTone}
-          surface={surface}
+          surface={resolvedSurface}
           onPress={onToggle}
           showLeadingVisual={showLeadingVisual}
           leadingVisual={leadingVisual}
@@ -163,14 +170,14 @@ export function ExerciseDisclosureCard({
           rightIconMode={resolvedRightIconMode}
           contentVerticalAlign={contentVerticalAlign}
           progressFill={progressFill}
-          rightIcon={(
+          rightIcon={rightIcon === undefined ? (
             <StateChevron
               expanded={expanded}
               className={cn("h-5 w-5 shrink-0", appTokens.historyChevronIcon)}
               expandedClassName={isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]"}
               collapsedClassName={isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]"}
             />
-          )}
+          ) : rightIcon}
           badgeText={badgeText}
         />
       </div>

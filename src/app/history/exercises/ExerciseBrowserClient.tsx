@@ -42,6 +42,7 @@ const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
 const FILTER_SECTION_STACK_CLASS_NAME = "space-y-1";
 const FILTER_SECTION_HEADER_CLASS_NAME = "w-fit max-w-full space-y-[2px] pl-[4px] pt-[2px]";
 const FILTER_SECTION_RAIL_CLASS_NAME = "hide-scrollbar -mx-1.5 max-w-none overflow-x-auto overflow-y-visible px-1.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [overscroll-behavior-y:auto]";
+type HistoryFilterTagGroup = "primary_muscle" | "secondary_muscle" | "movement" | "equipment" | "other";
 
 type ExerciseBrowserClientProps = {
   initialRows?: ExerciseBrowserRow[];
@@ -84,14 +85,36 @@ function toTagArray(value: string | null | undefined) {
     .filter(Boolean);
 }
 
+function buildScopedHistoryFilterTagValue(group: HistoryFilterTagGroup, value: string) {
+  return `${group}:${value.trim().toLowerCase()}`;
+}
+
+function appendScopedHistoryFilterTags(
+  target: Set<string>,
+  values: string[] | string | null | undefined,
+  group: HistoryFilterTagGroup,
+) {
+  const items = Array.isArray(values) ? values : toTagArray(values);
+  for (const value of items) {
+    target.add(buildScopedHistoryFilterTagValue(group, value));
+  }
+}
+
 function buildExerciseHeaderMetaItems(row: ExerciseBrowserRow) {
   if (isStretchHubExercise(row)) {
     return getStretchHubMetaItems();
   }
 
-  return [row.equipment, row.primary_muscle, row.movement_pattern]
+  const items = [
+    row.equipment,
+    row.primary_muscle,
+    ...(row.secondary_muscles ?? []),
+    row.movement_pattern,
+  ]
     .filter((value): value is string => Boolean(value?.trim()))
     .map((value) => formatExerciseTagLabel(value));
+
+  return Array.from(new Set(items));
 }
 
 function orderSelectedFirst<T>(options: T[], isSelected: (option: T) => boolean) {
@@ -498,9 +521,11 @@ export function ExerciseBrowserClient({
 
     for (const row of scopedRows) {
       const tags = new Set<string>();
-      for (const raw of [...toTagArray(row.primary_muscle), ...toTagArray(row.movement_pattern), ...toTagArray(row.equipment)]) {
-        tags.add(raw.toLowerCase());
-      }
+      appendScopedHistoryFilterTags(tags, row.primary_muscle, "primary_muscle");
+      appendScopedHistoryFilterTags(tags, row.primary_muscles, "primary_muscle");
+      appendScopedHistoryFilterTags(tags, row.secondary_muscles, "secondary_muscle");
+      appendScopedHistoryFilterTags(tags, row.movement_pattern, "movement");
+      appendScopedHistoryFilterTags(tags, row.equipment, "equipment");
       for (const metricTag of buildExerciseMetricTagValues(row)) {
         tags.add(metricTag);
       }
@@ -514,7 +539,8 @@ export function ExerciseBrowserClient({
   }, [scopedRows]);
 
   const availableTagGroups = useMemo<ExerciseTagGroup[]>(() => {
-    const muscles = new Map<string, string>();
+    const primaryMuscles = new Map<string, string>();
+    const secondaryMuscles = new Map<string, string>();
     const movements = new Map<string, string>();
     const equipment = new Map<string, string>();
     const curationGroups = new Map(
@@ -523,7 +549,12 @@ export function ExerciseBrowserClient({
     const metricGroup = buildExerciseMetricTagGroup(scopedRows);
 
     for (const row of scopedRows) {
-      for (const item of toTagArray(row.primary_muscle)) muscles.set(item.toLowerCase(), formatExerciseTagLabel(item));
+      for (const item of [...toTagArray(row.primary_muscle), ...(row.primary_muscles ?? [])]) {
+        primaryMuscles.set(item.toLowerCase(), formatExerciseTagLabel(item));
+      }
+      for (const item of [...toTagArray(row.primary_muscle), ...(row.primary_muscles ?? []), ...(row.secondary_muscles ?? [])]) {
+        secondaryMuscles.set(item.toLowerCase(), formatExerciseTagLabel(item));
+      }
       for (const item of toTagArray(row.movement_pattern)) movements.set(item.toLowerCase(), formatExerciseTagLabel(item));
       for (const item of toTagArray(row.equipment)) equipment.set(item.toLowerCase(), formatExerciseTagLabel(item));
 
@@ -546,9 +577,10 @@ export function ExerciseBrowserClient({
     }
 
     return [
-      { key: "muscle", label: "Muscle", tags: Array.from(muscles, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
-      { key: "movement", label: "Movement", tags: Array.from(movements, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
-      { key: "equipment", label: "Equipment", tags: Array.from(equipment, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)) },
+      { key: "primary_muscle", label: "Primary Muscle", tags: Array.from(primaryMuscles, ([value, label]) => ({ value: buildScopedHistoryFilterTagValue("primary_muscle", value), label })).sort((a, b) => a.label.localeCompare(b.label)) },
+      { key: "secondary_muscle", label: "Secondary Muscle", tags: Array.from(secondaryMuscles, ([value, label]) => ({ value: buildScopedHistoryFilterTagValue("secondary_muscle", value), label })).sort((a, b) => a.label.localeCompare(b.label)) },
+      { key: "movement", label: "Movement", tags: Array.from(movements, ([value, label]) => ({ value: buildScopedHistoryFilterTagValue("movement", value), label })).sort((a, b) => a.label.localeCompare(b.label)) },
+      { key: "equipment", label: "Equipment", tags: Array.from(equipment, ([value, label]) => ({ value: buildScopedHistoryFilterTagValue("equipment", value), label })).sort((a, b) => a.label.localeCompare(b.label)) },
       metricGroup,
       ...EXERCISE_CURATION_GROUPS.map((group) => {
         const targetGroup = curationGroups.get(group.key);

@@ -62,6 +62,8 @@ export type ExerciseInfoExercise = {
   exercise_id: string;
   name: string;
   primary_muscle: string | null;
+  primary_muscles?: string[] | null;
+  secondary_muscles?: string[] | null;
   equipment: string | null;
   movement_pattern: string | null;
   image_howto_path: string | null;
@@ -2410,7 +2412,7 @@ export async function getExerciseInfoBase(
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path, measurement_type, default_unit")
+    .select("id, name, how_to_short, primary_muscle, primary_muscles, secondary_muscles, movement_pattern, equipment, image_howto_path, measurement_type, default_unit")
     .eq("id", exerciseId)
     .or(`user_id.is.null,user_id.eq.${userId}`)
     .maybeSingle();
@@ -2434,6 +2436,8 @@ export async function getExerciseInfoBase(
       exercise_id: fallbackExercise.id,
       name: fallbackExercise.name,
       primary_muscle: fallbackExercise.primary_muscle,
+      primary_muscles: null,
+      secondary_muscles: null,
       equipment: fallbackExercise.equipment,
       movement_pattern: fallbackExercise.movement_pattern,
       image_howto_path: null,
@@ -2450,6 +2454,8 @@ export async function getExerciseInfoBase(
     exercise_id: data.id,
     name: normalizeExerciseDisplayName({ exerciseId: data.id, name: data.name }),
     primary_muscle: data.primary_muscle,
+    primary_muscles: data.primary_muscles ?? null,
+    secondary_muscles: data.secondary_muscles ?? null,
     equipment: data.equipment,
     movement_pattern: data.movement_pattern,
     image_howto_path: data.image_howto_path,

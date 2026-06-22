@@ -6,6 +6,7 @@ import { parseDotenvFile, resolveEnvFilePath } from "./env-file.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");
+export const DISCORD_INVENTORY_NOISE_DOC_PATH = path.join(repoRoot, "docs", "ops", "FITNESS-DISCORD-INVENTORY-NOISE-AUDITS.md");
 const envPath = resolveEnvFilePath(repoRoot);
 const fileEnv = parseDotenvFile(envPath);
 
