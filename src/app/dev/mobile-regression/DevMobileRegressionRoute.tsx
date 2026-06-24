@@ -2252,6 +2252,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
             routineStartDate="2026-04-21"
             isActiveRoutine
             appendRoutineDayAction={noopAppendDayAction}
+            createRoutineDayAction={noopAppendDayAction}
             deleteRoutineDayAction={noopDeleteRoutineDayAction}
             reorderRoutineDaysAction={noopActionResult}
             days={[

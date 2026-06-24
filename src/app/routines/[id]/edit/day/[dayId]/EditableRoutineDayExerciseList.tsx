@@ -970,6 +970,7 @@ export function EditableRoutineDayExerciseList({
                 ...preview,
                 id: exercise.id,
                 name: exercise.name,
+                progressionModeLabel: draftForPreview.progressionPlaybookId ? "Auto" : "Manual",
                 measurementType: exercise.measurementType,
                 primary_muscle: exercise.primary_muscle,
                 equipment: exercise.equipment,

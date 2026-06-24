@@ -228,6 +228,7 @@ type RoutineBrowseCardProps = {
   className?: string;
   bodyClassName?: string;
   contentClassName?: string;
+  titleClassName?: string;
   variant?: ComponentProps<typeof RoutinesListItemCard>["variant"];
   semanticTone?: CardSemanticTone;
   showPreviewDays?: boolean;
@@ -241,6 +242,7 @@ export function RoutineBrowseCard({
   className,
   bodyClassName = ROUTINES_BROWSE_CARD_BODY_CLASS_NAME,
   contentClassName = ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME,
+  titleClassName = "text-center",
   variant = "standard",
   semanticTone,
   showPreviewDays = true,
@@ -259,7 +261,7 @@ export function RoutineBrowseCard({
       className={className}
       bodyClassName={bodyClassName}
       contentClassName={contentClassName}
-      titleClassName="text-center"
+      titleClassName={titleClassName}
       variant={variant}
       semanticTone={semanticTone}
     >

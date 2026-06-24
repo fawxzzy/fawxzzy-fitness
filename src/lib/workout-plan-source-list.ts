@@ -3,6 +3,7 @@ import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { buildRoutinePlanRecapExercises, selectRoutinePlanPreviewExercises } from "@/lib/routine-plan-preview";
 import { formatRoutineDayStableDisplayName, getRoutineDayResolvedWeekdayLabel } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
+import { selectCanonicalWorkoutPlanSourceDays } from "@/lib/workout-plan-source-list-utils";
 import type { RoutineDayRow, RoutineRow } from "@/types/db";
 
 export type WorkoutPlanSourceListItem = {
@@ -29,11 +30,17 @@ export type WorkoutPlanSourceListItem = {
   recapExercises?: Array<{
     id: string;
     name: string;
+    progressionStateLabel?: string | null;
+    signatureLabel?: string | null;
     setLabel?: string | null;
     targetLabel?: string | null;
   }>;
   remainingExerciseCount?: number;
 };
+
+function normalizeWorkoutPlanSourceTitleKey(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
 
 type LoadWorkoutPlanSourceListArgs = {
   supabase: ReturnType<typeof supabaseServer>;
@@ -44,6 +51,17 @@ type LoadWorkoutPlanSourceListArgs = {
 
 const SOURCE_ROUTINE_SELECT = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at";
 const SOURCE_ROUTINE_DAY_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
+const SOURCE_ROUTINE_DAY_SELECT = "id, user_id, routine_id, day_index, name, is_rest, notes, duplicate_source_routine_day_id";
+const SOURCE_ROUTINE_DAY_SELECT_LEGACY = "id, user_id, routine_id, day_index, name, is_rest, notes";
+
+function isMissingDuplicateSourceRoutineDayColumnError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return (
+    message.includes("duplicate_source_routine_day_id")
+    && message.includes("routine_days")
+    && (message.includes("schema cache") || message.includes("does not exist"))
+  );
+}
 
 export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListArgs): Promise<WorkoutPlanSourceListItem[]> {
   const { supabase, userId, routineId, excludeDayId } = args;
@@ -62,14 +80,33 @@ export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
 
   const sourceRoutineById = new Map(sourceRoutines.map((routine) => [routine.id, routine]));
 
-  const { data: routineDaysData } = await supabase
+  const { data: routineDaysDataWithSource, error: routineDaysWithSourceError } = await supabase
     .from("routine_days")
-    .select("id, user_id, routine_id, day_index, name, is_rest, notes, duplicate_source_routine_day_id")
+    .select(SOURCE_ROUTINE_DAY_SELECT)
     .in("routine_id", sourceRoutineIds)
     .eq("user_id", userId)
     .order("day_index", { ascending: true });
+  const routineDaysLegacyFallback = routineDaysWithSourceError && isMissingDuplicateSourceRoutineDayColumnError(routineDaysWithSourceError)
+    ? await supabase
+        .from("routine_days")
+        .select(SOURCE_ROUTINE_DAY_SELECT_LEGACY)
+        .in("routine_id", sourceRoutineIds)
+        .eq("user_id", userId)
+        .order("day_index", { ascending: true })
+    : null;
 
-  const routineDays = (routineDaysData ?? []) as RoutineDayRow[];
+  if (routineDaysWithSourceError && !isMissingDuplicateSourceRoutineDayColumnError(routineDaysWithSourceError)) {
+    return [];
+  }
+
+  if (routineDaysLegacyFallback?.error) {
+    return [];
+  }
+
+  const routineDays = ((routineDaysDataWithSource ?? routineDaysLegacyFallback?.data ?? []) as RoutineDayRow[]).map((day) => ({
+    ...day,
+    duplicate_source_routine_day_id: day.duplicate_source_routine_day_id ?? null,
+  }));
   const routineDayIds = routineDays.map((day) => day.id);
   const { data: dayExerciseRows } = routineDayIds.length > 0
     ? await supabase
@@ -93,20 +130,18 @@ export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
       getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(summary, Boolean(summary.day.is_rest)),
     ]),
   );
+  const runnableExerciseCountByDayId = new Map(
+    canonicalDays.summaries.map((summary) => [summary.day.id, summary.runnableExercises.length]),
+  );
 
-  return routineDays
-    .filter((day) => {
-      if (excludeDayId && day.id === excludeDayId) {
-        return false;
-      }
+  const sourceDays = selectCanonicalWorkoutPlanSourceDays({
+    routineDays,
+    currentRoutineId: routineId,
+    excludeDayId,
+    runnableExerciseCountByDayId,
+  });
 
-      if (day.duplicate_source_routine_day_id) {
-        return false;
-      }
-
-      const runnableExerciseCount = canonicalSummaryByDayId.get(day.id)?.runnableExercises.length ?? 0;
-      return runnableExerciseCount > 0;
-    })
+  const orderedItems = sourceDays
     .slice()
     .sort((left, right) => {
       const leftIsCurrentRoutine = left.routine_id === routineId;
@@ -159,4 +194,19 @@ export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
         ),
       };
     });
+
+  const seenTitleKeys = new Set<string>();
+  return orderedItems.filter((item) => {
+    const titleKey = normalizeWorkoutPlanSourceTitleKey(item.title);
+    if (!titleKey) {
+      return true;
+    }
+
+    if (seenTitleKeys.has(titleKey)) {
+      return false;
+    }
+
+    seenTitleKeys.add(titleKey);
+    return true;
+  });
 }

@@ -8,7 +8,7 @@ import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutineHomeClient } from "@/app/routines/RoutineHomeClient";
-import { appendRoutineDayAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
+import { appendRoutineDayAction, createRoutineDayAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { buildRoutineWorkoutPlanEditorInfoRailItems } from "@/lib/header-info-rail";
@@ -17,6 +17,7 @@ import { ensureProfile } from "@/lib/profile";
 import { buildRoutinePlanRecapExercises } from "@/lib/routine-plan-preview";
 import { getRoutineDayEditHref, getRoutineEditHref, getRoutineHomeHref } from "@/lib/routine-day-navigation";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
+import { loadWorkoutPlanSourceList } from "@/lib/workout-plan-source-list";
 import {
   getCurrentCycleOccurrenceContext,
   getRoutineDayResolvedWeekdayLabel,
@@ -246,11 +247,17 @@ export default async function RoutineHomePage({ params }: PageProps) {
 
   const resolvedInProgressDayIndex = inProgressSession?.routine_day_index;
   inSessionDayIndex = Number.isFinite(resolvedInProgressDayIndex) ? resolvedInProgressDayIndex : null;
+  const workoutPlanSources = await loadWorkoutPlanSourceList({
+    supabase,
+    userId: user.id,
+    routineId: routine.id,
+  });
   const floatingHeaderInfoItems = buildRoutineWorkoutPlanEditorInfoRailItems({
     trainingDays,
     restDays,
     days: sortedRoutineDays.map((day, index) => {
       const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+      const canonicalDaySummary = canonicalSummaryByDayId.get(day.id);
       return {
         id: day.id,
         dayIndex: dayNumber,
@@ -259,6 +266,7 @@ export default async function RoutineHomePage({ params }: PageProps) {
         isCompleted: completedDayIndexSet.has(dayNumber),
         isSkipped: skippedDayIndexSet.has(dayNumber),
         isInSession: inSessionDayIndex === dayNumber,
+        autoProgressionExerciseCount: canonicalDaySummary?.runnableExercises.filter((exercise) => Boolean(exercise.progression_playbook_id)).length ?? 0,
         splitSummary: exerciseSummaryByDayId.get(day.id) ?? null,
       };
     }),
@@ -296,8 +304,10 @@ export default async function RoutineHomePage({ params }: PageProps) {
             routineReferenceDate={todayRoutineSchedule?.todayDate ?? null}
             isActiveRoutine={profile.active_routine_id === routine.id}
             appendRoutineDayAction={appendRoutineDayAction}
+            createRoutineDayAction={createRoutineDayAction}
             deleteRoutineDayAction={deleteRoutineDayAction}
             reorderRoutineDaysAction={reorderRoutineDaysAction}
+            workoutPlanSources={workoutPlanSources}
             days={sortedRoutineDays.map((day, index) => {
               const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
               const canonicalDaySummary = canonicalSummaryByDayId.get(day.id);

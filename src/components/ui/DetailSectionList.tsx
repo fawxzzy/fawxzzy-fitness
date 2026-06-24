@@ -291,6 +291,7 @@ function renderDetailSectionItemContent(item: string) {
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [text-wrap:pretty]">
       {tokens.map((part, index) => {
+        const normalizedToken = part.trim().toUpperCase();
         if (part === "|") {
           return <SignatureMiniPipe key={`pipe-${index}`} />;
         }
@@ -327,6 +328,29 @@ function renderDetailSectionItemContent(item: string) {
         const slashSeparatedText = renderSlashSeparatedText(part, `${part}-${index}`);
         if (slashSeparatedText) {
           return <span key={`${part}-${index}`} className="min-w-0">{slashSeparatedText}</span>;
+        }
+
+        if (
+          normalizedToken === "AUTO"
+          || normalizedToken === "MANUAL"
+          || normalizedToken === "SESSION"
+          || normalizedToken === "SET"
+        ) {
+          return (
+            <span
+              key={`${part}-${index}`}
+              className={cn(
+                "min-w-0 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em]",
+                normalizedToken === "AUTO"
+                  ? "text-[rgb(var(--accent-strong)/0.98)]"
+                  : normalizedToken === "MANUAL"
+                    ? "text-[rgb(var(--accent-yellow-on)/0.96)]"
+                    : "text-[rgb(var(--accent-divider-rgb)/0.96)]",
+              )}
+            >
+              {normalizedToken}
+            </span>
+          );
         }
 
         return <span key={`${part}-${index}`} className="min-w-0">{part}</span>;

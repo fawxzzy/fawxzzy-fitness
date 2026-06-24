@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
 import { NewRoutineDraftForm } from "@/app/routines/new/NewRoutineDraftForm";
 import { RoutineHomeEditorClient } from "@/app/routines/RoutineHomeEditorClient";
-import { appendRoutineDayAction, deleteRoutineAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
+import { appendRoutineDayAction, createRoutineDayAction, deleteRoutineAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { ensureProfile } from "@/lib/profile";
@@ -274,6 +274,7 @@ export default async function NewRoutinePage({
             })}
             isActiveRoutine={false}
             appendRoutineDayAction={appendRoutineDayAction}
+            createRoutineDayAction={createRoutineDayAction}
             deleteRoutineDayAction={deleteRoutineDayAction}
             reorderRoutineDaysAction={reorderRoutineDaysAction}
             deleteRoutineAction={deleteRoutineAction}

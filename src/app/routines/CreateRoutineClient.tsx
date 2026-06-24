@@ -3,21 +3,30 @@
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { labeledEditorFieldControlClassName, LabeledEditorField } from "@/components/ui/LabeledEditorField";
-import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
 import {
-  RoutinesCardList,
-  RoutinesListItem,
-  RoutinesListItemCard,
-} from "@/components/routines/RoutinesScreenFamily";
+  ROUTINE_SURFACE_TAG_CLASS_NAME,
+  splitRoutineSummaryParts,
+  renderRoutineMetricTagLabel,
+} from "@/components/day-list/RoutineDayCardPresentation";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import type { RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
+import {
+  RoutineChooserOptionCard,
+  RoutineDuplicateChooserPanel,
+  RoutineChooserSourceCard,
+} from "@/components/routines/RoutineChooserMenu";
+import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
+import { labeledEditorFieldControlClassName, LabeledEditorField } from "@/components/ui/LabeledEditorField";
+import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
 import { overlayChromeClassNames } from "@/components/ui/OverlayChrome";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
+import { formatDateShort } from "@/lib/formatting";
 import { ROUTINE_COPY_NAME_MAX_LENGTH, resolveUniqueRoutineCopyName } from "@/lib/routine-copy-name";
 
 type Props = {
@@ -28,6 +37,39 @@ type Props = {
   deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
   onRequestClose?: () => void;
 };
+
+function renderRoutineSourceTags(routine: RoutineBrowseCardItem) {
+  const parts = routine.summaryParts?.length
+    ? routine.summaryParts
+    : splitRoutineSummaryParts(routine.summary);
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return (
+    <HorizontalScrollHint
+      className="-mx-0.5"
+      scrollClassName="px-0.5 pb-0.5"
+      contentClassName="flex w-max min-w-full flex-wrap items-center gap-1.5"
+      showEdgeFades={false}
+    >
+      {parts.map((part) => (
+        <AppBadge key={`${routine.id}-${part}`} tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
+          {renderRoutineMetricTagLabel(part)}
+        </AppBadge>
+      ))}
+    </HorizontalScrollHint>
+  );
+}
+
+function renderRoutineSourceFooter(routine: RoutineBrowseCardItem) {
+  const normalizedCreatedAt = typeof routine.createdAt === "string" ? routine.createdAt.trim() : "";
+  if (!normalizedCreatedAt) {
+    return null;
+  }
+
+  return `Created ${formatDateShort(normalizedCreatedAt)}`;
+}
 
 export function CreateRoutineClient({
   backHref,
@@ -103,6 +145,28 @@ export function CreateRoutineClient({
       return !current;
     });
   }
+
+  useEffect(() => {
+    if (!isDuplicateExpanded) {
+      return;
+    }
+
+    if (selectedSourceRoutineId && routines.some((routine) => routine.id === selectedSourceRoutineId)) {
+      return;
+    }
+
+    const firstRoutine = routines[0];
+    if (!firstRoutine) {
+      return;
+    }
+
+    setSelectedSourceRoutineId(firstRoutine.id);
+    setDuplicateNameError(null);
+    setDuplicateName(resolveUniqueRoutineCopyName({
+      sourceName: firstRoutine.name,
+      existingNames: routines.map((routine) => routine.name),
+    }));
+  }, [isDuplicateExpanded, routines, selectedSourceRoutineId]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -192,7 +256,7 @@ export function CreateRoutineClient({
         className={cn(
           overlayChromeClassNames.panelBase,
           "relative z-10 flex w-full min-w-0 flex-col overflow-hidden rounded-[1.5rem]",
-          "max-h-[min(100dvh-2rem,42rem)] max-w-[40rem]",
+          `max-h-[min(100dvh-2rem,42rem)] ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME}`,
         )}
       >
         <div className="relative px-4 pb-2 pt-4 text-center">
@@ -214,83 +278,61 @@ export function CreateRoutineClient({
           </h2>
         </div>
 
-        <VerticalScrollHint
-          className="min-h-0 flex-1"
-          scrollClassName="max-h-full px-4 pb-4 pt-2"
-        >
-          <div className="space-y-3">
-            <RoutinesCardList>
-              {draftRoutineName?.trim() ? (
-                <RoutinesListItem>
-                  <RoutinesListItemCard
-                    title={(
-                      <span className="inline-flex items-center gap-1.5">
-                        <span>Continue Draft:</span>
-                        <span className="text-[rgb(var(--accent))]">{draftRoutineName.trim()}</span>
-                      </span>
-                    )}
-                    onPress={isPending ? undefined : () => {
-                      setIsDuplicateExpanded(false);
-                      router.push("/routines/new", { scroll: false });
-                    }}
-                    className={isPending ? "opacity-70" : undefined}
-                    bodyClassName="min-h-[4.4rem] py-[0.72rem]"
-                    contentClassName="gap-0 py-0"
-                    state="selected"
-                    variant="standard"
-                  />
-                </RoutinesListItem>
-              ) : null}
-              <RoutinesListItem>
-                <RoutinesListItemCard
-                  title="Blank routine"
-                  onPress={isPending ? undefined : () => {
-                    setIsDuplicateExpanded(false);
-                    router.push("/routines/new?mode=blank", { scroll: false });
-                  }}
-                  className={isPending ? "opacity-70" : undefined}
-                  bodyClassName="min-h-[4.4rem] py-[0.72rem]"
-                  contentClassName="gap-0 py-0"
-                  variant="standard"
-                />
-              </RoutinesListItem>
-              <RoutinesListItem>
-                <RoutinesListItemCard
-                  title="Duplicate existing routine"
-                  onPress={routines.length > 0 && !isPending ? handleToggleDuplicateExpanded : undefined}
-                  state={isDuplicateExpanded ? "selected" : "default"}
-                  rightIcon={duplicateTriggerIcon}
-                  className={routines.length === 0 || isPending ? "opacity-70" : undefined}
-                  bodyClassName="min-h-[4.4rem] py-[0.72rem]"
-                  contentClassName="gap-0 py-0"
-                  variant="standard"
-                />
-              </RoutinesListItem>
-            </RoutinesCardList>
+        <div className="min-h-0 flex-1 overflow-hidden px-4 pb-6 pt-2">
+          <div className="flex h-full min-h-0 flex-col gap-2.5">
+            {draftRoutineName?.trim() ? (
+              <RoutineChooserOptionCard
+                title={(
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>Continue Draft:</span>
+                    <span className="text-[rgb(var(--accent))]">{draftRoutineName.trim()}</span>
+                  </span>
+                )}
+                active
+                disabled={isPending}
+                onPress={() => {
+                  setIsDuplicateExpanded(false);
+                  router.push("/routines/new", { scroll: false });
+                }}
+              />
+            ) : null}
+            <RoutineChooserOptionCard
+              title="Blank routine"
+              rightSlot={<ChevronRightIcon className="h-4 w-4" />}
+              disabled={isPending}
+              onPress={() => {
+                setIsDuplicateExpanded(false);
+                router.push("/routines/new?mode=blank", { scroll: false });
+              }}
+            />
+            <RoutineChooserOptionCard
+              title="Duplicate routine"
+              active={isDuplicateExpanded}
+              rightSlot={duplicateTriggerIcon}
+              disabled={routines.length === 0 || isPending}
+              onPress={routines.length > 0 && !isPending ? handleToggleDuplicateExpanded : undefined}
+            />
 
             {isDuplicateExpanded && routines.length > 0 ? (
-              <div className="min-h-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.9)] px-3 py-3">
-                <p className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.78)]">
-                  Choose Routine
-                </p>
-                <VerticalScrollHint
-                  className="min-h-0 pt-3"
-                  scrollClassName="max-h-[min(17.5rem,34dvh)] pr-2"
-                  contentClassName="space-y-2"
-                >
-                  {routines.map((routine) => (
-                    <RoutineBrowseCard
-                      key={routine.id}
-                      routine={routine}
-                      onPress={() => handleSelectSourceRoutine(routine.id)}
-                      state={selectedSourceRoutineId === routine.id ? "selected" : "default"}
-                      rightIcon={null}
-                      showPreviewDays={false}
-                    />
-                  ))}
-                </VerticalScrollHint>
-                {selectedSourceRoutineId ? (
-                  <div className="space-y-3 pt-3">
+              <RoutineDuplicateChooserPanel
+                className="min-h-0 flex flex-1 flex-col"
+                title="Choose Routine"
+                list={(
+                  <RoutineDuplicateChooserListViewport className="min-h-0 flex-1" contentClassName="space-y-2">
+                    {routines.map((routine) => (
+                      <RoutineChooserSourceCard
+                        key={routine.id}
+                        onPress={() => handleSelectSourceRoutine(routine.id)}
+                        title={routine.name}
+                        selected={selectedSourceRoutineId === routine.id}
+                        tags={renderRoutineSourceTags(routine)}
+                        footer={renderRoutineSourceFooter(routine)}
+                      />
+                    ))}
+                  </RoutineDuplicateChooserListViewport>
+                )}
+                footer={selectedSourceRoutineId ? (
+                  <>
                     <LabeledEditorField
                       label="New Routine Title"
                       className={cn(
@@ -327,14 +369,14 @@ export function CreateRoutineClient({
                       disabled={duplicateName.trim().length === 0}
                       loading={isPending}
                     >
-                      Duplicate Routine
+                      Confirm
                     </BottomDockButton>
-                  </div>
+                  </>
                 ) : null}
-              </div>
+              />
             ) : null}
           </div>
-        </VerticalScrollHint>
+        </div>
       </div>
     </div>,
     portalTarget,

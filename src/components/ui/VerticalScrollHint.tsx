@@ -48,6 +48,7 @@ export function VerticalScrollHint({
   scrollClassName,
   contentClassName,
   railClassName,
+  railSide = "left",
   showFade = true,
   showRail = true,
 }: {
@@ -56,6 +57,7 @@ export function VerticalScrollHint({
   scrollClassName?: string;
   contentClassName?: string;
   railClassName?: string;
+  railSide?: "left" | "right";
   showFade?: boolean;
   showRail?: boolean;
 }) {
@@ -146,7 +148,7 @@ export function VerticalScrollHint({
   }, [hasOverflow, refresh]);
 
   return (
-    <div className={cn("relative min-h-0", showRail ? "pl-2" : undefined, className)}>
+    <div className={cn("relative min-h-0", showRail ? (railSide === "right" ? "pr-2" : "pl-2") : undefined, className)}>
       <div
         ref={scrollerRef}
         className={cn(
@@ -176,7 +178,11 @@ export function VerticalScrollHint({
       {showRail && hasOverflow ? (
         <div
           aria-hidden="true"
-          className={cn("pointer-events-none absolute bottom-2 left-0 top-2 w-[3px]", railClassName)}
+          className={cn(
+            "pointer-events-none absolute bottom-2 top-2 w-[3px]",
+            railSide === "right" ? "right-0" : "left-0",
+            railClassName,
+          )}
         >
           <div className={SCROLL_HINT_VERTICAL_TRACK_CLASS_NAME} />
           <div

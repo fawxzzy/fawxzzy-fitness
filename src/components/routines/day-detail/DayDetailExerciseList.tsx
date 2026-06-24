@@ -18,6 +18,7 @@ export type DayDetailExerciseListItem = {
   name: string;
   summary: string | null;
   summaryContent?: ReactNode;
+  progressionModeLabel?: "Auto" | "Manual" | null;
   orderNumber: number;
   measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
@@ -134,15 +135,32 @@ function DayDetailExerciseTitle({
             className="mb-[1px] mt-[1px] h-auto self-stretch"
             barClassName="h-full"
           />
-          <span className="inline-flex max-w-[8.35rem] min-w-0 flex-col items-start gap-y-1 text-left">
+          <span className="inline-flex max-w-[11.6rem] min-w-0 flex-col items-start gap-y-1 text-left">
             <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
               <span className="min-w-0 max-w-full whitespace-nowrap text-[0.9rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.92)]">
                 Current Target
               </span>
               <MetricAccentBar variant="thin" className="w-full opacity-75" />
             </span>
-            <span className="mt-[1px] min-w-0 max-w-full overflow-hidden whitespace-nowrap text-ellipsis text-[9.75px] font-medium leading-[1.08] text-[rgb(var(--text-secondary)/0.88)]">
-              {formattedSummary}
+            <span className="mt-[1px] inline-flex min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap text-[9.75px] font-medium leading-[1.08] text-[rgb(var(--text-secondary)/0.88)]">
+              <span className="min-w-0 flex-1 basis-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                {formattedSummary}
+              </span>
+              {item.progressionModeLabel ? (
+                <>
+                  <SignatureMiniPipe className="h-[0.82em] shrink-0 self-center" barClassName="h-full" />
+                  <span
+                    className={cn(
+                      "shrink-0 text-[8.5px] font-semibold leading-none tracking-[0.12em]",
+                      item.progressionModeLabel === "Auto"
+                        ? "text-[rgb(var(--accent-strong)/0.98)]"
+                        : "text-[rgb(var(--accent-yellow-on)/0.96)]",
+                    )}
+                  >
+                    {item.progressionModeLabel.toUpperCase()}
+                  </span>
+                </>
+              ) : null}
             </span>
           </span>
         </span>

@@ -32,6 +32,7 @@ const ROUTINE_EDITOR_HEADER_SIGNAL_PRIORITY = [
   "workout-plan-count",
   "rest-count",
   "exercise-count",
+  "totals",
 ] as const;
 
 type RoutineEditorHeaderSignalId = (typeof ROUTINE_EDITOR_HEADER_SIGNAL_PRIORITY)[number];
@@ -64,6 +65,7 @@ type CurrentRoutineHeaderDay = {
   isCompleted: boolean;
   isSkipped?: boolean;
   isInSession: boolean;
+  autoProgressionExerciseCount?: number | null;
   splitSummary?: {
     total: number;
   } | null;
@@ -256,6 +258,7 @@ function buildRoutineWorkoutPlanEditorSignalMap(args: {
   const restCount = normalizeCount(args.restDays);
   const routineLength = Math.max(args.days.length, workoutPlanCount + restCount, 0);
   const totalExercises = args.days.reduce((sum, day) => sum + normalizeCount(day.splitSummary?.total), 0);
+  const autoProgressionExerciseCount = args.days.reduce((sum, day) => sum + normalizeCount(day.autoProgressionExerciseCount), 0);
   const inSessionDay = args.days.find((day) => day.isInSession) ?? null;
   const todayDay = args.days.find((day) => day.isToday) ?? null;
   const signalMap: Partial<Record<RoutineEditorHeaderSignalId, HeaderInfoRailItem>> = {};
@@ -318,6 +321,17 @@ function buildRoutineWorkoutPlanEditorSignalMap(args: {
       value: totalExercises,
       tone: "default",
       title: "Total exercises currently configured in this routine",
+    };
+  }
+
+  if (workoutPlanCount > 0 || totalExercises > 0 || autoProgressionExerciseCount > 0) {
+    signalMap.totals = {
+      id: "totals",
+      label: "Totals",
+      value: `${workoutPlanCount} workout plans • ${totalExercises} exercises${autoProgressionExerciseCount > 0 ? ` • ${autoProgressionExerciseCount} auto` : ""}`,
+      tone: autoProgressionExerciseCount > 0 ? "accent" : "default",
+      title: "Routine totals across workout plans, exercises, and auto progression coverage",
+      valuePosition: "after",
     };
   }
 

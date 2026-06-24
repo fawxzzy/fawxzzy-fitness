@@ -74,6 +74,7 @@ type Props = {
   days: RoutineHomeDayCardItem[];
   isActiveRoutine: boolean;
   appendRoutineDayAction: (formData: FormData) => Promise<ActionResult & { routineDayId?: string }>;
+  createRoutineDayAction: (formData: FormData) => Promise<ActionResult & { routineDayId?: string }>;
   deleteRoutineDayAction: (formData: FormData) => Promise<ActionResult>;
   reorderRoutineDaysAction?: (formData: FormData) => Promise<ActionResult>;
   deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
@@ -367,6 +368,7 @@ export function RoutineHomeEditorClient(props: Props) {
         days={props.days}
         isActiveRoutine={props.isActiveRoutine}
         appendRoutineDayAction={props.appendRoutineDayAction}
+        createRoutineDayAction={props.createRoutineDayAction}
         deleteRoutineDayAction={props.deleteRoutineDayAction}
         reorderRoutineDaysAction={props.reorderRoutineDaysAction}
         deleteRoutineAction={props.deleteRoutineAction}
