@@ -4,7 +4,7 @@ import {
   isOfflineSnapshotStale,
 } from "@/lib/offline/client-storage";
 
-export const TODAY_CACHE_SCHEMA_VERSION = 4;
+export const TODAY_CACHE_SCHEMA_VERSION = 5;
 const TODAY_CACHE_DB_NAME = "fawxzzy-fitness-offline";
 const TODAY_CACHE_STORE_NAME = "today-cache";
 
@@ -31,6 +31,7 @@ export type CachedTodayExercise = {
   type?: string | null;
   tags?: string[] | string | null;
   categories?: string[] | string | null;
+  progressionStateLabel?: string | null;
   loggedSetCount?: number;
   isSkipped?: boolean;
   targetSetsMin?: number | null;

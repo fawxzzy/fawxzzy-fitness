@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProper
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseCard, EXERCISE_CARD_SUMMARY_CLASS_NAME } from "@/components/ExerciseCard";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { BOTTOM_ACTION_SHELL_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { appTokens } from "@/components/ui/app/tokens";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
@@ -206,7 +206,7 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 const pickerRowMobileDensityClassNames = {
   body: "max-md:gap-1",
   title: "max-md:text-[0.86rem] max-md:leading-[1.15]",
-  titleContainer: "max-md:space-y-0.25",
+  titleContainer: "max-md:space-y-0.25 max-md:pb-[1.9rem]",
   subtitle: "max-md:text-[11px] max-md:leading-[1.26]",
   content: "max-md:space-y-0.25",
   trailing: "max-md:min-w-[4.3rem]",
@@ -1205,6 +1205,17 @@ function parseDurationInput(value: string) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
+function hasAnyGoalMeasurementValue(state: ExerciseGoalFormState) {
+  return [
+    state.repsMin,
+    state.repsMax,
+    state.weight,
+    state.duration,
+    state.distance,
+    state.calories,
+  ].some((value) => value.trim().length > 0);
+}
+
 type ExerciseRowCueClasses = {
   leadTextClassName: string;
   unselectedRailClassName: string;
@@ -1314,6 +1325,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
   }
 
   const rowState = isSelected ? "selected" : "default";
+  const visibleMetadataItems = isSelected ? metadataItems.slice(0, 2) : metadataItems;
   const rightRailClassName = isSelected
     ? "border-l-0 bg-transparent"
     : hasStats
@@ -1346,7 +1358,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           title={(
             <ExerciseTitleWithCompanion
               name={exercise.name}
-              metadataItems={metadataItems}
+              metadataItems={visibleMetadataItems}
               companion={isSelected && selectedSummaryText ? (
                 <>
                   <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
@@ -2228,14 +2240,16 @@ export function ExercisePicker({
   }, [effectiveGoalModality, goalMeasurementSelections, goalState, isMeasurementOptionalSelected]);
   const goalPreviewMissingLabel = !goalValidation.isValid
     ? (
-      effectiveGoalModality === "cardio_time_distance" && isMissingCardioTimeOrDistance({
-        duration: goalState.duration,
-        distance: goalState.distance,
-      })
-        ? "missing time or distance"
-        : goalValidation.requiredFields.length > 0
-          ? `missing ${getMissingGoalPreviewLabel(goalValidation.requiredFields[0])}`
-          : null
+      !hasAnyGoalMeasurementValue(goalState)
+        ? "Set current target"
+        : effectiveGoalModality === "cardio_time_distance" && isMissingCardioTimeOrDistance({
+            duration: goalState.duration,
+            distance: goalState.distance,
+          })
+          ? "missing time or distance"
+          : goalValidation.requiredFields.length > 0
+            ? `missing ${getMissingGoalPreviewLabel(goalValidation.requiredFields[0])}`
+            : null
     )
     : null;
   const failureToggleInfoContent = buildFailureToggleInfoPayload({
@@ -2870,9 +2884,11 @@ export function ExercisePicker({
 
       {configureGoalDockNode ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-[var(--bottom-actions-height,10.5rem)] z-50">
-          <div ref={goalDockRef} className={`${BOTTOM_ACTION_SHELL_CLASSNAME} pointer-events-auto`}>
-            {configureGoalDockNode}
-          </div>
+          <ContentRail className="pointer-events-auto">
+            <div ref={goalDockRef} className="w-full max-w-full">
+              {configureGoalDockNode}
+            </div>
+          </ContentRail>
         </div>
       ) : null}
 

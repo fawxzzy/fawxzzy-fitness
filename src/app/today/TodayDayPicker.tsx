@@ -4,12 +4,10 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { ExerciseInfoIconButton } from "@/components/ExerciseInfoIconButton";
 import { TodayOverviewHeader, TodayOverviewScaffold, TodayRoutineSwitchHeader } from "@/components/today/TodayScreenFamily";
 import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { AccentDotSeparatedText, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { DayList } from "@/components/day-list/DayList";
 import {
   ROUTINE_CONTENT_GAP_CLASS_NAME,
@@ -21,18 +19,16 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
 import { appTokens } from "@/components/ui/app/tokens";
-import { StateChevron } from "@/components/ui/StateChevron";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { StateChevron } from "@/components/ui/StateChevron";
+import { PlannedExerciseSummaryRow } from "@/components/workout/PlannedExerciseSummaryRow";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
 import { deriveExerciseCardProgressFill } from "@/lib/exercise-card-progress-fill";
 import { buildCurrentRoutineInfoRailItems, buildTodayHeaderInfoRailItems } from "@/lib/header-info-rail";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
-import { isStretchHubExercise } from "@/lib/stretch-library";
-import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
-import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import type { ActionResult } from "@/lib/action-result";
 import type { ProgressionTargetPlan } from "@/lib/progression-playbooks";
 import type {
@@ -80,6 +76,7 @@ type TodayExercise = {
   image_icon_path: string | null;
   slug: string | null;
   how_to_short: string | null;
+  progressionStateLabel?: string | null;
 };
 
 type TodayDay = {
@@ -92,6 +89,11 @@ type TodayDay = {
   invalidExerciseCount: number;
   exercises: TodayExercise[];
 };
+
+const TODAY_CARD_CHEVRON_RAIL_CLASS_NAME = "!right-[0.58rem] !top-[0.58rem] !translate-y-0";
+const TODAY_CARD_INFO_OVERLAY_CLASS_NAME = "inset-0 !left-0 !right-0 !top-0 !bottom-0 !block !translate-y-0 pointer-events-none";
+const TODAY_CARD_INFO_BUTTON_CLASS_NAME = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
+const TODAY_CARD_TITLE_CONTAINER_CLASS_NAME = "pr-[2.45rem] pb-[1.9rem]";
 
 function getTodayProgressionActionIntent(item: Pick<ProgressionReviewDisplayItem, "type">): BottomActionIntent {
   return item.type === "deload" ? "danger" : "positive";
@@ -173,8 +175,6 @@ export function TodayDayPicker({
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => currentDayIndex ?? days[0]?.dayIndex ?? 1);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedExerciseRowId, setSelectedExerciseRowId] = useState<string | null>(null);
-  const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const [selectedDayAppliedPins, setSelectedDayAppliedPins] = useState<ProgressionAppliedPin[]>([]);
   const [cardConfirmItem, setCardConfirmItem] = useState<ProgressionReviewDisplayItem | null>(null);
   const [cardConfirmSelectedIds, setCardConfirmSelectedIds] = useState<string[]>([]);
@@ -755,8 +755,6 @@ export function TodayDayPicker({
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
                   <ul className="flex flex-col gap-[0.375rem]">
                     {selectedDay.exercises.map((exercise) => {
-                      const isSelected = selectedExerciseRowId === exercise.id;
-                      const isStretchHub = isStretchHubExercise(exercise);
                       const cardReadyItem = selectedDayProgressionItemByExerciseId.get(exercise.id) ?? null;
                       const cardAppliedPin = findSelectedDayAppliedPinForExercise(exercise.id);
                       const canShowCardAction = cardReadyItem?.type === "promote" || cardReadyItem?.type === "deload";
@@ -774,84 +772,43 @@ export function TodayDayPicker({
                         : null;
                       const cardActionIntent = cardReadyItem ? getTodayProgressionActionIntent(cardReadyItem) : "positive";
                       const cardActionArrowClassName = cardReadyItem ? getTodayProgressionActionArrowClassName(cardReadyItem) : "text-[rgb(var(--accent-divider-rgb)/0.95)]";
-                      const resolvedSummary = isStretchHub ? null : exercise.targets;
-                      const detailedMetrics = buildPlannedExerciseDetailMetrics({
-                        name: exercise.name,
-                        slug: exercise.slug,
-                        measurementType: exercise.measurement_type,
-                        isCardio: exercise.isCardio,
-                        kind: exercise.kind,
-                        type: exercise.type,
-                        equipment: exercise.equipment,
-                        movementPattern: exercise.movement_pattern,
-                        primaryMuscle: exercise.primary_muscle,
-                        tags: exercise.tags,
-                        categories: exercise.categories,
-                        targetSetsMin: exercise.targetSetsMin,
-                        targetSetsMax: exercise.targetSetsMax,
-                      });
-                      const { policy, chips, detailedMetrics: visibleDetailedMetrics } = applyWorkoutCardSurfacePolicy({
-                        surface: "today",
-                        density: exerciseDensity,
-                        detailedMetrics,
-                      });
+                      const infoButton = (
+                        <ExerciseInfoIconButton
+                          exerciseId={exercise.exerciseId}
+                          exerciseName={exercise.name}
+                          className={TODAY_CARD_INFO_BUTTON_CLASS_NAME}
+                        />
+                      );
+                      const cardChevron = (
+                        <StateChevron
+                          expanded={false}
+                          className="h-5 w-5 shrink-0 self-center"
+                          collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
+                        />
+                      );
 
                       return (
                         <li key={exercise.id}>
-                          <StandardExerciseRow
+                          <PlannedExerciseSummaryRow
                             exercise={exercise}
-                            variant="interactive"
                             density={exerciseDensity}
-                            summary={resolvedSummary}
-                            subtitleTone="plain"
-                            contentClassName="pl-3"
-                            onPress={() => {
-                              setSelectedExerciseRowId((current) => current === exercise.id ? null : exercise.id);
-                            }}
-                            showLeadingVisual={policy.showMedia}
-                            showAccentRail={!isStretchHub}
-                            hideEmptySummary={isStretchHub}
+                            surface="today"
+                            rowContentClassName="pl-3 pr-[2.45rem]"
                             progressFill={cardProgressFill.fill}
-                            rightIcon={(
-                              <StateChevron
-                                expanded={isSelected}
-                                className="h-5 w-5"
-                                expandedClassName="text-[rgb(var(--success-rgb)/0.98)]"
-                                collapsedClassName="text-[rgb(var(--text-muted)/0.92)]"
-                              />
-                            )}
-                            shellClassName={isSelected || cardProgressionAction ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
-                            shellStyle={isSelected || cardProgressionAction ? ({
+                            state="default"
+                            rightIcon={cardChevron}
+                            rightIconMode="overlay"
+                            rightRailClassName={TODAY_CARD_CHEVRON_RAIL_CLASS_NAME}
+                            titleContainerClassName={TODAY_CARD_TITLE_CONTAINER_CLASS_NAME}
+                            overlayActions={infoButton}
+                            overlayActionsClassName={TODAY_CARD_INFO_OVERLAY_CLASS_NAME}
+                            shellClassName={cardProgressionAction ? "rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
+                            shellStyle={cardProgressionAction ? ({
                               "--exercise-card-progress-fill-bottom-right-radius": "0px",
                             } as CSSProperties) : undefined}
-                          >
-                            <WorkoutExerciseCardDetails
-                              density={exerciseDensity}
-                              chips={chips}
-                              detailedMetrics={visibleDetailedMetrics}
-                            />
-                          </StandardExerciseRow>
-                          {isSelected ? (
-                            <AttachedCardActionStripFrame className={cardProgressionAction ? "rounded-none border-t-0" : "rounded-t-none"} gridClassName="grid-cols-1">
-                              <button
-                                type="button"
-                                data-bottom-action-intent="toggleActive"
-                                className={cn(
-                                  getAttachedCardActionButtonClassName({
-                                    intent: "toggleActive",
-                                    className: "focus-visible:ring-[rgb(var(--accent)/0.24)]",
-                                  }),
-                                )}
-                                onClick={() => {
-                                  setExerciseInfoExerciseId(exercise.exerciseId);
-                                }}
-                              >
-                                <span className="bottom-action__label">Inspect</span>
-                              </button>
-                            </AttachedCardActionStripFrame>
-                          ) : null}
+                          />
                           {cardProgressionAction ? (
-                            <AttachedCardActionStripFrame className={isSelected ? "rounded-t-none border-t-0" : "rounded-t-none"} gridClassName="grid-cols-1">
+                            <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-1">
                               <button
                                 type="button"
                                 disabled={cardActionPending}
@@ -921,19 +878,6 @@ export function TodayDayPicker({
           </TodayOverviewScaffold>
         ) : null}
 
-        <ExerciseInfo
-          exerciseId={exerciseInfoExerciseId}
-          open={Boolean(exerciseInfoExerciseId)}
-          onOpenChange={(open) => {
-            if (!open) {
-              setExerciseInfoExerciseId(null);
-            }
-          }}
-          onClose={() => {
-            setExerciseInfoExerciseId(null);
-          }}
-          sourceContext="TodayDayPicker"
-        />
         {cardConfirmItem ? (
           <ConfirmDestructiveModal
             open

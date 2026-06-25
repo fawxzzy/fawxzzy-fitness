@@ -1,40 +1,58 @@
 "use client";
 
-import { ProgressionPlaybookEditor } from "@/components/routines/ProgressionPlaybookEditor";
+import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
+import type { GoalModality } from "@/lib/exercise-goal-validation";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
-import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
-import type { PromotionStepFieldId } from "@/lib/session-progression-display";
 
 export function CurrentSessionProgressionSurface({
   draft,
   onChange,
+  goalState,
+  modality,
   weightUnit,
   distanceUnit,
-  progressionStepPolicy,
-  visiblePromotionStepFields,
+  exerciseMeasurementType,
+  exerciseEquipment,
+  exerciseMovementPattern,
+  exerciseName,
+  cycleLengthDays,
+  progressionExampleDayNumber,
 }: {
   draft: ProgressionPlaybookFormState;
   onChange: (nextValue: ProgressionPlaybookFormState) => void;
+  goalState: ExerciseGoalFormState;
+  modality: GoalModality;
   weightUnit: "lbs" | "kg";
   distanceUnit: FitnessDistanceUnit;
-  progressionStepPolicy?: ProgressionStepPolicy | null;
-  visiblePromotionStepFields?: PromotionStepFieldId[] | null;
+  exerciseMeasurementType: "reps" | "time" | "distance" | "time_distance" | "none";
+  exerciseEquipment: string | null;
+  exerciseMovementPattern?: string | null;
+  exerciseName?: string | null;
+  cycleLengthDays: number;
+  progressionExampleDayNumber?: number | null;
 }) {
   return (
-    <ProgressionPlaybookEditor
-      value={draft}
+    <ExerciseProgressionEditorSurface
+      draft={draft}
       onChange={onChange}
+      goalState={goalState}
+      modality={modality}
       weightUnit={weightUnit}
       distanceUnit={distanceUnit}
-      title=""
-      context="exercise"
-      collapsible={false}
-      separateInfoBox
-      separateInfoReserveLayoutSpace={false}
-      dropdownPreset="current-session"
-      progressionStepPolicy={progressionStepPolicy}
-      visiblePromotionStepFields={visiblePromotionStepFields ?? null}
+      exerciseMeasurementType={exerciseMeasurementType}
+      exerciseEquipment={exerciseEquipment}
+      exerciseMovementPattern={exerciseMovementPattern ?? null}
+      exerciseName={exerciseName ?? null}
+      cycleLengthDays={cycleLengthDays}
+      progressionExampleDayNumber={progressionExampleDayNumber ?? null}
+      routineDefaultValue={null}
+      showDefaultState={false}
+      hideExerciseSetSuccessCount
+      reserveInfoLayoutSpace={false}
+      dropdownPreset="exercise-inline"
+      infoDockPlacement="above-bottom-actions"
     />
   );
 }

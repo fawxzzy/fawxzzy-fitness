@@ -3,10 +3,14 @@
 import type { ReactNode } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
+import {
+  buildExerciseCardMetadataItems,
+  ExerciseCardMetadataLine,
+  ExerciseCardProgressionStateInline,
+  ExerciseCardStandardTitle,
+} from "@/components/workout/ExerciseCardStandardTitle";
 import { StateChevron } from "@/components/ui/StateChevron";
 import { appTokens } from "@/components/ui/app/tokens";
-import { AccentDotSeparatedText, SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import { normalizeDecoratedText } from "@/lib/text-separator-normalization";
@@ -49,23 +53,6 @@ type Props = {
   className?: string;
 };
 
-function formatMetadataLabel(value: string | null | undefined) {
-  if (!value) return null;
-  return value
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function buildExerciseMetadataItems(item: DayDetailExerciseListItem) {
-  return [
-    formatMetadataLabel(item.primary_muscle),
-    formatMetadataLabel(item.movement_pattern),
-    formatMetadataLabel(item.equipment),
-  ].filter((value): value is string => Boolean(value));
-}
-
 function normalizeEditDaySummary(summary: string | null | undefined) {
   if (!summary) {
     return null;
@@ -89,89 +76,29 @@ function DayDetailExerciseTitle({
   item: DayDetailExerciseListItem;
   summary?: ReactNode;
 }) {
-  const metadataItems = buildExerciseMetadataItems(item);
-  const normalizedSummary = typeof summary === "string" ? normalizeEditDaySummary(summary) : null;
-  const formattedSummary = normalizedSummary
-    ? (
-      <AccentDotSeparatedText
-        text={normalizedSummary}
-        className="min-w-0 max-w-full flex-nowrap gap-x-1.5 overflow-hidden whitespace-nowrap text-[9.75px] tracking-[0.01em] leading-[1.08] text-[rgb(var(--text-secondary)/0.88)]"
-        itemClassName="shrink-0 whitespace-nowrap"
-      />
-    )
-    : summary;
+  const metadataItems = buildExerciseCardMetadataItems({
+    primaryMuscle: item.primary_muscle,
+    movementPattern: item.movement_pattern,
+    equipment: item.equipment,
+  });
+  const normalizedSummary = typeof summary === "string" ? normalizeEditDaySummary(summary) : summary;
 
   return (
-    <span className="inline-flex min-w-0 max-w-full items-start gap-1.5 align-top">
-      <span className="inline-flex min-w-0 flex-1 basis-0 flex-col">
-        <span className="inline-flex min-w-0 max-w-full flex-col items-start gap-y-1 align-middle">
-          <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
-            <span className="min-w-0 max-w-full whitespace-normal break-words text-[0.98rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.98)]">
-              {item.name}
-            </span>
-            <MetricAccentBar variant="thin" className="w-full opacity-80" />
-          </span>
-          <SignatureInlineList
-            separator="pipe"
-            className="!flex-nowrap min-w-0 max-w-full gap-x-1.5 gap-y-0 overflow-hidden whitespace-nowrap text-[9.75px] font-medium leading-[1.08] text-[rgb(var(--text-secondary)/0.9)]"
-            itemClassName="inline-flex shrink-0 items-center whitespace-nowrap leading-[1.02]"
-            items={metadataItems.map((value, index) => (
-              <span
-                key={`${item.id}-${value}-${index}`}
-                className={cn(
-                  "inline-flex min-w-0 items-center align-middle",
-                  index === 0 ? "text-[rgb(var(--accent-strong)/0.98)]" : undefined,
-                )}
-              >
-                {value}
-              </span>
-            ))}
-          />
-        </span>
-      </span>
-      {formattedSummary ? (
-        <span className="inline-flex min-w-0 shrink-0 items-start gap-1.25 pt-[1px]">
-          <SignatureMiniPipe
-            className="mb-[1px] mt-[1px] h-auto self-stretch"
-            barClassName="h-full"
-          />
-          <span className="inline-flex max-w-[11.6rem] min-w-0 flex-col items-start gap-y-1 text-left">
-            <span className="inline-flex min-w-0 w-fit max-w-full flex-col items-start gap-y-[3px]">
-              <span className="min-w-0 max-w-full whitespace-nowrap text-[0.9rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.92)]">
-                Current Target
-              </span>
-              <MetricAccentBar variant="thin" className="w-full opacity-75" />
-            </span>
-            <span className="mt-[1px] inline-flex min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap text-[9.75px] font-medium leading-[1.08] text-[rgb(var(--text-secondary)/0.88)]">
-              <span className="min-w-0 flex-1 basis-0 overflow-hidden text-ellipsis whitespace-nowrap">
-                {formattedSummary}
-              </span>
-              {item.progressionModeLabel ? (
-                <>
-                  <SignatureMiniPipe className="h-[0.82em] shrink-0 self-center" barClassName="h-full" />
-                  <span
-                    className={cn(
-                      "shrink-0 text-[8.5px] font-semibold leading-none tracking-[0.12em]",
-                      item.progressionModeLabel === "Auto"
-                        ? "text-[rgb(var(--accent-strong)/0.98)]"
-                        : "text-[rgb(var(--accent-yellow-on)/0.96)]",
-                    )}
-                  >
-                    {item.progressionModeLabel.toUpperCase()}
-                  </span>
-                </>
-              ) : null}
-            </span>
-          </span>
-        </span>
-      ) : null}
-    </span>
+    <ExerciseCardStandardTitle
+      name={item.name}
+      metadata={<ExerciseCardMetadataLine items={metadataItems} />}
+      rightContent={normalizedSummary ?? undefined}
+      rightAccessory={item.progressionModeLabel ? (
+        <ExerciseCardProgressionStateInline label={item.progressionModeLabel.toUpperCase()} />
+      ) : undefined}
+    />
   );
 }
 
 const dayDetailInfoButtonClassName = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
 const dayDetailEditableChevronRailClassName = "!right-[0.58rem] !top-[0.58rem] !translate-y-0";
 const dayDetailEditableChevronClassName = cn("h-[1.05rem] w-[1.05rem] shrink-0", appTokens.historyChevronIcon);
+const dayDetailEditableTitleContainerClassName = "pr-[2.45rem] pb-[1.9rem]";
 
 export function DayDetailExerciseList({
   items,
@@ -243,7 +170,7 @@ export function DayDetailExerciseList({
             className={cn(appTokens.routineEditorReorderItem, mode === "editable" ? "relative" : undefined)}
             data-exercise-row-id={item.id}
           >
-            <div className={mode === "editable" ? "pr-[40px]" : undefined}>
+            <div className={mode === "editable" && renderRowActions ? "pr-[40px]" : undefined}>
               {mode === "editable" && interactive ? (
                 <ExerciseDisclosureCard
                   scope="day-detail"
@@ -260,6 +187,7 @@ export function DayDetailExerciseList({
                   badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
                   bodyClassName={appTokens.routineEditorReorderBody}
                   contentClassName="pr-[2.45rem]"
+                  titleContainerClassName={dayDetailEditableTitleContainerClassName}
                   subtitleTone="plain"
                   showLeadingVisual={policy.showMedia}
                   showAccentRail
@@ -293,7 +221,7 @@ export function DayDetailExerciseList({
                   contentClassName={mode === "editable" ? "pr-[2.45rem]" : "pl-3"}
                   showLeadingVisual={policy.showMedia}
                   showAccentRail
-                  hideEmptySummary={mode === "editable" || isStretchHub}
+                  hideEmptySummary
                   overlayActions={mode === "editable" ? editableOverlayActions : undefined}
                   overlayActionsClassName={mode === "editable" ? editableOverlayActionsClassName : undefined}
                   rightIcon={mode === "editable" ? editableChevron : undefined}

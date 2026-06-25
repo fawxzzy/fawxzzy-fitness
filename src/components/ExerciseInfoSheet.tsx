@@ -521,7 +521,7 @@ function getExerciseInfoMetricGridProps(items: MetricDatum[], variant: ExerciseI
     labelSlotClassName: exerciseInfoTightLabelSlotClassName,
     accentBarVariant: variant === "progression" ? "none" as const : undefined,
     autoColumns: true as const,
-    scrollable: true,
+    scrollable: false,
   };
 }
 
@@ -2851,14 +2851,14 @@ export function ExerciseInfoSheet({
                             <ExerciseInfoSectionHeader title="Overview" />
                             <HorizontalScrollHint
                               scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 [touch-action:pan-x] lg:flex-1"
-                              contentClassName="flex min-w-max gap-2 lg:min-w-0 lg:w-full lg:flex-nowrap lg:items-stretch"
+                              contentClassName="flex w-full min-w-0 flex-col gap-2 lg:min-w-0 lg:w-full lg:flex-nowrap lg:flex-row lg:items-stretch"
                             >
-                              <ExerciseInfoStripCard title="How To" className="h-full" widthClassName="w-[19rem] min-w-[19rem] lg:h-full lg:w-auto lg:min-w-0 lg:flex-[1.12]">
+                              <ExerciseInfoStripCard title="How To" className="h-full" widthClassName="w-full min-w-0 lg:h-full lg:w-auto lg:min-w-0 lg:flex-[1.12]">
                                 <p className="text-[13px] leading-[1.55] text-[rgb(var(--text)/0.94)] [text-wrap:pretty]">
                                   {overviewCopy || "Log a few sessions to unlock more specific cues and trends for this exercise."}
                                 </p>
                               </ExerciseInfoStripCard>
-                              <ExerciseInfoStripCard title="Context" className="h-full" widthClassName="w-[17rem] min-w-[17rem] lg:h-full lg:w-auto lg:min-w-0 lg:flex-[0.92]">
+                              <ExerciseInfoStripCard title="Context" className="h-full" widthClassName="w-full min-w-0 lg:h-full lg:w-auto lg:min-w-0 lg:flex-[0.92]">
                                 {overviewTags.length > 0 ? (
                                   <ExerciseSurfaceMetricGrid
                                     items={overviewTags}
@@ -2869,7 +2869,7 @@ export function ExerciseInfoSheet({
                                 )}
                               </ExerciseInfoStripCard>
                               {progressionDerived ? (
-                                <ExerciseInfoStripCard title="Current State" className="h-full" widthClassName="w-[19rem] min-w-[19rem] lg:h-full lg:w-auto lg:min-w-0 lg:flex-1">
+                                <ExerciseInfoStripCard title="Current State" className="h-full" widthClassName="w-full min-w-0 lg:h-full lg:w-auto lg:min-w-0 lg:flex-1">
                                   {(() => {
                                     const items: DetailSectionListItemInput[] = [
                                       { id: "state-signal", primary: progressionDerived.signalLabel, value: progressionDerived.methodLabel },

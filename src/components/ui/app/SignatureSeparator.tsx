@@ -20,7 +20,7 @@ export function SignatureMiniPipe({
 }
 
 export function SignatureDot({ className }: { className?: string }) {
-  return <span aria-hidden="true" className={cn("h-[5px] w-[5px] shrink-0 rounded-full bg-[rgb(var(--accent-divider-rgb)/1)] shadow-[0_0_8px_rgb(var(--accent-divider-rgb)/0.42)]", className)} />;
+  return <span aria-hidden="true" className={cn("inline-flex h-[5px] w-[5px] shrink-0 self-center rounded-full bg-[rgb(var(--accent-divider-rgb)/1)] shadow-[0_0_8px_rgb(var(--accent-divider-rgb)/0.42)]", className)} />;
 }
 
 export function SignatureSectionBar({ className }: { className?: string }) {

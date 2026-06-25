@@ -7,7 +7,7 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
-import type { ExerciseCardButtonProps, ExerciseCardContentVerticalAlign, ExerciseCardDensity, ExerciseCardMediaLeftCornerMode, ExerciseCardRightIconMode, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
+import type { ExerciseCardButtonProps, ExerciseCardContentVerticalAlign, ExerciseCardDensity, ExerciseCardMediaLeftCornerMode, ExerciseCardRightIconMode, ExerciseCardState, ExerciseCardTitleMetaMode, ExerciseCardVariant } from "@/components/ExerciseCard";
 import type { ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
 import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
@@ -47,6 +47,7 @@ export function ExerciseDisclosureCard({
   shellClassName,
   shellStyle,
   titleMeta,
+  titleMetaMode,
   overlayActions,
   overlayActionsClassName,
   trailingClassName,
@@ -54,6 +55,7 @@ export function ExerciseDisclosureCard({
   mediaClassName,
   bodyClassName,
   contentClassName,
+  titleContainerClassName,
   subtitleClassName,
   panelClassName,
   subtitleTone,
@@ -90,6 +92,7 @@ export function ExerciseDisclosureCard({
   shellClassName?: string;
   shellStyle?: CSSProperties;
   titleMeta?: ReactNode;
+  titleMetaMode?: ExerciseCardTitleMetaMode;
   overlayActions?: ReactNode;
   overlayActionsClassName?: string;
   trailingClassName?: string;
@@ -97,6 +100,7 @@ export function ExerciseDisclosureCard({
   mediaClassName?: string;
   bodyClassName?: string;
   contentClassName?: string;
+  titleContainerClassName?: string;
   subtitleClassName?: string;
   panelClassName?: string;
   subtitleTone?: "panel" | "plain";
@@ -116,7 +120,7 @@ export function ExerciseDisclosureCard({
   const isCompletedSessionCard = scope === "session-exercise" && state === "completed";
   const resolvedRightIconMode = rightIconMode ?? (scope === "session-exercise" ? "overlay" : "rail");
   const resolvedRightRailClassName = cn(
-    scope === "session-exercise" ? "!top-auto bottom-[0.9rem] !translate-y-0" : undefined,
+    scope === "session-exercise" && !rightRailClassName ? "!right-[0.58rem] !top-[0.58rem] !bottom-auto !translate-y-0" : undefined,
     rightRailClassName,
   );
 
@@ -147,6 +151,7 @@ export function ExerciseDisclosureCard({
           showLeadingVisual={showLeadingVisual}
           leadingVisual={leadingVisual}
           titleMeta={titleMeta}
+          titleMetaMode={titleMetaMode}
           overlayActions={overlayActions}
           overlayActionsClassName={overlayActionsClassName}
           buttonProps={{
@@ -163,6 +168,7 @@ export function ExerciseDisclosureCard({
           mediaClassName={mediaClassName}
           bodyClassName={bodyClassName}
           contentClassName={contentClassName}
+          titleContainerClassName={titleContainerClassName}
           subtitleClassName={subtitleClassName}
           subtitleTone={subtitleTone}
           showAccentRail={showAccentRail}

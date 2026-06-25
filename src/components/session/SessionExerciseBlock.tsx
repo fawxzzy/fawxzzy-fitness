@@ -49,6 +49,7 @@ export function AttachedQuickActionStrip({
   onPress,
   onSkip,
   className,
+  gridClassName = "grid-cols-[74px_minmax(0,1fr)]",
 }: {
   rowContract: {
     label: string;
@@ -66,6 +67,7 @@ export function AttachedQuickActionStrip({
   onPress: () => Promise<void> | void;
   onSkip?: () => Promise<void> | void;
   className?: string;
+  gridClassName?: string;
 }) {
   const actionRowClassName = rowContract.actionRowClassName;
   const skipActionClassName = rowContract.skipActionClassName;
@@ -81,7 +83,7 @@ export function AttachedQuickActionStrip({
   const skipLabel = rowContract.isSkipPending ? "Saving..." : rowContract.skipLabel;
 
   return (
-    <AttachedCardActionStripFrame className={className} gridClassName="grid-cols-[74px_minmax(0,1fr)]">
+    <AttachedCardActionStripFrame className={className} gridClassName={gridClassName}>
       <button
         type="button"
         onClick={onSkip}

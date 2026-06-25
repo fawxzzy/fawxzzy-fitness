@@ -352,15 +352,21 @@ export async function deleteSetAction(payload: {
     return liveSession;
   }
 
-  const { error } = await supabase
+  const { data: deletedSet, error } = await supabase
     .from("sets")
     .delete()
+    .select("id")
     .eq("id", setId)
     .eq("session_exercise_id", sessionExerciseId)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  if (!deletedSet) {
+    return { ok: false, error: "Set not found." };
   }
 
   return { ok: true };

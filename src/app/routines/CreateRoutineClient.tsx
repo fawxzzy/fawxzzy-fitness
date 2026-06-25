@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import {
   ROUTINE_SURFACE_TAG_CLASS_NAME,
   splitRoutineSummaryParts,
@@ -71,6 +71,37 @@ function renderRoutineSourceFooter(routine: RoutineBrowseCardItem) {
   return `Created ${formatDateShort(normalizedCreatedAt)}`;
 }
 
+function routineLooksConfigured(routine: RoutineBrowseCardItem) {
+  if ((routine.summaryParts?.length ?? 0) > 0) {
+    return true;
+  }
+
+  if ((routine.previewDays?.length ?? 0) > 0) {
+    return true;
+  }
+
+  const summaryText = typeof routine.summary === "string" ? routine.summary.trim() : "";
+  return summaryText.length > 0;
+}
+
+function resolvePreferredDuplicateSourceRoutine(routines: RoutineBrowseCardItem[]) {
+  if (routines.length === 0) {
+    return null;
+  }
+
+  const activeConfiguredRoutine = routines.find((routine) => routine.isActive && routineLooksConfigured(routine));
+  if (activeConfiguredRoutine) {
+    return activeConfiguredRoutine;
+  }
+
+  const configuredRoutine = routines.find((routine) => routineLooksConfigured(routine));
+  if (configuredRoutine) {
+    return configuredRoutine;
+  }
+
+  return routines.find((routine) => routine.isActive) ?? routines[0] ?? null;
+}
+
 export function CreateRoutineClient({
   backHref,
   routines,
@@ -90,6 +121,21 @@ export function CreateRoutineClient({
   const portalTarget = typeof document === "undefined"
     ? null
     : document.querySelector(".app-shell") ?? document.body;
+  const preferredDuplicateSourceRoutineId = resolvePreferredDuplicateSourceRoutine(routines)?.id ?? "";
+  const duplicateSourceRoutines = useMemo(() => {
+    const selectedOrPreferredId = selectedSourceRoutineId || preferredDuplicateSourceRoutineId;
+
+    return [...routines].sort((left, right) => {
+      const leftPriority = left.id === selectedOrPreferredId ? 0 : left.isActive ? 1 : routineLooksConfigured(left) ? 2 : 3;
+      const rightPriority = right.id === selectedOrPreferredId ? 0 : right.isActive ? 1 : routineLooksConfigured(right) ? 2 : 3;
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+
+      return left.name.localeCompare(right.name);
+    });
+  }, [preferredDuplicateSourceRoutineId, routines, selectedSourceRoutineId]);
   const normalizedDuplicateName = duplicateName.trim().toLowerCase();
   const duplicateNameConflict = normalizedDuplicateName.length > 0
     && routines.some((routine) => routine.name.trim().toLowerCase() === normalizedDuplicateName);
@@ -155,15 +201,15 @@ export function CreateRoutineClient({
       return;
     }
 
-    const firstRoutine = routines[0];
-    if (!firstRoutine) {
+    const preferredRoutine = resolvePreferredDuplicateSourceRoutine(routines);
+    if (!preferredRoutine) {
       return;
     }
 
-    setSelectedSourceRoutineId(firstRoutine.id);
+    setSelectedSourceRoutineId(preferredRoutine.id);
     setDuplicateNameError(null);
     setDuplicateName(resolveUniqueRoutineCopyName({
-      sourceName: firstRoutine.name,
+      sourceName: preferredRoutine.name,
       existingNames: routines.map((routine) => routine.name),
     }));
   }, [isDuplicateExpanded, routines, selectedSourceRoutineId]);
@@ -318,8 +364,8 @@ export function CreateRoutineClient({
                 className="min-h-0 flex flex-1 flex-col"
                 title="Choose Routine"
                 list={(
-                  <RoutineDuplicateChooserListViewport className="min-h-0 flex-1" contentClassName="space-y-2">
-                    {routines.map((routine) => (
+                  <RoutineDuplicateChooserListViewport contentClassName="space-y-2">
+                    {duplicateSourceRoutines.map((routine) => (
                       <RoutineChooserSourceCard
                         key={routine.id}
                         onPress={() => handleSelectSourceRoutine(routine.id)}

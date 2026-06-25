@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardContentVerticalAlign, type ExerciseCardMediaLeftCornerMode, type ExerciseCardRightIconMode } from "@/components/ExerciseCard";
+import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardContentVerticalAlign, type ExerciseCardMediaLeftCornerMode, type ExerciseCardRightIconMode, type ExerciseCardTitleMetaMode } from "@/components/ExerciseCard";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import {
@@ -46,6 +46,7 @@ type StandardExerciseRowProps = {
   titleContainerClassName?: string;
   titleClassName?: string;
   titleMeta?: ReactNode;
+  titleMetaMode?: ExerciseCardTitleMetaMode;
   subtitleClassName?: string;
   headerDivider?: ReactNode;
   summaryLabel?: string;
@@ -93,6 +94,7 @@ export function StandardExerciseRow({
   titleContainerClassName,
   titleClassName,
   titleMeta,
+  titleMetaMode,
   subtitleClassName,
   headerDivider,
   summaryLabel,
@@ -148,6 +150,7 @@ export function StandardExerciseRow({
     <ExerciseCard
       title={title ?? exercise.name}
       titleMeta={titleMeta}
+      titleMetaMode={titleMetaMode}
       subtitle={resolvedSubtitle}
       variant={variant}
       state={resolvedState}

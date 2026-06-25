@@ -1,7 +1,7 @@
 export type CardSemanticTone = "neutral" | "current" | "logged" | "completed" | "attention" | "pr";
 
 export const cardAccentRailClassNames: Record<CardSemanticTone, string> = {
-  neutral: "bg-transparent",
+  neutral: "bg-[rgb(var(--accent-divider-rgb)/0.96)]",
   current: "bg-[rgb(var(--selection-rgb)/0.78)]",
   logged: "bg-[rgb(var(--success-rgb)/0.74)]",
   completed: "bg-[rgb(var(--success-rgb)/1)]",

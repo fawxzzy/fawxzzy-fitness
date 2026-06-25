@@ -99,7 +99,11 @@ function getManifestIconPath(slug?: string | null): string | null {
   }
 
   if (!EXERCISE_ICON_SLUGS.has(normalizedSlug)) {
-    if (process.env.NODE_ENV !== "production" && !missingIconSlugLogCache.has(normalizedSlug)) {
+    if (
+      process.env.NODE_ENV !== "production"
+      && process.env.NEXT_PUBLIC_DEBUG_EXERCISE_ASSETS === "1"
+      && !missingIconSlugLogCache.has(normalizedSlug)
+    ) {
       missingIconSlugLogCache.add(normalizedSlug);
       console.warn(`Missing icon for slug: ${normalizedSlug}`);
     }

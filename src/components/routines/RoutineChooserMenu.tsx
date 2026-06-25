@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 
 export const ROUTINE_CHOOSER_OPTION_CARD_CLASS_NAME = "w-full rounded-[1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.92)] px-3 py-3 text-left shadow-[0_12px_34px_rgba(0,0,0,0.18)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]";
 export const ROUTINE_CHOOSER_OPTION_CARD_ACTIVE_CLASS_NAME = "border-[rgb(var(--accent-divider-rgb)/0.32)] bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.08),rgb(var(--surface-1-rgb)/0.96))]";
-export const ROUTINE_CHOOSER_DUPLICATE_PANEL_CLASS_NAME = "min-h-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-3 py-3";
+export const ROUTINE_CHOOSER_DUPLICATE_PANEL_CLASS_NAME = "min-h-0 overflow-hidden rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-3 py-3";
 export const ROUTINE_CHOOSER_DUPLICATE_PANEL_TITLE_CLASS_NAME = "text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.92)]";
 export const ROUTINE_CHOOSER_SOURCE_CARD_CLASS_NAME = "relative w-full overflow-hidden rounded-[1rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.22)]";
 export const ROUTINE_CHOOSER_SOURCE_CARD_SELECTED_CLASS_NAME = "border-[rgb(var(--accent-divider-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.08),rgb(var(--surface-2-rgb)/0.76))]";
@@ -59,13 +59,13 @@ export function RoutineDuplicateChooserPanel({
   className?: string;
 }) {
   return (
-    <div className={cn(ROUTINE_CHOOSER_DUPLICATE_PANEL_CLASS_NAME, className)}>
+    <div className={cn(ROUTINE_CHOOSER_DUPLICATE_PANEL_CLASS_NAME, "flex flex-col", className)}>
       <p className={ROUTINE_CHOOSER_DUPLICATE_PANEL_TITLE_CLASS_NAME}>
         {title}
       </p>
       {list}
       {footer ? (
-        <div className="space-y-3 pt-3">
+        <div className="shrink-0 space-y-3 pt-3">
           {footer}
         </div>
       ) : null}

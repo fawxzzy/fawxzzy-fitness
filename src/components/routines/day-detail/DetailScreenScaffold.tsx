@@ -12,6 +12,7 @@ export function DetailScreenScaffold({
   className,
   railClassName,
   floatingHeaderRailClassName,
+  expandToViewport = false,
 }: {
   recipe: ScreenContractName;
   floatingHeader: ReactNode;
@@ -19,18 +20,21 @@ export function DetailScreenScaffold({
   className?: string;
   railClassName?: string;
   floatingHeaderRailClassName?: string;
+  expandToViewport?: boolean;
 }) {
+  const viewportWidthClassName = expandToViewport ? "max-w-none" : undefined;
+
   return (
     <ScrollScreenWithBottomActions
       floatingHeader={(
-        <ContentRail className={cn("py-1 pt-3", floatingHeaderRailClassName)}>
+        <ContentRail className={cn("py-1 pt-3", viewportWidthClassName, floatingHeaderRailClassName)}>
           <ScreenScaffold recipe={recipe} className="w-full">
             {floatingHeader}
           </ScreenScaffold>
         </ContentRail>
       )}
     >
-      <ContentRail className={cn("flex min-h-0 flex-1 flex-col gap-3 py-1", railClassName)}>
+      <ContentRail className={cn("flex min-h-0 flex-1 flex-col gap-3 py-1", viewportWidthClassName, railClassName)}>
         <ScreenScaffold recipe={recipe} className={cn("w-full", className)}>
           {children}
         </ScreenScaffold>

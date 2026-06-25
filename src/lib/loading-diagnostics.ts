@@ -182,10 +182,6 @@ export function isLoadingDiagnosticsEnabled() {
     return true;
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    return true;
-  }
-
   return shouldUseBrowserStorageOverride();
 }
 

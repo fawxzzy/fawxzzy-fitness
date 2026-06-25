@@ -6,6 +6,7 @@ import { StateChevron } from "@/components/ui/StateChevron";
 import { MetricAccentBar, SurfaceMetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { appTokens } from "@/components/ui/app/tokens";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
+import { ExerciseCardStandardTitle } from "@/components/workout/ExerciseCardStandardTitle";
 import { cn } from "@/lib/cn";
 import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
@@ -72,6 +73,7 @@ type HistoryDetailExerciseCardProps = {
   };
   summary: string;
   summaryLabel: string;
+  headerMetadata?: ReactNode;
   metadata?: ReactNode;
   badgeText?: string;
   badgeItems?: string[];
@@ -102,6 +104,7 @@ export function HistoryDetailExerciseCard({
   exercise,
   summary,
   summaryLabel,
+  headerMetadata,
   metadata,
   badgeText,
   badgeItems = [],
@@ -119,7 +122,6 @@ export function HistoryDetailExerciseCard({
   surface = "history-detail",
   dataSurface = "history-detail",
   compactBadgePlacement = "trailing",
-  combineCompactSummaryLabel = true,
   expanded,
   onPress,
   showLeadingVisual = true,
@@ -151,12 +153,18 @@ export function HistoryDetailExerciseCard({
   const compactTrailingMeta = density === "compact" && compactBadgePlacement === "trailing" && activeBadge
     ? <SignatureMetaTag className="text-[10.5px] tracking-[0.14em]">{activeBadge}</SignatureMetaTag>
     : null;
-  const shouldCombineCompactSummary = density === "compact" && combineCompactSummaryLabel;
-  const resolvedSummary = shouldCombineCompactSummary && summaryLabel.trim().length > 0
-    ? `${summaryLabel} | ${summary}`
-    : summary;
   const topAccentBar = shouldRenderTopAccentBar ? <MetricAccentBar variant="thin" /> : null;
-  const hasSupportingStack = Boolean(metadata) || hasMetrics || detailSections.length > 0 || Boolean(footerContent);
+  const bodyMetadata = headerMetadata ? null : metadata;
+  const titleNode = (
+    <ExerciseCardStandardTitle
+      name={exercise.name}
+      metadata={headerMetadata}
+      rightTitle={summaryLabel}
+      rightContent={summary.trim().length > 0 ? summary : undefined}
+      rightColumnClassName={density === "compact" ? "max-w-[12.2rem]" : "max-w-[14rem]"}
+    />
+  );
+  const hasSupportingStack = Boolean(bodyMetadata) || hasMetrics || detailSections.length > 0 || Boolean(footerContent);
   const shouldUseDetailedCutoutVisual = density === "detailed" && Boolean(leadingVisual);
   const detailCutoutSize = mediaRailWidthOverride ?? 104;
   const resolvedRightIcon = !isInteractive
@@ -178,9 +186,10 @@ export function HistoryDetailExerciseCard({
       data-history-expanded={expanded ? "true" : "false"}
     >
       <StandardExerciseRow
+        title={titleNode}
         exercise={exercise}
-        summaryContent={resolvedSummary}
-        summaryLabel={density === "compact" && shouldCombineCompactSummary ? undefined : summaryLabel}
+        summaryContent={undefined}
+        summaryLabel={undefined}
         titleMeta={resolvedMetaBadge}
         onPress={onPress}
         className={cn("w-full", appTokens.historyExerciseCardShell, className)}
@@ -193,6 +202,7 @@ export function HistoryDetailExerciseCard({
         surface={surface}
         showLeadingVisual={shouldUseDetailedCutoutVisual ? false : showLeadingVisual}
         subtitleTone="plain"
+        hideEmptySummary
         rightIconMode="overlay"
         titleContainerClassName={density === "compact" ? "pr-[5.3rem]" : "pr-[2.35rem] space-y-0.5"}
         rightRailClassName={density === "compact" ? "right-[0.78rem] bottom-[0.58rem] top-auto translate-y-0" : "right-[0.85rem] top-1/2 -translate-y-1/2"}
@@ -208,7 +218,7 @@ export function HistoryDetailExerciseCard({
       >
         {hasSupportingStack ? (
           <div className={cn(density === "compact" ? appTokens.historyExerciseCardCompactStack : appTokens.historyExerciseCardDetailedStack, density === "detailed" ? "space-y-2.5 pt-1" : undefined)}>
-            {metadata ? (
+            {bodyMetadata ? (
               <div
                 className={cn(
                   EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME,
@@ -216,7 +226,7 @@ export function HistoryDetailExerciseCard({
                 )}
                 data-history-card-metadata="true"
               >
-                {metadata}
+                {bodyMetadata}
               </div>
             ) : null}
             {hasMetrics ? (

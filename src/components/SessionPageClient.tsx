@@ -328,6 +328,8 @@ export function SessionPageClient({
               userId={userId}
               sessionId={sessionId}
               unitLabel={unitLabel}
+              cycleLengthDays={routineCycleLengthDays ?? null}
+              sessionDayIndex={sessionDayIndex ?? null}
               exercises={exercises}
               selectedExerciseId={selectedExerciseId}
               onSelectedExerciseIdChange={setSelectedExerciseId}

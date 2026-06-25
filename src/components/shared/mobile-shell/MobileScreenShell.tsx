@@ -63,7 +63,7 @@ function MobileScreenShellFrame({
     : undefined;
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
+    if (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_DEBUG_MOBILE_SHELL !== "1") return;
     const hasDeprecatedScrollHeader = Boolean(scrollContentRef.current?.querySelector("[data-shared-screen-header='true']"));
     if (!hasDeprecatedScrollHeader) return;
 

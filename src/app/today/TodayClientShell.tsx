@@ -39,6 +39,7 @@ type TodayPayload = {
     how_to_short?: string | null;
     image_icon_path?: string | null;
     slug?: string | null;
+    progressionStateLabel?: string | null;
     loggedSetCount?: number;
     isSkipped?: boolean;
     targetSetsMin?: number | null;

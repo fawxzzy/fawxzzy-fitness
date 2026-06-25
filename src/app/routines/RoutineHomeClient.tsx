@@ -658,8 +658,6 @@ export function RoutineHomeClient({
                 const displayDay = { ...day, isRest: displayIsRest };
                 const isExpanded = expandedDayId === day.id;
                 const isThisTogglePending = restTogglePendingDayId === day.id && isRestTogglePending;
-                const hasCollapsedReorderHandle = Boolean(reorderRoutineDaysAction && displayDays.length > 1 && !isExpanded);
-
                 return (
                   <RoutineOverviewDayCard
                     key={day.id}
@@ -694,10 +692,7 @@ export function RoutineHomeClient({
                     wrapper={(card) => (
                       <div className="relative min-w-0" data-routine-day-id={day.id}>
                         <div
-                          className={cn(
-                            "pointer-events-none absolute top-px z-[4]",
-                            hasCollapsedReorderHandle ? "left-[calc(2.55rem+8px)]" : "left-[8px]",
-                          )}
+                          className="pointer-events-none absolute left-[8px] top-px z-[4]"
                         >
                           <button
                             type="button"

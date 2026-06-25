@@ -20,21 +20,24 @@ import {
 } from "@/lib/offline/set-log-reconciliation";
 import { buildSessionDraftStorageKey, isOfflineSnapshotStale } from "@/lib/offline/client-storage";
 import { useToast } from "@/components/ui/ToastProvider";
-import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
-import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { ACTION_CHROME_CONTROL_CLASS_NAME, ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
-import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
+import {
+  GlowSwitch,
+  GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_CLASS_NAME,
+  GLOW_SWITCH_STANDARD_STATE_CLASS_NAME,
+} from "@/components/ui/GlowSwitch";
 import { appTokens } from "@/components/ui/app/tokens";
-import { ChevronDownIcon } from "@/components/ui/Chevrons";
-import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
+import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { MeasurementPanelV2, type MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
+import {
+  resolveGoalModality,
+} from "@/lib/exercise-goal-validation";
 import { getLiveSetInputOrder, type LiveSetMetricFlags } from "@/lib/live-set-input-order";
 import { formatMeasurementSummaryItems, formatSetPositionLabel } from "@/lib/measurement-display";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
@@ -44,16 +47,10 @@ import {
   removeDeletedSetIdentityKeys,
 } from "@/lib/session-deleted-set-identities";
 import { deriveSimpleSessionPrToast } from "@/lib/session-set-entry";
-import { CurrentSessionProgressionSurface } from "@/components/session/CurrentSessionProgressionSurface";
-import { MetricAccentBar } from "@/components/ui/MetricItem";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { toQuickLogTargetFromSuggestedValues, type SessionQuickLogTarget } from "@/lib/session-quick-log";
-import {
-  appendProgressionPlaybookFormData,
-  buildProgressionPlaybookConfigFromFormState,
-  buildProgressionPlaybookFormSnapshot,
-  type ProgressionPlaybookFormState,
-} from "@/lib/progression-playbook-form-state";
+import { type ProgressionPlaybookFormState } from "@/lib/progression-playbook-form-state";
 import { estimateCaloriesFromExerciseMetrics, resolveCaloriesEstimationMethod, type CalorieEstimationExerciseInput } from "@/lib/calorie-estimation";
 import type { ProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { type PromotionStepFieldId } from "@/lib/session-progression-display";
@@ -81,7 +78,6 @@ type AddSetPayload = {
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
 
 const FAILURE_NOTE_SENTINEL = "__session_failure__";
-
 function parseDurationInput(rawValue: string): number | null {
   const value = rawValue.trim();
   if (!value) return null;
@@ -135,6 +131,9 @@ function toDisplaySet(set: SetRow): DisplaySet {
   return {
     ...set,
     stableId: resolveStableSetId(set),
+    pending: false,
+    queueItemId: undefined,
+    queueStatus: undefined,
   };
 }
 
@@ -302,18 +301,26 @@ export function SetLoggerCard({
   routineDayExerciseId,
   planTargetsHash,
   deleteSetAction,
-  secondaryActionLabel,
-  onSecondaryAction,
+  secondaryActionLabel: _secondaryActionLabel,
+  onSecondaryAction: _onSecondaryAction,
   progressionFormState,
-  progressionStepPolicy,
-  visiblePromotionStepFields,
+  progressionStepPolicy: _progressionStepPolicy,
+  visiblePromotionStepFields: _visiblePromotionStepFields,
   progressionSelectedMetrics,
   calorieEstimationExercise,
+  exerciseMeasurementType,
+  exerciseEquipment,
+  exerciseMovementPattern,
+  exerciseName,
+  targetSetsMin,
+  targetSetsMax,
+  cycleLengthDays: _cycleLengthDays,
+  progressionExampleDayNumber: _progressionExampleDayNumber,
   showAllMeasurementInputs = false,
   showFailureToggle = false,
-  showProgressionControls = true,
-  updateProgressionAction,
-  bottomDockCenter,
+  showProgressionControls: _showProgressionControls = true,
+  updateProgressionAction: _updateProgressionAction,
+  bottomDockCenter: _bottomDockCenter,
 }: {
   userId: string;
   sessionId: string;
@@ -354,6 +361,14 @@ export function SetLoggerCard({
   visiblePromotionStepFields?: PromotionStepFieldId[] | null;
   progressionSelectedMetrics?: Array<"reps" | "weight" | "time" | "distance" | "calories">;
   calorieEstimationExercise?: CalorieEstimationExerciseInput | null;
+  exerciseMeasurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
+  exerciseEquipment?: string | null;
+  exerciseMovementPattern?: string | null;
+  exerciseName?: string | null;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
+  cycleLengthDays?: number | null;
+  progressionExampleDayNumber?: number | null;
   showAllMeasurementInputs?: boolean;
   showFailureToggle?: boolean;
   showProgressionControls?: boolean;
@@ -381,26 +396,18 @@ export function SetLoggerCard({
   const [isWarmup, setIsWarmup] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
   const [didApplyLastTarget, setDidApplyLastTarget] = useState(false);
-  const [progressionDraft, setProgressionDraft] = useState<ProgressionPlaybookFormState | null>(progressionFormState ?? null);
-  const [progressionSaveError, setProgressionSaveError] = useState<string | null>(null);
   const resolvedIsWarmup = isWarmup;
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLogRequestPending, setIsLogRequestPending] = useState(false);
-  const incomingProgressionSnapshot = useMemo(
-    () => progressionFormState ? buildProgressionPlaybookFormSnapshot(progressionFormState) : null,
-    [progressionFormState],
-  );
-  const lastSavedProgressionSnapshotRef = useRef<string | null>(incomingProgressionSnapshot);
-  const lastIncomingProgressionSnapshotRef = useRef<string | null>(incomingProgressionSnapshot);
-  const lastFailedProgressionSnapshotRef = useRef<string | null>(null);
-  const [isSecondaryPending, setIsSecondaryPending] = useState(false);
+  const lastInitializedSessionExerciseIdRef = useRef<string | null>(null);
   const [sets, setSets] = useState<DisplaySet[]>(() => initialSets.map(toDisplaySet));
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(() => initialSets.map(toDisplaySet));
   const [deletingSetIds, setDeletingSetIds] = useState<string[]>([]);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
+  const latestSetsRef = useRef<DisplaySet[]>(initialSets.map(toDisplaySet));
   const draftStorageWriteTimeoutRef = useRef<number | null>(null);
   const draftStorageIdleCallbackRef = useRef<number | null>(null);
   const draftStorageSnapshotRef = useRef<{ key: string; payload: string } | null>(null);
@@ -506,6 +513,11 @@ export function SetLoggerCard({
   }, [defaultDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, unitLabel]);
 
   useEffect(() => {
+    if (lastInitializedSessionExerciseIdRef.current === sessionExerciseId) {
+      return;
+    }
+
+    lastInitializedSessionExerciseIdRef.current = sessionExerciseId;
     resetLoggerMeasurementInputs();
     setRpe("");
     setIsWarmup(false);
@@ -514,6 +526,7 @@ export function SetLoggerCard({
     setError(null);
     locallyDeletedSetIdentityKeysRef.current = new Set();
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
+    latestSetsRef.current = nextDisplaySets;
     setSets(nextDisplaySets);
     setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = nextDisplaySets.length;
@@ -559,9 +572,14 @@ export function SetLoggerCard({
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
     setSets((current) => {
       const next = mergeDisplaySets(current, nextDisplaySets);
+      latestSetsRef.current = next;
       return areSetListsEquivalent(current, next) ? current : next;
     });
   }, [initialSets, sessionExerciseId]);
+
+  useEffect(() => {
+    onSetsChange?.(sets);
+  }, [onSetsChange, sets]);
 
   useEffect(() => {
     if (!onSetCountChange) {
@@ -576,10 +594,6 @@ export function SetLoggerCard({
     lastPublishedSetCountRef.current = nextPublishedCount;
     onSetCountChange(nextPublishedCount);
   }, [onSetCountChange, sets.length]);
-
-  useEffect(() => {
-    onSetsChange?.(sets);
-  }, [onSetsChange, sets]);
 
   useEffect(() => {
     const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
@@ -747,6 +761,7 @@ export function SetLoggerCard({
 
   useEffect(() => {
     setAnimatedSets(sets);
+    latestSetsRef.current = sets;
   }, [sets]);
 
   useEffect(() => {
@@ -874,77 +889,6 @@ export function SetLoggerCard({
       isCancelled = true;
     };
   }, [sessionExerciseId, userId]);
-
-  useEffect(() => {
-    if (!incomingProgressionSnapshot || !progressionFormState) {
-      return;
-    }
-
-    if (incomingProgressionSnapshot === lastIncomingProgressionSnapshotRef.current) {
-      return;
-    }
-
-    lastIncomingProgressionSnapshotRef.current = incomingProgressionSnapshot;
-    lastSavedProgressionSnapshotRef.current = incomingProgressionSnapshot;
-    lastFailedProgressionSnapshotRef.current = null;
-    setProgressionDraft(progressionFormState);
-    setProgressionSaveError(null);
-  }, [incomingProgressionSnapshot, progressionFormState]);
-
-  const progressionDraftSnapshot = useMemo(
-    () => progressionDraft ? buildProgressionPlaybookFormSnapshot(progressionDraft) : null,
-    [progressionDraft],
-  );
-  const canPersistProgressionDraft = useMemo(
-    () => progressionDraft ? (progressionDraft.progressionPlaybookId === "" || buildProgressionPlaybookConfigFromFormState(progressionDraft) !== null) : false,
-    [progressionDraft],
-  );
-
-  useEffect(() => {
-    if (!updateProgressionAction || !progressionDraft || !progressionDraftSnapshot || !routineDayExerciseId) {
-      return;
-    }
-
-    if (
-      !canPersistProgressionDraft
-      || progressionDraftSnapshot === lastSavedProgressionSnapshotRef.current
-      || progressionDraftSnapshot === lastFailedProgressionSnapshotRef.current
-    ) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      const formData = new FormData();
-      formData.set("sessionId", sessionId);
-      formData.set("sessionExerciseId", sessionExerciseId);
-      formData.set("exerciseRowId", routineDayExerciseId);
-      appendProgressionPlaybookFormData(formData, progressionDraft);
-
-      void updateProgressionAction(formData).then((result) => {
-        if (!result.ok) {
-          lastFailedProgressionSnapshotRef.current = progressionDraftSnapshot;
-          setProgressionSaveError(result.error || "Could not save progression.");
-          toast.error(result.error || "Could not save progression.");
-          return;
-        }
-
-        lastSavedProgressionSnapshotRef.current = progressionDraftSnapshot;
-        lastFailedProgressionSnapshotRef.current = null;
-        setProgressionSaveError(null);
-      });
-    }, 280);
-
-    return () => window.clearTimeout(timeout);
-  }, [
-    canPersistProgressionDraft,
-    progressionDraft,
-    progressionDraftSnapshot,
-    routineDayExerciseId,
-    sessionExerciseId,
-    sessionId,
-    toast,
-    updateProgressionAction,
-  ]);
 
   const resolvedIsFailure = showFailureToggle && !resolvedIsWarmup && isFailure;
   const isSaveDisabled = isSubmitting || isLogRequestPending;
@@ -1106,7 +1050,11 @@ export function SetLoggerCard({
       logRequestInFlightRef.current = true;
       setIsSubmitting(true);
       setIsLogRequestPending(true);
-      setSets((current) => [...current, optimisticSet]);
+      setSets((current) => {
+        const next = [...current, optimisticSet];
+        latestSetsRef.current = next;
+        return next;
+      });
     });
     advanceLoggerAfterOptimisticLog({
       nextSetIndex,
@@ -1145,19 +1093,21 @@ export function SetLoggerCard({
         },
       });
 
-      setSets((current) =>
-        current.map((item) =>
+      setSets((current) => {
+        const next = current.map((item) =>
           item.stableId === clientLogId
             ? {
                 ...item,
                 queueItemId: queued?.id ?? item.queueItemId,
                 pending: true,
-                queueStatus: "queued",
+                queueStatus: "queued" as const,
                 user_id: "queued",
               }
             : item,
-        ),
-      );
+        );
+        latestSetsRef.current = next;
+        return next;
+      });
       const message = queued ? "Offline: set queued for sync." : "Offline: unable to save set locally.";
       setError(message);
       if (queued) {
@@ -1206,19 +1156,21 @@ export function SetLoggerCard({
           },
         });
 
-        setSets((current) =>
-          current.map((item) =>
+        setSets((current) => {
+          const next = current.map((item) =>
             item.stableId === clientLogId
               ? {
                   ...item,
                   queueItemId: queued?.id ?? item.queueItemId,
                   pending: true,
-                  queueStatus: "queued",
+                  queueStatus: "queued" as const,
                   user_id: "queued",
                 }
               : item,
-          ),
-        );
+          );
+          latestSetsRef.current = next;
+          return next;
+        });
         const message = queued ? "Could not reach server. Set queued for sync." : (!result.ok ? result.error : "Could not log set.");
         setError(message);
         if (queued) {
@@ -1230,9 +1182,16 @@ export function SetLoggerCard({
         return;
       }
 
-      setSets((current) => current.map((item) => (item.stableId === clientLogId ? toDisplaySet(result.data!.set) : item)));
+      const previousSetsBeforePersist = latestSetsRef.current;
+      const savedSet = toDisplaySet(result.data!.set);
+      const nextSets = previousSetsBeforePersist.some((item) => item.stableId === clientLogId)
+        ? previousSetsBeforePersist.map((item) => (item.stableId === clientLogId ? savedSet : item))
+        : sortSetsByIndex(mergeByStableSetId(previousSetsBeforePersist, [savedSet]));
+      latestSetsRef.current = nextSets;
+      setSets(nextSets);
+      onSetsChange?.(nextSets);
       const prToast = deriveSimpleSessionPrToast({
-        previousSets: sets,
+        previousSets: previousSetsBeforePersist.filter((item) => item.stableId !== clientLogId),
         candidate: result.data!.set,
         fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
       });
@@ -1256,19 +1215,21 @@ export function SetLoggerCard({
           weightUnit: selectedWeightUnit,
         },
       });
-      setSets((current) =>
-        current.map((item) =>
+      setSets((current) => {
+        const next = current.map((item) =>
           item.stableId === clientLogId
             ? {
                 ...item,
                 queueItemId: queued?.id ?? item.queueItemId,
                 pending: true,
-                queueStatus: "queued",
+                queueStatus: "queued" as const,
                 user_id: "queued",
               }
             : item,
-        ),
-      );
+        );
+        latestSetsRef.current = next;
+        return next;
+      });
       const message = queued ? "Request failed. Set queued for sync." : "Could not log set.";
       setError(message);
       if (queued) {
@@ -1322,64 +1283,6 @@ export function SetLoggerCard({
   }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
   const liveLogButtonPrefix = resolvedIsWarmup ? "Log Warm-Up" : (resolvedIsFailure ? "Log Failure" : "Log");
   const liveLogButtonLabel = liveSummaryItems.length > 0 ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(" • ")}` : liveLogButtonPrefix;
-  const saveSetPrimaryActions = useMemo(
-    () => bottomDockCenter ? (
-      <BottomActionTriad
-        className="max-w-full overflow-x-clip grid-cols-[minmax(84px,0.72fr)_minmax(6.5rem,7.8rem)_minmax(0,1.16fr)]"
-        tertiaryClassName="[&>*]:max-w-[7.35rem]"
-        secondary={onSecondaryAction ? (
-          <BottomDockButton
-            type="button"
-            intent="toggleActive"
-            className="!min-h-[44px]"
-            disabled={isSecondaryPending}
-            onClick={async () => {
-              setIsSecondaryPending(true);
-              try {
-                await onSecondaryAction();
-              } finally {
-                setIsSecondaryPending(false);
-              }
-            }}
-          >
-            {isSecondaryPending ? "Opening..." : (secondaryActionLabel ?? "View")}
-          </BottomDockButton>
-        ) : <div aria-hidden="true" />}
-        tertiary={bottomDockCenter}
-        primary={(
-          <BottomDockButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} intent="positive" className="!min-h-[44px]">
-            {liveLogButtonLabel}
-          </BottomDockButton>
-        )}
-      />
-    ) : (
-      <BottomActionDock
-        left={onSecondaryAction ? (
-          <DockButton
-            type="button"
-            intent="toggleActive"
-            disabled={isSecondaryPending}
-            onClick={async () => {
-              setIsSecondaryPending(true);
-              try {
-                await onSecondaryAction();
-              } finally {
-                setIsSecondaryPending(false);
-              }
-            }}
-          >
-            {isSecondaryPending ? "Opening..." : (secondaryActionLabel ?? "View")}
-          </DockButton>
-        ) : <div aria-hidden="true" />}
-        right={(
-          <DockButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} intent="positive">
-            <span className="bottom-action__label">{liveLogButtonLabel}</span>
-          </DockButton>
-        )}
-      />
-    ),
-    [bottomDockCenter, handleLogSet, isSaveDisabled, isSecondaryPending, liveLogButtonLabel, onSecondaryAction, secondaryActionLabel],
-  );
   const applyHintValues = useCallback((values: SessionTargetHint["suggestedValues"] | null | undefined) => {
     if (!values) return;
 
@@ -1397,8 +1300,6 @@ export function SetLoggerCard({
     setError(null);
     toast.success("Applied to current set.");
   }, [toast]);
-
-
   async function handleDeleteSet(set: DisplaySet) {
     if (deletingSetIds.includes(set.stableId)) {
       return;
@@ -1406,12 +1307,18 @@ export function SetLoggerCard({
 
     setDeletingSetIds((current) => current.includes(set.stableId) ? current : [...current, set.stableId]);
 
-    if (set.pending || set.queueStatus) {
+    const isQueuedOnlySet = Boolean(set.pending || set.queueStatus) && (set.id === set.stableId || set.user_id === "queued");
+
+    if (isQueuedOnlySet) {
       if (set.queueItemId) {
         await removeSetLogQueueItem(set.queueItemId);
       }
       addDeletedSetIdentityKeys(locallyDeletedSetIdentityKeysRef.current, set);
-      setSets((current) => current.filter((item) => item.stableId !== set.stableId));
+      setSets((current) => {
+        const next = current.filter((item) => item.stableId !== set.stableId);
+        latestSetsRef.current = next;
+        return next;
+      });
       toast.success("Queued set removed.");
       setDeletingSetIds((current) => current.filter((item) => item !== set.stableId));
       return;
@@ -1424,7 +1331,11 @@ export function SetLoggerCard({
     }
 
     addDeletedSetIdentityKeys(locallyDeletedSetIdentityKeysRef.current, set);
-    setSets((current) => current.filter((item) => item.stableId !== set.stableId));
+    setSets((current) => {
+      const next = current.filter((item) => item.stableId !== set.stableId);
+      latestSetsRef.current = next;
+      return next;
+    });
 
     try {
       const result = await deleteSetAction({
@@ -1439,6 +1350,7 @@ export function SetLoggerCard({
           if (current.some((item) => item.stableId === set.stableId)) return current;
           const next = [...current];
           next.splice(removalIndex, 0, set);
+          latestSetsRef.current = next;
           return next;
         });
         toast.error(result.error || "Could not remove set.");
@@ -1478,161 +1390,135 @@ export function SetLoggerCard({
   ];
   const historyRows = historyRowsSource.filter((value): value is HistoryRow => value !== null && value.items.length > 0);
   const applyLastRow = historyRows.find((row) => row.key === "last-time" && row.applyValues !== null) ?? null;
-  const progressionInlineControls = showProgressionControls && progressionDraft && routineDayExerciseId ? (
-    <CurrentSessionProgressionSurface
-      draft={progressionDraft}
-      onChange={(nextValue) => {
-        lastFailedProgressionSnapshotRef.current = null;
-        setProgressionDraft(nextValue);
-        setProgressionSaveError(null);
-      }}
-      weightUnit={unitLabel === "kg" ? "kg" : "lbs"}
-      distanceUnit={distanceUnit}
-      progressionStepPolicy={progressionStepPolicy}
-      visiblePromotionStepFields={visiblePromotionStepFields ?? null}
-    />
-  ) : null;
-  const sessionSecondaryToggleCardClassName = "w-[calc((100%-1.5rem)/3)] min-w-0 flex-1 basis-0 space-y-[5px] text-center";
+  const handleToggleLastTarget = useCallback(() => {
+    if (didApplyLastTarget) {
+      resetLoggerMeasurementInputs();
+      setDidApplyLastTarget(false);
+      setError(null);
+      return;
+    }
 
-  const lastTargetToggleRow = applyLastRow ? (
-    <div className={sessionSecondaryToggleCardClassName}>
-      <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
-        <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-          {didApplyLastTarget ? "Clear Last" : "Use Last"}
-        </p>
-        <MetricAccentBar variant="thin" className="w-full opacity-80" />
-      </div>
-      <button
-        type="button"
-        className={cn(
-          ACTION_CHROME_CONTROL_CLASS_NAME,
-          ACTION_CHROME_SEGMENTED_CLASS_NAME,
-          tapFeedbackClass,
-          "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold tracking-[0.04em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
-        )}
-        aria-pressed={didApplyLastTarget}
-        aria-label={didApplyLastTarget ? "Clear last target" : "Apply last target"}
-        onClick={() => {
-          if (didApplyLastTarget) {
-            resetLoggerMeasurementInputs();
-            setDidApplyLastTarget(false);
-            setError(null);
-            return;
-          }
-          if (applyLastRow.applyValues) {
-            applyHintValues(applyLastRow.applyValues);
-            setDidApplyLastTarget(true);
-          }
-        }}
+    if (applyLastRow?.applyValues) {
+      applyHintValues(applyLastRow.applyValues);
+      setDidApplyLastTarget(true);
+    }
+  }, [applyHintValues, applyLastRow, didApplyLastTarget, resetLoggerMeasurementInputs]);
+  const attachedLoggerActionStrip = useMemo(
+    () => (
+      <AttachedCardActionStripFrame
+        className="rounded-none border-x-0 border-b-0 border-t-[rgb(var(--accent-divider-rgb)/0.3)] bg-[rgb(var(--surface-1-rgb)/0.18)]"
+        gridClassName="grid-cols-[minmax(108px,0.78fr)_minmax(0,1.92fr)]"
       >
-        <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-          {didApplyLastTarget ? (
-            <span className="measurement-toggle__label">Clear</span>
-          ) : (
-            <SignatureInlineList
-              items={applyLastRow.items}
-              separator="dot"
-              className={cn(
-                appTokens.currentSessionLoggerSummaryText,
-                "measurement-toggle__label min-w-0 justify-center whitespace-normal break-words text-center text-[11px] font-semibold leading-[1.15] text-inherit",
-                "[&_.signature-inline-list__item]:whitespace-nowrap",
-              )}
-            />
-          )}
-          <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-        </span>
-      </button>
-    </div>
-  ) : null;
-  const failureToggleRow = showFailureToggle ? (
-    <div className={sessionSecondaryToggleCardClassName}>
-        <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
-          <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-            Reps / Failure Toggle
-          </p>
-          <MetricAccentBar variant="thin" className="w-full opacity-80" />
-        </div>
         <button
           type="button"
+          onClick={handleToggleLastTarget}
+          disabled={!applyLastRow && !didApplyLastTarget}
+          data-bottom-action-intent="info"
           className={cn(
-            ACTION_CHROME_CONTROL_CLASS_NAME,
-            ACTION_CHROME_SEGMENTED_CLASS_NAME,
-            tapFeedbackClass,
-            "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+            getAttachedCardActionButtonClassName({
+              intent: "info",
+              className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
+            }),
+            !applyLastRow && !didApplyLastTarget
+              ? "border-r-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
+              : undefined,
           )}
-          aria-pressed={resolvedIsFailure}
-          aria-label={resolvedIsFailure ? "Failure target enabled" : "Failure target disabled"}
-          onClick={() => {
-            setIsFailure((current) => {
-              const nextValue = !current;
-              if (nextValue) {
-                setIsWarmup(false);
+        >
+          <span className="bottom-action__label">
+            {didApplyLastTarget ? "Clear Last" : (applyLastRow ? "Use Last" : "No Last Setup")}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={handleLogSet}
+          disabled={isSaveDisabled}
+          data-bottom-action-intent="positive"
+          className={cn(
+            getAttachedCardActionButtonClassName({
+              intent: "positive",
+              className: "!h-12 rounded-br-[var(--card-radius)] focus-visible:ring-[rgb(var(--accent)/0.24)]",
+            }),
+            isSaveDisabled
+              ? "border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
+              : undefined,
+          )}
+        >
+          <span className="bottom-action__label">
+            {liveLogButtonLabel}
+          </span>
+        </button>
+      </AttachedCardActionStripFrame>
+    ),
+    [applyLastRow, didApplyLastTarget, handleLogSet, handleToggleLastTarget, isSaveDisabled, liveLogButtonLabel],
+  );
+  const measurementAuxiliaryFields = useMemo<MeasurementPanelAuxiliaryField[]>(() => {
+    const warmupField: MeasurementPanelAuxiliaryField = {
+      title: "Warm-Up",
+      input: null,
+      inlineLabel: "WARM-UP",
+      useInlineFieldShell: false,
+      showEmptyValue: false,
+      hasValue: true,
+      renderInput: () => (
+        <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
+          <GlowSwitch
+            checked={resolvedIsWarmup}
+            ariaLabel={resolvedIsWarmup ? "Warm-up set enabled" : "Working set enabled"}
+            onLabel="Warm-Up"
+            offLabel="Working"
+            onClick={() => {
+              const nextWarmup = !resolvedIsWarmup;
+              setIsWarmup(nextWarmup);
+              if (nextWarmup) {
+                setIsFailure(false);
               }
-              return nextValue;
-            });
-            if (!resolvedIsFailure) {
-              setReps("");
-            }
-          }}
-        >
-          <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-            <span className="measurement-toggle__label">
-              {resolvedIsFailure ? "Till Failure" : "Reps-Based"}
-            </span>
-            <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-          </span>
-        </button>
-    </div>
-  ) : null;
-  const warmupToggleRow = (
-    <div className={sessionSecondaryToggleCardClassName}>
-        <div className="mx-auto inline-flex max-w-full flex-col items-stretch space-y-[2px]">
-          <p className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-strong)/0.94)]">
-            Warm-Up Toggle
-          </p>
-          <MetricAccentBar variant="thin" className="w-full opacity-80" />
+            }}
+            className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+            stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+          />
         </div>
-        <button
-          type="button"
-          className={cn(
-            ACTION_CHROME_CONTROL_CLASS_NAME,
-            ACTION_CHROME_SEGMENTED_CLASS_NAME,
-            tapFeedbackClass,
-            "inline-flex min-h-10 w-full items-center justify-center rounded-[var(--action-chrome-segment-radius-compact)] border-[rgb(var(--accent-strong)/0.58)] bg-[linear-gradient(180deg,rgba(71,215,196,0.22),rgba(18,31,48,0.96))] px-4 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-primary))] ring-1 ring-[rgb(var(--accent-strong)/0.22)] shadow-[var(--action-chrome-shadow-hover)] focus-visible:ring-[rgb(var(--accent)/0.2)]",
-          )}
-          aria-pressed={resolvedIsWarmup}
-          aria-label={resolvedIsWarmup ? "Warm-up set enabled" : "Working set enabled"}
-          onClick={() => {
-            const nextWarmup = !resolvedIsWarmup;
-            setIsWarmup(nextWarmup);
-            if (nextWarmup) {
-              setIsFailure(false);
-            }
-          }}
-        >
-          <span className="flex flex-col items-center justify-center gap-0.5 leading-none">
-            <span className="measurement-toggle__label">
-              {resolvedIsWarmup ? "Warm-Up Set" : "Working Set"}
-            </span>
-            <ChevronDownIcon className="h-3 w-3 text-[rgb(var(--accent-strong)/0.94)]" />
-          </span>
-        </button>
-    </div>
-  );
-  const measurementSecondaryControls = (
-    <div className="space-y-3">
-      <div className="flex items-start justify-center gap-3">
-        {lastTargetToggleRow}
-        {warmupToggleRow}
-        {failureToggleRow}
-      </div>
-      {progressionInlineControls ? (
-        <div className="pt-1">
-          {progressionInlineControls}
-        </div>
-      ) : null}
-    </div>
-  );
+      ),
+    };
+
+    const fields: MeasurementPanelAuxiliaryField[] = [warmupField];
+
+    if (showFailureToggle) {
+      fields.push({
+        title: "Reps / Failure",
+        input: null,
+        inlineLabel: "REPS / FAILURE",
+        useInlineFieldShell: false,
+        showEmptyValue: false,
+        hasValue: true,
+        renderInput: () => (
+          <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
+            <GlowSwitch
+              checked={resolvedIsFailure}
+              ariaLabel={resolvedIsFailure ? "Failure target enabled" : "Failure target disabled"}
+              onLabel="Failure"
+              offLabel="Reps"
+              onClick={() => {
+                setIsFailure((current) => {
+                  const nextValue = !current;
+                  if (nextValue) {
+                    setIsWarmup(false);
+                  }
+                  return nextValue;
+                });
+                if (!resolvedIsFailure) {
+                  setReps("");
+                }
+              }}
+              className={GLOW_SWITCH_STANDARD_CLASS_NAME}
+              stateClassName={GLOW_SWITCH_STANDARD_STATE_CLASS_NAME}
+            />
+          </div>
+        ),
+      });
+    }
+
+    return fields;
+  }, [resolvedIsFailure, resolvedIsWarmup, showFailureToggle]);
 
   const loggedSetList = sets.length > 0 ? (
     <div
@@ -1735,76 +1621,78 @@ export function SetLoggerCard({
 
       {loggedSetList}
 
-      <WorkoutEntrySection
-        className={cn(
-          appTokens.currentSessionLoggerPanel,
-          "relative z-[1] mt-2 !space-y-0 border-transparent bg-transparent !p-0 shadow-none backdrop-blur-0",
-        )}
-        contentClassName="!space-y-0"
-      >
-        <MeasurementPanelV2
-          values={{
-            reps,
-            weight,
-            duration: durationInput,
-            distance,
-            calories,
-            weightUnit: selectedWeightUnit,
-            distanceUnit,
-          }}
-          activeMetrics={liveMeasurementMetrics}
-          isExpanded={isMetricsExpanded}
-          onExpandedChange={setIsMetricsExpanded}
-          onMetricToggle={undefined}
-          onChange={(patch) => {
-            if (patch.reps !== undefined) setReps(patch.reps);
-            if (patch.weight !== undefined) setWeight(patch.weight);
-            if (patch.duration !== undefined) setDurationInput(patch.duration);
-            if (patch.distance !== undefined) setDistance(patch.distance);
-            if (patch.calories !== undefined) {
-              const nextCaloriesValue = patch.calories;
-              setCalories((current) => {
-                const currentCalories = current.trim();
-                const nextCalories = nextCaloriesValue.trim();
-                const lastAutoEstimatedCalories = lastAutoEstimatedCaloriesRef.current;
+      <div className="relative z-[1] mt-2 overflow-hidden rounded-[1.05rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.16)]">
+        <WorkoutEntrySection
+          className={cn(
+            appTokens.currentSessionLoggerPanel,
+            "relative !space-y-0 !rounded-b-none !border-0 bg-transparent !p-0 shadow-none backdrop-blur-0",
+          )}
+          contentClassName="!space-y-0"
+        >
+          <MeasurementPanelV2
+            values={{
+              reps,
+              weight,
+              duration: durationInput,
+              distance,
+              calories,
+              weightUnit: selectedWeightUnit,
+              distanceUnit,
+            }}
+            activeMetrics={liveMeasurementMetrics}
+            isExpanded={isMetricsExpanded}
+            onExpandedChange={setIsMetricsExpanded}
+            onMetricToggle={undefined}
+            onChange={(patch) => {
+              if (patch.reps !== undefined) setReps(patch.reps);
+              if (patch.weight !== undefined) setWeight(patch.weight);
+              if (patch.duration !== undefined) setDurationInput(patch.duration);
+              if (patch.distance !== undefined) setDistance(patch.distance);
+              if (patch.calories !== undefined) {
+                const nextCaloriesValue = patch.calories;
+                setCalories((current) => {
+                  const currentCalories = current.trim();
+                  const nextCalories = nextCaloriesValue.trim();
+                  const lastAutoEstimatedCalories = lastAutoEstimatedCaloriesRef.current;
 
-                if (currentCalories !== nextCalories) {
-                  if (nextCalories === "" && currentCalories === lastAutoEstimatedCalories) {
-                    didDismissAutoEstimatedCaloriesRef.current = true;
-                  } else if (nextCalories.length > 0 && nextCalories !== lastAutoEstimatedCalories) {
-                    didDismissAutoEstimatedCaloriesRef.current = true;
-                  } else if (nextCalories === lastAutoEstimatedCalories) {
-                    didDismissAutoEstimatedCaloriesRef.current = false;
+                  if (currentCalories !== nextCalories) {
+                    if (nextCalories === "" && currentCalories === lastAutoEstimatedCalories) {
+                      didDismissAutoEstimatedCaloriesRef.current = true;
+                    } else if (nextCalories.length > 0 && nextCalories !== lastAutoEstimatedCalories) {
+                      didDismissAutoEstimatedCaloriesRef.current = true;
+                    } else if (nextCalories === lastAutoEstimatedCalories) {
+                      didDismissAutoEstimatedCaloriesRef.current = false;
+                    }
                   }
-                }
 
-                return nextCaloriesValue;
-              });
-            }
-            if (patch.weightUnit !== undefined) setSelectedWeightUnit(patch.weightUnit);
-            if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
-          }}
-          className={tapFeedbackClass}
-          showInnerHeader={false}
-          layoutMode="horizontal-scroll"
-          labelTreatment="floating-border"
-          metricLabelOverrides={{
-            time: "Time (s)",
-            distance: `Dist (${distanceUnit})`,
-          }}
-          visibleMetrics={liveSetInputOrder.visibleMetrics}
-          metricOrder={liveSetInputOrder.metricOrder}
-          dimmedMetrics={liveSetInputOrder.dimmedMetrics}
-          rpe={rpe}
-          onRpeChange={setRpe}
-          betweenInputsAndFooterContent={measurementSecondaryControls}
-          footerContent={null}
-        />
-        {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
-        {!error && progressionSaveError ? <p className={appTokens.routineEditorAutosaveErrorText}>{progressionSaveError}</p> : null}
-      </WorkoutEntrySection>
+                  return nextCaloriesValue;
+                });
+              }
+              if (patch.weightUnit !== undefined) setSelectedWeightUnit(patch.weightUnit);
+              if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
+            }}
+            className={tapFeedbackClass}
+            showInnerHeader={false}
+            layoutMode="horizontal-scroll"
+            labelTreatment="floating-border"
+            metricLabelOverrides={{
+              time: "Time (s)",
+              distance: `Dist (${distanceUnit})`,
+            }}
+            visibleMetrics={liveSetInputOrder.visibleMetrics}
+            metricOrder={liveSetInputOrder.metricOrder}
+            dimmedMetrics={liveSetInputOrder.dimmedMetrics}
+            rpe={rpe}
+            onRpeChange={setRpe}
+            auxiliaryFields={measurementAuxiliaryFields}
+            footerContent={null}
+            showInlineStepControls
+          />
+          {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
+        </WorkoutEntrySection>
 
-      <PublishBottomActions>{saveSetPrimaryActions}</PublishBottomActions>
+        {attachedLoggerActionStrip}
+      </div>
     </div>
   );
 }

@@ -1065,10 +1065,25 @@ export function MeasurementPanelV2({
                       hasValue: Boolean((rpe ?? "").trim()),
                       topRightLabel: useTopAnchoredLabels,
                       floatingBorder: useFloatingBorderLabels,
+                      withEdgeControls: useSteppedControls,
                       extraClassName: useThreeAcrossMetrics ? undefined : "pl-18 pr-12 [text-indent:0.45rem]",
                     })}
                     placeholder=""
                   />
+                  {renderStepperButtons({
+                    decrementAriaLabel: "Decrease effort",
+                    incrementAriaLabel: "Increase effort",
+                    onDecrement: () => {
+                      const currentValue = Number.parseFloat(rpe ?? "");
+                      const nextValue = Math.max(0, (Number.isFinite(currentValue) ? currentValue : 0) - 1);
+                      onRpeChange(String(nextValue));
+                    },
+                    onIncrement: () => {
+                      const currentValue = Number.parseFloat(rpe ?? "");
+                      const nextValue = Math.min(10, (Number.isFinite(currentValue) ? currentValue : 0) + 1);
+                      onRpeChange(String(nextValue));
+                    },
+                  })}
                 </InlineFieldControl>
               </>
             ),
@@ -1424,7 +1439,7 @@ export function MeasurementPanelV2({
   }
 
   return (
-    <section className={cn(appTokens.measurementPanelStack, useHorizontalScrollLayout ? "space-y-0.5" : undefined, className)} data-field-label-style={contract.fieldLabelStyle} data-testid="measurement-panel">
+    <section className={cn(appTokens.measurementPanelStack, "max-w-full overflow-x-hidden", useHorizontalScrollLayout ? "space-y-0.5" : undefined, className)} data-field-label-style={contract.fieldLabelStyle} data-testid="measurement-panel">
       {showHeader ? <div className={appTokens.measurementPanelGrid}>{description ? <p className={appTokens.measurementHeaderMeta}>{description}</p> : null}</div> : null}
 
       {leadingContent}

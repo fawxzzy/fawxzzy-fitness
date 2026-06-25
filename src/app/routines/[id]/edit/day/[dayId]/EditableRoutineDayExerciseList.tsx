@@ -864,7 +864,7 @@ export function EditableRoutineDayExerciseList({
       className={cn(
         CARD_REORDER_HANDLE_CLASS_NAME,
         "pointer-events-auto",
-        "absolute right-0 top-1/2 -translate-y-1/2",
+        "absolute right-[0.22rem] top-[0.12rem]",
         "touch-none",
         activeDragId === exerciseId ? "ring-2 ring-[rgb(var(--selection-rgb)/0.26)]" : undefined,
       )}
@@ -988,7 +988,7 @@ export function EditableRoutineDayExerciseList({
             })()
           }))}
           activeItemId={expandedId}
-          renderRowActions={(item) => expandedId === item.id ? null : renderReorderHandle(item.id, item.name)}
+          renderOverlayActions={(item) => expandedId === item.id ? null : renderReorderHandle(item.id, item.name)}
           onInfoItem={(item) => {
             const selectedExercise = items.find((entry) => entry.id === item.id);
             setSelectedExerciseId(item.exerciseId ?? selectedExercise?.exerciseId ?? null);

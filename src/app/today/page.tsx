@@ -26,6 +26,7 @@ import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { requireUser } from "@/lib/auth";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import type { ActionResult } from "@/lib/action-result";
+import { buildExerciseProgressionStateLabel } from "@/lib/exercise-progression-state-label";
 import { buildTodayHeaderInfoRailItems } from "@/lib/header-info-rail";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
@@ -1235,6 +1236,10 @@ export default async function TodayPage({
           tags: exercise.details?.tags ?? null,
           categories: exercise.details?.categories ?? null,
         }).isCardio,
+        progressionStateLabel: buildExerciseProgressionStateLabel({
+          progression_playbook_id: exercise.progression_playbook_id ?? null,
+          progression_playbook_config: exercise.progression_playbook_config ?? null,
+        }),
         image_howto_path: exercise.details?.image_howto_path ?? null,
         image_icon_path: exercise.details?.image_icon_path ?? null,
         slug: exercise.details?.slug ?? null,
@@ -1414,6 +1419,10 @@ export default async function TodayPage({
                     tags: exercise.details?.tags ?? null,
                     categories: exercise.details?.categories ?? null,
                   }).isCardio,
+                  progressionStateLabel: buildExerciseProgressionStateLabel({
+                    progression_playbook_id: exercise.progression_playbook_id ?? null,
+                    progression_playbook_config: exercise.progression_playbook_config ?? null,
+                  }),
                   image_howto_path: exercise.details?.image_howto_path ?? null,
                   image_icon_path: exercise.details?.image_icon_path ?? null,
                   slug: exercise.details?.slug ?? null,

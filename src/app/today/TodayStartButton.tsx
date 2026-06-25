@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -66,6 +66,28 @@ export function TodayStartButton({
   const [confirmLockInOpen, setConfirmLockInOpen] = useState(false);
   const router = useRouter();
   const toast = useToast();
+  const prefetchedHref = sessionId
+    ? (returnTo
+      ? `/session/${sessionId}?returnTo=${encodeURIComponent(returnTo)}`
+      : `/session/${sessionId}`)
+    : null;
+
+  useEffect(() => {
+    if (!prefetchedHref) {
+      return;
+    }
+
+    router.prefetch(prefetchedHref);
+  }, [prefetchedHref, router]);
+
+  function navigateToSession(href: string) {
+    if (typeof window !== "undefined") {
+      window.location.assign(href);
+      return;
+    }
+
+    router.push(href);
+  }
 
   function readPendingPinsForDay() {
     if (!routineId || !dayId || typeof window === "undefined") {
@@ -119,7 +141,7 @@ export function TodayStartButton({
         }
 
         writeActiveSessionHint(sessionId);
-        router.push(resumeResult.data.href);
+        navigateToSession(resumeResult.data.href);
         return;
       }
 
@@ -132,7 +154,7 @@ export function TodayStartButton({
         ? `/session/${result.data.sessionId}?returnTo=${encodeURIComponent(returnTo)}`
         : `/session/${result.data.sessionId}`;
       writeActiveSessionHint(result.data.sessionId);
-      router.push(sessionHref);
+      navigateToSession(sessionHref);
     });
   }
 

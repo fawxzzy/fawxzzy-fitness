@@ -106,10 +106,9 @@ function buildExerciseHeaderMetaItems(row: ExerciseBrowserRow) {
   }
 
   const items = [
-    row.equipment,
     row.primary_muscle,
-    ...(row.secondary_muscles ?? []),
     row.movement_pattern,
+    row.equipment,
   ]
     .filter((value): value is string => Boolean(value?.trim()))
     .map((value) => formatExerciseTagLabel(value));

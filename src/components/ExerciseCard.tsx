@@ -18,6 +18,7 @@ export type ExerciseCardMediaLayout = "rail" | "inline";
 export type ExerciseCardMediaLeftCornerMode = "sharp" | "top-rounded";
 export type ExerciseCardRightIconMode = "rail" | "overlay";
 export type ExerciseCardContentVerticalAlign = "auto" | "top";
+export type ExerciseCardTitleMetaMode = "inline" | "overlay-tight";
 
 const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
   standard: "detailed",
@@ -62,7 +63,7 @@ const densityStyles: Record<ExerciseCardDensity, {
 };
 
 export const EXERCISE_CARD_LABEL_CLASS_NAME = appTokens.measurementLabel;
-export const EXERCISE_CARD_SUMMARY_CLASS_NAME = cn("text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]", appTokens.exerciseCardSummaryTextPad);
+export const EXERCISE_CARD_SUMMARY_CLASS_NAME = cn("text-safe-wrap pr-0.5 text-[12px] leading-[1.36] [text-wrap:pretty]", appTokens.exerciseCardSummaryTextPad);
 export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = cn(appTokens.workoutCardDetailCompact, appTokens.exerciseCardTertiaryTextPad);
 export const EXERCISE_CARD_BADGE_CLASS_NAME = cn(appTokens.badgeBase, "min-h-[1.5rem] px-2.5 py-1 text-[10px] tracking-[0.12em]");
 export const EXERCISE_CARD_TRAILING_ICON_CLASS_NAME = "flex h-full min-h-10 items-center justify-end";
@@ -219,6 +220,7 @@ export function ExerciseCard({
   shellStyle,
   mediaLeftCornerMode = "sharp",
   rightIconMode = "rail",
+  titleMetaMode = "inline",
   contentVerticalAlign = "auto",
   progressFill,
 }: {
@@ -261,6 +263,7 @@ export function ExerciseCard({
   shellStyle?: CSSProperties;
   mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
   rightIconMode?: ExerciseCardRightIconMode;
+  titleMetaMode?: ExerciseCardTitleMetaMode;
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
   progressFill?: ProgressionProgressFill | null;
 }) {
@@ -274,6 +277,7 @@ export function ExerciseCard({
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
   const hasOverlayActions = overlayActions !== null && overlayActions !== undefined && overlayActions !== false;
   const hasTitleMeta = titleMeta !== null && titleMeta !== undefined && titleMeta !== false;
+  const usesOverlayTightTitleMeta = hasTitleMeta && titleMetaMode === "overlay-tight";
   const hasBadgeText = Boolean(badgeText?.trim());
   const hasSupportingContent = Boolean(subtitle) || Boolean(headerDivider) || Boolean(children);
   const resolvedSubtitleLabel = typeof subtitleLabel === "string" && subtitleLabel.trim().toLowerCase() === "goal"
@@ -383,7 +387,7 @@ export function ExerciseCard({
           </div>
         ) : null}
 
-        <div className={cn("relative min-w-0 self-stretch overflow-hidden py-0.5", contentClassName)}>
+        <div className={cn("relative min-w-0 self-stretch overflow-visible py-0.5", contentClassName)}>
           {progressFillPercent !== null && !usesRailMedia ? (
             <span
               aria-hidden="true"
@@ -405,9 +409,21 @@ export function ExerciseCard({
               contentVerticalAlign === "top" || hasSupportingContent ? "justify-start" : "justify-center",
               styles.contentGap,
               hasBadgeText && !hasTitleMeta ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
+              usesOverlayTightTitleMeta ? (resolvedDensity === "compact" ? "pr-[4.9rem]" : "pr-[5.2rem]") : undefined,
               titleContainerClassName,
             )}
           >
+            {usesOverlayTightTitleMeta ? (
+              <div
+                className={cn(
+                  "pointer-events-none absolute right-[1.68rem] top-[0.04rem] z-[2] inline-flex max-w-[3.2rem] items-center justify-end whitespace-nowrap text-right text-[0.94rem] font-semibold leading-[1.06]",
+                  titleStateClassNames[state],
+                )}
+                data-exercise-card-title-meta="true"
+              >
+                {titleMeta}
+              </div>
+            ) : null}
             <div className="flex min-w-0 items-start justify-between gap-1.5">
               <p
                 className={cn(
@@ -423,7 +439,7 @@ export function ExerciseCard({
               >
                 {title}
               </p>
-              {hasTitleMeta ? (
+              {hasTitleMeta && !usesOverlayTightTitleMeta ? (
                 <div
                   className={cn(
                     "shrink-0 whitespace-nowrap px-1 text-[1rem] font-semibold leading-tight",

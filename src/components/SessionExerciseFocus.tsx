@@ -9,6 +9,12 @@ import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } f
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
+import {
+  buildExerciseCardMetadataItems,
+  ExerciseCardMetadataLine,
+  ExerciseCardProgressionStateInline,
+  ExerciseCardStandardTitle,
+} from "@/components/workout/ExerciseCardStandardTitle";
 import { cardMediaToneClassNames } from "@/components/cardSemanticTones";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -28,7 +34,7 @@ import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visib
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
-import { areSetListsEquivalent, createStableSetId } from "@/lib/offline/set-log-reconciliation";
+import { areSetListsEquivalent, createStableSetId, mergeByStableSetId, resolveStableSetId, sortSetsByIndex } from "@/lib/offline/set-log-reconciliation";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ProgressionProgressFill } from "@/lib/progression-progress-percent";
@@ -55,7 +61,18 @@ type AddSetPayload = {
 
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
 
+type SessionExerciseLocalCacheEntry = {
+  rowClientStateBySessionExerciseId: Record<string, SessionRowClientState>;
+  setSnapshotsBySessionExerciseId: Record<string, SetLoggerSeedSet[]>;
+};
+
+const sessionExerciseLocalStateCache = new Map<string, SessionExerciseLocalCacheEntry>();
+
 const COMPACT_SESSION_ROW_SHELL_CLASS_NAME = "overflow-hidden rounded-none rounded-r-[var(--card-radius)] rounded-bl-[var(--card-radius)] border border-[rgb(var(--accent-divider-rgb)/0.28)] bg-[rgb(var(--surface-1-rgb)/0.06)] shadow-[0_0_0_1px_rgb(var(--accent-divider-rgb)/0.06)]";
+const CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME = "!right-[0.58rem] !top-[0.58rem] !bottom-auto !translate-y-0";
+const CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME = "inset-0 !left-0 !right-0 !top-0 !bottom-0 !block !translate-y-0 pointer-events-none";
+const CURRENT_SESSION_CARD_INFO_BUTTON_CLASS_NAME = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
+const CURRENT_SESSION_CARD_TITLE_CONTAINER_CLASS_NAME = "pr-[2.45rem] pb-[1.9rem]";
 
 type SyncQueuedSetLogsAction = (payload: {
   items: Array<{
@@ -160,6 +177,20 @@ function toPrefillFromQuickLogTarget(
   return Object.keys(prefill).length > 0 ? prefill : undefined;
 }
 
+function toSeedSet(set: SetRow): SetLoggerSeedSet {
+  return {
+    ...set,
+    stableId: resolveStableSetId(set),
+    pending: false,
+    queueItemId: undefined,
+    queueStatus: undefined,
+  };
+}
+
+function removeSeedSetByStableId(sets: SetLoggerSeedSet[], stableId: string) {
+  return sets.filter((set) => resolveStableSetId(set) !== stableId);
+}
+
 export type SessionExerciseFocusItem = {
   id: string;
   exerciseId: string;
@@ -227,10 +258,28 @@ function resolveSessionExerciseTone(args: {
   return "neutral";
 }
 
+function buildSessionProgressionStateLabel(formState?: ProgressionPlaybookFormState | null) {
+  const hasAutoProgression = Boolean(formState?.progressionPlaybookId);
+  const labels = [hasAutoProgression ? "AUTO" : "MANUAL"];
+
+  if (hasAutoProgression) {
+    if (formState?.progressionSessionSettingsEnabled !== false) {
+      labels.push("SESSION");
+    }
+    if (formState?.progressionSetSettingsEnabled !== false) {
+      labels.push("SET");
+    }
+  }
+
+  return labels.join(" • ");
+}
+
 export function SessionExerciseFocus({
   userId,
   sessionId,
   unitLabel,
+  cycleLengthDays,
+  sessionDayIndex,
   exercises,
   selectedExerciseId,
   onSelectedExerciseIdChange,
@@ -245,6 +294,8 @@ export function SessionExerciseFocus({
   userId: string;
   sessionId: string;
   unitLabel: string;
+  cycleLengthDays?: number | null;
+  sessionDayIndex?: number | null;
   exercises: SessionExerciseFocusItem[];
   selectedExerciseId: string | null;
   onSelectedExerciseIdChange: (exerciseId: string | null) => void;
@@ -256,19 +307,43 @@ export function SessionExerciseFocus({
   updateSessionExerciseProgressionAction: (formData: FormData) => Promise<ActionResult>;
   bottomDockCenter?: ReactNode;
 }) {
+  const cachedSessionState = sessionExerciseLocalStateCache.get(sessionId);
   const contract = resolveScreenContract("exerciseLog");
   const surfacePolicy = resolveWorkoutCardSurfacePolicy("current-session", "compact");
   const [removingExerciseIds] = useState<string[]>([]);
   const [persistedLoggerExerciseId, setPersistedLoggerExerciseId] = useState<string | null>(selectedExerciseId);
   const [rowClientStateBySessionExerciseId, setRowClientStateBySessionExerciseId] = useState<Record<string, SessionRowClientState>>(() =>
-    buildInitialSessionRowClientState(exercises),
+    cachedSessionState?.rowClientStateBySessionExerciseId
+      ? reconcileSessionRowClientState({
+          current: cachedSessionState.rowClientStateBySessionExerciseId,
+          rows: exercises,
+          mergedLoggedSetCount: Object.fromEntries(
+            exercises.map((exercise) => [
+              exercise.id,
+              cachedSessionState.setSnapshotsBySessionExerciseId[exercise.id]?.length
+                ?? cachedSessionState.rowClientStateBySessionExerciseId[exercise.id]?.loggedSetCount
+                ?? exercise.loggedSetCount,
+            ]),
+          ),
+        })
+      : buildInitialSessionRowClientState(exercises),
   );
-  const [setSnapshotsBySessionExerciseId, setSetSnapshotsBySessionExerciseId] = useState<Record<string, SetLoggerSeedSet[]>>({});
+  const [setSnapshotsBySessionExerciseId, setSetSnapshotsBySessionExerciseId] = useState<Record<string, SetLoggerSeedSet[]>>(() =>
+    cachedSessionState?.setSnapshotsBySessionExerciseId
+      ? Object.fromEntries(
+          exercises.map((exercise) => [
+            exercise.id,
+            cachedSessionState.setSnapshotsBySessionExerciseId[exercise.id] ?? exercise.initialSets,
+          ]),
+        )
+      : {},
+  );
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const rowViewModelBySessionExerciseId = useMemo(() => {
     const fallbackWeightUnit = unitLabel === "lbs" ? "lbs" : "kg";
     return new Map(
       exercises.map((exercise) => {
+        const snapshotLoggedSetCount = setSnapshotsBySessionExerciseId[exercise.id]?.length;
         const rowClientState = rowClientStateBySessionExerciseId[exercise.id] ?? {
           loggedSetCount: exercise.loggedSetCount,
           setCountOverrideActive: false,
@@ -276,7 +351,10 @@ export function SessionExerciseFocus({
           isQuickLogPending: false,
           isSkipPending: false,
         };
-        const setFlowQuickLogTarget = exercise.setFlowQuickLogTargets?.[rowClientState.loggedSetCount] ?? null;
+        const resolvedLoggedSetCount = typeof snapshotLoggedSetCount === "number"
+          ? snapshotLoggedSetCount
+          : rowClientState.loggedSetCount;
+        const setFlowQuickLogTarget = exercise.setFlowQuickLogTargets?.[resolvedLoggedSetCount] ?? null;
         const primaryQuickLogTarget = setFlowQuickLogTarget ?? exercise.quickLogTarget;
         const resolvedTargetHint = exercise.targetHint ?? deriveSessionTargetHint({
           measurementType: exercise.measurementType ?? "reps",
@@ -299,7 +377,7 @@ export function SessionExerciseFocus({
         });
         const rowViewModel = deriveSessionExerciseRowViewModel({
           exerciseId: exercise.id,
-          loggedSetCount: rowClientState.loggedSetCount,
+          loggedSetCount: resolvedLoggedSetCount,
           isSkipped: rowClientState.isSkipped,
           isQuickLogPending: rowClientState.isQuickLogPending,
           isSkipPending: rowClientState.isSkipPending,
@@ -315,9 +393,16 @@ export function SessionExerciseFocus({
         return [exercise.id, rowViewModel] as const;
       }),
     );
-  }, [exercises, rowClientStateBySessionExerciseId, unitLabel]);
+  }, [exercises, rowClientStateBySessionExerciseId, setSnapshotsBySessionExerciseId, unitLabel]);
   const toast = useToast();
   void removeExerciseAction;
+
+  useEffect(() => {
+    sessionExerciseLocalStateCache.set(sessionId, {
+      rowClientStateBySessionExerciseId,
+      setSnapshotsBySessionExerciseId,
+    });
+  }, [rowClientStateBySessionExerciseId, sessionId, setSnapshotsBySessionExerciseId]);
   useEffect(() => {
     if (!selectedExerciseId) {
       return;
@@ -407,6 +492,35 @@ export function SessionExerciseFocus({
     });
   }, [exercises]);
 
+  useEffect(() => {
+    setRowClientStateBySessionExerciseId((current) => {
+      const next = Object.fromEntries(
+        exercises.map((exercise) => {
+          const previous = current[exercise.id] ?? {
+            loggedSetCount: exercise.loggedSetCount,
+            setCountOverrideActive: false,
+            isSkipped: exercise.isSkipped,
+            isQuickLogPending: false,
+            isSkipPending: false,
+            showWhenCompleted: false,
+          };
+          const snapshotLoggedSetCount = setSnapshotsBySessionExerciseId[exercise.id]?.length;
+          const resolvedLoggedSetCount = typeof snapshotLoggedSetCount === "number"
+            ? snapshotLoggedSetCount
+            : previous.loggedSetCount;
+
+          return [exercise.id, {
+            ...previous,
+            loggedSetCount: resolvedLoggedSetCount,
+            setCountOverrideActive: resolvedLoggedSetCount !== exercise.loggedSetCount || previous.setCountOverrideActive,
+          } satisfies SessionRowClientState];
+        }),
+      );
+
+      return areSessionRowClientStateMapsEqual(current, next) ? current : next;
+    });
+  }, [exercises, setSnapshotsBySessionExerciseId]);
+
   const handleSetCountChange = useCallback((exerciseId: string, count: number) => {
     patchRowState(exerciseId, (existing) => {
       const exercise = exercises.find((item) => item.id === exerciseId);
@@ -432,17 +546,7 @@ export function SessionExerciseFocus({
         showWhenCompleted: nextShowWhenCompleted,
       };
     });
-    const exercise = exercises.find((item) => item.id === exerciseId);
-    const isNowGoalCompleted = exercise ? deriveSessionExerciseProgressState({
-      loggedSetCount: count,
-      isSkipped: rowClientStateBySessionExerciseId[exerciseId]?.isSkipped ?? exercise.isSkipped,
-      targetSetsMin: exercise.targetSetsMin,
-      targetSetsMax: exercise.targetSetsMax,
-    }).isGoalCompleted : false;
-    if (isNowGoalCompleted && selectedExerciseId === exerciseId) {
-      onSelectedExerciseIdChange(null);
-    }
-  }, [exercises, onSelectedExerciseIdChange, patchRowState, rowClientStateBySessionExerciseId, selectedExerciseId]);
+  }, [exercises, patchRowState]);
 
   const toggleExercise = useCallback((exerciseId: string) => {
     setPersistedLoggerExerciseId(exerciseId);
@@ -472,7 +576,7 @@ export function SessionExerciseFocus({
     if (!isOpeningExercise && progressState?.isGoalCompleted) {
       patchRowState(exerciseId, (current) => ({
         ...current,
-        showWhenCompleted: true,
+        showWhenCompleted: false,
       }));
     }
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
@@ -550,7 +654,10 @@ export function SessionExerciseFocus({
           const isExpanded = selectedExerciseId === exercise.id;
           const isStretchHub = isStretchHubExercise(exercise);
           const clientRowState = rowClientStateBySessionExerciseId[exercise.id];
-          const loggedCountForTarget = clientRowState?.loggedSetCount ?? exercise.loggedSetCount;
+          const snapshotLoggedSetCount = setSnapshotsBySessionExerciseId[exercise.id]?.length;
+          const loggedCountForTarget = typeof snapshotLoggedSetCount === "number"
+            ? snapshotLoggedSetCount
+            : (clientRowState?.loggedSetCount ?? exercise.loggedSetCount);
           const setFlowQuickLogTarget = exercise.setFlowQuickLogTargets?.[loggedCountForTarget] ?? null;
           const primaryQuickLogTarget = setFlowQuickLogTarget ?? exercise.quickLogTarget;
           const baseRowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
@@ -638,6 +745,33 @@ export function SessionExerciseFocus({
             isAddedToday: exercise.routineDayExerciseId === null,
           });
           const shouldRenderCompactSkippedRow = effectiveIsHidden && !isExpanded;
+          const headerMetaItems = buildExerciseCardMetadataItems({
+            primaryMuscle: exercise.primary_muscle,
+            movementPattern: exercise.movement_pattern,
+            equipment: exercise.equipment,
+          }).slice(0, 2);
+          const progressionStateLabel = buildSessionProgressionStateLabel(exercise.progressionFormState ?? null);
+          const sessionTitle = (
+            <ExerciseCardStandardTitle
+              name={exercise.name}
+              metadata={<ExerciseCardMetadataLine items={headerMetaItems} />}
+              rightContent={exerciseSummary ?? undefined}
+              rightSubcontent={<ExerciseCardProgressionStateInline label={progressionStateLabel} />}
+            />
+          );
+          const cardInfoButton = (
+            <button
+              type="button"
+              aria-label={`Open exercise info for ${exercise.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setExerciseInfoExerciseId(exercise.exerciseId);
+              }}
+              className={CURRENT_SESSION_CARD_INFO_BUTTON_CLASS_NAME}
+            >
+              <span aria-hidden="true">i</span>
+            </button>
+          );
 
           const cardShellStyle: CSSProperties & {
             "--exercise-card-progress-fill-top-right-radius": string;
@@ -673,7 +807,8 @@ export function SessionExerciseFocus({
               keepPanelMounted={persistedLoggerExerciseId === exercise.id}
               onToggle={() => toggleExercise(exercise.id)}
               exercise={exercise}
-              summary={exerciseSummary}
+              title={sessionTitle}
+              summary={undefined}
               summaryLabel=""
               density="compact"
               state={rowState.cardState === "completed" ? "completed" : (isExpanded ? "selected" : rowState.cardState)}
@@ -698,15 +833,19 @@ export function SessionExerciseFocus({
                   ? "rounded-none !border-0 shadow-none ring-0 [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
                   : "!border-0 ring-0 shadow-none [--glass-current-border-alpha:0] [--glass-current-sheen-strength:0]"
               }
-              contentClassName="pl-3"
+              contentClassName="pl-3 pr-[2.45rem]"
+              titleContainerClassName={CURRENT_SESSION_CARD_TITLE_CONTAINER_CLASS_NAME}
               panelClassName={isExpanded ? "flex flex-col" : undefined}
               mediaClassName={cardMediaToneClassNames.completed}
               mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
-              rightIconMode={isExpanded ? "overlay" : undefined}
-              rightRailClassName={isExpanded ? "!top-auto bottom-[0.9rem] !translate-y-0" : undefined}
+              rightIconMode="overlay"
+              rightRailClassName={CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME}
               titleMeta={titleMeta}
-              showAccentRail={!isStretchHub}
-              hideEmptySummary={isStretchHub}
+              titleMetaMode={titleMeta ? "overlay-tight" : undefined}
+              overlayActions={cardInfoButton}
+              overlayActionsClassName={CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME}
+              showAccentRail
+              hideEmptySummary
               contentVerticalAlign={isStretchHub ? "top" : "auto"}
               progressFill={sessionProgressFill}
             >
@@ -741,8 +880,6 @@ export function SessionExerciseFocus({
                   routineDayExerciseId={exercise.routineDayExerciseId}
                   planTargetsHash={exercise.planTargetsHash}
                   deleteSetAction={deleteSetAction}
-                  secondaryActionLabel="Inspect"
-                  onSecondaryAction={() => setExerciseInfoExerciseId(exercise.exerciseId)}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
                   visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}
@@ -756,6 +893,14 @@ export function SessionExerciseFocus({
                     defaultUnit: exercise.defaultUnit ?? null,
                     caloriesEstimationMethod: exercise.caloriesEstimationMethod ?? null,
                   }}
+                  exerciseMeasurementType={exercise.measurementType ?? "reps"}
+                  exerciseEquipment={exercise.equipment ?? null}
+                  exerciseMovementPattern={exercise.movement_pattern ?? null}
+                  exerciseName={exercise.name}
+                  targetSetsMin={exercise.targetSetsMin ?? null}
+                  targetSetsMax={exercise.targetSetsMax ?? null}
+                  cycleLengthDays={cycleLengthDays ?? null}
+                  progressionExampleDayNumber={sessionDayIndex ?? null}
                   showAllMeasurementInputs={!isStretchHub}
                   showFailureToggle={!isStretchHub}
                   showProgressionControls={!isStretchHub}
@@ -771,6 +916,7 @@ export function SessionExerciseFocus({
 
           const quickActionStrip = !isExpanded ? (
             <AttachedQuickActionStrip
+              gridClassName="grid-cols-[88px_minmax(0,1fr)]"
               rowContract={{
                 label: rowState.quickLogLabel,
                 skipLabel: rowState.skipActionLabel,
@@ -803,6 +949,7 @@ export function SessionExerciseFocus({
                   ...current,
                   isQuickLogPending: true,
                 }));
+                const clientLogId = createStableSetId();
                 try {
                   const quickLogResolution = resolveQuickLogFromResolvedTarget(
                     resolvedQuickLogTarget,
@@ -814,6 +961,38 @@ export function SessionExerciseFocus({
                     return;
                   }
 
+                  setSetSnapshotsBySessionExerciseId((current) => {
+                    const previous = current[exercise.id] ?? exercise.initialSets;
+                    const nextSetIndex = previous.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
+                    const optimisticSet: SetLoggerSeedSet = {
+                      id: clientLogId,
+                      client_log_id: clientLogId,
+                      stableId: clientLogId,
+                      session_exercise_id: exercise.id,
+                      user_id: userId,
+                      set_index: nextSetIndex,
+                      weight: quickLogResolution.payload.weight,
+                      reps: quickLogResolution.payload.reps,
+                      duration_seconds: quickLogResolution.payload.durationSeconds,
+                      distance: quickLogResolution.payload.distance,
+                      distance_unit: quickLogResolution.payload.distanceUnit,
+                      calories: quickLogResolution.payload.calories,
+                      is_warmup: false,
+                      notes: null,
+                      rpe: null,
+                      weight_unit: quickLogResolution.payload.weightUnit,
+                      pending: true,
+                    };
+                    const next = sortSetsByIndex(mergeByStableSetId(previous, [optimisticSet]));
+                    if (areSetListsEquivalent(previous, next)) {
+                      return current;
+                    }
+                    return {
+                      ...current,
+                      [exercise.id]: next,
+                    };
+                  });
+
                   const result = await addSetAction({
                     sessionId,
                     sessionExerciseId: exercise.id,
@@ -821,7 +1000,7 @@ export function SessionExerciseFocus({
                     isWarmup: false,
                     rpe: null,
                     notes: null,
-                    clientLogId: createStableSetId(),
+                    clientLogId,
                   });
 
                   toastActionResult(toast, result, {
@@ -830,8 +1009,47 @@ export function SessionExerciseFocus({
                   });
 
                   if (result.ok) {
+                    if (result.data?.set) {
+                      const savedSet = toSeedSet(result.data.set);
+                      setSetSnapshotsBySessionExerciseId((current) => {
+                        const previous = current[exercise.id] ?? exercise.initialSets;
+                        const next = sortSetsByIndex(mergeByStableSetId(previous, [savedSet]));
+                        if (areSetListsEquivalent(previous, next)) {
+                          return current;
+                        }
+                        return {
+                          ...current,
+                          [exercise.id]: next,
+                        };
+                      });
+                    }
                     handleSetCountChange(exercise.id, setCount + 1);
+                  } else {
+                    setSetSnapshotsBySessionExerciseId((current) => {
+                      const previous = current[exercise.id] ?? exercise.initialSets;
+                      const next = removeSeedSetByStableId(previous, clientLogId);
+                      if (areSetListsEquivalent(previous, next)) {
+                        return current;
+                      }
+                      return {
+                        ...current,
+                        [exercise.id]: next,
+                      };
+                    });
                   }
+                } catch {
+                  setSetSnapshotsBySessionExerciseId((current) => {
+                    const previous = current[exercise.id] ?? exercise.initialSets;
+                    const next = removeSeedSetByStableId(previous, clientLogId);
+                    if (areSetListsEquivalent(previous, next)) {
+                      return current;
+                    }
+                    return {
+                      ...current,
+                        [exercise.id]: next,
+                      };
+                    });
+                  toast.error("Could not quick log set.");
                 } finally {
                   patchRowState(exercise.id, (current) => ({
                     ...current,
@@ -858,6 +1076,10 @@ export function SessionExerciseFocus({
                 <div className="w-full">
                   {shouldRenderCompactSkippedRow ? (
                     <div className={cn("relative", COMPACT_SESSION_ROW_SHELL_CLASS_NAME, "bg-[rgb(var(--surface-1-rgb)/0.86)]")}>
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute bottom-px left-px top-px z-[2] w-[4px] rounded-r-full bg-[rgb(var(--accent-divider-rgb)/0.96)]"
+                      />
                       {compactProgressFillStyle ? (
                         <span
                           aria-hidden="true"

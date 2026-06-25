@@ -57,7 +57,7 @@ export function AppHeader({
     ? cn(
       "mx-auto w-fit min-w-0 flex-none",
       hasRightRail
-        ? "max-w-[calc(100%-6.6rem)] px-[3rem]"
+        ? "max-w-[calc(100%-4.85rem)] px-[1.75rem] sm:max-w-[calc(100%-5.4rem)] sm:px-[2.1rem]"
         : "max-w-[calc(100%-1rem)] px-1",
     )
     : "flex-1";

@@ -6,6 +6,11 @@ import { appTokens } from "@/components/ui/app/tokens";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { StateChevron } from "@/components/ui/StateChevron";
+import {
+  ExerciseCardMetadataLine,
+  ExerciseCardProgressionStateInline,
+  ExerciseCardStandardTitle,
+} from "@/components/workout/ExerciseCardStandardTitle";
 import { cn } from "@/lib/cn";
 import { formatRoutineDayStableDisplayName, getRoutineDayWeekdayLabel } from "@/lib/routines";
 import {
@@ -28,7 +33,7 @@ export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "h-auto w-auto items-c
 export const ROUTINE_SURFACE_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
 export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
 export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] ${ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME}`;
-const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-0 top-1/2 z-[6] flex -translate-y-1/2 items-center justify-center";
+const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-[0.22rem] top-[0.12rem] z-[7] flex items-center justify-center";
 
 export type RoutineDayCardSummary = {
   total?: number;
@@ -339,55 +344,28 @@ function renderRoutineDaySnapshot(day: RoutineOverviewDayCardItem) {
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.65rem] min-w-[14.25rem] w-max shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2.5 py-2"
+            className="flex min-h-[4.65rem] min-w-[16.75rem] w-[min(18.5rem,calc(100vw-6rem))] max-w-[calc(100vw-5rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2.5 py-2"
           >
             <div className="grid gap-[6px]">
-              <div className="flex min-w-0 items-start justify-between gap-2">
-                <span className="inline-flex flex-col items-start gap-[3px]">
-                  <span className="text-[12.5px] font-semibold leading-[1.18] text-[rgb(var(--text-primary)/0.96)]">
-                    {exercise.name}
-                  </span>
-                  <MetricAccentBar variant="thin" className="w-full opacity-90" />
-                </span>
-                <span className="min-w-0 shrink-0 pt-[1px] text-right text-[10px] font-medium leading-[1.12] text-[rgb(var(--text-secondary)/0.9)]">
-                  <AccentDotSeparatedText
-                    text={exercise.targetLabel?.trim() || "Goal missing"}
-                    className="justify-end gap-x-1.5 gap-y-0 whitespace-nowrap"
-                    itemClassName="shrink-0 whitespace-nowrap"
+              <ExerciseCardStandardTitle
+                name={exercise.name}
+                metadata={exercise.signatureLabel ? (
+                  <ExerciseCardMetadataLine
+                    items={exercise.signatureLabel.split(/\s+\|\s+/).map((value) => value.trim()).filter(Boolean)}
+                    className="text-[9.5px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)]"
                   />
-                </span>
-              </div>
-              <div className="flex min-w-0 items-center justify-between gap-2">
-                <span className="min-w-0 flex-1 basis-0">
-                  {exercise.signatureLabel ? (
-                    <SignatureInlineList
-                      separator="pipe"
-                      className="!flex-nowrap min-w-0 max-w-full gap-x-1.5 gap-y-0 whitespace-nowrap text-[9.5px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.88)]"
-                      itemClassName="inline-flex shrink-0 items-center whitespace-nowrap leading-[1.02]"
-                      items={exercise.signatureLabel.split(/\s+\|\s+/).map((value, signatureIndex) => (
-                        <span
-                          key={`${exercise.id}-signature-${signatureIndex}-${value}`}
-                          className={cn(
-                            "inline-flex min-w-0 items-center whitespace-nowrap",
-                            signatureIndex === 0 ? "text-[rgb(var(--accent-strong)/0.98)]" : undefined,
-                          )}
-                        >
-                          {value}
-                        </span>
-                      ))}
-                    />
-                  ) : (
-                    <span className="text-[9.5px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)]">
-                      Exercise configured
-                    </span>
-                  )}
-                </span>
-                {exercise.progressionStateLabel?.trim() ? (
-                  <span className="min-w-0 shrink-0 text-right">
-                    {renderRoutineRecapProgressionState(exercise.progressionStateLabel)}
+                ) : (
+                  <span className="text-[9.5px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)]">
+                    Exercise configured
                   </span>
-                ) : null}
-              </div>
+                )}
+                rightContent={exercise.targetLabel?.trim() || "Goal missing"}
+                rightAccessory={exercise.progressionStateLabel?.trim() ? (
+                  <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} />
+                ) : undefined}
+                rightColumnClassName="max-w-[12.75rem]"
+                rightContentClassName="text-[9.5px] leading-[1.06]"
+              />
             </div>
             <MetricAccentBar variant="thin" className="mt-2 w-full opacity-75" />
           </div>
@@ -429,7 +407,7 @@ export function RoutineOverviewDayCard({
   );
 
   const card = (
-    <div className={cn("relative min-w-0", reorderHandle && !isExpanded ? "px-[2.55rem]" : undefined)}>
+    <div className="relative min-w-0">
       {reorderHandle && !isExpanded ? (
         <div className={ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME}>
           <div className="pointer-events-auto">

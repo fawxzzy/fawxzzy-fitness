@@ -80,6 +80,7 @@ export function ExerciseProgressionEditorSurface({
   progressionExampleDayNumber,
   routineDefaultValue,
   onApplyRoutineDefault,
+  showDefaultState = true,
   trainingFocusValue = "",
   trainingFocusCustomized = false,
   onTrainingFocusChange,
@@ -102,8 +103,9 @@ export function ExerciseProgressionEditorSurface({
   exerciseName?: string | null;
   cycleLengthDays: number;
   progressionExampleDayNumber?: number | null;
-  routineDefaultValue: ProgressionPlaybookFormState;
-  onApplyRoutineDefault: () => void;
+  routineDefaultValue?: ProgressionPlaybookFormState | null;
+  onApplyRoutineDefault?: () => void;
+  showDefaultState?: boolean;
   trainingFocusValue?: TrainingGoalId | "";
   trainingFocusCustomized?: boolean;
   onTrainingFocusChange?: (goal: TrainingGoalId) => void;
@@ -119,7 +121,7 @@ export function ExerciseProgressionEditorSurface({
     [draft],
   );
   const routineDefaultProgressionConfig = useMemo(
-    () => buildProgressionPlaybookConfigFromFormState(routineDefaultValue),
+    () => routineDefaultValue ? buildProgressionPlaybookConfigFromFormState(routineDefaultValue) : null,
     [routineDefaultValue],
   );
 
@@ -131,7 +133,7 @@ export function ExerciseProgressionEditorSurface({
     weightUnit,
     distanceUnit,
     targetWeight: Number(goalState.weight),
-    routineDefaultValue: Number(routineDefaultValue.progressionLoadIncrement),
+    routineDefaultValue: routineDefaultValue ? Number(routineDefaultValue.progressionLoadIncrement) : 0,
     exerciseOverrideValue: Number(draft.progressionLoadIncrement),
     stepOverrides: draftProgressionConfig?.stepOverrides ?? routineDefaultProgressionConfig?.stepOverrides ?? null,
   }), [
@@ -143,7 +145,7 @@ export function ExerciseProgressionEditorSurface({
     exerciseMovementPattern,
     goalState.weight,
     routineDefaultProgressionConfig?.stepOverrides,
-    routineDefaultValue.progressionLoadIncrement,
+    routineDefaultValue?.progressionLoadIncrement,
     weightUnit,
   ]);
 
@@ -202,9 +204,9 @@ export function ExerciseProgressionEditorSurface({
       distanceUnit={distanceUnit}
       title=""
       context="exercise"
-      routineDefaultValue={routineDefaultValue}
+      routineDefaultValue={routineDefaultValue ?? undefined}
       onApplyRoutineDefault={onApplyRoutineDefault}
-      showDefaultState
+      showDefaultState={showDefaultState}
       collapsible={false}
       separateInfoBox
       separateInfoReserveLayoutSpace={reserveInfoLayoutSpace}

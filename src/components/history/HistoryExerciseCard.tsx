@@ -198,7 +198,7 @@ export function HistoryExerciseCard({
           exercise={resolvedExercise}
           summary=""
           summaryLabel=""
-          metadata={metadata}
+          headerMetadata={metadata}
           badgeText={badgeText}
           badgeItems={resolvedBadgeItems}
           metrics={metrics}
@@ -237,7 +237,7 @@ export function HistoryExerciseCard({
         exercise={resolvedExercise}
         summary={resolvedSubtitle}
         summaryLabel={resolvedSubtitleLabel}
-        metadata={metadata}
+        headerMetadata={metadata}
         badgeText={badgeText}
         badgeItems={resolvedBadgeItems}
         density="compact"
