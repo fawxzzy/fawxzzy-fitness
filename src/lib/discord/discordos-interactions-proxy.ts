@@ -1,6 +1,8 @@
 const DEFAULT_DISCORDOS_INTERACTIONS_URL = "https://fawxzzy-discordos.vercel.app/api/discord-interactions";
 
-export function resolveDiscordOsInteractionsUrl(env: NodeJS.ProcessEnv = process.env) {
+type DiscordOsInteractionsEnv = Partial<Pick<NodeJS.ProcessEnv, "DISCORDOS_INTERACTIONS_PROXY_URL">>;
+
+export function resolveDiscordOsInteractionsUrl(env: DiscordOsInteractionsEnv = process.env as DiscordOsInteractionsEnv) {
   const configured = env.DISCORDOS_INTERACTIONS_PROXY_URL?.trim();
   return configured && configured.length > 0
     ? configured
@@ -11,10 +13,10 @@ export async function proxyDiscordOsInteractionRequest(
   request: Request,
   rawBody: string,
   {
-    env = process.env,
+    env = process.env as DiscordOsInteractionsEnv,
     fetchImpl = fetch,
   }: {
-    env?: NodeJS.ProcessEnv;
+    env?: DiscordOsInteractionsEnv;
     fetchImpl?: typeof fetch;
   } = {},
 ) {

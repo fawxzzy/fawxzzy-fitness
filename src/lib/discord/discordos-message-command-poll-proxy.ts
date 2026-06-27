@@ -1,6 +1,8 @@
 const DEFAULT_DISCORDOS_MESSAGE_COMMAND_POLL_URL = "https://fawxzzy-discordos.vercel.app/api/discord-message-commands-poll";
 
-export function resolveDiscordOsMessageCommandPollUrl(env: NodeJS.ProcessEnv = process.env) {
+type DiscordOsMessageCommandPollEnv = Partial<Pick<NodeJS.ProcessEnv, "DISCORDOS_MESSAGE_COMMAND_POLL_PROXY_URL">>;
+
+export function resolveDiscordOsMessageCommandPollUrl(env: DiscordOsMessageCommandPollEnv = process.env as DiscordOsMessageCommandPollEnv) {
   const configured = env.DISCORDOS_MESSAGE_COMMAND_POLL_PROXY_URL?.trim();
   return configured && configured.length > 0
     ? configured
@@ -10,10 +12,10 @@ export function resolveDiscordOsMessageCommandPollUrl(env: NodeJS.ProcessEnv = p
 export async function proxyDiscordOsMessageCommandPoll(
   request: Request,
   {
-    env = process.env,
+    env = process.env as DiscordOsMessageCommandPollEnv,
     fetchImpl = fetch,
   }: {
-    env?: NodeJS.ProcessEnv;
+    env?: DiscordOsMessageCommandPollEnv;
     fetchImpl?: typeof fetch;
   } = {},
 ) {

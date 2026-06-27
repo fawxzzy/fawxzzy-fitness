@@ -1,6 +1,18 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-06-27 - DiscordOS command delegation and progression-adjacent contracts should stay aligned across route, session, and routine lanes
+- Type: Pattern
+- WHAT changed: Fitness now forwards the `/computa` Discord interaction lane and the Discord message-command poll route through dedicated DiscordOS proxy helpers, the feedback forum runtime syncs starter-post status reactions as a two-state contract instead of leaving stale success or warning markers behind, the workout-plan creation contract reflects the shortened duplicate/source labels, and the session progression payload forwards the raw history rows needed by the current progression resolver.
+- WHY it changed: The DiscordOS command surface now lives in a hosted companion service, so Fitness needs a deterministic pass-through path for signed interaction and poll traffic, the public feedback board needs starter-post reactions to mirror the current review state instead of drifting after status changes, and the adjacent routine/session contracts need to stay in sync with the current copy-flow wording and progression history shape used by the product.
+- Rule: Routes that delegate Discord command execution to DiscordOS should forward the original auth and signature context through a small proxy helper instead of reimplementing DiscordOS behavior locally.
+- Rule: Feedback forum starter posts should carry exactly the current state reaction, remove stale opposite-state reactions, and clear legacy success markers when a card moves back out of the resolved lane.
+- Rule: Contract tests and session progression loaders should be updated in the same slice when label wording or progression payload shape changes, so route-level delegation work does not leave adjacent deterministic contracts stale.
+- Pattern: verify Discord signature locally -> proxy the supported command lane upstream -> preserve route-local tests around forwarding semantics -> sync starter-post reaction state from the canonical report status -> keep routine/session contract fixtures aligned with the new wording and payload shape.
+- Failure Mode: Mixing local command execution with hosted DiscordOS lanes, letting starter-post reactions accumulate stale state, or leaving routine/session contracts on old wording or old progression payloads causes Discord automation drift and breaks deterministic UI or resolver expectations.
+- Evidence: `src/app/api/discord/interactions/route.ts`, `src/app/api/discord/message-commands/poll/route.ts`, `src/app/routines/CreateWorkoutPlanFlow.contract.test.ts`, `src/app/session/[id]/page.tsx`, `src/lib/discord/discordos-interactions-proxy.test.ts`, `src/lib/discord/discordos-interactions-proxy.ts`, `src/lib/discord/discordos-message-command-poll-proxy.test.ts`, `src/lib/discord/discordos-message-command-poll-proxy.ts`, `src/lib/discord/interactions-route.test.ts`, `src/lib/discord/runtime/feedback/forum.ts`
+- Status: Proposed
+
 ## 2026-06-26 - UI mutation passes should use checklist-first normalization and bounded data lanes
 - Type: Pattern
 - Summary: Fitness UI work is more reliable when every explicit edit request is turned into a checklist, the canonical surface is patched first, and mutable QA runs stay on bounded fixture or automation-user lanes instead of drifting through live user data.

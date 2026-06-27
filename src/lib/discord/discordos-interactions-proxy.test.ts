@@ -34,7 +34,7 @@ test("DiscordOS interactions proxy forwards signed requests upstream", async () 
   });
 
   let observedUrl = "";
-  let observedInit = null;
+  let observedInit: RequestInit | null = null;
   const response = await proxyDiscordOsInteractionRequest(
     request,
     JSON.stringify({ type: 2, data: { name: "computa" } }),
@@ -56,12 +56,17 @@ test("DiscordOS interactions proxy forwards signed requests upstream", async () 
   );
 
   assert.equal(observedUrl, "https://discordos.example.com/api/interactions");
-  assert.equal(observedInit?.method, "POST");
-  assert.equal(observedInit?.headers instanceof Headers, true);
-  assert.equal(observedInit?.headers.get("x-signature-ed25519"), "signature");
-  assert.equal(observedInit?.headers.get("x-signature-timestamp"), "1715702400");
-  assert.equal(observedInit?.headers.get("cache-control"), "no-cache");
-  assert.equal(observedInit?.body, JSON.stringify({ type: 2, data: { name: "computa" } }));
+  if (observedInit === null) {
+    throw new Error("Expected DiscordOS interaction proxy to forward a request.");
+  }
+  const forwardedInit = observedInit as RequestInit;
+  const observedHeaders = new Headers(forwardedInit.headers);
+  assert.equal(forwardedInit.method, "POST");
+  assert.equal(forwardedInit.headers instanceof Headers, true);
+  assert.equal(observedHeaders.get("x-signature-ed25519"), "signature");
+  assert.equal(observedHeaders.get("x-signature-timestamp"), "1715702400");
+  assert.equal(observedHeaders.get("cache-control"), "no-cache");
+  assert.equal(forwardedInit.body, JSON.stringify({ type: 2, data: { name: "computa" } }));
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true, source: "discordos" });
 });
