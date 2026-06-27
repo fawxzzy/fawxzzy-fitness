@@ -296,6 +296,7 @@ import {
   skipDiscordUpdateDraft,
 } from "@/lib/discord/update-drafts";
 import { buildDiscordComputaFormattedUpdatePayload } from "@/lib/discord/update-post-format";
+import { proxyDiscordOsInteractionRequest } from "@/lib/discord/discordos-interactions-proxy.ts";
 import { upsertDiscordMemberLink } from "@/lib/discord/member-links";
 import {
   formatDiscordMemberNickname,
@@ -8128,6 +8129,10 @@ export async function POST(request: Request) {
   try {
     if (interaction.type === DISCORD_INTERACTION_TYPE.PING) {
       return jsonResponse(buildDiscordPongResponse());
+    }
+
+    if (interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND && interaction.data?.name === "computa") {
+      return proxyDiscordOsInteractionRequest(request, rawBody);
     }
 
     const dispatchers = [
