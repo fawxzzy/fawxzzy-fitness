@@ -50,10 +50,12 @@ export function ConfirmDestructiveModal({
   details,
   bullets,
   children,
+  attachedFooter,
   isLoading = false,
   confirmDisabled = false,
   confirmVariant = "destructive",
   titleVariant = "confirm",
+  hideBottomActions = false,
   onCancel,
   onConfirm,
 }: {
@@ -68,10 +70,12 @@ export function ConfirmDestructiveModal({
   details?: string;
   bullets?: string[];
   children?: ReactNode;
+  attachedFooter?: ReactNode;
   isLoading?: boolean;
   confirmDisabled?: boolean;
   confirmVariant?: "primary" | "destructive";
   titleVariant?: "confirm" | "raw";
+  hideBottomActions?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -153,6 +157,8 @@ export function ConfirmDestructiveModal({
 
   if (!open || !portalTarget) return null;
 
+  const usesAttachedFooter = Boolean(attachedFooter);
+
   return createPortal(
     <div
       ref={modalRootRef}
@@ -177,7 +183,7 @@ export function ConfirmDestructiveModal({
         <div
           className={cn(
             "rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.96)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-[14px]",
-            usesDeleteLayout ? "rounded-b-none border-b-0 pb-4" : undefined,
+            usesDeleteLayout || usesAttachedFooter ? "rounded-b-none border-b-0 pb-4" : undefined,
           )}
         >
           <h2 id={titleId} className="text-center text-[1.3125rem] font-semibold leading-tight tracking-[-0.03em] text-text">{resolvedTitle}</h2>
@@ -194,6 +200,7 @@ export function ConfirmDestructiveModal({
             </div>
           ) : null}
         </div>
+        {!usesDeleteLayout && usesAttachedFooter ? attachedFooter : null}
         {usesDeleteLayout ? (
           <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
             <button
@@ -217,7 +224,7 @@ export function ConfirmDestructiveModal({
           </AttachedCardActionStripFrame>
         ) : null}
       </div>
-      {!usesDeleteLayout ? (
+      {!usesDeleteLayout && !hideBottomActions ? (
         <div className={`pointer-events-none fixed inset-x-0 bottom-0 z-20 ${MODAL_BOTTOM_BAR_SURFACE_CLASSNAME}`}>
           <div className="pointer-events-auto mx-auto w-full max-w-[720px] px-4">
             <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>

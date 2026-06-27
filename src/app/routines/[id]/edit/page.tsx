@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { EditRoutineAutosaveForm } from "@/app/routines/[id]/edit/EditRoutineAutosaveForm";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
 import { ROUTINE_START_WEEKDAYS, getRoutineStartWeekdayFromDate } from "@/lib/routines";
@@ -65,7 +64,6 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         defaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
         defaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         error={searchParams?.error}
-        deleteAction={<DeleteRoutineButton routineId={routine.id} />}
       />
     </RoutineDetailsScreenShell>
   );

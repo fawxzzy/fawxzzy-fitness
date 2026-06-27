@@ -125,6 +125,21 @@ test("getRoutineDayResolvedWeekdayLabel keeps anchored routines on the stored we
   );
 });
 
+test("getRoutineDayWeekdayLabel accepts ISO timestamp start dates", () => {
+  assert.equal(
+    getRoutineDayResolvedWeekdayLabel({
+      dayIndex: 4,
+      startDate: "2026-04-20T04:00:00.000Z",
+      cycleLengthDays: 9,
+      scheduleMode: "weekday_anchored",
+      profileTimeZone: "America/New_York",
+      referenceDate: "2026-06-25",
+      weekday: "short",
+    }),
+    "Thu",
+  );
+});
+
 test("getRoutineDayResolvedWeekdayLabel rolls weekday labels forward for rolling cycles", () => {
   assert.equal(
     getRoutineDayResolvedWeekdayLabel({
@@ -212,6 +227,39 @@ test("resolveRoutineScheduleForToday honors rolling day-based mode", () => {
     assert.equal(result.dayIndex, 1);
     assert.equal(result.resolution.status, "scheduled");
     assert.equal(result.resolution.scheduleMode, "rolling_n_day");
+  } finally {
+    globalThis.Date = RealDate;
+  }
+});
+
+test("resolveRoutineScheduleForToday accepts ISO timestamp start dates from persisted routines", () => {
+  const RealDate = Date;
+
+  class MockDate extends Date {
+    constructor(value?: string | number | Date) {
+      super(value ?? "2026-06-22T12:00:00.000Z");
+    }
+
+    static now() {
+      return new RealDate("2026-06-22T12:00:00.000Z").getTime();
+    }
+  }
+
+  // @ts-expect-error test-only global date override
+  globalThis.Date = MockDate;
+
+  try {
+    const result = resolveRoutineScheduleForToday({
+      cycleLengthDays: 9,
+      scheduleMode: "weekday_anchored",
+      startWeekday: "monday",
+      startDate: "2026-04-20T04:00:00.000Z",
+      profileTimeZone: "America/New_York",
+    });
+
+    assert.equal(result.todayDate, "2026-06-22");
+    assert.equal(result.dayIndex, 8);
+    assert.equal(result.resolution.status, "scheduled");
   } finally {
     globalThis.Date = RealDate;
   }

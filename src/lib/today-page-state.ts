@@ -48,7 +48,9 @@ export function resolveTodayDisplayDay(args: {
     return {
       dayIndex: sessionDayIndex,
       routineDay: matchedRoutineDay,
-      dayName: sessionDayName ?? matchedRoutineDay?.name ?? `Day ${sessionDayIndex}`,
+      // Prefer the current routine-day name when the day still exists so session resumes
+      // stay aligned with renamed/re-labeled routine days after schedule edits.
+      dayName: matchedRoutineDay?.name?.trim() || sessionDayName || `Day ${sessionDayIndex}`,
       hasScheduledDayToday: Boolean(calendarRoutineDay),
       source: "session" as TodayDisplayDaySource,
     };

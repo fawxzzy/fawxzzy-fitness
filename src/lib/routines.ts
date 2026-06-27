@@ -127,8 +127,21 @@ export function getTimeZoneDayWindow(timeZone: string, date = new Date()) {
 }
 
 function parseDateStringAsUtc(dateString: string) {
-  const [year, month, day] = dateString.split("-").map(Number);
+  const normalizedDate = normalizeDateOnlyString(dateString);
+  if (!normalizedDate) {
+    return Number.NaN;
+  }
+
+  const [year, month, day] = normalizedDate.split("-").map(Number);
   return Date.UTC(year, month - 1, day);
+}
+
+function normalizeDateOnlyString(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return value.trim().match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? null;
 }
 
 function formatUtcDate(timestamp: number) {
@@ -284,11 +297,12 @@ function escapeRegExp(value: string) {
 }
 
 export function getRoutineStartWeekdayFromDate(startDate: string | null | undefined): RoutineStartWeekday | null {
-  if (!startDate) {
+  const normalizedDate = normalizeDateOnlyString(startDate);
+  if (!normalizedDate) {
     return null;
   }
 
-  const timestamp = Date.parse(`${startDate}T00:00:00Z`);
+  const timestamp = Date.parse(`${normalizedDate}T00:00:00Z`);
   if (!Number.isFinite(timestamp)) {
     return null;
   }
@@ -338,7 +352,8 @@ export function getRoutineStartDateForWeekday(params: {
 }
 
 export function getRoutineDayNamesFromStartDate(cycleLengthDays: number, startDate: string | null) {
-  const startTimestamp = startDate ? Date.parse(`${startDate}T00:00:00Z`) : Number.NaN;
+  const normalizedDate = normalizeDateOnlyString(startDate);
+  const startTimestamp = normalizedDate ? Date.parse(`${normalizedDate}T00:00:00Z`) : Number.NaN;
   const canUseWeekdayNames = Number.isFinite(startTimestamp);
 
   return Array.from({ length: cycleLengthDays }, (_, index) => {
@@ -354,7 +369,8 @@ export function getRoutineDayWeekdayLabel(dayIndex: number, startDate: string | 
     return "Day";
   }
 
-  const startTimestamp = startDate ? Date.parse(`${startDate}T00:00:00Z`) : Number.NaN;
+  const normalizedDate = normalizeDateOnlyString(startDate);
+  const startTimestamp = normalizedDate ? Date.parse(`${normalizedDate}T00:00:00Z`) : Number.NaN;
   if (!Number.isFinite(startTimestamp)) {
     return `Day ${dayIndex}`;
   }

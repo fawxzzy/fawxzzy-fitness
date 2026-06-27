@@ -9,7 +9,7 @@ import { useRoutineDetailsHeaderTitle } from "@/components/routines/RoutineDetai
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineAction } from "@/app/routines/actions";
-import { RoutineHomeClient, type RoutineHomeDayCardItem } from "@/app/routines/RoutineHomeClient";
+import { RoutineHomeClient, routineDayHasWorkoutPlanContent, type RoutineHomeDayCardItem } from "@/app/routines/RoutineHomeClient";
 import {
   appendProgressionPlaybookFormData,
   createProgressionPlaybookFormState,
@@ -77,7 +77,6 @@ type Props = {
   createRoutineDayAction: (formData: FormData) => Promise<ActionResult & { routineDayId?: string }>;
   deleteRoutineDayAction: (formData: FormData) => Promise<ActionResult>;
   reorderRoutineDaysAction?: (formData: FormData) => Promise<ActionResult>;
-  deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
   isDraftRoutine?: boolean;
   initialWorkoutPlanChooserDayId?: string | null;
   workoutPlanSources?: WorkoutPlanSourceListItem[];
@@ -312,7 +311,7 @@ export function RoutineHomeEditorClient(props: Props) {
       return;
     }
 
-    const hasWorkoutPlanContent = (day.splitSummary?.total ?? 0) > 0 || (day.recapExercises?.length ?? 0) > 0;
+    const hasWorkoutPlanContent = routineDayHasWorkoutPlanContent(day);
     if (hasWorkoutPlanContent || props.isDraftRoutine) {
       router.push(day.href);
       return;
@@ -371,7 +370,6 @@ export function RoutineHomeEditorClient(props: Props) {
         createRoutineDayAction={props.createRoutineDayAction}
         deleteRoutineDayAction={props.deleteRoutineDayAction}
         reorderRoutineDaysAction={props.reorderRoutineDaysAction}
-        deleteRoutineAction={props.deleteRoutineAction}
         footerMode={props.isDraftRoutine ? "draftPublish" : "edit"}
         onPublishDraft={props.isDraftRoutine ? handlePublishDraft : undefined}
         isPublishDraftPending={isPublishingDraft}

@@ -2783,10 +2783,10 @@ export function parseProgressionPlaybookPayload(formData: FormData):
     return { ok: true, playbookId, config };
   }
 
-  const stallThreshold = parseOptionalPositiveInteger(formData.get("progressionStallThreshold"));
-  if (stallThreshold === null || Number.isNaN(stallThreshold)) {
-    return { ok: false, error: "Stall threshold must be a whole number above 0." };
-  }
+  const rawStallThreshold = parseOptionalPositiveInteger(formData.get("progressionStallThreshold"));
+  const stallThreshold = rawStallThreshold === null || Number.isNaN(rawStallThreshold)
+    ? 2
+    : rawStallThreshold;
 
   const rawDeloadPercent = parseOptionalPositiveNumber(formData.get("progressionDeloadPercent"));
   const deloadPercent = rawDeloadPercent === null || Number.isNaN(rawDeloadPercent) || rawDeloadPercent >= 100

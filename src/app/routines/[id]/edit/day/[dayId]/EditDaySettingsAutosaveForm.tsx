@@ -2,6 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import {
   RoutineEditorPageHeader,
   RoutineEditorTitleInput,
@@ -11,12 +12,14 @@ import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
+import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { cycleSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import { getRoutineOverviewHref } from "@/lib/routine-day-navigation";
 import { getRoutineDayEditableName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { publishEditDayAdjustmentDirection, subscribeEditDayAutoProgressionVisibility, subscribeScreenFocusMode, subscribeScreenMode } from "@/lib/screen-focus-mode";
+import { hasWorkoutPlanTemplateNameConflict, normalizeWorkoutPlanTemplateNameCandidate } from "@/lib/workout-plan-template-name";
 
 type Props = {
   routineId: string;
@@ -35,6 +38,12 @@ type Props = {
   showDayAdjustmentControl?: boolean;
   initialDayAdjustmentDirection?: SetFlowDirection;
   floatingHeaderSlotId?: string;
+  resolveTemplateDecisionAction: (
+    formData: FormData,
+  ) => Promise<ActionResult & { templateId?: string; templateName?: string; syncMode?: "sync" }>;
+  workoutPlanTemplateId?: string | null;
+  requiresWorkoutPlanTemplateEditDecision?: boolean;
+  existingWorkoutPlanTemplateNames?: Array<string | null | undefined>;
 };
 
 function EditDayDirectionGlyph({
@@ -94,7 +103,23 @@ function EditDayAdjustmentButton({
   );
 }
 
-export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _daySummaryCounts, routineDayId, backHref, dayIndex, name, startDate, isRest, showDayAdjustmentControl = false, initialDayAdjustmentDirection = "straight", floatingHeaderSlotId }: Props) {
+export function EditDaySettingsAutosaveForm({
+  routineId,
+  daySummaryCounts: _daySummaryCounts,
+  routineDayId,
+  backHref,
+  dayIndex,
+  name,
+  startDate,
+  isRest,
+  showDayAdjustmentControl = false,
+  initialDayAdjustmentDirection = "straight",
+  floatingHeaderSlotId,
+  resolveTemplateDecisionAction,
+  workoutPlanTemplateId = null,
+  requiresWorkoutPlanTemplateEditDecision = false,
+  existingWorkoutPlanTemplateNames = [],
+}: Props) {
   const toast = useToast();
   const formRef = useRef<HTMLFormElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,6 +139,16 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
   const [isDayAdjustmentVisible, setIsDayAdjustmentVisible] = useState(showDayAdjustmentControl);
   const [floatingHeaderSlot, setFloatingHeaderSlot] = useState<HTMLElement | null>(null);
   const [, startTransition] = useTransition();
+  const [activeWorkoutPlanTemplateId, setActiveWorkoutPlanTemplateId] = useState<string | null>(workoutPlanTemplateId);
+  const [requiresTemplateEditDecision, setRequiresTemplateEditDecision] = useState(requiresWorkoutPlanTemplateEditDecision);
+  const [shouldSyncTemplateOnSave, setShouldSyncTemplateOnSave] = useState(
+    Boolean(workoutPlanTemplateId) && !requiresWorkoutPlanTemplateEditDecision,
+  );
+  const [templateDecisionOpen, setTemplateDecisionOpen] = useState(false);
+  const [templateDecisionMode, setTemplateDecisionMode] = useState<"update_existing" | "save_new">("update_existing");
+  const [templateDecisionName, setTemplateDecisionName] = useState("");
+  const [templateDecisionError, setTemplateDecisionError] = useState<string | null>(null);
+  const [isTemplateDecisionPending, startTemplateDecisionTransition] = useTransition();
 
   useEffect(() => () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -126,6 +161,12 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
     pendingSnapshotRef.current = nextDraft;
     lastSubmittedRef.current = JSON.stringify(nextDraft);
   }, [initialDayAdjustmentDirection, initialEditableName, isRest, showDayAdjustmentControl]);
+
+  useEffect(() => {
+    setActiveWorkoutPlanTemplateId(workoutPlanTemplateId);
+    setRequiresTemplateEditDecision(requiresWorkoutPlanTemplateEditDecision);
+    setShouldSyncTemplateOnSave(Boolean(workoutPlanTemplateId) && !requiresWorkoutPlanTemplateEditDecision);
+  }, [requiresWorkoutPlanTemplateEditDecision, workoutPlanTemplateId]);
 
   useEffect(() => {
     if (!isDayAdjustmentVisible) {
@@ -158,7 +199,18 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
   useEffect(() => subscribeScreenMode("edit-day", (mode) => setIsReorderModeActive(mode === "reorder")), []);
   useEffect(() => subscribeEditDayAutoProgressionVisibility(setIsDayAdjustmentVisible), []);
 
-  const submitAutosave = useCallback(() => {
+  const shouldGateTemplateEditDecision = useCallback(() => (
+    requiresTemplateEditDecision && Boolean(activeWorkoutPlanTemplateId)
+  ), [activeWorkoutPlanTemplateId, requiresTemplateEditDecision]);
+
+  const openTemplateDecision = useCallback(() => {
+    setTemplateDecisionMode("update_existing");
+    setTemplateDecisionName("");
+    setTemplateDecisionError(null);
+    setTemplateDecisionOpen(true);
+  }, []);
+
+  const submitAutosave = useCallback((options?: { forceTemplateSync?: boolean }) => {
     const form = formRef.current;
     const nextSnapshot = pendingSnapshotRef.current;
     if (!form) return;
@@ -180,6 +232,17 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
 
     if (snapshot === lastSubmittedRef.current) return;
 
+    if (!options?.forceTemplateSync && shouldGateTemplateEditDecision()) {
+      openTemplateDecision();
+      return;
+    }
+
+    if ((options?.forceTemplateSync || shouldSyncTemplateOnSave) && activeWorkoutPlanTemplateId) {
+      formData.set("workoutPlanTemplateSyncMode", "sync");
+    } else {
+      formData.delete("workoutPlanTemplateSyncMode");
+    }
+
     startTransition(async () => {
       const result = await updateRoutineDaySettingsAction(formData);
       if (result.ok) {
@@ -197,7 +260,14 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
       }
       toast.error(result.error ?? "Autosave failed", { id: "day-autosave-status", durationMs: 3200 });
     });
-  }, [isDayAdjustmentVisible, toast]);
+  }, [
+    activeWorkoutPlanTemplateId,
+    isDayAdjustmentVisible,
+    openTemplateDecision,
+    shouldGateTemplateEditDecision,
+    shouldSyncTemplateOnSave,
+    toast,
+  ]);
 
   const scheduleAutosave = useCallback((nextSnapshot: { name: string; isRest: boolean; dayAdjustmentDirection: SetFlowDirection }) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -246,6 +316,134 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts: _dayS
       <input type="hidden" name="routineDayId" value={routineDayId} />
       <NavigationReturnInput fallbackHref={getRoutineOverviewHref()} value={backHref} />
       {!isFocusModeActive ? (floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode) : null}
+      <ConfirmDestructiveModal
+        open={templateDecisionOpen}
+        title="Workout Plan Template"
+        description={templateDecisionMode === "update_existing"
+          ? "Update this shared template so linked workout plans stay in sync."
+          : "Save this workout plan as a new template before these edits continue autosaving."}
+        confirmLabel="Confirm"
+        confirmActionLabel={templateDecisionMode === "update_existing" ? "Update Template" : "Save New Template"}
+        cancelLabel="Cancel"
+        confirmVariant="primary"
+        confirmDisabled={templateDecisionMode === "save_new" && normalizeWorkoutPlanTemplateNameCandidate(templateDecisionName).length === 0}
+        isLoading={isTemplateDecisionPending}
+        onCancel={() => {
+          setTemplateDecisionOpen(false);
+          setTemplateDecisionError(null);
+        }}
+        onConfirm={() => {
+          const normalizedTemplateName = normalizeWorkoutPlanTemplateNameCandidate(templateDecisionName);
+          if (templateDecisionMode === "save_new") {
+            if (!normalizedTemplateName) {
+              setTemplateDecisionError("Template name is required.");
+              return;
+            }
+            if (hasWorkoutPlanTemplateNameConflict({
+              candidateName: normalizedTemplateName,
+              templateNames: existingWorkoutPlanTemplateNames,
+            })) {
+              setTemplateDecisionError("Template name already exists.");
+              return;
+            }
+          }
+
+          startTemplateDecisionTransition(() => {
+            void (async () => {
+              const decisionFormData = new FormData();
+              decisionFormData.set("routineId", routineId);
+              decisionFormData.set("routineDayId", routineDayId);
+              decisionFormData.set("decisionMode", templateDecisionMode);
+              if (templateDecisionMode === "save_new") {
+                decisionFormData.set("templateName", normalizedTemplateName);
+              }
+
+              const result = await resolveTemplateDecisionAction(decisionFormData);
+              if (!result.ok) {
+                setTemplateDecisionError(result.error ?? "Could not update workout plan template.");
+                return;
+              }
+
+              setTemplateDecisionOpen(false);
+              setTemplateDecisionError(null);
+              setRequiresTemplateEditDecision(false);
+              setShouldSyncTemplateOnSave(result.syncMode === "sync");
+              if (result.templateId) {
+                setActiveWorkoutPlanTemplateId(result.templateId);
+              }
+              if (result.templateName) {
+                toast.success(
+                  templateDecisionMode === "update_existing"
+                    ? `Template updated: ${result.templateName}`
+                    : `New template saved: ${result.templateName}`,
+                );
+              }
+              submitAutosave({ forceTemplateSync: true });
+            })();
+          });
+        }}
+      >
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={cn(
+                "min-h-11 rounded-[0.95rem] border px-3 py-2 text-sm font-semibold transition",
+                templateDecisionMode === "update_existing"
+                  ? "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))]"
+                  : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.56)] text-[rgb(var(--text-secondary)/0.88)]",
+              )}
+              onClick={() => {
+                setTemplateDecisionMode("update_existing");
+                setTemplateDecisionError(null);
+              }}
+            >
+              Update Template
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "min-h-11 rounded-[0.95rem] border px-3 py-2 text-sm font-semibold transition",
+                templateDecisionMode === "save_new"
+                  ? "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.12)] text-[rgb(var(--text-primary))]"
+                  : "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.56)] text-[rgb(var(--text-secondary)/0.88)]",
+              )}
+              onClick={() => {
+                setTemplateDecisionMode("save_new");
+                setTemplateDecisionError(null);
+              }}
+            >
+              Save New Template
+            </button>
+          </div>
+          {templateDecisionMode === "save_new" ? (
+            <label className="block">
+              <span className="sr-only">Template name</span>
+              <input
+                type="text"
+                value={templateDecisionName}
+                onChange={(event) => {
+                  setTemplateDecisionName(event.target.value.slice(0, 15));
+                  setTemplateDecisionError(null);
+                }}
+                placeholder="Template name"
+                maxLength={15}
+                className={cn(
+                  "w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition",
+                  templateDecisionError
+                    ? "border-[rgb(var(--danger-rgb)/0.52)]"
+                    : "border-[rgb(var(--border-strong)/0.16)] focus:border-[rgb(var(--accent)/0.32)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]",
+                )}
+              />
+            </label>
+          ) : null}
+          {templateDecisionError ? (
+            <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">
+              {templateDecisionError}
+            </p>
+          ) : null}
+        </div>
+      </ConfirmDestructiveModal>
     </form>
   );
 }

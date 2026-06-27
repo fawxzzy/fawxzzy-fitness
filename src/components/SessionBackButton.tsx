@@ -7,7 +7,7 @@ export function SessionBackButton({ href = "/today" }: { href?: string }) {
     <TopRightBackButton
       href={href}
       ariaLabel="Back to Today"
-      historyBehavior="fallback-only"
+      historyBehavior="history-first"
     />
   );
 }

@@ -46,6 +46,9 @@ type StandardExerciseRowProps = {
   titleContainerClassName?: string;
   titleClassName?: string;
   titleMeta?: ReactNode;
+  titleMetaClassName?: string;
+  cornerMeta?: ReactNode;
+  cornerMetaClassName?: string;
   titleMetaMode?: ExerciseCardTitleMetaMode;
   subtitleClassName?: string;
   headerDivider?: ReactNode;
@@ -94,6 +97,9 @@ export function StandardExerciseRow({
   titleContainerClassName,
   titleClassName,
   titleMeta,
+  titleMetaClassName,
+  cornerMeta,
+  cornerMetaClassName,
   titleMetaMode,
   subtitleClassName,
   headerDivider,
@@ -150,6 +156,9 @@ export function StandardExerciseRow({
     <ExerciseCard
       title={title ?? exercise.name}
       titleMeta={titleMeta}
+      titleMetaClassName={titleMetaClassName}
+      cornerMeta={cornerMeta}
+      cornerMetaClassName={cornerMetaClassName}
       titleMetaMode={titleMetaMode}
       subtitle={resolvedSubtitle}
       variant={variant}

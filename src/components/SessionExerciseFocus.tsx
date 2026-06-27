@@ -1,7 +1,12 @@
 "use client";
 
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { SetLoggerCard, type SetLoggerSeedSet } from "@/components/SessionTimers";
+import {
+  SetLoggerCard,
+  type SessionLoggerDraftQuickLogPayload,
+  type SessionLoggerDraftState,
+  type SetLoggerSeedSet,
+} from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -64,6 +69,7 @@ type AddSetActionResult = ActionResult<{ set: SetRow }>;
 type SessionExerciseLocalCacheEntry = {
   rowClientStateBySessionExerciseId: Record<string, SessionRowClientState>;
   setSnapshotsBySessionExerciseId: Record<string, SetLoggerSeedSet[]>;
+  draftStateBySessionExerciseId: Record<string, SessionLoggerDraftState>;
 };
 
 const sessionExerciseLocalStateCache = new Map<string, SessionExerciseLocalCacheEntry>();
@@ -72,7 +78,8 @@ const COMPACT_SESSION_ROW_SHELL_CLASS_NAME = "overflow-hidden rounded-none round
 const CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME = "!right-[0.58rem] !top-[0.58rem] !bottom-auto !translate-y-0";
 const CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME = "inset-0 !left-0 !right-0 !top-0 !bottom-0 !block !translate-y-0 pointer-events-none";
 const CURRENT_SESSION_CARD_INFO_BUTTON_CLASS_NAME = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
-const CURRENT_SESSION_CARD_TITLE_CONTAINER_CLASS_NAME = "pr-[2.45rem] pb-[1.9rem]";
+const CURRENT_SESSION_CARD_TITLE_CONTAINER_CLASS_NAME = "!pr-[3.3rem] pb-[1.9rem]";
+const CURRENT_SESSION_CARD_CORNER_META_CLASS_NAME = "!right-[1.82rem] !top-[0.71rem]";
 
 type SyncQueuedSetLogsAction = (payload: {
   items: Array<{
@@ -338,6 +345,9 @@ export function SessionExerciseFocus({
         )
       : {},
   );
+  const [draftStateBySessionExerciseId, setDraftStateBySessionExerciseId] = useState<Record<string, SessionLoggerDraftState>>(
+    () => cachedSessionState?.draftStateBySessionExerciseId ?? {},
+  );
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const rowViewModelBySessionExerciseId = useMemo(() => {
     const fallbackWeightUnit = unitLabel === "lbs" ? "lbs" : "kg";
@@ -401,8 +411,9 @@ export function SessionExerciseFocus({
     sessionExerciseLocalStateCache.set(sessionId, {
       rowClientStateBySessionExerciseId,
       setSnapshotsBySessionExerciseId,
+      draftStateBySessionExerciseId,
     });
-  }, [rowClientStateBySessionExerciseId, sessionId, setSnapshotsBySessionExerciseId]);
+  }, [draftStateBySessionExerciseId, rowClientStateBySessionExerciseId, sessionId, setSnapshotsBySessionExerciseId]);
   useEffect(() => {
     if (!selectedExerciseId) {
       return;
@@ -489,6 +500,21 @@ export function SessionExerciseFocus({
         next[exercise.id] = current[exercise.id] ?? exercise.initialSets;
       }
       return areSetSnapshotMapsEqual(current, next) ? current : next;
+    });
+  }, [exercises]);
+
+  useEffect(() => {
+    setDraftStateBySessionExerciseId((current) => {
+      const next = Object.fromEntries(
+        exercises
+          .map((exercise) => {
+            const draftState = current[exercise.id];
+            return draftState ? [exercise.id, draftState] : null;
+          })
+          .filter((entry): entry is [string, SessionLoggerDraftState] => entry !== null),
+      );
+
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
     });
   }, [exercises]);
 
@@ -723,7 +749,7 @@ export function SessionExerciseFocus({
               });
           const rowState = rowViewModel.rowState;
           const isCompletedRow = rowState.cardState === "completed";
-          const titleMeta = progressState.goalSetTarget !== null && progressState.loggedSetCount > 0
+          const titleMeta = progressState.goalSetTarget !== null
             ? (
               <span className={isCompletedRow ? "text-[rgb(var(--success-rgb)/0.98)]" : undefined}>
                 {progressState.loggedSetCount} / {progressState.goalSetTarget}
@@ -737,7 +763,8 @@ export function SessionExerciseFocus({
                 label: `${Math.min(progressState.loggedSetCount, progressState.goalSetTarget)}/${progressState.goalSetTarget} sets`,
               } satisfies ProgressionProgressFill
             : null;
-          const exerciseSummary = isStretchHub ? null : exercise.goalLabel;
+          const draftState = draftStateBySessionExerciseId[exercise.id] ?? null;
+          const exerciseSummary = isStretchHub ? null : (draftState?.goalLabel ?? exercise.goalLabel);
           const semanticTone = resolveSessionExerciseTone({
             loggedSetCount: setCount,
             isSkipped: effectiveIsHidden,
@@ -756,7 +783,8 @@ export function SessionExerciseFocus({
               name={exercise.name}
               metadata={<ExerciseCardMetadataLine items={headerMetaItems} />}
               rightContent={exerciseSummary ?? undefined}
-              rightSubcontent={<ExerciseCardProgressionStateInline label={progressionStateLabel} />}
+              rightSubcontent={isStretchHub ? undefined : <ExerciseCardProgressionStateInline label={progressionStateLabel} />}
+              columnLayout="compact"
             />
           );
           const cardInfoButton = (
@@ -804,7 +832,7 @@ export function SessionExerciseFocus({
               scope="session-exercise"
               itemId={exercise.id}
               expanded={isExpanded}
-              keepPanelMounted={persistedLoggerExerciseId === exercise.id}
+              keepPanelMounted={false}
               onToggle={() => toggleExercise(exercise.id)}
               exercise={exercise}
               title={sessionTitle}
@@ -840,13 +868,13 @@ export function SessionExerciseFocus({
               mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
               rightIconMode="overlay"
               rightRailClassName={CURRENT_SESSION_CARD_CHEVRON_RAIL_CLASS_NAME}
-              titleMeta={titleMeta}
-              titleMetaMode={titleMeta ? "overlay-tight" : undefined}
+              cornerMeta={titleMeta}
+              cornerMetaClassName={CURRENT_SESSION_CARD_CORNER_META_CLASS_NAME}
               overlayActions={cardInfoButton}
               overlayActionsClassName={CURRENT_SESSION_CARD_INFO_OVERLAY_CLASS_NAME}
               showAccentRail
               hideEmptySummary
-              contentVerticalAlign={isStretchHub ? "top" : "auto"}
+              contentVerticalAlign="top"
               progressFill={sessionProgressFill}
             >
               <>
@@ -902,10 +930,52 @@ export function SessionExerciseFocus({
                   cycleLengthDays={cycleLengthDays ?? null}
                   progressionExampleDayNumber={sessionDayIndex ?? null}
                   showAllMeasurementInputs={!isStretchHub}
+                  showWarmupToggle={!isStretchHub}
                   showFailureToggle={!isStretchHub}
                   showProgressionControls={!isStretchHub}
                   updateProgressionAction={updateSessionExerciseProgressionAction}
                   bottomDockCenter={bottomDockCenter}
+                  fallbackGoalLabel={exercise.goalLabel}
+                  reportDraftState={isExpanded}
+                  draftFormState={draftState?.formState ?? null}
+                  onDraftStateChange={(nextDraftState) => {
+                    setDraftStateBySessionExerciseId((current) => {
+                      const previous = current[exercise.id];
+                      if (
+                        previous?.goalLabel === nextDraftState.goalLabel
+                        && previous?.quickLogLabel === nextDraftState.quickLogLabel
+                        && previous?.quickLogPayload?.weight === nextDraftState.quickLogPayload?.weight
+                        && previous?.quickLogPayload?.reps === nextDraftState.quickLogPayload?.reps
+                        && previous?.quickLogPayload?.durationSeconds === nextDraftState.quickLogPayload?.durationSeconds
+                        && previous?.quickLogPayload?.distance === nextDraftState.quickLogPayload?.distance
+                        && previous?.quickLogPayload?.distanceUnit === nextDraftState.quickLogPayload?.distanceUnit
+                        && previous?.quickLogPayload?.calories === nextDraftState.quickLogPayload?.calories
+                        && previous?.quickLogPayload?.isWarmup === nextDraftState.quickLogPayload?.isWarmup
+                        && previous?.quickLogPayload?.rpe === nextDraftState.quickLogPayload?.rpe
+                        && previous?.quickLogPayload?.notes === nextDraftState.quickLogPayload?.notes
+                        && previous?.quickLogPayload?.weightUnit === nextDraftState.quickLogPayload?.weightUnit
+                        && previous?.isEditedFromCurrentTarget === nextDraftState.isEditedFromCurrentTarget
+                        && previous?.didApplyLastTarget === nextDraftState.didApplyLastTarget
+                        && previous?.formState.weight === nextDraftState.formState.weight
+                        && previous?.formState.reps === nextDraftState.formState.reps
+                        && previous?.formState.durationInput === nextDraftState.formState.durationInput
+                        && previous?.formState.distance === nextDraftState.formState.distance
+                        && previous?.formState.calories === nextDraftState.formState.calories
+                        && previous?.formState.rpe === nextDraftState.formState.rpe
+                        && previous?.formState.weightUnit === nextDraftState.formState.weightUnit
+                        && previous?.formState.distanceUnit === nextDraftState.formState.distanceUnit
+                        && previous?.formState.isWarmup === nextDraftState.formState.isWarmup
+                        && previous?.formState.isFailure === nextDraftState.formState.isFailure
+                      ) {
+                        return current;
+                      }
+
+                      return {
+                        ...current,
+                        [exercise.id]: nextDraftState,
+                      };
+                    });
+                  }}
                   onSetCountChange={(count) => {
                     handleSetCountChange(exercise.id, count);
                   }}
@@ -918,7 +988,7 @@ export function SessionExerciseFocus({
             <AttachedQuickActionStrip
               gridClassName="grid-cols-[88px_minmax(0,1fr)]"
               rowContract={{
-                label: rowState.quickLogLabel,
+                label: draftState?.quickLogLabel ?? rowState.quickLogLabel,
                 skipLabel: rowState.skipActionLabel,
                 quickLogActionClassName: rowState.quickLogActionClassName,
                 skipActionClassName: rowState.skipActionClassName,
@@ -951,13 +1021,30 @@ export function SessionExerciseFocus({
                 }));
                 const clientLogId = createStableSetId();
                 try {
-                  const quickLogResolution = resolveQuickLogFromResolvedTarget(
-                    resolvedQuickLogTarget,
-                    unitLabel === "lbs" ? "lbs" : "kg",
-                  );
-                  if (!quickLogResolution.ok) {
-                    toast.error(quickLogResolution.reason);
-                    toggleExercise(exercise.id);
+                  const quickLogPayload = (() => {
+                    const draftQuickLogPayload = draftState?.quickLogPayload ?? null;
+                    if (draftQuickLogPayload) {
+                      return draftQuickLogPayload;
+                    }
+
+                    const quickLogResolution = resolveQuickLogFromResolvedTarget(
+                      resolvedQuickLogTarget,
+                      unitLabel === "lbs" ? "lbs" : "kg",
+                    );
+                    if (!quickLogResolution.ok) {
+                      toast.error(quickLogResolution.reason);
+                      toggleExercise(exercise.id);
+                      return null;
+                    }
+
+                    return {
+                      ...quickLogResolution.payload,
+                      isWarmup: false,
+                      rpe: null,
+                      notes: null,
+                    } satisfies SessionLoggerDraftQuickLogPayload;
+                  })();
+                  if (!quickLogPayload) {
                     return;
                   }
 
@@ -971,16 +1058,16 @@ export function SessionExerciseFocus({
                       session_exercise_id: exercise.id,
                       user_id: userId,
                       set_index: nextSetIndex,
-                      weight: quickLogResolution.payload.weight,
-                      reps: quickLogResolution.payload.reps,
-                      duration_seconds: quickLogResolution.payload.durationSeconds,
-                      distance: quickLogResolution.payload.distance,
-                      distance_unit: quickLogResolution.payload.distanceUnit,
-                      calories: quickLogResolution.payload.calories,
-                      is_warmup: false,
-                      notes: null,
-                      rpe: null,
-                      weight_unit: quickLogResolution.payload.weightUnit,
+                      weight: quickLogPayload.weight,
+                      reps: quickLogPayload.reps,
+                      duration_seconds: quickLogPayload.durationSeconds,
+                      distance: quickLogPayload.distance,
+                      distance_unit: quickLogPayload.distanceUnit,
+                      calories: quickLogPayload.calories,
+                      is_warmup: quickLogPayload.isWarmup,
+                      notes: quickLogPayload.notes,
+                      rpe: quickLogPayload.rpe,
+                      weight_unit: quickLogPayload.weightUnit,
                       pending: true,
                     };
                     const next = sortSetsByIndex(mergeByStableSetId(previous, [optimisticSet]));
@@ -996,10 +1083,16 @@ export function SessionExerciseFocus({
                   const result = await addSetAction({
                     sessionId,
                     sessionExerciseId: exercise.id,
-                    ...quickLogResolution.payload,
-                    isWarmup: false,
-                    rpe: null,
-                    notes: null,
+                    weight: quickLogPayload.weight,
+                    reps: quickLogPayload.reps,
+                    durationSeconds: quickLogPayload.durationSeconds,
+                    distance: quickLogPayload.distance,
+                    distanceUnit: quickLogPayload.distanceUnit,
+                    calories: quickLogPayload.calories,
+                    isWarmup: quickLogPayload.isWarmup,
+                    rpe: quickLogPayload.rpe,
+                    notes: quickLogPayload.notes,
+                    weightUnit: quickLogPayload.weightUnit,
                     clientLogId,
                   });
 

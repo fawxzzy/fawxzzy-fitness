@@ -824,7 +824,7 @@ export function NewRoutineDraftForm({
                                   }}
                                   className={NEW_ROUTINE_PREVIEW_EDIT_ACTION_BUTTON_CLASS_NAME}
                                 >
-                                  <span className="bottom-action__label">Create Workout Plan</span>
+                                  <span className="bottom-action__label">Create</span>
                                 </button>
                               ) : null}
                             </AttachedCardActionStripFrame>

@@ -2462,7 +2462,6 @@ function renderEditRoutineScenario(scenario: MobileFixtureScenario) {
           startWeekday="monday"
           timezone="America/New_York"
           weightUnit="lbs"
-          deleteAction={<BottomDockButton type="button" intent="danger">Delete</BottomDockButton>}
         />
       </div>
     </RoutineDetailsScreenShell>

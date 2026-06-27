@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
+import {
+  loadWorkoutPlanTemplateEditDecisionStateAction,
+  reorderRoutineDayExercisesAction,
+  resolveWorkoutPlanTemplateEditDecisionAction,
+  updateRoutineDayExerciseAction,
+  deleteRoutineDayExerciseAction,
+} from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm";
 import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
@@ -17,6 +23,11 @@ import type { SetFlowDirection } from "@/lib/set-flow-directions";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import {
+  loadRoutineDayExercisesWithTemplateCompat,
+  loadRoutineDaysWithTemplateCompat,
+  loadWorkoutPlanTemplateNames,
+} from "@/lib/workout-plan-templates";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -60,34 +71,29 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const routine = routineWithProgression ?? legacyRoutine;
   if (!routine) notFound();
 
-  const { data: routineDays } = await supabase
-    .from("routine_days")
-    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-    .eq("routine_id", params.id)
-    .eq("user_id", user.id)
-    .order("day_index", { ascending: true });
+  const routineDaysResult = await loadRoutineDaysWithTemplateCompat({
+    supabase,
+    userId: user.id,
+    routineId: params.id,
+  });
+  const routineDays = routineDaysResult.data;
 
   const day = (routineDays ?? []).find((routineDay) => routineDay.id === params.dayId) as RoutineDayRow | undefined;
   if (!day) notFound();
 
-  const { data: exerciseRowsWithProgression, error: exerciseRowsWithProgressionError } = await supabase
-    .from("routine_day_exercises")
-    .select(ROUTINE_DAY_EXERCISE_SELECT_WITH_PROGRESSION)
-    .in("routine_day_id", (routineDays ?? []).map((routineDay) => routineDay.id))
-    .eq("user_id", user.id)
-    .order("position", { ascending: true });
-  const { data: legacyExerciseRows } = exerciseRowsWithProgressionError && isMissingProgressionPlaybookColumnError(exerciseRowsWithProgressionError)
-    ? await supabase
-        .from("routine_day_exercises")
-        .select(ROUTINE_DAY_EXERCISE_SELECT_LEGACY)
-        .in("routine_day_id", (routineDays ?? []).map((routineDay) => routineDay.id))
-        .eq("user_id", user.id)
-        .order("position", { ascending: true })
-    : { data: null };
-  const exercises = exerciseRowsWithProgression ?? legacyExerciseRows ?? [];
+  const exerciseRowsResult = await loadRoutineDayExercisesWithTemplateCompat({
+    supabase,
+    userId: user.id,
+    routineDayIds: (routineDays ?? []).map((routineDay) => routineDay.id),
+  });
+  const exercises = exerciseRowsResult.data;
 
   const allRoutineDayExercises = exercises as RoutineDayExerciseRow[];
   const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
+  const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+    supabase,
+    userId: user.id,
+  });
   const exerciseNameMap = await getExerciseNameMap();
   const { canonicalExerciseIdByRawId, exerciseDetailsById } = await loadCanonicalExerciseCatalog({
     supabase,
@@ -221,6 +227,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           showDayAdjustmentControl={showDayAdjustmentControl}
           initialDayAdjustmentDirection={initialDayAdjustmentDirection}
           floatingHeaderSlotId="edit-day-floating-header-slot"
+          resolveTemplateDecisionAction={resolveWorkoutPlanTemplateEditDecisionAction}
+          workoutPlanTemplateId={day.workout_plan_template_id ?? null}
+          requiresWorkoutPlanTemplateEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
+          existingWorkoutPlanTemplateNames={existingTemplateNames}
         />
 
         <EditableRoutineDayExerciseList
@@ -231,6 +241,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           weightUnit={(routine as RoutineRow).weight_unit}
           exercises={editableExercises}
           updateAction={updateRoutineDayExerciseAction}
+          resolveTemplateDecisionAction={resolveWorkoutPlanTemplateEditDecisionAction}
+          loadTemplateDecisionStateAction={loadWorkoutPlanTemplateEditDecisionStateAction}
           deleteAction={deleteRoutineDayExerciseAction}
           reorderAction={reorderRoutineDayExercisesAction}
           initialIsRest={(day as RoutineDayRow).is_rest}
@@ -240,6 +252,9 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           routineDefaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
           showDayAdjustmentControl={showDayAdjustmentControl}
           initialDayAdjustmentDirection={initialDayAdjustmentDirection}
+          workoutPlanTemplateId={day.workout_plan_template_id ?? null}
+          requiresWorkoutPlanTemplateEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
+          existingWorkoutPlanTemplateNames={existingTemplateNames}
         />
       </DetailScreenScaffold>
     </AppShell>

@@ -3,11 +3,26 @@ import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { buildRoutinePlanRecapExercises, selectRoutinePlanPreviewExercises } from "@/lib/routine-plan-preview";
 import { formatRoutineDayStableDisplayName, getRoutineDayResolvedWeekdayLabel } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
-import { selectCanonicalWorkoutPlanSourceDays } from "@/lib/workout-plan-source-list-utils";
-import type { RoutineDayRow, RoutineRow } from "@/types/db";
+import { dedupeWorkoutPlanSourceItemsByTitle, selectCanonicalWorkoutPlanSourceDays } from "@/lib/workout-plan-source-list-utils";
+import {
+  isMissingWorkoutPlanTemplateTableError,
+  loadRoutineDaysWithTemplateCompat,
+  loadRoutineDayExercisesWithTemplateCompat,
+  WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT,
+  WORKOUT_PLAN_TEMPLATE_SELECT,
+} from "@/lib/workout-plan-templates";
+import type {
+  RoutineDayExerciseRow,
+  RoutineDayRow,
+  RoutineRow,
+  WorkoutPlanTemplateExerciseRow,
+  WorkoutPlanTemplateRow,
+} from "@/types/db";
 
 export type WorkoutPlanSourceListItem = {
   id: string;
+  workoutPlanTemplateId?: string | null;
+  sourceRoutineDayId?: string | null;
   sourceRoutineId: string;
   sourceRoutineName: string;
   isCurrentRoutine: boolean;
@@ -38,10 +53,6 @@ export type WorkoutPlanSourceListItem = {
   remainingExerciseCount?: number;
 };
 
-function normalizeWorkoutPlanSourceTitleKey(value: string | null | undefined) {
-  return (value ?? "").trim().toLowerCase();
-}
-
 type LoadWorkoutPlanSourceListArgs = {
   supabase: ReturnType<typeof supabaseServer>;
   userId: string;
@@ -50,20 +61,223 @@ type LoadWorkoutPlanSourceListArgs = {
 };
 
 const SOURCE_ROUTINE_SELECT = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, updated_at";
-const SOURCE_ROUTINE_DAY_EXERCISE_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
-const SOURCE_ROUTINE_DAY_SELECT = "id, user_id, routine_id, day_index, name, is_rest, notes, duplicate_source_routine_day_id";
-const SOURCE_ROUTINE_DAY_SELECT_LEGACY = "id, user_id, routine_id, day_index, name, is_rest, notes";
 
-function isMissingDuplicateSourceRoutineDayColumnError(error: { message?: string } | null | undefined) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return (
-    message.includes("duplicate_source_routine_day_id")
-    && message.includes("routine_days")
-    && (message.includes("schema cache") || message.includes("does not exist"))
-  );
+function chooseRepresentativeTemplateDay(args: {
+  linkedDays: RoutineDayRow[];
+  currentRoutineId: string;
+  sourceRoutineDayId?: string | null;
+}) {
+  if (args.linkedDays.length === 0) {
+    return null;
+  }
+
+  const explicitSourceDay = args.sourceRoutineDayId
+    ? args.linkedDays.find((day) => day.id === args.sourceRoutineDayId) ?? null
+    : null;
+  if (explicitSourceDay) {
+    return explicitSourceDay;
+  }
+
+  const currentRoutineDay = args.linkedDays.find((day) => day.routine_id === args.currentRoutineId) ?? null;
+  if (currentRoutineDay) {
+    return currentRoutineDay;
+  }
+
+  return args.linkedDays
+    .slice()
+    .sort((left, right) => left.day_index - right.day_index)[0] ?? null;
 }
 
-export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListArgs): Promise<WorkoutPlanSourceListItem[]> {
+async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListArgs): Promise<{
+  items: WorkoutPlanSourceListItem[];
+  hasUntemplatedSourceDays: boolean;
+} | null> {
+  const { supabase, userId, routineId } = args;
+
+  const { data: templatesData, error: templatesError } = await supabase
+    .from("workout_plan_templates")
+    .select(WORKOUT_PLAN_TEMPLATE_SELECT)
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+  if (templatesError && isMissingWorkoutPlanTemplateTableError(templatesError)) {
+    return null;
+  }
+
+  if (templatesError) {
+    return null;
+  }
+
+  const templates = (templatesData ?? []) as WorkoutPlanTemplateRow[];
+  if (templates.length === 0) {
+    return null;
+  }
+
+  const templateIds = templates.map((template) => template.id);
+  const { data: templateExercisesData, error: templateExercisesError } = await supabase
+    .from("workout_plan_template_exercises")
+    .select(WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT)
+    .in("workout_plan_template_id", templateIds)
+    .eq("user_id", userId)
+    .order("position", { ascending: true });
+
+  if (templateExercisesError) {
+    return null;
+  }
+
+  const { data: sourceRoutinesData } = await supabase
+    .from("routines")
+    .select(SOURCE_ROUTINE_SELECT)
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+  const sourceRoutines = (sourceRoutinesData ?? []) as Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "updated_at">>;
+  const sourceRoutineById = new Map(sourceRoutines.map((routine) => [routine.id, routine]));
+
+  const routineDaysResult = await loadRoutineDaysWithTemplateCompat({
+    supabase,
+    userId,
+    routineIds: sourceRoutines.map((routine) => routine.id),
+  });
+  if (routineDaysResult.error) {
+    return null;
+  }
+
+  const linkedDaysByTemplateId = new Map<string, RoutineDayRow[]>();
+  let hasUntemplatedSourceDays = false;
+  for (const day of routineDaysResult.data as RoutineDayRow[]) {
+    if (!day.is_rest && !day.workout_plan_template_id) {
+      hasUntemplatedSourceDays = true;
+    }
+    if (!day.workout_plan_template_id) {
+      continue;
+    }
+    const current = linkedDaysByTemplateId.get(day.workout_plan_template_id) ?? [];
+    current.push(day);
+    linkedDaysByTemplateId.set(day.workout_plan_template_id, current);
+  }
+
+  const pseudoDays = templates.map((template, index) => {
+    const linkedDays = linkedDaysByTemplateId.get(template.id) ?? [];
+    const representativeDay = chooseRepresentativeTemplateDay({
+      linkedDays,
+      currentRoutineId: routineId,
+      sourceRoutineDayId: template.source_routine_day_id ?? null,
+    });
+    return {
+      id: template.id,
+      user_id: template.user_id,
+      routine_id: representativeDay?.routine_id ?? "",
+      day_index: representativeDay?.day_index ?? (index + 1),
+      name: template.name,
+      is_rest: template.is_rest,
+      notes: null,
+      duplicate_source_routine_day_id: representativeDay?.duplicate_source_routine_day_id ?? null,
+      workout_plan_template_id: template.id,
+      workout_plan_template_edit_choice_required: false,
+    } satisfies RoutineDayRow;
+  });
+
+  const pseudoExercises = ((templateExercisesData ?? []) as WorkoutPlanTemplateExerciseRow[]).map((exercise) => ({
+    id: exercise.id,
+    user_id: exercise.user_id,
+    routine_day_id: exercise.workout_plan_template_id,
+    exercise_id: exercise.exercise_id,
+    position: exercise.position,
+    target_sets: exercise.target_sets,
+    target_reps: exercise.target_reps,
+    target_reps_min: exercise.target_reps_min,
+    target_reps_max: exercise.target_reps_max,
+    target_weight: exercise.target_weight,
+    target_weight_unit: exercise.target_weight_unit,
+    target_duration_seconds: exercise.target_duration_seconds,
+    target_distance: exercise.target_distance,
+    target_distance_unit: exercise.target_distance_unit,
+    target_calories: exercise.target_calories,
+    measurement_type: exercise.measurement_type,
+    default_unit: exercise.default_unit,
+    notes: exercise.notes,
+    progression_playbook_id: exercise.progression_playbook_id ?? null,
+    progression_playbook_config: exercise.progression_playbook_config ?? null,
+    workout_plan_template_exercise_id: exercise.id,
+  } satisfies RoutineDayExerciseRow));
+
+  const canonicalDays = pseudoDays.length > 0
+    ? await buildCanonicalDaySummaries({
+      supabase,
+      routineDays: pseudoDays,
+      allDayExercises: pseudoExercises,
+      metadataMode: "preview",
+    })
+    : { summaries: [] };
+
+  const canonicalSummaryByDayId = new Map(canonicalDays.summaries.map((summary) => [summary.day.id, summary]));
+  const orderedItems = templates
+    .filter((template) => !template.is_rest)
+    .map((template): WorkoutPlanSourceListItem | null => {
+      const summary = canonicalSummaryByDayId.get(template.id);
+      const runnableExercises = summary?.runnableExercises ?? [];
+      if (runnableExercises.length <= 0) {
+        return null;
+      }
+
+      const previewExercises = selectRoutinePlanPreviewExercises(runnableExercises);
+      const recapExercises = buildRoutinePlanRecapExercises(runnableExercises);
+      const representativeDay = chooseRepresentativeTemplateDay({
+        linkedDays: linkedDaysByTemplateId.get(template.id) ?? [],
+        currentRoutineId: routineId,
+        sourceRoutineDayId: template.source_routine_day_id ?? null,
+      });
+      const sourceRoutine = representativeDay ? sourceRoutineById.get(representativeDay.routine_id) : null;
+
+      return {
+        id: template.id,
+        workoutPlanTemplateId: template.id,
+        sourceRoutineDayId: representativeDay?.id ?? template.source_routine_day_id ?? null,
+        sourceRoutineId: representativeDay?.routine_id ?? "",
+        sourceRoutineName: sourceRoutine?.name?.trim() || "Template",
+        isCurrentRoutine: representativeDay?.routine_id === routineId,
+        dayIndex: representativeDay?.day_index ?? 1,
+        title: template.name,
+        weekdayLabel: representativeDay
+          ? getRoutineDayResolvedWeekdayLabel({
+              dayIndex: representativeDay.day_index,
+              startDate: sourceRoutine?.start_date,
+              cycleLengthDays: sourceRoutine?.cycle_length_days,
+              scheduleMode: sourceRoutine?.schedule_mode,
+              profileTimeZone: sourceRoutine?.timezone,
+              weekday: "short",
+            })
+          : "",
+        isRest: template.is_rest,
+        splitSummary: getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(summary, false),
+        previewExercises,
+        recapExercises,
+        remainingExerciseCount: Math.max(
+          runnableExercises.length - previewExercises.length,
+          0,
+        ),
+      };
+    })
+    .filter((item): item is WorkoutPlanSourceListItem => item !== null)
+    .sort((left, right) => {
+      const leftTemplate = templates.find((template) => template.id === left.id);
+      const rightTemplate = templates.find((template) => template.id === right.id);
+      const leftUpdatedAt = leftTemplate?.updated_at ?? "";
+      const rightUpdatedAt = rightTemplate?.updated_at ?? "";
+      if (leftUpdatedAt !== rightUpdatedAt) {
+        return leftUpdatedAt < rightUpdatedAt ? 1 : -1;
+      }
+      return left.title.localeCompare(right.title);
+    });
+
+  return {
+    items: dedupeWorkoutPlanSourceItemsByTitle(orderedItems),
+    hasUntemplatedSourceDays,
+  };
+}
+
+async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListArgs): Promise<WorkoutPlanSourceListItem[]> {
   const { supabase, userId, routineId, excludeDayId } = args;
 
   const { data: sourceRoutinesData } = await supabase
@@ -79,48 +293,32 @@ export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
   }
 
   const sourceRoutineById = new Map(sourceRoutines.map((routine) => [routine.id, routine]));
-
-  const { data: routineDaysDataWithSource, error: routineDaysWithSourceError } = await supabase
-    .from("routine_days")
-    .select(SOURCE_ROUTINE_DAY_SELECT)
-    .in("routine_id", sourceRoutineIds)
-    .eq("user_id", userId)
-    .order("day_index", { ascending: true });
-  const routineDaysLegacyFallback = routineDaysWithSourceError && isMissingDuplicateSourceRoutineDayColumnError(routineDaysWithSourceError)
-    ? await supabase
-        .from("routine_days")
-        .select(SOURCE_ROUTINE_DAY_SELECT_LEGACY)
-        .in("routine_id", sourceRoutineIds)
-        .eq("user_id", userId)
-        .order("day_index", { ascending: true })
-    : null;
-
-  if (routineDaysWithSourceError && !isMissingDuplicateSourceRoutineDayColumnError(routineDaysWithSourceError)) {
+  const routineDaysResult = await loadRoutineDaysWithTemplateCompat({
+    supabase,
+    userId,
+    routineIds: sourceRoutineIds,
+  });
+  if (routineDaysResult.error) {
     return [];
   }
 
-  if (routineDaysLegacyFallback?.error) {
-    return [];
-  }
-
-  const routineDays = ((routineDaysDataWithSource ?? routineDaysLegacyFallback?.data ?? []) as RoutineDayRow[]).map((day) => ({
-    ...day,
-    duplicate_source_routine_day_id: day.duplicate_source_routine_day_id ?? null,
-  }));
+  const routineDays = routineDaysResult.data as RoutineDayRow[];
   const routineDayIds = routineDays.map((day) => day.id);
-  const { data: dayExerciseRows } = routineDayIds.length > 0
-    ? await supabase
-      .from("routine_day_exercises")
-      .select(SOURCE_ROUTINE_DAY_EXERCISE_SELECT)
-      .in("routine_day_id", routineDayIds)
-      .eq("user_id", userId)
-    : { data: [] };
+  const dayExerciseRowsResult = await loadRoutineDayExercisesWithTemplateCompat({
+    supabase,
+    userId,
+    routineDayIds,
+  });
+  if (dayExerciseRowsResult.error) {
+    return [];
+  }
 
   const canonicalDays = routineDays.length > 0
     ? await buildCanonicalDaySummaries({
       supabase,
       routineDays,
-      allDayExercises: dayExerciseRows ?? [],
+      allDayExercises: dayExerciseRowsResult.data,
+      metadataMode: "preview",
     })
     : { summaries: [] };
   const canonicalSummaryByDayId = new Map(canonicalDays.summaries.map((summary) => [summary.day.id, summary]));
@@ -167,6 +365,8 @@ export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
 
       return {
         id: day.id,
+        workoutPlanTemplateId: day.workout_plan_template_id ?? null,
+        sourceRoutineDayId: day.id,
         sourceRoutineId: day.routine_id,
         sourceRoutineName: sourceRoutine?.name?.trim() || "Routine",
         isCurrentRoutine: day.routine_id === routineId,
@@ -192,21 +392,26 @@ export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
           runnableExercises.length - previewExercises.length,
           0,
         ),
-      };
+      } satisfies WorkoutPlanSourceListItem;
     });
 
-  const seenTitleKeys = new Set<string>();
-  return orderedItems.filter((item) => {
-    const titleKey = normalizeWorkoutPlanSourceTitleKey(item.title);
-    if (!titleKey) {
-      return true;
-    }
+  return dedupeWorkoutPlanSourceItemsByTitle(orderedItems);
+}
 
-    if (seenTitleKeys.has(titleKey)) {
-      return false;
-    }
+export async function loadWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListArgs): Promise<WorkoutPlanSourceListItem[]> {
+  const templateBackedList = await buildTemplateBackedWorkoutPlanSourceList(args);
 
-    seenTitleKeys.add(titleKey);
-    return true;
-  });
+  if (templateBackedList === null) {
+    return await buildLegacyWorkoutPlanSourceList(args);
+  }
+
+  if (!templateBackedList.hasUntemplatedSourceDays) {
+    return templateBackedList.items;
+  }
+
+  const legacyList = await buildLegacyWorkoutPlanSourceList(args);
+  return dedupeWorkoutPlanSourceItemsByTitle([
+    ...templateBackedList.items,
+    ...legacyList,
+  ]);
 }

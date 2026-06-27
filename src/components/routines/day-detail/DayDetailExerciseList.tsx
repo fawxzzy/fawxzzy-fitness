@@ -9,6 +9,13 @@ import {
   ExerciseCardProgressionStateInline,
   ExerciseCardStandardTitle,
 } from "@/components/workout/ExerciseCardStandardTitle";
+import {
+  SHARED_PLANNED_CARD_CHEVRON_RAIL_CLASS_NAME,
+  SHARED_PLANNED_CARD_CONTENT_CLASS_NAME,
+  SHARED_PLANNED_CARD_INFO_BUTTON_CLASS_NAME,
+  SHARED_PLANNED_CARD_INFO_OVERLAY_CLASS_NAME,
+  SHARED_PLANNED_CARD_TITLE_CONTAINER_CLASS_NAME,
+} from "@/components/workout/ExerciseCardSurfaceChrome";
 import { StateChevron } from "@/components/ui/StateChevron";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -22,7 +29,7 @@ export type DayDetailExerciseListItem = {
   name: string;
   summary: string | null;
   summaryContent?: ReactNode;
-  progressionModeLabel?: "Auto" | "Manual" | null;
+  progressionStateLabel?: string | null;
   orderNumber: number;
   measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
@@ -72,33 +79,36 @@ function normalizeEditDaySummary(summary: string | null | undefined) {
 function DayDetailExerciseTitle({
   item,
   summary,
+  metadataLimit,
 }: {
   item: DayDetailExerciseListItem;
   summary?: ReactNode;
+  metadataLimit?: number;
 }) {
   const metadataItems = buildExerciseCardMetadataItems({
     primaryMuscle: item.primary_muscle,
     movementPattern: item.movement_pattern,
     equipment: item.equipment,
   });
+  const visibleMetadataItems = typeof metadataLimit === "number"
+    ? metadataItems.slice(0, metadataLimit)
+    : metadataItems;
   const normalizedSummary = typeof summary === "string" ? normalizeEditDaySummary(summary) : summary;
 
   return (
     <ExerciseCardStandardTitle
       name={item.name}
-      metadata={<ExerciseCardMetadataLine items={metadataItems} />}
+      metadata={<ExerciseCardMetadataLine items={visibleMetadataItems} />}
       rightContent={normalizedSummary ?? undefined}
-      rightAccessory={item.progressionModeLabel ? (
-        <ExerciseCardProgressionStateInline label={item.progressionModeLabel.toUpperCase()} />
+      rightSubcontent={item.progressionStateLabel?.trim() ? (
+        <ExerciseCardProgressionStateInline label={item.progressionStateLabel} />
       ) : undefined}
+      columnLayout="compact"
     />
   );
 }
 
-const dayDetailInfoButtonClassName = "pointer-events-auto absolute bottom-[0.3rem] right-[0.3rem] z-[3] inline-flex h-[1.625rem] w-[1.625rem] items-center justify-center rounded-full border border-[rgb(var(--accent-divider-rgb)/0.22)] bg-[rgb(var(--bg-app)/0.84)] text-[0.9rem] font-semibold text-[rgb(var(--accent-strong)/0.96)] shadow-[0_0_10px_rgb(var(--accent)/0.1)] backdrop-blur-[16px] transition-colors hover:border-[rgb(var(--accent)/0.42)] hover:text-[rgb(var(--accent)/0.98)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]";
-const dayDetailEditableChevronRailClassName = "!right-[0.58rem] !top-[0.58rem] !translate-y-0";
 const dayDetailEditableChevronClassName = cn("h-[1.05rem] w-[1.05rem] shrink-0", appTokens.historyChevronIcon);
-const dayDetailEditableTitleContainerClassName = "pr-[2.45rem] pb-[1.9rem]";
 
 export function DayDetailExerciseList({
   items,
@@ -118,7 +128,7 @@ export function DayDetailExerciseList({
   const renderedItems = activeItemId
     ? items.filter((item) => item.id === activeItemId)
     : items;
-  const editableOverlayActionsClassName = "inset-0 !right-0 !top-0 !translate-y-0 !block pointer-events-none";
+  const editableOverlayActionsClassName = SHARED_PLANNED_CARD_INFO_OVERLAY_CLASS_NAME;
 
   return (
     <ul className={cn("space-y-1.5", className)}>
@@ -141,7 +151,7 @@ export function DayDetailExerciseList({
                   event.stopPropagation();
                   onInfoItem(item);
                 }}
-                className={dayDetailInfoButtonClassName}
+                className={SHARED_PLANNED_CARD_INFO_BUTTON_CLASS_NAME}
               >
                 <span aria-hidden="true">i</span>
               </button>
@@ -178,7 +188,7 @@ export function DayDetailExerciseList({
                   expanded={isActive}
                   onToggle={() => onSelectItem?.(item)}
                   exercise={exerciseVisual}
-                  title={<DayDetailExerciseTitle item={item} summary={editableCompanionSummary} />}
+                  title={<DayDetailExerciseTitle item={item} summary={editableCompanionSummary} metadataLimit={2} />}
                   summary={mode === "editable" ? undefined : resolvedSummary}
                   summaryContent={resolvedSummaryContent}
                   summaryLabel={undefined}
@@ -186,8 +196,8 @@ export function DayDetailExerciseList({
                   semanticTone="current"
                   badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
                   bodyClassName={appTokens.routineEditorReorderBody}
-                  contentClassName="pr-[2.45rem]"
-                  titleContainerClassName={dayDetailEditableTitleContainerClassName}
+                  contentClassName={SHARED_PLANNED_CARD_CONTENT_CLASS_NAME}
+                  titleContainerClassName={SHARED_PLANNED_CARD_TITLE_CONTAINER_CLASS_NAME}
                   subtitleTone="plain"
                   showLeadingVisual={policy.showMedia}
                   showAccentRail
@@ -196,7 +206,7 @@ export function DayDetailExerciseList({
                   overlayActions={editableOverlayActions}
                   overlayActionsClassName={editableOverlayActionsClassName}
                   rightIcon={editableChevron}
-                  rightRailClassName={dayDetailEditableChevronRailClassName}
+                  rightRailClassName={SHARED_PLANNED_CARD_CHEVRON_RAIL_CLASS_NAME}
                   surface="edit-day"
                   stickyHeaderWhenExpanded={mode === "editable"}
                 >
@@ -204,7 +214,7 @@ export function DayDetailExerciseList({
                 </ExerciseDisclosureCard>
               ) : (
                 <StandardExerciseRow
-                  title={mode === "editable" ? <DayDetailExerciseTitle item={item} summary={editableCompanionSummary} /> : undefined}
+                  title={mode === "editable" ? <DayDetailExerciseTitle item={item} summary={editableCompanionSummary} metadataLimit={2} /> : undefined}
                   exercise={exerciseVisual}
                   summary={mode === "editable" ? undefined : resolvedSummary}
                   summaryContent={resolvedSummaryContent}
@@ -218,7 +228,7 @@ export function DayDetailExerciseList({
                   badgeText={mode === "editable" && showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
                   bodyClassName={mode === "editable" ? appTokens.routineEditorReorderBody : undefined}
                   className={cn("w-full", appTokens.routineEditorReorderBase)}
-                  contentClassName={mode === "editable" ? "pr-[2.45rem]" : "pl-3"}
+                  contentClassName={mode === "editable" ? SHARED_PLANNED_CARD_CONTENT_CLASS_NAME : "pl-3"}
                   showLeadingVisual={policy.showMedia}
                   showAccentRail
                   hideEmptySummary
@@ -226,8 +236,9 @@ export function DayDetailExerciseList({
                   overlayActionsClassName={mode === "editable" ? editableOverlayActionsClassName : undefined}
                   rightIcon={mode === "editable" ? editableChevron : undefined}
                   rightIconMode={mode === "editable" ? "overlay" : undefined}
-                  rightRailClassName={mode === "editable" ? dayDetailEditableChevronRailClassName : undefined}
+                  rightRailClassName={mode === "editable" ? SHARED_PLANNED_CARD_CHEVRON_RAIL_CLASS_NAME : undefined}
                   surface={mode === "editable" ? "edit-day" : undefined}
+                  titleContainerClassName={mode === "editable" ? SHARED_PLANNED_CARD_TITLE_CONTAINER_CLASS_NAME : undefined}
                 />
               )}
             </div>

@@ -33,6 +33,33 @@ The repo-default Fitness UI proof lane is now:
 
 Protected routes require a browser profile with valid auth cookies. Browser automation without cookies should redirect to `/login`.
 
+## UI Mutation Contract
+
+Use this contract whenever the task is a multi-edit UI pass rather than a single isolated bug.
+
+1. Write the requested edit list down before patching.
+2. Identify the canonical surface for the family:
+   - shared component if one exists
+   - otherwise the most current product-owner-approved screen in that family
+3. Patch the canonical surface first.
+4. Verify the changed screen plus every declared sibling surface.
+5. Reconcile every requested item as `passed`, `failed`, `blocked`, or `deferred`.
+
+Do not treat `the screen looks better` as completion for a checklist-driven UI request.
+
+## Mutable Data Safety
+
+- Preferred lanes, in order:
+  - Codex QA account
+  - seeded QA fixture routes
+  - read-only inspection of live user data
+  - bounded live-user mutation only when the product state itself is the bug
+- If a live-user mutation is unavoidable:
+  - record the targeted routine, day, workout-plan, or session ids first
+  - avoid touching active-state, ordering, naming, or logged-history truth outside the scoped test
+  - restore or explicitly report residual state before closeout
+- Do not invent throwaway product data inside Zac's main routine set and leave it behind silently.
+
 ## Master LLEL Status
 
 Legend:
@@ -72,6 +99,12 @@ Manual review sections:
 - `[x]` Dev progression scenarios route availability
 - `[x]` FIT-05 dry-run safety
 
+Cross-surface normalization checks:
+
+- `[ ]` Shared card formatting matches across Today, Resume, Current Session, Edit Workout Plan, and Edit Routine when the task touches exercise cards
+- `[ ]` Shared routine/workout-plan browse cards match across routine home, duplicate choosers, and editor-entry overlays when the task touches routine family browse UI
+- `[ ]` Mobile lens recheck completed for touched card families
+
 Patch rule:
 
 - Patch only the failed item.
@@ -80,6 +113,7 @@ Patch rule:
 - Do not change DB schema during LLEL.
 - Do not alter progression math unless a scenario proves the math is wrong.
 - After any patch, run `npm run typecheck` and `npm run verify`.
+- After any UI patch batch, also re-run the requested-edit checklist against the touched route family before claiming completion.
 
 ## Dev Environment
 

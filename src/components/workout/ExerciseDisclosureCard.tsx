@@ -47,6 +47,9 @@ export function ExerciseDisclosureCard({
   shellClassName,
   shellStyle,
   titleMeta,
+  titleMetaClassName,
+  cornerMeta,
+  cornerMetaClassName,
   titleMetaMode,
   overlayActions,
   overlayActionsClassName,
@@ -92,6 +95,9 @@ export function ExerciseDisclosureCard({
   shellClassName?: string;
   shellStyle?: CSSProperties;
   titleMeta?: ReactNode;
+  titleMetaClassName?: string;
+  cornerMeta?: ReactNode;
+  cornerMetaClassName?: string;
   titleMetaMode?: ExerciseCardTitleMetaMode;
   overlayActions?: ReactNode;
   overlayActionsClassName?: string;
@@ -151,6 +157,9 @@ export function ExerciseDisclosureCard({
           showLeadingVisual={showLeadingVisual}
           leadingVisual={leadingVisual}
           titleMeta={titleMeta}
+          titleMetaClassName={titleMetaClassName}
+          cornerMeta={cornerMeta}
+          cornerMetaClassName={cornerMetaClassName}
           titleMetaMode={titleMetaMode}
           overlayActions={overlayActions}
           overlayActionsClassName={overlayActionsClassName}

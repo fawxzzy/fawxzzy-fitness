@@ -15,6 +15,18 @@ import { buildProgressionPlaybookConfigFromFormState, createProgressionPlaybookF
 import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
 import { isSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import {
+  ensureWorkoutPlanTemplateForRoutineDay,
+  loadRoutineDayExercisesWithTemplateCompat,
+  loadRoutineDayWithTemplateCompat,
+  loadRoutineDaysWithTemplateCompat,
+  loadWorkoutPlanTemplateNames,
+  omitRoutineDayExerciseTemplateColumn,
+  saveRoutineDayAsNewWorkoutPlanTemplate,
+  WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT,
+  isMissingRoutineDayExerciseTemplateColumnError,
+} from "@/lib/workout-plan-templates";
+import { hasWorkoutPlanTemplateNameConflict, normalizeWorkoutPlanTemplateNameCandidate } from "@/lib/workout-plan-template-name";
+import {
   buildProgressionEventPayload,
   recordProgressionEvent,
   targetsDiffer,
@@ -54,7 +66,7 @@ function selectedProgressionPlaybook(payload: Record<string, unknown>) {
   return typeof payload.progression_playbook_id === "string" && payload.progression_playbook_id.length > 0;
 }
 
-const ROUTINE_DAY_EXERCISE_PROGRESS_EVENT_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config";
+const ROUTINE_DAY_EXERCISE_PROGRESS_EVENT_SELECT = "id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config, workout_plan_template_exercise_id";
 const ROUTINE_DAY_EXERCISE_PROGRESSION_CONFIG_SELECT = "id, progression_playbook_id, progression_playbook_config";
 
 function buildConfigWithUpdatedDayAdjustment(args: {
@@ -95,6 +107,122 @@ function buildConfigWithUpdatedDayAdjustment(args: {
   });
 }
 
+function shouldSyncLinkedWorkoutPlanTemplate(formData: FormData) {
+  return String(formData.get("workoutPlanTemplateSyncMode") ?? "").trim() === "sync";
+}
+
+type WorkoutPlanTemplateDecisionMode = "update_existing" | "save_new";
+type TemplateAwareRoutineDay = NonNullable<Awaited<ReturnType<typeof loadRoutineDayWithTemplateCompat>>["data"]>;
+
+function parseWorkoutPlanTemplateDecisionMode(value: FormDataEntryValue | null): WorkoutPlanTemplateDecisionMode | null {
+  const normalized = String(value ?? "").trim();
+  return normalized === "update_existing" || normalized === "save_new"
+    ? normalized
+    : null;
+}
+
+async function loadRoutineDayTemplateSyncContext(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  routineId: string;
+  routineDayId: string;
+}) {
+  const routineDayResult = await loadRoutineDayWithTemplateCompat({
+    supabase: args.supabase,
+    routineDayId: args.routineDayId,
+    routineId: args.routineId,
+    userId: args.userId,
+  });
+
+  if (routineDayResult.error || !routineDayResult.data) {
+    return {
+      routineDay: null as TemplateAwareRoutineDay | null,
+      linkedRoutineDayIds: [] as string[],
+      linkedRoutineDayCount: 0,
+      shouldSyncTemplate: false,
+      error: routineDayResult.error ?? new Error("Workout plan not found."),
+    };
+  }
+
+  if (!routineDayResult.data.workout_plan_template_id) {
+    return {
+      routineDay: routineDayResult.data,
+      linkedRoutineDayIds: [routineDayResult.data.id],
+      linkedRoutineDayCount: 1,
+      shouldSyncTemplate: false,
+      error: null,
+    };
+  }
+
+  const linkedRoutineDaysResult = await loadRoutineDaysWithTemplateCompat({
+    supabase: args.supabase,
+    userId: args.userId,
+  });
+  if (linkedRoutineDaysResult.error) {
+    return {
+      routineDay: null as TemplateAwareRoutineDay | null,
+      linkedRoutineDayIds: [] as string[],
+      linkedRoutineDayCount: 0,
+      shouldSyncTemplate: false,
+      error: linkedRoutineDaysResult.error,
+    };
+  }
+
+  const linkedRoutineDayIds = linkedRoutineDaysResult.data
+    .filter((day) => day.workout_plan_template_id === routineDayResult.data?.workout_plan_template_id)
+    .map((day) => day.id);
+  const resolvedLinkedRoutineDayIds = linkedRoutineDayIds.length > 0 ? linkedRoutineDayIds : [routineDayResult.data.id];
+  const linkedRoutineDayCount = resolvedLinkedRoutineDayIds.length;
+
+  return {
+    routineDay: routineDayResult.data,
+    linkedRoutineDayIds: resolvedLinkedRoutineDayIds,
+    linkedRoutineDayCount,
+    shouldSyncTemplate: linkedRoutineDayCount <= 1,
+    error: null,
+  };
+}
+
+async function insertRoutineDayExerciseWithCompat(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  routineDayId: string;
+  userId: string;
+  values: Record<string, unknown>;
+  selectedProgression: boolean;
+}) {
+  let payload = args.values;
+  let { error } = await insertRoutineDayExerciseAtEnd({
+    supabase: args.supabase,
+    routineDayId: args.routineDayId,
+    userId: args.userId,
+    values: payload,
+  });
+
+  if (error && isMissingRoutineDayExerciseTemplateColumnError(error)) {
+    payload = omitRoutineDayExerciseTemplateColumn(payload);
+    const fallback = await insertRoutineDayExerciseAtEnd({
+      supabase: args.supabase,
+      routineDayId: args.routineDayId,
+      userId: args.userId,
+      values: payload,
+    });
+    error = fallback.error;
+  }
+
+  if (error && isMissingProgressionPlaybookColumnError(error) && !args.selectedProgression) {
+    payload = omitProgressionPlaybookColumns(payload);
+    const fallback = await insertRoutineDayExerciseAtEnd({
+      supabase: args.supabase,
+      routineDayId: args.routineDayId,
+      userId: args.userId,
+      values: payload,
+    });
+    error = fallback.error;
+  }
+
+  return { error };
+}
+
 export async function updateRoutineDaySettingsAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -109,29 +237,53 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     return { ok: false, error: "Missing workout plan info" };
   }
 
-  const { data: existingDay, error: existingDayError } = await supabase
-    .from("routine_days")
-    .select("name, day_index")
-    .eq("id", routineDayId)
-    .eq("user_id", user.id)
-    .eq("routine_id", routineId)
-    .single();
-
-  if (existingDayError || !existingDay) {
-    return { ok: false, error: existingDayError?.message ?? "Workout plan not found" };
+  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+    supabase,
+    userId: user.id,
+    routineId,
+    routineDayId,
+  });
+  if (templateSyncContext.error || !templateSyncContext.routineDay) {
+    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found" };
   }
 
+  const existingDay = templateSyncContext.routineDay;
   const safeName = name.slice(0, 15) || String(existingDay.day_index);
+  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate;
 
-  const { error } = await supabase
-    .from("routine_days")
-    .update({ name: safeName, is_rest: isRest })
-    .eq("id", routineDayId)
-    .eq("user_id", user.id)
-    .eq("routine_id", routineId);
+  const dayUpdateQuery = shouldSyncTemplate && existingDay.workout_plan_template_id
+    ? supabase
+        .from("routine_days")
+        .update({ name: safeName, is_rest: isRest })
+        .eq("workout_plan_template_id", existingDay.workout_plan_template_id)
+        .eq("user_id", user.id)
+    : supabase
+        .from("routine_days")
+        .update({ name: safeName, is_rest: isRest })
+        .eq("id", routineDayId)
+        .eq("user_id", user.id)
+        .eq("routine_id", routineId);
+
+  const { error } = await dayUpdateQuery;
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  if (shouldSyncTemplate && existingDay.workout_plan_template_id) {
+    const templateUpdateResult = await supabase
+      .from("workout_plan_templates")
+      .update({
+        name: safeName,
+        is_rest: isRest,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingDay.workout_plan_template_id)
+      .eq("user_id", user.id);
+
+    if (templateUpdateResult.error) {
+      return { ok: false, error: templateUpdateResult.error.message };
+    }
   }
 
   if (dayAdjustmentDirection) {
@@ -301,6 +453,26 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     createdCustomExerciseId = createdExercise.id;
   }
 
+  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+    supabase,
+    userId: user.id,
+    routineId,
+    routineDayId,
+  });
+  if (templateSyncContext.error || !templateSyncContext.routineDay) {
+    if (createdCustomExerciseId) {
+      await supabase
+        .from("exercises")
+        .delete()
+        .eq("id", createdCustomExerciseId)
+        .eq("user_id", user.id)
+        .eq("is_global", false);
+    }
+    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found" };
+  }
+
+  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate;
+
   // Manual QA checklist:
   // - Create strength routine -> add reps + weight -> measurement_type = 'reps'
   // - Create cardio routine -> add time only -> measurement_type = 'time'
@@ -313,24 +485,58 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     exercise_id: exerciseId,
     ...parsedPayload.payload,
   };
-  let { error } = await insertRoutineDayExerciseAtEnd({
-    supabase,
-    routineDayId,
-    userId: user.id,
-    values: insertPayload,
-  });
+  const selectedProgression = selectedProgressionPlaybook(parsedPayload.payload);
+  let error = null;
 
-  if (error && isMissingProgressionPlaybookColumnError(error) && !selectedProgressionPlaybook(parsedPayload.payload)) {
-    const fallback = await insertRoutineDayExerciseAtEnd({
+  if (shouldSyncTemplate && templateSyncContext.routineDay.workout_plan_template_id) {
+    const templateInsertPayload = {
+      user_id: user.id,
+      workout_plan_template_id: templateSyncContext.routineDay.workout_plan_template_id,
+      exercise_id: exerciseId,
+      ...parsedPayload.payload,
+    };
+    const templateInsertResult = await supabase
+      .from("workout_plan_template_exercises")
+      .insert(templateInsertPayload)
+      .select(WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT)
+      .single();
+
+    if (templateInsertResult.error) {
+      error = templateInsertResult.error;
+    } else {
+      for (const linkedRoutineDayId of templateSyncContext.linkedRoutineDayIds) {
+        const linkedInsertPayload = {
+          user_id: user.id,
+          routine_day_id: linkedRoutineDayId,
+          exercise_id: exerciseId,
+          ...parsedPayload.payload,
+          workout_plan_template_exercise_id: templateInsertResult.data.id,
+        };
+        const insertResult = await insertRoutineDayExerciseWithCompat({
+          supabase,
+          routineDayId: linkedRoutineDayId,
+          userId: user.id,
+          values: linkedInsertPayload,
+          selectedProgression,
+        });
+        if (insertResult.error) {
+          error = insertResult.error;
+          break;
+        }
+      }
+    }
+  } else {
+    const insertResult = await insertRoutineDayExerciseWithCompat({
       supabase,
       routineDayId,
       userId: user.id,
-      values: omitProgressionPlaybookColumns(insertPayload),
+      values: insertPayload,
+      selectedProgression,
     });
-    error = fallback.error;
+    error = insertResult.error;
   }
 
-  if (error && isMissingProgressionPlaybookColumnError(error) && selectedProgressionPlaybook(parsedPayload.payload)) {
+  if (error && isMissingProgressionPlaybookColumnError(error) && selectedProgression) {
     return {
       ok: false,
       error: getSchemaMismatchMessage(error, {
@@ -357,6 +563,140 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
   return { ok: true };
 }
 
+export async function resolveWorkoutPlanTemplateEditDecisionAction(
+  formData: FormData,
+): Promise<ActionResult & { templateId?: string; templateName?: string; syncMode?: "sync" }> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+  const routineDayId = String(formData.get("routineDayId") ?? "").trim();
+  const decisionMode = parseWorkoutPlanTemplateDecisionMode(formData.get("decisionMode"));
+  const requestedTemplateName = normalizeWorkoutPlanTemplateNameCandidate(formData.get("templateName")?.toString() ?? "");
+
+  if (!routineId || !routineDayId || !decisionMode) {
+    return { ok: false, error: "Missing workout plan template decision info." };
+  }
+
+  const { data: routineDay, error: routineDayError } = await loadRoutineDayWithTemplateCompat({
+    supabase,
+    routineDayId,
+    routineId,
+    userId: user.id,
+  });
+  if (routineDayError || !routineDay) {
+    return { ok: false, error: routineDayError?.message ?? "Workout plan not found." };
+  }
+
+  const dayExercisesResult = await loadRoutineDayExercisesWithTemplateCompat({
+    supabase,
+    userId: user.id,
+    routineDayIds: [routineDayId],
+  });
+  if (dayExercisesResult.error) {
+    return { ok: false, error: dayExercisesResult.error.message };
+  }
+
+  const orderedDayExercises = dayExercisesResult.data
+    .filter((exercise) => exercise.routine_day_id === routineDayId)
+    .sort((left, right) => left.position - right.position);
+
+  if (decisionMode === "save_new") {
+    if (!requestedTemplateName) {
+      return { ok: false, error: "Template name is required." };
+    }
+
+    const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+      supabase,
+      userId: user.id,
+    });
+    if (hasWorkoutPlanTemplateNameConflict({
+      candidateName: requestedTemplateName,
+      templateNames: existingTemplateNames,
+    })) {
+      return { ok: false, error: "Template name already exists." };
+    }
+
+    const saveResult = await saveRoutineDayAsNewWorkoutPlanTemplate({
+      supabase,
+      userId: user.id,
+      routineDay,
+      dayExercises: orderedDayExercises,
+      requestedName: requestedTemplateName,
+    });
+    if (saveResult.error || !saveResult.templateId) {
+      return { ok: false, error: saveResult.error?.message ?? "Could not save new workout plan template." };
+    }
+
+    revalidateRoutineEditPaths(routineId, routineDayId);
+    revalidateRoutinesViews();
+    return {
+      ok: true,
+      templateId: saveResult.templateId,
+      templateName: saveResult.templateName ?? requestedTemplateName,
+      syncMode: "sync",
+    };
+  }
+
+  const ensureResult = await ensureWorkoutPlanTemplateForRoutineDay({
+    supabase,
+    userId: user.id,
+    routineDay,
+    dayExercises: orderedDayExercises,
+    markEditChoiceRequired: false,
+  });
+  if (ensureResult.error || !ensureResult.templateId) {
+    return { ok: false, error: ensureResult.error?.message ?? "Could not prepare workout plan template." };
+  }
+
+  revalidateRoutineEditPaths(routineId, routineDayId);
+  revalidateRoutinesViews();
+  return {
+    ok: true,
+    templateId: ensureResult.templateId,
+    templateName: ensureResult.templateName ?? (requestedTemplateName || undefined),
+    syncMode: "sync",
+  };
+}
+
+export async function loadWorkoutPlanTemplateEditDecisionStateAction(
+  formData: FormData,
+): Promise<ActionResult & {
+  templateId?: string | null;
+  requiresTemplateEditDecision?: boolean;
+  syncMode?: "sync";
+}> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+  const routineDayId = String(formData.get("routineDayId") ?? "").trim();
+
+  if (!routineId || !routineDayId) {
+    return { ok: false, error: "Missing workout plan template decision info." };
+  }
+
+  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+    supabase,
+    userId: user.id,
+    routineId,
+    routineDayId,
+  });
+
+  if (templateSyncContext.error || !templateSyncContext.routineDay) {
+    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+  }
+
+  const templateId = templateSyncContext.routineDay.workout_plan_template_id ?? null;
+  const requiresTemplateEditDecision = Boolean(templateId)
+    && templateSyncContext.linkedRoutineDayCount > 1;
+
+  return {
+    ok: true,
+    templateId,
+    requiresTemplateEditDecision,
+    syncMode: templateSyncContext.shouldSyncTemplate ? "sync" : undefined,
+  };
+}
+
 export async function updateRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -364,6 +704,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const exerciseRowId = String(formData.get("exerciseRowId") ?? "");
+  const explicitTemplateSync = shouldSyncLinkedWorkoutPlanTemplate(formData);
 
   if (!routineId || !routineDayId || !exerciseRowId) {
     return { ok: false, error: "Missing exercise info" };
@@ -425,6 +766,47 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
     return { ok: false, error: error.message };
   }
 
+  {
+    const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+      supabase,
+      userId: user.id,
+      routineId,
+      routineDayId,
+    });
+    if (templateSyncContext.error || !templateSyncContext.routineDay) {
+      return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+    }
+
+    const shouldSyncTemplate = explicitTemplateSync || templateSyncContext.shouldSyncTemplate;
+    const routineDay = templateSyncContext.routineDay;
+    if (shouldSyncTemplate && routineDay.workout_plan_template_id && existingExercise.workout_plan_template_exercise_id) {
+      const templateExercisePayload = {
+        ...parsedPayload.payload,
+        updated_at: new Date().toISOString(),
+      };
+      const templateExerciseUpdate = await supabase
+        .from("workout_plan_template_exercises")
+        .update(templateExercisePayload)
+        .eq("id", existingExercise.workout_plan_template_exercise_id)
+        .eq("workout_plan_template_id", routineDay.workout_plan_template_id)
+        .eq("user_id", user.id);
+
+      if (templateExerciseUpdate.error) {
+        return { ok: false, error: templateExerciseUpdate.error.message };
+      }
+
+      const linkedExerciseUpdate = await supabase
+        .from("routine_day_exercises")
+        .update(parsedPayload.payload)
+        .eq("workout_plan_template_exercise_id", existingExercise.workout_plan_template_exercise_id)
+        .eq("user_id", user.id);
+
+      if (linkedExerciseUpdate.error) {
+        return { ok: false, error: linkedExerciseUpdate.error.message };
+      }
+    }
+  }
+
   if (targetsDiffer(previousTarget, nextTarget)) {
     await recordProgressionEvent({
       supabase,
@@ -482,11 +864,65 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
     return { ok: false, error: "Invalid reorder payload" };
   }
 
-  const { error } = await supabase.rpc("reorder_routine_day_exercises", {
-    target_routine_day_id: routineDayId,
-    target_user_id: user.id,
-    ordered_exercise_row_ids: orderedExerciseRowIds,
+  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+    supabase,
+    userId: user.id,
+    routineId,
+    routineDayId,
   });
+  if (templateSyncContext.error || !templateSyncContext.routineDay) {
+    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+  }
+
+  let error = null;
+  if (shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate) {
+    const dayExercisesResult = await loadRoutineDayExercisesWithTemplateCompat({
+      supabase,
+      userId: user.id,
+      routineDayIds: [routineDayId],
+    });
+    if (dayExercisesResult.error) {
+      return { ok: false, error: dayExercisesResult.error.message };
+    }
+
+    const exerciseById = new Map(dayExercisesResult.data.map((exercise) => [exercise.id, exercise]));
+    for (const [index, exerciseRowId] of orderedExerciseRowIds.entries()) {
+      const exerciseRow = exerciseById.get(exerciseRowId);
+      const nextPosition = index;
+      if (!exerciseRow?.workout_plan_template_exercise_id) {
+        continue;
+      }
+
+      const templateExerciseResult = await supabase
+        .from("workout_plan_template_exercises")
+        .update({ position: nextPosition, updated_at: new Date().toISOString() })
+        .eq("id", exerciseRow.workout_plan_template_exercise_id)
+        .eq("user_id", user.id);
+
+      if (templateExerciseResult.error) {
+        error = templateExerciseResult.error;
+        break;
+      }
+
+      const linkedExerciseResult = await supabase
+        .from("routine_day_exercises")
+        .update({ position: nextPosition })
+        .eq("workout_plan_template_exercise_id", exerciseRow.workout_plan_template_exercise_id)
+        .eq("user_id", user.id);
+
+      if (linkedExerciseResult.error) {
+        error = linkedExerciseResult.error;
+        break;
+      }
+    }
+  } else {
+    const reorderResult = await supabase.rpc("reorder_routine_day_exercises", {
+      target_routine_day_id: routineDayId,
+      target_user_id: user.id,
+      ordered_exercise_row_ids: orderedExerciseRowIds,
+    });
+    error = reorderResult.error;
+  }
 
   if (error) {
     return { ok: false, error: error.message };
@@ -509,11 +945,55 @@ export async function deleteRoutineDayExerciseAction(formData: FormData): Promis
     return { ok: false, error: "Missing delete info" };
   }
 
-  const { error } = await supabase
+  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+    supabase,
+    userId: user.id,
+    routineId,
+    routineDayId,
+  });
+  if (templateSyncContext.error || !templateSyncContext.routineDay) {
+    return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found." };
+  }
+
+  const { data: existingExercise, error: existingExerciseError } = await supabase
     .from("routine_day_exercises")
-    .delete()
+    .select("id, workout_plan_template_exercise_id")
     .eq("id", exerciseRowId)
-    .eq("user_id", user.id);
+    .eq("routine_day_id", routineDayId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingExerciseError || !existingExercise) {
+    return { ok: false, error: existingExerciseError?.message ?? "Routine exercise not found" };
+  }
+
+  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate;
+  let error = null;
+  if (shouldSyncTemplate && existingExercise.workout_plan_template_exercise_id) {
+    const linkedDeleteResult = await supabase
+      .from("routine_day_exercises")
+      .delete()
+      .eq("workout_plan_template_exercise_id", existingExercise.workout_plan_template_exercise_id)
+      .eq("user_id", user.id);
+
+    if (linkedDeleteResult.error) {
+      error = linkedDeleteResult.error;
+    } else {
+      const templateDeleteResult = await supabase
+        .from("workout_plan_template_exercises")
+        .delete()
+        .eq("id", existingExercise.workout_plan_template_exercise_id)
+        .eq("user_id", user.id);
+      error = templateDeleteResult.error;
+    }
+  } else {
+    const deleteResult = await supabase
+      .from("routine_day_exercises")
+      .delete()
+      .eq("id", exerciseRowId)
+      .eq("user_id", user.id);
+    error = deleteResult.error;
+  }
 
   if (error) {
     return { ok: false, error: error.message };

@@ -1,15 +1,15 @@
 import { Fragment, type ReactNode } from "react";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { DayCard, resolveDayCardState } from "@/components/day-list/DayList";
-import { AccentDotSeparatedText, SignatureDot, SignatureInlineList, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { SignatureDot, SignatureInlineList, SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { StateChevron } from "@/components/ui/StateChevron";
 import {
   ExerciseCardMetadataLine,
-  ExerciseCardProgressionStateInline,
   ExerciseCardStandardTitle,
+  ExerciseCardProgressionStateInline,
 } from "@/components/workout/ExerciseCardStandardTitle";
 import { cn } from "@/lib/cn";
 import { formatRoutineDayStableDisplayName, getRoutineDayWeekdayLabel } from "@/lib/routines";
@@ -27,8 +27,8 @@ export const ROUTINE_CONTENT_GAP_CLASS_NAME = "pt-2";
 export const ROUTINE_TRAINING_DAY_CARD_CLASS_NAME = "[&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-divider-rgb)/0.96)]";
 export const ROUTINE_REST_DAY_CARD_CLASS_NAME = "border-[rgb(var(--accent-yellow-on)/0.26)] bg-[rgb(var(--accent-yellow-off)/0.1)] [&_[data-exercise-card-accent-rail='true']]:bg-[rgb(var(--accent-yellow-on)/0.96)]";
 export const ROUTINE_TAG_CLASS_NAME = "text-[11px] tracking-[0.12em]";
-export const ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[0.06rem] !top-1/2 !bottom-auto !min-w-0 !-translate-y-1/2";
-export const ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[0.06rem] !top-1/2 !bottom-auto !min-w-0 !-translate-y-1/2";
+export const ROUTINE_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[-0.22rem] !top-1/2 !bottom-auto !min-w-0 !-translate-y-1/2";
+export const ROUTINE_REST_DAY_CARD_RIGHT_RAIL_CLASS_NAME = "!right-[-0.22rem] !bottom-0 !top-auto !min-w-0 !translate-y-0";
 export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "h-auto w-auto items-center justify-center bg-transparent shadow-none backdrop-blur-0";
 export const ROUTINE_SURFACE_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
 export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
@@ -113,6 +113,57 @@ export function buildRoutineSplitParts(summary: RoutineDayCardSummary) {
   return parts;
 }
 
+function resolveRoutineDaySubtitleTagParts(day: RoutineDayCardPresentationItem) {
+  if (day.isRest) {
+    return [day.exerciseSummary?.trim() || "No exercises"];
+  }
+
+  if (day.splitSummary) {
+    const parts = buildRoutineSplitParts(day.splitSummary);
+    return parts.length > 0 ? parts : [formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
+  }
+
+  return [];
+}
+
+function renderRoutineDaySubtitleTagRail(
+  parts: string[],
+  {
+    measureOnly = false,
+  }: {
+    measureOnly?: boolean;
+  } = {},
+) {
+  const tagRow = (
+    <>
+      {parts.map((part) => (
+        <AppBadge key={part} tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
+          {renderRoutineMetricTagLabel(part)}
+        </AppBadge>
+      ))}
+    </>
+  );
+
+  if (measureOnly) {
+    return (
+      <div className="inline-flex w-max max-w-full items-center justify-center gap-1.5">
+        {tagRow}
+      </div>
+    );
+  }
+
+  return (
+    <HorizontalScrollHint
+      className="-mx-1"
+      scrollClassName="px-1 pb-0.5"
+      contentClassName={ROUTINE_SURFACE_TAG_ROW_CLASS_NAME}
+      showEdgeFades={false}
+    >
+      {tagRow}
+    </HorizontalScrollHint>
+  );
+}
+
 export function renderRoutineMetricTagLabel(value: string) {
   const normalizedValue = value.trim();
   const match = normalizedValue.match(/^(\d+(?:[.,]\d+)?)(\s+.*)?$/);
@@ -169,6 +220,7 @@ export function RoutineDayCardTitle({
   dayIndex,
   startDate,
   weekdayLabel,
+  allowWeekdayFallback = true,
   dayWeekdaySeparator = "pipe",
   className,
 }: {
@@ -177,12 +229,13 @@ export function RoutineDayCardTitle({
   dayIndex: number;
   startDate: string | null | undefined;
   weekdayLabel?: string | null;
+  allowWeekdayFallback?: boolean;
   dayWeekdaySeparator?: "dot" | "pipe";
   className?: string;
 }) {
   const normalizedRoutineName = routineName?.trim();
   const dayName = formatRoutineDayStableDisplayName({ name, dayIndex, startDate });
-  const weekday = weekdayLabel?.trim() || getRoutineDayWeekdayLabel(dayIndex, startDate, "short");
+  const weekday = weekdayLabel?.trim() || (allowWeekdayFallback ? getRoutineDayWeekdayLabel(dayIndex, startDate, "short") : "");
   const dayNameClassName = dayName.trim().toLowerCase() === "rest"
     ? "text-[rgb(var(--accent-yellow-on))]"
     : undefined;
@@ -209,41 +262,9 @@ export function RoutineDayCardTitle({
 }
 
 export function renderRoutineDaySubtitle(day: RoutineDayCardPresentationItem): ReactNode {
-  if (day.isRest) {
-    const restSummary = day.exerciseSummary?.trim() || "No exercises";
-
-    return (
-      <HorizontalScrollHint
-        className="-mx-1"
-        scrollClassName="px-1 pb-0.5"
-        contentClassName={ROUTINE_SURFACE_TAG_ROW_CLASS_NAME}
-        showEdgeFades={false}
-      >
-        <AppBadge tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
-          {renderRoutineMetricTagLabel(restSummary)}
-        </AppBadge>
-      </HorizontalScrollHint>
-    );
-  }
-
-  if (day.splitSummary) {
-    const parts = buildRoutineSplitParts(day.splitSummary);
-    const tagParts = parts.length > 0 ? parts : [formatRoutineDayExerciseCountLabel(day.splitSummary.total)];
-
-    return (
-      <HorizontalScrollHint
-        className="-mx-1"
-        scrollClassName="px-1 pb-0.5"
-        contentClassName={ROUTINE_SURFACE_TAG_ROW_CLASS_NAME}
-        showEdgeFades={false}
-      >
-        {tagParts.map((part) => (
-          <AppBadge key={part} tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
-            {renderRoutineMetricTagLabel(part)}
-          </AppBadge>
-        ))}
-      </HorizontalScrollHint>
-    );
+  const tagParts = resolveRoutineDaySubtitleTagParts(day);
+  if (tagParts.length > 0) {
+    return renderRoutineDaySubtitleTagRail(tagParts);
   }
 
   return renderSignatureParts(splitRoutineSummaryParts(day.exerciseSummary)) ?? day.exerciseSummary ?? "No exercises yet";
@@ -324,7 +345,7 @@ export function renderRoutineDayRightRail(label: string | undefined) {
   );
 }
 
-function renderRoutineDaySnapshot(day: RoutineOverviewDayCardItem) {
+export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
   if (day.isRest) {
     return null;
   }
@@ -333,40 +354,54 @@ function renderRoutineDaySnapshot(day: RoutineOverviewDayCardItem) {
     return null;
   }
 
+  const subtitleTagParts = resolveRoutineDaySubtitleTagParts(day);
+
   return (
-    <div className="grid gap-1.5 px-0.5 pt-1">
-      <MetricAccentBar variant="thin" className="w-full opacity-80" />
+    <div className="grid gap-1 px-0.5 pt-0.5">
+      {subtitleTagParts.length > 0 ? (
+        <div className="flex justify-center px-1">
+          <div className="grid w-fit max-w-full gap-0.5">
+            <div aria-hidden="true" className="h-0 overflow-hidden">
+              {renderRoutineDaySubtitleTagRail(subtitleTagParts, { measureOnly: true })}
+            </div>
+            <MetricAccentBar variant="thin" className="w-full opacity-80" />
+          </div>
+        </div>
+      ) : (
+        <MetricAccentBar variant="thin" className="w-full opacity-80" />
+      )}
       <HorizontalScrollHint
         className="-mx-0.5"
-        scrollClassName="px-0.5 pb-0.5"
-        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-0.5"
+        scrollClassName="pl-0.5 pr-[2.25rem] pb-0.5"
+        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-0.5 sm:gap-2.5"
       >
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.65rem] min-w-[16.75rem] w-[min(18.5rem,calc(100vw-6rem))] max-w-[calc(100vw-5rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2.5 py-2"
+            className="flex min-h-[4.65rem] w-[min(17.75rem,calc(100vw-8.4rem))] max-w-[17.75rem] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2.5 py-2 sm:w-max sm:max-w-none"
           >
-            <div className="grid gap-[6px]">
-              <ExerciseCardStandardTitle
-                name={exercise.name}
-                metadata={exercise.signatureLabel ? (
-                  <ExerciseCardMetadataLine
-                    items={exercise.signatureLabel.split(/\s+\|\s+/).map((value) => value.trim()).filter(Boolean)}
-                    className="text-[9.5px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)]"
-                  />
-                ) : (
-                  <span className="text-[9.5px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)]">
-                    Exercise configured
-                  </span>
-                )}
-                rightContent={exercise.targetLabel?.trim() || "Goal missing"}
-                rightAccessory={exercise.progressionStateLabel?.trim() ? (
-                  <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} />
-                ) : undefined}
-                rightColumnClassName="max-w-[12.75rem]"
-                rightContentClassName="text-[9.5px] leading-[1.06]"
-              />
-            </div>
+            <ExerciseCardStandardTitle
+              name={exercise.name}
+              metadata={exercise.signatureLabel ? (
+                <ExerciseCardMetadataLine
+                  items={exercise.signatureLabel.split(/\s+\|\s+/).map((value) => value.trim()).filter(Boolean)}
+                  className="max-w-full overflow-hidden text-[9.5px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)]"
+                />
+              ) : (
+                <span className="max-w-full overflow-hidden whitespace-nowrap text-[9.5px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)]">
+                  Exercise configured
+                </span>
+              )}
+              rightContent={exercise.targetLabel?.trim() || "Goal missing"}
+              rightSubcontent={exercise.progressionStateLabel?.trim()
+                ? <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} className="text-[8.35px]" />
+                : undefined}
+              columnLayout="compact"
+              className="gap-x-[0.55rem] gap-y-0.5"
+              nameClassName="truncate whitespace-nowrap text-[0.89rem] leading-[1.12] sm:text-[0.91rem] sm:leading-[1.14]"
+              rightColumnClassName="w-fit max-w-full"
+              rightContentClassName="gap-1 whitespace-nowrap text-[8.95px] leading-[1.03]"
+            />
             <MetricAccentBar variant="thin" className="mt-2 w-full opacity-75" />
           </div>
         ))}
@@ -384,6 +419,7 @@ export function RoutineOverviewDayCard({
   isExpanded = false,
   reorderHandle,
   rightRailClassName,
+  allowWeekdayFallback = true,
   wrapper,
 }: {
   day: RoutineOverviewDayCardItem;
@@ -394,6 +430,7 @@ export function RoutineOverviewDayCard({
   isExpanded?: boolean;
   reorderHandle?: ReactNode;
   rightRailClassName?: string;
+  allowWeekdayFallback?: boolean;
   wrapper?: (child: ReactNode) => ReactNode;
 }) {
   const selectedTag = showSelectedTag ? renderRoutineTag("SELECTED") : null;
@@ -424,6 +461,7 @@ export function RoutineOverviewDayCard({
                 dayIndex={day.dayIndex}
                 startDate={startDate}
                 weekdayLabel={day.occurrenceWeekday}
+                allowWeekdayFallback={allowWeekdayFallback}
                 className="justify-center text-center"
               />
               <MetricAccentBar variant="thin" className="w-full max-w-full self-stretch" />
@@ -459,7 +497,7 @@ export function RoutineOverviewDayCard({
         trailingStackClassName={ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME}
         onPress={onPress}
       >
-        {renderRoutineDaySnapshot(day)}
+        {RoutineDayCardRecapPreview(day)}
       </DayCard>
     </div>
   );

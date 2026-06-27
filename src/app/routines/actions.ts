@@ -26,6 +26,19 @@ import {
   omitRoutineDefaultProgressionColumns,
 } from "@/lib/progression-schema-compat";
 import { rollbackAppendedRoutineDay, rollbackDuplicatedRoutine } from "@/lib/routine-copy-rollback";
+import {
+  cloneWorkoutPlanTemplateIntoRoutineDay,
+  ensureWorkoutPlanTemplateForRoutineDay,
+  isMissingWorkoutPlanTemplateTableError,
+  loadRoutineDayExercisesWithTemplateCompat,
+  loadRoutineDayWithTemplateCompat,
+  loadRoutineDaysWithTemplateCompat,
+  omitRoutineDayTemplateColumns,
+  ROUTINE_DAY_TEMPLATE_SELECT,
+  updateLinkedWorkoutPlanTemplateChoiceRequirement,
+} from "@/lib/workout-plan-templates";
+import { loadWorkoutPlanSourceList, type WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
+import type { WorkoutPlanTemplateRow } from "@/types/db";
 
 type CreateRoutineResult = ActionResult & {
   routineId?: string;
@@ -37,15 +50,16 @@ type DuplicateRoutineDayResult = ActionResult & { routineDayId?: string };
 type ReorderRoutineDaysResult = ActionResult;
 type CreateRoutineDayResult = ActionResult & { routineDayId?: string };
 type PopulateRoutineDayResult = ActionResult & { routineDayId?: string };
+type LoadWorkoutPlanSourcesResult = ActionResult & { sources?: WorkoutPlanSourceListItem[] };
 
 const ROUTINE_COPY_SELECT_LEGACY = "id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, weight_unit";
 const ROUTINE_COPY_SELECT_WITH_DEFAULT_PROGRESSION = `${ROUTINE_COPY_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
-const ROUTINE_DAY_COPY_SELECT = "id, day_index, name, is_rest, notes, duplicate_source_routine_day_id";
+const ROUTINE_DAY_COPY_SELECT = "id, day_index, name, is_rest, notes, duplicate_source_routine_day_id, workout_plan_template_id, workout_plan_template_edit_choice_required";
 const ROUTINE_DAY_COPY_SELECT_LEGACY = "id, day_index, name, is_rest, notes";
-const ROUTINE_DAY_DETAIL_SELECT = "id, user_id, routine_id, day_index, name, is_rest, notes, duplicate_source_routine_day_id";
+const ROUTINE_DAY_DETAIL_SELECT = ROUTINE_DAY_TEMPLATE_SELECT;
 const ROUTINE_DAY_DETAIL_SELECT_LEGACY = "id, user_id, routine_id, day_index, name, is_rest, notes";
 const ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY = "exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes";
-const ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION = `${ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY}, progression_playbook_id, progression_playbook_config`;
+const ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION = `${ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY}, progression_playbook_id, progression_playbook_config, workout_plan_template_exercise_id`;
 const ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_LEGACY = `routine_day_id, ${ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY}`;
 const ROUTINE_DAY_EXERCISE_ROUTINE_COPY_SELECT_WITH_PROGRESSION = `routine_day_id, ${ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION}`;
 
@@ -108,45 +122,248 @@ async function loadRoutineDayWithDuplicateSourceCompat(args: {
   userId: string;
   routineId?: string;
 }) {
-  let query = args.supabase
-    .from("routine_days")
-    .select(ROUTINE_DAY_DETAIL_SELECT)
-    .eq("id", args.routineDayId)
-    .eq("user_id", args.userId);
+  return loadRoutineDayWithTemplateCompat(args);
+}
 
-  if (args.routineId) {
-    query = query.eq("routine_id", args.routineId);
+async function loadWorkoutPlanTemplateSourceContext(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  routineId?: string;
+  workoutPlanTemplateId?: string | null;
+  sourceRoutineDayId?: string | null;
+}) {
+  if (args.workoutPlanTemplateId) {
+    const { data: templateData, error: templateError } = await args.supabase
+      .from("workout_plan_templates")
+      .select("id, user_id, name, is_rest, source_routine_day_id, created_at, updated_at")
+      .eq("id", args.workoutPlanTemplateId)
+      .eq("user_id", args.userId)
+      .maybeSingle();
+
+    if (templateError || !templateData) {
+      return {
+        template: null as WorkoutPlanTemplateRow | null,
+        sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
+        sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+        sourceRoutineStartDate: null as string | null,
+        templateSupported: !isMissingWorkoutPlanTemplateTableError(templateError),
+        error: templateError ?? new Error("Source workout plan not found."),
+      };
+    }
+
+    const template = templateData as WorkoutPlanTemplateRow;
+    const preferredSourceDayId = args.sourceRoutineDayId?.trim() || template.source_routine_day_id?.trim() || "";
+    let sourceDay = null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"];
+
+    if (preferredSourceDayId) {
+      const sourceDayResult = await loadRoutineDayWithDuplicateSourceCompat({
+        supabase: args.supabase,
+        routineDayId: preferredSourceDayId,
+        userId: args.userId,
+      });
+      sourceDay = sourceDayResult.data;
+    }
+
+    if (!sourceDay) {
+      const linkedDaysResult = await loadRoutineDaysWithTemplateCompat({
+        supabase: args.supabase,
+        userId: args.userId,
+      });
+      if (linkedDaysResult.error) {
+        return {
+          template: null as WorkoutPlanTemplateRow | null,
+          sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
+          sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+          sourceRoutineStartDate: null,
+          templateSupported: true,
+          error: linkedDaysResult.error,
+        };
+      }
+
+      const linkedSourceDay = linkedDaysResult.data
+        .filter((day) => day.workout_plan_template_id === template.id)
+        .sort((left, right) => {
+          const leftIsCurrentRoutine = args.routineId ? left.routine_id === args.routineId : false;
+          const rightIsCurrentRoutine = args.routineId ? right.routine_id === args.routineId : false;
+          if (leftIsCurrentRoutine !== rightIsCurrentRoutine) {
+            return leftIsCurrentRoutine ? -1 : 1;
+          }
+          return left.day_index - right.day_index;
+        })[0] ?? null;
+      sourceDay = linkedSourceDay ?? null;
+    }
+
+    let sourceRoutineStartDate: string | null = null;
+    if (sourceDay?.routine_id) {
+      const { data: sourceRoutine } = await args.supabase
+        .from("routines")
+        .select("id, start_date")
+        .eq("id", sourceDay.routine_id)
+        .eq("user_id", args.userId)
+        .maybeSingle();
+      sourceRoutineStartDate = sourceRoutine?.start_date ?? null;
+    }
+
+    return {
+      template,
+      sourceDay,
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceRoutineStartDate,
+      templateSupported: true,
+      error: null,
+    };
   }
 
-  const withSourceResult = await query.single();
-  if (!withSourceResult.error) {
-    return { data: withSourceResult.data, error: null };
+  if (!args.sourceRoutineDayId) {
+    return {
+      template: null as WorkoutPlanTemplateRow | null,
+      sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceRoutineStartDate: null as string | null,
+      templateSupported: false,
+      error: new Error("Missing workout plan info."),
+    };
   }
 
-  if (!isMissingRoutineDayDuplicateSourceColumnError(withSourceResult.error)) {
-    return { data: null, error: withSourceResult.error };
+  const sourceDayResult = await loadRoutineDayWithDuplicateSourceCompat({
+    supabase: args.supabase,
+    routineDayId: args.sourceRoutineDayId,
+    userId: args.userId,
+  });
+  if (sourceDayResult.error || !sourceDayResult.data) {
+    return {
+      template: null as WorkoutPlanTemplateRow | null,
+      sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceRoutineStartDate: null as string | null,
+      templateSupported: false,
+      error: sourceDayResult.error ?? new Error("Source workout plan not found."),
+    };
   }
 
-  let fallbackQuery = args.supabase
-    .from("routine_days")
-    .select(ROUTINE_DAY_DETAIL_SELECT_LEGACY)
-    .eq("id", args.routineDayId)
-    .eq("user_id", args.userId);
-
-  if (args.routineId) {
-    fallbackQuery = fallbackQuery.eq("routine_id", args.routineId);
+  const sourceDayExercisesResult = await loadRoutineDayExercisesWithTemplateCompat({
+    supabase: args.supabase,
+    userId: args.userId,
+    routineDayIds: [args.sourceRoutineDayId],
+  });
+  if (sourceDayExercisesResult.error) {
+    return {
+      template: null as WorkoutPlanTemplateRow | null,
+      sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceRoutineStartDate: null as string | null,
+      templateSupported: false,
+      error: sourceDayExercisesResult.error,
+    };
   }
 
-  const fallbackResult = await fallbackQuery.single();
+  const sourceDayExercises = sourceDayExercisesResult.data
+    .filter((exercise) => exercise.routine_day_id === args.sourceRoutineDayId)
+    .sort((left, right) => left.position - right.position);
+  const ensuredTemplateResult = await ensureWorkoutPlanTemplateForRoutineDay({
+    supabase: args.supabase,
+    userId: args.userId,
+    routineDay: sourceDayResult.data,
+    dayExercises: sourceDayExercises,
+    markEditChoiceRequired: true,
+  });
+  if (ensuredTemplateResult.error || !ensuredTemplateResult.templateId) {
+    if (isMissingWorkoutPlanTemplateTableError(ensuredTemplateResult.error)) {
+      const { data: sourceRoutine } = await args.supabase
+        .from("routines")
+        .select("id, start_date")
+        .eq("id", sourceDayResult.data.routine_id)
+        .eq("user_id", args.userId)
+        .maybeSingle();
+
+      return {
+        template: null as WorkoutPlanTemplateRow | null,
+        sourceDay: sourceDayResult.data,
+        sourceDayExercises,
+        sourceRoutineStartDate: sourceRoutine?.start_date ?? null,
+        templateSupported: false,
+        error: null,
+      };
+    }
+
+    return {
+      template: null as WorkoutPlanTemplateRow | null,
+      sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceRoutineStartDate: null as string | null,
+      templateSupported: true,
+      error: ensuredTemplateResult.error ?? new Error("Could not prepare workout plan template."),
+    };
+  }
+
+  const { data: sourceRoutine } = await args.supabase
+    .from("routines")
+    .select("id, start_date")
+    .eq("id", sourceDayResult.data.routine_id)
+    .eq("user_id", args.userId)
+    .maybeSingle();
+
   return {
-    data: fallbackResult.data
-      ? {
-          ...fallbackResult.data,
-          duplicate_source_routine_day_id: null,
-        }
-      : null,
-    error: fallbackResult.error,
+    template: {
+      id: ensuredTemplateResult.templateId,
+      user_id: args.userId,
+      name: ensuredTemplateResult.templateName ?? sourceDayResult.data.name ?? `Day ${sourceDayResult.data.day_index}`,
+      is_rest: sourceDayResult.data.is_rest,
+      source_routine_day_id: sourceDayResult.data.id,
+      created_at: null,
+      updated_at: null,
+    } satisfies WorkoutPlanTemplateRow,
+    sourceDay: sourceDayResult.data,
+    sourceDayExercises,
+    sourceRoutineStartDate: sourceRoutine?.start_date ?? null,
+    templateSupported: true,
+    error: null,
   };
+}
+
+async function cloneLegacyRoutineDayExercisesIntoDestination(args: {
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  targetRoutineDayId: string;
+  sourceExercises: Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"];
+}) {
+  if (args.sourceExercises.length === 0) {
+    return { error: null };
+  }
+
+  const insertPayload = args.sourceExercises.map((exercise) => ({
+    user_id: args.userId,
+    routine_day_id: args.targetRoutineDayId,
+    exercise_id: exercise.exercise_id,
+    position: exercise.position,
+    target_sets: exercise.target_sets,
+    target_reps: exercise.target_reps,
+    target_reps_min: exercise.target_reps_min,
+    target_reps_max: exercise.target_reps_max,
+    target_weight: exercise.target_weight,
+    target_weight_unit: exercise.target_weight_unit,
+    target_duration_seconds: exercise.target_duration_seconds,
+    target_distance: exercise.target_distance,
+    target_distance_unit: exercise.target_distance_unit,
+    target_calories: exercise.target_calories,
+    measurement_type: exercise.measurement_type,
+    default_unit: exercise.default_unit,
+    notes: exercise.notes,
+    progression_playbook_id: exercise.progression_playbook_id ?? null,
+    progression_playbook_config: exercise.progression_playbook_config ?? null,
+  }));
+
+  let insertResult = await args.supabase
+    .from("routine_day_exercises")
+    .insert(insertPayload);
+
+  if (insertResult.error && isMissingProgressionPlaybookColumnError(insertResult.error)) {
+    insertResult = await args.supabase
+      .from("routine_day_exercises")
+      .insert(insertPayload.map((payload) => omitProgressionPlaybookColumns(payload)));
+  }
+
+  return { error: insertResult.error };
 }
 
 export async function setActiveRoutineAction(formData: FormData): Promise<ActionResult> {
@@ -182,6 +399,24 @@ export async function setActiveRoutineAction(formData: FormData): Promise<Action
   revalidatePath(getRoutineHomePath(routineId));
 
   return { ok: true };
+}
+
+export async function loadRoutineWorkoutPlanSourcesAction(formData: FormData): Promise<LoadWorkoutPlanSourcesResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "").trim();
+
+  if (!routineId) {
+    return { ok: false, error: "Missing routine ID." };
+  }
+
+  const sources = await loadWorkoutPlanSourceList({
+    supabase,
+    userId: user.id,
+    routineId,
+  });
+
+  return { ok: true, sources };
 }
 
 export async function appendRoutineDayAction(formData: FormData): Promise<AppendRoutineDayResult> {
@@ -358,8 +593,9 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
   const supabase = supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
+  const workoutPlanTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
 
-  if (!routineId || !sourceRoutineDayId) {
+  if (!routineId || (!sourceRoutineDayId && !workoutPlanTemplateId)) {
     return { ok: false, error: "Missing workout plan info." };
   }
 
@@ -374,15 +610,17 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
     return { ok: false, error: routineError?.message ?? "Routine not found." };
   }
 
-  const { data: sourceDay, error: sourceDayError } = await loadRoutineDayWithDuplicateSourceCompat({
+  const sourceContext = await loadWorkoutPlanTemplateSourceContext({
     supabase,
-    routineDayId: sourceRoutineDayId,
     userId: user.id,
+    routineId,
+    workoutPlanTemplateId,
+    sourceRoutineDayId,
   });
-
-  if (sourceDayError || !sourceDay) {
-    return { ok: false, error: sourceDayError?.message ?? "Source workout plan not found." };
+  if (sourceContext.error || (!sourceContext.template && sourceContext.templateSupported)) {
+    return { ok: false, error: sourceContext.error?.message ?? "Source workout plan not found." };
   }
+  const sourceDay = sourceContext.sourceDay;
 
   const appendFormData = new FormData();
   appendFormData.set("routineId", routineId);
@@ -411,33 +649,106 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
   }
 
   const duplicatedName = resolveDuplicatedRoutineDayName({
-    sourceDayName: sourceDay.name,
-    sourceDayIndex: sourceDay.day_index,
-    sourceRoutineStartDate: routine.start_date,
+    sourceDayName: sourceDay?.name ?? sourceContext.template?.name,
+    sourceDayIndex: sourceDay?.day_index ?? destinationDay.day_index,
+    sourceRoutineStartDate: sourceContext.sourceRoutineStartDate ?? routine.start_date,
     destinationDayIndex: destinationDay.day_index,
   });
+
+  if (!sourceContext.templateSupported || !sourceContext.template) {
+    let { error: destinationUpdateError } = await supabase
+      .from("routine_days")
+      .update({
+        name: duplicatedName,
+        is_rest: Boolean(sourceDay?.is_rest),
+        notes: sourceDay?.notes ?? null,
+        duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
+      })
+      .eq("id", destinationDay.id)
+      .eq("routine_id", routineId)
+      .eq("user_id", user.id);
+
+    if (destinationUpdateError && isMissingRoutineDayDuplicateSourceColumnError(destinationUpdateError)) {
+      const fallback = await supabase
+        .from("routine_days")
+        .update(omitRoutineDayDuplicateSourceColumn({
+          name: duplicatedName,
+          is_rest: Boolean(sourceDay?.is_rest),
+          notes: sourceDay?.notes ?? null,
+          duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
+        }))
+        .eq("id", destinationDay.id)
+        .eq("routine_id", routineId)
+        .eq("user_id", user.id);
+      destinationUpdateError = fallback.error;
+    }
+
+    if (destinationUpdateError) {
+      await rollbackAppendedRoutineDay({
+        client: supabase,
+        userId: user.id,
+        routineId,
+        routineDayId: destinationDay.id,
+        previousCycleLength: destinationDay.day_index - 1,
+      });
+      return { ok: false, error: destinationUpdateError.message };
+    }
+
+    const legacyCloneResult = await cloneLegacyRoutineDayExercisesIntoDestination({
+      supabase,
+      userId: user.id,
+      targetRoutineDayId: destinationDay.id,
+      sourceExercises: sourceContext.sourceDayExercises,
+    });
+
+    if (legacyCloneResult.error) {
+      await rollbackAppendedRoutineDay({
+        client: supabase,
+        userId: user.id,
+        routineId,
+        routineDayId: destinationDay.id,
+        previousCycleLength: destinationDay.day_index - 1,
+      });
+      return { ok: false, error: legacyCloneResult.error.message };
+    }
+
+    revalidateRoutinesViews();
+    revalidatePath(getRoutineHomePath(routineId));
+    revalidatePath(getRoutineEditPath(routineId));
+    return { ok: true, routineDayId: destinationDay.id };
+  }
 
   let { error: destinationUpdateError } = await supabase
     .from("routine_days")
     .update({
       name: duplicatedName,
-      is_rest: sourceDay.is_rest,
-      notes: sourceDay.notes,
-      duplicate_source_routine_day_id: sourceDay.duplicate_source_routine_day_id ?? sourceDay.id,
+      is_rest: sourceContext.template.is_rest,
+      notes: sourceDay?.notes ?? null,
+      duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
+      workout_plan_template_id: sourceContext.template.id,
+      workout_plan_template_edit_choice_required: true,
     })
     .eq("id", destinationDay.id)
     .eq("routine_id", routineId)
     .eq("user_id", user.id);
 
-  if (destinationUpdateError && isMissingRoutineDayDuplicateSourceColumnError(destinationUpdateError)) {
+  if (
+    destinationUpdateError
+    && (
+      isMissingRoutineDayDuplicateSourceColumnError(destinationUpdateError)
+      || destinationUpdateError.message?.toLowerCase().includes("workout_plan_template_")
+    )
+  ) {
     const fallback = await supabase
       .from("routine_days")
-      .update(omitRoutineDayDuplicateSourceColumn({
-        name: duplicatedName,
-        is_rest: sourceDay.is_rest,
-        notes: sourceDay.notes,
-        duplicate_source_routine_day_id: sourceDay.duplicate_source_routine_day_id ?? sourceDay.id,
-      }))
+        .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
+          name: duplicatedName,
+          is_rest: sourceContext.template.is_rest,
+          notes: sourceDay?.notes ?? null,
+          duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
+          workout_plan_template_id: sourceContext.template.id,
+          workout_plan_template_edit_choice_required: true,
+        })))
       .eq("id", destinationDay.id)
       .eq("routine_id", routineId)
       .eq("user_id", user.id);
@@ -455,24 +766,15 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
     return { ok: false, error: destinationUpdateError.message };
   }
 
-  const { data: sourceExercisesWithProgression, error: sourceExercisesWithProgressionError } = await supabase
-    .from("routine_day_exercises")
-    .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION)
-    .eq("routine_day_id", sourceRoutineDayId)
-    .eq("user_id", user.id)
-    .order("position", { ascending: true });
-  const sourceExercisesLegacyFallback = sourceExercisesWithProgressionError && isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)
-    ? await supabase
-        .from("routine_day_exercises")
-        .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY)
-        .eq("routine_day_id", sourceRoutineDayId)
-        .eq("user_id", user.id)
-        .order("position", { ascending: true })
-    : null;
-  const sourceExercisesLegacy = sourceExercisesLegacyFallback?.data ?? null;
-  const sourceExercisesLegacyError = sourceExercisesLegacyFallback?.error ?? null;
+  const editChoiceResult = await updateLinkedWorkoutPlanTemplateChoiceRequirement({
+    supabase,
+    userId: user.id,
+    templateId: sourceContext.template.id,
+    editChoiceRequired: true,
+    fallbackRoutineDayIds: [destinationDay.id],
+  });
 
-  if (sourceExercisesWithProgressionError && !isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)) {
+  if (editChoiceResult.error) {
     await rollbackAppendedRoutineDay({
       client: supabase,
       userId: user.id,
@@ -480,10 +782,17 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
       routineDayId: destinationDay.id,
       previousCycleLength: destinationDay.day_index - 1,
     });
-    return { ok: false, error: sourceExercisesWithProgressionError.message };
+    return { ok: false, error: editChoiceResult.error.message };
   }
 
-  if (sourceExercisesLegacyError) {
+  const templateCloneResult = await cloneWorkoutPlanTemplateIntoRoutineDay({
+    supabase,
+    userId: user.id,
+    templateId: sourceContext.template.id,
+    targetRoutineDayId: destinationDay.id,
+  });
+
+  if (templateCloneResult.error) {
     await rollbackAppendedRoutineDay({
       client: supabase,
       userId: user.id,
@@ -491,38 +800,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
       routineDayId: destinationDay.id,
       previousCycleLength: destinationDay.day_index - 1,
     });
-    return { ok: false, error: sourceExercisesLegacyError.message };
-  }
-
-  const sourceExercises = sourceExercisesWithProgression ?? sourceExercisesLegacy ?? [];
-  if (sourceExercises.length > 0) {
-    const copiedExercises = sourceExercises.map((exercise) => ({
-      ...exercise,
-      user_id: user.id,
-      routine_day_id: destinationDay.id,
-    }));
-
-    let { error: copyExercisesError } = await supabase
-      .from("routine_day_exercises")
-      .insert(copiedExercises);
-
-    if (copyExercisesError && isMissingProgressionPlaybookColumnError(copyExercisesError)) {
-      const fallback = await supabase
-        .from("routine_day_exercises")
-        .insert(copiedExercises.map((exercise) => omitProgressionPlaybookColumns(exercise)));
-      copyExercisesError = fallback.error;
-    }
-
-    if (copyExercisesError) {
-      await rollbackAppendedRoutineDay({
-        client: supabase,
-        userId: user.id,
-        routineId,
-        routineDayId: destinationDay.id,
-        previousCycleLength: destinationDay.day_index - 1,
-      });
-      return { ok: false, error: copyExercisesError.message };
-    }
+    return { ok: false, error: templateCloneResult.error.message };
   }
 
   revalidateRoutinesViews();
@@ -537,8 +815,9 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
   const routineId = String(formData.get("routineId") ?? "").trim();
   const targetRoutineDayId = String(formData.get("targetRoutineDayId") ?? "").trim();
   const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
+  const workoutPlanTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
 
-  if (!routineId || !targetRoutineDayId || !sourceRoutineDayId) {
+  if (!routineId || !targetRoutineDayId || (!sourceRoutineDayId && !workoutPlanTemplateId)) {
     return { ok: false, error: "Missing workout plan info." };
   }
 
@@ -568,55 +847,110 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
     return { ok: false, error: "This workout plan already has exercises." };
   }
 
-  const { data: sourceDay, error: sourceDayError } = await loadRoutineDayWithDuplicateSourceCompat({
+  const sourceContext = await loadWorkoutPlanTemplateSourceContext({
     supabase,
-    routineDayId: sourceRoutineDayId,
     userId: user.id,
+    routineId,
+    workoutPlanTemplateId,
+    sourceRoutineDayId,
   });
-
-  if (sourceDayError || !sourceDay) {
-    return { ok: false, error: sourceDayError?.message ?? "Source workout plan not found." };
+  if (sourceContext.error || (!sourceContext.template && sourceContext.templateSupported)) {
+    return { ok: false, error: sourceContext.error?.message ?? "Source workout plan not found." };
   }
-
-  const { data: sourceRoutine, error: sourceRoutineError } = await supabase
-    .from("routines")
-    .select("id, start_date")
-    .eq("id", sourceDay.routine_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (sourceRoutineError) {
-    return { ok: false, error: sourceRoutineError.message };
-  }
+  const sourceDay = sourceContext.sourceDay;
 
   const duplicatedName = resolveDuplicatedRoutineDayName({
-    sourceDayName: sourceDay.name,
-    sourceDayIndex: sourceDay.day_index,
-    sourceRoutineStartDate: sourceRoutine?.start_date,
+    sourceDayName: sourceDay?.name ?? sourceContext.template?.name,
+    sourceDayIndex: sourceDay?.day_index ?? targetDay.day_index,
+    sourceRoutineStartDate: sourceContext.sourceRoutineStartDate,
     destinationDayIndex: targetDay.day_index,
   });
+
+  if (!sourceContext.templateSupported || !sourceContext.template) {
+    let { error: destinationUpdateError } = await supabase
+      .from("routine_days")
+      .update({
+        name: duplicatedName,
+        is_rest: Boolean(sourceDay?.is_rest),
+        notes: sourceDay?.notes ?? null,
+        duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
+      })
+      .eq("id", targetDay.id)
+      .eq("routine_id", routineId)
+      .eq("user_id", user.id);
+
+    if (destinationUpdateError && isMissingRoutineDayDuplicateSourceColumnError(destinationUpdateError)) {
+      const fallback = await supabase
+        .from("routine_days")
+        .update(omitRoutineDayDuplicateSourceColumn({
+          name: duplicatedName,
+          is_rest: Boolean(sourceDay?.is_rest),
+          notes: sourceDay?.notes ?? null,
+          duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? null,
+        }))
+        .eq("id", targetDay.id)
+        .eq("routine_id", routineId)
+        .eq("user_id", user.id);
+      destinationUpdateError = fallback.error;
+    }
+
+    if (destinationUpdateError) {
+      return { ok: false, error: destinationUpdateError.message };
+    }
+
+    const legacyCloneResult = await cloneLegacyRoutineDayExercisesIntoDestination({
+      supabase,
+      userId: user.id,
+      targetRoutineDayId: targetDay.id,
+      sourceExercises: sourceContext.sourceDayExercises,
+    });
+
+    if (legacyCloneResult.error) {
+      await supabase
+        .from("routine_day_exercises")
+        .delete()
+        .eq("routine_day_id", targetDay.id)
+        .eq("user_id", user.id);
+      return { ok: false, error: legacyCloneResult.error.message };
+    }
+
+    revalidateRoutinesViews();
+    revalidatePath(getRoutineHomePath(routineId));
+    revalidatePath(getRoutineEditPath(routineId));
+    return { ok: true, routineDayId: targetDay.id };
+  }
 
   let { error: destinationUpdateError } = await supabase
     .from("routine_days")
     .update({
       name: duplicatedName,
-      is_rest: sourceDay.is_rest,
-      notes: sourceDay.notes,
-      duplicate_source_routine_day_id: sourceDay.duplicate_source_routine_day_id ?? sourceDay.id,
+      is_rest: sourceContext.template.is_rest,
+      notes: sourceDay?.notes ?? null,
+      duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
+      workout_plan_template_id: sourceContext.template.id,
+      workout_plan_template_edit_choice_required: true,
     })
     .eq("id", targetDay.id)
     .eq("routine_id", routineId)
     .eq("user_id", user.id);
 
-  if (destinationUpdateError && isMissingRoutineDayDuplicateSourceColumnError(destinationUpdateError)) {
+  if (
+    destinationUpdateError
+    && (
+      isMissingRoutineDayDuplicateSourceColumnError(destinationUpdateError)
+      || destinationUpdateError.message?.toLowerCase().includes("workout_plan_template_")
+    )
+  ) {
     const fallback = await supabase
       .from("routine_days")
-      .update(omitRoutineDayDuplicateSourceColumn({
-        name: duplicatedName,
-        is_rest: sourceDay.is_rest,
-        notes: sourceDay.notes,
-        duplicate_source_routine_day_id: sourceDay.duplicate_source_routine_day_id ?? sourceDay.id,
-      }))
+        .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
+          name: duplicatedName,
+          is_rest: sourceContext.template.is_rest,
+          notes: sourceDay?.notes ?? null,
+          duplicate_source_routine_day_id: sourceDay?.duplicate_source_routine_day_id ?? sourceDay?.id ?? sourceContext.template.source_routine_day_id ?? null,
+          workout_plan_template_id: sourceContext.template.id,
+          workout_plan_template_edit_choice_required: true,
+        })))
       .eq("id", targetDay.id)
       .eq("routine_id", routineId)
       .eq("user_id", user.id);
@@ -627,82 +961,88 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
     return { ok: false, error: destinationUpdateError.message };
   }
 
-  const { data: sourceExercisesWithProgression, error: sourceExercisesWithProgressionError } = await supabase
-    .from("routine_day_exercises")
-    .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_WITH_PROGRESSION)
-    .eq("routine_day_id", sourceRoutineDayId)
-    .eq("user_id", user.id)
-    .order("position", { ascending: true });
-  const sourceExercisesLegacyFallback = sourceExercisesWithProgressionError && isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)
-    ? await supabase
-        .from("routine_day_exercises")
-        .select(ROUTINE_DAY_EXERCISE_COPY_SELECT_LEGACY)
-        .eq("routine_day_id", sourceRoutineDayId)
-        .eq("user_id", user.id)
-        .order("position", { ascending: true })
-    : null;
-  const sourceExercisesLegacy = sourceExercisesLegacyFallback?.data ?? null;
-  const sourceExercisesLegacyError = sourceExercisesLegacyFallback?.error ?? null;
+  const editChoiceResult = await updateLinkedWorkoutPlanTemplateChoiceRequirement({
+    supabase,
+    userId: user.id,
+    templateId: sourceContext.template.id,
+    editChoiceRequired: true,
+    fallbackRoutineDayIds: [targetDay.id],
+  });
 
-  if (sourceExercisesWithProgressionError && !isMissingProgressionPlaybookColumnError(sourceExercisesWithProgressionError)) {
-    return { ok: false, error: sourceExercisesWithProgressionError.message };
-  }
-
-  if (sourceExercisesLegacyError) {
-    return { ok: false, error: sourceExercisesLegacyError.message };
-  }
-
-  const sourceExercises = sourceExercisesWithProgression ?? sourceExercisesLegacy ?? [];
-  if (sourceExercises.length > 0) {
-    const copiedExercises = sourceExercises.map((exercise) => ({
-      ...exercise,
-      user_id: user.id,
-      routine_day_id: targetDay.id,
-    }));
-
-    let { error: copyExercisesError } = await supabase
-      .from("routine_day_exercises")
-      .insert(copiedExercises);
-
-    if (copyExercisesError && isMissingProgressionPlaybookColumnError(copyExercisesError)) {
-      const fallback = await supabase
-        .from("routine_day_exercises")
-        .insert(copiedExercises.map((exercise) => omitProgressionPlaybookColumns(exercise)));
-      copyExercisesError = fallback.error;
-    }
-
-    if (copyExercisesError) {
-      await supabase
-        .from("routine_day_exercises")
-        .delete()
-        .eq("routine_day_id", targetDay.id)
-        .eq("user_id", user.id);
-      let restoreResult = await supabase
+  if (editChoiceResult.error) {
+    let restoreResult = await supabase
+      .from("routine_days")
+      .update({
+        name: targetDay.name,
+        is_rest: targetDay.is_rest,
+        notes: targetDay.notes,
+        duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
+        workout_plan_template_id: targetDay.workout_plan_template_id ?? null,
+        workout_plan_template_edit_choice_required: targetDay.workout_plan_template_edit_choice_required ?? false,
+      })
+      .eq("id", targetDay.id)
+      .eq("routine_id", routineId)
+      .eq("user_id", user.id);
+    if (restoreResult.error) {
+      restoreResult = await supabase
         .from("routine_days")
-        .update({
+        .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
           name: targetDay.name,
           is_rest: targetDay.is_rest,
           notes: targetDay.notes,
           duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
-        })
+          workout_plan_template_id: targetDay.workout_plan_template_id ?? null,
+          workout_plan_template_edit_choice_required: targetDay.workout_plan_template_edit_choice_required ?? false,
+        })))
         .eq("id", targetDay.id)
         .eq("routine_id", routineId)
         .eq("user_id", user.id);
-      if (restoreResult.error && isMissingRoutineDayDuplicateSourceColumnError(restoreResult.error)) {
-        restoreResult = await supabase
-          .from("routine_days")
-          .update(omitRoutineDayDuplicateSourceColumn({
-            name: targetDay.name,
-            is_rest: targetDay.is_rest,
-            notes: targetDay.notes,
-            duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
-          }))
-          .eq("id", targetDay.id)
-          .eq("routine_id", routineId)
-          .eq("user_id", user.id);
-      }
-      return { ok: false, error: copyExercisesError.message };
     }
+    return { ok: false, error: editChoiceResult.error.message };
+  }
+
+  const templateCloneResult = await cloneWorkoutPlanTemplateIntoRoutineDay({
+    supabase,
+    userId: user.id,
+    templateId: sourceContext.template.id,
+    targetRoutineDayId: targetDay.id,
+  });
+
+  if (templateCloneResult.error) {
+    await supabase
+      .from("routine_day_exercises")
+      .delete()
+      .eq("routine_day_id", targetDay.id)
+      .eq("user_id", user.id);
+    let restoreResult = await supabase
+      .from("routine_days")
+      .update({
+        name: targetDay.name,
+        is_rest: targetDay.is_rest,
+        notes: targetDay.notes,
+        duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
+        workout_plan_template_id: targetDay.workout_plan_template_id ?? null,
+        workout_plan_template_edit_choice_required: targetDay.workout_plan_template_edit_choice_required ?? false,
+      })
+      .eq("id", targetDay.id)
+      .eq("routine_id", routineId)
+      .eq("user_id", user.id);
+    if (restoreResult.error) {
+      restoreResult = await supabase
+        .from("routine_days")
+        .update(omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn({
+          name: targetDay.name,
+          is_rest: targetDay.is_rest,
+          notes: targetDay.notes,
+          duplicate_source_routine_day_id: targetDay.duplicate_source_routine_day_id ?? null,
+          workout_plan_template_id: targetDay.workout_plan_template_id ?? null,
+          workout_plan_template_edit_choice_required: targetDay.workout_plan_template_edit_choice_required ?? false,
+        })))
+        .eq("id", targetDay.id)
+        .eq("routine_id", routineId)
+        .eq("user_id", user.id);
+    }
+    return { ok: false, error: templateCloneResult.error.message };
   }
 
   revalidateRoutinesViews();
@@ -830,51 +1170,31 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
     return { ok: false, error: duplicatedRoutineError?.message ?? "Could not duplicate routine." };
   }
 
-  const { data: sourceDaysWithSource, error: sourceDaysWithSourceError } = await supabase
-    .from("routine_days")
-    .select(ROUTINE_DAY_COPY_SELECT)
-    .eq("routine_id", sourceRoutineId)
-    .eq("user_id", user.id)
-    .order("day_index", { ascending: true });
+  const sourceDaysResult = await loadRoutineDaysWithTemplateCompat({
+    supabase,
+    userId: user.id,
+    routineId: sourceRoutineId,
+  });
 
-  const sourceDaysLegacyFallback = sourceDaysWithSourceError && isMissingRoutineDayDuplicateSourceColumnError(sourceDaysWithSourceError)
-    ? await supabase
-        .from("routine_days")
-        .select(ROUTINE_DAY_COPY_SELECT_LEGACY)
-        .eq("routine_id", sourceRoutineId)
-        .eq("user_id", user.id)
-        .order("day_index", { ascending: true })
-    : null;
-
-  if (sourceDaysWithSourceError && !isMissingRoutineDayDuplicateSourceColumnError(sourceDaysWithSourceError)) {
+  if (sourceDaysResult.error) {
     await rollbackDuplicatedRoutine({
       client: supabase,
       userId: user.id,
       routineId: duplicatedRoutine.id,
     });
-    return { ok: false, error: sourceDaysWithSourceError.message };
+    return { ok: false, error: sourceDaysResult.error.message };
   }
 
-  if (sourceDaysLegacyFallback?.error) {
-    await rollbackDuplicatedRoutine({
-      client: supabase,
-      userId: user.id,
-      routineId: duplicatedRoutine.id,
-    });
-    return { ok: false, error: sourceDaysLegacyFallback.error.message };
-  }
-
-  const sourceDays = ((sourceDaysWithSource ?? sourceDaysLegacyFallback?.data ?? []) as Array<{
+  const sourceDays = (sourceDaysResult.data as Array<{
     id: string;
     day_index: number;
     name?: string | null;
     is_rest?: boolean | null;
     notes?: string | null;
     duplicate_source_routine_day_id?: string | null;
-  }>).map((day) => ({
-    ...day,
-    duplicate_source_routine_day_id: day.duplicate_source_routine_day_id ?? null,
-  }));
+    workout_plan_template_id?: string | null;
+    workout_plan_template_edit_choice_required?: boolean | null;
+  }>);
 
   const copiedDayRows = sourceDays.map((day) => ({
     user_id: user.id,
@@ -884,6 +1204,8 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
     is_rest: day.is_rest,
     notes: day.notes,
     duplicate_source_routine_day_id: day.duplicate_source_routine_day_id ?? day.id,
+    workout_plan_template_id: day.workout_plan_template_id ?? null,
+    workout_plan_template_edit_choice_required: day.workout_plan_template_edit_choice_required ?? false,
   }));
 
   let { data: copiedDays, error: copiedDaysError } = copiedDayRows.length > 0
@@ -894,11 +1216,17 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
         .order("day_index", { ascending: true })
     : { data: [] as Array<{ id: string; day_index: number }>, error: null };
 
-  if (copiedDaysError && isMissingRoutineDayDuplicateSourceColumnError(copiedDaysError)) {
+  if (
+    copiedDaysError
+    && (
+      isMissingRoutineDayDuplicateSourceColumnError(copiedDaysError)
+      || copiedDaysError.message?.toLowerCase().includes("workout_plan_template_")
+    )
+  ) {
     const fallback = copiedDayRows.length > 0
       ? await supabase
           .from("routine_days")
-          .insert(copiedDayRows.map((day) => omitRoutineDayDuplicateSourceColumn(day)))
+          .insert(copiedDayRows.map((day) => omitRoutineDayTemplateColumns(omitRoutineDayDuplicateSourceColumn(day))))
           .select("id, day_index")
           .order("day_index", { ascending: true })
       : { data: [] as Array<{ id: string; day_index: number }>, error: null };
@@ -1060,6 +1388,7 @@ export async function createRoutineDayAction(formData: FormData): Promise<Create
   const routineId = String(formData.get("routineId") ?? "").trim();
   const creationMode = String(formData.get("creationMode") ?? "blank").trim();
   const sourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
+  const workoutPlanTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
   const requestedName = String(formData.get("name") ?? "").trim();
   const blankModeIsRest = formData.get("isRest") === "on";
 
@@ -1086,6 +1415,9 @@ export async function createRoutineDayAction(formData: FormData): Promise<Create
   actionFormData.set("routineId", routineId);
   if (creationMode === "duplicate") {
     actionFormData.set("sourceRoutineDayId", sourceRoutineDayId);
+    if (workoutPlanTemplateId) {
+      actionFormData.set("workoutPlanTemplateId", workoutPlanTemplateId);
+    }
   }
 
   const routineDayResult = creationMode === "duplicate"
@@ -1631,5 +1963,137 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
   revalidatePath(getRoutineHomePath(routineId));
   revalidatePath(`/routines/${routineId}/edit`);
 
+  return { ok: true };
+}
+
+export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const requestedTemplateId = String(formData.get("workoutPlanTemplateId") ?? "").trim();
+  const requestedSourceRoutineDayId = String(formData.get("sourceRoutineDayId") ?? "").trim();
+
+  if (!requestedTemplateId && !requestedSourceRoutineDayId) {
+    return { ok: false, error: "Missing workout plan source info." };
+  }
+
+  const allRoutineDaysResult = await loadRoutineDaysWithTemplateCompat({
+    supabase,
+    userId: user.id,
+  });
+  if (allRoutineDaysResult.error) {
+    return { ok: false, error: allRoutineDaysResult.error.message };
+  }
+
+  let resolvedTemplateId = requestedTemplateId || null;
+  let linkedRoutineDays = [] as typeof allRoutineDaysResult.data;
+
+  if (!resolvedTemplateId && requestedSourceRoutineDayId) {
+    const sourceDayResult = await loadRoutineDayWithTemplateCompat({
+      supabase,
+      routineDayId: requestedSourceRoutineDayId,
+      userId: user.id,
+    });
+    if (sourceDayResult.error || !sourceDayResult.data) {
+      return { ok: false, error: sourceDayResult.error?.message ?? "Workout plan source not found." };
+    }
+
+    const sourceDay = sourceDayResult.data;
+    if (sourceDay.workout_plan_template_id) {
+      resolvedTemplateId = sourceDay.workout_plan_template_id;
+    } else {
+      const canonicalSourceDayId = sourceDay.duplicate_source_routine_day_id ?? sourceDay.id;
+      linkedRoutineDays = allRoutineDaysResult.data.filter((day) => (
+        day.id === canonicalSourceDayId
+        || day.duplicate_source_routine_day_id === canonicalSourceDayId
+      ));
+    }
+  }
+
+  if (resolvedTemplateId) {
+    linkedRoutineDays = allRoutineDaysResult.data.filter((day) => day.workout_plan_template_id === resolvedTemplateId);
+  }
+
+  if (linkedRoutineDays.length > 0) {
+    const linkedRoutineDayIds = linkedRoutineDays.map((day) => day.id);
+    const { error: deleteRoutineDaysError } = await supabase
+      .from("routine_days")
+      .delete()
+      .in("id", linkedRoutineDayIds)
+      .eq("user_id", user.id);
+
+    if (deleteRoutineDaysError) {
+      return { ok: false, error: deleteRoutineDaysError.message };
+    }
+
+    const affectedRoutineIds = Array.from(new Set(
+      linkedRoutineDays
+        .map((day) => day.routine_id)
+        .filter((value): value is string => Boolean(value)),
+    ));
+
+    for (const routineId of affectedRoutineIds) {
+      const { data: remainingDays, error: remainingDaysError } = await supabase
+        .from("routine_days")
+        .select("id, day_index")
+        .eq("routine_id", routineId)
+        .eq("user_id", user.id)
+        .order("day_index", { ascending: true });
+
+      if (remainingDaysError) {
+        return { ok: false, error: remainingDaysError.message };
+      }
+
+      const remainingDayIds = (remainingDays ?? []).map((day) => day.id);
+      const reorderError = await reindexRoutineDaysDirect({
+        supabase,
+        routineId,
+        userId: user.id,
+        orderedRoutineDayIds: remainingDayIds,
+      });
+      if (reorderError) {
+        return { ok: false, error: reorderError.message };
+      }
+
+      const { error: updateRoutineError } = await supabase
+        .from("routines")
+        .update({
+          cycle_length_days: remainingDayIds.length,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", routineId)
+        .eq("user_id", user.id);
+
+      if (updateRoutineError) {
+        return { ok: false, error: updateRoutineError.message };
+      }
+
+      revalidatePath(getRoutineHomePath(routineId));
+      revalidatePath(getRoutineEditPath(routineId));
+    }
+  }
+
+  if (resolvedTemplateId) {
+    const { error: deleteTemplateExercisesError } = await supabase
+      .from("workout_plan_template_exercises")
+      .delete()
+      .eq("workout_plan_template_id", resolvedTemplateId)
+      .eq("user_id", user.id);
+    if (deleteTemplateExercisesError) {
+      return { ok: false, error: deleteTemplateExercisesError.message };
+    }
+
+    const { error: deleteTemplateError } = await supabase
+      .from("workout_plan_templates")
+      .delete()
+      .eq("id", resolvedTemplateId)
+      .eq("user_id", user.id);
+    if (deleteTemplateError) {
+      return { ok: false, error: deleteTemplateError.message };
+    }
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath("/routines");
+  revalidatePath("/routines/workout-plans");
   return { ok: true };
 }

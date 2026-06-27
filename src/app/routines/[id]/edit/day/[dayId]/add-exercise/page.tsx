@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
-import { addRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
+import {
+  addRoutineDayExerciseAction,
+  loadWorkoutPlanTemplateEditDecisionStateAction,
+  resolveWorkoutPlanTemplateEditDecisionAction,
+} from "@/app/routines/[id]/edit/day/actions";
 import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen";
 import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
 import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
@@ -11,6 +15,7 @@ import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { formatRoutineDayDisplayName } from "@/lib/routines";
 import { isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { supabaseServer } from "@/lib/supabase/server";
+import { loadRoutineDayWithTemplateCompat, loadWorkoutPlanTemplateNames } from "@/lib/workout-plan-templates";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -49,16 +54,19 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
   const routine = routineWithProgression ?? legacyRoutine;
   if (!routine) notFound();
 
-  const { data: day } = await supabase
-    .from("routine_days")
-    .select("id, user_id, routine_id, day_index, name")
-    .eq("id", params.dayId)
-    .eq("routine_id", params.id)
-    .eq("user_id", user.id)
-    .single();
+  const { data: day } = await loadRoutineDayWithTemplateCompat({
+    supabase,
+    routineDayId: params.dayId,
+    routineId: params.id,
+    userId: user.id,
+  });
   if (!day) notFound();
 
   const { exercises, exerciseStats } = await loadExerciseChooserRouteData(user.id);
+  const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+    supabase,
+    userId: user.id,
+  });
   const backHref = getRoutineDayEditHref(params.id, params.dayId);
   const dayLabel = formatRoutineDayDisplayName({
     name: day.name,
@@ -93,8 +101,13 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
         defaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
         defaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         addExerciseAction={addRoutineDayExerciseAction}
+        resolveTemplateDecisionAction={resolveWorkoutPlanTemplateEditDecisionAction}
+        loadTemplateDecisionStateAction={loadWorkoutPlanTemplateEditDecisionStateAction}
         exerciseStats={exerciseStats}
         backHref={backHref}
+        workoutPlanTemplateId={day.workout_plan_template_id ?? null}
+        requiresWorkoutPlanTemplateEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
+        existingWorkoutPlanTemplateNames={existingTemplateNames}
       />
     </ExerciseChooserRouteScaffold>
   );

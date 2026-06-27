@@ -21,6 +21,9 @@ Primary local sources of truth:
    - `npm run lint`
    - `npm run verify:mobile-regression`
    - `npm run build`
+5. Govern multi-edit UI passes with an explicit requested-edit checklist and route-family verification, not with summary-only closeout text.
+6. For cross-screen UI normalization, patch the canonical shared surface first and verify the declared sibling surfaces afterward.
+7. Prefer QA accounts, fixtures, and dev routes over live user-owned data when testing mutable fitness flows.
 
 ## Enforcement Guardrails
 
@@ -28,6 +31,7 @@ Primary local sources of truth:
 - Do not create new structural layers without clear justification.
 - Preserve strict server/client boundaries, RLS safety, and server-owned data writes.
 - Use strict server actions for protected mutations (`requireUser()` + `supabaseServer()`).
+- Do not claim live Discord or forum updates from local artifacts alone; if live connector or authenticated browser capability is missing, say so explicitly and keep the local artifact as local truth only.
 
 ## Documentation Scope in This Repo
 
@@ -35,6 +39,9 @@ Allowed governance documentation files:
 - `docs/PROJECT_GOVERNANCE.md`
 - `docs/ARCHITECTURE.md`
 - `docs/CHANGELOG.md`
+- `docs/CODEX_GUARDRAILS.md`
+- `docs/PLAYBOOK_NOTES.md`
+- `docs/ops/FITNESS-LLEL-CHECKLIST.md`
 
 ## Playbook Operator Path (Single Active Surface)
 

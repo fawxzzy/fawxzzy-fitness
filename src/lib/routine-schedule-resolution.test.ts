@@ -191,6 +191,28 @@ test("rolling schedules with invalid anchor date or cycle length fail safely", (
   assert.equal(invalidCycleLength.reason, "invalid_config");
 });
 
+test("resolver accepts ISO timestamp anchor dates from stored routine rows", () => {
+  const anchored = resolveRoutineSchedule({
+    scheduleMode: "weekday_anchored",
+    cycleLengthDays: 9,
+    anchorWeekday: 1,
+    anchorDate: "2026-04-20T04:00:00.000Z",
+    today: "2026-06-22",
+  });
+
+  const rolling = resolveRoutineSchedule({
+    scheduleMode: "rolling_n_day",
+    cycleLengthDays: 9,
+    anchorDate: "2026-04-20T04:00:00.000Z",
+    today: "2026-06-22",
+  });
+
+  assert.equal(anchored.status, "scheduled");
+  assert.equal(anchored.cycleDayNumber, 8);
+  assert.equal(rolling.status, "scheduled");
+  assert.equal(rolling.cycleDayNumber, 1);
+});
+
 test("legacy missing schedule mode defaults to weekday-anchored", () => {
   const resolution = resolveRoutineSchedule({
     cycleLengthDays: 5,

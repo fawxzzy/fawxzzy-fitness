@@ -823,6 +823,24 @@ test("invalid config fields do not compare equal to valid defaults", () => {
   assert.equal(areProgressionPlaybookFormStatesEqual(invalidExercise, routineDefault), false);
 });
 
+test("appendProgressionPlaybookFormData normalizes invalid stall threshold and deload percent values", () => {
+  const state = {
+    ...createProgressionPlaybookFormState({
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5, stallThreshold: 2, deloadPercent: 10 },
+    }),
+    progressionStallPolicy: "deload_after_stall" as const,
+    progressionStallThreshold: "0",
+    progressionDeloadPercent: "",
+  };
+  const formData = new FormData();
+
+  appendProgressionPlaybookFormData(formData, state);
+
+  assert.equal(formData.get("progressionStallThreshold"), "2");
+  assert.equal(formData.get("progressionDeloadPercent"), "10");
+});
+
 test("deload-after-stall config build tolerates missing legacy deload percent state", () => {
   const state = {
     ...createProgressionPlaybookFormState({

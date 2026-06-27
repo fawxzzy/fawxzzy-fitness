@@ -39,7 +39,7 @@ import {
 import {
   formatRoutineDayStableDisplayName,
   getCurrentCycleOccurrenceContext,
-  getRoutineCycleOccurrence,
+  getRoutineDayResolvedWeekdayLabel,
   getTimeZoneDayWindow,
   resolveCompletedRoutineDayIndexesForOccurrence,
   resolveRoutineScheduleForToday,
@@ -796,6 +796,7 @@ export default async function TodayPage({
   let todayRoutineDay: RoutineDayRow | null = null;
   let allDayExercises: RoutineDayExerciseRow[] = [];
   let todayDayIndex: number | null = null;
+  let todayReferenceDate: string | null = null;
   let completedTodayCount = 0;
   let completedDayIndexes: number[] = [];
   let inProgressSession: SessionRow | null = null;
@@ -850,13 +851,14 @@ export default async function TodayPage({
 
   if (activeRoutine) {
     try {
-    const { dayIndex } = resolveRoutineScheduleForToday({
-      cycleLengthDays: activeRoutine.cycle_length_days,
-      scheduleMode: activeRoutine.schedule_mode,
-      startDate: activeRoutine.start_date,
-      profileTimeZone: activeRoutine.timezone || profile.timezone,
-    });
+      const { dayIndex, todayDate } = resolveRoutineScheduleForToday({
+        cycleLengthDays: activeRoutine.cycle_length_days,
+        scheduleMode: activeRoutine.schedule_mode,
+        startDate: activeRoutine.start_date,
+        profileTimeZone: activeRoutine.timezone || profile.timezone,
+      });
 
+      todayReferenceDate = todayDate;
       todayDayIndex = dayIndex;
     } catch (error) {
       markBootstrapFailure("routine days fetch", error);
@@ -1176,12 +1178,15 @@ export default async function TodayPage({
       })
     : displayDay.dayName;
   const routineDayWeekday = activeRoutine?.start_date && effectiveDayIndex !== null
-    ? getRoutineCycleOccurrence({
-        cycleLengthDays: activeRoutine.cycle_length_days,
-        startDate: activeRoutine.start_date,
-        profileTimeZone: activeRoutine.timezone || profile.timezone,
+    ? getRoutineDayResolvedWeekdayLabel({
         dayIndex: effectiveDayIndex,
-      }).occurrenceWeekdayShort
+        startDate: activeRoutine.start_date,
+        cycleLengthDays: activeRoutine.cycle_length_days,
+        scheduleMode: activeRoutine.schedule_mode,
+        profileTimeZone: activeRoutine.timezone || profile.timezone,
+        referenceDate: todayReferenceDate,
+        weekday: "short",
+      })
     : null;
   const routinePayloadState = buildTodayRoutinePayloadState({
     activeRoutine,
@@ -1384,12 +1389,15 @@ export default async function TodayPage({
                 dayIndex: day.day_index,
                 name: day.name || `Day ${day.day_index}`,
                 occurrenceWeekday: activeRoutine?.start_date
-                  ? getRoutineCycleOccurrence({
-                      cycleLengthDays: activeRoutine.cycle_length_days,
-                      startDate: activeRoutine.start_date,
-                      profileTimeZone: activeRoutine.timezone || profile.timezone,
+                  ? getRoutineDayResolvedWeekdayLabel({
                       dayIndex: day.day_index,
-                    }).occurrenceWeekdayShort
+                      startDate: activeRoutine.start_date,
+                      cycleLengthDays: activeRoutine.cycle_length_days,
+                      scheduleMode: activeRoutine.schedule_mode,
+                      profileTimeZone: activeRoutine.timezone || profile.timezone,
+                      referenceDate: todayReferenceDate,
+                      weekday: "short",
+                    })
                   : null,
                 isRest: day.is_rest,
                 state,
@@ -1430,9 +1438,7 @@ export default async function TodayPage({
                 })),
               }))}
               currentDayIndex={displayDay.hasScheduledDayToday ? todayPayload.routine.dayIndex : null}
-              noScheduledDayMessage={displayDay.hasScheduledDayToday || todayPayload.inProgressSessionId
-                ? null
-                : "This routine has no active day for today's date."}
+              noScheduledDayMessage={null}
               inProgressSessionId={todayPayload.inProgressSessionId}
               completedDayIndexes={completedDayIndexes}
               inSessionDayIndex={inProgressSession?.routine_day_index ?? null}

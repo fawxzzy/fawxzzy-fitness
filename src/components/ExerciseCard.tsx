@@ -202,6 +202,9 @@ export function ExerciseCard({
   contentClassName,
   titleContainerClassName,
   titleClassName,
+  titleMetaClassName,
+  cornerMeta,
+  cornerMetaClassName,
   subtitleClassName,
   subtitleLabelClassName,
   headerDivider,
@@ -245,6 +248,9 @@ export function ExerciseCard({
   contentClassName?: string;
   titleContainerClassName?: string;
   titleClassName?: string;
+  titleMetaClassName?: string;
+  cornerMeta?: ReactNode;
+  cornerMetaClassName?: string;
   subtitleClassName?: string;
   subtitleLabelClassName?: string;
   headerDivider?: ReactNode;
@@ -267,6 +273,7 @@ export function ExerciseCard({
   contentVerticalAlign?: ExerciseCardContentVerticalAlign;
   progressFill?: ProgressionProgressFill | null;
 }) {
+  const titleIsPlainText = typeof title === "string" || typeof title === "number";
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
   const resolvedSemanticTone = semanticTone ?? resolveDefaultSemanticTone(state);
@@ -277,6 +284,7 @@ export function ExerciseCard({
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
   const hasOverlayActions = overlayActions !== null && overlayActions !== undefined && overlayActions !== false;
   const hasTitleMeta = titleMeta !== null && titleMeta !== undefined && titleMeta !== false;
+  const hasCornerMeta = cornerMeta !== null && cornerMeta !== undefined && cornerMeta !== false;
   const usesOverlayTightTitleMeta = hasTitleMeta && titleMetaMode === "overlay-tight";
   const hasBadgeText = Boolean(badgeText?.trim());
   const hasSupportingContent = Boolean(subtitle) || Boolean(headerDivider) || Boolean(children);
@@ -365,6 +373,18 @@ export function ExerciseCard({
           {badgeText}
         </span>
       ) : null}
+      {hasCornerMeta ? (
+        <div
+          className={cn(
+            "pointer-events-none absolute right-[0.58rem] top-[0.58rem] z-[2] inline-flex items-center justify-end whitespace-nowrap text-right text-[0.94rem] font-semibold leading-[1.06]",
+            titleStateClassNames[state],
+            cornerMetaClassName,
+          )}
+          data-exercise-card-corner-meta="true"
+        >
+          {cornerMeta}
+        </div>
+      ) : null}
       <div className="grid min-w-0 items-stretch" style={mediaColumnStyle}>
         {usesRailMedia ? (
           <div
@@ -414,31 +434,48 @@ export function ExerciseCard({
             )}
           >
             {usesOverlayTightTitleMeta ? (
-              <div
-                className={cn(
-                  "pointer-events-none absolute right-[1.68rem] top-[0.04rem] z-[2] inline-flex max-w-[3.2rem] items-center justify-end whitespace-nowrap text-right text-[0.94rem] font-semibold leading-[1.06]",
-                  titleStateClassNames[state],
-                )}
+                <div
+                  className={cn(
+                    "pointer-events-none absolute right-[1.68rem] top-[0.04rem] z-[2] inline-flex max-w-[3.2rem] items-center justify-end whitespace-nowrap text-right text-[0.94rem] font-semibold leading-[1.06]",
+                    titleStateClassNames[state],
+                    titleMetaClassName,
+                  )}
                 data-exercise-card-title-meta="true"
               >
                 {titleMeta}
               </div>
             ) : null}
             <div className="flex min-w-0 items-start justify-between gap-1.5">
-              <p
-                className={cn(
-                  "text-safe-wrap min-w-0 flex-1 leading-tight [text-wrap:pretty]",
-                  styles.titleClamp,
-                  styles.titleSize,
-                  appTokens.exerciseCardTitleTextPad,
-                  "font-semibold",
-                  titleStateClassNames[state],
-                  titleClassName,
-                )}
-                data-exercise-card-title="true"
-              >
-                {title}
-              </p>
+              {titleIsPlainText ? (
+                <p
+                  className={cn(
+                    "text-safe-wrap min-w-0 flex-1 leading-tight [text-wrap:pretty]",
+                    styles.titleClamp,
+                    styles.titleSize,
+                    appTokens.exerciseCardTitleTextPad,
+                    "font-semibold",
+                    titleStateClassNames[state],
+                    titleClassName,
+                  )}
+                  data-exercise-card-title="true"
+                >
+                  {title}
+                </p>
+              ) : (
+                <div
+                  className={cn(
+                    "flex min-w-0 flex-1 self-start",
+                    styles.titleClamp,
+                    styles.titleSize,
+                    appTokens.exerciseCardTitleTextPad,
+                    titleStateClassNames[state],
+                    titleClassName,
+                  )}
+                  data-exercise-card-title="true"
+                >
+                  {title}
+                </div>
+              )}
               {hasTitleMeta && !usesOverlayTightTitleMeta ? (
                 <div
                   className={cn(

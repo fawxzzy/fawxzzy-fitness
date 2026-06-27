@@ -28,9 +28,9 @@ import {
   RoutineChooserSourceCard,
 } from "@/components/routines/RoutineChooserMenu";
 import { RoutineDuplicateChooserListViewport } from "@/components/routines/RoutineDuplicateChooserListViewport";
+import { WorkoutPlanChooserSourceCard } from "@/components/routines/WorkoutPlanChooserSourceCard";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
-import { labeledEditorFieldControlClassName, LabeledEditorField } from "@/components/ui/LabeledEditorField";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { OverlayHeaderBlock, overlayChromeClassNames } from "@/components/ui/OverlayChrome";
 import { SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME } from "@/components/ui/app/overlayPanelTokens";
@@ -50,7 +50,7 @@ import {
   getRoutineDayEditableName,
   getRoutineDayResolvedWeekdayLabel,
 } from "@/lib/routines";
-import { ROUTINE_COPY_NAME_MAX_LENGTH, resolveUniqueRoutineCopyName } from "@/lib/routine-copy-name";
+import { getRoutineDayEditHref, getRoutineHomeHref } from "@/lib/routine-day-navigation";
 import type { WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
 
 export type RoutineHomeDayCardItem = {
@@ -91,6 +91,10 @@ export type RoutineHomeDayCardItem = {
   remainingExerciseCount?: number;
 };
 
+export function routineDayHasWorkoutPlanContent(day: Pick<RoutineHomeDayCardItem, "splitSummary" | "recapExercises">) {
+  return (day.splitSummary?.total ?? 0) > 0 || (day.recapExercises?.length ?? 0) > 0;
+}
+
 const ROUTINE_HOME_COPY = {
   empty: "No days yet.",
 } as const;
@@ -125,88 +129,10 @@ const ROUTINE_HOME_ADD_DAY_MODAL_PANEL_CLASS_NAME = cn(
   overlayChromeClassNames.panelBase,
   `relative z-10 mx-auto flex max-h-[min(100dvh-2rem,42rem)] min-w-0 w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} flex-col overflow-hidden rounded-[1.25rem]`,
 );
-const ROUTINE_HOME_ADD_DAY_SOURCE_RECAP_CARD_CLASS_NAME = "flex min-h-[4.1rem] min-w-[12rem] w-max shrink-0 flex-col justify-between rounded-[14px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.56)] px-2.5 py-2";
 type DragState = {
   id: string;
   pointerId: number;
 };
-
-function renderWorkoutPlanSourceTags(source: WorkoutPlanSourceListItem) {
-  const parts = source.splitSummary
-    ? buildRoutineSplitParts(source.splitSummary)
-    : [];
-  const tagParts = parts.length > 0
-    ? parts
-    : source.splitSummary?.total
-      ? [`${source.splitSummary.total} exercise${source.splitSummary.total === 1 ? "" : "s"}`]
-      : [];
-
-  if (tagParts.length === 0) {
-    return null;
-  }
-
-  return (
-    <HorizontalScrollHint
-      className="-mx-0.5"
-      scrollClassName="px-0.5 pb-0.5"
-      contentClassName={ROUTINE_SURFACE_TAG_ROW_CLASS_NAME}
-      showEdgeFades={false}
-    >
-      {tagParts.map((part) => (
-        <AppBadge key={`${source.id}-${part}`} tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
-          {renderRoutineMetricTagLabel(part)}
-        </AppBadge>
-      ))}
-    </HorizontalScrollHint>
-  );
-}
-
-function renderWorkoutPlanSourceRecap(source: WorkoutPlanSourceListItem) {
-  if (!source.recapExercises?.length) {
-    return null;
-  }
-
-  return (
-    <HorizontalScrollHint
-      className="-mx-0.5"
-      scrollClassName="px-0.5 pb-0.5"
-      contentClassName="flex w-max min-w-full items-stretch gap-2 pr-0.5"
-      showEdgeFades={false}
-    >
-      {source.recapExercises.map((exercise, index) => (
-        <div
-          key={`${source.id}-${exercise.id}-${index}`}
-          className={ROUTINE_HOME_ADD_DAY_SOURCE_RECAP_CARD_CLASS_NAME}
-        >
-          <div className="grid gap-[6px]">
-            <div className="flex min-w-0 items-start justify-between gap-2">
-              <span className="inline-flex flex-col items-start gap-[3px]">
-                <span className="text-[11.5px] font-semibold leading-[1.14] text-[rgb(var(--text-primary)/0.96)]">
-                  {exercise.name}
-                </span>
-                <MetricAccentBar variant="thin" className="w-full opacity-90" />
-              </span>
-              <span className="shrink-0 pt-[1px] text-right text-[9px] font-medium leading-[1.08] text-[rgb(var(--text-secondary)/0.88)] whitespace-nowrap">
-                {exercise.targetLabel?.trim() || "Goal missing"}
-              </span>
-            </div>
-            <div className="flex min-w-0 items-center justify-between gap-2">
-              <span className="min-w-0 flex-1 text-[9px] font-medium leading-[1.04] text-[rgb(var(--text-secondary)/0.86)] whitespace-nowrap">
-                {exercise.signatureLabel?.trim() || "Exercise configured"}
-              </span>
-              {exercise.progressionStateLabel?.trim() ? (
-                <span className="shrink-0 text-right text-[8.5px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.92)] whitespace-nowrap">
-                  {exercise.progressionStateLabel}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <MetricAccentBar variant="thin" className="mt-2 w-full opacity-75" />
-        </div>
-      ))}
-    </HorizontalScrollHint>
-  );
-}
 
 export function RoutineHomeClient({
   routineId,
@@ -225,9 +151,9 @@ export function RoutineHomeClient({
   onPublishDraft,
   isPublishDraftPending = false,
   onOpenWorkoutPlan,
-  deleteRoutineAction: _deleteRoutineAction,
   workoutPlanChooserDayId: _workoutPlanChooserDayId,
   workoutPlanSources: _workoutPlanSources,
+  loadWorkoutPlanSourcesAction,
   onDismissWorkoutPlanChooser: _onDismissWorkoutPlanChooser,
 }: {
   routineId: string;
@@ -246,9 +172,9 @@ export function RoutineHomeClient({
   onPublishDraft?: () => void;
   isPublishDraftPending?: boolean;
   onOpenWorkoutPlan?: (day: RoutineHomeDayCardItem) => void | Promise<void>;
-  deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
   workoutPlanChooserDayId?: string | null;
   workoutPlanSources?: WorkoutPlanSourceListItem[];
+  loadWorkoutPlanSourcesAction?: (formData: FormData) => Promise<ActionResult & { sources?: WorkoutPlanSourceListItem[] }>;
   onDismissWorkoutPlanChooser?: () => void;
 }) {
   const router = useRouter();
@@ -268,29 +194,26 @@ export function RoutineHomeClient({
   const [isAddDayMenuOpen, setIsAddDayMenuOpen] = useState(false);
   const [isDuplicateSourceListOpen, setIsDuplicateSourceListOpen] = useState(false);
   const [selectedSourceDayId, setSelectedSourceDayId] = useState<string>("");
-  const [duplicateDayName, setDuplicateDayName] = useState("");
-  const [duplicateDayNameError, setDuplicateDayNameError] = useState<string | null>(null);
   const [addDaySubmissionMode, setAddDaySubmissionMode] = useState<"blank" | "duplicate" | null>(null);
+  const [cachedWorkoutPlanSources, setCachedWorkoutPlanSources] = useState<WorkoutPlanSourceListItem[] | null>(_workoutPlanSources ?? null);
+  const [isWorkoutPlanSourcesPending, startWorkoutPlanSourcesTransition] = useTransition();
   const orderedDaysRef = useRef(days);
   const availableWorkoutPlanSources = useMemo(
-    () => (_workoutPlanSources ?? []).filter((source) => !source.isRest && ((source.splitSummary?.total ?? 0) > 0 || (source.recapExercises?.length ?? 0) > 0)),
-    [_workoutPlanSources],
+    () => (cachedWorkoutPlanSources ?? []).filter((source) => !source.isRest && routineDayHasWorkoutPlanContent(source)),
+    [cachedWorkoutPlanSources],
   );
-  const existingWorkoutPlanNames = useMemo(
-    () => days
-      .map((day) => (day.title ?? day.name ?? "").trim())
-      .filter((value) => value.length > 0),
-    [days],
-  );
-  const normalizedDuplicateDayName = duplicateDayName.trim().toLowerCase();
-  const duplicateDayNameConflict = normalizedDuplicateDayName.length > 0
-    && existingWorkoutPlanNames.some((name) => name.trim().toLowerCase() === normalizedDuplicateDayName);
-  const isBusy = isCreateDayPending || isDeleteDayPending;
+  const isBusy = isCreateDayPending || isDeleteDayPending || isWorkoutPlanSourcesPending;
 
   useEffect(() => {
     setOrderedDays(days);
     orderedDaysRef.current = days;
   }, [days]);
+
+  useEffect(() => {
+    if (_workoutPlanSources) {
+      setCachedWorkoutPlanSources(_workoutPlanSources);
+    }
+  }, [_workoutPlanSources]);
 
   useEffect(() => {
     if (selectedSourceDayId && availableWorkoutPlanSources.some((source) => source.id === selectedSourceDayId)) {
@@ -302,89 +225,89 @@ export function RoutineHomeClient({
 
   useEffect(() => {
     if (!isDuplicateSourceListOpen) {
-      setDuplicateDayName("");
-      setDuplicateDayNameError(null);
       return;
     }
 
-    const selectedSource = availableWorkoutPlanSources.find((source) => source.id === selectedSourceDayId);
-    if (!selectedSource) {
-      setDuplicateDayName("");
-      setDuplicateDayNameError(null);
-      return;
+    if (!selectedSourceDayId && availableWorkoutPlanSources[0]) {
+      setSelectedSourceDayId(availableWorkoutPlanSources[0].id);
     }
-
-    setDuplicateDayNameError(null);
-    setDuplicateDayName((current) => {
-      if (current.trim().length > 0) {
-        return current;
-      }
-
-      return resolveUniqueRoutineCopyName({
-        sourceName: selectedSource.title,
-        existingNames: existingWorkoutPlanNames,
-      });
-    });
-  }, [availableWorkoutPlanSources, existingWorkoutPlanNames, isDuplicateSourceListOpen, selectedSourceDayId]);
+  }, [availableWorkoutPlanSources, isDuplicateSourceListOpen, selectedSourceDayId]);
 
   const handleToggleDayExpansion = useCallback((dayId: string) => {
     setExpandedDayId((current) => (current === dayId ? null : dayId));
   }, []);
 
   const handleSelectDuplicateSourceDay = useCallback((sourceDayId: string) => {
-    const source = availableWorkoutPlanSources.find((item) => item.id === sourceDayId);
     setSelectedSourceDayId(sourceDayId);
-    setDuplicateDayNameError(null);
-    setDuplicateDayName(resolveUniqueRoutineCopyName({
-      sourceName: source?.title,
-      existingNames: existingWorkoutPlanNames,
-    }));
-  }, [availableWorkoutPlanSources, existingWorkoutPlanNames]);
+  }, []);
+
+  const handleLoadWorkoutPlanSources = useCallback(() => {
+    if (cachedWorkoutPlanSources || !loadWorkoutPlanSourcesAction) {
+      return;
+    }
+
+    startWorkoutPlanSourcesTransition(async () => {
+      const formData = new FormData();
+      formData.set("routineId", routineId);
+      const result = await loadWorkoutPlanSourcesAction(formData);
+      if (!result.ok) {
+        toast.error(result.error ?? "Could not load workout plans.");
+        return;
+      }
+
+      setCachedWorkoutPlanSources(result.sources ?? []);
+    });
+  }, [cachedWorkoutPlanSources, loadWorkoutPlanSourcesAction, routineId, toast]);
 
   const handleCreateDay = useCallback((creationMode: "blank" | "duplicate") => {
     if (creationMode === "duplicate") {
       if (!selectedSourceDayId) {
-        setDuplicateDayNameError("Choose a workout plan first.");
-        return;
-      }
-
-      if (duplicateDayNameConflict || duplicateDayName.trim().length === 0) {
-        setDuplicateDayNameError(duplicateDayName.trim().length === 0
-          ? "Workout plan name is required."
-          : "Workout plan name already exists.");
+        toast.error("Choose a workout plan first.");
         return;
       }
     }
 
     startCreateDayTransition(async () => {
       setAddDaySubmissionMode(creationMode);
-      const formData = new FormData();
-      formData.set("routineId", routineId);
-      formData.set("creationMode", creationMode);
-      if (creationMode === "duplicate") {
-        formData.set("sourceRoutineDayId", selectedSourceDayId);
-        formData.set("name", duplicateDayName.trim());
-      }
-      const result = creationMode === "blank"
-        ? await createRoutineDayAction(formData)
-        : selectedSourceDayId
+      try {
+        const formData = new FormData();
+        formData.set("routineId", routineId);
+        formData.set("creationMode", creationMode);
+        if (creationMode === "duplicate") {
+          const selectedSource = availableWorkoutPlanSources.find((source) => source.id === selectedSourceDayId);
+          if (selectedSource?.workoutPlanTemplateId) {
+            formData.set("workoutPlanTemplateId", selectedSource.workoutPlanTemplateId);
+          }
+          if (selectedSource?.sourceRoutineDayId) {
+            formData.set("sourceRoutineDayId", selectedSource.sourceRoutineDayId);
+          }
+        }
+        const result = creationMode === "blank"
           ? await createRoutineDayAction(formData)
-          : { ok: false, error: "Choose a workout plan first." };
-      if (!result.ok) {
-        toast.error(result.error ?? (creationMode === "blank" ? "Could not add day." : "Could not duplicate workout plan."));
-        setAddDaySubmissionMode(null);
-        return;
-      }
+          : selectedSourceDayId
+            ? await createRoutineDayAction(formData)
+            : { ok: false, error: "Choose a workout plan first." };
+        if (!result.ok) {
+          toast.error(result.error ?? (creationMode === "blank" ? "Could not add day." : "Could not duplicate workout plan."));
+          setAddDaySubmissionMode(null);
+          return;
+        }
 
-      setIsAddDayMenuOpen(false);
-      setIsDuplicateSourceListOpen(false);
-      setDuplicateDayName("");
-      setDuplicateDayNameError(null);
-      setAddDaySubmissionMode(null);
-      toast.success(creationMode === "blank" ? "Empty day added." : "Workout plan duplicated into a new day.");
-      router.refresh();
+        setIsAddDayMenuOpen(false);
+        setIsDuplicateSourceListOpen(false);
+        setAddDaySubmissionMode(null);
+        toast.success(creationMode === "blank" ? "Empty day added." : "Workout plan duplicated into a new day.");
+        if (creationMode === "duplicate" && "routineDayId" in result && result.routineDayId) {
+          router.push(getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)));
+          return;
+        }
+        router.refresh();
+      } catch (error) {
+        setAddDaySubmissionMode(null);
+        toast.error(error instanceof Error ? error.message : "Could not complete the workout plan action.");
+      }
     });
-  }, [createRoutineDayAction, duplicateDayName, duplicateDayNameConflict, routineId, router, selectedSourceDayId, toast]);
+  }, [availableWorkoutPlanSources, createRoutineDayAction, routineId, router, selectedSourceDayId, toast]);
 
   const handleConfirmDeleteDay = useCallback(() => {
     const day = dayPendingDelete;
@@ -656,6 +579,7 @@ export function RoutineHomeClient({
                 const sourceDay = sourceDayById.get(day.id) ?? day;
                 const displayIsRest = restOverrideByDayId[day.id] ?? day.isRest;
                 const displayDay = { ...day, isRest: displayIsRest };
+                const hasWorkoutPlanContent = routineDayHasWorkoutPlanContent(sourceDay);
                 const isExpanded = expandedDayId === day.id;
                 const isThisTogglePending = restTogglePendingDayId === day.id && isRestTogglePending;
                 return (
@@ -744,7 +668,7 @@ export function RoutineHomeClient({
                                 }}
                                 className={ROUTINE_HOME_EDIT_ACTION_BUTTON_CLASS_NAME}
                               >
-                                <span className="bottom-action__label">Open Workout Plan</span>
+                                <span className="bottom-action__label">{hasWorkoutPlanContent ? "Edit" : "Create"}</span>
                               </button>
                             ) : null}
                           </AttachedCardActionStripFrame>
@@ -803,8 +727,6 @@ export function RoutineHomeClient({
                   onClick={() => {
                     setIsAddDayMenuOpen(false);
                     setIsDuplicateSourceListOpen(false);
-                    setDuplicateDayName("");
-                    setDuplicateDayNameError(null);
                   }}
                   className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.58)] text-[rgb(var(--text-secondary)/0.88)] transition hover:text-[rgb(var(--text-primary)/0.96)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
                 >
@@ -823,13 +745,14 @@ export function RoutineHomeClient({
                 <RoutineChooserOptionCard
                   title="Duplicate workout plan"
                   active={isDuplicateSourceListOpen}
-                  disabled={availableWorkoutPlanSources.length === 0 || isBusy}
+                  disabled={isCreateDayPending || isDeleteDayPending}
                   rightSlot={isDuplicateSourceListOpen ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
                   onPress={() => {
-                    if (availableWorkoutPlanSources.length === 0) {
+                    if (isCreateDayPending || isDeleteDayPending) {
                       return;
                     }
 
+                    handleLoadWorkoutPlanSources();
                     setIsDuplicateSourceListOpen((current) => !current);
                   }}
                 />
@@ -840,62 +763,44 @@ export function RoutineHomeClient({
                   <RoutineDuplicateChooserPanel
                     title="Choose Workout Plan"
                     list={(
-                      <RoutineDuplicateChooserListViewport>
-                        {availableWorkoutPlanSources.map((source) => (
-                          <RoutineChooserSourceCard
-                            key={source.id}
-                            onPress={() => handleSelectDuplicateSourceDay(source.id)}
-                            title={source.title}
-                            selected={selectedSourceDayId === source.id}
-                            tags={renderWorkoutPlanSourceTags(source)}
-                            recap={renderWorkoutPlanSourceRecap(source)}
-                          />
-                        ))}
-                      </RoutineDuplicateChooserListViewport>
+                      isWorkoutPlanSourcesPending ? (
+                        <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
+                          Loading workout plans...
+                        </div>
+                      ) : availableWorkoutPlanSources.length > 0 ? (
+                        <RoutineDuplicateChooserListViewport>
+                          {availableWorkoutPlanSources.map((source) => (
+                            <WorkoutPlanChooserSourceCard
+                              key={source.id}
+                              onPress={() => handleSelectDuplicateSourceDay(source.id)}
+                              selected={selectedSourceDayId === source.id}
+                              source={{
+                                dayIndex: source.dayIndex,
+                                title: source.title,
+                                occurrenceWeekday: source.weekdayLabel,
+                                isRest: source.isRest,
+                                splitSummary: source.splitSummary,
+                                recapExercises: source.recapExercises,
+                              }}
+                            />
+                          ))}
+                        </RoutineDuplicateChooserListViewport>
+                      ) : (
+                        <div className="px-4 py-6 text-center text-[0.8rem] text-[rgb(var(--text-secondary)/0.78)]">
+                          No workout plans available to duplicate.
+                        </div>
+                      )
                     )}
                     footer={(
                       <>
-                        {selectedSourceDayId ? (
-                          <>
-                            <LabeledEditorField
-                              label="New Workout Plan Title"
-                              className={cn(
-                                "rounded-[1rem] bg-[rgb(var(--surface-2-rgb)/0.54)]",
-                                duplicateDayNameConflict
-                                  ? "border-[rgb(var(--danger-rgb,220_68_68)/0.72)] shadow-[0_0_0_1px_rgb(var(--danger-rgb,220_68_68)/0.18),0_10px_24px_rgba(0,0,0,0.12)]"
-                                  : undefined,
-                              )}
-                            >
-                              <input
-                                value={duplicateDayName}
-                                onChange={(event) => {
-                                  setDuplicateDayNameError(null);
-                                  setDuplicateDayName(event.target.value.slice(0, ROUTINE_COPY_NAME_MAX_LENGTH));
-                                }}
-                                placeholder="Enter workout plan name"
-                                aria-label="New workout plan title"
-                                maxLength={ROUTINE_COPY_NAME_MAX_LENGTH}
-                                className={cn(
-                                  labeledEditorFieldControlClassName,
-                                  "h-12 px-4 py-3 text-center text-sm font-semibold",
-                                )}
-                              />
-                            </LabeledEditorField>
-                            {duplicateDayNameError ? (
-                              <p className="px-1 text-center text-[0.78rem] font-medium text-[rgb(var(--danger-rgb,220_68_68)/0.94)]">
-                                {duplicateDayNameError}
-                              </p>
-                            ) : null}
-                          </>
-                        ) : null}
-                      <BottomDockButton
-                        type="button"
-                        intent="positive"
-                        disabled={!selectedSourceDayId || duplicateDayName.trim().length === 0 || isBusy}
-                        onClick={() => handleCreateDay("duplicate")}
-                      >
-                        {addDaySubmissionMode === "duplicate" && isCreateDayPending ? "Confirming..." : "Confirm"}
-                      </BottomDockButton>
+                        <BottomDockButton
+                          type="button"
+                          intent="positive"
+                          disabled={!selectedSourceDayId || isBusy}
+                          onClick={() => handleCreateDay("duplicate")}
+                        >
+                          {addDaySubmissionMode === "duplicate" && isCreateDayPending ? "Confirming..." : "Confirm"}
+                        </BottomDockButton>
                       </>
                     )}
                   />

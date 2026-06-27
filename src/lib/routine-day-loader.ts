@@ -10,6 +10,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const EXERCISE_DETAILS_SELECT =
   "id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_icon_path, image_howto_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories";
+const EXERCISE_DETAILS_PREVIEW_SELECT =
+  "id, exercise_id, name, primary_muscle, equipment, movement_pattern, slug";
 const EXERCISE_DETAILS_SELECT_LEGACY =
   "id, name, primary_muscle, equipment, movement_pattern, measurement_type, default_unit";
 const EXERCISE_DETAILS_OPTIONAL_COLUMNS = [
@@ -110,10 +112,12 @@ async function runExerciseDetailsQuery(
 
 async function readExerciseDetailsWithMetadataFallback<T>(args: {
   query: ExerciseDetailsQueryFn;
+  mode?: "full" | "preview";
 }): Promise<ExerciseDetailsRow[]> {
-  const primaryResult = await runExerciseDetailsQuery(args.query, EXERCISE_DETAILS_SELECT);
+  const primaryColumns = args.mode === "preview" ? EXERCISE_DETAILS_PREVIEW_SELECT : EXERCISE_DETAILS_SELECT;
+  const primaryResult = await runExerciseDetailsQuery(args.query, primaryColumns);
   if (!primaryResult.error) {
-    return (primaryResult.data ?? []) as ExerciseDetailsRow[];
+    return ((primaryResult.data ?? []) as Array<Partial<ExerciseDetailsRow> & Pick<ExerciseDetailsRow, "id">>).map(hydrateExerciseDetailsRow);
   }
 
   if (!isMissingExerciseDetailsColumnError(primaryResult.error)) {
@@ -224,6 +228,7 @@ function buildCanonicalExerciseIdByRawId(args: {
 export async function loadCanonicalExerciseCatalog(args: {
   supabase: SupabaseClient;
   exercises: Array<Pick<RoutineDayExerciseRow, "exercise_id">>;
+  metadataMode?: "full" | "preview";
 }): Promise<LoadedCanonicalExerciseCatalog> {
   const rawExerciseIds = Array.from(new Set(
     args.exercises
@@ -232,46 +237,75 @@ export async function loadCanonicalExerciseCatalog(args: {
   ));
 
   const candidateExerciseIds = Array.from(new Set(rawExerciseIds.map((exerciseId) => resolveCanonicalExerciseId(exerciseId)).filter((exerciseId) => exerciseId.length > 0)));
-  const legacyExerciseNames = Array.from(new Set(rawExerciseIds.flatMap((exerciseId) => {
-    const legacyName = LEGACY_EXERCISE_NAME_BY_ID.get(exerciseId);
-    return legacyName ? [legacyName] : [];
-  })));
+  const exerciseDetailsById = new Map<string, ExerciseDetailsRow>();
+  const mergeExerciseRows = (rows: ExerciseDetailsRow[]) => {
+    for (const exercise of rows) {
+      exerciseDetailsById.set(exercise.id, exercise);
+    }
+  };
 
-  const [exerciseRowsByIdResult, exerciseRowsByAliasResult, exerciseRowsByNameResult] = await Promise.all([
-    candidateExerciseIds.length === 0
-      ? Promise.resolve([] as ExerciseDetailsRow[])
-      : readExerciseDetailsWithMetadataFallback({
-          query: (columns) => args.supabase
-            .from("exercises")
-            .select(columns)
-            .in("id", candidateExerciseIds),
-        }),
-    rawExerciseIds.length === 0
-      ? Promise.resolve([] as ExerciseDetailsRow[])
-      : readExerciseDetailsWithMetadataFallback({
-          query: (columns) => args.supabase
-            .from("exercises")
-            .select(columns)
-            .in("exercise_id", rawExerciseIds),
-        }),
-    legacyExerciseNames.length === 0
-      ? Promise.resolve([] as ExerciseDetailsRow[])
-      : readExerciseDetailsWithMetadataFallback({
-          query: (columns) => args.supabase
-            .from("exercises")
-            .select(columns)
-            .in("name", legacyExerciseNames),
-        }),
-  ]);
+  const exerciseRowsByIdResult = candidateExerciseIds.length === 0
+    ? []
+    : await readExerciseDetailsWithMetadataFallback({
+        mode: args.metadataMode,
+        query: (columns) => args.supabase
+          .from("exercises")
+          .select(columns)
+          .in("id", candidateExerciseIds),
+      });
+  mergeExerciseRows(exerciseRowsByIdResult);
 
-  const exerciseDetailsRows = Array.from(new Map(
-    [...exerciseRowsByIdResult, ...exerciseRowsByAliasResult, ...exerciseRowsByNameResult].map((exercise) => [exercise.id, exercise]),
-  ).values());
-  const canonicalExerciseIdByRawId = buildCanonicalExerciseIdByRawId({ rawExerciseIds, exerciseDetailsRows });
-  const canonicalExerciseIdSet = new Set(exerciseDetailsRows.map((exercise) => exercise.id));
+  let canonicalExerciseIdByRawId = buildCanonicalExerciseIdByRawId({
+    rawExerciseIds,
+    exerciseDetailsRows: Array.from(exerciseDetailsById.values()),
+  });
+  let unresolvedRawExerciseIds = rawExerciseIds.filter((exerciseId) => !canonicalExerciseIdByRawId.has(exerciseId));
+
+  if (unresolvedRawExerciseIds.length > 0) {
+    const exerciseRowsByAliasResult = await readExerciseDetailsWithMetadataFallback({
+      mode: args.metadataMode,
+      query: (columns) => args.supabase
+        .from("exercises")
+        .select(columns)
+        .in("exercise_id", unresolvedRawExerciseIds),
+    });
+    mergeExerciseRows(exerciseRowsByAliasResult);
+
+    canonicalExerciseIdByRawId = buildCanonicalExerciseIdByRawId({
+      rawExerciseIds,
+      exerciseDetailsRows: Array.from(exerciseDetailsById.values()),
+    });
+    unresolvedRawExerciseIds = rawExerciseIds.filter((exerciseId) => !canonicalExerciseIdByRawId.has(exerciseId));
+  }
+
+  if (unresolvedRawExerciseIds.length > 0) {
+    const legacyExerciseNames = Array.from(new Set(unresolvedRawExerciseIds.flatMap((exerciseId) => {
+      const legacyName = LEGACY_EXERCISE_NAME_BY_ID.get(exerciseId);
+      return legacyName ? [legacyName] : [];
+    })));
+
+    if (legacyExerciseNames.length > 0) {
+      const exerciseRowsByNameResult = await readExerciseDetailsWithMetadataFallback({
+        mode: args.metadataMode,
+        query: (columns) => args.supabase
+          .from("exercises")
+          .select(columns)
+          .in("name", legacyExerciseNames),
+      });
+      mergeExerciseRows(exerciseRowsByNameResult);
+
+      canonicalExerciseIdByRawId = buildCanonicalExerciseIdByRawId({
+        rawExerciseIds,
+        exerciseDetailsRows: Array.from(exerciseDetailsById.values()),
+      });
+    }
+  }
+
+  const exerciseDetailsRows = Array.from(exerciseDetailsById.values());
+  const canonicalExerciseIdSet = new Set(exerciseDetailsById.keys());
 
   return {
-    exerciseDetailsById: new Map(exerciseDetailsRows.map((exercise) => [exercise.id, exercise])),
+    exerciseDetailsById,
     canonicalExerciseIdSet,
     canonicalExerciseIdByRawId,
   };
@@ -281,23 +315,38 @@ export async function buildCanonicalDaySummaries(args: {
   supabase: SupabaseClient;
   routineDays: RoutineDayRow[];
   allDayExercises: RoutineDayExerciseRow[];
+  metadataMode?: "full" | "preview";
 }): Promise<{
   summaries: CanonicalDaySummary[];
 }> {
   const { supabase, routineDays, allDayExercises } = args;
-  const exerciseNameMap = await getExerciseNameMap();
   const { exerciseDetailsById, canonicalExerciseIdSet, canonicalExerciseIdByRawId } = await loadCanonicalExerciseCatalog({
     supabase,
     exercises: allDayExercises,
+    metadataMode: args.metadataMode,
   });
 
   const normalizedDayExercises: RoutineDayExerciseRow[] = allDayExercises.map((exercise) => ({
     ...exercise,
     exercise_id: canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id,
   }));
+  const normalizedDayExercisesByDayId = new Map<string, RoutineDayExerciseRow[]>();
+  for (const exercise of normalizedDayExercises) {
+    const current = normalizedDayExercisesByDayId.get(exercise.routine_day_id) ?? [];
+    current.push(exercise);
+    normalizedDayExercisesByDayId.set(exercise.routine_day_id, current);
+  }
+  const needsExerciseNameMap = args.metadataMode !== "preview"
+    || normalizedDayExercises.some((exercise) => {
+      const normalizedExerciseId = typeof exercise.exercise_id === "string" ? exercise.exercise_id.trim() : "";
+      return normalizedExerciseId.length > 0 && !exerciseDetailsById.has(normalizedExerciseId);
+    });
+  const exerciseNameMap = needsExerciseNameMap
+    ? await getExerciseNameMap()
+    : new Map<string, string>();
 
   const summaries: CanonicalDaySummary[] = routineDays.map((day) => {
-    const dayExercises = normalizedDayExercises.filter((exercise) => exercise.routine_day_id === day.id);
+    const dayExercises = normalizedDayExercisesByDayId.get(day.id) ?? [];
     const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIdSet, {
       logSource: "buildCanonicalDaySummaries",
       getExerciseName: (exercise) => {

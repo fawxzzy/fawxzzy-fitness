@@ -42,6 +42,21 @@ Reference: <local doc>
 - Enforcement: Do not claim completion for a mutating task unless each requested criterion is supportable from the final diff and verification output. Report blocked/skipped/failed criteria explicitly.
 - Reference: `docs/ops/FITNESS-FEEDBACK-REVIEWED-TASKS.md`.
 
+### 7) UI edit batches require explicit checklist reconciliation
+- Rule: Explicit user edit lists must be reconciled item-by-item before completion is claimed.
+- Enforcement: Convert the request into a checklist before mutating code and report each item as landed, blocked, or deferred from code plus proof, not memory.
+- Reference: `docs/ops/FITNESS-LLEL-CHECKLIST.md`.
+
+### 8) Screen-family normalization must start from the canonical surface
+- Rule: When a request implies shared behavior or styling across sibling screens, patch the canonical shared surface first unless a documented intentional exception exists.
+- Enforcement: Do not fix each sibling card or screen independently if a shared presentation or source component exists.
+- Reference: `docs/PLAYBOOK_NOTES.md`.
+
+### 9) Live user data is not disposable QA state
+- Rule: Visual QA and debugging should prefer the Codex QA account, fixture lanes, or dev routes before touching live user-owned data.
+- Enforcement: If live user data must be touched, keep the mutation bounded and restore or explicitly report resulting state before completion.
+- Reference: `docs/ops/FITNESS-LLEL-CHECKLIST.md`.
+
 ## Sanity Check
 
 Run before pushing major changes:

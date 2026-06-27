@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import type { ProgressionHistorySetRow } from "@/lib/progression-playbooks";
@@ -88,7 +88,7 @@ export async function getSessionPageData(
       .single();
 
   if (!session) {
-    notFound();
+    redirect("/today");
   }
 
   const { data: routineWithProgression, error: routineWithProgressionError } = session.routine_id

@@ -56,35 +56,41 @@ function createSupabaseStub(exercises: ExerciseRow[], selectCalls: string[] = []
 
 test("loadCanonicalExerciseCatalog keeps canonical ids runnable", async () => {
   const canonicalId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const selectCalls: string[] = [];
   const { canonicalExerciseIdByRawId, canonicalExerciseIdSet } = await loadCanonicalExerciseCatalog({
-    supabase: createSupabaseStub([{ id: canonicalId, name: "Back Squat" }]) as never,
+    supabase: createSupabaseStub([{ id: canonicalId, name: "Back Squat" }], selectCalls) as never,
     exercises: [{ exercise_id: canonicalId } as never],
   });
 
   assert.equal(canonicalExerciseIdByRawId.get(canonicalId), canonicalId);
   assert.equal(canonicalExerciseIdSet.has(canonicalId), true);
+  assert.equal(selectCalls.length, 1);
 });
 
 test("loadCanonicalExerciseCatalog resolves alias ids stored in exercises.exercise_id", async () => {
   const canonicalId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   const legacyAliasId = "legacy-alias-id";
+  const selectCalls: string[] = [];
   const { canonicalExerciseIdByRawId } = await loadCanonicalExerciseCatalog({
-    supabase: createSupabaseStub([{ id: canonicalId, exercise_id: legacyAliasId, name: "Custom Pulldown" }]) as never,
+    supabase: createSupabaseStub([{ id: canonicalId, exercise_id: legacyAliasId, name: "Custom Pulldown" }], selectCalls) as never,
     exercises: [{ exercise_id: legacyAliasId } as never],
   });
 
   assert.equal(canonicalExerciseIdByRawId.get(legacyAliasId), canonicalId);
+  assert.equal(selectCalls.length, 2);
 });
 
 test("loadCanonicalExerciseCatalog resolves legacy placeholder ids by exercise name", async () => {
   const legacyBenchPressId = "11111111-1111-1111-1111-111111111111";
   const canonicalId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const selectCalls: string[] = [];
   const { canonicalExerciseIdByRawId } = await loadCanonicalExerciseCatalog({
-    supabase: createSupabaseStub([{ id: canonicalId, name: "Bench Press" }]) as never,
+    supabase: createSupabaseStub([{ id: canonicalId, name: "Bench Press" }], selectCalls) as never,
     exercises: [{ exercise_id: legacyBenchPressId } as never],
   });
 
   assert.equal(canonicalExerciseIdByRawId.get(legacyBenchPressId), canonicalId);
+  assert.equal(selectCalls.length, 3);
 });
 
 test("loadCanonicalExerciseCatalog does not hard-require exercises.image_path", async () => {

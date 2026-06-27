@@ -1,8 +1,10 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { RoutineDetailsBottomActionPublisher, RoutineEditorPageBody, RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageBody, RoutineEditorTitleInput } from "@/components/routines/RoutineEditorShared";
 import {
   RoutineDetailsDiscardConfirmationDock,
   useRoutineDetailsDirtyState,
@@ -55,7 +57,6 @@ type Props = {
   defaultProgressionPlaybookId?: ProgressionPlaybookId | null;
   defaultProgressionPlaybookConfig?: Record<string, unknown> | null;
   error?: string;
-  deleteAction?: ReactNode;
 };
 
 function resolveRoutineDraftFieldValue(field: string, value: string) {
@@ -302,14 +303,13 @@ export function EditRoutineAutosaveForm(props: Props) {
       {isConfirmingDiscard ? (
         <RoutineDetailsDiscardConfirmationDock />
       ) : (
-        <RoutineDetailsBottomActionPublisher
-          secondary={props.deleteAction ?? <div aria-hidden="true" />}
-          primary={(
+        <PublishBottomActions>
+          <BottomActionSingle>
             <BottomDockButton type="button" intent="positive" disabled={!canSave} onClick={saveChanges}>
               Save
             </BottomDockButton>
-          )}
-        />
+          </BottomActionSingle>
+        </PublishBottomActions>
       )}
     </>
   );

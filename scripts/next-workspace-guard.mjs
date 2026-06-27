@@ -86,8 +86,10 @@ export async function readRepoLocalNextProcesses() {
   const repoPathNeedle = repoRoot.toLowerCase().replace(/'/g, "''");
   const psScript = [
     `$repoPathNeedle = '${repoPathNeedle}'`,
+    "$selfPid = $PID",
     "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |",
     "  Where-Object {",
+    "    if ($_.ProcessId -eq $selfPid) { return $false }",
     "    $cmd = $_.CommandLine",
     "    if (-not $cmd) { return $false }",
     "    $normalized = $cmd.ToLower()",

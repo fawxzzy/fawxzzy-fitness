@@ -136,21 +136,25 @@ export default async function RoutinesPage() {
       .eq("user_id", user.id)
     : { data: [] };
   const allRoutineDayExercises = (allRoutineDayExercisesData ?? []) as RoutineDayExerciseRow[];
-  const { summaries } = allRoutineDays.length > 0
-    ? await buildCanonicalDaySummaries({
+  const canonicalDaySummariesPromise = allRoutineDays.length > 0
+    ? diagnostics.measure("routines.canonical-day-summaries.fetch", () => buildCanonicalDaySummaries({
       supabase,
       routineDays: allRoutineDays,
       allDayExercises: allRoutineDayExercises,
+      metadataMode: "preview",
+    }), {
+      blockingReason: "Waiting for normalized routine browse previews.",
+      metadata: {
+        userId: user.id,
+        routineCount: routineIds.length,
+        dayCount: allRoutineDays.length,
+        exerciseCount: allRoutineDayExercises.length,
+      },
+      timeoutMs: 7000,
     })
-    : { summaries: [] };
-  const exerciseSummaryByDayId = new Map(
-    summaries.map((summary) => [
-      summary.day.id,
-      getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(summary, Boolean(summary.day.is_rest)),
-    ]),
-  );
-  const { data: routineSessionsData } = routineIds.length
-    ? await diagnostics.measure("routines.sessions.fetch", async () => await supabase
+    : Promise.resolve({ summaries: [] });
+  const routineSessionsPromise = routineIds.length
+    ? diagnostics.measure("routines.sessions.fetch", async () => await supabase
       .from("sessions")
       .select("routine_id, routine_day_index, performed_at, status")
       .in("routine_id", routineIds)
@@ -163,7 +167,17 @@ export default async function RoutinesPage() {
       },
       timeoutMs: 7000,
     })
-    : { data: [] };
+    : Promise.resolve({ data: [] as { routine_id: string | null; routine_day_index: number | null; performed_at: string | null; status: string | null }[] });
+  const [{ summaries }, { data: routineSessionsData }] = await Promise.all([
+    canonicalDaySummariesPromise,
+    routineSessionsPromise,
+  ]);
+  const exerciseSummaryByDayId = new Map(
+    summaries.map((summary) => [
+      summary.day.id,
+      getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(summary, Boolean(summary.day.is_rest)),
+    ]),
+  );
 
   const routineDayStatsByRoutineId = new Map<string, { totalDays: number; restDays: number }>();
   const routineIdByDayId = new Map<string, string>();
@@ -382,6 +396,7 @@ export default async function RoutinesPage() {
         <ContentRail className="space-y-3">
           <RoutinesPageClient
             routines={routineBrowseItems}
+            workoutPlansHref="/routines/workout-plans"
             draftRoutineName={draftRoutineName}
             duplicateRoutineAction={duplicateRoutineAction}
             setActiveRoutineAction={setActiveRoutineAction}

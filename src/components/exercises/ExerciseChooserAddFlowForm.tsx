@@ -35,6 +35,10 @@ import { inferProgressionStepPolicy } from "@/lib/progression-step-policy";
 import { seedProgressionDraftWithStepValue } from "@/lib/progression-step-seeding";
 import { isStretchHubExercise } from "@/lib/stretch-library";
 
+type HandledActionResult = ActionResult & {
+  handled?: boolean;
+};
+
 function resolveExerciseDistanceUnit(defaultUnit: string | null | undefined) {
   return normalizeFitnessDistanceUnit(defaultUnit, "mi");
 }
@@ -149,7 +153,7 @@ export function ExerciseChooserAddFlowForm({
   exerciseStats: ExerciseStatsOption[];
   customExerciseEnabled?: boolean;
   backHref: string;
-  addExerciseAction: (formData: FormData) => Promise<ActionResult>;
+  addExerciseAction: (formData: FormData) => Promise<HandledActionResult>;
   successMessage: string;
   errorMessage: string;
   className?: string;
@@ -249,6 +253,9 @@ export function ExerciseChooserAddFlowForm({
       <form
         action={async (formData) => {
           const result = await addExerciseAction(formData);
+          if (result.handled) {
+            return;
+          }
           toastActionResult(toast, result, {
             success: successMessage,
             error: errorMessage,

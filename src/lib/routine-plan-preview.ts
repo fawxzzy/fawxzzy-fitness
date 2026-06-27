@@ -6,6 +6,7 @@ type PreviewExerciseSource = {
   id: string;
   displayName: string;
   goalLine: string | null;
+  position?: number | null;
   target_sets?: number | null;
   target_reps?: number | null;
   target_reps_min?: number | null;
@@ -51,7 +52,17 @@ export function isRoutinePlanPreviewStretchExercise(exercise: {
 
 function getRoutinePlanPreviewSourceExercises(exercises: PreviewExerciseSource[]) {
   const nonStretchExercises = exercises.filter((exercise) => !isRoutinePlanPreviewStretchExercise(exercise));
-  return nonStretchExercises.length > 0 ? nonStretchExercises : exercises;
+  const sourceExercises = nonStretchExercises.length > 0 ? nonStretchExercises : exercises;
+
+  return [...sourceExercises].sort((left, right) => {
+    const leftPosition = Number.isFinite(left.position) ? Number(left.position) : Number.MAX_SAFE_INTEGER;
+    const rightPosition = Number.isFinite(right.position) ? Number(right.position) : Number.MAX_SAFE_INTEGER;
+    if (leftPosition !== rightPosition) {
+      return leftPosition - rightPosition;
+    }
+
+    return left.displayName.localeCompare(right.displayName);
+  });
 }
 
 function buildRoutinePlanProgressionStateLabel(exercise: PreviewExerciseSource) {

@@ -96,6 +96,8 @@ export type RoutineDayRow = {
   is_rest: boolean;
   notes: string | null;
   duplicate_source_routine_day_id?: string | null;
+  workout_plan_template_id?: string | null;
+  workout_plan_template_edit_choice_required?: boolean | null;
 };
 
 export type RoutineDayExerciseRow = {
@@ -119,6 +121,42 @@ export type RoutineDayExerciseRow = {
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: FitnessDistanceUnit | null;
   notes: string | null;
+  workout_plan_template_exercise_id?: string | null;
+};
+
+export type WorkoutPlanTemplateRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  is_rest: boolean;
+  source_routine_day_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type WorkoutPlanTemplateExerciseRow = {
+  id: string;
+  user_id: string;
+  workout_plan_template_id: string;
+  exercise_id: string;
+  position: number;
+  target_sets: number | null;
+  target_reps: number | null;
+  target_reps_min: number | null;
+  target_reps_max: number | null;
+  target_weight: number | null;
+  target_weight_unit: "lbs" | "kg" | null;
+  target_duration_seconds: number | null;
+  target_distance: number | null;
+  target_distance_unit: FitnessDistanceUnit | null;
+  target_calories: number | null;
+  progression_playbook_id?: "double_progression" | "fixed_load_rep_range_progression" | "deload_after_stall" | null;
+  progression_playbook_config?: Record<string, unknown> | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
+  default_unit?: FitnessDistanceUnit | null;
+  notes: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type ProgressionEventRow = {

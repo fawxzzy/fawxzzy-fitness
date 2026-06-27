@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
 import { NewRoutineDraftForm } from "@/app/routines/new/NewRoutineDraftForm";
 import { RoutineHomeEditorClient } from "@/app/routines/RoutineHomeEditorClient";
-import { appendRoutineDayAction, createRoutineDayAction, deleteRoutineAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
+import { appendRoutineDayAction, createRoutineDayAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { ensureProfile } from "@/lib/profile";
@@ -24,6 +24,7 @@ import {
 } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
+import { loadWorkoutPlanTemplateNames } from "@/lib/workout-plan-templates";
 import { loadWorkoutPlanSourceList } from "@/lib/workout-plan-source-list";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -46,6 +47,10 @@ export default async function NewRoutinePage({
     .from("routines")
     .select("name")
     .eq("user_id", user.id);
+  const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+    supabase,
+    userId: user.id,
+  });
   const cookieStore = cookies();
   const draftRoutineId = cookieStore.get(ROUTINE_DRAFT_COOKIE_NAME)?.value?.trim() || null;
   const pendingWorkoutPlanChooserDayIndex = Number.parseInt(
@@ -277,7 +282,6 @@ export default async function NewRoutinePage({
             createRoutineDayAction={createRoutineDayAction}
             deleteRoutineDayAction={deleteRoutineDayAction}
             reorderRoutineDaysAction={reorderRoutineDaysAction}
-            deleteRoutineAction={deleteRoutineAction}
             workoutPlanSources={workoutPlanSources}
             isDraftRoutine
             initialWorkoutPlanChooserDayId={Number.isFinite(openWorkoutPlanChooserDayIndex) || Number.isFinite(pendingWorkoutPlanChooserDayIndex)
@@ -311,6 +315,7 @@ export default async function NewRoutinePage({
           distanceUnit: profile.preferred_distance_unit ?? "mi",
         }}
         existingRoutineNames={(existingRoutineRows ?? []).map((routine) => routine.name)}
+        existingTemplateNames={existingTemplateNames}
       />
     </RoutineDetailsScreenShell>
   );

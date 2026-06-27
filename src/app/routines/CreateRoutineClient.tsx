@@ -34,7 +34,6 @@ type Props = {
   routines: RoutineBrowseCardItem[];
   draftRoutineName?: string | null;
   duplicateRoutineAction: (formData: FormData) => Promise<ActionResult & { routineId?: string }>;
-  deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
   onRequestClose?: () => void;
 };
 

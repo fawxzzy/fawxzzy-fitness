@@ -86,6 +86,26 @@ test("resolveTodayDisplayDay keeps the session snapshot label even if the routin
   });
 });
 
+test("resolveTodayDisplayDay prefers the current routine day name over a stale session snapshot label", () => {
+  const result = resolveTodayDisplayDay({
+    calendarDayIndex: 2,
+    todayRoutineDay: { id: "day-2", day_index: 2, name: "Push", is_rest: false },
+    routineDays: [
+      { id: "day-2", day_index: 2, name: "Push", is_rest: false },
+      { id: "day-4", day_index: 4, name: "Hunt", is_rest: false },
+    ],
+    inProgressSession: { routine_day_index: 4, routine_day_name: "Mon | Hunt" },
+  });
+
+  assert.deepEqual(result, {
+    dayIndex: 4,
+    routineDay: { id: "day-4", day_index: 4, name: "Hunt", is_rest: false },
+    dayName: "Hunt",
+    hasScheduledDayToday: true,
+    source: "session",
+  });
+});
+
 test("resolveTodayDisplayDay falls back to a template day when today is unscheduled", () => {
   const result = resolveTodayDisplayDay({
     calendarDayIndex: null,

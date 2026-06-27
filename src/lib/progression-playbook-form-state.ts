@@ -967,6 +967,8 @@ export function areProgressionPlaybookFormStatesEqual(
 }
 
 export function appendProgressionPlaybookFormData(formData: FormData, state: ProgressionPlaybookFormState) {
+  const normalizedStallThreshold = String(parsePositiveInteger(state.progressionStallThreshold) ?? 2);
+  const normalizedDeloadPercent = String(parsePositiveNumber(state.progressionDeloadPercent) ?? LEGACY_DELOAD_PERCENT_FALLBACK);
   formData.set("progressionPlaybookId", state.progressionPlaybookId);
   formData.set("progressionStallPolicy", state.progressionStallPolicy);
   formData.set("progressionLoadIncrement", state.progressionLoadIncrement);
@@ -1045,8 +1047,8 @@ export function appendProgressionPlaybookFormData(formData: FormData, state: Pro
   formData.set("progressionQualificationWindowMode", state.progressionQualificationWindowMode);
   formData.set("progressionQualificationWindowResetOnMiss", state.progressionQualificationWindowResetOnMiss ? "1" : "0");
   formData.set("progressionHasExplicitQualificationWindow", state.progressionHasExplicitQualificationWindow ? "1" : "0");
-  formData.set("progressionStallThreshold", state.progressionStallThreshold);
-  formData.set("progressionDeloadPercent", state.progressionDeloadPercent);
+  formData.set("progressionStallThreshold", normalizedStallThreshold);
+  formData.set("progressionDeloadPercent", normalizedDeloadPercent);
   formData.set("progressionSetFlow", inferLegacySetFlowFromDirections(normalizeSetFlowDirectionConfig({
     time: state.progressionSetFlowTimeDirection,
     distance: state.progressionSetFlowDistanceDirection,

@@ -161,6 +161,7 @@ export function HistoryDetailExerciseCard({
       metadata={headerMetadata}
       rightTitle={summaryLabel}
       rightContent={summary.trim().length > 0 ? summary : undefined}
+      columnLayout="compact"
       rightColumnClassName={density === "compact" ? "max-w-[12.2rem]" : "max-w-[14rem]"}
     />
   );

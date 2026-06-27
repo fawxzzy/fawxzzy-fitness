@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import type { ExerciseCardRightIconMode } from "@/components/ExerciseCard";
+import type { ExerciseCardRightIconMode, ExerciseCardTitleMetaMode } from "@/components/ExerciseCard";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import {
@@ -59,6 +59,10 @@ export function PlannedExerciseSummaryRow({
   titleContainerClassName,
   trailingStackClassName,
   titleMeta,
+  titleMetaClassName,
+  cornerMeta,
+  cornerMetaClassName,
+  titleMetaMode,
   progressFill,
   overlayActions,
   overlayActionsClassName,
@@ -80,6 +84,10 @@ export function PlannedExerciseSummaryRow({
   titleContainerClassName?: string;
   trailingStackClassName?: string;
   titleMeta?: ReactNode;
+  titleMetaClassName?: string;
+  cornerMeta?: ReactNode;
+  cornerMetaClassName?: string;
+  titleMetaMode?: ExerciseCardTitleMetaMode;
   progressFill?: ProgressionProgressFill | null;
   overlayActions?: ReactNode;
   overlayActionsClassName?: string;
@@ -123,9 +131,10 @@ export function PlannedExerciseSummaryRow({
           name={exercise.name}
           metadata={<ExerciseCardMetadataLine items={visibleHeaderMetaItems} />}
           rightContent={resolvedSummary ?? undefined}
-          rightAccessory={exercise.progressionStateLabel?.trim()
+          rightSubcontent={!isStretchHub && exercise.progressionStateLabel?.trim()
             ? <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} />
             : undefined}
+          columnLayout="compact"
         />
       )}
       exercise={exercise}
@@ -150,7 +159,10 @@ export function PlannedExerciseSummaryRow({
       rightRailClassName={rightRailClassName}
       titleContainerClassName={titleContainerClassName}
       titleMeta={titleMeta}
-      titleMetaMode={titleMeta ? "overlay-tight" : undefined}
+      titleMetaClassName={titleMetaClassName}
+      cornerMeta={cornerMeta}
+      cornerMetaClassName={cornerMetaClassName}
+      titleMetaMode={titleMetaMode ?? (titleMeta ? "overlay-tight" : undefined)}
       trailingStackClassName={trailingStackClassName}
       overlayActions={overlayActions}
       overlayActionsClassName={overlayActionsClassName}

@@ -77,7 +77,57 @@ type AddSetPayload = {
 
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
 
-const FAILURE_NOTE_SENTINEL = "__session_failure__";
+export const FAILURE_NOTE_SENTINEL = "__session_failure__";
+
+export type SessionLoggerDraftQuickLogPayload = {
+  weight: number;
+  reps: number;
+  durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: FitnessDistanceUnit | null;
+  calories: number | null;
+  isWarmup: boolean;
+  rpe: number | null;
+  notes: string | null;
+  weightUnit: "lbs" | "kg";
+};
+
+export type SessionLoggerDraftFormState = {
+  weight: string;
+  reps: string;
+  durationInput: string;
+  distance: string;
+  calories: string;
+  rpe: string;
+  weightUnit: "lbs" | "kg";
+  distanceUnit: FitnessDistanceUnit;
+  isWarmup: boolean;
+  isFailure: boolean;
+};
+
+export type SessionLoggerDraftState = {
+  goalLabel: string | null;
+  quickLogLabel: string;
+  quickLogPayload: SessionLoggerDraftQuickLogPayload | null;
+  isEditedFromCurrentTarget: boolean;
+  didApplyLastTarget: boolean;
+  formState: SessionLoggerDraftFormState;
+};
+
+type SessionLoggerFormState = SessionLoggerDraftFormState;
+
+function areLoggerFormStatesEqual(left: SessionLoggerFormState, right: SessionLoggerFormState) {
+  return left.weight === right.weight
+    && left.reps === right.reps
+    && left.durationInput === right.durationInput
+    && left.distance === right.distance
+    && left.calories === right.calories
+    && left.rpe === right.rpe
+    && left.weightUnit === right.weightUnit
+    && left.distanceUnit === right.distanceUnit
+    && left.isWarmup === right.isWarmup
+    && left.isFailure === right.isFailure;
+}
 function parseDurationInput(rawValue: string): number | null {
   const value = rawValue.trim();
   if (!value) return null;
@@ -317,10 +367,15 @@ export function SetLoggerCard({
   cycleLengthDays: _cycleLengthDays,
   progressionExampleDayNumber: _progressionExampleDayNumber,
   showAllMeasurementInputs = false,
+  showWarmupToggle = true,
   showFailureToggle = false,
   showProgressionControls: _showProgressionControls = true,
   updateProgressionAction: _updateProgressionAction,
   bottomDockCenter: _bottomDockCenter,
+  fallbackGoalLabel,
+  onDraftStateChange,
+  reportDraftState = true,
+  draftFormState,
 }: {
   userId: string;
   sessionId: string;
@@ -370,10 +425,15 @@ export function SetLoggerCard({
   cycleLengthDays?: number | null;
   progressionExampleDayNumber?: number | null;
   showAllMeasurementInputs?: boolean;
+  showWarmupToggle?: boolean;
   showFailureToggle?: boolean;
   showProgressionControls?: boolean;
   updateProgressionAction?: (formData: FormData) => Promise<ActionResult>;
   bottomDockCenter?: ReactNode;
+  fallbackGoalLabel?: string | null;
+  onDraftStateChange?: (draftState: SessionLoggerDraftState) => void;
+  reportDraftState?: boolean;
+  draftFormState?: SessionLoggerDraftFormState | null;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -424,6 +484,42 @@ export function SetLoggerCard({
     () => setFlowQuickLogTargets?.[sets.length] ?? toQuickLogTargetFromSuggestedValues(targetHint.suggestedValues),
     [setFlowQuickLogTargets, sets.length, targetHint.suggestedValues],
   );
+  const canonicalFormState = useMemo<SessionLoggerFormState>(() => {
+    const nextWeight = currentLiveQuickLogTarget?.weightMax ?? currentLiveQuickLogTarget?.weightMin;
+    const nextReps = currentLiveQuickLogTarget?.repsMax ?? currentLiveQuickLogTarget?.repsMin;
+    const fallbackDistanceUnit = normalizeFitnessDistanceUnit(defaultDistanceUnit, "mi");
+
+    return {
+      weight: nextWeight !== undefined
+        ? String(nextWeight)
+        : (prefillWeight !== undefined ? String(prefillWeight) : ""),
+      reps: nextReps !== undefined
+        ? String(nextReps)
+        : (prefillReps !== undefined ? String(prefillReps) : ""),
+      durationInput: currentLiveQuickLogTarget?.durationSeconds !== undefined
+        ? formatDurationClock(currentLiveQuickLogTarget.durationSeconds)
+        : (prefillDurationSeconds !== undefined ? formatDurationClock(prefillDurationSeconds) : ""),
+      distance: currentLiveQuickLogTarget?.distance !== undefined ? String(currentLiveQuickLogTarget.distance) : "",
+      calories: currentLiveQuickLogTarget?.calories !== undefined ? String(currentLiveQuickLogTarget.calories) : "",
+      rpe: "",
+      weightUnit: currentLiveQuickLogTarget?.weightUnit === "kg" || currentLiveQuickLogTarget?.weightUnit === "lbs"
+        ? currentLiveQuickLogTarget.weightUnit
+        : (prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs")),
+      distanceUnit: isFitnessDistanceUnit(currentLiveQuickLogTarget?.distanceUnit)
+        ? currentLiveQuickLogTarget.distanceUnit
+        : fallbackDistanceUnit,
+      isWarmup: false,
+      isFailure: false,
+    };
+  }, [
+    currentLiveQuickLogTarget,
+    defaultDistanceUnit,
+    prefillDurationSeconds,
+    prefillReps,
+    prefillWeight,
+    prefillWeightUnit,
+    unitLabel,
+  ]);
   const currentLiveTargetMetrics = useMemo(
     () => deriveLiveTargetMetrics(currentLiveQuickLogTarget, initialEnabledMetrics),
     [currentLiveQuickLogTarget, initialEnabledMetrics],
@@ -502,15 +598,22 @@ export function SetLoggerCard({
     setIsMetricsExpanded(false);
   }, [sessionExerciseId]);
 
+  const applyLoggerFormState = useCallback((nextFormState: SessionLoggerDraftFormState) => {
+    setWeight(nextFormState.weight);
+    setSelectedWeightUnit(nextFormState.weightUnit);
+    setReps(nextFormState.reps);
+    setDurationInput(nextFormState.durationInput);
+    setDistance(nextFormState.distance);
+    setDistanceUnit(nextFormState.distanceUnit);
+    setCalories(nextFormState.calories);
+    setRpe(nextFormState.rpe);
+    setIsWarmup(nextFormState.isWarmup);
+    setIsFailure(nextFormState.isFailure);
+  }, []);
+
   const resetLoggerMeasurementInputs = useCallback(() => {
-    setWeight(prefillWeight !== undefined ? String(prefillWeight) : "");
-    setSelectedWeightUnit(prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
-    setReps(prefillReps !== undefined ? String(prefillReps) : "");
-    setDurationInput(prefillDurationSeconds !== undefined ? formatDurationClock(prefillDurationSeconds) : "");
-    setDistance("");
-    setDistanceUnit(normalizeFitnessDistanceUnit(defaultDistanceUnit, "mi"));
-    setCalories("");
-  }, [defaultDistanceUnit, prefillDurationSeconds, prefillReps, prefillWeight, prefillWeightUnit, unitLabel]);
+    applyLoggerFormState(canonicalFormState);
+  }, [applyLoggerFormState, canonicalFormState]);
 
   useEffect(() => {
     if (lastInitializedSessionExerciseIdRef.current === sessionExerciseId) {
@@ -518,10 +621,7 @@ export function SetLoggerCard({
     }
 
     lastInitializedSessionExerciseIdRef.current = sessionExerciseId;
-    resetLoggerMeasurementInputs();
-    setRpe("");
-    setIsWarmup(false);
-    setIsFailure(false);
+    applyLoggerFormState(draftFormState ?? canonicalFormState);
     setDidApplyLastTarget(false);
     setError(null);
     locallyDeletedSetIdentityKeysRef.current = new Set();
@@ -530,7 +630,7 @@ export function SetLoggerCard({
     setSets(nextDisplaySets);
     setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = nextDisplaySets.length;
-  }, [initialSets, resetLoggerMeasurementInputs, sessionExerciseId]);
+  }, [applyLoggerFormState, canonicalFormState, draftFormState, initialSets, sessionExerciseId]);
 
   useEffect(() => {
     if (lastCaloriesAutoResetKeyRef.current === caloriesAutoResetKey) {
@@ -569,6 +669,12 @@ export function SetLoggerCard({
   }, [estimatedCalories]);
 
   useEffect(() => {
+    if (!showWarmupToggle) {
+      setIsWarmup(false);
+    }
+  }, [showWarmupToggle]);
+
+  useEffect(() => {
     const nextDisplaySets = filterDeletedDisplaySets(initialSets.map(toDisplaySet), locallyDeletedSetIdentityKeysRef.current);
     setSets((current) => {
       const next = mergeDisplaySets(current, nextDisplaySets);
@@ -596,6 +702,10 @@ export function SetLoggerCard({
   }, [onSetCountChange, sets.length]);
 
   useEffect(() => {
+    if (draftFormState) {
+      return;
+    }
+
     const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
     const raw = window.localStorage.getItem(storageKey);
     if (!raw) {
@@ -605,7 +715,7 @@ export function SetLoggerCard({
     try {
       const parsed = JSON.parse(raw) as {
         sets?: DisplaySet[];
-  form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: FitnessDistanceUnit; calories?: string; rpe?: string; isWarmup?: boolean; isFailure?: boolean; selectedWeightUnit?: "lbs" | "kg" };
+      form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: FitnessDistanceUnit; calories?: string; rpe?: string; isWarmup?: boolean; isFailure?: boolean; selectedWeightUnit?: "lbs" | "kg"; didApplyLastTarget?: boolean };
       };
 
       if (isOfflineSnapshotStale((parsed as { updatedAt?: number | string }).updatedAt)) {
@@ -654,11 +764,14 @@ export function SetLoggerCard({
         if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
           setSelectedWeightUnit(parsed.form.selectedWeightUnit);
         }
+        if (typeof parsed.form.didApplyLastTarget === "boolean") {
+          setDidApplyLastTarget(parsed.form.didApplyLastTarget);
+        }
       }
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [initialSets, sessionExerciseId, sessionId, userId]);
+  }, [draftFormState, initialSets, sessionExerciseId, sessionId, userId]);
 
   useEffect(() => {
     const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
@@ -688,6 +801,7 @@ export function SetLoggerCard({
         isWarmup: resolvedIsWarmup,
         isFailure,
         selectedWeightUnit,
+        didApplyLastTarget,
       },
       updatedAt: Date.now(),
     });
@@ -734,7 +848,7 @@ export function SetLoggerCard({
         draftStorageIdleCallbackRef.current = null;
       }
     };
-  }, [calories, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
+  }, [calories, didApplyLastTarget, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
 
   useEffect(() => () => {
     if (draftStorageWriteTimeoutRef.current !== null) {
@@ -1283,6 +1397,83 @@ export function SetLoggerCard({
   }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
   const liveLogButtonPrefix = resolvedIsWarmup ? "Log Warm-Up" : (resolvedIsFailure ? "Log Failure" : "Log");
   const liveLogButtonLabel = liveSummaryItems.length > 0 ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(" • ")}` : liveLogButtonPrefix;
+  const currentFormState = useMemo<SessionLoggerFormState>(() => ({
+    weight,
+    reps,
+    durationInput,
+    distance,
+    calories,
+    rpe,
+    weightUnit: selectedWeightUnit,
+    distanceUnit,
+    isWarmup: resolvedIsWarmup,
+    isFailure,
+  }), [calories, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
+  const isEditedFromCurrentTarget = useMemo(
+    () => !areLoggerFormStatesEqual(currentFormState, canonicalFormState),
+    [canonicalFormState, currentFormState],
+  );
+  const draftQuickLogPayload = useMemo<SessionLoggerDraftQuickLogPayload | null>(() => {
+    const presentMetrics = deriveMeasurementPresenceFromValues({
+      reps,
+      weight,
+      duration: durationInput,
+      distance,
+      calories,
+    });
+    const sanitizedValues = sanitizeEnabledMeasurementValues(presentMetrics, {
+      weight,
+      reps,
+      duration: durationInput,
+      distance,
+      calories,
+    });
+    const parsedWeight = sanitizedValues.weight.trim() ? Number(sanitizedValues.weight) : 0;
+    const parsedReps = sanitizedValues.reps.trim() ? Number(sanitizedValues.reps) : 0;
+    const parsedDuration = parseDurationInput(sanitizedValues.duration);
+    const parsedDistance = sanitizedValues.distance.trim() ? Number(sanitizedValues.distance) : null;
+    const parsedCalories = sanitizedValues.calories.trim() ? Number(sanitizedValues.calories) : null;
+    const parsedRpe = rpe.trim() ? Number(rpe) : null;
+
+    if (presentMetrics.weight && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) return null;
+    if (presentMetrics.reps && (!Number.isFinite(parsedReps) || parsedReps < 0)) return null;
+    if (sanitizedValues.duration.trim() && (parsedDuration === null || !Number.isInteger(parsedDuration) || parsedDuration < 0)) return null;
+    if (parsedDistance !== null && (!Number.isFinite(parsedDistance) || parsedDistance < 0)) return null;
+    if (parsedCalories !== null && (!Number.isFinite(parsedCalories) || parsedCalories < 0)) return null;
+    if (parsedRpe !== null && (!Number.isFinite(parsedRpe) || parsedRpe < 0)) return null;
+
+    return {
+      weight: parsedWeight,
+      reps: parsedReps,
+      durationSeconds: parsedDuration,
+      distance: parsedDistance,
+      distanceUnit: parsedDistance !== null ? distanceUnit : null,
+      calories: parsedCalories,
+      isWarmup: resolvedIsWarmup,
+      rpe: parsedRpe,
+      notes: resolvedIsFailure ? FAILURE_NOTE_SENTINEL : null,
+      weightUnit: selectedWeightUnit,
+    };
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
+  const liveGoalLabel = liveSummaryItems.length > 0
+    ? liveSummaryItems.join(" • ")
+    : (fallbackGoalLabel?.trim() || null);
+
+  useEffect(() => {
+    if (!onDraftStateChange || !reportDraftState) {
+      return;
+    }
+
+    onDraftStateChange({
+      goalLabel: liveGoalLabel,
+      quickLogLabel: liveLogButtonLabel,
+      quickLogPayload: draftQuickLogPayload,
+      isEditedFromCurrentTarget,
+      didApplyLastTarget,
+      formState: currentFormState,
+    });
+  }, [currentFormState, didApplyLastTarget, draftQuickLogPayload, isEditedFromCurrentTarget, liveGoalLabel, liveLogButtonLabel, onDraftStateChange, reportDraftState]);
+
   const applyHintValues = useCallback((values: SessionTargetHint["suggestedValues"] | null | undefined) => {
     if (!values) return;
 
@@ -1390,8 +1581,12 @@ export function SetLoggerCard({
   ];
   const historyRows = historyRowsSource.filter((value): value is HistoryRow => value !== null && value.items.length > 0);
   const applyLastRow = historyRows.find((row) => row.key === "last-time" && row.applyValues !== null) ?? null;
+  const lastTargetButtonLabel = didApplyLastTarget
+    ? "Clear Last"
+    : (isEditedFromCurrentTarget ? "Resync" : (applyLastRow ? "Use Last" : "No Last Setup"));
+  const isLastTargetButtonDisabled = !didApplyLastTarget && !isEditedFromCurrentTarget && !applyLastRow;
   const handleToggleLastTarget = useCallback(() => {
-    if (didApplyLastTarget) {
+    if (didApplyLastTarget || isEditedFromCurrentTarget) {
       resetLoggerMeasurementInputs();
       setDidApplyLastTarget(false);
       setError(null);
@@ -1402,7 +1597,7 @@ export function SetLoggerCard({
       applyHintValues(applyLastRow.applyValues);
       setDidApplyLastTarget(true);
     }
-  }, [applyHintValues, applyLastRow, didApplyLastTarget, resetLoggerMeasurementInputs]);
+  }, [applyHintValues, applyLastRow, didApplyLastTarget, isEditedFromCurrentTarget, resetLoggerMeasurementInputs]);
   const attachedLoggerActionStrip = useMemo(
     () => (
       <AttachedCardActionStripFrame
@@ -1412,20 +1607,20 @@ export function SetLoggerCard({
         <button
           type="button"
           onClick={handleToggleLastTarget}
-          disabled={!applyLastRow && !didApplyLastTarget}
+          disabled={isLastTargetButtonDisabled}
           data-bottom-action-intent="info"
           className={cn(
             getAttachedCardActionButtonClassName({
               intent: "info",
               className: "!h-12 rounded-bl-[var(--card-radius)] !border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
             }),
-            !applyLastRow && !didApplyLastTarget
+            isLastTargetButtonDisabled
               ? "border-r-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-muted)/0.92)] text-[rgb(var(--text-muted)/0.82)] shadow-none"
               : undefined,
           )}
         >
           <span className="bottom-action__label">
-            {didApplyLastTarget ? "Clear Last" : (applyLastRow ? "Use Last" : "No Last Setup")}
+            {lastTargetButtonLabel}
           </span>
         </button>
         <button
@@ -1449,7 +1644,7 @@ export function SetLoggerCard({
         </button>
       </AttachedCardActionStripFrame>
     ),
-    [applyLastRow, didApplyLastTarget, handleLogSet, handleToggleLastTarget, isSaveDisabled, liveLogButtonLabel],
+    [handleLogSet, handleToggleLastTarget, isLastTargetButtonDisabled, isSaveDisabled, lastTargetButtonLabel, liveLogButtonLabel],
   );
   const measurementAuxiliaryFields = useMemo<MeasurementPanelAuxiliaryField[]>(() => {
     const warmupField: MeasurementPanelAuxiliaryField = {
@@ -1480,7 +1675,7 @@ export function SetLoggerCard({
       ),
     };
 
-    const fields: MeasurementPanelAuxiliaryField[] = [warmupField];
+    const fields: MeasurementPanelAuxiliaryField[] = showWarmupToggle ? [warmupField] : [];
 
     if (showFailureToggle) {
       fields.push({
@@ -1518,7 +1713,7 @@ export function SetLoggerCard({
     }
 
     return fields;
-  }, [resolvedIsFailure, resolvedIsWarmup, showFailureToggle]);
+  }, [resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
 
   const loggedSetList = sets.length > 0 ? (
     <div

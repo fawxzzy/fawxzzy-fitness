@@ -2,13 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import { CreateRoutineClient } from "@/app/routines/CreateRoutineClient";
 import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import { ChevronDownIcon } from "@/components/ui/Chevrons";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
@@ -31,10 +33,20 @@ const INACTIVE_ROUTINE_EDIT_BUTTON_CLASS_NAME = getAttachedCardActionButtonClass
   intent: "positive",
   className: "translate-x-px focus-visible:ring-[rgb(var(--accent)/0.24)]",
 });
+const ROUTINE_BROWSE_DELETE_PILL_CLASS_NAME = cn(
+  getBottomActionButtonClassName({
+    intent: "danger",
+    fullWidth: false,
+    className: "!h-6 !min-h-0 rounded-full !px-4 text-[12px] font-semibold tracking-[0.04em]",
+  }),
+  "!rounded-tl-[0.5rem] !rounded-tr-none !rounded-bl-none !rounded-br-none",
+  "!border-[rgb(var(--danger-rgb)/0.98)] !bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.98),rgb(132_31_31/0.98))] !text-[rgb(255_245_245)] shadow-[0_2px_10px_rgb(var(--danger-rgb)/0.16)]",
+);
 
 export function RoutinesPageClient({
   routines,
   newRoutineHref,
+  workoutPlansHref = "/routines/workout-plans",
   draftRoutineName,
   duplicateRoutineAction,
   setActiveRoutineAction,
@@ -42,15 +54,17 @@ export function RoutinesPageClient({
 }: {
   routines: RoutineBrowseCardItem[];
   newRoutineHref?: string;
+  workoutPlansHref?: string;
   draftRoutineName?: string | null;
   duplicateRoutineAction?: Parameters<typeof CreateRoutineClient>[0]["duplicateRoutineAction"];
   setActiveRoutineAction?: (formData: FormData) => Promise<ActionResult>;
-  deleteRoutineAction?: Parameters<typeof CreateRoutineClient>[0]["deleteRoutineAction"];
+  deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(false);
   const [expandedInactiveRoutineId, setExpandedInactiveRoutineId] = useState<string | null>(null);
+  const [routinePendingDelete, setRoutinePendingDelete] = useState<RoutineBrowseCardItem | null>(null);
   const [isPending, startTransition] = useTransition();
   const canOpenInlineCreate = Boolean(duplicateRoutineAction);
   const activeRoutines = routines.filter((routine) => routine.isActive);
@@ -64,9 +78,36 @@ export function RoutinesPageClient({
     router.prefetch(newRoutineHref ?? "/routines/new");
   }, [canOpenInlineCreate, newRoutineHref, router]);
 
+  useEffect(() => {
+    if (!workoutPlansHref) {
+      return;
+    }
+
+    router.prefetch(workoutPlansHref);
+  }, [router, workoutPlansHref]);
+
+  useEffect(() => {
+    const routineHrefs = routines
+      .map((routine) => routine.href?.trim())
+      .filter((href): href is string => Boolean(href));
+
+    if (routineHrefs.length === 0) {
+      return;
+    }
+
+    for (const href of routineHrefs) {
+      router.prefetch(href);
+    }
+  }, [router, routines]);
+
   const actionsNode = useMemo(() => (
-    <BottomActionSingle>
-      {canOpenInlineCreate ? (
+    <BottomActionSplit
+      secondary={(
+        <BottomDockLink href={workoutPlansHref} intent="toggleInactive">
+          Workout Plans
+        </BottomDockLink>
+      )}
+      primary={canOpenInlineCreate ? (
         <BottomDockButton type="button" intent="positive" onClick={() => setIsCreateRoutineOpen(true)}>
           New Routine
         </BottomDockButton>
@@ -75,8 +116,8 @@ export function RoutinesPageClient({
           New Routine
         </BottomDockLink>
       )}
-    </BottomActionSingle>
-  ), [canOpenInlineCreate, newRoutineHref]);
+    />
+  ), [canOpenInlineCreate, newRoutineHref, workoutPlansHref]);
 
   usePublishBottomActions(actionsNode);
 
@@ -124,26 +165,48 @@ export function RoutinesPageClient({
 
                   return (
                     <div className="min-w-0">
-                      <RoutineBrowseCard
-                        routine={routine}
-                        onPress={routine.isActive
-                          ? (routineHref ? () => router.push(routineHref) : undefined)
-                          : () => {
-                            setExpandedInactiveRoutineId((current) => current === routine.id ? null : routine.id);
-                          }}
-                        state={routine.isActive || isExpandedInactiveRoutine ? "selected" : "default"}
-                        semanticTone={routine.isActive ? "current" : "attention"}
-                        rightIcon={isExpandedInactiveRoutine
-                          ? <ChevronDownIcon className="h-5 w-5 text-[rgb(var(--accent-divider-rgb)/0.98)]" />
-                          : undefined}
-                        className={routine.isActive
-                          ? undefined
-                          : cn(
-                            INACTIVE_ROUTINE_CARD_CLASS_NAME,
-                            isExpandedInactiveRoutine ? "!rounded-bl-none !rounded-br-none" : undefined,
-                          )}
-                        showPreviewDays={Boolean(routine.isActive)}
-                      />
+                      <div className="relative min-w-0 pt-[0.72rem] sm:pt-0">
+                        <div className="pointer-events-none absolute left-[8px] top-0 z-[4] sm:top-px">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setRoutinePendingDelete(routine);
+                            }}
+                            disabled={isPending || !deleteRoutineAction}
+                            aria-label={`Delete ${routine.name}`}
+                            data-bottom-action-intent="danger"
+                            className={cn(
+                              ROUTINE_BROWSE_DELETE_PILL_CLASS_NAME,
+                              "pointer-events-auto",
+                              (isPending || !deleteRoutineAction) ? "opacity-75" : undefined,
+                            )}
+                          >
+                            <span className="bottom-action__label">Delete</span>
+                          </button>
+                        </div>
+                        <RoutineBrowseCard
+                          routine={routine}
+                          onPress={routine.isActive
+                            ? (routineHref ? () => router.push(routineHref) : undefined)
+                            : () => {
+                              setExpandedInactiveRoutineId((current) => current === routine.id ? null : routine.id);
+                            }}
+                          state={routine.isActive || isExpandedInactiveRoutine ? "selected" : "default"}
+                          semanticTone={routine.isActive ? "current" : "attention"}
+                          rightIcon={isExpandedInactiveRoutine
+                            ? <ChevronDownIcon className="h-5 w-5 text-[rgb(var(--accent-divider-rgb)/0.98)]" />
+                            : undefined}
+                          className={routine.isActive
+                            ? undefined
+                            : cn(
+                              INACTIVE_ROUTINE_CARD_CLASS_NAME,
+                              isExpandedInactiveRoutine ? "!rounded-bl-none !rounded-br-none" : undefined,
+                            )}
+                          showPreviewDays={Boolean(routine.isActive)}
+                        />
+                      </div>
                       {isExpandedInactiveRoutine ? (
                         <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
                           <button
@@ -196,13 +259,43 @@ export function RoutinesPageClient({
           </RoutinesCardList>
         )}
       </SharedDayListSection>
+      <ConfirmDestructiveModal
+        open={routinePendingDelete !== null}
+        title="Confirm Delete"
+        confirmLabel="Delete"
+        titleVariant="raw"
+        isLoading={isPending}
+        onCancel={() => {
+          if (!isPending) {
+            setRoutinePendingDelete(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!deleteRoutineAction || !routinePendingDelete) {
+            return;
+          }
+
+          startTransition(async () => {
+            const routineId = routinePendingDelete.id;
+            const result = await deleteRoutineAction({ routineId });
+            if (!result.ok) {
+              toast.error(result.error ?? "Failed to delete routine.");
+              return;
+            }
+
+            setRoutinePendingDelete(null);
+            setExpandedInactiveRoutineId((current) => current === routineId ? null : current);
+            toast.success("Routine deleted.");
+            router.refresh();
+          });
+        }}
+      />
       {isCreateRoutineOpen && duplicateRoutineAction ? (
         <CreateRoutineClient
           backHref="/routines"
           routines={routines}
           draftRoutineName={draftRoutineName}
           duplicateRoutineAction={duplicateRoutineAction}
-          deleteRoutineAction={deleteRoutineAction}
           onRequestClose={() => setIsCreateRoutineOpen(false)}
         />
       ) : null}

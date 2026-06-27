@@ -2,8 +2,30 @@ import type { RoutineDayRow } from "@/types/db";
 
 export type WorkoutPlanSourceCandidateDay = Pick<
   RoutineDayRow,
-  "id" | "routine_id" | "day_index" | "name" | "is_rest" | "notes" | "duplicate_source_routine_day_id"
+  "id" | "routine_id" | "day_index" | "name" | "is_rest" | "notes" | "duplicate_source_routine_day_id" | "workout_plan_template_id"
 >;
+
+function normalizeWorkoutPlanSourceTitleKey(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+export function dedupeWorkoutPlanSourceItemsByTitle<T extends { title: string | null | undefined }>(items: T[]) {
+  const seenTitleKeys = new Set<string>();
+
+  return items.filter((item) => {
+    const titleKey = normalizeWorkoutPlanSourceTitleKey(item.title);
+    if (!titleKey) {
+      return true;
+    }
+
+    if (seenTitleKeys.has(titleKey)) {
+      return false;
+    }
+
+    seenTitleKeys.add(titleKey);
+    return true;
+  });
+}
 
 export function selectCanonicalWorkoutPlanSourceDays(args: {
   routineDays: WorkoutPlanSourceCandidateDay[];
@@ -27,7 +49,7 @@ export function selectCanonicalWorkoutPlanSourceDays(args: {
       continue;
     }
 
-    const canonicalSourceId = day.duplicate_source_routine_day_id ?? day.id;
+    const canonicalSourceId = day.workout_plan_template_id ?? day.duplicate_source_routine_day_id ?? day.id;
     const existingDay = canonicalDayBySourceId.get(canonicalSourceId);
     if (!existingDay) {
       canonicalDayBySourceId.set(canonicalSourceId, day);

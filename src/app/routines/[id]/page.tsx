@@ -8,7 +8,13 @@ import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutineHomeClient } from "@/app/routines/RoutineHomeClient";
-import { appendRoutineDayAction, createRoutineDayAction, deleteRoutineDayAction, reorderRoutineDaysAction } from "@/app/routines/actions";
+import {
+  appendRoutineDayAction,
+  createRoutineDayAction,
+  deleteRoutineDayAction,
+  loadRoutineWorkoutPlanSourcesAction,
+  reorderRoutineDaysAction,
+} from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { buildRoutineWorkoutPlanEditorInfoRailItems } from "@/lib/header-info-rail";
@@ -17,7 +23,6 @@ import { ensureProfile } from "@/lib/profile";
 import { buildRoutinePlanRecapExercises } from "@/lib/routine-plan-preview";
 import { getRoutineDayEditHref, getRoutineEditHref, getRoutineHomeHref } from "@/lib/routine-day-navigation";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import { loadWorkoutPlanSourceList } from "@/lib/workout-plan-source-list";
 import {
   getCurrentCycleOccurrenceContext,
   getRoutineDayResolvedWeekdayLabel,
@@ -74,6 +79,16 @@ export default async function RoutineHomePage({ params }: PageProps) {
     notFound();
   }
 
+  const inProgressSessionPromise = supabase
+    .from("sessions")
+    .select("id, routine_day_index")
+    .eq("user_id", user.id)
+    .eq("routine_id", routine.id)
+    .eq("status", "in_progress")
+    .order("performed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: routineDaysData } = await diagnostics.measure("routine-home.days.fetch", async () => await supabase
     .from("routine_days")
     .select("id, user_id, routine_id, day_index, name, is_rest, notes")
@@ -110,40 +125,6 @@ export default async function RoutineHomePage({ params }: PageProps) {
     })
     .map(({ day }) => day);
 
-  const { data: routineDayExercisesData } = sortedRoutineDays.length > 0
-    ? await diagnostics.measure("routine-home.day-exercises.fetch", async () => await supabase
-      .from("routine_day_exercises")
-      .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config")
-      .in("routine_day_id", sortedRoutineDays.map((day) => day.id))
-      .eq("user_id", user.id), {
-      blockingReason: "Waiting for routine exercise summaries.",
-      metadata: {
-        userId: user.id,
-        routineId: routine.id,
-        dayCount: sortedRoutineDays.length,
-      },
-      timeoutMs: 7000,
-    })
-    : { data: [] };
-  const routineDayExercises = (routineDayExercisesData ?? []) as RoutineDayExerciseRow[];
-
-  const { summaries } = sortedRoutineDays.length > 0
-    ? await buildCanonicalDaySummaries({
-      supabase,
-      routineDays: sortedRoutineDays,
-      allDayExercises: routineDayExercises,
-    })
-    : { summaries: [] };
-  const exerciseSummaryByDayId = new Map(
-    summaries.map((summary) => [
-      summary.day.id,
-      getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(summary, Boolean(summary.day.is_rest)),
-    ]),
-  );
-  const canonicalSummaryByDayId = new Map(
-    summaries.map((summary) => [summary.day.id, summary]),
-  );
-
   const totalDays = sortedRoutineDays.length;
   const restDays = sortedRoutineDays.filter((day) => day.is_rest).length;
   const trainingDays = Math.max(totalDays - restDays, 0);
@@ -173,30 +154,121 @@ export default async function RoutineHomePage({ params }: PageProps) {
   const routineTimeZone = routine.timezone || profile.timezone;
   const safeCycleLength = Number.isFinite(cycleLength) && cycleLength > 0 ? Math.floor(cycleLength) : 1;
 
-  if (routine.start_date && todayRoutineSchedule?.resolution.status === "scheduled" && todayRoutineSchedule.dayIndex !== null) {
-    const todayDate = todayRoutineSchedule.todayDate;
-    const dayIndexes = sortedRoutineDays.map((day, index) => (
-      Number.isFinite(day.day_index) ? day.day_index : index + 1
-    ));
-    const { occurrenceDateByDayIndex, queryStartDate, queryEndDate } = getCurrentCycleOccurrenceContext({
-      cycleLengthDays: safeCycleLength,
-      startDate: routine.start_date,
-      profileTimeZone: routineTimeZone,
-      dayIndexes,
-      referenceDate: todayDate,
-    });
-    const { data: completedCycleSessions } = await supabase
-      .from("sessions")
-      .select("routine_day_index, performed_at")
-      .eq("user_id", user.id)
-      .eq("status", "completed")
-      .eq("routine_id", routine.id)
-      .gte("performed_at", `${queryStartDate}T00:00:00.000Z`)
-      .lt("performed_at", `${queryEndDate}T00:00:00.000Z`);
+  const completedSessionsPromise = routine.start_date && todayRoutineSchedule?.resolution.status === "scheduled" && todayRoutineSchedule.dayIndex !== null
+    ? (() => {
+      const todayDate = todayRoutineSchedule.todayDate;
+      const dayIndexes = sortedRoutineDays.map((day, index) => (
+        Number.isFinite(day.day_index) ? day.day_index : index + 1
+      ));
+      const { occurrenceDateByDayIndex, queryStartDate, queryEndDate } = getCurrentCycleOccurrenceContext({
+        cycleLengthDays: safeCycleLength,
+        startDate: routine.start_date,
+        profileTimeZone: routineTimeZone,
+        dayIndexes,
+        referenceDate: todayDate,
+      });
 
+      return diagnostics.measure("routine-home.sessions.completed-occurrence.fetch", async () => await supabase
+        .from("sessions")
+        .select("routine_day_index, performed_at")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .eq("routine_id", routine.id)
+        .gte("performed_at", `${queryStartDate}T00:00:00.000Z`)
+        .lt("performed_at", `${queryEndDate}T00:00:00.000Z`), {
+        blockingReason: "Waiting for routine completion state for the current cycle.",
+        metadata: {
+          userId: user.id,
+          routineId: routine.id,
+          queryStartDate,
+          queryEndDate,
+        },
+        timeoutMs: 7000,
+      }).then(({ data }) => ({
+        mode: "occurrence" as const,
+        todayDate,
+        occurrenceDateByDayIndex,
+        data: data ?? [],
+      }));
+    })()
+    : (() => {
+      const { startIso, endIso } = getTimeZoneDayWindow(routineTimeZone);
+      return diagnostics.measure("routine-home.sessions.completed-today.fetch", async () => await supabase
+        .from("sessions")
+        .select("routine_day_index")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .eq("routine_id", routine.id)
+        .gte("performed_at", startIso)
+        .lt("performed_at", endIso), {
+        blockingReason: "Waiting for completed routine sessions for today.",
+        metadata: {
+          userId: user.id,
+          routineId: routine.id,
+          startIso,
+          endIso,
+        },
+        timeoutMs: 7000,
+      }).then(({ data }) => ({
+        mode: "today" as const,
+        data: data ?? [],
+      }));
+    })();
+
+  const { data: routineDayExercisesData } = sortedRoutineDays.length > 0
+    ? await diagnostics.measure("routine-home.day-exercises.fetch", async () => await supabase
+      .from("routine_day_exercises")
+      .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes, progression_playbook_id, progression_playbook_config")
+      .in("routine_day_id", sortedRoutineDays.map((day) => day.id))
+      .eq("user_id", user.id), {
+      blockingReason: "Waiting for routine exercise summaries.",
+      metadata: {
+        userId: user.id,
+        routineId: routine.id,
+        dayCount: sortedRoutineDays.length,
+      },
+      timeoutMs: 7000,
+    })
+    : { data: [] };
+  const routineDayExercises = (routineDayExercisesData ?? []) as RoutineDayExerciseRow[];
+
+  const canonicalDaySummariesPromise = sortedRoutineDays.length > 0
+    ? diagnostics.measure("routine-home.canonical-day-summaries.fetch", () => buildCanonicalDaySummaries({
+      supabase,
+      routineDays: sortedRoutineDays,
+      allDayExercises: routineDayExercises,
+      metadataMode: "preview",
+    }), {
+      blockingReason: "Waiting for normalized routine day previews.",
+      metadata: {
+        userId: user.id,
+        routineId: routine.id,
+        dayCount: sortedRoutineDays.length,
+        exerciseCount: routineDayExercises.length,
+      },
+      timeoutMs: 7000,
+    })
+    : Promise.resolve({ summaries: [] });
+
+  const [{ summaries }, completedSessionsResult, { data: inProgressSession }] = await Promise.all([
+    canonicalDaySummariesPromise,
+    completedSessionsPromise,
+    inProgressSessionPromise,
+  ]);
+  const exerciseSummaryByDayId = new Map(
+    summaries.map((summary) => [
+      summary.day.id,
+      getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(summary, Boolean(summary.day.is_rest)),
+    ]),
+  );
+  const canonicalSummaryByDayId = new Map(
+    summaries.map((summary) => [summary.day.id, summary]),
+  );
+
+  if (completedSessionsResult.mode === "occurrence") {
     completedDayIndexSet = new Set(resolveCompletedRoutineDayIndexesForOccurrence({
-      sessions: completedCycleSessions ?? [],
-      occurrenceDateByDayIndex,
+      sessions: completedSessionsResult.data,
+      occurrenceDateByDayIndex: completedSessionsResult.occurrenceDateByDayIndex,
       timeZone: routineTimeZone,
     }));
 
@@ -207,10 +279,10 @@ export default async function RoutineHomePage({ params }: PageProps) {
           dayNumber: Number.isFinite(day.day_index) ? day.day_index : index + 1,
         }))
         .filter(({ day, dayNumber }) => {
-          const occurrenceDate = occurrenceDateByDayIndex.get(dayNumber);
+          const occurrenceDate = completedSessionsResult.occurrenceDateByDayIndex.get(dayNumber);
           return Boolean(
             occurrenceDate
-            && occurrenceDate < todayDate
+            && occurrenceDate < completedSessionsResult.todayDate
             && !day.is_rest
             && !completedDayIndexSet.has(dayNumber),
           );
@@ -218,40 +290,15 @@ export default async function RoutineHomePage({ params }: PageProps) {
         .map(({ dayNumber }) => dayNumber),
     );
   } else {
-    const { startIso, endIso } = getTimeZoneDayWindow(routineTimeZone);
-    const { data: completedTodaySessions } = await supabase
-      .from("sessions")
-      .select("routine_day_index")
-      .eq("user_id", user.id)
-      .eq("status", "completed")
-      .eq("routine_id", routine.id)
-      .gte("performed_at", startIso)
-      .lt("performed_at", endIso);
-
     completedDayIndexSet = new Set(
-      (completedTodaySessions ?? [])
+      completedSessionsResult.data
         .map((session) => session.routine_day_index)
         .filter((value): value is number => Number.isFinite(value)),
     );
   }
 
-  const { data: inProgressSession } = await supabase
-    .from("sessions")
-    .select("id, routine_day_index")
-    .eq("user_id", user.id)
-    .eq("routine_id", routine.id)
-    .eq("status", "in_progress")
-    .order("performed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const resolvedInProgressDayIndex = inProgressSession?.routine_day_index;
   inSessionDayIndex = Number.isFinite(resolvedInProgressDayIndex) ? resolvedInProgressDayIndex : null;
-  const workoutPlanSources = await loadWorkoutPlanSourceList({
-    supabase,
-    userId: user.id,
-    routineId: routine.id,
-  });
   const floatingHeaderInfoItems = buildRoutineWorkoutPlanEditorInfoRailItems({
     trainingDays,
     restDays,
@@ -307,7 +354,7 @@ export default async function RoutineHomePage({ params }: PageProps) {
             createRoutineDayAction={createRoutineDayAction}
             deleteRoutineDayAction={deleteRoutineDayAction}
             reorderRoutineDaysAction={reorderRoutineDaysAction}
-            workoutPlanSources={workoutPlanSources}
+            loadWorkoutPlanSourcesAction={loadRoutineWorkoutPlanSourcesAction}
             days={sortedRoutineDays.map((day, index) => {
               const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
               const canonicalDaySummary = canonicalSummaryByDayId.get(day.id);

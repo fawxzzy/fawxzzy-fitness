@@ -1,6 +1,16 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-06-26 - UI mutation passes should use checklist-first normalization and bounded data lanes
+- Type: Pattern
+- Summary: Fitness UI work is more reliable when every explicit edit request is turned into a checklist, the canonical surface is patched first, and mutable QA runs stay on bounded fixture or automation-user lanes instead of drifting through live user data.
+- Rule: Explicit UI edit requests should be tracked item-by-item through implementation and closeout.
+- Rule: Shared card and screen families should be normalized from the source presentation path, not by sibling one-off patches.
+- Rule: Live-user routine or session data should be touched only when the bug itself depends on that state, and any bounded mutation must be restored or reported.
+- Pattern: requested-edit checklist -> canonical surface selection -> patch -> multi-surface proof -> checklist reconciliation -> closeout.
+- Failure Mode: missed edits, sibling drift, and accidental data churn keep recurring when UI work is driven by memory and ad hoc screen pokes instead of a governed mutation loop.
+- Status: Proposed
+
 ## 2026-06-15 - Routine template flows should share routine-home, duplicate, and workout-plan creation contracts
 - Type: Pattern
 - WHAT changed: The routine template overhaul now pushes routine home, new routine duplication, and per-day workout-plan creation through shared browse-card, day-snapshot, and creation-helper contracts so routines and workout plans can be copied, reordered, and edited without each route inventing separate card markup, naming, or navigation behavior.

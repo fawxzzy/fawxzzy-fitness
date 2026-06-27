@@ -25,10 +25,11 @@ import { ReorderHandleGlyph } from "@/components/ui/ReorderHandleGlyph";
 import type { MeasurementPanelAuxiliaryField } from "@/components/ui/measurements/MeasurementPanelV2";
 import { ExerciseProgressionEditorSurface } from "@/components/routines/ExerciseProgressionEditorSurface";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
-import { deriveGoalMeasurementSelections, resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import {
   createEditDayExerciseDraft,
   formatEditDayExerciseDraftSummary,
@@ -68,6 +69,8 @@ import {
 } from "@/lib/screen-focus-mode";
 import type { TrainingGoalId } from "@/lib/progression-playbooks";
 import type { SetFlowDirection } from "@/lib/set-flow-directions";
+import { hasWorkoutPlanTemplateNameConflict, normalizeWorkoutPlanTemplateNameCandidate } from "@/lib/workout-plan-template-name";
+import { buildExerciseProgressionStateLabel } from "@/lib/exercise-progression-state-label";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -113,6 +116,16 @@ type Props = {
   weightUnit: "lbs" | "kg";
   exercises: EditableRoutineDayExerciseItem[];
   updateAction: (formData: FormData) => Promise<ActionResult>;
+  resolveTemplateDecisionAction: (
+    formData: FormData,
+  ) => Promise<ActionResult & { templateId?: string; templateName?: string; syncMode?: "sync" }>;
+  loadTemplateDecisionStateAction: (
+    formData: FormData,
+  ) => Promise<ActionResult & {
+    templateId?: string | null;
+    requiresTemplateEditDecision?: boolean;
+    syncMode?: "sync";
+  }>;
   deleteAction: (formData: FormData) => Promise<ActionResult>;
   reorderAction: (formData: FormData) => Promise<ActionResult>;
   initialIsRest: boolean;
@@ -122,6 +135,9 @@ type Props = {
   routineDefaultProgressionPlaybookConfig?: Record<string, unknown> | null;
   showDayAdjustmentControl: boolean;
   initialDayAdjustmentDirection: SetFlowDirection;
+  workoutPlanTemplateId?: string | null;
+  requiresWorkoutPlanTemplateEditDecision?: boolean;
+  existingWorkoutPlanTemplateNames?: Array<string | null | undefined>;
 };
 
 type DragState = {
@@ -130,6 +146,10 @@ type DragState = {
   startX: number;
   startY: number;
   moved: boolean;
+};
+
+type PendingTemplateDecisionSubmit = {
+  resume: () => void | Promise<void>;
 };
 
 function resolveInlineModality(
@@ -184,48 +204,19 @@ function RoutineTargetInputs({
   );
 }
 
-function HiddenRoutineTargetInputs({
-  state,
-  modality,
-}: {
-  state: ExerciseGoalFormState;
-  modality: GoalModality;
-}) {
-  const measurementSelections = deriveGoalMeasurementSelections(modality, {
-    repsMin: state.repsMin,
-    repsMax: state.repsMax,
-    failure: state.failure,
-    weight: state.weight,
-    duration: state.duration,
-    distance: state.distance,
-    calories: state.calories,
-  });
-
-  return (
-    <>
-      {measurementSelections.map((metric) => (
-        <input key={`selected-${metric}`} type="hidden" name="measurementSelections" value={metric} />
-      ))}
-      <input type="hidden" name="targetSets" value={state.sets} />
-      <input type="hidden" name="targetRepsMin" value={state.repsMin} />
-      <input type="hidden" name="targetRepsMax" value={state.repsMax} />
-      <input type="hidden" name="targetWeight" value={state.weight} />
-      <input type="hidden" name="targetDuration" value={state.duration} />
-      <input type="hidden" name="targetDistance" value={state.distance} />
-      <input type="hidden" name="targetCalories" value={state.calories} />
-      <input type="hidden" name="targetWeightUnit" value={state.weightUnit} />
-      <input type="hidden" name="targetDistanceUnit" value={state.distanceUnit} />
-      <input type="hidden" name="goalModality" value={modality} />
-      <input type="hidden" name="defaultUnit" value={state.distanceUnit} />
-    </>
-  );
-}
-
 const CARD_REORDER_HANDLE_CLASS_NAME = cn(
   appTokens.routineEditorReorderHandle,
   "z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
+const TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "toggleInactive",
+  className: "!border-r !border-r-[rgb(var(--secondary-action-rgb)/0.18)] focus-visible:ring-[rgb(var(--secondary-action-rgb)/0.2)]",
+});
+const TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "positive",
+  className: "translate-x-px focus-visible:ring-[rgb(var(--accent)/0.24)]",
+});
 type EditDayProgressionMethodId = Exclude<ProgressionPlaybookId, "deload_after_stall"> | "";
 
 function createEditDayProgressionMethodInfoPayload(playbookId: EditDayProgressionMethodId) {
@@ -352,6 +343,8 @@ export function EditableRoutineDayExerciseList({
   weightUnit,
   exercises,
   updateAction,
+  resolveTemplateDecisionAction,
+  loadTemplateDecisionStateAction,
   deleteAction,
   reorderAction,
   initialIsRest,
@@ -361,6 +354,9 @@ export function EditableRoutineDayExerciseList({
   routineDefaultProgressionPlaybookConfig,
   showDayAdjustmentControl,
   initialDayAdjustmentDirection,
+  workoutPlanTemplateId = null,
+  requiresWorkoutPlanTemplateEditDecision = false,
+  existingWorkoutPlanTemplateNames = [],
 }: Props) {
   const toast = useToast();
   const router = useRouter();
@@ -373,16 +369,30 @@ export function EditableRoutineDayExerciseList({
   const [isRestDay, setIsRestDay] = useState(initialIsRest);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [templateDecisionOpen, setTemplateDecisionOpen] = useState(false);
+  const [templateDecisionStep, setTemplateDecisionStep] = useState<"choice" | "save_new">("choice");
+  const [templateDecisionMode, setTemplateDecisionMode] = useState<"update_existing" | "save_new">("update_existing");
+  const [templateDecisionSessionMode, setTemplateDecisionSessionMode] = useState<"update_existing" | null>(null);
+  const [templateDecisionName, setTemplateDecisionName] = useState("");
+  const [templateDecisionError, setTemplateDecisionError] = useState<string | null>(null);
+  const [isTemplateDecisionPending, startTemplateDecisionTransition] = useTransition();
   const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
   const draftsByIdRef = useRef<Record<string, EditDayExerciseDraft>>({});
   const [trainingFocusById, setTrainingFocusById] = useState<Record<string, TrainingGoalId | "">>({});
   const [isDayAdjustmentVisible, setIsDayAdjustmentVisible] = useState(showDayAdjustmentControl);
   const [dayAdjustmentDirection, setDayAdjustmentDirection] = useState<SetFlowDirection>(initialDayAdjustmentDirection);
-  const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [activeWorkoutPlanTemplateId, setActiveWorkoutPlanTemplateId] = useState<string | null>(workoutPlanTemplateId);
+  const [requiresTemplateEditDecision, setRequiresTemplateEditDecision] = useState(requiresWorkoutPlanTemplateEditDecision);
+  const [shouldSyncTemplateOnSave, setShouldSyncTemplateOnSave] = useState(
+    Boolean(workoutPlanTemplateId) && !requiresWorkoutPlanTemplateEditDecision,
+  );
+  const autosaveTimeoutRef = useRef<number | null>(null);
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
   const pendingSnapshotRef = useRef<string | null>(null);
+  const pendingTemplateDecisionSubmitRef = useRef<PendingTemplateDecisionSubmit | null>(null);
   const lastSavedSnapshotRef = useRef<Record<string, string>>({});
   const itemsRef = useRef(exercises);
+  const expandedIdRef = useRef<string | null>(null);
   const addExerciseNavigationLockedRef = useRef(false);
 
   useEffect(() => {
@@ -392,6 +402,13 @@ export function EditableRoutineDayExerciseList({
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  useEffect(() => {
+    expandedIdRef.current = expandedId;
+    if (!expandedId) {
+      activeEditFormRef.current = null;
+    }
+  }, [expandedId]);
 
   useEffect(() => {
     draftsByIdRef.current = draftsById;
@@ -417,6 +434,12 @@ export function EditableRoutineDayExerciseList({
   useEffect(() => {
     setDayAdjustmentDirection(initialDayAdjustmentDirection);
   }, [initialDayAdjustmentDirection]);
+
+  useEffect(() => {
+    setActiveWorkoutPlanTemplateId(workoutPlanTemplateId);
+    setRequiresTemplateEditDecision(requiresWorkoutPlanTemplateEditDecision && templateDecisionSessionMode !== "update_existing");
+    setShouldSyncTemplateOnSave(Boolean(workoutPlanTemplateId) && (!requiresWorkoutPlanTemplateEditDecision || templateDecisionSessionMode === "update_existing"));
+  }, [requiresWorkoutPlanTemplateEditDecision, templateDecisionSessionMode, workoutPlanTemplateId]);
 
   useEffect(() => () => {
     if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
@@ -466,7 +489,9 @@ export function EditableRoutineDayExerciseList({
     setItems((current) => {
       const fromIndex = current.findIndex((item) => item.id === draggedId);
       const toIndex = current.findIndex((item) => item.id === targetId);
-      return moveItemWithinList(current, fromIndex, toIndex);
+      const next = moveItemWithinList(current, fromIndex, toIndex);
+      itemsRef.current = next;
+      return next;
     });
   };
 
@@ -609,6 +634,29 @@ export function EditableRoutineDayExerciseList({
     return JSON.stringify(snapshotPayload);
   }, []);
 
+  const shouldDeferInlineDraftAutosave = useCallback((form: HTMLFormElement | null) => {
+    if (!form) {
+      return false;
+    }
+
+    const activeElement = document.activeElement;
+    if (!(activeElement instanceof HTMLElement) || !form.contains(activeElement)) {
+      return false;
+    }
+
+    if (activeElement instanceof HTMLTextAreaElement) {
+      return true;
+    }
+
+    if (activeElement instanceof HTMLInputElement) {
+      const inputType = activeElement.type.trim().toLowerCase();
+      return !["button", "checkbox", "radio", "range", "submit"].includes(inputType);
+    }
+
+    const role = activeElement.getAttribute("role")?.toLowerCase();
+    return activeElement.isContentEditable || role === "textbox";
+  }, []);
+
   useEffect(() => subscribeEditDayAutoProgressionVisibility(setIsDayAdjustmentVisible), []);
   useEffect(() => subscribeEditDayAdjustmentDirection(setDayAdjustmentDirection), []);
 
@@ -638,7 +686,7 @@ export function EditableRoutineDayExerciseList({
     (exercise: EditableRoutineDayExerciseItem) => draftsById[exercise.id] ?? buildExerciseDraft(exercise),
     [buildExerciseDraft, draftsById],
   );
-  const updateExerciseDraft = useCallback(
+  const applyExerciseDraftUpdate = useCallback(
     (exercise: EditableRoutineDayExerciseItem, updater: (draft: EditDayExerciseDraft) => EditDayExerciseDraft) => {
       setDraftsById((current) => {
         const baseDraft = current[exercise.id] ?? buildExerciseDraft(exercise);
@@ -654,6 +702,34 @@ export function EditableRoutineDayExerciseList({
       });
     },
     [buildExerciseDraft],
+  );
+  const shouldGateTemplateEditDecision = useCallback(() => (
+    requiresTemplateEditDecision && !templateDecisionSessionMode && Boolean(activeWorkoutPlanTemplateId)
+  ), [activeWorkoutPlanTemplateId, requiresTemplateEditDecision, templateDecisionSessionMode]);
+  const openTemplateDecision = useCallback((resume: () => void | Promise<void>) => {
+    pendingTemplateDecisionSubmitRef.current = { resume };
+    setTemplateDecisionStep("choice");
+    setTemplateDecisionMode("update_existing");
+    setTemplateDecisionName("");
+    setTemplateDecisionError(null);
+    setTemplateDecisionOpen(true);
+  }, []);
+  const updateExerciseDraft = useCallback(
+    (exercise: EditableRoutineDayExerciseItem, updater: (draft: EditDayExerciseDraft) => EditDayExerciseDraft) => {
+      if (shouldGateTemplateEditDecision()) {
+        if (templateDecisionOpen) {
+          return;
+        }
+        openTemplateDecision(() => {
+          const pendingExercise = itemsRef.current.find((item) => item.id === exercise.id) ?? exercise;
+          applyExerciseDraftUpdate(pendingExercise, updater);
+        });
+        return;
+      }
+
+      applyExerciseDraftUpdate(exercise, updater);
+    },
+    [applyExerciseDraftUpdate, openTemplateDecision, shouldGateTemplateEditDecision, templateDecisionOpen],
   );
   const parseFormOptionalNumber = useCallback((value: FormDataEntryValue | null) => {
     const raw = String(value ?? "").trim();
@@ -677,14 +753,39 @@ export function EditableRoutineDayExerciseList({
     );
     return sanitized;
   }, [getLatestExerciseDraft]);
-  const submitExerciseUpdate = useCallback((
+  const shouldSuppressInlineExerciseAutosave = useCallback(
+    (exercise: EditableRoutineDayExerciseItem | null | undefined) => Boolean(exercise && isStretchHubExercise(exercise)),
+    [],
+  );
+  const syncTemplateDecisionState = useCallback(async () => {
+    const stateFormData = new FormData();
+    stateFormData.set("routineId", routineId);
+    stateFormData.set("routineDayId", routineDayId);
+    const stateResult = await loadTemplateDecisionStateAction(stateFormData);
+    if (stateResult.ok) {
+      setActiveWorkoutPlanTemplateId(stateResult.templateId ?? null);
+      setRequiresTemplateEditDecision(Boolean(stateResult.requiresTemplateEditDecision) && templateDecisionSessionMode !== "update_existing");
+      setShouldSyncTemplateOnSave(stateResult.syncMode === "sync" || templateDecisionSessionMode === "update_existing");
+    }
+    return stateResult;
+  }, [loadTemplateDecisionStateAction, routineDayId, routineId, templateDecisionSessionMode]);
+  useEffect(() => {
+    void syncTemplateDecisionState();
+  }, [syncTemplateDecisionState]);
+  const performExerciseUpdate = useCallback((
     exercise: EditableRoutineDayExerciseItem,
     formData: FormData,
     snapshotOverride?: string | null,
+    options?: { forceTemplateSync?: boolean },
   ) => {
     startAutosaveTransition(() => {
       void (async () => {
         const sanitizedFormData = sanitizeExerciseFormData(exercise, formData);
+        if ((options?.forceTemplateSync || shouldSyncTemplateOnSave) && activeWorkoutPlanTemplateId) {
+          sanitizedFormData.set("workoutPlanTemplateSyncMode", "sync");
+        } else {
+          sanitizedFormData.delete("workoutPlanTemplateSyncMode");
+        }
         const result = await updateAction(sanitizedFormData);
         if (!result.ok) {
           const nextError = result.error ?? "Could not update exercise.";
@@ -739,16 +840,45 @@ export function EditableRoutineDayExerciseList({
       })();
     });
   }, [
+    activeWorkoutPlanTemplateId,
     createDraftSnapshot,
     getLatestExerciseDraft,
     parseFormOptionalNumber,
     sanitizeExerciseFormData,
+    shouldSyncTemplateOnSave,
     toast,
     updateAction,
     weightUnit,
   ]);
-  const flushAutosave = useCallback((options?: { defer?: boolean }) => {
+  const submitExerciseUpdate = useCallback((
+    exercise: EditableRoutineDayExerciseItem,
+    formData: FormData,
+    snapshotOverride?: string | null,
+  ) => {
+    if (shouldGateTemplateEditDecision()) {
+      const resumedFormData = new FormData();
+      for (const [key, value] of formData.entries()) {
+        resumedFormData.append(key, value);
+      }
+      openTemplateDecision(() => {
+        const pendingExercise = itemsRef.current.find((item) => item.id === exercise.id) ?? null;
+        if (!pendingExercise) {
+          return;
+        }
+        resumedFormData.set("workoutPlanTemplateSyncMode", "sync");
+        performExerciseUpdate(pendingExercise, resumedFormData, snapshotOverride ?? null, { forceTemplateSync: true });
+      });
+      return;
+    }
+
+    performExerciseUpdate(exercise, formData, snapshotOverride);
+  }, [openTemplateDecision, performExerciseUpdate, shouldGateTemplateEditDecision]);
+  const flushAutosave = useCallback((options?: { defer?: boolean; forceTemplateSync?: boolean }) => {
     if (!expandedId || !activeEditFormRef.current || !activeExercise) return;
+    if (shouldSuppressInlineExerciseAutosave(activeExercise)) {
+      pendingSnapshotRef.current = null;
+      return;
+    }
     if (autosaveTimeoutRef.current) {
       clearTimeout(autosaveTimeoutRef.current);
       autosaveTimeoutRef.current = null;
@@ -765,6 +895,11 @@ export function EditableRoutineDayExerciseList({
         return;
       }
       pendingSnapshotRef.current = snapshot;
+      if (options?.forceTemplateSync) {
+        formData.set("workoutPlanTemplateSyncMode", "sync");
+        performExerciseUpdate(exercise, formData, snapshot, { forceTemplateSync: true });
+        return;
+      }
       submitExerciseUpdate(exercise, formData, snapshot);
     };
 
@@ -779,7 +914,154 @@ export function EditableRoutineDayExerciseList({
     }
 
     submit();
-  }, [activeExercise, createDraftSnapshot, expandedId, submitExerciseUpdate]);
+  }, [activeExercise, createDraftSnapshot, expandedId, performExerciseUpdate, submitExerciseUpdate]);
+  const activeDraft = activeExercise ? draftsById[activeExercise.id] ?? null : null;
+
+  useEffect(() => {
+    if (!activeExercise || !expandedId || templateDecisionOpen) {
+      return;
+    }
+    if (shouldSuppressInlineExerciseAutosave(activeExercise)) {
+      pendingSnapshotRef.current = null;
+      return;
+    }
+
+    const form = activeEditFormRef.current;
+    if (!form || shouldDeferInlineDraftAutosave(form)) {
+      return;
+    }
+
+    const formData = sanitizeExerciseFormData(activeExercise, new FormData(form));
+    const snapshot = createDraftSnapshot(formData);
+    const lastSavedSnapshot = lastSavedSnapshotRef.current[activeExercise.id] ?? null;
+    if (snapshot === lastSavedSnapshot) {
+      pendingSnapshotRef.current = null;
+      return;
+    }
+
+    pendingSnapshotRef.current = snapshot;
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+
+    autosaveTimeoutRef.current = window.setTimeout(() => {
+      autosaveTimeoutRef.current = null;
+      const liveForm = activeEditFormRef.current;
+      if (!liveForm || expandedIdRef.current !== activeExercise.id || shouldDeferInlineDraftAutosave(liveForm)) {
+        return;
+      }
+
+      const liveExercise = itemsRef.current.find((item) => item.id === activeExercise.id) ?? null;
+      if (!liveExercise) {
+        return;
+      }
+
+      const liveFormData = sanitizeExerciseFormData(liveExercise, new FormData(liveForm));
+      const liveSnapshot = createDraftSnapshot(liveFormData);
+      const liveLastSavedSnapshot = lastSavedSnapshotRef.current[liveExercise.id] ?? null;
+      if (liveSnapshot === liveLastSavedSnapshot) {
+        pendingSnapshotRef.current = null;
+        return;
+      }
+
+      submitExerciseUpdate(liveExercise, liveFormData, liveSnapshot);
+    }, 220);
+
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+        autosaveTimeoutRef.current = null;
+      }
+    };
+  }, [
+    activeDraft,
+    activeExercise,
+    createDraftSnapshot,
+    expandedId,
+    sanitizeExerciseFormData,
+    shouldSuppressInlineExerciseAutosave,
+    shouldDeferInlineDraftAutosave,
+    submitExerciseUpdate,
+    templateDecisionOpen,
+  ]);
+  const submitTemplateDecision = useCallback((decisionMode: "update_existing" | "save_new") => {
+    if (decisionMode === "save_new" && templateDecisionStep === "choice") {
+      setTemplateDecisionMode("save_new");
+      setTemplateDecisionStep("save_new");
+      setTemplateDecisionError(null);
+      return;
+    }
+
+    const pendingDecision = pendingTemplateDecisionSubmitRef.current;
+    if (!pendingDecision) {
+      setTemplateDecisionOpen(false);
+      return;
+    }
+
+    setTemplateDecisionMode(decisionMode);
+    const normalizedTemplateName = normalizeWorkoutPlanTemplateNameCandidate(templateDecisionName);
+    if (decisionMode === "save_new") {
+      if (!normalizedTemplateName) {
+        setTemplateDecisionError("Template name is required.");
+        return;
+      }
+      if (hasWorkoutPlanTemplateNameConflict({
+        candidateName: normalizedTemplateName,
+        templateNames: existingWorkoutPlanTemplateNames,
+      })) {
+        setTemplateDecisionError("Template name already exists.");
+        return;
+      }
+    }
+
+    startTemplateDecisionTransition(() => {
+      void (async () => {
+        const decisionFormData = new FormData();
+        decisionFormData.set("routineId", routineId);
+        decisionFormData.set("routineDayId", routineDayId);
+        decisionFormData.set("decisionMode", decisionMode);
+        if (decisionMode === "save_new") {
+          decisionFormData.set("templateName", normalizedTemplateName);
+        }
+
+        const result = await resolveTemplateDecisionAction(decisionFormData);
+        if (!result.ok) {
+          setTemplateDecisionError(result.error ?? "Could not update workout plan template.");
+          return;
+        }
+
+        setTemplateDecisionOpen(false);
+        setTemplateDecisionStep("choice");
+        setTemplateDecisionError(null);
+        setRequiresTemplateEditDecision(false);
+        setShouldSyncTemplateOnSave(result.syncMode === "sync");
+        setTemplateDecisionSessionMode(decisionMode === "update_existing" ? "update_existing" : null);
+        if (result.templateId) {
+          setActiveWorkoutPlanTemplateId(result.templateId);
+        }
+        pendingTemplateDecisionSubmitRef.current = null;
+        if (result.templateName) {
+          toast.success(
+            decisionMode === "update_existing"
+              ? `Template updated: ${result.templateName}`
+              : `New template saved: ${result.templateName}`,
+          );
+        }
+
+        router.refresh();
+        await pendingDecision.resume();
+      })();
+    });
+  }, [
+    existingWorkoutPlanTemplateNames,
+    resolveTemplateDecisionAction,
+    router,
+    routineDayId,
+    routineId,
+    templateDecisionStep,
+    templateDecisionName,
+    toast,
+  ]);
 
   useEffect(() => subscribeEditDayCloseExpandedCard(() => {
     flushAutosave({ defer: true });
@@ -816,15 +1098,97 @@ export function EditableRoutineDayExerciseList({
     });
   }, [hasVisibleAutoProgression]);
 
+  const performReorderSubmit = useCallback(async () => {
+    const formData = new FormData();
+    formData.set("routineId", routineId);
+    formData.set("routineDayId", routineDayId);
+    formData.set("orderedExerciseRowIds", orderedIds.join(","));
+    if (shouldSyncTemplateOnSave || (shouldGateTemplateEditDecision() && activeWorkoutPlanTemplateId)) {
+      formData.set("workoutPlanTemplateSyncMode", "sync");
+    }
+    const result = await reorderAction(formData);
+    if (!result.ok) {
+      toast.error(result.error || "Could not reorder exercises.");
+      setItems(exercises);
+      return;
+    }
+    toast.success("Exercise order updated.");
+  }, [
+    activeWorkoutPlanTemplateId,
+    exercises,
+    orderedIds,
+    reorderAction,
+    routineDayId,
+    routineId,
+    shouldGateTemplateEditDecision,
+    shouldSyncTemplateOnSave,
+    toast,
+  ]);
+
+  const performDeleteExercise = useCallback(async (exerciseId: string) => {
+    const formData = new FormData();
+    formData.set("routineId", routineId);
+    formData.set("routineDayId", routineDayId);
+    formData.set("exerciseRowId", exerciseId);
+    if (shouldSyncTemplateOnSave || (shouldGateTemplateEditDecision() && activeWorkoutPlanTemplateId)) {
+      formData.set("workoutPlanTemplateSyncMode", "sync");
+    }
+    const result = await deleteAction(formData);
+    if (!result.ok) {
+      toast.error(result.error ?? "Could not delete exercise.");
+      return false;
+    }
+    setItems((current) => current.filter((item) => item.id !== exerciseId));
+    setDraftsById((current) => {
+      const { [exerciseId]: _deletedDraft, ...remainingDrafts } = current;
+      return remainingDrafts;
+    });
+    setExpandedId(null);
+    toast.success("Exercise removed.");
+    return true;
+  }, [
+    activeWorkoutPlanTemplateId,
+    deleteAction,
+    routineDayId,
+    routineId,
+    shouldGateTemplateEditDecision,
+    shouldSyncTemplateOnSave,
+    toast,
+  ]);
+
   const addExerciseLabel = "Add Exercise";
 
   const handleAddExercisePress = () => {
     if (addExerciseNavigationLockedRef.current) return;
-    flushAutosave();
-    publishEditDayCloseExpandedCard();
-    setSelectedExerciseId(null);
     addExerciseNavigationLockedRef.current = true;
-    router.push(addExerciseHref);
+    void (async () => {
+      const stateResult = await syncTemplateDecisionState();
+      if (!stateResult.ok) {
+        addExerciseNavigationLockedRef.current = false;
+        toast.error(stateResult.error ?? "Could not verify workout plan template state.");
+        return;
+      }
+
+      const requiresDecision = Boolean(stateResult.requiresTemplateEditDecision) && !templateDecisionSessionMode;
+      const resolvedTemplateId = stateResult.templateId ?? activeWorkoutPlanTemplateId;
+
+      if (requiresDecision && resolvedTemplateId) {
+        addExerciseNavigationLockedRef.current = false;
+        openTemplateDecision(() => {
+          flushAutosave({ forceTemplateSync: true });
+          publishEditDayCloseExpandedCard();
+          setSelectedExerciseId(null);
+          addExerciseNavigationLockedRef.current = true;
+          router.push(addExerciseHref);
+        });
+        return;
+      }
+
+      flushAutosave();
+      publishEditDayCloseExpandedCard();
+      setSelectedExerciseId(null);
+      router.push(addExerciseHref);
+    })();
   };
 
   const addExerciseDock = (
@@ -929,14 +1293,13 @@ export function EditableRoutineDayExerciseList({
         ) : null}
       </PublishBottomActions>
       <form
-        action={async (formData) => {
-          const result = await reorderAction(formData);
-          if (!result.ok) {
-            toast.error(result.error || "Could not reorder exercises.");
-            setItems(exercises);
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (shouldGateTemplateEditDecision()) {
+            openTemplateDecision(() => performReorderSubmit());
             return;
           }
-          toast.success("Exercise order updated.");
+          void performReorderSubmit();
         }}
         className="hidden"
         ref={reorderFormRef}
@@ -970,7 +1333,10 @@ export function EditableRoutineDayExerciseList({
                 ...preview,
                 id: exercise.id,
                 name: exercise.name,
-                progressionModeLabel: draftForPreview.progressionPlaybookId ? "Auto" : "Manual",
+                progressionStateLabel: buildExerciseProgressionStateLabel({
+                  progression_playbook_id: draftForPreview.progressionPlaybookId,
+                  progression_playbook_config: draftForPreview,
+                }),
                 measurementType: exercise.measurementType,
                 primary_muscle: exercise.primary_muscle,
                 equipment: exercise.equipment,
@@ -1079,11 +1445,15 @@ export function EditableRoutineDayExerciseList({
                       }
                       activeEditFormRef.current = node;
                       if (node && lastSavedSnapshotRef.current[exercise.id] == null) {
-                        lastSavedSnapshotRef.current[exercise.id] = createDraftSnapshot(new FormData(node));
+                        const initialFormData = sanitizeExerciseFormData(exercise, new FormData(node));
+                        lastSavedSnapshotRef.current[exercise.id] = createDraftSnapshot(initialFormData);
                       }
                     }}
                     onSubmit={(event) => {
                       event.preventDefault();
+                      if (isStretchHubExercise(exercise)) {
+                        return;
+                      }
                       const formData = sanitizeExerciseFormData(exercise, new FormData(event.currentTarget));
                       submitExerciseUpdate(exercise, formData);
                     }}
@@ -1103,9 +1473,7 @@ export function EditableRoutineDayExerciseList({
                         auxiliaryFields={showProgressionInputs ? [progressionAuxiliaryField] : undefined}
                         inlineFailureToggle
                       />
-                    ) : (
-                      <HiddenRoutineTargetInputs state={draft.goalState} modality={modality} />
-                    )}
+                    ) : null}
                     {showProgressionInputs ? (
                       <ExerciseProgressionEditorSurface
                         draft={draft}
@@ -1155,6 +1523,106 @@ export function EditableRoutineDayExerciseList({
       ) : null}
 
       <ConfirmDestructiveModal
+        open={templateDecisionOpen}
+        title="Workout Plan Template"
+        confirmLabel="Confirm"
+        confirmVariant="primary"
+        hideBottomActions
+        isLoading={isTemplateDecisionPending}
+        attachedFooter={(
+          <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            {templateDecisionStep === "choice" ? (
+              <>
+                <button
+                  type="button"
+                  disabled={isTemplateDecisionPending}
+                  data-confirm-modal-action="cancel"
+                  className={TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME}
+                  onClick={() => submitTemplateDecision("update_existing")}
+                >
+                  <span className="bottom-action__label">
+                    {isTemplateDecisionPending && templateDecisionMode === "update_existing" ? "Updating..." : "Update Template"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isTemplateDecisionPending}
+                  data-confirm-modal-action="confirm"
+                  className={TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME}
+                  onClick={() => submitTemplateDecision("save_new")}
+                >
+                  <span className="bottom-action__label">Save New Template</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  disabled={isTemplateDecisionPending}
+                  data-confirm-modal-action="cancel"
+                  className={TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME}
+                  onClick={() => {
+                    setTemplateDecisionStep("choice");
+                    setTemplateDecisionMode("update_existing");
+                    setTemplateDecisionError(null);
+                  }}
+                >
+                  <span className="bottom-action__label">Cancel</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isTemplateDecisionPending}
+                  data-confirm-modal-action="confirm"
+                  className={TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME}
+                  onClick={() => submitTemplateDecision("save_new")}
+                >
+                  <span className="bottom-action__label">
+                    {isTemplateDecisionPending && templateDecisionMode === "save_new" ? "Saving..." : "Confirm"}
+                  </span>
+                </button>
+              </>
+            )}
+          </AttachedCardActionStripFrame>
+        )}
+        onCancel={() => {
+          pendingTemplateDecisionSubmitRef.current = null;
+          setTemplateDecisionOpen(false);
+          setTemplateDecisionStep("choice");
+          setTemplateDecisionError(null);
+        }}
+        onConfirm={() => {}}
+      >
+        <div className="space-y-3">
+          {templateDecisionStep === "save_new" ? (
+            <label className="block">
+              <span className="sr-only">Template name</span>
+              <input
+                type="text"
+                value={templateDecisionName}
+                onChange={(event) => {
+                  setTemplateDecisionName(event.target.value.slice(0, 15));
+                  setTemplateDecisionError(null);
+                }}
+                placeholder="Template name"
+                maxLength={15}
+                className={cn(
+                  "w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition",
+                  templateDecisionError
+                    ? "border-[rgb(var(--danger-rgb)/0.52)]"
+                    : "border-[rgb(var(--border-strong)/0.16)] focus:border-[rgb(var(--accent)/0.32)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]",
+                )}
+              />
+            </label>
+          ) : null}
+          {templateDecisionError ? (
+            <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">
+              {templateDecisionError}
+            </p>
+          ) : null}
+        </div>
+      </ConfirmDestructiveModal>
+
+      <ConfirmDestructiveModal
         open={deleteConfirmOpen}
         title="Delete exercise?"
         details={activeExercise?.name}
@@ -1165,23 +1633,17 @@ export function EditableRoutineDayExerciseList({
             setDeleteConfirmOpen(false);
             return;
           }
-          const formData = new FormData();
-          formData.set("routineId", routineId);
-          formData.set("routineDayId", routineDayId);
-          formData.set("exerciseRowId", activeExercise.id);
-          const result = await deleteAction(formData);
-          if (!result.ok) {
-            toast.error(result.error ?? "Could not delete exercise.");
+          if (shouldGateTemplateEditDecision()) {
+            setDeleteConfirmOpen(false);
+            openTemplateDecision(async () => {
+              await performDeleteExercise(activeExercise.id);
+            });
             return;
           }
-          setDeleteConfirmOpen(false);
-          setItems((current) => current.filter((item) => item.id !== activeExercise.id));
-          setDraftsById((current) => {
-            const { [activeExercise.id]: _deletedDraft, ...remainingDrafts } = current;
-            return remainingDrafts;
-          });
-          setExpandedId(null);
-          toast.success("Exercise removed.");
+          const didDelete = await performDeleteExercise(activeExercise.id);
+          if (didDelete) {
+            setDeleteConfirmOpen(false);
+          }
         }}
       />
 

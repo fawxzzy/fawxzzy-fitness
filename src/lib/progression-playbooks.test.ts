@@ -350,6 +350,27 @@ test("deload-after-stall parsing tolerates missing legacy deload percent form in
   assert.equal(parsed.config.deloadPercent, 10);
 });
 
+test("deload-after-stall parsing falls back to the default stall threshold when stale form data submits zero", () => {
+  const formData = new FormData();
+  formData.set("progressionPlaybookId", "double_progression");
+  formData.set("progressionLoadIncrement", "5");
+  formData.set("progressionStallPolicy", "deload_after_stall");
+  formData.set("progressionStallThreshold", "0");
+
+  const parsed = parseProgressionPlaybookPayload(formData);
+
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) {
+    return;
+  }
+
+  assert.equal(parsed.playbookId, "double_progression");
+  assert.ok(parsed.config);
+  assert.ok("stallPolicy" in parsed.config);
+  assert.equal(parsed.config.stallPolicy, "deload_after_stall");
+  assert.equal(parsed.config.stallThreshold, 2);
+});
+
 
 test("fixed-load rep range builds reps while holding load", () => {
   const history = buildProgressionHistorySessions({

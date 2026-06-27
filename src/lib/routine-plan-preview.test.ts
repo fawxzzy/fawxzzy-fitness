@@ -16,6 +16,41 @@ test("selectRoutinePlanPreviewExercises normalizes decorated goal-line separator
   assert.equal(previewExercises[0]?.goalLine, "3 sets | 5 reps \u2022 225 lbs");
 });
 
+test("routine plan preview helpers preserve workout-plan exercise order by position", () => {
+  const sourceExercises = [
+    {
+      id: "exercise-3",
+      displayName: "Chest-Supported Row",
+      goalLine: "3 sets | 10 reps",
+      position: 2,
+      details: null,
+    },
+    {
+      id: "exercise-1",
+      displayName: "Stretch",
+      goalLine: null,
+      position: 0,
+      details: {
+        slug: "stretch",
+        primary_muscle: "Recovery",
+      },
+    },
+    {
+      id: "exercise-2",
+      displayName: "Bench Press",
+      goalLine: "3 sets | 5 reps",
+      position: 1,
+      details: null,
+    },
+  ];
+
+  const previewExercises = selectRoutinePlanPreviewExercises(sourceExercises);
+  const recapExercises = buildRoutinePlanRecapExercises(sourceExercises);
+
+  assert.deepEqual(previewExercises.map((exercise) => exercise.id), ["exercise-2", "exercise-3"]);
+  assert.deepEqual(recapExercises.map((exercise) => exercise.id), ["exercise-2", "exercise-3"]);
+});
+
 test("buildRoutinePlanRecapExercises separates set and target labels for workout-plan recaps", () => {
   const recapExercises = buildRoutinePlanRecapExercises([
     {

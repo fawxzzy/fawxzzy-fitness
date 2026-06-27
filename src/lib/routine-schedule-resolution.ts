@@ -102,12 +102,13 @@ function parseDateInput(value: string | Date | null | undefined) {
   }
 
   const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+  const normalized = trimmed.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? null;
+  if (!normalized) {
     return null;
   }
 
-  const timestamp = Date.parse(`${trimmed}T00:00:00Z`);
-  return Number.isFinite(timestamp) ? trimmed : null;
+  const timestamp = Date.parse(`${normalized}T00:00:00Z`);
+  return Number.isFinite(timestamp) ? normalized : null;
 }
 
 function parseDateStringAsUtc(dateString: string) {
