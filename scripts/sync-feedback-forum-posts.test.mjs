@@ -98,6 +98,7 @@ const helpers = {
   buildTitle: ({ area, summary }) => `Feature: ${area} - ${summary}`,
   buildBody: ({ report, reporterLabel }) => `body:${report.report_type}:${reporterLabel}`,
   buildAuditComment: ({ action, actorLabel, note }) => `audit:${action}:${actorLabel}:${note}`,
+  recordForumState: async () => ({ ok: true }),
   shouldApplyBacklogTag: (row) => row.status === "confirmed" || row.status === "fawxzzy_review",
   isTestingCard: (row) => row.area === "Feedback Testing",
 };
@@ -176,6 +177,13 @@ test("sync forum dry-run does not mutate Discord", async () => {
 
 test("sync forum apply mode updates tags titles starter messages and audit comments", async () => {
   const observed = [];
+  const observedHelpers = {
+    ...helpers,
+    async recordForumState(args) {
+      observed.push({ type: "forum-state", args });
+      return { ok: true };
+    },
+  };
 
   const result = await runSyncFeedbackForumPosts({
     client: createMockClient([buildRow()]),
@@ -187,7 +195,7 @@ test("sync forum apply mode updates tags titles starter messages and audit comme
       debug: false,
       includeTesting: false,
     },
-    helpers,
+    helpers: observedHelpers,
     discordApi: {
       async updateThreadTitle(args) {
         observed.push({ type: "title", args });
@@ -233,6 +241,14 @@ test("sync forum apply mode updates tags titles starter messages and audit comme
       args: {
         threadId: "1504673475489562745",
         title: "Feature: Routines - Let me share a routine",
+      },
+    },
+    {
+      type: "forum-state",
+      args: {
+        reportId: "11111111-1111-4111-8111-111111111111",
+        forumTitle: "Feature: Routines - Let me share a routine",
+        forumAppliedTagIds: ["tag-feature", "tag-new"],
       },
     },
     {

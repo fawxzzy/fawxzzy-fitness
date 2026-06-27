@@ -2942,8 +2942,38 @@ export function deriveProgressionPlaybookTarget(args: {
     return null;
   }
 
+  const methodId = resolveMethodIdFromSelection(selection);
+  const methodDefinition = PROGRESSION_METHOD_DEFINITIONS[methodId];
+
   if (args.plan.measurementType !== "reps") {
-    return null;
+    if (args.plan.measurementType === "none" || (args.historyRows?.length ?? 0) === 0) {
+      return null;
+    }
+
+    const candidate = deriveProgressionReviewCandidate({
+      playbookId: selection.id,
+      config: selection.config,
+      plan: args.plan,
+      history: args.history,
+      historyRows: args.historyRows,
+      fallbackWeightUnit: args.fallbackWeightUnit,
+      progressionStepPolicy: args.progressionStepPolicy,
+    });
+    const candidatePlan = candidate.proposedTarget ?? candidate.currentTarget;
+
+    if (!candidatePlan || candidate.playbookId !== selection.id) {
+      return null;
+    }
+
+    return {
+      playbookId: selection.id,
+      label: candidate.label ?? methodDefinition.label,
+      plan: candidatePlan,
+      reason: candidate.reason,
+      changed: candidate.currentTarget && candidate.proposedTarget
+        ? didProgressionTargetChange(candidate.currentTarget, candidatePlan)
+        : false,
+    };
   }
 
   const targetSets = resolveSingleValue(args.plan.setsMin, args.plan.setsMax);
@@ -2991,8 +3021,6 @@ export function deriveProgressionPlaybookTarget(args: {
   }
 
   const currentLoadLabel = formatWeightLabel(targetWeight, targetWeightUnit);
-  const methodId = resolveMethodIdFromSelection(selection);
-  const methodDefinition = PROGRESSION_METHOD_DEFINITIONS[methodId];
   const stallPolicy = resolveStallPolicyFromSelection(selection);
   const deloadConfig = resolveDeloadConfig(selection);
   const basePlan = buildBaseTargetPlan({

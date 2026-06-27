@@ -162,6 +162,154 @@ export async function ensureDiscordResolvedFeedbackReaction(args: {
   };
 }
 
+function messageHasCustomReaction(message: { reactions?: Array<{ emoji?: { id?: string | null } }> } | null | undefined, emoji: string) {
+  const reactionId = String(emoji.split(":")[1] ?? "").trim();
+  if (!reactionId) {
+    return false;
+  }
+
+  return Array.isArray(message?.reactions)
+    ? message.reactions.some((reaction) => String(reaction?.emoji?.id ?? "") === reactionId)
+    : false;
+}
+
+function messageHasLegacySuccessReaction(message: { reactions?: Array<{ emoji?: { name?: string } }> } | null | undefined) {
+  return Array.isArray(message?.reactions)
+    ? message.reactions.some((reaction) => reaction?.emoji?.name === "\u2705")
+    : false;
+}
+
+export async function syncDiscordFeedbackStateReaction(args: {
+  report: DiscordBugReportRow;
+  requiresCompletionReview: (report: DiscordBugReportRow) => boolean;
+  fetchDiscordChannelMessage: (args: {
+    channelId: string;
+    messageId: string;
+  }) => Promise<{ ok: true; message: { reactions?: Array<{ emoji?: { id?: string | null; name?: string } }> } } | { ok: false; code?: string | null; status?: number | null; message?: string | null }>;
+  createDiscordMessageReaction: (args: {
+    channelId: string;
+    messageId: string;
+    emoji: string;
+  }) => Promise<DiscordRestResult>;
+  deleteDiscordOwnMessageReaction: (args: {
+    channelId: string;
+    messageId: string;
+    emoji: string;
+  }) => Promise<DiscordRestResult>;
+  deleteDiscordMessageReactionEmoji: (args: {
+    channelId: string;
+    messageId: string;
+    emoji: string;
+  }) => Promise<DiscordRestResult>;
+  successReaction: string;
+  failureReaction: string;
+  legacySuccessReaction?: string;
+}): Promise<{ warning: string | null }> {
+  if (!args.report.discord_forum_thread_id || !args.report.discord_forum_message_id) {
+    logDiscordFeedbackSoftFailure({
+      stage: "state-reaction-missing-starter",
+      reportId: args.report.id,
+      message: "Missing forum thread id or starter message id for starter reaction sync.",
+    });
+    return {
+      warning: "Discord could not verify the starter-post status reaction because the public starter post id is missing.",
+    };
+  }
+
+  const messageResult = await args.fetchDiscordChannelMessage({
+    channelId: args.report.discord_forum_thread_id,
+    messageId: args.report.discord_forum_message_id,
+  });
+
+  if (!messageResult.ok) {
+    logDiscordFeedbackSoftFailure({
+      stage: "state-reaction-fetch",
+      reportId: args.report.id,
+      code: messageResult.code,
+      status: messageResult.status,
+      message: messageResult.message,
+    });
+    return {
+      warning: "Discord could not inspect the starter-post status reaction state.",
+    };
+  }
+
+  const shouldUseSuccess = isResolvedFeedbackStatus(args.report.status) && args.requiresCompletionReview(args.report);
+  const expectedReaction = shouldUseSuccess ? args.successReaction : args.failureReaction;
+  const staleReaction = shouldUseSuccess ? args.failureReaction : args.successReaction;
+  const hasExpected = messageHasCustomReaction(messageResult.message, expectedReaction);
+  const hasStale = messageHasCustomReaction(messageResult.message, staleReaction);
+  const hasLegacySuccess = shouldUseSuccess
+    ? false
+    : messageHasLegacySuccessReaction(messageResult.message);
+
+  if (!hasExpected) {
+    const createResult = await args.createDiscordMessageReaction({
+      channelId: args.report.discord_forum_thread_id,
+      messageId: args.report.discord_forum_message_id,
+      emoji: expectedReaction,
+    });
+
+    if (!createResult.ok) {
+      logDiscordFeedbackSoftFailure({
+        stage: "state-reaction-create",
+        reportId: args.report.id,
+        code: createResult.code,
+        status: createResult.status,
+        message: createResult.message,
+      });
+      return {
+        warning: "Discord could not apply the starter-post status reaction.",
+      };
+    }
+  }
+
+  if (hasStale) {
+    const deleteResult = await args.deleteDiscordOwnMessageReaction({
+      channelId: args.report.discord_forum_thread_id,
+      messageId: args.report.discord_forum_message_id,
+      emoji: staleReaction,
+    });
+
+    if (!deleteResult.ok) {
+      logDiscordFeedbackSoftFailure({
+        stage: "state-reaction-delete-stale",
+        reportId: args.report.id,
+        code: deleteResult.code,
+        status: deleteResult.status,
+        message: deleteResult.message,
+      });
+      return {
+        warning: "Discord could not remove the stale starter-post status reaction.",
+      };
+    }
+  }
+
+  const legacyEmoji = args.legacySuccessReaction ?? "\u2705";
+  if (hasLegacySuccess) {
+    const deleteLegacyResult = await args.deleteDiscordMessageReactionEmoji({
+      channelId: args.report.discord_forum_thread_id,
+      messageId: args.report.discord_forum_message_id,
+      emoji: legacyEmoji,
+    });
+
+    if (!deleteLegacyResult.ok) {
+      logDiscordFeedbackSoftFailure({
+        stage: "state-reaction-delete-legacy-success",
+        reportId: args.report.id,
+        code: deleteLegacyResult.code,
+        status: deleteLegacyResult.status,
+        message: deleteLegacyResult.message,
+      });
+      return {
+        warning: "Discord could not remove the legacy starter-post success reaction.",
+      };
+    }
+  }
+
+  return { warning: null };
+}
+
 export async function syncDiscordFeedbackForumThread(args: {
   report: DiscordBugReportRow;
   forumChannelId: string | null;
@@ -195,6 +343,7 @@ export async function syncDiscordFeedbackForumThread(args: {
     forumTitle: string;
     forumAppliedTagIds: string[] | null;
   }) => Promise<{ ok: boolean }>;
+  syncDiscordFeedbackStateReaction?: (args: { report: DiscordBugReportRow }) => Promise<{ warning: string | null }>;
 }): Promise<{ forumSyncFailed: boolean }> {
   await args.validateDiscordFeedbackEmojis();
   const forumTitle = args.buildForumThreadTitle({
@@ -287,6 +436,15 @@ export async function syncDiscordFeedbackForumThread(args: {
       requestId: randomUUID(),
       reportId: args.report.id,
     });
+  }
+
+  if (typeof args.syncDiscordFeedbackStateReaction === "function") {
+    const reactionSyncResult = await args.syncDiscordFeedbackStateReaction({
+      report: args.report,
+    });
+    if (reactionSyncResult.warning) {
+      forumSyncFailed = true;
+    }
   }
 
   return {

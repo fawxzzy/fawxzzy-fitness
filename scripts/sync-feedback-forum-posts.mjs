@@ -156,6 +156,42 @@ function createServiceClient() {
   });
 }
 
+async function persistForumState({ client, reportId, forumTitle, forumAppliedTagIds, fallbackPersist = null }) {
+  const normalizedTagIds = Array.isArray(forumAppliedTagIds)
+    ? forumAppliedTagIds.filter((value) => typeof value === "string")
+    : null;
+
+  try {
+    const clientHandle = client?.from?.("discord_feedback_reports");
+    if (clientHandle?.update) {
+      const { error } = await clientHandle
+        .update({
+          discord_forum_title: forumTitle,
+          discord_forum_applied_tag_ids: normalizedTagIds,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", reportId);
+      if (!error) {
+        return { ok: true };
+      }
+
+      return { ok: false, code: error.message ?? "forum-state-update-failed" };
+    }
+  } catch {
+    // Fall back to the app helper below when a lightweight test client lacks update support.
+  }
+
+  if (typeof fallbackPersist === "function") {
+    return fallbackPersist({
+      reportId,
+      forumTitle,
+      forumAppliedTagIds: normalizedTagIds,
+    });
+  }
+
+  return { ok: true };
+}
+
 async function loadFeedbackForumHelpers() {
   if (!feedbackHelpersPromise) {
     register("./test-alias-loader.mjs", pathToFileURL(`${scriptDir}${path.sep}`));
@@ -167,6 +203,7 @@ async function loadFeedbackForumHelpers() {
         buildTitle: module.buildDiscordBugForumThreadTitle,
         buildAuditComment: module.buildFeedbackCardAuditComment,
         formatShortId: module.formatDiscordBugReportShortId,
+        recordForumState: module.recordDiscordBugReportForumState,
         shouldApplyBacklogTag: module.shouldApplyDiscordFeedbackBacklogTag,
         isTestingCard: module.isDiscordFeedbackTestingCard,
       }));
@@ -413,6 +450,7 @@ export async function runSyncFeedbackForumPosts({
       report: row,
       reporterLabel,
     });
+    let matchedTagIds = [];
     const descriptor = buildRowDescriptor({
       shortId,
       row,
@@ -452,6 +490,8 @@ export async function runSyncFeedbackForumPosts({
       if (tagResolutionResult.missingTagNames.length > 0) {
         notes.push(`WARN ${shortId}: missing forum tags ${tagResolutionResult.missingTagNames.join(", ")}`);
       }
+
+      matchedTagIds = [...tagResolutionResult.matchedTagIds];
     }
 
     const titleResult = await discordApi.updateThreadTitle({
@@ -462,6 +502,21 @@ export async function runSyncFeedbackForumPosts({
       failedCount += 1;
       notes.push(`FAIL ${shortId}: thread title update returned ${titleResult.status ?? "unknown"}${titleResult.message ? ` (${titleResult.message})` : ""}`);
       continue;
+    }
+
+    if (typeof resolvedHelpers.recordForumState === "function" || client?.from) {
+      const recordForumStateResult = await persistForumState({
+        client,
+        reportId: row.id,
+        forumTitle: title,
+        forumAppliedTagIds: matchedTagIds.length > 0 ? matchedTagIds : null,
+        fallbackPersist: resolvedHelpers.recordForumState,
+      });
+      if (!recordForumStateResult?.ok) {
+        failedCount += 1;
+        notes.push(`FAIL ${shortId}: forum state persistence returned ${recordForumStateResult?.code ?? "unknown"}`);
+        continue;
+      }
     }
 
     const messageResult = await discordApi.patchStarterMessage({

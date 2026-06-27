@@ -28,7 +28,7 @@ export const MAX_LIMIT = 200;
 export const DEFAULT_MARKDOWN_OUT = "runtime/feedback-board/latest.md";
 export const DEFAULT_JSON_OUT = "runtime/feedback-board/latest.json";
 export const DEFAULT_DRAFTS_OUT = "runtime/feedback-board/codex-drafts.md";
-export const FEEDBACK_BOARD_EXPORTS_DOC_PATH = "docs/ops/FITNESS-FEEDBACK-BOARD-EXPORTS.md";
+export const FEEDBACK_BOARD_EXPORTS_DOC_PATH = "docs/ops/FITNESS-FEEDBACK-BOARD.md";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, "..");

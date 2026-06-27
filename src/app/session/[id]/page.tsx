@@ -344,6 +344,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                 playbookId: progressionSelection.id,
                 config: progressionSelection.config,
                 history: progressionHistory,
+                historyRows: progressionRows,
               } : null,
             });
             const progressionStepPolicy = progressionSelection && resolvedProgressionPlan

@@ -3,6 +3,7 @@ export const FEEDBACK_CARD_PHASE_MAX_LENGTH = 80;
 export const FEEDBACK_CARD_PRIORITY_VALUES = ["P0", "P1", "P2", "P3"];
 export const FEEDBACK_CARD_DEPENDENCY_NOTE_MAX_LENGTH = 240;
 export const FEEDBACK_CARD_DEPENDENCY_REF_MAX_LENGTH = 160;
+const EXPLICIT_FEEDBACK_CARD_ID_PATTERN = /^[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)+$/;
 
 function sanitizeText(value, maxLength) {
   if (typeof value !== "string") {
@@ -92,7 +93,9 @@ export function normalizeFeedbackDependencyReferences(value) {
       continue;
     }
 
-    const cardId = normalizeFeedbackCardId(normalized);
+    const cardId = EXPLICIT_FEEDBACK_CARD_ID_PATTERN.test(normalized)
+      ? normalizeFeedbackCardId(normalized)
+      : null;
     const canonical = cardId ?? normalized;
     const key = cardId ? `id:${cardId}` : `title:${canonical.toLowerCase()}`;
     if (seen.has(key)) {

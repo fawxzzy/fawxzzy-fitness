@@ -79,6 +79,42 @@ function createServiceClient() {
   });
 }
 
+async function persistForumState({ client, reportId, forumTitle, forumAppliedTagIds, fallbackPersist = null }) {
+  const normalizedTagIds = Array.isArray(forumAppliedTagIds)
+    ? forumAppliedTagIds.filter((value) => typeof value === "string")
+    : null;
+
+  try {
+    const clientHandle = client?.from?.("discord_feedback_reports");
+    if (clientHandle?.update) {
+      const { error } = await clientHandle
+        .update({
+          discord_forum_title: forumTitle,
+          discord_forum_applied_tag_ids: normalizedTagIds,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", reportId);
+      if (!error) {
+        return { ok: true };
+      }
+
+      return { ok: false, code: error.message ?? "forum-state-update-failed" };
+    }
+  } catch {
+    // Fall back to the app helper below when a lightweight test client lacks update support.
+  }
+
+  if (typeof fallbackPersist === "function") {
+    return fallbackPersist({
+      reportId,
+      forumTitle,
+      forumAppliedTagIds: normalizedTagIds,
+    });
+  }
+
+  return { ok: true };
+}
+
 export function parseArgs(argv = process.argv.slice(2)) {
   const args = {
     apply: false,
@@ -161,6 +197,7 @@ async function loadFeedbackForumHelpers() {
         buildTagNames: module.buildDiscordBugForumTagNames,
         buildTitle: module.buildDiscordBugForumThreadTitle,
         formatShortId: module.formatDiscordBugReportShortId,
+        recordForumState: module.recordDiscordBugReportForumState,
         shouldApplyBacklogTag: module.shouldApplyDiscordFeedbackBacklogTag,
         isTestingCard: module.isDiscordFeedbackTestingCard,
       }));
@@ -504,6 +541,8 @@ async function fetchRepairRows({ client, args }) {
       "discord_forum_channel_id",
       "discord_forum_thread_id",
       "discord_forum_message_id",
+      "discord_forum_applied_tag_ids",
+      "discord_forum_title",
       "completion_review_status",
       "updated_at",
       "last_seen_at",
@@ -687,24 +726,33 @@ export async function runRepairFeedbackBoardState({
             || expectedTagIds.some((value) => !currentTagIds.includes(value))
           : false;
         const currentTitle = typeof threadResult.data.name === "string" ? threadResult.data.name : "";
+        const cachedRowTagIds = Array.isArray(row.discord_forum_applied_tag_ids)
+          ? row.discord_forum_applied_tag_ids.filter((value) => typeof value === "string")
+          : [];
+        const cachedRowTitle = typeof row.discord_forum_title === "string" ? row.discord_forum_title : "";
         const needsTitleSync = currentTitle !== title;
         const needsReactionSync = reactionPlan.add.length > 0 || reactionPlan.remove.length > 0;
         const needsBodySync = typeof content === "string" && messageResult.data.content !== content;
+        const persistTagIds = needsTagSync && tagResolution.ok ? expectedTagIds : currentTagIds;
+        const persistTitle = needsTitleSync ? title : currentTitle;
+        const needsRowForumStateSync = cachedRowTitle !== persistTitle
+          || cachedRowTagIds.length !== persistTagIds.length
+          || persistTagIds.some((value) => !cachedRowTagIds.includes(value));
         const needsChange = needsTagSync || needsTitleSync || needsReactionSync || needsBodySync;
 
         if (!args.apply) {
-          if (!needsChange) {
+          if (!needsChange && !needsRowForumStateSync) {
             summary.notes.push(`${shortId}:${target.threadId} already-synced`);
             continue;
           }
           summary.dryRunThreads += 1;
           if (args.debug) {
-            logger.log(`would-repair ${shortId} target=${target.kind} thread=${target.threadId} title=${needsTitleSync} tags=${needsTagSync} body=${needsBodySync} add=${reactionPlan.add.join(",") || "(none)"} remove=${reactionPlan.remove.join(",") || "(none)"} tagsExpected=${tagNames.join("|")}`);
+            logger.log(`would-repair ${shortId} target=${target.kind} thread=${target.threadId} title=${needsTitleSync} tags=${needsTagSync} body=${needsBodySync} rowState=${needsRowForumStateSync} add=${reactionPlan.add.join(",") || "(none)"} remove=${reactionPlan.remove.join(",") || "(none)"} tagsExpected=${tagNames.join("|")}`);
           }
           continue;
         }
 
-        if (!needsChange) {
+        if (!needsChange && !needsRowForumStateSync) {
           summary.notes.push(`${shortId}:${target.threadId} already-synced`);
           continue;
         }
@@ -737,6 +785,20 @@ export async function runRepairFeedbackBoardState({
           }, options);
           if (!patchResult.ok) {
             summary.failures.push(`${shortId}:${target.threadId} starter patch failed (${patchResult.status ?? "unknown"}${patchResult.message ? ` ${patchResult.message}` : ""})`);
+            continue;
+          }
+        }
+
+        if (typeof resolvedHelpers.recordForumState === "function" || client?.from) {
+          const recordForumStateResult = await persistForumState({
+            client,
+            reportId: row.id,
+            forumTitle: persistTitle,
+            forumAppliedTagIds: persistTagIds.length > 0 ? persistTagIds : null,
+            fallbackPersist: resolvedHelpers.recordForumState,
+          });
+          if (!recordForumStateResult?.ok) {
+            summary.failures.push(`${shortId}:${target.threadId} forum state persistence failed (${recordForumStateResult?.code ?? "unknown"})`);
             continue;
           }
         }

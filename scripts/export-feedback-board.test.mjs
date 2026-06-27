@@ -204,6 +204,33 @@ test("board export resolves dependency metadata and derives blocked cards", asyn
   assert.equal(result.records[1].dependency_notes, "Keep this blocked until the foundation contract lands.");
 });
 
+test("board export preserves free-text dependency titles instead of coercing them into pseudo card ids", async () => {
+  const result = await exportFeedbackBoard({
+    client: createMockClient([
+      buildRow({
+        id: "history-card",
+        report_type: "feature",
+        summary: "Rebuild useful history metrics and progression analytics",
+      }),
+      buildRow({
+        id: "copilot-card",
+        report_type: "feature",
+        summary: "Session Copilot / Progression Bot Interface",
+        card_id: "FF-COPILOT-001",
+        depends_on: ["Rebuild useful history metrics and progression analytics"],
+      }),
+    ]),
+    args: {
+      ...parseArgs(["--type", "feature"]),
+      writeMarkdown: false,
+      writeJson: false,
+    },
+  });
+
+  const copilot = result.records.find((record) => record.id === "copilot-card");
+  assert.deepEqual(copilot?.depends_on, ["Rebuild useful history metrics and progression analytics"]);
+});
+
 test("board export rejects unresolved dependency references", async () => {
   await assert.rejects(
     () => exportFeedbackBoard({
@@ -398,7 +425,7 @@ test("codex drafts reference a live board-export operator doc and preserve local
   assert.match(drafts, /Keep the one-board export workflow intact\./);
   assert.match(drafts, /Do not write to ATLAS automatically\./);
   assert.match(drafts, /Do not add direct Discord mutation from the board-export draft lane\./);
-  assert.match(drafts, /docs\/ops\/FITNESS-FEEDBACK-BOARD-EXPORTS\.md/);
+  assert.match(drafts, /docs\/ops\/FITNESS-FEEDBACK-BOARD\.md/);
 });
 
 test("board export writes markdown json and optional codex drafts", async () => {

@@ -287,6 +287,92 @@ test("fixed-load complete range returns review copy without increasing load", ()
   assert.match(hint.reason, /review before increasing/i);
 });
 
+test("cardio playbook derives a next target when qualifying history rows are available", () => {
+  const historyRows = [
+    {
+      sessionId: "session-1",
+      performedAt: "2026-05-04T10:00:00.000Z",
+      setIndex: 1,
+      weight: null,
+      reps: null,
+      weightUnit: null,
+      durationSeconds: 1200,
+      distance: null,
+      distanceUnit: null,
+      calories: null,
+      isWarmup: false,
+    },
+  ];
+
+  const hint = deriveSessionTargetHint({
+    measurementType: "time",
+    fallbackWeightUnit: "lbs",
+    stats: null,
+    plan: {
+      measurementType: "time",
+      durationSeconds: 1200,
+    },
+    playbook: {
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5 },
+      history: [],
+      historyRows,
+    },
+  });
+
+  assert.equal(hint.source, "playbook_derived_target");
+  assert.equal(hint.shortLabel, "21:00 s");
+  assert.equal(hint.suggestedValues.durationSeconds, 1260);
+  assert.match(hint.reason, /increase duration/i);
+});
+
+test("reps-only bodyweight playbook derives the next rep target", () => {
+  const historyRows = [
+    { sessionId: "session-1", performedAt: "2026-05-04T10:00:00.000Z", setIndex: 1, weight: null, reps: 12, weightUnit: null, isWarmup: false },
+    { sessionId: "session-1", performedAt: "2026-05-04T10:00:00.000Z", setIndex: 2, weight: null, reps: 12, weightUnit: null, isWarmup: false },
+    { sessionId: "session-1", performedAt: "2026-05-04T10:00:00.000Z", setIndex: 3, weight: null, reps: 12, weightUnit: null, isWarmup: false },
+  ];
+  const history = buildProgressionHistorySessions({
+    rows: historyRows,
+    targetSetCount: 3,
+    topRepTarget: 12,
+  });
+
+  const hint = deriveSessionTargetHint({
+    measurementType: "reps",
+    fallbackWeightUnit: "lbs",
+    stats: buildStats({
+      last_weight: 0,
+      last_reps: 12,
+      last_unit: null,
+      last_performed_at: "2026-05-04T10:00:00.000Z",
+    }),
+    plan: {
+      measurementType: "reps",
+      setsMin: 3,
+      setsMax: 3,
+      repsTarget: 12,
+      repsMin: 8,
+      repsMax: 12,
+      weightMin: null,
+      weightMax: null,
+      weightUnit: "lbs",
+    },
+    playbook: {
+      playbookId: "double_progression",
+      config: { version: 1, loadIncrement: 5, promotionBasis: "reps_only", repPromotionThreshold: "top_of_range" },
+      history,
+      historyRows,
+    },
+  });
+
+  assert.equal(hint.source, "playbook_derived_target");
+  assert.equal(hint.shortLabel, "12 reps");
+  assert.equal(hint.suggestedValues.reps, 12);
+  assert.equal(hint.suggestedValues.weight, null);
+  assert.match(hint.reason, /increase reps/i);
+});
+
 test("playbook with no usable history uses routine target as seed", () => {
   const hint = deriveSessionTargetHint({
     measurementType: "reps",

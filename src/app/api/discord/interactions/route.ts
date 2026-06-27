@@ -319,9 +319,9 @@ import {
   summarizeFeedbackContentChanges,
 } from "@/lib/discord/runtime/feedback/helpers";
 import {
-  ensureDiscordResolvedFeedbackReaction as ensureDiscordResolvedFeedbackReactionBoundary,
   logDiscordFeedbackSoftFailure,
   postFeedbackAuditComment as postFeedbackAuditCommentBoundary,
+  syncDiscordFeedbackStateReaction as syncDiscordFeedbackStateReactionBoundary,
   syncDiscordFeedbackForumThread as syncDiscordFeedbackForumThreadBoundary,
   syncDiscordFeedbackStarterMessage as syncDiscordFeedbackStarterMessageBoundary,
 } from "@/lib/discord/runtime/feedback/forum";
@@ -2148,14 +2148,19 @@ function extractValidatedFeedbackAttachments(interaction: DiscordInteraction): {
   return { ok: true, attachments };
 }
 
-async function ensureDiscordResolvedFeedbackReaction(args: {
+async function syncDiscordFeedbackStateReaction(args: {
   report: DiscordBugReportRow;
 }): Promise<{ warning: string | null }> {
-  return ensureDiscordResolvedFeedbackReactionBoundary({
+  return syncDiscordFeedbackStateReactionBoundary({
     report: args.report,
     requiresCompletionReview: requiresDiscordFeedbackCompletionReview,
+    fetchDiscordChannelMessage,
     createDiscordMessageReaction,
+    deleteDiscordOwnMessageReaction,
+    deleteDiscordMessageReactionEmoji,
     successReaction: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
+    failureReaction: DISCORD_MESSAGE_COMMAND_WARNING_REACTION,
+    legacySuccessReaction: DISCORD_LEGACY_SUCCESS_REACTION,
   });
 }
 
@@ -2182,6 +2187,7 @@ async function syncDiscordFeedbackForumThread(args: {
     updateDiscordForumThreadTitle,
     updateDiscordForumThreadTags,
     recordDiscordBugReportForumState,
+    syncDiscordFeedbackStateReaction,
   });
 }
 
@@ -6760,7 +6766,7 @@ async function handleBugStatusInteraction(interaction: DiscordInteraction) {
     }
   }
 
-  const resolvedReactionResult = await ensureDiscordResolvedFeedbackReaction({
+  const resolvedReactionResult = await syncDiscordFeedbackStateReaction({
     report: updatedReport,
   });
 
@@ -6827,7 +6833,7 @@ async function handleFeedbackCompletionReviewInteraction(interaction: DiscordInt
   }
 
   const resolvedReactionResult = decision === "approved"
-    ? await ensureDiscordResolvedFeedbackReaction({
+    ? await syncDiscordFeedbackStateReaction({
       report: reviewResult.report,
     })
     : { warning: null };

@@ -8,6 +8,7 @@ import {
   getProgressionPlaybookDefinition,
   validateProgressionPlaybookSelection,
   type ProgressionHistorySession,
+  type ProgressionHistorySetRow,
 } from "@/lib/progression-playbooks";
 
 export type SessionTargetHintMeasurementType = "reps" | "time" | "distance" | "time_distance" | "none";
@@ -269,6 +270,7 @@ export function deriveSessionTargetHint(args: {
     playbookId: unknown;
     config: unknown;
     history: ProgressionHistorySession[] | null | undefined;
+    historyRows?: ProgressionHistorySetRow[] | null | undefined;
   } | null;
 }): SessionTargetHint {
   const { measurementType, plan, stats, fallbackWeightUnit } = args;
@@ -306,6 +308,7 @@ export function deriveSessionTargetHint(args: {
         calories: plan.calories ?? null,
       } : null,
       history: args.playbook.history,
+      historyRows: args.playbook.historyRows,
       fallbackWeightUnit,
     })
     : null;
