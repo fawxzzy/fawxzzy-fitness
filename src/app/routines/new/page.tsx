@@ -24,7 +24,7 @@ import {
 } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
-import { loadWorkoutPlanTemplateNames } from "@/lib/workout-plan-templates";
+import { loadWorkoutPlanNames } from "@/lib/workout-plan-templates";
 import { loadWorkoutPlanSourceList } from "@/lib/workout-plan-source-list";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -47,7 +47,7 @@ export default async function NewRoutinePage({
     .from("routines")
     .select("name")
     .eq("user_id", user.id);
-  const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+  const existingWorkoutPlanNames = await loadWorkoutPlanNames({
     supabase,
     userId: user.id,
   });
@@ -315,7 +315,7 @@ export default async function NewRoutinePage({
           distanceUnit: profile.preferred_distance_unit ?? "mi",
         }}
         existingRoutineNames={(existingRoutineRows ?? []).map((routine) => routine.name)}
-        existingTemplateNames={existingTemplateNames}
+        existingWorkoutPlanNames={existingWorkoutPlanNames}
       />
     </RoutineDetailsScreenShell>
   );

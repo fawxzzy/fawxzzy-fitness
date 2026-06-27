@@ -128,8 +128,8 @@ export function WorkoutPlansPageClient({
                   allowWeekdayFallback={false}
                   onPress={planHref ? () => router.push(planHref) : undefined}
                   wrapper={(card) => (
-                    <div className="relative min-w-0 pt-[0.72rem] sm:pt-0">
-                      <div className="pointer-events-none absolute left-[8px] top-0 z-[4] sm:top-px">
+                    <div className="relative min-w-0">
+                      <div className="pointer-events-none absolute left-[10px] top-[3px] z-[6]">
                         <button
                           type="button"
                           onClick={(event) => {

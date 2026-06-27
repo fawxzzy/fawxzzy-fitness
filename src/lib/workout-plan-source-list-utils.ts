@@ -9,22 +9,66 @@ function normalizeWorkoutPlanSourceTitleKey(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase();
 }
 
-export function dedupeWorkoutPlanSourceItemsByTitle<T extends { title: string | null | undefined }>(items: T[]) {
-  const seenTitleKeys = new Set<string>();
+type WorkoutPlanSourceIdentityItem = {
+  title: string | null | undefined;
+  workoutPlanTemplateId?: string | null;
+  sourceRoutineDayId?: string | null;
+  id?: string | null;
+};
 
-  return items.filter((item) => {
+function buildWorkoutPlanSourceIdentityKey(item: WorkoutPlanSourceIdentityItem) {
+  const templateId = item.workoutPlanTemplateId?.trim();
+  if (templateId) {
+    return `template:${templateId}`;
+  }
+
+  const sourceRoutineDayId = item.sourceRoutineDayId?.trim();
+  if (sourceRoutineDayId) {
+    return `source:${sourceRoutineDayId}`;
+  }
+
+  const id = item.id?.trim();
+  if (id) {
+    return `item:${id}`;
+  }
+
+  return "";
+}
+
+export function dedupeWorkoutPlanSourceItemsByTitle<T extends WorkoutPlanSourceIdentityItem>(items: T[]) {
+  const seenIdentityKeys = new Set<string>();
+  const templateBackedTitleKeys = new Set<string>();
+  const seenLegacyTitleKeys = new Set<string>();
+
+  const dedupedItems = items.filter((item) => {
+    const identityKey = buildWorkoutPlanSourceIdentityKey(item);
+    if (identityKey) {
+      if (seenIdentityKeys.has(identityKey)) {
+        return false;
+      }
+
+      seenIdentityKeys.add(identityKey);
+    }
+
     const titleKey = normalizeWorkoutPlanSourceTitleKey(item.title);
     if (!titleKey) {
       return true;
     }
 
-    if (seenTitleKeys.has(titleKey)) {
+    if (item.workoutPlanTemplateId?.trim()) {
+      templateBackedTitleKeys.add(titleKey);
+      return true;
+    }
+
+    if (templateBackedTitleKeys.has(titleKey) || seenLegacyTitleKeys.has(titleKey)) {
       return false;
     }
 
-    seenTitleKeys.add(titleKey);
+    seenLegacyTitleKeys.add(titleKey);
     return true;
   });
+
+  return dedupedItems;
 }
 
 export function selectCanonicalWorkoutPlanSourceDays(args: {

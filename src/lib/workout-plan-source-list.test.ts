@@ -164,6 +164,85 @@ test("dedupeWorkoutPlanSourceItemsByTitle keeps the first matching title and pre
   assert.deepEqual(deduped.map((item) => item.id), ["template-hunt", "legacy-forge"]);
 });
 
+test("dedupeWorkoutPlanSourceItemsByTitle preserves distinct template-backed plans even when titles collide", () => {
+  const deduped = dedupeWorkoutPlanSourceItemsByTitle([
+    {
+      id: "template-hunt-a",
+      workoutPlanTemplateId: "template-hunt-a",
+      sourceRoutineDayId: "day-hunt-a",
+      sourceRoutineId: "routine-a",
+      sourceRoutineName: "Atlas",
+      isCurrentRoutine: true,
+      dayIndex: 1,
+      title: "Hunt",
+      weekdayLabel: "Mon",
+      isRest: false,
+      recapExercises: [],
+    },
+    {
+      id: "template-hunt-b",
+      workoutPlanTemplateId: "template-hunt-b",
+      sourceRoutineDayId: "day-hunt-b",
+      sourceRoutineId: "routine-b",
+      sourceRoutineName: "Forge",
+      isCurrentRoutine: false,
+      dayIndex: 2,
+      title: "Hunt",
+      weekdayLabel: "Tue",
+      isRest: false,
+      recapExercises: [],
+    },
+  ]);
+
+  assert.deepEqual(deduped.map((item) => item.id), ["template-hunt-a", "template-hunt-b"]);
+});
+
+test("dedupeWorkoutPlanSourceItemsByTitle removes duplicate identity rows before title fallback", () => {
+  const deduped = dedupeWorkoutPlanSourceItemsByTitle([
+    {
+      id: "template-hunt-a",
+      workoutPlanTemplateId: "template-hunt-a",
+      sourceRoutineDayId: "day-hunt-a",
+      sourceRoutineId: "routine-a",
+      sourceRoutineName: "Atlas",
+      isCurrentRoutine: true,
+      dayIndex: 1,
+      title: "Hunt",
+      weekdayLabel: "Mon",
+      isRest: false,
+      recapExercises: [],
+    },
+    {
+      id: "template-hunt-a-dup",
+      workoutPlanTemplateId: "template-hunt-a",
+      sourceRoutineDayId: "day-hunt-z",
+      sourceRoutineId: "routine-b",
+      sourceRoutineName: "Atlas Copy",
+      isCurrentRoutine: false,
+      dayIndex: 3,
+      title: "Hunt",
+      weekdayLabel: "Wed",
+      isRest: false,
+      recapExercises: [],
+    },
+    {
+      id: "legacy-hunt",
+      workoutPlanTemplateId: null,
+      sourceRoutineDayId: "day-hunt-legacy",
+      sourceRoutineId: "routine-c",
+      sourceRoutineName: "Legacy",
+      isCurrentRoutine: false,
+      dayIndex: 4,
+      title: "Hunt",
+      weekdayLabel: "Thu",
+      isRest: false,
+      recapExercises: [],
+    },
+  ]);
+
+  assert.deepEqual(deduped.map((item) => item.id), ["template-hunt-a"]);
+});
+
 test("selectCanonicalWorkoutPlanSourceDays keeps distinct workout plans across routines while removing duplicate copies", () => {
   const selectedDays = selectCanonicalWorkoutPlanSourceDays({
     routineDays: [

@@ -15,17 +15,17 @@ import { buildProgressionPlaybookConfigFromFormState, createProgressionPlaybookF
 import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
 import { isSetFlowDirection, type SetFlowDirection } from "@/lib/set-flow-directions";
 import {
-  ensureWorkoutPlanTemplateForRoutineDay,
-  loadRoutineDayExercisesWithTemplateCompat,
-  loadRoutineDayWithTemplateCompat,
-  loadRoutineDaysWithTemplateCompat,
-  loadWorkoutPlanTemplateNames,
-  omitRoutineDayExerciseTemplateColumn,
-  saveRoutineDayAsNewWorkoutPlanTemplate,
+  ensureWorkoutPlanForRoutineDay,
+  loadRoutineDayExercisesWithWorkoutPlanCompat,
+  loadRoutineDayWithWorkoutPlanCompat,
+  loadRoutineDaysWithWorkoutPlanCompat,
+  loadWorkoutPlanNames,
+  omitRoutineDayExerciseWorkoutPlanColumn,
+  saveRoutineDayAsNewWorkoutPlan,
   WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT,
   isMissingRoutineDayExerciseTemplateColumnError,
 } from "@/lib/workout-plan-templates";
-import { hasWorkoutPlanTemplateNameConflict, normalizeWorkoutPlanTemplateNameCandidate } from "@/lib/workout-plan-template-name";
+import { hasWorkoutPlanNameConflict, normalizeWorkoutPlanNameCandidate } from "@/lib/workout-plan-template-name";
 import {
   buildProgressionEventPayload,
   recordProgressionEvent,
@@ -107,27 +107,27 @@ function buildConfigWithUpdatedDayAdjustment(args: {
   });
 }
 
-function shouldSyncLinkedWorkoutPlanTemplate(formData: FormData) {
+function shouldSyncLinkedWorkoutPlan(formData: FormData) {
   return String(formData.get("workoutPlanTemplateSyncMode") ?? "").trim() === "sync";
 }
 
-type WorkoutPlanTemplateDecisionMode = "update_existing" | "save_new";
-type TemplateAwareRoutineDay = NonNullable<Awaited<ReturnType<typeof loadRoutineDayWithTemplateCompat>>["data"]>;
+type WorkoutPlanDecisionMode = "update_existing" | "save_new";
+type TemplateAwareRoutineDay = NonNullable<Awaited<ReturnType<typeof loadRoutineDayWithWorkoutPlanCompat>>["data"]>;
 
-function parseWorkoutPlanTemplateDecisionMode(value: FormDataEntryValue | null): WorkoutPlanTemplateDecisionMode | null {
+function parseWorkoutPlanDecisionMode(value: FormDataEntryValue | null): WorkoutPlanDecisionMode | null {
   const normalized = String(value ?? "").trim();
   return normalized === "update_existing" || normalized === "save_new"
     ? normalized
     : null;
 }
 
-async function loadRoutineDayTemplateSyncContext(args: {
+async function loadRoutineDayWorkoutPlanSyncContext(args: {
   supabase: ReturnType<typeof supabaseServer>;
   userId: string;
   routineId: string;
   routineDayId: string;
 }) {
-  const routineDayResult = await loadRoutineDayWithTemplateCompat({
+  const routineDayResult = await loadRoutineDayWithWorkoutPlanCompat({
     supabase: args.supabase,
     routineDayId: args.routineDayId,
     routineId: args.routineId,
@@ -154,7 +154,7 @@ async function loadRoutineDayTemplateSyncContext(args: {
     };
   }
 
-  const linkedRoutineDaysResult = await loadRoutineDaysWithTemplateCompat({
+  const linkedRoutineDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
     supabase: args.supabase,
     userId: args.userId,
   });
@@ -199,7 +199,7 @@ async function insertRoutineDayExerciseWithCompat(args: {
   });
 
   if (error && isMissingRoutineDayExerciseTemplateColumnError(error)) {
-    payload = omitRoutineDayExerciseTemplateColumn(payload);
+    payload = omitRoutineDayExerciseWorkoutPlanColumn(payload);
     const fallback = await insertRoutineDayExerciseAtEnd({
       supabase: args.supabase,
       routineDayId: args.routineDayId,
@@ -237,7 +237,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     return { ok: false, error: "Missing workout plan info" };
   }
 
-  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+  const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
     supabase,
     userId: user.id,
     routineId,
@@ -249,7 +249,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
 
   const existingDay = templateSyncContext.routineDay;
   const safeName = name.slice(0, 15) || String(existingDay.day_index);
-  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate;
+  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlan(formData) || templateSyncContext.shouldSyncTemplate;
 
   const dayUpdateQuery = shouldSyncTemplate && existingDay.workout_plan_template_id
     ? supabase
@@ -453,7 +453,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     createdCustomExerciseId = createdExercise.id;
   }
 
-  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+  const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
     supabase,
     userId: user.id,
     routineId,
@@ -471,7 +471,7 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     return { ok: false, error: templateSyncContext.error?.message ?? "Workout plan not found" };
   }
 
-  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate;
+  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlan(formData) || templateSyncContext.shouldSyncTemplate;
 
   // Manual QA checklist:
   // - Create strength routine -> add reps + weight -> measurement_type = 'reps'
@@ -563,21 +563,27 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
   return { ok: true };
 }
 
-export async function resolveWorkoutPlanTemplateEditDecisionAction(
+export async function resolveWorkoutPlanEditDecisionAction(
   formData: FormData,
-): Promise<ActionResult & { templateId?: string; templateName?: string; syncMode?: "sync" }> {
+): Promise<ActionResult & {
+  workoutPlanId?: string;
+  workoutPlanName?: string;
+  templateId?: string;
+  templateName?: string;
+  syncMode?: "sync";
+}> {
   const user = await requireUser();
   const supabase = supabaseServer();
   const routineId = String(formData.get("routineId") ?? "").trim();
   const routineDayId = String(formData.get("routineDayId") ?? "").trim();
-  const decisionMode = parseWorkoutPlanTemplateDecisionMode(formData.get("decisionMode"));
-  const requestedTemplateName = normalizeWorkoutPlanTemplateNameCandidate(formData.get("templateName")?.toString() ?? "");
+  const decisionMode = parseWorkoutPlanDecisionMode(formData.get("decisionMode"));
+  const requestedTemplateName = normalizeWorkoutPlanNameCandidate(formData.get("templateName")?.toString() ?? "");
 
   if (!routineId || !routineDayId || !decisionMode) {
-    return { ok: false, error: "Missing workout plan template decision info." };
+    return { ok: false, error: "Missing workout plan decision info." };
   }
 
-  const { data: routineDay, error: routineDayError } = await loadRoutineDayWithTemplateCompat({
+  const { data: routineDay, error: routineDayError } = await loadRoutineDayWithWorkoutPlanCompat({
     supabase,
     routineDayId,
     routineId,
@@ -587,7 +593,7 @@ export async function resolveWorkoutPlanTemplateEditDecisionAction(
     return { ok: false, error: routineDayError?.message ?? "Workout plan not found." };
   }
 
-  const dayExercisesResult = await loadRoutineDayExercisesWithTemplateCompat({
+  const dayExercisesResult = await loadRoutineDayExercisesWithWorkoutPlanCompat({
     supabase,
     userId: user.id,
     routineDayIds: [routineDayId],
@@ -602,21 +608,21 @@ export async function resolveWorkoutPlanTemplateEditDecisionAction(
 
   if (decisionMode === "save_new") {
     if (!requestedTemplateName) {
-      return { ok: false, error: "Template name is required." };
+      return { ok: false, error: "Workout plan name is required." };
     }
 
-    const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+    const existingTemplateNames = await loadWorkoutPlanNames({
       supabase,
       userId: user.id,
     });
-    if (hasWorkoutPlanTemplateNameConflict({
+    if (hasWorkoutPlanNameConflict({
       candidateName: requestedTemplateName,
-      templateNames: existingTemplateNames,
+      workoutPlanNames: existingTemplateNames,
     })) {
-      return { ok: false, error: "Template name already exists." };
+      return { ok: false, error: "Workout plan name already exists." };
     }
 
-    const saveResult = await saveRoutineDayAsNewWorkoutPlanTemplate({
+    const saveResult = await saveRoutineDayAsNewWorkoutPlan({
       supabase,
       userId: user.id,
       routineDay,
@@ -624,20 +630,22 @@ export async function resolveWorkoutPlanTemplateEditDecisionAction(
       requestedName: requestedTemplateName,
     });
     if (saveResult.error || !saveResult.templateId) {
-      return { ok: false, error: saveResult.error?.message ?? "Could not save new workout plan template." };
+      return { ok: false, error: saveResult.error?.message ?? "Could not save new workout plan." };
     }
 
     revalidateRoutineEditPaths(routineId, routineDayId);
     revalidateRoutinesViews();
     return {
       ok: true,
+      workoutPlanId: saveResult.templateId,
+      workoutPlanName: saveResult.templateName ?? requestedTemplateName,
       templateId: saveResult.templateId,
       templateName: saveResult.templateName ?? requestedTemplateName,
       syncMode: "sync",
     };
   }
 
-  const ensureResult = await ensureWorkoutPlanTemplateForRoutineDay({
+  const ensureResult = await ensureWorkoutPlanForRoutineDay({
     supabase,
     userId: user.id,
     routineDay,
@@ -645,22 +653,26 @@ export async function resolveWorkoutPlanTemplateEditDecisionAction(
     markEditChoiceRequired: false,
   });
   if (ensureResult.error || !ensureResult.templateId) {
-    return { ok: false, error: ensureResult.error?.message ?? "Could not prepare workout plan template." };
+    return { ok: false, error: ensureResult.error?.message ?? "Could not prepare workout plan." };
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
   revalidateRoutinesViews();
   return {
     ok: true,
+    workoutPlanId: ensureResult.templateId,
+    workoutPlanName: ensureResult.templateName ?? (requestedTemplateName || undefined),
     templateId: ensureResult.templateId,
     templateName: ensureResult.templateName ?? (requestedTemplateName || undefined),
     syncMode: "sync",
   };
 }
 
-export async function loadWorkoutPlanTemplateEditDecisionStateAction(
+export async function loadWorkoutPlanEditDecisionStateAction(
   formData: FormData,
 ): Promise<ActionResult & {
+  workoutPlanId?: string | null;
+  requiresWorkoutPlanEditDecision?: boolean;
   templateId?: string | null;
   requiresTemplateEditDecision?: boolean;
   syncMode?: "sync";
@@ -671,10 +683,10 @@ export async function loadWorkoutPlanTemplateEditDecisionStateAction(
   const routineDayId = String(formData.get("routineDayId") ?? "").trim();
 
   if (!routineId || !routineDayId) {
-    return { ok: false, error: "Missing workout plan template decision info." };
+    return { ok: false, error: "Missing workout plan decision info." };
   }
 
-  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+  const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
     supabase,
     userId: user.id,
     routineId,
@@ -691,11 +703,17 @@ export async function loadWorkoutPlanTemplateEditDecisionStateAction(
 
   return {
     ok: true,
+    workoutPlanId: templateId,
+    requiresWorkoutPlanEditDecision: requiresTemplateEditDecision,
     templateId,
     requiresTemplateEditDecision,
     syncMode: templateSyncContext.shouldSyncTemplate ? "sync" : undefined,
   };
 }
+
+export const resolveWorkoutPlanTemplateEditDecisionAction = resolveWorkoutPlanEditDecisionAction;
+
+export const loadWorkoutPlanTemplateEditDecisionStateAction = loadWorkoutPlanEditDecisionStateAction;
 
 export async function updateRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
@@ -704,7 +722,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const exerciseRowId = String(formData.get("exerciseRowId") ?? "");
-  const explicitTemplateSync = shouldSyncLinkedWorkoutPlanTemplate(formData);
+  const explicitTemplateSync = shouldSyncLinkedWorkoutPlan(formData);
 
   if (!routineId || !routineDayId || !exerciseRowId) {
     return { ok: false, error: "Missing exercise info" };
@@ -767,7 +785,7 @@ export async function updateRoutineDayExerciseAction(formData: FormData): Promis
   }
 
   {
-    const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+    const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
       supabase,
       userId: user.id,
       routineId,
@@ -864,7 +882,7 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
     return { ok: false, error: "Invalid reorder payload" };
   }
 
-  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+  const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
     supabase,
     userId: user.id,
     routineId,
@@ -875,8 +893,8 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
   }
 
   let error = null;
-  if (shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate) {
-    const dayExercisesResult = await loadRoutineDayExercisesWithTemplateCompat({
+  if (shouldSyncLinkedWorkoutPlan(formData) || templateSyncContext.shouldSyncTemplate) {
+    const dayExercisesResult = await loadRoutineDayExercisesWithWorkoutPlanCompat({
       supabase,
       userId: user.id,
       routineDayIds: [routineDayId],
@@ -945,7 +963,7 @@ export async function deleteRoutineDayExerciseAction(formData: FormData): Promis
     return { ok: false, error: "Missing delete info" };
   }
 
-  const templateSyncContext = await loadRoutineDayTemplateSyncContext({
+  const templateSyncContext = await loadRoutineDayWorkoutPlanSyncContext({
     supabase,
     userId: user.id,
     routineId,
@@ -967,7 +985,7 @@ export async function deleteRoutineDayExerciseAction(formData: FormData): Promis
     return { ok: false, error: existingExerciseError?.message ?? "Routine exercise not found" };
   }
 
-  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlanTemplate(formData) || templateSyncContext.shouldSyncTemplate;
+  const shouldSyncTemplate = shouldSyncLinkedWorkoutPlan(formData) || templateSyncContext.shouldSyncTemplate;
   let error = null;
   if (shouldSyncTemplate && existingExercise.workout_plan_template_exercise_id) {
     const linkedDeleteResult = await supabase

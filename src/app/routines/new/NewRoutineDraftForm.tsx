@@ -242,14 +242,14 @@ function buildCreateRoutineFormData(args: {
 export function NewRoutineDraftForm({
   defaults,
   existingRoutineNames = [],
-  existingTemplateNames = [],
+  existingWorkoutPlanNames = [],
   embedded = false,
   onCancel,
   onCreated,
 }: {
   defaults: NewRoutineDraftDefaults;
   existingRoutineNames?: Array<string | null | undefined>;
-  existingTemplateNames?: Array<string | null | undefined>;
+  existingWorkoutPlanNames?: Array<string | null | undefined>;
   embedded?: boolean;
   onCancel?: () => void;
   onCreated?: (routineId: string) => void;
@@ -387,7 +387,7 @@ export function NewRoutineDraftForm({
   const routineNameConflict = hasRoutineNameConflict({
     candidateName: draft.name,
     routineNames: existingRoutineNames,
-    templateNames: existingTemplateNames,
+    workoutPlanNames: existingWorkoutPlanNames,
   });
   const canCreate = validation.valid && !routineNameConflict && isDirty && !isSaving;
   const isUsingExitGuard = !embedded && Boolean(exitGuard);
@@ -605,7 +605,7 @@ export function NewRoutineDraftForm({
     if (hasRoutineNameConflict({
       candidateName: nextDraft.name,
       routineNames: existingRoutineNames,
-      templateNames: existingTemplateNames,
+      workoutPlanNames: existingWorkoutPlanNames,
     })) {
       const nextError = "Routine name already exists.";
       setError(nextError);
@@ -653,7 +653,7 @@ export function NewRoutineDraftForm({
     }
 
     router.push("/routines");
-  }, [commitCycleLengthInput, embedded, existingRoutineNames, existingTemplateNames, onCreated, router, toast]);
+  }, [commitCycleLengthInput, embedded, existingRoutineNames, existingWorkoutPlanNames, onCreated, router, toast]);
 
   const handleCreateRoutine = () => {
     startTransition(async () => {

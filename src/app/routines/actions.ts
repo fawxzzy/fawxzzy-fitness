@@ -27,18 +27,18 @@ import {
 } from "@/lib/progression-schema-compat";
 import { rollbackAppendedRoutineDay, rollbackDuplicatedRoutine } from "@/lib/routine-copy-rollback";
 import {
-  cloneWorkoutPlanTemplateIntoRoutineDay,
-  ensureWorkoutPlanTemplateForRoutineDay,
-  isMissingWorkoutPlanTemplateTableError,
-  loadRoutineDayExercisesWithTemplateCompat,
-  loadRoutineDayWithTemplateCompat,
-  loadRoutineDaysWithTemplateCompat,
+  cloneWorkoutPlanIntoRoutineDay,
+  ensureWorkoutPlanForRoutineDay,
+  isMissingWorkoutPlanTableError,
+  loadRoutineDayExercisesWithWorkoutPlanCompat,
+  loadRoutineDayWithWorkoutPlanCompat,
+  loadRoutineDaysWithWorkoutPlanCompat,
   omitRoutineDayTemplateColumns,
   ROUTINE_DAY_TEMPLATE_SELECT,
-  updateLinkedWorkoutPlanTemplateChoiceRequirement,
+  updateLinkedWorkoutPlanChoiceRequirement,
 } from "@/lib/workout-plan-templates";
 import { loadWorkoutPlanSourceList, type WorkoutPlanSourceListItem } from "@/lib/workout-plan-source-list";
-import type { WorkoutPlanTemplateRow } from "@/types/db";
+import type { WorkoutPlanRow } from "@/types/db";
 
 type CreateRoutineResult = ActionResult & {
   routineId?: string;
@@ -122,7 +122,7 @@ async function loadRoutineDayWithDuplicateSourceCompat(args: {
   userId: string;
   routineId?: string;
 }) {
-  return loadRoutineDayWithTemplateCompat(args);
+  return loadRoutineDayWithWorkoutPlanCompat(args);
 }
 
 async function loadWorkoutPlanTemplateSourceContext(args: {
@@ -142,16 +142,16 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
 
     if (templateError || !templateData) {
       return {
-        template: null as WorkoutPlanTemplateRow | null,
+        template: null as WorkoutPlanRow | null,
         sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
-        sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+        sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
         sourceRoutineStartDate: null as string | null,
-        templateSupported: !isMissingWorkoutPlanTemplateTableError(templateError),
+        templateSupported: !isMissingWorkoutPlanTableError(templateError),
         error: templateError ?? new Error("Source workout plan not found."),
       };
     }
 
-    const template = templateData as WorkoutPlanTemplateRow;
+    const template = templateData as WorkoutPlanRow;
     const preferredSourceDayId = args.sourceRoutineDayId?.trim() || template.source_routine_day_id?.trim() || "";
     let sourceDay = null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"];
 
@@ -165,15 +165,15 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
     }
 
     if (!sourceDay) {
-      const linkedDaysResult = await loadRoutineDaysWithTemplateCompat({
+      const linkedDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
         supabase: args.supabase,
         userId: args.userId,
       });
       if (linkedDaysResult.error) {
         return {
-          template: null as WorkoutPlanTemplateRow | null,
+          template: null as WorkoutPlanRow | null,
           sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
-          sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+          sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
           sourceRoutineStartDate: null,
           templateSupported: true,
           error: linkedDaysResult.error,
@@ -207,7 +207,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
     return {
       template,
       sourceDay,
-      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate,
       templateSupported: true,
       error: null,
@@ -216,9 +216,9 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
 
   if (!args.sourceRoutineDayId) {
     return {
-      template: null as WorkoutPlanTemplateRow | null,
+      template: null as WorkoutPlanRow | null,
       sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
-      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate: null as string | null,
       templateSupported: false,
       error: new Error("Missing workout plan info."),
@@ -232,25 +232,25 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
   });
   if (sourceDayResult.error || !sourceDayResult.data) {
     return {
-      template: null as WorkoutPlanTemplateRow | null,
+      template: null as WorkoutPlanRow | null,
       sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
-      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate: null as string | null,
       templateSupported: false,
       error: sourceDayResult.error ?? new Error("Source workout plan not found."),
     };
   }
 
-  const sourceDayExercisesResult = await loadRoutineDayExercisesWithTemplateCompat({
+  const sourceDayExercisesResult = await loadRoutineDayExercisesWithWorkoutPlanCompat({
     supabase: args.supabase,
     userId: args.userId,
     routineDayIds: [args.sourceRoutineDayId],
   });
   if (sourceDayExercisesResult.error) {
     return {
-      template: null as WorkoutPlanTemplateRow | null,
+      template: null as WorkoutPlanRow | null,
       sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
-      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate: null as string | null,
       templateSupported: false,
       error: sourceDayExercisesResult.error,
@@ -260,7 +260,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
   const sourceDayExercises = sourceDayExercisesResult.data
     .filter((exercise) => exercise.routine_day_id === args.sourceRoutineDayId)
     .sort((left, right) => left.position - right.position);
-  const ensuredTemplateResult = await ensureWorkoutPlanTemplateForRoutineDay({
+  const ensuredTemplateResult = await ensureWorkoutPlanForRoutineDay({
     supabase: args.supabase,
     userId: args.userId,
     routineDay: sourceDayResult.data,
@@ -268,7 +268,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
     markEditChoiceRequired: true,
   });
   if (ensuredTemplateResult.error || !ensuredTemplateResult.templateId) {
-    if (isMissingWorkoutPlanTemplateTableError(ensuredTemplateResult.error)) {
+    if (isMissingWorkoutPlanTableError(ensuredTemplateResult.error)) {
       const { data: sourceRoutine } = await args.supabase
         .from("routines")
         .select("id, start_date")
@@ -277,7 +277,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
         .maybeSingle();
 
       return {
-        template: null as WorkoutPlanTemplateRow | null,
+        template: null as WorkoutPlanRow | null,
         sourceDay: sourceDayResult.data,
         sourceDayExercises,
         sourceRoutineStartDate: sourceRoutine?.start_date ?? null,
@@ -287,12 +287,12 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
     }
 
     return {
-      template: null as WorkoutPlanTemplateRow | null,
+      template: null as WorkoutPlanRow | null,
       sourceDay: null as Awaited<ReturnType<typeof loadRoutineDayWithDuplicateSourceCompat>>["data"],
-      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"],
+      sourceDayExercises: [] as Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"],
       sourceRoutineStartDate: null as string | null,
       templateSupported: true,
-      error: ensuredTemplateResult.error ?? new Error("Could not prepare workout plan template."),
+      error: ensuredTemplateResult.error ?? new Error("Could not prepare workout plan."),
     };
   }
 
@@ -312,7 +312,7 @@ async function loadWorkoutPlanTemplateSourceContext(args: {
       source_routine_day_id: sourceDayResult.data.id,
       created_at: null,
       updated_at: null,
-    } satisfies WorkoutPlanTemplateRow,
+    } satisfies WorkoutPlanRow,
     sourceDay: sourceDayResult.data,
     sourceDayExercises,
     sourceRoutineStartDate: sourceRoutine?.start_date ?? null,
@@ -325,7 +325,7 @@ async function cloneLegacyRoutineDayExercisesIntoDestination(args: {
   supabase: ReturnType<typeof supabaseServer>;
   userId: string;
   targetRoutineDayId: string;
-  sourceExercises: Awaited<ReturnType<typeof loadRoutineDayExercisesWithTemplateCompat>>["data"];
+  sourceExercises: Awaited<ReturnType<typeof loadRoutineDayExercisesWithWorkoutPlanCompat>>["data"];
 }) {
   if (args.sourceExercises.length === 0) {
     return { error: null };
@@ -766,7 +766,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
     return { ok: false, error: destinationUpdateError.message };
   }
 
-  const editChoiceResult = await updateLinkedWorkoutPlanTemplateChoiceRequirement({
+  const editChoiceResult = await updateLinkedWorkoutPlanChoiceRequirement({
     supabase,
     userId: user.id,
     templateId: sourceContext.template.id,
@@ -785,7 +785,7 @@ export async function duplicateRoutineDayAction(formData: FormData): Promise<Dup
     return { ok: false, error: editChoiceResult.error.message };
   }
 
-  const templateCloneResult = await cloneWorkoutPlanTemplateIntoRoutineDay({
+  const templateCloneResult = await cloneWorkoutPlanIntoRoutineDay({
     supabase,
     userId: user.id,
     templateId: sourceContext.template.id,
@@ -961,7 +961,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
     return { ok: false, error: destinationUpdateError.message };
   }
 
-  const editChoiceResult = await updateLinkedWorkoutPlanTemplateChoiceRequirement({
+  const editChoiceResult = await updateLinkedWorkoutPlanChoiceRequirement({
     supabase,
     userId: user.id,
     templateId: sourceContext.template.id,
@@ -1001,7 +1001,7 @@ export async function populateRoutineDayFromSourceAction(formData: FormData): Pr
     return { ok: false, error: editChoiceResult.error.message };
   }
 
-  const templateCloneResult = await cloneWorkoutPlanTemplateIntoRoutineDay({
+  const templateCloneResult = await cloneWorkoutPlanIntoRoutineDay({
     supabase,
     userId: user.id,
     templateId: sourceContext.template.id,
@@ -1170,7 +1170,7 @@ export async function duplicateRoutineAction(formData: FormData): Promise<Create
     return { ok: false, error: duplicatedRoutineError?.message ?? "Could not duplicate routine." };
   }
 
-  const sourceDaysResult = await loadRoutineDaysWithTemplateCompat({
+  const sourceDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
     supabase,
     userId: user.id,
     routineId: sourceRoutineId,
@@ -1976,7 +1976,7 @@ export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise
     return { ok: false, error: "Missing workout plan source info." };
   }
 
-  const allRoutineDaysResult = await loadRoutineDaysWithTemplateCompat({
+  const allRoutineDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
     supabase,
     userId: user.id,
   });
@@ -1988,7 +1988,7 @@ export async function deleteWorkoutPlanSourceAction(formData: FormData): Promise
   let linkedRoutineDays = [] as typeof allRoutineDaysResult.data;
 
   if (!resolvedTemplateId && requestedSourceRoutineDayId) {
-    const sourceDayResult = await loadRoutineDayWithTemplateCompat({
+    const sourceDayResult = await loadRoutineDayWithWorkoutPlanCompat({
       supabase,
       routineDayId: requestedSourceRoutineDayId,
       userId: user.id,

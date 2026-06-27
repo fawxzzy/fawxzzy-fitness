@@ -372,23 +372,23 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
       )}
       <HorizontalScrollHint
         className="-mx-0.5"
-        scrollClassName="pl-0.5 pr-[2.25rem] pb-0.5"
-        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-0.5 sm:gap-2.5"
+        scrollClassName="pl-0.5 pr-[1.05rem] pb-0.5 sm:pr-[2.25rem]"
+        contentClassName="flex w-max min-w-full items-stretch gap-1.75 pr-[0.45rem] sm:gap-2.5 sm:pr-0"
       >
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.65rem] w-[min(17.75rem,calc(100vw-8.4rem))] max-w-[17.75rem] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2.5 py-2 sm:w-max sm:max-w-none"
+            className="flex min-h-[4.55rem] w-[min(12.85rem,calc(100vw-13.1rem))] max-w-[12.85rem] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:max-w-none sm:px-2.5"
           >
             <ExerciseCardStandardTitle
               name={exercise.name}
               metadata={exercise.signatureLabel ? (
                 <ExerciseCardMetadataLine
                   items={exercise.signatureLabel.split(/\s+\|\s+/).map((value) => value.trim()).filter(Boolean)}
-                  className="max-w-full overflow-hidden text-[9.5px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)]"
+                  className="max-w-full overflow-hidden text-[9px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)] sm:text-[9.5px]"
                 />
               ) : (
-                <span className="max-w-full overflow-hidden whitespace-nowrap text-[9.5px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)]">
+                <span className="max-w-full overflow-hidden whitespace-nowrap text-[9px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)] sm:text-[9.5px]">
                   Exercise configured
                 </span>
               )}
@@ -397,10 +397,10 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
                 ? <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} className="text-[8.35px]" />
                 : undefined}
               columnLayout="compact"
-              className="gap-x-[0.55rem] gap-y-0.5"
-              nameClassName="truncate whitespace-nowrap text-[0.89rem] leading-[1.12] sm:text-[0.91rem] sm:leading-[1.14]"
+              className="gap-x-[0.45rem] gap-y-0.5 sm:gap-x-[0.55rem]"
+              nameClassName="truncate whitespace-nowrap text-[0.84rem] leading-[1.1] sm:text-[0.91rem] sm:leading-[1.14]"
               rightColumnClassName="w-fit max-w-full"
-              rightContentClassName="gap-1 whitespace-nowrap text-[8.95px] leading-[1.03]"
+              rightContentClassName="gap-1 whitespace-nowrap text-[8.55px] leading-[1.03] sm:text-[8.95px]"
             />
             <MetricAccentBar variant="thin" className="mt-2 w-full opacity-75" />
           </div>

@@ -69,7 +69,7 @@ import {
 } from "@/lib/screen-focus-mode";
 import type { TrainingGoalId } from "@/lib/progression-playbooks";
 import type { SetFlowDirection } from "@/lib/set-flow-directions";
-import { hasWorkoutPlanTemplateNameConflict, normalizeWorkoutPlanTemplateNameCandidate } from "@/lib/workout-plan-template-name";
+import { hasWorkoutPlanNameConflict, normalizeWorkoutPlanNameCandidate } from "@/lib/workout-plan-template-name";
 import { buildExerciseProgressionStateLabel } from "@/lib/exercise-progression-state-label";
 
 type EditableRoutineDayExerciseItem = {
@@ -116,12 +116,14 @@ type Props = {
   weightUnit: "lbs" | "kg";
   exercises: EditableRoutineDayExerciseItem[];
   updateAction: (formData: FormData) => Promise<ActionResult>;
-  resolveTemplateDecisionAction: (
+  resolveWorkoutPlanDecisionAction: (
     formData: FormData,
-  ) => Promise<ActionResult & { templateId?: string; templateName?: string; syncMode?: "sync" }>;
-  loadTemplateDecisionStateAction: (
+  ) => Promise<ActionResult & { workoutPlanId?: string; workoutPlanName?: string; templateId?: string; templateName?: string; syncMode?: "sync" }>;
+  loadWorkoutPlanDecisionStateAction: (
     formData: FormData,
   ) => Promise<ActionResult & {
+    workoutPlanId?: string | null;
+    requiresWorkoutPlanEditDecision?: boolean;
     templateId?: string | null;
     requiresTemplateEditDecision?: boolean;
     syncMode?: "sync";
@@ -135,9 +137,9 @@ type Props = {
   routineDefaultProgressionPlaybookConfig?: Record<string, unknown> | null;
   showDayAdjustmentControl: boolean;
   initialDayAdjustmentDirection: SetFlowDirection;
-  workoutPlanTemplateId?: string | null;
-  requiresWorkoutPlanTemplateEditDecision?: boolean;
-  existingWorkoutPlanTemplateNames?: Array<string | null | undefined>;
+  workoutPlanId?: string | null;
+  requiresWorkoutPlanEditDecision?: boolean;
+  existingWorkoutPlanNames?: Array<string | null | undefined>;
 };
 
 type DragState = {
@@ -148,7 +150,7 @@ type DragState = {
   moved: boolean;
 };
 
-type PendingTemplateDecisionSubmit = {
+type PendingWorkoutPlanDecisionSubmit = {
   resume: () => void | Promise<void>;
 };
 
@@ -343,8 +345,8 @@ export function EditableRoutineDayExerciseList({
   weightUnit,
   exercises,
   updateAction,
-  resolveTemplateDecisionAction,
-  loadTemplateDecisionStateAction,
+  resolveWorkoutPlanDecisionAction,
+  loadWorkoutPlanDecisionStateAction,
   deleteAction,
   reorderAction,
   initialIsRest,
@@ -354,9 +356,9 @@ export function EditableRoutineDayExerciseList({
   routineDefaultProgressionPlaybookConfig,
   showDayAdjustmentControl,
   initialDayAdjustmentDirection,
-  workoutPlanTemplateId = null,
-  requiresWorkoutPlanTemplateEditDecision = false,
-  existingWorkoutPlanTemplateNames = [],
+  workoutPlanId = null,
+  requiresWorkoutPlanEditDecision = false,
+  existingWorkoutPlanNames = [],
 }: Props) {
   const toast = useToast();
   const router = useRouter();
@@ -369,27 +371,27 @@ export function EditableRoutineDayExerciseList({
   const [isRestDay, setIsRestDay] = useState(initialIsRest);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [templateDecisionOpen, setTemplateDecisionOpen] = useState(false);
-  const [templateDecisionStep, setTemplateDecisionStep] = useState<"choice" | "save_new">("choice");
-  const [templateDecisionMode, setTemplateDecisionMode] = useState<"update_existing" | "save_new">("update_existing");
-  const [templateDecisionSessionMode, setTemplateDecisionSessionMode] = useState<"update_existing" | null>(null);
-  const [templateDecisionName, setTemplateDecisionName] = useState("");
-  const [templateDecisionError, setTemplateDecisionError] = useState<string | null>(null);
-  const [isTemplateDecisionPending, startTemplateDecisionTransition] = useTransition();
+  const [workoutPlanDecisionOpen, setWorkoutPlanDecisionOpen] = useState(false);
+  const [workoutPlanDecisionStep, setWorkoutPlanDecisionStep] = useState<"choice" | "save_new">("choice");
+  const [workoutPlanDecisionMode, setWorkoutPlanDecisionMode] = useState<"update_existing" | "save_new">("update_existing");
+  const [workoutPlanDecisionSessionMode, setWorkoutPlanDecisionSessionMode] = useState<"update_existing" | null>(null);
+  const [workoutPlanDecisionName, setWorkoutPlanDecisionName] = useState("");
+  const [workoutPlanDecisionError, setWorkoutPlanDecisionError] = useState<string | null>(null);
+  const [isWorkoutPlanDecisionPending, startWorkoutPlanDecisionTransition] = useTransition();
   const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
   const draftsByIdRef = useRef<Record<string, EditDayExerciseDraft>>({});
   const [trainingFocusById, setTrainingFocusById] = useState<Record<string, TrainingGoalId | "">>({});
   const [isDayAdjustmentVisible, setIsDayAdjustmentVisible] = useState(showDayAdjustmentControl);
   const [dayAdjustmentDirection, setDayAdjustmentDirection] = useState<SetFlowDirection>(initialDayAdjustmentDirection);
-  const [activeWorkoutPlanTemplateId, setActiveWorkoutPlanTemplateId] = useState<string | null>(workoutPlanTemplateId);
-  const [requiresTemplateEditDecision, setRequiresTemplateEditDecision] = useState(requiresWorkoutPlanTemplateEditDecision);
-  const [shouldSyncTemplateOnSave, setShouldSyncTemplateOnSave] = useState(
-    Boolean(workoutPlanTemplateId) && !requiresWorkoutPlanTemplateEditDecision,
+  const [activeWorkoutPlanId, setActiveWorkoutPlanId] = useState<string | null>(workoutPlanId);
+  const [requiresWorkoutPlanDecision, setRequiresWorkoutPlanDecision] = useState(requiresWorkoutPlanEditDecision);
+  const [shouldSyncWorkoutPlanOnSave, setShouldSyncWorkoutPlanOnSave] = useState(
+    Boolean(workoutPlanId) && !requiresWorkoutPlanEditDecision,
   );
   const autosaveTimeoutRef = useRef<number | null>(null);
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
   const pendingSnapshotRef = useRef<string | null>(null);
-  const pendingTemplateDecisionSubmitRef = useRef<PendingTemplateDecisionSubmit | null>(null);
+  const pendingWorkoutPlanDecisionSubmitRef = useRef<PendingWorkoutPlanDecisionSubmit | null>(null);
   const lastSavedSnapshotRef = useRef<Record<string, string>>({});
   const itemsRef = useRef(exercises);
   const expandedIdRef = useRef<string | null>(null);
@@ -436,10 +438,10 @@ export function EditableRoutineDayExerciseList({
   }, [initialDayAdjustmentDirection]);
 
   useEffect(() => {
-    setActiveWorkoutPlanTemplateId(workoutPlanTemplateId);
-    setRequiresTemplateEditDecision(requiresWorkoutPlanTemplateEditDecision && templateDecisionSessionMode !== "update_existing");
-    setShouldSyncTemplateOnSave(Boolean(workoutPlanTemplateId) && (!requiresWorkoutPlanTemplateEditDecision || templateDecisionSessionMode === "update_existing"));
-  }, [requiresWorkoutPlanTemplateEditDecision, templateDecisionSessionMode, workoutPlanTemplateId]);
+    setActiveWorkoutPlanId(workoutPlanId);
+    setRequiresWorkoutPlanDecision(requiresWorkoutPlanEditDecision && workoutPlanDecisionSessionMode !== "update_existing");
+    setShouldSyncWorkoutPlanOnSave(Boolean(workoutPlanId) && (!requiresWorkoutPlanEditDecision || workoutPlanDecisionSessionMode === "update_existing"));
+  }, [requiresWorkoutPlanEditDecision, workoutPlanDecisionSessionMode, workoutPlanId]);
 
   useEffect(() => () => {
     if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
@@ -704,23 +706,23 @@ export function EditableRoutineDayExerciseList({
     [buildExerciseDraft],
   );
   const shouldGateTemplateEditDecision = useCallback(() => (
-    requiresTemplateEditDecision && !templateDecisionSessionMode && Boolean(activeWorkoutPlanTemplateId)
-  ), [activeWorkoutPlanTemplateId, requiresTemplateEditDecision, templateDecisionSessionMode]);
-  const openTemplateDecision = useCallback((resume: () => void | Promise<void>) => {
-    pendingTemplateDecisionSubmitRef.current = { resume };
-    setTemplateDecisionStep("choice");
-    setTemplateDecisionMode("update_existing");
-    setTemplateDecisionName("");
-    setTemplateDecisionError(null);
-    setTemplateDecisionOpen(true);
+    requiresWorkoutPlanDecision && !workoutPlanDecisionSessionMode && Boolean(activeWorkoutPlanId)
+  ), [activeWorkoutPlanId, requiresWorkoutPlanDecision, workoutPlanDecisionSessionMode]);
+  const openWorkoutPlanDecision = useCallback((resume: () => void | Promise<void>) => {
+    pendingWorkoutPlanDecisionSubmitRef.current = { resume };
+    setWorkoutPlanDecisionStep("choice");
+    setWorkoutPlanDecisionMode("update_existing");
+    setWorkoutPlanDecisionName("");
+    setWorkoutPlanDecisionError(null);
+    setWorkoutPlanDecisionOpen(true);
   }, []);
   const updateExerciseDraft = useCallback(
     (exercise: EditableRoutineDayExerciseItem, updater: (draft: EditDayExerciseDraft) => EditDayExerciseDraft) => {
       if (shouldGateTemplateEditDecision()) {
-        if (templateDecisionOpen) {
+        if (workoutPlanDecisionOpen) {
           return;
         }
-        openTemplateDecision(() => {
+        openWorkoutPlanDecision(() => {
           const pendingExercise = itemsRef.current.find((item) => item.id === exercise.id) ?? exercise;
           applyExerciseDraftUpdate(pendingExercise, updater);
         });
@@ -729,7 +731,7 @@ export function EditableRoutineDayExerciseList({
 
       applyExerciseDraftUpdate(exercise, updater);
     },
-    [applyExerciseDraftUpdate, openTemplateDecision, shouldGateTemplateEditDecision, templateDecisionOpen],
+    [applyExerciseDraftUpdate, openWorkoutPlanDecision, shouldGateTemplateEditDecision, workoutPlanDecisionOpen],
   );
   const parseFormOptionalNumber = useCallback((value: FormDataEntryValue | null) => {
     const raw = String(value ?? "").trim();
@@ -757,21 +759,21 @@ export function EditableRoutineDayExerciseList({
     (exercise: EditableRoutineDayExerciseItem | null | undefined) => Boolean(exercise && isStretchHubExercise(exercise)),
     [],
   );
-  const syncTemplateDecisionState = useCallback(async () => {
+  const syncWorkoutPlanDecisionState = useCallback(async () => {
     const stateFormData = new FormData();
     stateFormData.set("routineId", routineId);
     stateFormData.set("routineDayId", routineDayId);
-    const stateResult = await loadTemplateDecisionStateAction(stateFormData);
+    const stateResult = await loadWorkoutPlanDecisionStateAction(stateFormData);
     if (stateResult.ok) {
-      setActiveWorkoutPlanTemplateId(stateResult.templateId ?? null);
-      setRequiresTemplateEditDecision(Boolean(stateResult.requiresTemplateEditDecision) && templateDecisionSessionMode !== "update_existing");
-      setShouldSyncTemplateOnSave(stateResult.syncMode === "sync" || templateDecisionSessionMode === "update_existing");
+      setActiveWorkoutPlanId(stateResult.workoutPlanId ?? stateResult.templateId ?? null);
+      setRequiresWorkoutPlanDecision(Boolean(stateResult.requiresWorkoutPlanEditDecision ?? stateResult.requiresTemplateEditDecision) && workoutPlanDecisionSessionMode !== "update_existing");
+      setShouldSyncWorkoutPlanOnSave(stateResult.syncMode === "sync" || workoutPlanDecisionSessionMode === "update_existing");
     }
     return stateResult;
-  }, [loadTemplateDecisionStateAction, routineDayId, routineId, templateDecisionSessionMode]);
+  }, [loadWorkoutPlanDecisionStateAction, routineDayId, routineId, workoutPlanDecisionSessionMode]);
   useEffect(() => {
-    void syncTemplateDecisionState();
-  }, [syncTemplateDecisionState]);
+    void syncWorkoutPlanDecisionState();
+  }, [syncWorkoutPlanDecisionState]);
   const performExerciseUpdate = useCallback((
     exercise: EditableRoutineDayExerciseItem,
     formData: FormData,
@@ -781,7 +783,7 @@ export function EditableRoutineDayExerciseList({
     startAutosaveTransition(() => {
       void (async () => {
         const sanitizedFormData = sanitizeExerciseFormData(exercise, formData);
-        if ((options?.forceTemplateSync || shouldSyncTemplateOnSave) && activeWorkoutPlanTemplateId) {
+        if ((options?.forceTemplateSync || shouldSyncWorkoutPlanOnSave) && activeWorkoutPlanId) {
           sanitizedFormData.set("workoutPlanTemplateSyncMode", "sync");
         } else {
           sanitizedFormData.delete("workoutPlanTemplateSyncMode");
@@ -840,12 +842,12 @@ export function EditableRoutineDayExerciseList({
       })();
     });
   }, [
-    activeWorkoutPlanTemplateId,
+    activeWorkoutPlanId,
     createDraftSnapshot,
     getLatestExerciseDraft,
     parseFormOptionalNumber,
     sanitizeExerciseFormData,
-    shouldSyncTemplateOnSave,
+    shouldSyncWorkoutPlanOnSave,
     toast,
     updateAction,
     weightUnit,
@@ -860,7 +862,7 @@ export function EditableRoutineDayExerciseList({
       for (const [key, value] of formData.entries()) {
         resumedFormData.append(key, value);
       }
-      openTemplateDecision(() => {
+      openWorkoutPlanDecision(() => {
         const pendingExercise = itemsRef.current.find((item) => item.id === exercise.id) ?? null;
         if (!pendingExercise) {
           return;
@@ -872,7 +874,7 @@ export function EditableRoutineDayExerciseList({
     }
 
     performExerciseUpdate(exercise, formData, snapshotOverride);
-  }, [openTemplateDecision, performExerciseUpdate, shouldGateTemplateEditDecision]);
+  }, [openWorkoutPlanDecision, performExerciseUpdate, shouldGateTemplateEditDecision]);
   const flushAutosave = useCallback((options?: { defer?: boolean; forceTemplateSync?: boolean }) => {
     if (!expandedId || !activeEditFormRef.current || !activeExercise) return;
     if (shouldSuppressInlineExerciseAutosave(activeExercise)) {
@@ -918,7 +920,7 @@ export function EditableRoutineDayExerciseList({
   const activeDraft = activeExercise ? draftsById[activeExercise.id] ?? null : null;
 
   useEffect(() => {
-    if (!activeExercise || !expandedId || templateDecisionOpen) {
+    if (!activeExercise || !expandedId || workoutPlanDecisionOpen) {
       return;
     }
     if (shouldSuppressInlineExerciseAutosave(activeExercise)) {
@@ -982,69 +984,69 @@ export function EditableRoutineDayExerciseList({
     shouldSuppressInlineExerciseAutosave,
     shouldDeferInlineDraftAutosave,
     submitExerciseUpdate,
-    templateDecisionOpen,
+    workoutPlanDecisionOpen,
   ]);
-  const submitTemplateDecision = useCallback((decisionMode: "update_existing" | "save_new") => {
-    if (decisionMode === "save_new" && templateDecisionStep === "choice") {
-      setTemplateDecisionMode("save_new");
-      setTemplateDecisionStep("save_new");
-      setTemplateDecisionError(null);
+  const submitWorkoutPlanDecision = useCallback((decisionMode: "update_existing" | "save_new") => {
+    if (decisionMode === "save_new" && workoutPlanDecisionStep === "choice") {
+      setWorkoutPlanDecisionMode("save_new");
+      setWorkoutPlanDecisionStep("save_new");
+      setWorkoutPlanDecisionError(null);
       return;
     }
 
-    const pendingDecision = pendingTemplateDecisionSubmitRef.current;
+    const pendingDecision = pendingWorkoutPlanDecisionSubmitRef.current;
     if (!pendingDecision) {
-      setTemplateDecisionOpen(false);
+      setWorkoutPlanDecisionOpen(false);
       return;
     }
 
-    setTemplateDecisionMode(decisionMode);
-    const normalizedTemplateName = normalizeWorkoutPlanTemplateNameCandidate(templateDecisionName);
+    setWorkoutPlanDecisionMode(decisionMode);
+    const normalizedWorkoutPlanName = normalizeWorkoutPlanNameCandidate(workoutPlanDecisionName);
     if (decisionMode === "save_new") {
-      if (!normalizedTemplateName) {
-        setTemplateDecisionError("Template name is required.");
+      if (!normalizedWorkoutPlanName) {
+        setWorkoutPlanDecisionError("Workout plan name is required.");
         return;
       }
-      if (hasWorkoutPlanTemplateNameConflict({
-        candidateName: normalizedTemplateName,
-        templateNames: existingWorkoutPlanTemplateNames,
+      if (hasWorkoutPlanNameConflict({
+        candidateName: normalizedWorkoutPlanName,
+        workoutPlanNames: existingWorkoutPlanNames,
       })) {
-        setTemplateDecisionError("Template name already exists.");
+        setWorkoutPlanDecisionError("Workout plan name already exists.");
         return;
       }
     }
 
-    startTemplateDecisionTransition(() => {
+    startWorkoutPlanDecisionTransition(() => {
       void (async () => {
         const decisionFormData = new FormData();
         decisionFormData.set("routineId", routineId);
         decisionFormData.set("routineDayId", routineDayId);
         decisionFormData.set("decisionMode", decisionMode);
         if (decisionMode === "save_new") {
-          decisionFormData.set("templateName", normalizedTemplateName);
+          decisionFormData.set("templateName", normalizedWorkoutPlanName);
         }
 
-        const result = await resolveTemplateDecisionAction(decisionFormData);
+        const result = await resolveWorkoutPlanDecisionAction(decisionFormData);
         if (!result.ok) {
-          setTemplateDecisionError(result.error ?? "Could not update workout plan template.");
+          setWorkoutPlanDecisionError(result.error ?? "Could not update workout plan.");
           return;
         }
 
-        setTemplateDecisionOpen(false);
-        setTemplateDecisionStep("choice");
-        setTemplateDecisionError(null);
-        setRequiresTemplateEditDecision(false);
-        setShouldSyncTemplateOnSave(result.syncMode === "sync");
-        setTemplateDecisionSessionMode(decisionMode === "update_existing" ? "update_existing" : null);
-        if (result.templateId) {
-          setActiveWorkoutPlanTemplateId(result.templateId);
+        setWorkoutPlanDecisionOpen(false);
+        setWorkoutPlanDecisionStep("choice");
+        setWorkoutPlanDecisionError(null);
+        setRequiresWorkoutPlanDecision(false);
+        setShouldSyncWorkoutPlanOnSave(result.syncMode === "sync");
+        setWorkoutPlanDecisionSessionMode(decisionMode === "update_existing" ? "update_existing" : null);
+        if (result.workoutPlanId ?? result.templateId) {
+          setActiveWorkoutPlanId(result.workoutPlanId ?? result.templateId ?? null);
         }
-        pendingTemplateDecisionSubmitRef.current = null;
-        if (result.templateName) {
+        pendingWorkoutPlanDecisionSubmitRef.current = null;
+        if (result.workoutPlanName ?? result.templateName) {
           toast.success(
             decisionMode === "update_existing"
-              ? `Template updated: ${result.templateName}`
-              : `New template saved: ${result.templateName}`,
+              ? `Workout plan updated: ${result.workoutPlanName ?? result.templateName}`
+              : `New workout plan saved: ${result.workoutPlanName ?? result.templateName}`,
           );
         }
 
@@ -1053,13 +1055,13 @@ export function EditableRoutineDayExerciseList({
       })();
     });
   }, [
-    existingWorkoutPlanTemplateNames,
-    resolveTemplateDecisionAction,
+    existingWorkoutPlanNames,
+    resolveWorkoutPlanDecisionAction,
     router,
     routineDayId,
     routineId,
-    templateDecisionStep,
-    templateDecisionName,
+    workoutPlanDecisionStep,
+    workoutPlanDecisionName,
     toast,
   ]);
 
@@ -1103,7 +1105,7 @@ export function EditableRoutineDayExerciseList({
     formData.set("routineId", routineId);
     formData.set("routineDayId", routineDayId);
     formData.set("orderedExerciseRowIds", orderedIds.join(","));
-    if (shouldSyncTemplateOnSave || (shouldGateTemplateEditDecision() && activeWorkoutPlanTemplateId)) {
+    if (shouldSyncWorkoutPlanOnSave || (shouldGateTemplateEditDecision() && activeWorkoutPlanId)) {
       formData.set("workoutPlanTemplateSyncMode", "sync");
     }
     const result = await reorderAction(formData);
@@ -1114,14 +1116,14 @@ export function EditableRoutineDayExerciseList({
     }
     toast.success("Exercise order updated.");
   }, [
-    activeWorkoutPlanTemplateId,
+    activeWorkoutPlanId,
     exercises,
     orderedIds,
     reorderAction,
     routineDayId,
     routineId,
     shouldGateTemplateEditDecision,
-    shouldSyncTemplateOnSave,
+    shouldSyncWorkoutPlanOnSave,
     toast,
   ]);
 
@@ -1130,7 +1132,7 @@ export function EditableRoutineDayExerciseList({
     formData.set("routineId", routineId);
     formData.set("routineDayId", routineDayId);
     formData.set("exerciseRowId", exerciseId);
-    if (shouldSyncTemplateOnSave || (shouldGateTemplateEditDecision() && activeWorkoutPlanTemplateId)) {
+    if (shouldSyncWorkoutPlanOnSave || (shouldGateTemplateEditDecision() && activeWorkoutPlanId)) {
       formData.set("workoutPlanTemplateSyncMode", "sync");
     }
     const result = await deleteAction(formData);
@@ -1147,12 +1149,12 @@ export function EditableRoutineDayExerciseList({
     toast.success("Exercise removed.");
     return true;
   }, [
-    activeWorkoutPlanTemplateId,
+    activeWorkoutPlanId,
     deleteAction,
     routineDayId,
     routineId,
     shouldGateTemplateEditDecision,
-    shouldSyncTemplateOnSave,
+    shouldSyncWorkoutPlanOnSave,
     toast,
   ]);
 
@@ -1162,19 +1164,19 @@ export function EditableRoutineDayExerciseList({
     if (addExerciseNavigationLockedRef.current) return;
     addExerciseNavigationLockedRef.current = true;
     void (async () => {
-      const stateResult = await syncTemplateDecisionState();
+      const stateResult = await syncWorkoutPlanDecisionState();
       if (!stateResult.ok) {
         addExerciseNavigationLockedRef.current = false;
-        toast.error(stateResult.error ?? "Could not verify workout plan template state.");
+        toast.error(stateResult.error ?? "Could not verify workout plan state.");
         return;
       }
 
-      const requiresDecision = Boolean(stateResult.requiresTemplateEditDecision) && !templateDecisionSessionMode;
-      const resolvedTemplateId = stateResult.templateId ?? activeWorkoutPlanTemplateId;
+      const requiresDecision = Boolean(stateResult.requiresWorkoutPlanEditDecision ?? stateResult.requiresTemplateEditDecision) && !workoutPlanDecisionSessionMode;
+      const resolvedWorkoutPlanId = stateResult.workoutPlanId ?? stateResult.templateId ?? activeWorkoutPlanId;
 
-      if (requiresDecision && resolvedTemplateId) {
+      if (requiresDecision && resolvedWorkoutPlanId) {
         addExerciseNavigationLockedRef.current = false;
-        openTemplateDecision(() => {
+        openWorkoutPlanDecision(() => {
           flushAutosave({ forceTemplateSync: true });
           publishEditDayCloseExpandedCard();
           setSelectedExerciseId(null);
@@ -1296,7 +1298,7 @@ export function EditableRoutineDayExerciseList({
         onSubmit={(event) => {
           event.preventDefault();
           if (shouldGateTemplateEditDecision()) {
-            openTemplateDecision(() => performReorderSubmit());
+            openWorkoutPlanDecision(() => performReorderSubmit());
             return;
           }
           void performReorderSubmit();
@@ -1523,61 +1525,61 @@ export function EditableRoutineDayExerciseList({
       ) : null}
 
       <ConfirmDestructiveModal
-        open={templateDecisionOpen}
-        title="Workout Plan Template"
+        open={workoutPlanDecisionOpen}
+        title="Workout Plan"
         confirmLabel="Confirm"
         confirmVariant="primary"
         hideBottomActions
-        isLoading={isTemplateDecisionPending}
+        isLoading={isWorkoutPlanDecisionPending}
         attachedFooter={(
           <AttachedCardActionStripFrame className="rounded-t-none" gridClassName="grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            {templateDecisionStep === "choice" ? (
+            {workoutPlanDecisionStep === "choice" ? (
               <>
                 <button
                   type="button"
-                  disabled={isTemplateDecisionPending}
+                  disabled={isWorkoutPlanDecisionPending}
                   data-confirm-modal-action="cancel"
                   className={TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME}
-                  onClick={() => submitTemplateDecision("update_existing")}
+                  onClick={() => submitWorkoutPlanDecision("update_existing")}
                 >
                   <span className="bottom-action__label">
-                    {isTemplateDecisionPending && templateDecisionMode === "update_existing" ? "Updating..." : "Update Template"}
+                    {isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "update_existing" ? "Updating..." : "Update Workout Plan"}
                   </span>
                 </button>
                 <button
                   type="button"
-                  disabled={isTemplateDecisionPending}
+                  disabled={isWorkoutPlanDecisionPending}
                   data-confirm-modal-action="confirm"
                   className={TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME}
-                  onClick={() => submitTemplateDecision("save_new")}
+                  onClick={() => submitWorkoutPlanDecision("save_new")}
                 >
-                  <span className="bottom-action__label">Save New Template</span>
+                  <span className="bottom-action__label">Save New Workout Plan</span>
                 </button>
               </>
             ) : (
               <>
                 <button
                   type="button"
-                  disabled={isTemplateDecisionPending}
+                  disabled={isWorkoutPlanDecisionPending}
                   data-confirm-modal-action="cancel"
                   className={TEMPLATE_DECISION_SECONDARY_BUTTON_CLASS_NAME}
                   onClick={() => {
-                    setTemplateDecisionStep("choice");
-                    setTemplateDecisionMode("update_existing");
-                    setTemplateDecisionError(null);
+                    setWorkoutPlanDecisionStep("choice");
+                    setWorkoutPlanDecisionMode("update_existing");
+                    setWorkoutPlanDecisionError(null);
                   }}
                 >
                   <span className="bottom-action__label">Cancel</span>
                 </button>
                 <button
                   type="button"
-                  disabled={isTemplateDecisionPending}
+                  disabled={isWorkoutPlanDecisionPending}
                   data-confirm-modal-action="confirm"
                   className={TEMPLATE_DECISION_PRIMARY_BUTTON_CLASS_NAME}
-                  onClick={() => submitTemplateDecision("save_new")}
+                  onClick={() => submitWorkoutPlanDecision("save_new")}
                 >
                   <span className="bottom-action__label">
-                    {isTemplateDecisionPending && templateDecisionMode === "save_new" ? "Saving..." : "Confirm"}
+                    {isWorkoutPlanDecisionPending && workoutPlanDecisionMode === "save_new" ? "Saving..." : "Confirm"}
                   </span>
                 </button>
               </>
@@ -1585,38 +1587,38 @@ export function EditableRoutineDayExerciseList({
           </AttachedCardActionStripFrame>
         )}
         onCancel={() => {
-          pendingTemplateDecisionSubmitRef.current = null;
-          setTemplateDecisionOpen(false);
-          setTemplateDecisionStep("choice");
-          setTemplateDecisionError(null);
+          pendingWorkoutPlanDecisionSubmitRef.current = null;
+          setWorkoutPlanDecisionOpen(false);
+          setWorkoutPlanDecisionStep("choice");
+          setWorkoutPlanDecisionError(null);
         }}
         onConfirm={() => {}}
       >
         <div className="space-y-3">
-          {templateDecisionStep === "save_new" ? (
+          {workoutPlanDecisionStep === "save_new" ? (
             <label className="block">
-              <span className="sr-only">Template name</span>
+              <span className="sr-only">Workout plan name</span>
               <input
                 type="text"
-                value={templateDecisionName}
+                value={workoutPlanDecisionName}
                 onChange={(event) => {
-                  setTemplateDecisionName(event.target.value.slice(0, 15));
-                  setTemplateDecisionError(null);
+                  setWorkoutPlanDecisionName(event.target.value.slice(0, 15));
+                  setWorkoutPlanDecisionError(null);
                 }}
-                placeholder="Template name"
+                placeholder="Workout plan name"
                 maxLength={15}
                 className={cn(
                   "w-full rounded-[0.95rem] border bg-[rgb(var(--surface-2-rgb)/0.62)] px-3 py-2.5 text-center text-sm text-[rgb(var(--text-primary))] outline-none transition",
-                  templateDecisionError
+                  workoutPlanDecisionError
                     ? "border-[rgb(var(--danger-rgb)/0.52)]"
                     : "border-[rgb(var(--border-strong)/0.16)] focus:border-[rgb(var(--accent)/0.32)] focus:ring-2 focus:ring-[rgb(var(--accent)/0.16)]",
                 )}
               />
             </label>
           ) : null}
-          {templateDecisionError ? (
+          {workoutPlanDecisionError ? (
             <p className="text-center text-[12px] font-medium text-[rgb(var(--danger-rgb)/0.94)]">
-              {templateDecisionError}
+              {workoutPlanDecisionError}
             </p>
           ) : null}
         </div>
@@ -1635,7 +1637,7 @@ export function EditableRoutineDayExerciseList({
           }
           if (shouldGateTemplateEditDecision()) {
             setDeleteConfirmOpen(false);
-            openTemplateDecision(async () => {
+            openWorkoutPlanDecision(async () => {
               await performDeleteExercise(activeExercise.id);
             });
             return;

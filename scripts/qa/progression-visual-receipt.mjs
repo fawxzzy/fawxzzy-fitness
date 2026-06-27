@@ -27,6 +27,13 @@ export const PROGRESSION_RECEIPT_SCENARIOS = [
     ],
     actions: [
       {
+        id: "today-shell-ready",
+        label: "Today floating header and bottom dock finish mounting before capture",
+        type: "waitForSelector",
+        selector: "body[data-mobile-regression-today-shell-ready='true']",
+        timeoutMs: 15000,
+      },
+      {
         id: "promote-affordance-renders",
         label: "Ready-only Promote affordance renders",
         type: "waitForText",

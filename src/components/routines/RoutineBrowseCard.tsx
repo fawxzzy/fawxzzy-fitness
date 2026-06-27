@@ -43,24 +43,24 @@ const ROUTINES_BROWSE_CARD_BODY_CLASS_NAME = "min-h-[7.2rem] py-[0.72rem]";
 const ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1.5 py-0";
 const ROUTINES_BROWSE_CARD_PREVIEW_GRID_CLASS_NAME = "grid gap-2 pt-1";
 const ROUTINES_BROWSE_CARD_SCROLL_WRAPPER_CLASS_NAME = "-mx-1";
-const ROUTINES_BROWSE_CARD_PREVIEW_SCROLL_CLASS_NAME = "pl-1 pr-[1.2rem] pb-1";
-const ROUTINES_BROWSE_CARD_PREVIEW_ROW_CLASS_NAME = "flex w-max min-w-full items-center gap-2";
-const ROUTINES_BROWSE_CARD_PREVIEW_TILE_CLASS_NAME = "grid min-h-[6.1rem] w-[10.75rem] min-w-[10.75rem] content-start gap-2 rounded-[1rem] border-2 border-[rgb(var(--accent-divider-rgb)/0.4)] bg-[rgb(var(--surface-2-rgb)/0.58)] px-3 py-2.5 shadow-[inset_0_0_0_1px_rgb(var(--accent-divider-rgb)/0.08)]";
-const ROUTINES_BROWSE_CARD_REST_PREVIEW_TILE_CLASS_NAME = "min-h-[2.45rem] w-[7.4rem] min-w-[7.4rem] content-center gap-0 border-[rgb(var(--accent-yellow-on)/0.5)] bg-[rgb(var(--accent-yellow-off)/0.1)] px-2 py-1";
+const ROUTINES_BROWSE_CARD_PREVIEW_SCROLL_CLASS_NAME = "pl-1 pr-[1.7rem] pb-1 sm:pr-[1.2rem]";
+const ROUTINES_BROWSE_CARD_PREVIEW_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-2 pr-[1.35rem] sm:justify-center sm:pr-0";
+const ROUTINES_BROWSE_CARD_PREVIEW_TILE_CLASS_NAME = "grid min-h-[6.1rem] w-[9.95rem] min-w-[9.95rem] content-start gap-2 rounded-[1rem] border-2 border-[rgb(var(--accent-divider-rgb)/0.4)] bg-[rgb(var(--surface-2-rgb)/0.58)] px-2.5 py-2.5 shadow-[inset_0_0_0_1px_rgb(var(--accent-divider-rgb)/0.08)] sm:w-[10.75rem] sm:min-w-[10.75rem] sm:px-3";
+const ROUTINES_BROWSE_CARD_REST_PREVIEW_TILE_CLASS_NAME = "min-h-[2.45rem] w-[6.95rem] min-w-[6.95rem] content-center gap-0 border-[rgb(var(--accent-yellow-on)/0.5)] bg-[rgb(var(--accent-yellow-off)/0.1)] px-2 py-1 sm:w-[7.4rem] sm:min-w-[7.4rem]";
 const ROUTINES_BROWSE_CARD_PREVIEW_HEADER_CLASS_NAME = "grid w-full min-w-0 justify-items-center gap-1";
 const ROUTINES_BROWSE_CARD_PREVIEW_TITLE_CLASS_NAME = "block max-w-full text-center text-[0.88rem] font-semibold leading-tight [text-wrap:balance]";
 const ROUTINES_BROWSE_CARD_PREVIEW_META_LINE_CLASS_NAME = "inline-flex min-w-0 max-w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center";
 const ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_WRAPPER_CLASS_NAME = "-mx-0.5";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_CLASS_NAME = "px-0.5 pb-0.5";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_CLASS_NAME = `${ROUTINE_SURFACE_TAG_CLASS_NAME} max-w-full whitespace-normal text-center`;
+const ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_CLASS_NAME = "pl-0.5 pr-[1rem] pb-0.5 sm:px-0.5";
+const ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1.5 sm:justify-center";
+const ROUTINES_BROWSE_CARD_PREVIEW_TAG_CLASS_NAME = `${ROUTINE_SURFACE_TAG_CLASS_NAME} max-w-full whitespace-normal px-2 py-[0.24rem] text-center text-[10px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`;
 const ROUTINES_BROWSE_CARD_META_CLASS_NAME = "flex justify-end pt-1";
 const ROUTINES_BROWSE_CARD_CREATED_TAG_CLASS_NAME = "inline-flex items-center rounded-full bg-[rgb(var(--surface-2-rgb)/0.7)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.94)]";
 const ROUTINES_BROWSE_CARD_SUMMARY_SCROLL_WRAPPER_CLASS_NAME = "-mx-1";
-const ROUTINES_BROWSE_CARD_SUMMARY_SCROLL_CLASS_NAME = "px-1 pb-0.5";
-const ROUTINES_BROWSE_CARD_SUMMARY_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
+const ROUTINES_BROWSE_CARD_SUMMARY_SCROLL_CLASS_NAME = "pl-1 pr-[1.55rem] pb-0.5 sm:px-1";
+const ROUTINES_BROWSE_CARD_SUMMARY_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1.5 pr-[1.35rem] sm:justify-center sm:pr-0";
 const ROUTINES_BROWSE_CARD_CHEVRON_OVERLAY_CLASS_NAME = "!right-0 !top-0 !bottom-0 !translate-y-0";
-const ROUTINES_BROWSE_CARD_CHEVRON_STACK_CLASS_NAME = "h-full w-[1.35rem] items-center justify-center rounded-r-[inherit] bg-[linear-gradient(270deg,rgba(var(--surface-rgb),0.34)_0%,rgba(var(--surface-rgb),0.16)_56%,rgba(var(--surface-rgb),0.02)_100%)] shadow-[-8px_0_18px_rgb(0_0_0/0.08)] backdrop-blur-[14px]";
+const ROUTINES_BROWSE_CARD_CHEVRON_STACK_CLASS_NAME = "h-full w-[1.1rem] items-center justify-center rounded-r-[inherit] bg-[linear-gradient(270deg,rgba(var(--surface-rgb),0.34)_0%,rgba(var(--surface-rgb),0.16)_56%,rgba(var(--surface-rgb),0.02)_100%)] shadow-[-8px_0_18px_rgb(0_0_0/0.08)] backdrop-blur-[14px] sm:w-[1.35rem]";
 
 function renderRoutineBrowseRightRail() {
   return (
@@ -171,7 +171,11 @@ function renderRoutineSummaryTags(routine: RoutineBrowseCardItem) {
       showEdgeFades={false}
     >
       {parts.map((part) => (
-        <AppBadge key={part} tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
+        <AppBadge
+          key={part}
+          tone="default"
+          className={`${ROUTINE_SURFACE_TAG_CLASS_NAME} px-2.5 py-[0.26rem] text-[10px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`}
+        >
           {renderRoutineMetricTagLabel(part)}
         </AppBadge>
       ))}

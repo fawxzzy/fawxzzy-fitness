@@ -14,7 +14,7 @@ import {
   RoutineOverviewDayCard,
   RoutineDayCardTitle,
 } from "@/components/day-list/RoutineDayCardPresentation";
-import { usePublishBottomActions } from "@/components/layout/bottom-actions";
+import { useHasBottomActions, usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { ACTION_CHROME_CONTROL_CLASS_NAME } from "@/components/ui/actionChrome";
@@ -211,6 +211,7 @@ export function TodayDayPicker({
 
   const [floatingHeaderTarget, setFloatingHeaderTarget] = useState<HTMLElement | null>(null);
   const [switchFloatingHeaderTarget, setSwitchFloatingHeaderTarget] = useState<HTMLElement | null>(null);
+  const hasBottomActions = useHasBottomActions();
 
   useEffect(() => {
     if (!floatingHeaderSlotId) return;
@@ -703,6 +704,25 @@ export function TodayDayPicker({
   ]);
 
   usePublishBottomActions(actionsNode);
+
+  useEffect(() => {
+    if (typeof document === "undefined" || document.body.dataset.mobileRegression !== "true") {
+      return;
+    }
+
+    const hasResolvedFloatingHeader = !floatingHeaderSlotId || Boolean(floatingHeaderTarget);
+    if (hasResolvedFloatingHeader && hasBottomActions) {
+      document.body.dataset.mobileRegressionTodayShellReady = "true";
+      return () => {
+        delete document.body.dataset.mobileRegressionTodayShellReady;
+      };
+    }
+
+    delete document.body.dataset.mobileRegressionTodayShellReady;
+    return () => {
+      delete document.body.dataset.mobileRegressionTodayShellReady;
+    };
+  }, [floatingHeaderSlotId, floatingHeaderTarget, hasBottomActions]);
 
   return (
     <>

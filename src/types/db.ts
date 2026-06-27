@@ -159,6 +159,10 @@ export type WorkoutPlanTemplateExerciseRow = {
   updated_at?: string | null;
 };
 
+export type WorkoutPlanRow = WorkoutPlanTemplateRow;
+
+export type WorkoutPlanExerciseRow = WorkoutPlanTemplateExerciseRow;
+
 export type ProgressionEventRow = {
   id: string;
   user_id: string;

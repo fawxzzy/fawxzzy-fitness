@@ -101,13 +101,11 @@ export default async function WorkoutPlansPage() {
     ?? visibleRoutines[0]?.id
     ?? null;
   const activeRoutineName = visibleRoutines.find((routine) => routine.id === preferredRoutineId)?.name ?? null;
-  const workoutPlans = preferredRoutineId
-    ? await loadWorkoutPlanSourceList({
-        supabase,
-        userId: user.id,
-        routineId: preferredRoutineId,
-      })
-    : [];
+  const workoutPlans = await loadWorkoutPlanSourceList({
+    supabase,
+    userId: user.id,
+    routineId: preferredRoutineId ?? null,
+  });
   const visibleWorkoutPlans = showQaLlelData
     ? workoutPlans
     : filterQaLlelRows(workoutPlans, (plan) => [plan.title, plan.sourceRoutineName]);

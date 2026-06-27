@@ -1,10 +1,10 @@
 import type { supabaseServer } from "@/lib/supabase/server";
-import { resolveUniqueWorkoutPlanTemplateName } from "@/lib/workout-plan-template-name";
+import { resolveUniqueWorkoutPlanName } from "@/lib/workout-plan-template-name";
 import type {
   RoutineDayExerciseRow,
   RoutineDayRow,
-  WorkoutPlanTemplateExerciseRow,
-  WorkoutPlanTemplateRow,
+  WorkoutPlanExerciseRow,
+  WorkoutPlanRow,
 } from "@/types/db";
 
 type SupabaseServerClient = ReturnType<typeof supabaseServer>;
@@ -316,7 +316,7 @@ async function createWorkoutPlanTemplateFromDay(args: {
     supabase: args.supabase,
     userId: args.userId,
   });
-  const templateName = resolveUniqueWorkoutPlanTemplateName({
+  const templateName = resolveUniqueWorkoutPlanName({
     sourceName: resolveTemplateSourceName(args.routineDay),
     requestedName: args.requestedName,
     existingNames: existingTemplateNames,
@@ -338,7 +338,7 @@ async function createWorkoutPlanTemplateFromDay(args: {
     return { data: null, exercises: [] as WorkoutPlanTemplateExerciseRow[], error: insertResult.error };
   }
 
-  const template = insertResult.data as WorkoutPlanTemplateRow;
+  const template = insertResult.data as WorkoutPlanRow;
   const exerciseRows = args.dayExercises.map((exercise) => buildTemplateExerciseInsertPayload({
     templateId: template.id,
     userId: args.userId,
@@ -521,7 +521,7 @@ export async function ensureWorkoutPlanTemplateForRoutineDay(args: {
       templateId: null,
       templateName: null,
       templateExercises: [] as WorkoutPlanTemplateExerciseRow[],
-      error: createResult.error ?? new Error("Could not create workout plan template."),
+      error: createResult.error ?? new Error("Could not create workout plan."),
     };
   }
 
@@ -627,7 +627,7 @@ export async function saveRoutineDayAsNewWorkoutPlanTemplate(args: {
       templateId: null,
       templateName: null,
       templateExercises: [] as WorkoutPlanTemplateExerciseRow[],
-      error: createResult.error ?? new Error("Could not create workout plan template."),
+      error: createResult.error ?? new Error("Could not create workout plan."),
     };
   }
 
@@ -717,3 +717,37 @@ export async function cloneWorkoutPlanTemplateIntoRoutineDay(args: {
 
   return { error: insertResult.error };
 }
+
+export type LinkedWorkoutPlanRoutineDay = TemplateAwareRoutineDay;
+
+export type LinkedWorkoutPlanExercise = TemplateAwareRoutineDayExercise;
+
+export type WorkoutPlanTemplateRow = WorkoutPlanRow;
+
+export type WorkoutPlanTemplateExerciseRow = WorkoutPlanExerciseRow;
+
+export const WORKOUT_PLAN_SELECT = WORKOUT_PLAN_TEMPLATE_SELECT;
+
+export const WORKOUT_PLAN_EXERCISE_SELECT = WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT;
+
+export const isMissingWorkoutPlanTableError = isMissingWorkoutPlanTemplateTableError;
+
+export const loadWorkoutPlanNames = loadWorkoutPlanTemplateNames;
+
+export const loadRoutineDayWithWorkoutPlanCompat = loadRoutineDayWithTemplateCompat;
+
+export const loadRoutineDaysWithWorkoutPlanCompat = loadRoutineDaysWithTemplateCompat;
+
+export const loadRoutineDayExercisesWithWorkoutPlanCompat = loadRoutineDayExercisesWithTemplateCompat;
+
+export const omitRoutineDayWorkoutPlanColumns = omitRoutineDayTemplateColumns;
+
+export const omitRoutineDayExerciseWorkoutPlanColumn = omitRoutineDayExerciseTemplateColumn;
+
+export const updateLinkedWorkoutPlanChoiceRequirement = updateLinkedWorkoutPlanTemplateChoiceRequirement;
+
+export const ensureWorkoutPlanForRoutineDay = ensureWorkoutPlanTemplateForRoutineDay;
+
+export const saveRoutineDayAsNewWorkoutPlan = saveRoutineDayAsNewWorkoutPlanTemplate;
+
+export const cloneWorkoutPlanIntoRoutineDay = cloneWorkoutPlanTemplateIntoRoutineDay;

@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
 import {
-  loadWorkoutPlanTemplateEditDecisionStateAction,
+  loadWorkoutPlanEditDecisionStateAction,
   reorderRoutineDayExercisesAction,
-  resolveWorkoutPlanTemplateEditDecisionAction,
+  resolveWorkoutPlanEditDecisionAction,
   updateRoutineDayExerciseAction,
   deleteRoutineDayExerciseAction,
 } from "@/app/routines/[id]/edit/day/actions";
@@ -24,9 +24,9 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import {
-  loadRoutineDayExercisesWithTemplateCompat,
-  loadRoutineDaysWithTemplateCompat,
-  loadWorkoutPlanTemplateNames,
+  loadRoutineDayExercisesWithWorkoutPlanCompat,
+  loadRoutineDaysWithWorkoutPlanCompat,
+  loadWorkoutPlanNames,
 } from "@/lib/workout-plan-templates";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -71,7 +71,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const routine = routineWithProgression ?? legacyRoutine;
   if (!routine) notFound();
 
-  const routineDaysResult = await loadRoutineDaysWithTemplateCompat({
+  const routineDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
     supabase,
     userId: user.id,
     routineId: params.id,
@@ -81,7 +81,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const day = (routineDays ?? []).find((routineDay) => routineDay.id === params.dayId) as RoutineDayRow | undefined;
   if (!day) notFound();
 
-  const exerciseRowsResult = await loadRoutineDayExercisesWithTemplateCompat({
+  const exerciseRowsResult = await loadRoutineDayExercisesWithWorkoutPlanCompat({
     supabase,
     userId: user.id,
     routineDayIds: (routineDays ?? []).map((routineDay) => routineDay.id),
@@ -90,7 +90,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   const allRoutineDayExercises = exercises as RoutineDayExerciseRow[];
   const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
-  const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+  const existingWorkoutPlanNames = await loadWorkoutPlanNames({
     supabase,
     userId: user.id,
   });
@@ -227,10 +227,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           showDayAdjustmentControl={showDayAdjustmentControl}
           initialDayAdjustmentDirection={initialDayAdjustmentDirection}
           floatingHeaderSlotId="edit-day-floating-header-slot"
-          resolveTemplateDecisionAction={resolveWorkoutPlanTemplateEditDecisionAction}
-          workoutPlanTemplateId={day.workout_plan_template_id ?? null}
-          requiresWorkoutPlanTemplateEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
-          existingWorkoutPlanTemplateNames={existingTemplateNames}
+          resolveWorkoutPlanDecisionAction={resolveWorkoutPlanEditDecisionAction}
+          workoutPlanId={day.workout_plan_template_id ?? null}
+          requiresWorkoutPlanEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
+          existingWorkoutPlanNames={existingWorkoutPlanNames}
         />
 
         <EditableRoutineDayExerciseList
@@ -241,8 +241,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           weightUnit={(routine as RoutineRow).weight_unit}
           exercises={editableExercises}
           updateAction={updateRoutineDayExerciseAction}
-          resolveTemplateDecisionAction={resolveWorkoutPlanTemplateEditDecisionAction}
-          loadTemplateDecisionStateAction={loadWorkoutPlanTemplateEditDecisionStateAction}
+          resolveWorkoutPlanDecisionAction={resolveWorkoutPlanEditDecisionAction}
+          loadWorkoutPlanDecisionStateAction={loadWorkoutPlanEditDecisionStateAction}
           deleteAction={deleteRoutineDayExerciseAction}
           reorderAction={reorderRoutineDayExercisesAction}
           initialIsRest={(day as RoutineDayRow).is_rest}
@@ -252,9 +252,9 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           routineDefaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
           showDayAdjustmentControl={showDayAdjustmentControl}
           initialDayAdjustmentDirection={initialDayAdjustmentDirection}
-          workoutPlanTemplateId={day.workout_plan_template_id ?? null}
-          requiresWorkoutPlanTemplateEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
-          existingWorkoutPlanTemplateNames={existingTemplateNames}
+          workoutPlanId={day.workout_plan_template_id ?? null}
+          requiresWorkoutPlanEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
+          existingWorkoutPlanNames={existingWorkoutPlanNames}
         />
       </DetailScreenScaffold>
     </AppShell>

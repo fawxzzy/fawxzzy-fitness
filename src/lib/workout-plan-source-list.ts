@@ -1,22 +1,26 @@
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { buildRoutinePlanRecapExercises, selectRoutinePlanPreviewExercises } from "@/lib/routine-plan-preview";
-import { formatRoutineDayStableDisplayName, getRoutineDayResolvedWeekdayLabel } from "@/lib/routines";
+import {
+  formatRoutineDayStableDisplayName,
+  getRoutineDayEditableName,
+  getRoutineDayResolvedWeekdayLabel,
+} from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { dedupeWorkoutPlanSourceItemsByTitle, selectCanonicalWorkoutPlanSourceDays } from "@/lib/workout-plan-source-list-utils";
 import {
-  isMissingWorkoutPlanTemplateTableError,
-  loadRoutineDaysWithTemplateCompat,
-  loadRoutineDayExercisesWithTemplateCompat,
-  WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT,
-  WORKOUT_PLAN_TEMPLATE_SELECT,
+  isMissingWorkoutPlanTableError,
+  loadRoutineDaysWithWorkoutPlanCompat,
+  loadRoutineDayExercisesWithWorkoutPlanCompat,
+  WORKOUT_PLAN_EXERCISE_SELECT,
+  WORKOUT_PLAN_SELECT,
 } from "@/lib/workout-plan-templates";
 import type {
   RoutineDayExerciseRow,
   RoutineDayRow,
   RoutineRow,
-  WorkoutPlanTemplateExerciseRow,
-  WorkoutPlanTemplateRow,
+  WorkoutPlanExerciseRow,
+  WorkoutPlanRow,
 } from "@/types/db";
 
 export type WorkoutPlanSourceListItem = {
@@ -56,7 +60,7 @@ export type WorkoutPlanSourceListItem = {
 type LoadWorkoutPlanSourceListArgs = {
   supabase: ReturnType<typeof supabaseServer>;
   userId: string;
-  routineId: string;
+  routineId?: string | null;
   excludeDayId?: string | null;
 };
 
@@ -92,15 +96,16 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
   items: WorkoutPlanSourceListItem[];
   hasUntemplatedSourceDays: boolean;
 } | null> {
-  const { supabase, userId, routineId } = args;
+  const { supabase, userId } = args;
+  const currentRoutineId = args.routineId?.trim() ?? "";
 
   const { data: templatesData, error: templatesError } = await supabase
     .from("workout_plan_templates")
-    .select(WORKOUT_PLAN_TEMPLATE_SELECT)
+    .select(WORKOUT_PLAN_SELECT)
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
-  if (templatesError && isMissingWorkoutPlanTemplateTableError(templatesError)) {
+  if (templatesError && isMissingWorkoutPlanTableError(templatesError)) {
     return null;
   }
 
@@ -108,7 +113,7 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
     return null;
   }
 
-  const templates = (templatesData ?? []) as WorkoutPlanTemplateRow[];
+  const templates = (templatesData ?? []) as WorkoutPlanRow[];
   if (templates.length === 0) {
     return null;
   }
@@ -116,7 +121,7 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
   const templateIds = templates.map((template) => template.id);
   const { data: templateExercisesData, error: templateExercisesError } = await supabase
     .from("workout_plan_template_exercises")
-    .select(WORKOUT_PLAN_TEMPLATE_EXERCISE_SELECT)
+    .select(WORKOUT_PLAN_EXERCISE_SELECT)
     .in("workout_plan_template_id", templateIds)
     .eq("user_id", userId)
     .order("position", { ascending: true });
@@ -134,7 +139,7 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
   const sourceRoutines = (sourceRoutinesData ?? []) as Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "updated_at">>;
   const sourceRoutineById = new Map(sourceRoutines.map((routine) => [routine.id, routine]));
 
-  const routineDaysResult = await loadRoutineDaysWithTemplateCompat({
+  const routineDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
     supabase,
     userId,
     routineIds: sourceRoutines.map((routine) => routine.id),
@@ -159,11 +164,11 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
 
   const pseudoDays = templates.map((template, index) => {
     const linkedDays = linkedDaysByTemplateId.get(template.id) ?? [];
-    const representativeDay = chooseRepresentativeTemplateDay({
-      linkedDays,
-      currentRoutineId: routineId,
-      sourceRoutineDayId: template.source_routine_day_id ?? null,
-    });
+      const representativeDay = chooseRepresentativeTemplateDay({
+        linkedDays,
+        currentRoutineId,
+        sourceRoutineDayId: template.source_routine_day_id ?? null,
+      });
     return {
       id: template.id,
       user_id: template.user_id,
@@ -178,7 +183,7 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
     } satisfies RoutineDayRow;
   });
 
-  const pseudoExercises = ((templateExercisesData ?? []) as WorkoutPlanTemplateExerciseRow[]).map((exercise) => ({
+  const pseudoExercises = ((templateExercisesData ?? []) as WorkoutPlanExerciseRow[]).map((exercise) => ({
     id: exercise.id,
     user_id: exercise.user_id,
     routine_day_id: exercise.workout_plan_template_id,
@@ -225,7 +230,7 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
       const recapExercises = buildRoutinePlanRecapExercises(runnableExercises);
       const representativeDay = chooseRepresentativeTemplateDay({
         linkedDays: linkedDaysByTemplateId.get(template.id) ?? [],
-        currentRoutineId: routineId,
+        currentRoutineId,
         sourceRoutineDayId: template.source_routine_day_id ?? null,
       });
       const sourceRoutine = representativeDay ? sourceRoutineById.get(representativeDay.routine_id) : null;
@@ -236,7 +241,7 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
         sourceRoutineDayId: representativeDay?.id ?? template.source_routine_day_id ?? null,
         sourceRoutineId: representativeDay?.routine_id ?? "",
         sourceRoutineName: sourceRoutine?.name?.trim() || "Template",
-        isCurrentRoutine: representativeDay?.routine_id === routineId,
+        isCurrentRoutine: currentRoutineId.length > 0 && representativeDay?.routine_id === currentRoutineId,
         dayIndex: representativeDay?.day_index ?? 1,
         title: template.name,
         weekdayLabel: representativeDay
@@ -278,7 +283,8 @@ async function buildTemplateBackedWorkoutPlanSourceList(args: LoadWorkoutPlanSou
 }
 
 async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListArgs): Promise<WorkoutPlanSourceListItem[]> {
-  const { supabase, userId, routineId, excludeDayId } = args;
+  const { supabase, userId, excludeDayId } = args;
+  const currentRoutineId = args.routineId?.trim() ?? "";
 
   const { data: sourceRoutinesData } = await supabase
     .from("routines")
@@ -293,7 +299,7 @@ async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
   }
 
   const sourceRoutineById = new Map(sourceRoutines.map((routine) => [routine.id, routine]));
-  const routineDaysResult = await loadRoutineDaysWithTemplateCompat({
+  const routineDaysResult = await loadRoutineDaysWithWorkoutPlanCompat({
     supabase,
     userId,
     routineIds: sourceRoutineIds,
@@ -304,7 +310,7 @@ async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
 
   const routineDays = routineDaysResult.data as RoutineDayRow[];
   const routineDayIds = routineDays.map((day) => day.id);
-  const dayExerciseRowsResult = await loadRoutineDayExercisesWithTemplateCompat({
+  const dayExerciseRowsResult = await loadRoutineDayExercisesWithWorkoutPlanCompat({
     supabase,
     userId,
     routineDayIds,
@@ -334,7 +340,7 @@ async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
 
   const sourceDays = selectCanonicalWorkoutPlanSourceDays({
     routineDays,
-    currentRoutineId: routineId,
+    currentRoutineId,
     excludeDayId,
     runnableExerciseCountByDayId,
   });
@@ -342,10 +348,10 @@ async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
   const orderedItems = sourceDays
     .slice()
     .sort((left, right) => {
-      const leftIsCurrentRoutine = left.routine_id === routineId;
-      const rightIsCurrentRoutine = right.routine_id === routineId;
+      const leftIsCurrentRoutine = left.routine_id === currentRoutineId;
+      const rightIsCurrentRoutine = right.routine_id === currentRoutineId;
 
-      if (leftIsCurrentRoutine !== rightIsCurrentRoutine) {
+      if (currentRoutineId.length > 0 && leftIsCurrentRoutine !== rightIsCurrentRoutine) {
         return leftIsCurrentRoutine ? -1 : 1;
       }
 
@@ -369,13 +375,13 @@ async function buildLegacyWorkoutPlanSourceList(args: LoadWorkoutPlanSourceListA
         sourceRoutineDayId: day.id,
         sourceRoutineId: day.routine_id,
         sourceRoutineName: sourceRoutine?.name?.trim() || "Routine",
-        isCurrentRoutine: day.routine_id === routineId,
+        isCurrentRoutine: currentRoutineId.length > 0 && day.routine_id === currentRoutineId,
         dayIndex: day.day_index,
-        title: formatRoutineDayStableDisplayName({
+        title: getRoutineDayEditableName({
           name: day.name,
           dayIndex: day.day_index,
           startDate: sourceRoutine?.start_date,
-        }),
+        }) || "Workout Plan",
         weekdayLabel: getRoutineDayResolvedWeekdayLabel({
           dayIndex: day.day_index,
           startDate: sourceRoutine?.start_date,

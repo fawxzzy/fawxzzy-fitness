@@ -119,7 +119,7 @@ export function CreateRoutineDayClient({
                 toast.success(isTargetMode
                   ? "Workout plan duplicated into this day."
                   : creationMode === "duplicate"
-                    ? "Workout plan created from template."
+                    ? "Workout plan duplicated."
                     : "Workout plan created.");
                 router.push(isTargetMode
                   ? (targetDayEditHref ?? getRoutineDayEditHref(routineId, result.routineDayId, getRoutineHomeHref(routineId)))

@@ -6,11 +6,20 @@ import process from "node:process";
 import { spawn } from "node:child_process";
 import { listActiveRecordedDevServers, readRepoLocalNextProcesses } from "./next-workspace-guard.mjs";
 
-const DEFAULT_REQUIRED_MARKERS = [
+export const DEFAULT_REQUIRED_MARKERS = [
   "node_modules/next/package.json",
+  "node_modules/next/dist/bin/next",
+  "node_modules/eslint-config-next/package.json",
+  "node_modules/eslint/package.json",
+  "node_modules/eslint-plugin-react/index.js",
+  "node_modules/eslint-plugin-jsx-a11y/lib/index.js",
+  "node_modules/jsx-ast-utils/lib/values/expressions/index.js",
   "node_modules/typescript/package.json",
+  "node_modules/typescript/lib/tsc.js",
   "node_modules/@supabase/supabase-js/package.json",
   "node_modules/playwright/package.json",
+  "node_modules/ajv/lib/refs/json-schema-draft-07.json",
+  "node_modules/@alloc/quick-lru/package.json",
 ];
 const DEFAULT_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
 const DEFAULT_STALE_LOCK_MS = 30 * 60 * 1000;
@@ -39,6 +48,10 @@ function markerExists(repoRoot, marker) {
 
 function repoDepsReady(repoRoot, requiredMarkers) {
   return requiredMarkers.every((marker) => markerExists(repoRoot, marker));
+}
+
+function listMissingMarkers(repoRoot, requiredMarkers) {
+  return requiredMarkers.filter((marker) => !markerExists(repoRoot, marker));
 }
 
 function normalizePathForCompare(filePath) {
@@ -298,7 +311,11 @@ export async function ensureRepoDependencies({
       );
     }
 
-    process.stderr.write(`[deps] Missing repo dependencies for ${reason}. Running npm ci in ${repoRoot}.\n`);
+    const missingMarkers = listMissingMarkers(repoRoot, requiredMarkers);
+    process.stderr.write(
+      `[deps] Missing repo dependencies for ${reason}. Running npm ci in ${repoRoot}.\n` +
+      `[deps] Missing markers: ${missingMarkers.join(", ")}\n`,
+    );
     await runNpmCi(repoRoot);
 
     if (!await waitForRepoDepsReady(repoRoot, requiredMarkers)) {

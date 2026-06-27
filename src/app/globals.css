@@ -1395,26 +1395,57 @@ html[data-mobile-regression="true"] .ambient-background,
 body[data-mobile-regression="true"] .ambient-background {
   --ambient-parallax-multiplier: 0;
   --ambient-motion-boost: 1;
+  --glass-current-blur-base: var(--glass-blur-off);
+  --glass-current-blur-raised: var(--glass-blur-off);
+  --glass-current-blur-overlay: var(--glass-blur-off);
+  --glass-current-sheen-strength: var(--glass-sheen-strength-off);
+  --glass-shadow-base: none;
+  --glass-shadow-raised: none;
+  --glass-shadow-overlay: none;
+  --action-chrome-shadow-hover: none;
+  --action-chrome-shadow-active: none;
+  --bottom-action-shadow-hover: none;
+  --bottom-action-shadow-active: none;
 }
 
 body:has([data-mobile-regression-root="true"]) .ambient-background {
   --ambient-parallax-multiplier: 0;
   --ambient-motion-boost: 1;
+  --glass-current-blur-base: var(--glass-blur-off);
+  --glass-current-blur-raised: var(--glass-blur-off);
+  --glass-current-blur-overlay: var(--glass-blur-off);
+  --glass-current-sheen-strength: var(--glass-sheen-strength-off);
+  --glass-shadow-base: none;
+  --glass-shadow-raised: none;
+  --glass-shadow-overlay: none;
+  --action-chrome-shadow-hover: none;
+  --action-chrome-shadow-active: none;
+  --bottom-action-shadow-hover: none;
+  --bottom-action-shadow-active: none;
 }
 
 html[data-mobile-regression="true"] .ambient-background__orb,
 html[data-mobile-regression="true"] .ambient-background__geometry-motion,
 html[data-mobile-regression="true"] .ambient-background__geometry-spin,
+html[data-mobile-regression="true"] .ambient-background__haze,
+html[data-mobile-regression="true"] .ambient-background__twinkle,
+html[data-mobile-regression="true"] .ambient-background__mote,
 body[data-mobile-regression="true"] .ambient-background__orb,
 body[data-mobile-regression="true"] .ambient-background__geometry-motion,
-body[data-mobile-regression="true"] .ambient-background__geometry-spin {
+body[data-mobile-regression="true"] .ambient-background__geometry-spin,
+body[data-mobile-regression="true"] .ambient-background__haze,
+body[data-mobile-regression="true"] .ambient-background__twinkle,
+body[data-mobile-regression="true"] .ambient-background__mote {
   animation: none;
   transform: none;
 }
 
 body:has([data-mobile-regression-root="true"]) .ambient-background__orb,
 body:has([data-mobile-regression-root="true"]) .ambient-background__geometry-motion,
-body:has([data-mobile-regression-root="true"]) .ambient-background__geometry-spin {
+body:has([data-mobile-regression-root="true"]) .ambient-background__geometry-spin,
+body:has([data-mobile-regression-root="true"]) .ambient-background__haze,
+body:has([data-mobile-regression-root="true"]) .ambient-background__twinkle,
+body:has([data-mobile-regression-root="true"]) .ambient-background__mote {
   animation: none;
   transform: none;
 }
@@ -1423,6 +1454,21 @@ html[data-mobile-regression="true"] [data-dev-supabase-target-banner="true"],
 body[data-mobile-regression="true"] [data-dev-supabase-target-banner="true"],
 body:has([data-mobile-regression-root="true"]) [data-dev-supabase-target-banner="true"] {
   display: none;
+}
+
+html[data-mobile-regression="true"] .glass-surface,
+html[data-mobile-regression="true"] .action-chrome,
+html[data-mobile-regression="true"] .bottom-action,
+body[data-mobile-regression="true"] .glass-surface,
+body[data-mobile-regression="true"] .action-chrome,
+body[data-mobile-regression="true"] .bottom-action,
+body:has([data-mobile-regression-root="true"]) .glass-surface,
+body:has([data-mobile-regression-root="true"]) .action-chrome,
+body:has([data-mobile-regression-root="true"]) .bottom-action {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  filter: none !important;
 }
 
 html {

@@ -54,7 +54,7 @@ function getScopeSummaryLabel(scope: AccountWorkoutExportScope) {
     case "history":
       return "History exports only session, set, and progression data.";
     case "routines":
-      return "Routines exports routine builds now and templates when they are added.";
+      return "Routines exports routine builds now and workout plans when they are added.";
     default:
       return "All exports combine routines with history data.";
   }

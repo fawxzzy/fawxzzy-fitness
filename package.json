@@ -137,6 +137,7 @@
     "visual:fitness:today": "node scripts/qa/visual-fitness-runner.mjs --suite today",
     "visual:fitness:session": "node scripts/qa/visual-fitness-runner.mjs --suite session",
     "visual:fitness:routines": "node scripts/qa/visual-fitness-runner.mjs --suite routines",
+    "visual:fitness:workout-plans": "node scripts/qa/visual-fitness-runner.mjs --suite workout-plans",
     "visual:fitness:history": "node scripts/qa/visual-fitness-runner.mjs --suite history",
     "visual:fitness:history-detail": "node scripts/qa/visual-fitness-runner.mjs --suite history-detail",
     "visual:fitness:history-exercises": "node scripts/qa/visual-fitness-runner.mjs --suite history-exercises",
@@ -161,7 +162,7 @@
     "evaluate:fitness-pilot-readiness": "node scripts/evaluate-fitness-pilot-readiness.mjs",
     "record:fitness-pilot-evidence": "node scripts/record-fitness-pilot-evidence.mjs",
     "test:session-set-count": "node --test src/components/session/setCountSync.test.ts",
-    "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/history-preview.test.ts src/lib/history-sessions-page-loader.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts",
+    "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/history-preview.test.ts src/lib/history-sessions-page-loader.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts src/lib/workout-plan-source-list.test.ts src/lib/workout-plan-template-name.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts",
     "test:build-contracts": "node --test tests/build-contracts.test.mjs"
   },
   "dependencies": {

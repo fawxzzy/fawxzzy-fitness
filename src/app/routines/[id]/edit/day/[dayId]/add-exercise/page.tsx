@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import {
   addRoutineDayExerciseAction,
-  loadWorkoutPlanTemplateEditDecisionStateAction,
-  resolveWorkoutPlanTemplateEditDecisionAction,
+  loadWorkoutPlanEditDecisionStateAction,
+  resolveWorkoutPlanEditDecisionAction,
 } from "@/app/routines/[id]/edit/day/actions";
 import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen";
 import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
@@ -15,7 +15,7 @@ import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { formatRoutineDayDisplayName } from "@/lib/routines";
 import { isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
 import { supabaseServer } from "@/lib/supabase/server";
-import { loadRoutineDayWithTemplateCompat, loadWorkoutPlanTemplateNames } from "@/lib/workout-plan-templates";
+import { loadRoutineDayWithWorkoutPlanCompat, loadWorkoutPlanNames } from "@/lib/workout-plan-templates";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +54,7 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
   const routine = routineWithProgression ?? legacyRoutine;
   if (!routine) notFound();
 
-  const { data: day } = await loadRoutineDayWithTemplateCompat({
+  const { data: day } = await loadRoutineDayWithWorkoutPlanCompat({
     supabase,
     routineDayId: params.dayId,
     routineId: params.id,
@@ -63,7 +63,7 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
   if (!day) notFound();
 
   const { exercises, exerciseStats } = await loadExerciseChooserRouteData(user.id);
-  const existingTemplateNames = await loadWorkoutPlanTemplateNames({
+  const existingWorkoutPlanNames = await loadWorkoutPlanNames({
     supabase,
     userId: user.id,
   });
@@ -101,13 +101,13 @@ export default async function EditDayAddExercisePage({ params, searchParams }: P
         defaultProgressionPlaybookId={(routine as RoutineRow).default_progression_playbook_id ?? null}
         defaultProgressionPlaybookConfig={(routine as RoutineRow).default_progression_playbook_config ?? null}
         addExerciseAction={addRoutineDayExerciseAction}
-        resolveTemplateDecisionAction={resolveWorkoutPlanTemplateEditDecisionAction}
-        loadTemplateDecisionStateAction={loadWorkoutPlanTemplateEditDecisionStateAction}
+        resolveWorkoutPlanDecisionAction={resolveWorkoutPlanEditDecisionAction}
+        loadWorkoutPlanDecisionStateAction={loadWorkoutPlanEditDecisionStateAction}
         exerciseStats={exerciseStats}
         backHref={backHref}
-        workoutPlanTemplateId={day.workout_plan_template_id ?? null}
-        requiresWorkoutPlanTemplateEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
-        existingWorkoutPlanTemplateNames={existingTemplateNames}
+        workoutPlanId={day.workout_plan_template_id ?? null}
+        requiresWorkoutPlanEditDecision={Boolean(day.workout_plan_template_edit_choice_required)}
+        existingWorkoutPlanNames={existingWorkoutPlanNames}
       />
     </ExerciseChooserRouteScaffold>
   );

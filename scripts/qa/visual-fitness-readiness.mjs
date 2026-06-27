@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
+import { DEFAULT_REQUIRED_MARKERS, ensureRepoDependencies } from "../ensure-repo-deps.mjs";
 import { fileURLToPath } from "node:url";
 import { atlasRoot, repoRoot } from "./fitness-qa-config.mjs";
 import { runVisualFitnessSuites } from "./visual-fitness-runner.mjs";
@@ -26,6 +27,7 @@ const protectedSuites = [
   "today",
   "session",
   "routines",
+  "workout-plans",
   "history",
   "history-exercises",
   "history-detail",
@@ -221,6 +223,11 @@ async function main() {
   const stamp = buildTimestampStamp();
   const outputDir = path.join(readinessRoot, stamp);
   await fs.mkdir(outputDir, { recursive: true });
+  await ensureRepoDependencies({
+    repoRoot,
+    reason: "visual fitness readiness",
+    requiredMarkers: DEFAULT_REQUIRED_MARKERS,
+  });
   const buildGuardResult = await runNpmScript("build:guard", { extraArgs: ["--stop-dev"] });
 
   const verificationResults = [];

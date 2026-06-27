@@ -5,6 +5,7 @@ function normalizeRoutineNameKey(value: string | null | undefined) {
 export function hasRoutineNameConflict(args: {
   candidateName?: string | null;
   routineNames?: Array<string | null | undefined>;
+  workoutPlanNames?: Array<string | null | undefined>;
   templateNames?: Array<string | null | undefined>;
 }) {
   const normalizedCandidateName = normalizeRoutineNameKey(args.candidateName);
@@ -12,6 +13,6 @@ export function hasRoutineNameConflict(args: {
     return false;
   }
 
-  return [...(args.routineNames ?? []), ...(args.templateNames ?? [])]
+  return [...(args.routineNames ?? []), ...(args.workoutPlanNames ?? []), ...(args.templateNames ?? [])]
     .some((name) => normalizeRoutineNameKey(name) === normalizedCandidateName);
 }
