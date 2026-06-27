@@ -81,6 +81,7 @@ test("operations dispatch isolates release-log style commands from other domains
   const response = await dispatchOperationsInteraction({
     interaction: appCommandInteraction(FITNESS_MOD_LOG_COMMAND_NAME),
     jsonResponse,
+    handleComputaInteraction: async () => ({ ok: true }),
     handleReleaseInteraction: async () => ({ ok: true }),
     handleModLogInteraction: async () => ({ domain: "mod-log" }),
     handleServerInventoryInteraction: async () => ({ ok: true }),
@@ -111,6 +112,7 @@ test("domain dispatchers return null when an interaction belongs elsewhere", asy
   const response = await dispatchOperationsInteraction({
     interaction: appCommandInteraction("not-an-ops-command"),
     jsonResponse,
+    handleComputaInteraction: async () => ({ ok: true }),
     handleReleaseInteraction: async () => ({ ok: true }),
     handleModLogInteraction: async () => ({ ok: true }),
     handleServerInventoryInteraction: async () => ({ ok: true }),

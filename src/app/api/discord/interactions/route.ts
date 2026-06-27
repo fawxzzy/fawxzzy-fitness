@@ -50,6 +50,7 @@ import {
   claimDiscordMessageCommand,
   finalizeDiscordMessageCommandClaim,
 } from "@/lib/discord/message-command-claims";
+import { authorizeDiscordMessageCommandPollRequest } from "@/lib/discord/message-command-poll-auth";
 import {
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackManageCardResponse,
@@ -87,6 +88,24 @@ import {
   discordMessageHasSpotifyClubPanel,
   discordMemberHasSetupPermission,
   discordMessageHasVerifyButton,
+  FITNESS_COMPUTA_ARCHIVE_CHECKED_CARDS_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_GOODMORNING_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_GOODNIGHT_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_GRAND_RISING_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_MENU_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_OWNER_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_POST_LIVE_PROVIDER_OPTION_NAME,
+  FITNESS_COMPUTA_POST_LIVE_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_POST_LIVE_URL_OPTION_NAME,
+  FITNESS_COMPUTA_POST_UPDATE_BODY_OPTION_NAME,
+  FITNESS_COMPUTA_POST_UPDATE_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_POST_UPDATE_TITLE_OPTION_NAME,
+  FITNESS_COMPUTA_REPAIR_COMMAND_CARD_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_REPAIR_FEEDBACK_LAUNCHER_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_RELEASE_CHECK_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_SETUP_FEEDBACK_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_SETUP_MUSIC_SESH_SUBCOMMAND_NAME,
+  FITNESS_COMPUTA_SYNC_FEEDBACK_REACTIONS_SUBCOMMAND_NAME,
   FITNESS_FEEDBACK_ATTACHMENT_INPUT_CUSTOM_ID,
   FITNESS_FEEDBACK_PANEL_TYPE_INPUT_CUSTOM_ID,
   FITNESS_BUG_SUMMARY_INPUT_CUSTOM_ID,
@@ -3460,6 +3479,136 @@ async function authorizeDiscordOwnerMessageCommand(args: {
   return { ok: false, code: args.forbiddenCode };
 }
 
+function resolveDiscordInteractionMemberRoleIds(interaction: DiscordInteraction): string[] | null {
+  return Array.isArray(interaction.member?.roles)
+    ? interaction.member.roles.filter((roleId): roleId is string => typeof roleId === "string")
+    : null;
+}
+
+async function authorizeDiscordCommanderInteraction(args: {
+  interaction: DiscordInteraction;
+  actionLabel: string;
+}): Promise<
+  | { ok: true; authorId: string }
+  | { ok: false; response: Record<string, unknown> }
+> {
+  const authorId = resolveDiscordInteractionUser(args.interaction).id;
+  if (!authorId) {
+    return {
+      ok: false,
+      response: buildDiscordEphemeralMessageResponse("Discord could not verify your account right now."),
+    };
+  }
+
+  if (authorId === resolveDiscordComputaOwnerUserId()) {
+    return { ok: true, authorId };
+  }
+
+  const guildId = DISCORD_GUILD_ID();
+  const rolesResult = await fetchDiscordGuildRoles({ guildId });
+  if (!rolesResult.ok) {
+    return {
+      ok: false,
+      response: buildDiscordEphemeralMessageResponse(`Discord could not verify ${args.actionLabel} access right now.`),
+    };
+  }
+
+  const interactionMemberRoleIds = resolveDiscordInteractionMemberRoleIds(args.interaction);
+  const memberResult = interactionMemberRoleIds
+    ? { ok: true as const, member: { roles: interactionMemberRoleIds } }
+    : await fetchDiscordGuildMember({ guildId, userId: authorId });
+  if (!memberResult.ok) {
+    return {
+      ok: false,
+      response: buildDiscordEphemeralMessageResponse(`Discord could not verify ${args.actionLabel} access right now.`),
+    };
+  }
+
+  const memberRoleIds = Array.isArray(memberResult.member.roles)
+    ? memberResult.member.roles.filter((roleId): roleId is string => typeof roleId === "string")
+    : [];
+  const commanderRoleResult = await ensureDiscordCommanderRole({
+    guildId,
+    authorId,
+    memberRoleIds,
+    guildRoles: rolesResult.roles,
+  });
+
+  if (!commanderRoleResult.ok) {
+    return {
+      ok: false,
+      response: buildDiscordEphemeralMessageResponse(
+        `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use ${args.actionLabel}.`,
+      ),
+    };
+  }
+
+  let hasCommanderRole = memberRoleIds.includes(commanderRoleResult.roleId);
+  if (!hasCommanderRole && commanderRoleResult.authorCanBootstrap) {
+    const addRoleResult = await addDiscordGuildMemberRole({
+      guildId,
+      userId: authorId,
+      roleId: commanderRoleResult.roleId,
+    });
+    hasCommanderRole = addRoleResult.ok;
+  }
+
+  if (!hasCommanderRole) {
+    return {
+      ok: false,
+      response: buildDiscordEphemeralMessageResponse(
+        commanderRoleResult.roleCreated
+          ? `${DISCORD_COMMANDER_ROLE_NAME} was created. Assign it, then retry ${args.actionLabel}.`
+          : `Only members with the ${DISCORD_COMMANDER_ROLE_NAME} role can use ${args.actionLabel}.`,
+      ),
+    };
+  }
+
+  return { ok: true, authorId };
+}
+
+function authorizeDiscordOwnerInteraction(args: {
+  interaction: DiscordInteraction;
+  forbiddenMessage: string;
+}):
+  | { ok: true; authorId: string }
+  | { ok: false; response: Record<string, unknown> } {
+  const authorId = resolveDiscordInteractionUser(args.interaction).id;
+  if (!authorId) {
+    return {
+      ok: false,
+      response: buildDiscordEphemeralMessageResponse("Discord could not verify your account right now."),
+    };
+  }
+
+  if (authorId !== resolveDiscordComputaOwnerUserId()) {
+    return {
+      ok: false,
+      response: buildDiscordEphemeralMessageResponse(args.forbiddenMessage),
+    };
+  }
+
+  return { ok: true, authorId };
+}
+
+async function upsertDiscordComputaCommandMenuChannelPost(channelId: string) {
+  return replaceDiscordSingleBotChannelPost({
+    channelId,
+    body: buildDiscordComputaCommandMenuPayload(),
+    matchesMessage: discordMessageHasComputaCommandMenu,
+    logLabel: "computa-command-menu",
+  });
+}
+
+async function upsertDiscordComputaOwnerCommandMenuChannelPost(channelId: string) {
+  return replaceDiscordSingleBotChannelPost({
+    channelId,
+    body: buildDiscordComputaOwnerCommandMenuPayload(),
+    matchesMessage: discordMessageHasComputaOwnerCommandMenu,
+    logLabel: "computa-owner-command-menu",
+  });
+}
+
 async function processDiscordComputaMenuMessageCommand(args: {
   channelId: string;
   message: DiscordMessageCommand;
@@ -3469,12 +3618,7 @@ async function processDiscordComputaMenuMessageCommand(args: {
     return authorization;
   }
 
-  const postResult = await replaceDiscordSingleBotChannelPost({
-    channelId: args.channelId,
-    body: buildDiscordComputaCommandMenuPayload(),
-    matchesMessage: discordMessageHasComputaCommandMenu,
-    logLabel: "computa-command-menu",
-  });
+  const postResult = await upsertDiscordComputaCommandMenuChannelPost(args.channelId);
 
   if (!postResult.ok) {
     console.error("[discord-message-command] computa command menu failed", {
@@ -3519,12 +3663,7 @@ async function processDiscordComputaOwnerMenuMessageCommand(args: {
     return { ok: false as const, code: "DISCORD_COMPUTA_OWNER_MENU_FORBIDDEN" };
   }
 
-  const postResult = await replaceDiscordSingleBotChannelPost({
-    channelId: args.channelId,
-    body: buildDiscordComputaOwnerCommandMenuPayload(),
-    matchesMessage: discordMessageHasComputaOwnerCommandMenu,
-    logLabel: "computa-owner-command-menu",
-  });
+  const postResult = await upsertDiscordComputaOwnerCommandMenuChannelPost(args.channelId);
 
   if (!postResult.ok) {
     console.error("[discord-message-command] computa owner command menu failed", {
@@ -4318,30 +4457,6 @@ async function processDiscordGreetingMessageCommand(args: {
     emoji: DISCORD_MESSAGE_COMMAND_SUCCESS_REACTION,
   });
   return { ok: true as const, action: "posted", kind: args.kind };
-}
-
-function validateDiscordMessageCommandPollRequest(request: Request):
-  | { ok: true }
-  | { ok: false; status: number; message: string } {
-  const secret = optionalEnv("DISCORD_MESSAGE_COMMAND_POLL_SECRET") ?? optionalEnv("CRON_SECRET");
-  if (!secret) {
-    return {
-      ok: false,
-      status: 503,
-      message: "Discord message command polling is not configured.",
-    };
-  }
-
-  const authorization = request.headers.get("authorization");
-  if (authorization !== `Bearer ${secret}`) {
-    return {
-      ok: false,
-      status: 401,
-      message: "Unauthorized.",
-    };
-  }
-
-  return { ok: true };
 }
 
 async function pollDiscordMessageCommands() {
@@ -7486,6 +7601,331 @@ async function handleServerInventoryInteraction(interaction: DiscordInteraction)
   }));
 }
 
+async function handleComputaInteraction(interaction: DiscordInteraction) {
+  if (!interactionMatchesGuild(interaction)) {
+    return buildDiscordEphemeralMessageResponse("This Computa flow is only available in the configured server.");
+  }
+
+  const channelId = typeof interaction.channel_id === "string" ? interaction.channel_id : null;
+  if (!channelId) {
+    return buildDiscordEphemeralMessageResponse("Discord could not resolve the current channel.");
+  }
+
+  const subcommand = extractDiscordCommandSubcommand(interaction.data?.options)?.name
+    ?? FITNESS_COMPUTA_MENU_SUBCOMMAND_NAME;
+
+  if (
+    subcommand === FITNESS_COMPUTA_GRAND_RISING_SUBCOMMAND_NAME
+    || subcommand === FITNESS_COMPUTA_GOODMORNING_SUBCOMMAND_NAME
+    || subcommand === FITNESS_COMPUTA_GOODNIGHT_SUBCOMMAND_NAME
+  ) {
+    const createResult = await createDiscordChannelMessage({
+      channelId,
+      body: {
+        content: (
+          subcommand === FITNESS_COMPUTA_GRAND_RISING_SUBCOMMAND_NAME
+          || subcommand === FITNESS_COMPUTA_GOODMORNING_SUBCOMMAND_NAME
+        )
+          ? buildDiscordGrandRisingContent()
+          : buildDiscordGoodnightContent(),
+        allowed_mentions: {
+          parse: [],
+        },
+      },
+    });
+
+    if (!createResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not post that greeting right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(
+      (
+        subcommand === FITNESS_COMPUTA_GRAND_RISING_SUBCOMMAND_NAME
+        || subcommand === FITNESS_COMPUTA_GOODMORNING_SUBCOMMAND_NAME
+      )
+        ? "Good morning posted in this channel."
+        : "Goodnight posted in this channel.",
+    );
+  }
+
+  if (subcommand === FITNESS_COMPUTA_OWNER_SUBCOMMAND_NAME) {
+    const authorization = authorizeDiscordOwnerInteraction({
+      interaction,
+      forbiddenMessage: "Only the configured Fawxzzy owner account can use `/computa owner`.",
+    });
+    if (!authorization.ok) {
+      return authorization.response;
+    }
+
+    const postResult = await upsertDiscordComputaOwnerCommandMenuChannelPost(channelId);
+    if (!postResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not refresh the Computa owner card right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(
+      postResult.deletedCount > 0
+        ? "Computa owner card refreshed in this channel."
+        : "Computa owner card posted in this channel.",
+    );
+  }
+
+  if (subcommand === FITNESS_COMPUTA_RELEASE_CHECK_SUBCOMMAND_NAME) {
+    const commanderAccess = await authorizeDiscordCommanderInteraction({
+      interaction,
+      actionLabel: "`/computa release-check`",
+    });
+    if (!commanderAccess.ok) {
+      return commanderAccess.response;
+    }
+
+    const payloadResult = await buildDiscordReleaseLedgerCheckPayload();
+    if (!payloadResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not run the release check right now.");
+    }
+
+    const postResult = await replaceDiscordSingleBotChannelPost({
+      channelId,
+      body: payloadResult.body,
+      matchesMessage: discordMessageHasComputaReleaseCheck,
+      logLabel: "computa-release-check",
+    });
+    if (!postResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not refresh the release check card right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(
+      payloadResult.issueCount === 0
+        ? "Release check is clean. Card refreshed in this channel."
+        : `Release check found ${payloadResult.issueCount} issue(s). Card refreshed in this channel.`,
+    );
+  }
+
+  if (subcommand === FITNESS_COMPUTA_ARCHIVE_CHECKED_CARDS_SUBCOMMAND_NAME) {
+    const commanderAccess = await authorizeDiscordCommanderInteraction({
+      interaction,
+      actionLabel: "`/computa archive-checked-cards`",
+    });
+    if (!commanderAccess.ok) {
+      return commanderAccess.response;
+    }
+
+    const archiveResult = await archiveDiscordCheckedFeedbackThreads();
+    if (!archiveResult.ok) {
+      return buildDiscordEphemeralMessageResponse(
+        "Archive checked cards failed. Check feedback forum configuration and bot permissions.",
+      );
+    }
+
+    return buildDiscordEphemeralMessageResponse(
+      `Archived ${archiveResult.archivedCount}/${archiveResult.checkedCount} checked feedback card(s). Scanned ${archiveResult.scannedCount} active card(s).`,
+    );
+  }
+
+  if (subcommand === FITNESS_COMPUTA_SYNC_FEEDBACK_REACTIONS_SUBCOMMAND_NAME) {
+    const commanderAccess = await authorizeDiscordCommanderInteraction({
+      interaction,
+      actionLabel: "`/computa sync-feedback-reactions`",
+    });
+    if (!commanderAccess.ok) {
+      return commanderAccess.response;
+    }
+
+    const syncResult = await syncDiscordFeedbackResolvedReactions();
+    if (!syncResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Feedback reaction sync failed. Check feedback forum configuration.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(
+      `Feedback reactions synced. Added ${syncResult.addedCount}, removed ${syncResult.removedCount}, and cleared ${syncResult.legacyRemovedCount} legacy reaction(s).`,
+    );
+  }
+
+  if (subcommand === FITNESS_COMPUTA_SETUP_FEEDBACK_SUBCOMMAND_NAME) {
+    const ownerAccess = authorizeDiscordOwnerInteraction({
+      interaction,
+      forbiddenMessage: "Only the configured Fawxzzy owner account can use `/computa setup-feedback`.",
+    });
+    if (!ownerAccess.ok) {
+      return ownerAccess.response;
+    }
+
+    const upsertResult = await upsertDiscordFeedbackPanel({
+      targetChannelId: channelId,
+      cleanupLegacyPanels: true,
+    });
+    if (!upsertResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not refresh the Feedback launcher right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(
+      upsertResult.action === "updated" || upsertResult.action === "reposted"
+        ? `Feedback launcher updated in ${upsertResult.channelLabel}.`
+        : `Feedback launcher created in ${upsertResult.channelLabel}.`,
+    );
+  }
+
+  if (subcommand === FITNESS_COMPUTA_SETUP_MUSIC_SESH_SUBCOMMAND_NAME) {
+    const ownerAccess = authorizeDiscordOwnerInteraction({
+      interaction,
+      forbiddenMessage: "Only the configured Fawxzzy owner account can use `/computa setup-music-sesh`.",
+    });
+    if (!ownerAccess.ok) {
+      return ownerAccess.response;
+    }
+
+    const upsertResult = await upsertDiscordSpotifyClubPanel({
+      targetChannelId: channelId,
+      cleanupLegacyPanels: true,
+      forceRepost: true,
+    });
+    if (!upsertResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not refresh the Music Sesh panel right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(
+      upsertResult.action === "updated" || upsertResult.action === "reposted"
+        ? `Music Sesh panel updated in ${upsertResult.channelLabel}.`
+        : `Music Sesh panel created in ${upsertResult.channelLabel}.`,
+    );
+  }
+
+  if (subcommand === FITNESS_COMPUTA_REPAIR_FEEDBACK_LAUNCHER_SUBCOMMAND_NAME) {
+    const commanderAccess = await authorizeDiscordCommanderInteraction({
+      interaction,
+      actionLabel: "`/computa repair-feedback-launcher`",
+    });
+    if (!commanderAccess.ok) {
+      return commanderAccess.response;
+    }
+
+    const upsertResult = await upsertDiscordFeedbackPanel({
+      targetChannelId: channelId,
+      cleanupLegacyPanels: true,
+    });
+    if (!upsertResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not refresh the Feedback launcher right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse("Feedback launcher refreshed.");
+  }
+
+  if (subcommand === FITNESS_COMPUTA_POST_UPDATE_SUBCOMMAND_NAME) {
+    const ownerAccess = authorizeDiscordOwnerInteraction({
+      interaction,
+      forbiddenMessage: "Only the configured Fawxzzy owner account can use `/computa post-update`.",
+    });
+    if (!ownerAccess.ok) {
+      return ownerAccess.response;
+    }
+
+    const options = extractDiscordCommandSubcommand(interaction.data?.options)?.options;
+    const title = extractDiscordCommandStringOption(options, FITNESS_COMPUTA_POST_UPDATE_TITLE_OPTION_NAME);
+    const body = extractDiscordCommandStringOption(options, FITNESS_COMPUTA_POST_UPDATE_BODY_OPTION_NAME);
+    const updatesChannelId = DISCORD_UPDATES_CHANNEL_ID();
+    if (!title || !body) {
+      return buildDiscordEphemeralMessageResponse("Provide both a title and a body for the update.");
+    }
+    if (!updatesChannelId) {
+      return buildDiscordEphemeralMessageResponse("Discord updates channel is not configured.");
+    }
+
+    const createResult = await createDiscordChannelMessage({
+      channelId: updatesChannelId,
+      body: buildDiscordComputaFormattedUpdatePayload({
+        title: title.slice(0, 120),
+        description: body.slice(0, 1200),
+      }),
+    });
+    if (!createResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not post that update right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(`Update posted in <#${updatesChannelId}>.`);
+  }
+
+  if (subcommand === FITNESS_COMPUTA_POST_LIVE_SUBCOMMAND_NAME) {
+    const ownerAccess = authorizeDiscordOwnerInteraction({
+      interaction,
+      forbiddenMessage: "Only the configured Fawxzzy owner account can use `/computa post-live`.",
+    });
+    if (!ownerAccess.ok) {
+      return ownerAccess.response;
+    }
+
+    const options = extractDiscordCommandSubcommand(interaction.data?.options)?.options;
+    const provider = extractDiscordCommandStringOption(options, FITNESS_COMPUTA_POST_LIVE_PROVIDER_OPTION_NAME);
+    const explicitUrl = extractDiscordCommandStringOption(options, FITNESS_COMPUTA_POST_LIVE_URL_OPTION_NAME)?.trim() ?? null;
+    const updatesChannelId = DISCORD_UPDATES_CHANNEL_ID();
+    if (!updatesChannelId) {
+      return buildDiscordEphemeralMessageResponse("Discord updates channel is not configured.");
+    }
+
+    let command: DiscordComputaLiveCommand | null = null;
+    if (explicitUrl) {
+      command = { provider: "custom", url: explicitUrl };
+    } else if (provider === "twitch") {
+      command = { provider: "twitch", url: resolveDiscordComputaLiveProviderUrl("twitch") };
+    } else if (provider === "tiktok") {
+      command = { provider: "tiktok", url: resolveDiscordComputaLiveProviderUrl("tiktok") };
+    }
+
+    if (!command || !command.url) {
+      return buildDiscordEphemeralMessageResponse("Choose `twitch`, `tiktok`, or provide a custom live URL.");
+    }
+
+    const createResult = await createDiscordChannelMessage({
+      channelId: updatesChannelId,
+      body: {
+        content: buildDiscordComputaLiveUpdateContent(command),
+        allowed_mentions: {
+          parse: ["everyone"],
+        },
+      },
+    });
+    if (!createResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not post that live update right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse(`Live update posted in <#${updatesChannelId}>.`);
+  }
+
+  if (subcommand === FITNESS_COMPUTA_REPAIR_COMMAND_CARD_SUBCOMMAND_NAME) {
+    const commanderAccess = await authorizeDiscordCommanderInteraction({
+      interaction,
+      actionLabel: "`/computa repair-command-card`",
+    });
+    if (!commanderAccess.ok) {
+      return commanderAccess.response;
+    }
+
+    const postResult = await upsertDiscordComputaCommandMenuChannelPost(channelId);
+    if (!postResult.ok) {
+      return buildDiscordEphemeralMessageResponse("Discord could not refresh the Computa command card right now.");
+    }
+
+    return buildDiscordEphemeralMessageResponse("Computa command card refreshed in this channel.");
+  }
+
+  const commanderAccess = await authorizeDiscordCommanderInteraction({
+    interaction,
+    actionLabel: "`/computa menu`",
+  });
+  if (!commanderAccess.ok) {
+    return commanderAccess.response;
+  }
+
+  const postResult = await upsertDiscordComputaCommandMenuChannelPost(channelId);
+  if (!postResult.ok) {
+    return buildDiscordEphemeralMessageResponse("Discord could not refresh the Computa command card right now.");
+  }
+
+  return buildDiscordEphemeralMessageResponse(
+    postResult.deletedCount > 0
+      ? "Computa command card refreshed in this channel."
+      : "Computa command card posted in this channel.",
+  );
+}
+
 async function handleUpdateLatestInteraction(interaction: DiscordInteraction) {
   if (!interactionMatchesGuild(interaction)) {
     return buildDiscordEphemeralMessageResponse("This update flow is only available in the configured server.");
@@ -7626,8 +8066,12 @@ async function handleUpdateSkipInteraction(interaction: DiscordInteraction) {
 }
 
 export async function GET(request: Request) {
-  const authorization = validateDiscordMessageCommandPollRequest(request);
+  const authorization = await authorizeDiscordMessageCommandPollRequest(request);
   if (!authorization.ok) {
+    console.warn("[discord-message-command] poll authorization failed", {
+      status: authorization.status,
+      message: authorization.message,
+    });
     return jsonResponse(
       { ok: false, message: authorization.message },
       { status: authorization.status },
@@ -7635,6 +8079,11 @@ export async function GET(request: Request) {
   }
 
   const result = await pollDiscordMessageCommands();
+  console.info("[discord-message-command] poll completed", {
+    authMode: authorization.mode,
+    ok: result.ok,
+    processedCount: Array.isArray(result.processed) ? result.processed.length : 0,
+  });
   return jsonResponse(result, { status: result.ok ? 200 : 500 });
 }
 
@@ -7731,6 +8180,7 @@ export async function POST(request: Request) {
       () => dispatchOperationsInteraction({
         interaction,
         jsonResponse,
+        handleComputaInteraction,
         handleReleaseInteraction,
         handleModLogInteraction,
         handleServerInventoryInteraction,

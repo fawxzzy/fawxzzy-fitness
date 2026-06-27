@@ -11,6 +11,7 @@ export type DiscordInteraction = {
   } | null;
   member?: {
     permissions?: unknown;
+    roles?: unknown;
     nick?: unknown;
     user?: {
       id?: unknown;

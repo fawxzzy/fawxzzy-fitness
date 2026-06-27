@@ -28,6 +28,25 @@ export const FITNESS_FEEDBACK_COMMAND_NAME = "feedback";
 export const FITNESS_FEEDBACK_STATUS_COMMAND_NAME = "feedback-status";
 export const FITNESS_FEEDBACK_COMPLETION_REVIEW_COMMAND_NAME = "feedback-completion-review";
 export const FITNESS_FEEDBACK_WITHDRAW_COMMAND_NAME = "feedback-withdraw";
+export const FITNESS_COMPUTA_COMMAND_NAME = "computa";
+export const FITNESS_COMPUTA_MENU_SUBCOMMAND_NAME = "menu";
+export const FITNESS_COMPUTA_OWNER_SUBCOMMAND_NAME = "owner";
+export const FITNESS_COMPUTA_SETUP_FEEDBACK_SUBCOMMAND_NAME = "setup-feedback";
+export const FITNESS_COMPUTA_SETUP_MUSIC_SESH_SUBCOMMAND_NAME = "setup-music-sesh";
+export const FITNESS_COMPUTA_REPAIR_COMMAND_CARD_SUBCOMMAND_NAME = "repair-command-card";
+export const FITNESS_COMPUTA_REPAIR_FEEDBACK_LAUNCHER_SUBCOMMAND_NAME = "repair-feedback-launcher";
+export const FITNESS_COMPUTA_RELEASE_CHECK_SUBCOMMAND_NAME = "release-check";
+export const FITNESS_COMPUTA_ARCHIVE_CHECKED_CARDS_SUBCOMMAND_NAME = "archive-checked-cards";
+export const FITNESS_COMPUTA_SYNC_FEEDBACK_REACTIONS_SUBCOMMAND_NAME = "sync-feedback-reactions";
+export const FITNESS_COMPUTA_POST_UPDATE_SUBCOMMAND_NAME = "post-update";
+export const FITNESS_COMPUTA_POST_LIVE_SUBCOMMAND_NAME = "post-live";
+export const FITNESS_COMPUTA_GRAND_RISING_SUBCOMMAND_NAME = "grand-rising";
+export const FITNESS_COMPUTA_GOODMORNING_SUBCOMMAND_NAME = "goodmorning";
+export const FITNESS_COMPUTA_GOODNIGHT_SUBCOMMAND_NAME = "goodnight";
+export const FITNESS_COMPUTA_POST_UPDATE_TITLE_OPTION_NAME = "title";
+export const FITNESS_COMPUTA_POST_UPDATE_BODY_OPTION_NAME = "body";
+export const FITNESS_COMPUTA_POST_LIVE_PROVIDER_OPTION_NAME = "provider";
+export const FITNESS_COMPUTA_POST_LIVE_URL_OPTION_NAME = "url";
 export const FITNESS_UPDATE_LATEST_COMMAND_NAME = "update-latest";
 export const FITNESS_UPDATE_PUBLISH_COMMAND_NAME = "update-publish";
 export const FITNESS_UPDATE_SKIP_COMMAND_NAME = "update-skip";
@@ -782,6 +801,114 @@ export function buildDiscordGuildCommandsDefinition(): DiscordApplicationCommand
           name: FITNESS_BUG_STATUS_REPORT_ID_OPTION_NAME,
           description: "Report ID, short ID, thread ID, or forum URL.",
           required: true,
+        },
+      ],
+    },
+    {
+      name: FITNESS_COMPUTA_COMMAND_NAME,
+      description: "Open Computa operator tools.",
+      options: [
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_MENU_SUBCOMMAND_NAME,
+          description: "Post or refresh the public Computa command card in this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_OWNER_SUBCOMMAND_NAME,
+          description: "Post or refresh the owner-only Computa command card in this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_SETUP_FEEDBACK_SUBCOMMAND_NAME,
+          description: "Refresh the Feedback launcher from this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_SETUP_MUSIC_SESH_SUBCOMMAND_NAME,
+          description: "Refresh the Music Sesh panel from this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_REPAIR_COMMAND_CARD_SUBCOMMAND_NAME,
+          description: "Repost the public Computa command card in this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_REPAIR_FEEDBACK_LAUNCHER_SUBCOMMAND_NAME,
+          description: "Repost the Feedback launcher from this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_RELEASE_CHECK_SUBCOMMAND_NAME,
+          description: "Post or refresh the Feedback release check card in this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_ARCHIVE_CHECKED_CARDS_SUBCOMMAND_NAME,
+          description: "Archive resolved feedback cards that already show the success reaction.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_SYNC_FEEDBACK_REACTIONS_SUBCOMMAND_NAME,
+          description: "Sync success reactions on resolved feedback cards.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_POST_UPDATE_SUBCOMMAND_NAME,
+          description: "Post a formatted update in the updates channel.",
+          options: [
+            {
+              type: 3,
+              name: FITNESS_COMPUTA_POST_UPDATE_TITLE_OPTION_NAME,
+              description: "Update title.",
+              required: true,
+            },
+            {
+              type: 3,
+              name: FITNESS_COMPUTA_POST_UPDATE_BODY_OPTION_NAME,
+              description: "Update body.",
+              required: true,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_POST_LIVE_SUBCOMMAND_NAME,
+          description: "Post a live announcement in the updates channel.",
+          options: [
+            {
+              type: 3,
+              name: FITNESS_COMPUTA_POST_LIVE_PROVIDER_OPTION_NAME,
+              description: "Saved provider shortcut.",
+              required: false,
+              choices: [
+                { name: "twitch", value: "twitch" },
+                { name: "tiktok", value: "tiktok" },
+              ],
+            },
+            {
+              type: 3,
+              name: FITNESS_COMPUTA_POST_LIVE_URL_OPTION_NAME,
+              description: "Custom live link.",
+              required: false,
+            },
+          ],
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_GRAND_RISING_SUBCOMMAND_NAME,
+          description: "Post the Grand Rising greeting in this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_GOODMORNING_SUBCOMMAND_NAME,
+          description: "Post the Good Morning greeting in this channel.",
+        },
+        {
+          type: 1,
+          name: FITNESS_COMPUTA_GOODNIGHT_SUBCOMMAND_NAME,
+          description: "Post the Goodnight greeting in this channel.",
         },
       ],
     },

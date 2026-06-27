@@ -1,4 +1,5 @@
 import {
+  FITNESS_COMPUTA_COMMAND_NAME,
   FITNESS_MOD_LOG_COMMAND_NAME,
   FITNESS_RELEASE_COMMAND_NAME,
   FITNESS_SERVER_INVENTORY_COMMAND_NAME,
@@ -11,6 +12,7 @@ import type { DiscordInteraction } from "@/lib/discord/runtime/types";
 type OperationsDispatchArgs = {
   interaction: DiscordInteraction;
   jsonResponse: (body: Record<string, unknown>, init?: ResponseInit) => Response;
+  handleComputaInteraction: (interaction: DiscordInteraction) => Promise<Record<string, unknown>>;
   handleReleaseInteraction: (interaction: DiscordInteraction) => Promise<Record<string, unknown>>;
   handleModLogInteraction: (interaction: DiscordInteraction) => Promise<Record<string, unknown>>;
   handleServerInventoryInteraction: (interaction: DiscordInteraction) => Promise<Record<string, unknown>>;
@@ -18,6 +20,10 @@ type OperationsDispatchArgs = {
 
 export async function dispatchOperationsInteraction(args: OperationsDispatchArgs): Promise<Response | null> {
   const { interaction } = args;
+
+  if (isDiscordApplicationCommand(interaction, FITNESS_COMPUTA_COMMAND_NAME)) {
+    return args.jsonResponse(await args.handleComputaInteraction(interaction));
+  }
 
   if (isDiscordApplicationCommand(interaction, FITNESS_RELEASE_COMMAND_NAME)) {
     return args.jsonResponse(await args.handleReleaseInteraction(interaction));

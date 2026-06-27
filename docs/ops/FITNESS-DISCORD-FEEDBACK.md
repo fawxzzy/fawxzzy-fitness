@@ -1,5 +1,19 @@
 # Fitness Discord Feedback
 
+## Hosted message-command recovery
+
+The legacy typed Discord commands now have two hosted paths:
+
+- `/computa ...` slash subcommands are served directly by `src/app/api/discord/interactions/route.ts`.
+- Free-text message commands like `computa`, `computa owner`, `goodmorning computa`, and `goodnight` are recovered through `GET /api/discord/message-commands/poll`.
+
+That poll endpoint now accepts either:
+
+- `DISCORD_MESSAGE_COMMAND_POLL_SECRET` / `CRON_SECRET` as a bearer token for manual or legacy workers.
+- A GitHub Actions OIDC bearer token from `fawxzzy/fawxzzy-fitness` on `refs/heads/main` with audience `fawxzzy-fitness-discord-message-poll`.
+
+The off-machine scheduler lives in `.github/workflows/discord-message-command-poll.yml` and runs every 5 minutes, with three bursts per scheduled run to drain up to nine pending message commands. Manual dispatch can run a larger burst for recovery without any local process.
+
 ## Purpose
 Feedback Bot captures bounded Discord feedback in `public.discord_feedback_reports` and mirrors unique reports into the Feedback forum for review.
 
@@ -39,6 +53,15 @@ Product rules:
   - posts a separate owner command card in the channel where it was used
   - deletes the previous owner command card in that channel before reposting
   - marks the trigger message with a public reaction
+- `/computa`
+  - hosted slash fallback for the same Computa operator surfaces when no always-on message-content runner is active
+  - `menu` reposts the public Computa command card in the current channel
+  - `owner` reposts the owner Computa command card in the current channel
+  - `release-check` reposts the Computa Release Check card in the current channel
+  - `archive-checked-cards` archives resolved feedback cards that already show the configured success reaction
+  - `sync-feedback-reactions` reconciles starter-post success reactions against resolved feedback tags
+  - `menu`, `release-check`, `archive-checked-cards`, and `sync-feedback-reactions` stay commander-gated with owner bypass
+  - `owner` stays configured-owner-only
 - `computa repair command card`
   - main-channel exact-message trigger
   - commander-only, with configured owner bypass
