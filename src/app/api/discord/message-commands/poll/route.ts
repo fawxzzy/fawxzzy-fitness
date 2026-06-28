@@ -1,5 +1,12 @@
-import { proxyDiscordOsMessageCommandPoll } from "@/lib/discord/discordos-message-command-poll-proxy.ts";
-
 export async function GET(request: Request) {
-  return proxyDiscordOsMessageCommandPoll(request);
+  void request;
+  return Response.json({
+    ok: false,
+    message: "DiscordOS now owns message-command polling. This Fitness endpoint is retired.",
+  }, {
+    status: 410,
+    headers: {
+      "cache-control": "no-store",
+    },
+  });
 }

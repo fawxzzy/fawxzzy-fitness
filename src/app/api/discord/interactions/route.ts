@@ -296,7 +296,6 @@ import {
   skipDiscordUpdateDraft,
 } from "@/lib/discord/update-drafts";
 import { buildDiscordComputaFormattedUpdatePayload } from "@/lib/discord/update-post-format";
-import { proxyDiscordOsInteractionRequest } from "@/lib/discord/discordos-interactions-proxy.ts";
 import { upsertDiscordMemberLink } from "@/lib/discord/member-links";
 import {
   formatDiscordMemberNickname,
@@ -8126,7 +8125,10 @@ export async function POST(request: Request) {
     }
 
     if (interaction.type === DISCORD_INTERACTION_TYPE.APPLICATION_COMMAND && interaction.data?.name === "computa") {
-      return proxyDiscordOsInteractionRequest(request, rawBody);
+      return jsonResponse({
+        ok: false,
+        message: "DiscordOS now owns /computa. This Fitness interactions endpoint is retired.",
+      }, { status: 410 });
     }
 
     const dispatchers = [

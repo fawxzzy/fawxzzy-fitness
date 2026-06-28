@@ -1193,68 +1193,29 @@ test("Discord message command poll is secret-gated", async () => {
   assert.equal(response.status, 503);
 });
 
-test("Discord computa slash commands proxy to DiscordOS", async () => {
+test("Discord computa slash commands are retired on Fitness after DiscordOS cutover", async () => {
   const keyPair = nacl.sign.keyPair();
   process.env.DISCORD_PUBLIC_KEY = toHex(keyPair.publicKey);
-
-  const originalFetch = globalThis.fetch;
-  const upstreamBodies = [];
-
-  globalThis.fetch = async (input, init) => {
-    upstreamBodies.push({
-      url: String(input),
-      method: String(init?.method ?? "GET"),
-      headers: init?.headers instanceof Headers
-        ? Object.fromEntries(init.headers.entries())
-        : {},
-      body: typeof init?.body === "string" ? init.body : "",
-    });
-
-    return new Response(JSON.stringify({
-      type: 4,
-      data: {
-        content: "DiscordOS handled computa.",
-        flags: 64,
+  const body = JSON.stringify({
+    type: 2,
+    guild_id: "1504668396338413670",
+    member: {
+      user: {
+        id: "552278941159784460",
+        username: "fawxzzy",
       },
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  };
+    },
+    data: {
+      name: "computa",
+    },
+  });
+  const response = await POST(createSignedRequest(body, keyPair));
 
-  try {
-    const body = JSON.stringify({
-      type: 2,
-      guild_id: "1504668396338413670",
-      member: {
-        user: {
-          id: "552278941159784460",
-          username: "fawxzzy",
-        },
-      },
-      data: {
-        name: "computa",
-      },
-    });
-    const response = await POST(createSignedRequest(body, keyPair));
-
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      type: 4,
-      data: {
-        content: "DiscordOS handled computa.",
-        flags: 64,
-      },
-    });
-    assert.equal(upstreamBodies.length, 1);
-    assert.equal(upstreamBodies[0]?.url, "https://fawxzzy-discordos.vercel.app/api/discord-interactions");
-    assert.equal(upstreamBodies[0]?.method, "POST");
-    assert.equal(upstreamBodies[0]?.headers["x-signature-ed25519"]?.length > 0, true);
-    assert.equal(upstreamBodies[0]?.headers["x-signature-timestamp"], "1715702400");
-    assert.equal(upstreamBodies[0]?.body, body);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+  assert.equal(response.status, 410);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    message: "DiscordOS now owns /computa. This Fitness interactions endpoint is retired.",
+  });
 });
 
 test("Discord message command poll replaces one computa command menu per channel", async () => {
