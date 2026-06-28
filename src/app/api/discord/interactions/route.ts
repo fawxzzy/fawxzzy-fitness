@@ -50,7 +50,6 @@ import {
   claimDiscordMessageCommand,
   finalizeDiscordMessageCommandClaim,
 } from "@/lib/discord/message-command-claims";
-import { authorizeDiscordMessageCommandPollRequest } from "@/lib/discord/message-command-poll-auth";
 import {
   buildDiscordFeedbackPanelMessagePayload,
   buildDiscordFeedbackManageCardResponse,
@@ -8066,25 +8065,11 @@ async function handleUpdateSkipInteraction(interaction: DiscordInteraction) {
 }
 
 export async function GET(request: Request) {
-  const authorization = await authorizeDiscordMessageCommandPollRequest(request);
-  if (!authorization.ok) {
-    console.warn("[discord-message-command] poll authorization failed", {
-      status: authorization.status,
-      message: authorization.message,
-    });
-    return jsonResponse(
-      { ok: false, message: authorization.message },
-      { status: authorization.status },
-    );
-  }
-
-  const result = await pollDiscordMessageCommands();
-  console.info("[discord-message-command] poll completed", {
-    authMode: authorization.mode,
-    ok: result.ok,
-    processedCount: Array.isArray(result.processed) ? result.processed.length : 0,
-  });
-  return jsonResponse(result, { status: result.ok ? 200 : 500 });
+  void request;
+  return jsonResponse({
+    ok: false,
+    message: "DiscordOS now owns Discord command polling. This Fitness interactions GET endpoint is retired.",
+  }, { status: 410 });
 }
 
 export async function POST(request: Request) {
