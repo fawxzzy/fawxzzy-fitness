@@ -372,13 +372,13 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
       )}
       <HorizontalScrollHint
         className="-mx-0.5"
-        scrollClassName="pl-0.5 pr-[2.05rem] pb-0.5 sm:pr-[2.25rem]"
-        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-[1.55rem] sm:gap-2.5 sm:pr-0"
+        scrollClassName="pl-0.5 pr-[0.7rem] pb-0.5 sm:pr-[2.25rem]"
+        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-0 sm:gap-2.5 sm:pr-0"
       >
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.9rem] w-[calc(100vw-7rem)] min-w-[calc(100vw-7rem)] max-w-[calc(100vw-7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5"
+            className="flex min-h-[4.9rem] w-[calc(100vw-3rem)] min-w-[calc(100vw-3rem)] max-w-[calc(100vw-3rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5"
           >
             <ExerciseCardStandardTitle
               name={exercise.name}
