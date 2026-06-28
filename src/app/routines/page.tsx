@@ -387,7 +387,6 @@ export default async function RoutinesPage() {
           <ContentRail className="py-1">
             <RoutinesRouteHeaderCard
               title="Routines"
-              titleClassName="sr-only"
               subtitle={headerSubtitle}
             />
           </ContentRail>

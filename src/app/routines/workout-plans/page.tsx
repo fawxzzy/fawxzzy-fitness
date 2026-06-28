@@ -133,7 +133,6 @@ export default async function WorkoutPlansPage() {
           <ContentRail className="py-1">
             <RoutinesRouteHeaderCard
               title="Workout Plans"
-              titleClassName="sr-only"
               subtitle={(
                 <HeaderInfoRail
                   items={headerInfoItems}
