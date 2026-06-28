@@ -398,7 +398,7 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
                 : undefined}
               columnLayout="compact"
               className="gap-x-[0.45rem] gap-y-0.5 sm:gap-x-[0.55rem]"
-              nameClassName="truncate whitespace-nowrap text-[0.84rem] leading-[1.1] sm:text-[0.91rem] sm:leading-[1.14]"
+              nameClassName="whitespace-nowrap text-[0.84rem] leading-[1.1] sm:text-[0.91rem] sm:leading-[1.14]"
               rightColumnClassName="w-fit max-w-full"
               rightContentClassName="gap-1 whitespace-nowrap text-[8.55px] leading-[1.03] sm:text-[8.95px]"
             />

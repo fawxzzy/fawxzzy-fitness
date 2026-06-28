@@ -1,6 +1,17 @@
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## PROPOSED
+## 2026-06-28 - Compact mobile routine and exercise cards should share the same title-width and goal-summary contracts
+- Type: Pattern
+- WHAT changed: The mobile routine browse cards, workout-plan cards, day recap tiles, Today rows, and session exercise cards were tightened onto the same compact spacing rules by shrinking right-edge chrome padding, rebalancing compact title/right-rail layout, and updating the regression fixture route to use shared formatted goal-summary text instead of hand-written strings.
+- WHY it changed: The previous mobile surfaces were drifting apart in how much width the title column actually kept once chevrons, info buttons, and delete pills were present, which caused avoidable truncation pressure and made regression captures prove a looser mock contract than the real app surfaces.
+- Rule: Compact routine and exercise cards should reserve only the padding required by their right-edge controls and should not hide title width behind inconsistent per-screen chrome offsets.
+- Rule: Mobile regression fixtures should generate target/goal copy through the shared measurement-display formatter so proof screens match production cards when spacing or wrapping is reviewed.
+- Pattern: shared compact title shell + shared right-edge chrome spacing + shared formatted goal-summary fixtures + route-aware mobile regression proof.
+- Failure Mode: Screen-local spacing and mock-only summary strings make routine cards, Today cards, and session cards drift into different truncation, wrapping, and proof behavior even when they are supposed to represent the same compact card family.
+- Evidence: `src/app/dev/mobile-regression/DevMobileRegressionRoute.tsx`, `src/app/routines/RoutinesPageClient.tsx`, `src/app/routines/WorkoutPlansPageClient.tsx`, `src/app/today/TodayExerciseRows.tsx`, `src/components/SessionExerciseFocus.tsx`, `src/components/day-list/RoutineDayCardPresentation.tsx`, `src/components/routines/RoutineBrowseCard.tsx`, `src/components/workout/ExerciseCardStandardTitle.tsx`, `src/components/workout/ExerciseCardSurfaceChrome.ts`
+- Status: Proposed
+
 ## 2026-06-26 - UI mutation passes should use checklist-first normalization and bounded data lanes
 - Type: Pattern
 - Summary: Fitness UI work is more reliable when every explicit edit request is turned into a checklist, the canonical surface is patched first, and mutable QA runs stay on bounded fixture or automation-user lanes instead of drifting through live user data.
