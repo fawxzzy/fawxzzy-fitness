@@ -266,7 +266,7 @@ export async function ensureRepoDependencies({
   repoRoot,
   reason = "repo script",
   requiredMarkers = DEFAULT_REQUIRED_MARKERS,
-  runtimeDirName = "runtime",
+  runtimeDirName = path.join(".playbook", "runtime"),
 } = {}) {
   if (!repoRoot) {
     throw new Error("ensureRepoDependencies requires repoRoot.");

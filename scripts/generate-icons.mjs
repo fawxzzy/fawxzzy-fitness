@@ -10,19 +10,9 @@ const rootDir = path.resolve(__dirname, "..");
 
 const iconSourcePath = path.join(rootDir, "public", "brand", "fitness-app-icon-source.jpg");
 const generatedPngPath = path.join(rootDir, "public", "brand", "fitness-app-icon.png");
-const compatibilityBrandPath = path.join(rootDir, "public", "brand", "atlas-sigil-master.png");
 const outputTargets = [
   { type: "png", size: 1024, targetPath: generatedPngPath },
-  { type: "png", size: 1024, targetPath: compatibilityBrandPath },
   { type: "png", size: 1024, targetPath: path.join(rootDir, "public", "app", "loader-sigil.png") },
-  { type: "png", size: 512, targetPath: path.join(rootDir, "public", "app", "icon-512.png") },
-  { type: "png", size: 192, targetPath: path.join(rootDir, "public", "app", "icon-192.png") },
-  { type: "png", size: 512, targetPath: path.join(rootDir, "public", "icons", "icon-512.png") },
-  { type: "png", size: 192, targetPath: path.join(rootDir, "public", "icons", "icon-192.png") },
-  { type: "png", size: 180, targetPath: path.join(rootDir, "public", "icons", "apple-touch-icon.png") },
-  { type: "png", size: 32, targetPath: path.join(rootDir, "public", "favicon-32x32.png") },
-  { type: "png", size: 16, targetPath: path.join(rootDir, "public", "favicon-16x16.png") },
-  { type: "ico", sizes: [16, 32, 48], targetPath: path.join(rootDir, "public", "favicon.ico") },
 ];
 
 function parseArguments(argv) {
