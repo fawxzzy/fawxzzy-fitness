@@ -372,13 +372,13 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
       )}
       <HorizontalScrollHint
         className="-mx-0.5"
-        scrollClassName="pl-0.5 pr-[0.7rem] pb-0.5 sm:pr-[2.25rem]"
-        contentClassName="flex w-max min-w-full items-stretch gap-1.75 pr-[0.2rem] sm:gap-2.5 sm:pr-0"
+        scrollClassName="pl-0.5 pr-[2.05rem] pb-0.5 sm:pr-[2.25rem]"
+        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-[1.55rem] sm:gap-2.5 sm:pr-0"
       >
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.55rem] min-w-[12.9rem] max-w-[min(14.2rem,calc(100vw-10.9rem))] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:max-w-none sm:px-2.5"
+            className="flex min-h-[4.55rem] min-w-[13.7rem] max-w-[min(15.15rem,calc(100vw-9.55rem))] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:max-w-none sm:px-2.5"
           >
             <ExerciseCardStandardTitle
               name={exercise.name}
@@ -392,13 +392,14 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
                   Exercise configured
                 </span>
               )}
+              rightTitle={<span className="text-[0.76rem] leading-[1.1] sm:text-[0.82rem]">Target</span>}
               rightContent={exercise.targetLabel?.trim() || "Goal missing"}
               rightSubcontent={exercise.progressionStateLabel?.trim()
                 ? <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} className="text-[8.35px]" />
                 : undefined}
               columnLayout="compact"
               className="gap-x-[0.45rem] gap-y-0.5 sm:gap-x-[0.55rem]"
-              nameClassName="whitespace-nowrap text-[0.84rem] leading-[1.1] sm:text-[0.91rem] sm:leading-[1.14]"
+              nameClassName="whitespace-nowrap text-[0.8rem] leading-[1.08] sm:text-[0.91rem] sm:leading-[1.14]"
               rightColumnClassName="w-fit max-w-full"
               rightContentClassName="gap-1 whitespace-nowrap text-[8.55px] leading-[1.03] sm:text-[8.95px]"
             />
