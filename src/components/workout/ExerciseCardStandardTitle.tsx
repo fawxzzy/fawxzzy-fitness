@@ -136,6 +136,7 @@ export function ExerciseCardStandardTitle({
   rightColumnClassName,
   rightContentClassName,
   columnLayout = "stretch",
+  hideRightTitleOnMobile = false,
 }: {
   name: string;
   metadata?: ReactNode;
@@ -148,12 +149,14 @@ export function ExerciseCardStandardTitle({
   rightColumnClassName?: string;
   rightContentClassName?: string;
   columnLayout?: "stretch" | "compact";
+  hideRightTitleOnMobile?: boolean;
 }) {
   const resolvedRightContent = rightContent ? renderRightContent(rightContent) : null;
   const hasRightBlock = Boolean(resolvedRightContent) || Boolean(rightAccessory) || Boolean(rightSubcontent);
   const hasPrimaryRightRow = Boolean(resolvedRightContent) || Boolean(rightAccessory);
   const isCompactLayout = columnLayout === "compact";
   const showMobileSectionSeparator = isCompactLayout;
+  const hasRightTitle = rightTitle !== null && rightTitle !== undefined && rightTitle !== false && rightTitle !== "";
 
   return (
     <span
@@ -202,12 +205,19 @@ export function ExerciseCardStandardTitle({
                 <MetricAccentBar variant="thin" className="w-full opacity-75" />
               </span>
             ) : null}
-            <span className="inline-flex min-w-0 max-w-full flex-col items-start gap-y-[3px]">
-              <span className={cn("min-w-0 max-w-full whitespace-nowrap text-[0.82rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.92)]", !isCompactLayout ? "sm:text-[0.9rem] sm:leading-[1.22]" : undefined)}>
-                {rightTitle}
+            {hasRightTitle ? (
+              <span
+                className={cn(
+                  "inline-flex min-w-0 max-w-full flex-col items-start gap-y-[3px]",
+                  hideRightTitleOnMobile ? "hidden sm:inline-flex" : undefined,
+                )}
+              >
+                <span className={cn("min-w-0 max-w-full whitespace-nowrap text-[0.82rem] font-semibold leading-[1.18] text-[rgb(var(--text)/0.92)]", !isCompactLayout ? "sm:text-[0.9rem] sm:leading-[1.22]" : undefined)}>
+                  {rightTitle}
+                </span>
+                <MetricAccentBar variant="thin" className="w-full opacity-75" />
               </span>
-              <MetricAccentBar variant="thin" className="w-full opacity-75" />
-            </span>
+            ) : null}
             {hasPrimaryRightRow ? (
               <span className={cn("inline-flex w-fit min-w-0 max-w-full flex-wrap items-center justify-start gap-x-1.5 gap-y-0.5 text-[9.75px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.88)]", isCompactLayout ? "text-[9.35px]" : undefined, rightContentClassName)}>
                 {resolvedRightContent ? (

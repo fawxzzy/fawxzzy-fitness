@@ -40,7 +40,7 @@ export type RoutineBrowseCardItem = {
 };
 
 const ROUTINES_BROWSE_CARD_BODY_CLASS_NAME = "min-h-[7.2rem] py-[0.72rem]";
-const ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1.5 py-0";
+const ROUTINES_BROWSE_CARD_CONTENT_CLASS_NAME = "gap-1.5 pt-[0.3rem] pb-0";
 const ROUTINES_BROWSE_CARD_PREVIEW_GRID_CLASS_NAME = "grid gap-2 pt-1";
 const ROUTINES_BROWSE_CARD_SCROLL_WRAPPER_CLASS_NAME = "-mx-1";
 const ROUTINES_BROWSE_CARD_PREVIEW_SCROLL_CLASS_NAME = "pl-1 pr-[1.7rem] pb-1 sm:pr-[1.2rem]";

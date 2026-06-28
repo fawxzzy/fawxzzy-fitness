@@ -19,7 +19,7 @@ import {
 
 export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
 export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[4.1rem] !py-[0.38rem]";
-export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !py-0";
+export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !pt-[0.3rem] !pb-0";
 export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 py-0 !space-y-0";
 export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.14]";
 export const ROUTINE_DAY_CARD_TITLE_CLASS_NAME = "leading-[1.04]";
@@ -372,13 +372,13 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
       )}
       <HorizontalScrollHint
         className="-mx-0.5"
-        scrollClassName="pl-0.5 pr-[2.05rem] pb-0.5 sm:pr-[2.25rem]"
-        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-[1.55rem] sm:gap-2.5 sm:pr-0"
+        scrollClassName="pl-0.5 pr-[1.95rem] pb-0.5 sm:pr-[2.25rem]"
+        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-[1.8rem] sm:gap-2.5 sm:pr-0"
       >
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.9rem] w-[calc(100vw-7rem)] min-w-[calc(100vw-7rem)] max-w-[calc(100vw-7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5"
+            className="flex min-h-[4.9rem] w-[calc(100vw-5.7rem)] min-w-[calc(100vw-5.7rem)] max-w-[calc(100vw-5.7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5"
           >
             <ExerciseCardStandardTitle
               name={exercise.name}
@@ -398,6 +398,7 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
                 ? <ExerciseCardProgressionStateInline label={exercise.progressionStateLabel} className="text-[8.35px]" />
                 : undefined}
               columnLayout="compact"
+              hideRightTitleOnMobile
               className="gap-x-[0.45rem] gap-y-0.5 sm:gap-x-[0.55rem]"
               nameClassName="max-w-full whitespace-normal break-words [text-wrap:balance] text-[0.8rem] leading-[1.02] sm:whitespace-nowrap sm:text-[0.91rem] sm:leading-[1.14]"
               rightColumnClassName="w-fit max-w-full"
