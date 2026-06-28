@@ -99,6 +99,7 @@ const NEW_ROUTINE_PREVIEW_REORDER_HANDLE_CLASS_NAME = cn(
   "relative z-[2] h-7 w-7 rounded-[0.72rem] border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
+const NEW_ROUTINE_PREVIEW_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME = "pointer-events-none absolute left-[10px] top-[3px] z-[6] sm:top-px";
 const NEW_ROUTINE_PREVIEW_CHEVRON_RAIL_CLASS_NAME = "!right-[0.38rem] !top-auto !bottom-[0.58rem] !translate-y-0 !min-w-0";
 
 function resolveRoutineDraftFieldValue(field: string, value: string) {
@@ -773,7 +774,7 @@ export function NewRoutineDraftForm({
                               </div>
                             </div>
                           ) : null}
-                          <div className="pointer-events-none absolute left-[8px] top-px z-[4]">
+                          <div className={NEW_ROUTINE_PREVIEW_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME}>
                             <button
                               type="button"
                               onClick={(event) => {

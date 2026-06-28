@@ -125,6 +125,7 @@ const ROUTINE_HOME_REORDER_HANDLE_CLASS_NAME = cn(
   "relative z-[2] h-8 w-8 border-[rgb(var(--selection-rgb)/0.28)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.08),rgb(var(--surface-1-rgb)/0.36))] text-[rgb(var(--text-primary)/0.94)] shadow-[0_0_0_1px_rgb(var(--selection-rgb)/0.06),0_0_16px_rgb(var(--selection-rgb)/0.12)]",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--selection-rgb)/0.22)]",
 );
+const ROUTINE_HOME_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME = "pointer-events-none absolute left-[10px] top-[3px] z-[6] sm:top-px";
 const ROUTINE_HOME_ADD_DAY_MODAL_PANEL_CLASS_NAME = cn(
   overlayChromeClassNames.panelBase,
   `relative z-10 mx-auto flex max-h-[min(100dvh-2rem,42rem)] min-w-0 w-full ${SHARED_OVERLAY_PANEL_MAX_WIDTH_CLASS_NAME} flex-col overflow-hidden rounded-[1.25rem]`,
@@ -615,9 +616,7 @@ export function RoutineHomeClient({
                     ) : undefined}
                     wrapper={(card) => (
                       <div className="relative min-w-0" data-routine-day-id={day.id}>
-                        <div
-                          className="pointer-events-none absolute left-[8px] top-px z-[4]"
-                        >
+                        <div className={ROUTINE_HOME_CORNER_DELETE_PILL_ANCHOR_CLASS_NAME}>
                           <button
                             type="button"
                             onClick={(event) => {
