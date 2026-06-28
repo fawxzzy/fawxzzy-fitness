@@ -378,7 +378,7 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.9rem] min-w-[13.7rem] max-w-[min(15.15rem,calc(100vw-9.55rem))] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:max-w-none sm:px-2.5"
+            className="flex min-h-[4.9rem] w-[calc(100vw-7rem)] min-w-[calc(100vw-7rem)] max-w-[calc(100vw-7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5"
           >
             <ExerciseCardStandardTitle
               name={exercise.name}
