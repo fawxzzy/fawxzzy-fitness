@@ -53,6 +53,7 @@ import {
 } from "@/lib/progression-history-filters";
 import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-display";
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
+import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 
 export const dynamic = "force-dynamic";
@@ -394,7 +395,83 @@ const mockPickerExercises = [
   },
 ];
 
-const LONG_GOAL_SUMMARY = "Goal: 4 sets • 8-10 reps • controlled eccentric • last set AMRAP";
+const REGRESSION_BACK_SQUAT_TARGET = formatGoalInlineSummaryText({
+  sets: 4,
+  reps: 5,
+  weight: 225,
+  weightUnit: "lbs",
+});
+const REGRESSION_PUSH_BENCH_TARGET = formatGoalInlineSummaryText({
+  sets: 4,
+  reps: 6,
+  weight: 185,
+  weightUnit: "lbs",
+});
+const REGRESSION_WALKING_LUNGE_TARGET = formatGoalInlineSummaryText({
+  sets: 4,
+  reps: 8,
+  repsMax: 10,
+  weight: 35,
+  weightUnit: "lbs",
+});
+const LONG_GOAL_SUMMARY = REGRESSION_WALKING_LUNGE_TARGET;
+const REGRESSION_INCLINE_WALK_TARGET = formatGoalInlineSummaryText({
+  sets: 1,
+  durationSeconds: 1080,
+  distance: 2,
+  distanceUnit: "km",
+  enabledMeasurements: {
+    reps: false,
+    weight: false,
+    time: true,
+    distance: true,
+    calories: false,
+  },
+});
+const REGRESSION_PULLUP_TARGET = formatGoalInlineSummaryText({
+  sets: 4,
+  reps: 6,
+});
+const REGRESSION_PLANK_TARGET = formatGoalInlineSummaryText({
+  sets: 3,
+  durationSeconds: 45,
+  enabledMeasurements: {
+    reps: false,
+    weight: false,
+    time: true,
+    distance: false,
+    calories: false,
+  },
+});
+const REGRESSION_ROWER_DISTANCE_TARGET = formatGoalInlineSummaryText({
+  sets: 3,
+  distance: 0.5,
+  distanceUnit: "mi",
+  enabledMeasurements: {
+    reps: false,
+    weight: false,
+    time: false,
+    distance: true,
+    calories: false,
+  },
+});
+const REGRESSION_BIKE_CALORIES_TARGET = formatGoalInlineSummaryText({
+  sets: 4,
+  calories: 20,
+  enabledMeasurements: {
+    reps: false,
+    weight: false,
+    time: false,
+    distance: false,
+    calories: true,
+  },
+});
+const REGRESSION_BACK_SQUAT_NEXT_TARGET = formatGoalInlineSummaryText({
+  sets: 4,
+  reps: 5,
+  weight: 230,
+  weightUnit: "lbs",
+});
 
 const mockTodayDays = [
   {
@@ -409,7 +486,7 @@ const mockTodayDays = [
         id: "td-1",
         exerciseId: MOCK_EXERCISE_IDS.bench,
         name: "Bench Press",
-        targets: "4 sets x 6 reps @ 185 lbs",
+        targets: REGRESSION_PUSH_BENCH_TARGET,
         targetSetsMin: 4,
         targetSetsMax: 4,
         primary_muscle: "Chest",
@@ -435,7 +512,7 @@ const mockTodayDays = [
         id: "td-2",
         exerciseId: MOCK_EXERCISE_IDS.squat,
         name: "Back Squat",
-        targets: "4 sets x 5 reps @ 225 lbs",
+        targets: REGRESSION_BACK_SQUAT_TARGET,
         targetSetsMin: 4,
         targetSetsMax: 4,
         primary_muscle: "Quads",
@@ -451,9 +528,9 @@ const mockTodayDays = [
         id: "td-3",
         exerciseId: MOCK_EXERCISE_IDS.lunge,
         name: "Walking Lunge",
-        targets: LONG_GOAL_SUMMARY,
-        targetSetsMin: 3,
-        targetSetsMax: 3,
+        targets: REGRESSION_WALKING_LUNGE_TARGET,
+        targetSetsMin: 4,
+        targetSetsMax: 4,
         primary_muscle: "Glutes",
         equipment: "Dumbbell",
         movement_pattern: "Lunge",
@@ -467,7 +544,7 @@ const mockTodayDays = [
         id: "td-4",
         exerciseId: MOCK_EXERCISE_IDS.walk,
         name: "Incline Walk",
-        targets: "18 minutes @ 8% grade",
+        targets: REGRESSION_INCLINE_WALK_TARGET,
         targetSetsMin: 1,
         targetSetsMax: 1,
         primary_muscle: "Cardio",
@@ -505,7 +582,7 @@ const mockViewDayExercises = [
   {
     id: "view-1",
     name: "Back Squat",
-    targets: "4 sets x 5 reps @ 225 lbs",
+    targets: REGRESSION_BACK_SQUAT_TARGET,
     exerciseId: MOCK_EXERCISE_IDS.squat,
     image_icon_path: "/missing/icon-squat.png",
     image_howto_path: "/missing/howto-squat.png",
@@ -514,7 +591,7 @@ const mockViewDayExercises = [
   {
     id: "view-2",
     name: "Walking Lunge",
-    targets: LONG_GOAL_SUMMARY,
+    targets: REGRESSION_WALKING_LUNGE_TARGET,
     exerciseId: MOCK_EXERCISE_IDS.lunge,
     image_icon_path: "/missing/icon-lunge.png",
     image_howto_path: null,
@@ -545,7 +622,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: true, weight: true, time: false, distance: false, calories: false },
     routineDayExerciseId: "routine-row-1",
     planTargetsHash: "11000",
-    goalLabel: "4 sets x 5 reps @ 225 lbs",
+    goalLabel: REGRESSION_BACK_SQUAT_TARGET,
     prefill: { weight: 225, reps: 5, weightUnit: "lbs" as const },
     quickLogTarget: { measurementType: "reps" as const, repsMin: 5, repsMax: 5, weightMin: 225, weightMax: 225, weightUnit: "lbs" as const },
     initialSets: [
@@ -588,7 +665,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: true, weight: true, time: false, distance: false, calories: false },
     routineDayExerciseId: "routine-row-2",
     planTargetsHash: "11000",
-    goalLabel: LONG_GOAL_SUMMARY,
+    goalLabel: REGRESSION_WALKING_LUNGE_TARGET,
     prefill: { weight: 35, reps: 8, weightUnit: "lbs" as const },
     quickLogTarget: { measurementType: "reps" as const, repsMin: 8, repsMax: 8, weightMin: 35, weightMax: 35, weightUnit: "lbs" as const },
     initialSets: [],
@@ -614,7 +691,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: false, weight: false, time: true, distance: true, calories: false },
     routineDayExerciseId: "routine-row-3",
     planTargetsHash: "00110",
-    goalLabel: "2.0 km in 18:00 @ 8% grade",
+    goalLabel: REGRESSION_INCLINE_WALK_TARGET,
     prefill: { durationSeconds: 1080 },
     quickLogTarget: {
       measurementType: "time_distance" as const,
@@ -645,7 +722,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: true, weight: true, time: false, distance: false, calories: false },
     routineDayExerciseId: "routine-row-4",
     planTargetsHash: "11000",
-    goalLabel: "4 sets x 6 reps",
+    goalLabel: REGRESSION_PULLUP_TARGET,
     prefill: { reps: 6 },
     quickLogTarget: { measurementType: "reps" as const, repsMin: 6, repsMax: 6 },
     initialSets: [
@@ -736,7 +813,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: false, weight: false, time: true, distance: false, calories: false },
     routineDayExerciseId: "routine-row-5",
     planTargetsHash: "00100",
-    goalLabel: "3 holds x 45 sec",
+    goalLabel: REGRESSION_PLANK_TARGET,
     prefill: { durationSeconds: 45 },
     quickLogTarget: { measurementType: "time" as const, durationSeconds: 45 },
     initialSets: [
@@ -779,7 +856,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: false, weight: false, time: false, distance: true, calories: false },
     routineDayExerciseId: "routine-row-6",
     planTargetsHash: "00010",
-    goalLabel: "3 rounds x 0.5 mi",
+    goalLabel: REGRESSION_ROWER_DISTANCE_TARGET,
     quickLogTarget: { measurementType: "distance" as const, distance: 0.5, distanceUnit: "mi" as const },
     initialSets: [],
     loggedSetCount: 0,
@@ -804,7 +881,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: false, weight: false, time: false, distance: false, calories: true },
     routineDayExerciseId: "routine-row-7",
     planTargetsHash: "00001",
-    goalLabel: "4 rounds x 20 cal",
+    goalLabel: REGRESSION_BIKE_CALORIES_TARGET,
     quickLogTarget: { measurementType: "time" as const, calories: 20 },
     initialSets: [],
     loggedSetCount: 0,
@@ -1503,11 +1580,11 @@ const mockTodayProgressionReviewItems: ProgressionReviewDisplayItem[] = [
     dayGroupId: "day-2",
     type: "promote",
     badgeLabel: "Promote",
-    summary: "Back Squat: 225 lbs x 5 -> 230 lbs x 5",
+    summary: `Back Squat: ${REGRESSION_BACK_SQUAT_TARGET} -> ${REGRESSION_BACK_SQUAT_NEXT_TARGET}`,
     summaryParts: {
       exerciseName: "Back Squat",
-      currentTarget: "225 lbs x 5",
-      proposedTarget: "230 lbs x 5",
+      currentTarget: REGRESSION_BACK_SQUAT_TARGET,
+      proposedTarget: REGRESSION_BACK_SQUAT_NEXT_TARGET,
       fallback: null,
     },
     reason: "Ready: met the load evidence requirement from the latest qualifying session.",
@@ -1664,14 +1741,14 @@ const mockTodayProgressionStatusItems: ProgressionStatusSurfaceItem[] = [
     dayGroupId: "day-2",
     readinessState: "ready",
     readinessLabel: "Ready",
-    currentTargetLine: "Current target: 225 lbs x 5",
+    currentTargetLine: `Current target: ${REGRESSION_BACK_SQUAT_TARGET}`,
     promotionBasisLabel: "Weight only",
     promotionBasisDetail: "Weight only: Reps are tracked for guidance but do not affect auto-promotion.",
     repTargetLine: "Top half of range (10+ reps)",
     latestLine: "Latest: Jun 8 | 225 lbs | 10 / 10 / 10 / 10 reps",
     targetLine: "Needs: 4 sets at the current load with top-half reps.",
     detailLine: "Result: ready to increase the load on the next update.",
-    nextUpdateLine: "Next update: 230 lbs x 5",
+    nextUpdateLine: `Next update: ${REGRESSION_BACK_SQUAT_NEXT_TARGET}`,
     reason: "Ready: met the load evidence requirement from the latest qualifying session.",
     progress: {
       percent: 100,
@@ -1707,11 +1784,11 @@ const mockTodayLinkedProgressionReviewItems: ProgressionReviewDisplayItem[] = [
     },
     type: "promote",
     badgeLabel: "Promote",
-    summary: "Back Squat: 225 lbs x 5 -> 230 lbs x 5",
+    summary: `Back Squat: ${REGRESSION_BACK_SQUAT_TARGET} -> ${REGRESSION_BACK_SQUAT_NEXT_TARGET}`,
     summaryParts: {
       exerciseName: "Back Squat",
-      currentTarget: "225 lbs x 5",
-      proposedTarget: "230 lbs x 5",
+      currentTarget: REGRESSION_BACK_SQUAT_TARGET,
+      proposedTarget: REGRESSION_BACK_SQUAT_NEXT_TARGET,
       fallback: null,
     },
     reason: "Ready: linked days share the same target and can be promoted together.",
@@ -2038,7 +2115,9 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
                       id: "summary-1",
                       exerciseId: MOCK_EXERCISE_IDS.squat,
                       name: "Back Squat",
-                      targets: "4 sets x 5 reps @ 225 lbs",
+                      targets: "4 sets • 5 reps • 225 lbs",
+                      primary_muscle: "Quads",
+                      movement_pattern: "Squat",
                       image_icon_path: "/missing/icon-squat.png",
                       image_howto_path: "/missing/howto-squat.png",
                       slug: "back-squat",
@@ -2050,7 +2129,9 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
                       id: "summary-2",
                       exerciseId: MOCK_EXERCISE_IDS.lunge,
                       name: "Walking Lunge",
-                      targets: LONG_GOAL_SUMMARY,
+                      targets: "4 sets • 8-10 reps",
+                      primary_muscle: "Glutes",
+                      movement_pattern: "Lunge",
                       image_icon_path: "/missing/icon-lunge.png",
                       image_howto_path: null,
                       slug: "walking-lunge",
@@ -2343,7 +2424,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
       {
         id: "edit-1",
         name: "Back Squat",
-        summary: "4 sets x 5 reps @ 225 lbs",
+        summary: REGRESSION_BACK_SQUAT_TARGET,
         iconSrc: "/missing/icon-squat.png",
         orderNumber: 1,
         measurementType: "reps" as const,
@@ -2354,7 +2435,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
       {
         id: "edit-2",
         name: "Romanian Deadlift",
-        summary: "3 sets x 8 reps @ 185 lbs",
+        summary: formatGoalInlineSummaryText({ sets: 3, reps: 8, weight: 185, weightUnit: "lbs" }),
         iconSrc: "/missing/icon-row.png",
         orderNumber: 2,
         measurementType: "reps" as const,
@@ -2365,7 +2446,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
       {
         id: "edit-3",
         name: "Walking Lunge",
-        summary: LONG_GOAL_SUMMARY,
+        summary: REGRESSION_WALKING_LUNGE_TARGET,
         iconSrc: "/missing/icon-lunge.png",
         orderNumber: 3,
         measurementType: "reps" as const,

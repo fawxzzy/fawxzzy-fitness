@@ -47,10 +47,10 @@ export function ExerciseCardMetadataLine({
     <SignatureInlineList
       separator="pipe"
       className={cn(
-        "!flex-nowrap min-w-0 max-w-full gap-x-1.5 gap-y-0 whitespace-nowrap text-[9.75px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.9)]",
+        "!flex-nowrap min-w-0 max-w-full gap-x-1.5 gap-y-0 whitespace-nowrap pb-px text-[9.75px] font-medium leading-[1.18] text-[rgb(var(--text-secondary)/0.9)]",
         className,
       )}
-      itemClassName="inline-flex shrink-0 items-center whitespace-nowrap leading-[1.12]"
+      itemClassName="inline-flex shrink-0 items-center whitespace-nowrap leading-[1.16]"
       items={items.map((value, index) => (
         <span
           key={`${value}-${index}`}
@@ -160,7 +160,7 @@ export function ExerciseCardStandardTitle({
       className={cn(
         "min-w-0 max-w-full items-start gap-x-2.5 gap-y-1 align-top overflow-hidden",
         isCompactLayout
-          ? "grid w-full grid-cols-1 justify-start gap-y-1.5 sm:inline-grid sm:w-fit sm:max-w-full sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-y-1"
+          ? "grid w-full grid-cols-1 justify-start gap-y-1.5 sm:inline-grid sm:w-auto sm:max-w-full sm:grid-cols-[auto_auto] sm:gap-y-1"
           : "grid",
         isCompactLayout
           ? undefined
@@ -168,9 +168,9 @@ export function ExerciseCardStandardTitle({
         className,
       )}
     >
-      <span className={cn("inline-flex min-w-0 max-w-full flex-col justify-between overflow-hidden", isCompactLayout ? "w-full flex-1 self-start sm:w-fit sm:flex-none" : "flex-1")}>
-        <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start justify-between gap-y-1 align-middle overflow-hidden">
-          <span className={cn("inline-flex min-w-0 max-w-full flex-col items-start gap-y-[3px] overflow-hidden", isCompactLayout ? "w-full sm:w-fit" : "w-full self-stretch")}>
+      <span className={cn("inline-flex min-w-0 max-w-full flex-col justify-between", isCompactLayout ? "w-full flex-1 self-start" : "flex-1")}>
+        <span className="inline-flex w-fit min-w-0 max-w-full flex-col items-start justify-between gap-y-1 align-middle">
+          <span className={cn("inline-flex min-w-0 max-w-full flex-col items-start gap-y-[3px]", "w-full", !isCompactLayout ? "self-stretch" : undefined)}>
             <span className={cn("min-w-0 max-w-full whitespace-normal break-words text-[0.98rem] font-semibold leading-[1.22] text-[rgb(var(--text)/0.98)]", nameClassName)}>
               {name}
             </span>
@@ -180,7 +180,7 @@ export function ExerciseCardStandardTitle({
         </span>
       </span>
       {hasRightBlock ? (
-        <span className={cn("inline-flex w-full min-w-0 max-w-full items-stretch gap-1.25 self-start justify-self-stretch sm:w-fit sm:shrink-0 sm:justify-self-end")}>
+        <span className={cn("inline-flex w-full min-w-0 max-w-full items-stretch gap-1.25 self-start justify-self-stretch sm:w-auto sm:max-w-full sm:shrink-0 sm:justify-self-start")}>
           <SignatureMiniPipe
             className={cn(
               "my-0 h-auto self-stretch",
@@ -193,7 +193,7 @@ export function ExerciseCardStandardTitle({
             className={cn(
               "inline-flex w-full min-w-0 max-w-full flex-col items-start gap-y-1 self-stretch text-left sm:w-fit",
               isCompactLayout ? "pt-1.5 sm:pt-0" : undefined,
-              hasPrimaryRightRow ? "justify-between" : "justify-start",
+              "justify-start",
               rightColumnClassName,
             )}
           >

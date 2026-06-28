@@ -26,6 +26,7 @@ const WORKOUT_PLAN_LIBRARY_DELETE_PILL_CLASS_NAME = cn(
   "!rounded-tl-[0.5rem] !rounded-tr-none !rounded-bl-none !rounded-br-none",
   "!border-[rgb(var(--danger-rgb)/0.98)] !bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.98),rgb(132_31_31/0.98))] !text-[rgb(255_245_245)] shadow-[0_2px_10px_rgb(var(--danger-rgb)/0.16)]",
 );
+const WORKOUT_PLAN_DELETE_PILL_ANCHOR_CLASS_NAME = "pointer-events-none absolute left-[10px] top-[3px] z-[6] sm:top-px";
 
 type WorkoutPlanLibraryCardItem = WorkoutPlanSourceListItem & {
   href?: string | null;
@@ -129,7 +130,7 @@ export function WorkoutPlansPageClient({
                   onPress={planHref ? () => router.push(planHref) : undefined}
                   wrapper={(card) => (
                     <div className="relative min-w-0">
-                      <div className="pointer-events-none absolute left-[10px] top-[3px] z-[6]">
+                      <div className={WORKOUT_PLAN_DELETE_PILL_ANCHOR_CLASS_NAME}>
                         <button
                           type="button"
                           onClick={(event) => {

@@ -16,7 +16,7 @@ import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 const TODAY_RESUME_CARD_CORNER_META_CLASS_NAME = "!right-[0.18rem] !top-[0.56rem]";
 const TODAY_RESUME_CARD_CONTENT_CLASS_NAME = "pl-3 pr-[0.3rem]";
-const TODAY_RESUME_CARD_TITLE_CONTAINER_CLASS_NAME = "!pr-[3.2rem] pb-[1.9rem]";
+const TODAY_RESUME_CARD_TITLE_CONTAINER_CLASS_NAME = "!pr-[2.7rem] sm:!pr-[3.2rem] pb-[1.9rem]";
 
 export type TodayExerciseRow = {
   id: string;
