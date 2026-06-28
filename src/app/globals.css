@@ -1465,10 +1465,18 @@ body[data-mobile-regression="true"] .bottom-action,
 body:has([data-mobile-regression-root="true"]) .glass-surface,
 body:has([data-mobile-regression-root="true"]) .action-chrome,
 body:has([data-mobile-regression-root="true"]) .bottom-action {
+  --glass-current-sheen-strength: var(--glass-sheen-strength-off) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
   filter: none !important;
+}
+
+html[data-mobile-regression="true"] .exercise-card-progress-glint,
+body[data-mobile-regression="true"] .exercise-card-progress-glint,
+body:has([data-mobile-regression-root="true"]) .exercise-card-progress-glint {
+  animation: none !important;
+  opacity: 0 !important;
 }
 
 html {
