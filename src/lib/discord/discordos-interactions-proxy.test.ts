@@ -6,18 +6,25 @@ import {
   resolveDiscordOsInteractionsUrl,
 } from "@/lib/discord/discordos-interactions-proxy.ts";
 
+function testEnv(overrides: Partial<NodeJS.ProcessEnv> = {}): NodeJS.ProcessEnv {
+  return {
+    NODE_ENV: "test",
+    ...overrides,
+  } as NodeJS.ProcessEnv;
+}
+
 test("DiscordOS interactions proxy resolves the hosted production endpoint by default", () => {
   assert.equal(
-    resolveDiscordOsInteractionsUrl({}),
+    resolveDiscordOsInteractionsUrl(testEnv()),
     "https://fawxzzy-discordos.vercel.app/api/discord-interactions",
   );
 });
 
 test("DiscordOS interactions proxy honors an explicit override", () => {
   assert.equal(
-    resolveDiscordOsInteractionsUrl({
+    resolveDiscordOsInteractionsUrl(testEnv({
       DISCORDOS_INTERACTIONS_PROXY_URL: "https://discordos.example.com/api/interactions",
-    }),
+    })),
     "https://discordos.example.com/api/interactions",
   );
 });
@@ -34,17 +41,26 @@ test("DiscordOS interactions proxy forwards signed requests upstream", async () 
   });
 
   let observedUrl = "";
-  let observedInit = null;
+  let observedMethod = "";
+  let observedSignature = "";
+  let observedTimestamp = "";
+  let observedCacheControl = "";
+  let observedBody = "";
   const response = await proxyDiscordOsInteractionRequest(
     request,
     JSON.stringify({ type: 2, data: { name: "computa" } }),
     {
-      env: {
+      env: testEnv({
         DISCORDOS_INTERACTIONS_PROXY_URL: "https://discordos.example.com/api/interactions",
-      },
+      }),
       fetchImpl: async (input, init) => {
         observedUrl = String(input);
-        observedInit = init ?? null;
+        observedMethod = init?.method ?? "";
+        const forwardedHeaders = new Headers(init?.headers);
+        observedSignature = forwardedHeaders.get("x-signature-ed25519") ?? "";
+        observedTimestamp = forwardedHeaders.get("x-signature-timestamp") ?? "";
+        observedCacheControl = forwardedHeaders.get("cache-control") ?? "";
+        observedBody = typeof init?.body === "string" ? init.body : "";
         return new Response(JSON.stringify({ ok: true, source: "discordos" }), {
           status: 200,
           headers: {
@@ -56,12 +72,11 @@ test("DiscordOS interactions proxy forwards signed requests upstream", async () 
   );
 
   assert.equal(observedUrl, "https://discordos.example.com/api/interactions");
-  assert.equal(observedInit?.method, "POST");
-  assert.equal(observedInit?.headers instanceof Headers, true);
-  assert.equal(observedInit?.headers.get("x-signature-ed25519"), "signature");
-  assert.equal(observedInit?.headers.get("x-signature-timestamp"), "1715702400");
-  assert.equal(observedInit?.headers.get("cache-control"), "no-cache");
-  assert.equal(observedInit?.body, JSON.stringify({ type: 2, data: { name: "computa" } }));
+  assert.equal(observedMethod, "POST");
+  assert.equal(observedSignature, "signature");
+  assert.equal(observedTimestamp, "1715702400");
+  assert.equal(observedCacheControl, "no-cache");
+  assert.equal(observedBody, JSON.stringify({ type: 2, data: { name: "computa" } }));
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true, source: "discordos" });
 });

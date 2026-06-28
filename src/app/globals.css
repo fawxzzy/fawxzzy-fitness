@@ -1391,6 +1391,22 @@ html[data-route-loading="true"] .app-edge-frame {
   }
 }
 
+html[data-mobile-regression="true"],
+body[data-mobile-regression="true"],
+body:has([data-mobile-regression-root="true"]) {
+  --glass-current-blur-base: var(--glass-blur-off);
+  --glass-current-blur-raised: var(--glass-blur-off);
+  --glass-current-blur-overlay: var(--glass-blur-off);
+  --glass-current-sheen-strength: var(--glass-sheen-strength-off);
+  --glass-shadow-base: none;
+  --glass-shadow-raised: none;
+  --glass-shadow-overlay: none;
+  --action-chrome-shadow-hover: none;
+  --action-chrome-shadow-active: none;
+  --bottom-action-shadow-hover: none;
+  --bottom-action-shadow-active: none;
+}
+
 html[data-mobile-regression="true"] .ambient-background,
 body[data-mobile-regression="true"] .ambient-background {
   --ambient-parallax-multiplier: 0;
@@ -1448,6 +1464,13 @@ body:has([data-mobile-regression-root="true"]) .ambient-background__twinkle,
 body:has([data-mobile-regression-root="true"]) .ambient-background__mote {
   animation: none;
   transform: none;
+}
+
+html[data-mobile-regression="true"] .exercise-card-progress-glint,
+body[data-mobile-regression="true"] .exercise-card-progress-glint,
+body:has([data-mobile-regression-root="true"]) .exercise-card-progress-glint {
+  animation: none;
+  opacity: 0;
 }
 
 html[data-mobile-regression="true"] [data-dev-supabase-target-banner="true"],
