@@ -132,7 +132,8 @@ export default async function WorkoutPlansPage() {
         floatingHeader={(
           <ContentRail className="py-1">
             <RoutinesRouteHeaderCard
-              title="Workout Plans"
+              title="Routines"
+              titleClassName="!text-[rgb(var(--accent-divider-rgb)/0.98)]"
               subtitle={(
                 <HeaderInfoRail
                   items={headerInfoItems}

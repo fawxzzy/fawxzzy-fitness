@@ -26,6 +26,7 @@ public/splash/*.png
 
 # Codex local runtime artifacts
 .codex/logs/
+.codex/codex-*.log
 .codex/qa/*
 !.codex/qa/cdp-edge.mjs
 runtime/fitness/release-draft.json

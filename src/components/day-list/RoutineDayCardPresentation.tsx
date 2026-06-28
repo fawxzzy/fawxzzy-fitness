@@ -18,7 +18,7 @@ import {
 } from "@/lib/routine-day-card-summary";
 
 export const ROUTINE_DAY_CARD_BODY_CLASS_NAME = "!min-h-[2.35rem] !py-[0.2rem]";
-export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[4.1rem] !py-[0.38rem]";
+export const ROUTINE_REST_DAY_CARD_BODY_CLASS_NAME = "!min-h-[3.2rem] !py-[0.24rem]";
 export const ROUTINE_DAY_CARD_CONTENT_CLASS_NAME = "!space-y-0 !pt-[0.3rem] !pb-0";
 export const ROUTINE_REST_DAY_CARD_CONTENT_CLASS_NAME = "!min-h-0 py-0 !space-y-0";
 export const ROUTINE_DAY_CARD_SUBTITLE_CLASS_NAME = "text-[11.5px] leading-[1.14]";
@@ -33,7 +33,7 @@ export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "h-auto w-auto items-c
 export const ROUTINE_SURFACE_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
 export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
 export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] ${ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME}`;
-const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-[0.22rem] top-[0.12rem] z-[7] flex items-center justify-center";
+const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-[0.22rem] top-[0.02rem] z-[7] flex items-center justify-center";
 
 export type RoutineDayCardSummary = {
   total?: number;
