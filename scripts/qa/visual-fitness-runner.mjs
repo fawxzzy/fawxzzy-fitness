@@ -295,6 +295,24 @@ export function buildQaBrowserStorageStateFromSessionCookies(sessionCookies, bas
   return hasUsableQaStorageState(storageState) ? storageState : null;
 }
 
+export async function resolveQaBrowserStorageState({
+  authRequired,
+  qaSession,
+  baseUrl,
+  loadStoredState = loadQaStorageState,
+}) {
+  if (!authRequired || !qaSession?.available) {
+    return null;
+  }
+
+  const qaStorageStateFromSession = buildQaBrowserStorageStateFromSessionCookies(qaSession.cookies, baseUrl);
+  if (qaStorageStateFromSession) {
+    return qaStorageStateFromSession;
+  }
+
+  return await loadStoredState(baseUrl);
+}
+
 function normalizePlaywrightCookies(cookies, fallbackBaseUrl) {
   return cookies
     .map((cookie) => {
@@ -456,14 +474,11 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
         path: sessionArtifactPath,
         cookies: [],
       };
-  const qaStorageStateFromFile = suite.authRequired && qaSession.available
-    ? await loadQaStorageState(baseUrl)
-    : null;
-  const qaStorageState = qaStorageStateFromFile ?? (
-    suite.authRequired && qaSession.available
-      ? buildQaBrowserStorageStateFromSessionCookies(qaSession.cookies, baseUrl)
-      : null
-  );
+  const qaStorageState = await resolveQaBrowserStorageState({
+    authRequired: suite.authRequired,
+    qaSession,
+    baseUrl,
+  });
 
   await fs.mkdir(outputDir, { recursive: true });
 
