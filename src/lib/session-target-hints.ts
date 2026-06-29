@@ -390,7 +390,7 @@ export function deriveSessionTargetHint(args: {
       shortLabel: plannedSummary,
       reason: lastSummary
         ? "Using the planned target and keeping your last logged performance visible inline."
-        : "Using the planned target because no completed history is available yet.",
+        : "Using the planned target.",
       source: "manual_target",
       confidence: "high",
       suggestedValues: buildSuggestedValuesFromPlan(plan, fallbackWeightUnit),

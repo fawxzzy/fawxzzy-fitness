@@ -7,32 +7,97 @@ type SessionRegressionExerciseWithCopilot = {
   copilotFeedbackUpdatedAt?: string | null;
 };
 
-export const mobileRegressionSelectedSessionExerciseByScenarioId: Readonly<Record<string, string | null>> = {
-  "active-workout-session-expanded": "session-ex-2",
-  "session-logger-combo-board": null,
-  "session-logger-strength-weight": "session-ex-1",
-  "session-logger-bodyweight-reps": "session-ex-4",
-  "session-logger-cardio-time": "session-ex-5",
-  "session-logger-cardio-time-distance": "session-ex-3",
-  "session-logger-cardio-distance": "session-ex-6",
-  "session-logger-calories": "session-ex-7",
+type SessionRegressionScenarioFixture = {
+  selectedExerciseId: string | null;
+  feedback?: {
+    exerciseId: string;
+    signal: SessionCopilotFeedbackSignal;
+    note: string | null;
+  };
 };
+
+export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string, SessionRegressionScenarioFixture>> = {
+  "active-workout-session-expanded": {
+    selectedExerciseId: "session-ex-2",
+    feedback: {
+      exerciseId: "session-ex-2",
+      signal: "too_hard",
+      note: null,
+    },
+  },
+  "session-logger-combo-board": {
+    selectedExerciseId: null,
+  },
+  "session-logger-strength-weight": {
+    selectedExerciseId: "session-ex-1",
+    feedback: {
+      exerciseId: "session-ex-1",
+      signal: "completed_as_planned",
+      note: null,
+    },
+  },
+  "session-logger-bodyweight-reps": {
+    selectedExerciseId: "session-ex-4",
+    feedback: {
+      exerciseId: "session-ex-4",
+      signal: "too_easy",
+      note: null,
+    },
+  },
+  "session-logger-cardio-time": {
+    selectedExerciseId: "session-ex-5",
+    feedback: {
+      exerciseId: "session-ex-5",
+      signal: "bad_day",
+      note: null,
+    },
+  },
+  "session-logger-cardio-time-distance": {
+    selectedExerciseId: "session-ex-3",
+    feedback: {
+      exerciseId: "session-ex-3",
+      signal: "form_breakdown",
+      note: "Stride felt sloppy.",
+    },
+  },
+  "session-logger-cardio-distance": {
+    selectedExerciseId: "session-ex-6",
+    feedback: {
+      exerciseId: "session-ex-6",
+      signal: "pain_flag",
+      note: null,
+    },
+  },
+  "session-logger-calories": {
+    selectedExerciseId: "session-ex-7",
+    feedback: {
+      exerciseId: "session-ex-7",
+      signal: "override_used",
+      note: null,
+    },
+  },
+};
+
+export const mobileRegressionSelectedSessionExerciseByScenarioId: Readonly<Record<string, string | null>> = Object.fromEntries(
+  Object.entries(mobileRegressionSessionScenarioFixturesById).map(([scenarioId, config]) => [scenarioId, config.selectedExerciseId]),
+);
 
 export function applySessionRegressionScenarioState<T extends SessionRegressionExerciseWithCopilot>(
   scenarioId: string,
   exercises: readonly T[],
   capturePerformedAt: string,
 ): T[] {
-  if (scenarioId !== "active-workout-session-expanded") {
+  const fixture = mobileRegressionSessionScenarioFixturesById[scenarioId];
+  if (!fixture?.feedback) {
     return [...exercises];
   }
 
   return exercises.map((exercise) => (
-    exercise.id === "session-ex-2"
+    exercise.id === fixture.feedback?.exerciseId
       ? {
         ...exercise,
-        copilotFeedbackSignal: "too_hard" as const,
-        copilotFeedbackNote: null,
+        copilotFeedbackSignal: fixture.feedback.signal,
+        copilotFeedbackNote: fixture.feedback.note,
         copilotFeedbackUpdatedAt: capturePerformedAt,
       }
       : {

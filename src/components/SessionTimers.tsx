@@ -2013,7 +2013,7 @@ export function SetLoggerCard({
             <div className="space-y-2">
               <div className="space-y-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--accent)/0.82)]">
-                  Session Copilot
+                  Effort Feedback
                 </p>
                 <p className="text-[11px] leading-[1.35] text-[rgb(var(--text-muted)/0.92)]">
                   {copilotWhyLabel}
