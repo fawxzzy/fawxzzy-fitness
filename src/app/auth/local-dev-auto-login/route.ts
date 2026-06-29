@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { setSessionCookies } from "@/lib/auth-session";
 import {
   isTrustedLocalDevHostname,
+  type LocalDevAutoLoginAccount,
   readConfiguredLocalDevAutoLoginCredentials,
 } from "@/lib/local-dev-auto-entry";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -12,12 +13,21 @@ function buildRedirectUrl(request: Request, pathname: string) {
   return new URL(pathname, request.url);
 }
 
+function resolvePreferredLocalDevAccount(request: Request): LocalDevAutoLoginAccount | null {
+  const preferredAccount = new URL(request.url).searchParams.get("account")?.trim().toLowerCase();
+  if (preferredAccount === "qa" || preferredAccount === "zac") {
+    return preferredAccount;
+  }
+
+  return null;
+}
+
 export async function GET(request: Request) {
   if (!isTrustedLocalDevHostname(new URL(request.url).hostname)) {
     return NextResponse.redirect(buildRedirectUrl(request, "/login?manual=1"));
   }
 
-  const localDevCredentials = readConfiguredLocalDevAutoLoginCredentials();
+  const localDevCredentials = readConfiguredLocalDevAutoLoginCredentials(resolvePreferredLocalDevAccount(request));
   if (!localDevCredentials) {
     return NextResponse.redirect(buildRedirectUrl(request, "/login?manual=1"));
   }

@@ -2227,6 +2227,23 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
     "session-logger-cardio-distance": "session-ex-6",
     "session-logger-calories": "session-ex-7",
   };
+  const sessionScenarioExercises = scenario.id === "active-workout-session-expanded"
+    ? mockSessionExercises.map((exercise) => (
+      exercise.id === "session-ex-2"
+        ? {
+          ...exercise,
+          copilotFeedbackSignal: "too_hard" as const,
+          copilotFeedbackNote: null,
+          copilotFeedbackUpdatedAt: capturePerformedAt,
+        }
+        : {
+          ...exercise,
+          copilotFeedbackSignal: null,
+          copilotFeedbackNote: null,
+          copilotFeedbackUpdatedAt: null,
+        }
+    ))
+    : mockSessionExercises;
 
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
@@ -2240,7 +2257,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           sessionDayName={PREVIEW_DAY_LABEL}
           sessionSummaryCounts={{ strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }}
           unitLabel="lbs"
-          exercises={mockSessionExercises}
+          exercises={sessionScenarioExercises}
         initialSelectedExerciseId={selectedExerciseByScenarioId[scenario.id] ?? null}
           saveSessionAction={noopActionResult}
           requestedReturnTo="/today"
