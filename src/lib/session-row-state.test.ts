@@ -38,7 +38,7 @@ test("deriveSessionRowState keeps quick log label and partial chips from one con
   assert.deepEqual(state.chips, ["loggedProgress", "endedEarly"]);
   assert.equal(state.skipActionIntent, "toggleActive");
   assert.equal(state.quickLogActionIntent, "neutral");
-  assert.equal(state.quickLogLabel, "Log: 8 reps • 95 lbs");
+  assert.equal(state.quickLogLabel, "Log: 8 reps | 95 lbs");
 });
 
 test("deriveSessionRowState falls back quick log label from next, then last, then best", () => {
@@ -59,7 +59,7 @@ test("deriveSessionRowState falls back quick log label from next, then last, the
     },
     fallbackWeightUnit: "lbs",
   });
-  assert.equal(nextState.quickLogLabel, "Log: 6 reps • 135 lbs");
+  assert.equal(nextState.quickLogLabel, "Log: 6 reps | 135 lbs");
 
   const lastState = deriveSessionRowState({
     loggedSetCount: 0,
@@ -84,7 +84,7 @@ test("deriveSessionRowState falls back quick log label from next, then last, the
     },
     fallbackWeightUnit: "lbs",
   });
-  assert.equal(lastState.quickLogLabel, "Log: 5 reps • 130 lbs");
+  assert.equal(lastState.quickLogLabel, "Log: 5 reps | 130 lbs");
 
   const bestState = deriveSessionRowState({
     loggedSetCount: 0,
@@ -97,5 +97,5 @@ test("deriveSessionRowState falls back quick log label from next, then last, the
     },
     fallbackWeightUnit: "lbs",
   });
-  assert.equal(bestState.quickLogLabel, "Log: 4 reps • 140 lbs");
+  assert.equal(bestState.quickLogLabel, "Log: 4 reps | 140 lbs");
 });

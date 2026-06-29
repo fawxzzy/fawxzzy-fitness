@@ -1,5 +1,6 @@
 import { formatDurationPreview } from "./duration";
 import type { FitnessDistanceUnit } from "./fitness-distance-units";
+import { SESSION_FEEDBACK_SUMMARY_SEPARATOR } from "./session-feedback-ui";
 
 export type SessionQuickLogTarget = {
   repsMin?: number;
@@ -142,11 +143,14 @@ export function formatQuickLogPreviewLabel({
     return "";
   }
 
+  const joinSummaryParts = (...parts: Array<string | null>) =>
+    parts.filter(Boolean).join(SESSION_FEEDBACK_SUMMARY_SEPARATOR) || null;
+
   const metricSummaryByType: Record<"reps" | "time" | "distance" | "time_distance" | "none", string | null> = {
-    reps: [repsSummary, weightSummary].filter(Boolean).join(" • ") || null,
-    time: [durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
-    distance: [distanceSummary, durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
-    time_distance: [durationSummary, distanceSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
+    reps: joinSummaryParts(repsSummary, weightSummary),
+    time: joinSummaryParts(durationSummary, caloriesSummary),
+    distance: joinSummaryParts(distanceSummary, durationSummary, caloriesSummary),
+    time_distance: joinSummaryParts(durationSummary, distanceSummary, caloriesSummary),
     none: null,
   };
 

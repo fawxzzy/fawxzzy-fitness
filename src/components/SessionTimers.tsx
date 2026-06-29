@@ -63,6 +63,7 @@ import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit, type FitnessDistan
 import {
   buildSessionEffortContextLabel,
   buildSessionEffortNotePlaceholder,
+  SESSION_FEEDBACK_SUMMARY_SEPARATOR,
 } from "@/lib/session-feedback-ui";
 import {
   formatSessionCopilotFeedbackLabel,
@@ -1490,7 +1491,9 @@ export function SetLoggerCard({
     }).filter((item) => item.trim().length > 0);
   }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
   const liveLogButtonPrefix = resolvedIsWarmup ? "Log Warm-Up" : (resolvedIsFailure ? "Log Failure" : "Log");
-  const liveLogButtonLabel = liveSummaryItems.length > 0 ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(" • ")}` : liveLogButtonPrefix;
+  const liveLogButtonLabel = liveSummaryItems.length > 0
+    ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)}`
+    : liveLogButtonPrefix;
   const currentFormState = useMemo<SessionLoggerFormState>(() => ({
     weight,
     reps,
@@ -1550,7 +1553,7 @@ export function SetLoggerCard({
     };
   }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
   const liveGoalLabel = liveSummaryItems.length > 0
-    ? liveSummaryItems.join(" • ")
+    ? liveSummaryItems.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)
     : (fallbackGoalLabel?.trim() || null);
 
   useEffect(() => {

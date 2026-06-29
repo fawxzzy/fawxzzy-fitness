@@ -240,7 +240,7 @@ export const VISUAL_FITNESS_SUITES = {
     proofLane: "seam",
     seamKind: "component",
     coversProtectedRoutes: [`/session/${QA_BASELINE.sessionIds.latest}`],
-    route: "/dev/mobile-regression?scenario=active-workout-session",
+    route: "/dev/mobile-regression?screen=session&fixture=logger-cardio-time-distance",
     viewport: DEFAULT_VISUAL_VIEWPORT,
     authRequired: false,
     setupRequirements: [
@@ -251,7 +251,7 @@ export const VISUAL_FITNESS_SUITES = {
     allowAuthGatedFallback: false,
     themePreset: "default",
     waitMs: 2400,
-    stateLabel: "seam-session-card-separator",
+    stateLabel: "seam-session-feedback-logger-cardio-time-distance",
   },
   "routines-seam": {
     name: "routines-seam",

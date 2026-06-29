@@ -1,7 +1,7 @@
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 
-const SESSION_FEEDBACK_SUMMARY_SEPARATOR = " | ";
+export const SESSION_FEEDBACK_SUMMARY_SEPARATOR = " | ";
 
 export type SessionProgressionStateSummaryInput = {
   progressionPlaybookId?: string | null;

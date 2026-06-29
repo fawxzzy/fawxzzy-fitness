@@ -44,7 +44,7 @@ test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", ()
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "8 reps • 225 lbs");
+  assert.equal(label, "8 reps | 225 lbs");
 });
 
 test("formatQuickLogPreviewLabel falls back to blank when no real metrics exist", () => {
@@ -80,7 +80,7 @@ test("formatQuickLogPreviewLabel uses metric-based cardio summary when metrics e
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "12:00 s • 2 mi • 250 cal");
+  assert.equal(label, "12:00 s | 2 mi | 250 cal");
 });
 
 test("formatQuickLogPreviewLabel preserves steps distance units", () => {
@@ -234,7 +234,7 @@ test("resolved quick log preview and payload use fallback target chain", () => {
     targetSetsMax: 3,
     fallbackWeightUnit: "lbs",
   });
-  assert.equal(label, "8 reps • 95 lbs");
+  assert.equal(label, "8 reps | 95 lbs");
 
   const result = resolveQuickLogFromResolvedTarget(resolvedTarget, "lbs");
   assert.equal(result.ok, true);

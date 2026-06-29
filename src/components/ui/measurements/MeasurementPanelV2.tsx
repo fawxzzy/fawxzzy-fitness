@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME } from "@/components/ui/GlowSwitch";
@@ -1133,6 +1133,11 @@ export function MeasurementPanelV2({
 
   const metricRows = useThreeAcrossMetrics ? chunkFields(orderedMetricFields, 3) : [orderedMetricFields];
   const useHorizontalScrollLayout = layoutMode === "horizontal-scroll" && orderedMetricFields.length > 0;
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (useHorizontalScrollLayout) {
@@ -1280,6 +1285,10 @@ export function MeasurementPanelV2({
   }
 
   function getHorizontalFieldWidthStyle(fieldId: string) {
+    if (!hasHydrated) {
+      return undefined;
+    }
+
     const getBaseWidthRem = () => {
       if (fieldId === "top-field") return 7.35;
       if (fieldId === "aux-field-0") return 7.35;
