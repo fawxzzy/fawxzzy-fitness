@@ -283,3 +283,10 @@ test("history detail compact exercise rows keep the session-native summary rhyth
   assert.match(source, /buildCollapsedExerciseCardBadgeItems/);
   assert.match(source, /badgeItems=\{\[collapsedCardBadgeItems\.countLabel\]\}/);
 });
+
+test("history detail notes fall back to saved copilot feedback when exercise notes are empty", () => {
+  const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
+
+  assert.match(source, /resolveExerciseDisplayNotesValue/);
+  assert.match(source, /exercise\.copilot_feedback_note/);
+});
