@@ -61,6 +61,10 @@ import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
 import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import {
+  buildSessionEffortContextLabel,
+  buildSessionEffortNotePlaceholder,
+} from "@/lib/session-feedback-ui";
+import {
   formatSessionCopilotFeedbackLabel,
   getSessionCopilotFeedbackTone,
   normalizeSessionCopilotFeedbackNote,
@@ -89,6 +93,7 @@ type AddSetPayload = {
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
 
 export const FAILURE_NOTE_SENTINEL = "__session_failure__";
+const SESSION_EFFORT_SCALE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 export type SessionLoggerDraftQuickLogPayload = {
   weight: number;
@@ -358,6 +363,22 @@ function getCopilotFeedbackSelectedClassName(signal: SessionCopilotFeedbackSigna
   }
 }
 
+function getEffortScaleSelectedClassName(value: number) {
+  if (value >= 9) {
+    return "border-[rgb(var(--danger-rgb)/0.62)] bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.32),rgb(var(--danger-rgb)/0.18))] text-[rgb(255_238_238)] shadow-[0_0_0_1px_rgb(var(--danger-rgb)/0.16),0_0_18px_rgb(var(--danger-rgb)/0.14)]";
+  }
+
+  if (value >= 7) {
+    return "border-[rgb(var(--warning-rgb)/0.68)] bg-[linear-gradient(180deg,rgb(var(--warning-rgb)/0.3),rgb(var(--warning-rgb)/0.18))] text-[rgb(255_245_228)] shadow-[0_0_0_1px_rgb(var(--warning-rgb)/0.16),0_0_18px_rgb(var(--warning-rgb)/0.12)]";
+  }
+
+  if (value >= 4) {
+    return "border-[rgb(var(--accent)/0.68)] bg-[linear-gradient(180deg,rgb(var(--accent)/0.34),rgb(var(--accent)/0.2))] text-[rgb(var(--surface-0-rgb)/0.99)] shadow-[0_0_0_1px_rgb(var(--accent)/0.2),0_0_18px_rgb(var(--accent)/0.16)]";
+  }
+
+  return "border-[rgb(var(--success-rgb)/0.62)] bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.3),rgb(var(--success-rgb)/0.18))] text-[rgb(var(--surface-0-rgb)/0.99)] shadow-[0_0_0_1px_rgb(var(--success-rgb)/0.18),0_0_18px_rgb(var(--success-rgb)/0.14)]";
+}
+
 export function SetLoggerCard({
   userId,
   sessionId,
@@ -407,6 +428,8 @@ export function SetLoggerCard({
   onDraftStateChange,
   reportDraftState = true,
   draftFormState,
+  disableDraftPersistence = false,
+  initialEffortRating = null,
 }: {
   userId: string;
   sessionId: string;
@@ -474,6 +497,8 @@ export function SetLoggerCard({
   onDraftStateChange?: (draftState: SessionLoggerDraftState) => void;
   reportDraftState?: boolean;
   draftFormState?: SessionLoggerDraftFormState | null;
+  disableDraftPersistence?: boolean;
+  initialEffortRating?: number | null;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -492,7 +517,10 @@ export function SetLoggerCard({
   const lastAutoEstimatedCaloriesRef = useRef<string | null>(null);
   const didDismissAutoEstimatedCaloriesRef = useRef(false);
   const lastCaloriesAutoResetKeyRef = useRef<string | null>(null);
-  const [rpe, setRpe] = useState("");
+  const seededInitialEffortRating = typeof initialEffortRating === "number" && Number.isFinite(initialEffortRating)
+    ? Math.min(10, Math.max(1, Math.round(initialEffortRating)))
+    : null;
+  const [rpe, setRpe] = useState(seededInitialEffortRating === null ? "" : String(seededInitialEffortRating));
   const [isWarmup, setIsWarmup] = useState(false);
   const [isFailure, setIsFailure] = useState(false);
   const [didApplyLastTarget, setDidApplyLastTarget] = useState(false);
@@ -558,7 +586,7 @@ export function SetLoggerCard({
         : (prefillDurationSeconds !== undefined ? formatDurationClock(prefillDurationSeconds) : ""),
       distance: currentLiveQuickLogTarget?.distance !== undefined ? String(currentLiveQuickLogTarget.distance) : "",
       calories: currentLiveQuickLogTarget?.calories !== undefined ? String(currentLiveQuickLogTarget.calories) : "",
-      rpe: "",
+      rpe: seededInitialEffortRating === null ? "" : String(seededInitialEffortRating),
       weightUnit: currentLiveQuickLogTarget?.weightUnit === "kg" || currentLiveQuickLogTarget?.weightUnit === "lbs"
         ? currentLiveQuickLogTarget.weightUnit
         : (prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs")),
@@ -575,6 +603,7 @@ export function SetLoggerCard({
     prefillReps,
     prefillWeight,
     prefillWeightUnit,
+    seededInitialEffortRating,
     unitLabel,
   ]);
   const currentLiveTargetMetrics = useMemo(
@@ -759,7 +788,7 @@ export function SetLoggerCard({
   }, [onSetCountChange, sets.length]);
 
   useEffect(() => {
-    if (draftFormState) {
+    if (disableDraftPersistence || draftFormState) {
       return;
     }
 
@@ -828,9 +857,13 @@ export function SetLoggerCard({
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [draftFormState, initialSets, sessionExerciseId, sessionId, userId]);
+  }, [disableDraftPersistence, draftFormState, initialSets, sessionExerciseId, sessionId, userId]);
 
   useEffect(() => {
+    if (disableDraftPersistence) {
+      return;
+    }
+
     const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
     const sanitizedForm = sanitizeEnabledMeasurementValues(deriveMeasurementPresenceFromValues({
       reps,
@@ -905,9 +938,13 @@ export function SetLoggerCard({
         draftStorageIdleCallbackRef.current = null;
       }
     };
-  }, [calories, didApplyLastTarget, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
+  }, [calories, didApplyLastTarget, disableDraftPersistence, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
 
   useEffect(() => () => {
+    if (disableDraftPersistence) {
+      return;
+    }
+
     if (draftStorageWriteTimeoutRef.current !== null) {
       window.clearTimeout(draftStorageWriteTimeoutRef.current);
     }
@@ -920,7 +957,7 @@ export function SetLoggerCard({
       window.localStorage.setItem(pendingWrite.key, pendingWrite.payload);
       draftStorageSnapshotRef.current = null;
     }
-  }, []);
+  }, [disableDraftPersistence]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1840,8 +1877,18 @@ export function SetLoggerCard({
     await persistCopilotFeedback(copilotSignalState, normalizedNote ?? "");
   }, [copilotNoteState, copilotSignalState, persistCopilotFeedback]);
   const hasCopilotNote = copilotNoteState.trim().length > 0;
-  const shouldShowCopilotNoteInput = Boolean(copilotSignalState) || hasCopilotNote;
+  const selectedEffortValue = rpe.trim() ? Number(rpe.trim()) : null;
+  const hasSelectedEffortValue = selectedEffortValue !== null && Number.isFinite(selectedEffortValue);
+  const shouldShowCopilotNoteInput = Boolean(copilotSignalState) || hasCopilotNote || hasSelectedEffortValue;
   const copilotWhyLabel = targetHint.reason.trim();
+  const copilotNoteContextLabel = buildSessionEffortContextLabel({
+    signal: copilotSignalState,
+    effortValue: hasSelectedEffortValue ? selectedEffortValue : null,
+  });
+  const copilotNotePlaceholder = buildSessionEffortNotePlaceholder({
+    signal: copilotSignalState,
+    effortValue: hasSelectedEffortValue ? selectedEffortValue : null,
+  });
   const isCopilotFeedbackDirty = copilotSignalState !== committedCopilotSignalRef.current
     || normalizeSessionCopilotFeedbackNote(copilotNoteState) !== committedCopilotNoteRef.current;
 
@@ -2007,14 +2054,14 @@ export function SetLoggerCard({
             visibleMetrics={liveSetInputOrder.visibleMetrics}
             metricOrder={liveSetInputOrder.metricOrder}
             dimmedMetrics={liveSetInputOrder.dimmedMetrics}
-            rpe={rpe}
-            onRpeChange={setRpe}
+            rpe={undefined}
+            onRpeChange={undefined}
             auxiliaryFields={measurementAuxiliaryFields}
             footerContent={null}
             showInlineStepControls
           />
           <div className="border-t border-[rgb(var(--accent-divider-rgb)/0.16)] px-3 pb-2 pt-2.5">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="space-y-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--accent)/0.82)]">
                   Effort Feedback
@@ -2027,8 +2074,8 @@ export function SetLoggerCard({
               </div>
 
               <HorizontalScrollHint
-                scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
-                contentClassName="flex min-w-max items-center gap-2 pr-0.5"
+                scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 pt-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
+                contentClassName="flex w-max items-center gap-2"
               >
                 {SESSION_COPILOT_FEEDBACK_SIGNALS.map((signal) => {
                   const isSelected = copilotSignalState === signal;
@@ -2055,6 +2102,39 @@ export function SetLoggerCard({
                 })}
               </HorizontalScrollHint>
 
+              <div className="space-y-1">
+                <p className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.88)]">
+                  Effort Rating
+                </p>
+                <HorizontalScrollHint
+                  scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 pt-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
+                  contentClassName="flex w-max items-center gap-1.5"
+                >
+                  {SESSION_EFFORT_SCALE_OPTIONS.map((value) => {
+                    const isSelected = selectedEffortValue === value;
+                    return (
+                      <ChipButton
+                        key={value}
+                        type="button"
+                        tone={isSelected ? "success" : "default"}
+                        aria-pressed={isSelected}
+                        aria-label={`Effort ${value} out of 10`}
+                        className={cn(
+                          "inline-flex h-8 w-8 items-center justify-center px-0 py-0 text-[11px] font-semibold tracking-[0.04em] transition-[border-color,background-color,box-shadow,color,transform] duration-150",
+                          isSelected ? "translate-y-[-1px]" : undefined,
+                          isSelected ? getEffortScaleSelectedClassName(value) : "text-[rgb(var(--text-muted)/0.92)]",
+                        )}
+                        onClick={() => {
+                          setRpe(isSelected ? "" : String(value));
+                        }}
+                      >
+                        {value}
+                      </ChipButton>
+                    );
+                  })}
+                </HorizontalScrollHint>
+              </div>
+
               {shouldShowCopilotNoteInput ? (
                 <div className="space-y-1">
                   <label
@@ -2063,14 +2143,19 @@ export function SetLoggerCard({
                   >
                     note
                   </label>
+                  {copilotNoteContextLabel ? (
+                    <p className="text-[11px] leading-[1.3] text-[rgb(var(--text-muted)/0.84)]">
+                      {copilotNoteContextLabel}
+                    </p>
+                  ) : null}
                   <input
                     id={`session-copilot-note-${sessionExerciseId}`}
                     type="text"
                     value={copilotNoteState}
                     maxLength={SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}
                     disabled={isSavingCopilotFeedback}
-                    placeholder="Optional context for this set or exercise"
-                    className="w-full rounded-[0.85rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.52)] px-3 py-2 text-[12px] leading-[1.2] text-[rgb(var(--text)/0.97)] outline-none transition focus:border-[rgb(var(--accent)/0.34)] focus:bg-[rgb(var(--surface-1-rgb)/0.66)]"
+                    placeholder={copilotNotePlaceholder}
+                    className="h-6.5 w-full border-0 border-b border-[rgb(var(--accent-divider-rgb)/0.28)] bg-transparent px-0 pb-1 pt-0 text-[13px] leading-none text-[rgb(var(--text)/0.97)] outline-none transition placeholder:text-[rgb(var(--text-muted)/0.56)] focus:border-[rgb(var(--accent)/0.42)]"
                     onChange={(event) => {
                       setCopilotNoteState(event.currentTarget.value);
                     }}

@@ -1,6 +1,8 @@
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 
+const SESSION_FEEDBACK_SUMMARY_SEPARATOR = " | ";
+
 export type SessionProgressionStateSummaryInput = {
   progressionPlaybookId?: string | null;
   progressionSessionSettingsEnabled?: boolean | null;
@@ -57,7 +59,7 @@ export function buildSessionProgressionStateLabel(formState?: SessionProgression
     }
   }
 
-  return labels.join(" • ");
+  return labels.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR);
 }
 
 export function buildSessionProgressionFeedbackSummaryLabel(args: {
@@ -69,7 +71,34 @@ export function buildSessionProgressionFeedbackSummaryLabel(args: {
     args.copilotFeedbackSignal ? formatSessionCopilotFeedbackLabel(args.copilotFeedbackSignal) : null,
   ].filter(Boolean);
 
-  return labels.join(" • ");
+  return labels.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR);
+}
+
+export function buildSessionEffortContextLabel(args: {
+  signal: SessionCopilotFeedbackSignal | null;
+  effortValue: number | null;
+}) {
+  const parts: string[] = [];
+
+  if (args.signal) {
+    parts.push(formatSessionCopilotFeedbackLabel(args.signal));
+  }
+
+  if (args.effortValue !== null && Number.isFinite(args.effortValue)) {
+    parts.push(`Effort ${args.effortValue}/10`);
+  }
+
+  return parts.length > 0 ? parts.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR) : null;
+}
+
+export function buildSessionEffortNotePlaceholder(args: {
+  signal: SessionCopilotFeedbackSignal | null;
+  effortValue: number | null;
+}) {
+  const contextLabel = buildSessionEffortContextLabel(args);
+  return contextLabel
+    ? `Optional context for ${contextLabel.toLowerCase()}`
+    : "Optional context for this set or exercise";
 }
 
 export function areSessionLoggerDraftStatesEqual(

@@ -5,6 +5,7 @@ type SessionRegressionExerciseWithCopilot = {
   copilotFeedbackSignal?: SessionCopilotFeedbackSignal | null;
   copilotFeedbackNote?: string | null;
   copilotFeedbackUpdatedAt?: string | null;
+  copilotFeedbackEffort?: number | null;
 };
 
 type SessionRegressionScenarioFixture = {
@@ -13,6 +14,7 @@ type SessionRegressionScenarioFixture = {
     exerciseId: string;
     signal: SessionCopilotFeedbackSignal;
     note: string | null;
+    effort: number | null;
   };
 };
 
@@ -23,6 +25,7 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       exerciseId: "session-ex-2",
       signal: "too_hard",
       note: null,
+      effort: 9,
     },
   },
   "session-logger-combo-board": {
@@ -34,6 +37,7 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       exerciseId: "session-ex-1",
       signal: "completed_as_planned",
       note: null,
+      effort: 5,
     },
   },
   "session-logger-bodyweight-reps": {
@@ -42,6 +46,7 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       exerciseId: "session-ex-4",
       signal: "too_easy",
       note: null,
+      effort: 3,
     },
   },
   "session-logger-cardio-time": {
@@ -50,6 +55,7 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       exerciseId: "session-ex-5",
       signal: "bad_day",
       note: null,
+      effort: 7,
     },
   },
   "session-logger-cardio-time-distance": {
@@ -58,6 +64,7 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       exerciseId: "session-ex-3",
       signal: "form_breakdown",
       note: "Stride felt sloppy.",
+      effort: 8,
     },
   },
   "session-logger-cardio-distance": {
@@ -66,6 +73,7 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       exerciseId: "session-ex-6",
       signal: "pain_flag",
       note: null,
+      effort: 10,
     },
   },
   "session-logger-calories": {
@@ -74,6 +82,7 @@ export const mobileRegressionSessionScenarioFixturesById: Readonly<Record<string
       exerciseId: "session-ex-7",
       signal: "override_used",
       note: null,
+      effort: 6,
     },
   },
 };
@@ -99,12 +108,14 @@ export function applySessionRegressionScenarioState<T extends SessionRegressionE
         copilotFeedbackSignal: fixture.feedback.signal,
         copilotFeedbackNote: fixture.feedback.note,
         copilotFeedbackUpdatedAt: capturePerformedAt,
+        copilotFeedbackEffort: fixture.feedback.effort,
       }
       : {
         ...exercise,
         copilotFeedbackSignal: null,
         copilotFeedbackNote: null,
         copilotFeedbackUpdatedAt: null,
+        copilotFeedbackEffort: null,
       }
   ));
 }

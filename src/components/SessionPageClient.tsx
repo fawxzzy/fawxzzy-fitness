@@ -121,6 +121,7 @@ export function SessionPageClient({
   deleteSetAction,
   updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
+  disableDraftPersistence = false,
 }: {
   userId: string;
   sessionId: string;
@@ -153,6 +154,7 @@ export function SessionPageClient({
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   updateSessionExerciseCopilotFeedbackAction?: CopilotFeedbackUpdateAction;
   updateSessionExerciseProgressionAction: ProgressionUpdateAction;
+  disableDraftPersistence?: boolean;
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(initialSelectedExerciseId);
@@ -349,6 +351,7 @@ export function SessionPageClient({
               deleteSetAction={deleteSetAction}
               updateSessionExerciseCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
               updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
+              disableDraftPersistence={disableDraftPersistence}
               bottomDockCenter={null}
             />
           ) : null}

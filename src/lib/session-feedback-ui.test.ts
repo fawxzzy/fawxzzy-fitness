@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   areSessionLoggerDraftStatesEqual,
+  buildSessionEffortContextLabel,
+  buildSessionEffortNotePlaceholder,
   buildSessionProgressionFeedbackSummaryLabel,
   buildSessionProgressionStateLabel,
   type ComparableSessionLoggerDraftState,
@@ -10,8 +12,8 @@ import {
 
 function createDraftState(overrides?: Partial<ComparableSessionLoggerDraftState>): ComparableSessionLoggerDraftState {
   return {
-    goalLabel: "3 sets • 5 reps • 225 lbs",
-    quickLogLabel: "Log: 5 reps • 225 lbs",
+    goalLabel: "3 sets | 5 reps | 225 lbs",
+    quickLogLabel: "Log: 5 reps | 225 lbs",
     quickLogPayload: {
       weight: 225,
       reps: 5,
@@ -52,7 +54,7 @@ test("buildSessionProgressionStateLabel keeps manual and auto/session/set wordin
       progressionSessionSettingsEnabled: true,
       progressionSetSettingsEnabled: true,
     }),
-    "AUTO • SESSION • SET",
+    "AUTO | SESSION | SET",
   );
   assert.equal(
     buildSessionProgressionStateLabel({
@@ -60,7 +62,7 @@ test("buildSessionProgressionStateLabel keeps manual and auto/session/set wordin
       progressionSessionSettingsEnabled: false,
       progressionSetSettingsEnabled: true,
     }),
-    "AUTO • SET",
+    "AUTO | SET",
   );
 });
 
@@ -74,7 +76,61 @@ test("buildSessionProgressionFeedbackSummaryLabel appends the selected effort fe
       },
       copilotFeedbackSignal: "too_hard",
     }),
-    "AUTO • SESSION • SET • Too Hard",
+    "AUTO | SESSION | SET | Too Hard",
+  );
+});
+
+test("buildSessionProgressionFeedbackSummaryLabel keeps manual summaries normalized", () => {
+  assert.equal(
+    buildSessionProgressionFeedbackSummaryLabel({
+      progressionFormState: null,
+      copilotFeedbackSignal: "completed_as_planned",
+    }),
+    "MANUAL | As Planned",
+  );
+});
+
+test("buildSessionEffortContextLabel keeps the selected signal and effort wording stable", () => {
+  assert.equal(
+    buildSessionEffortContextLabel({
+      signal: "too_hard",
+      effortValue: 8,
+    }),
+    "Too Hard | Effort 8/10",
+  );
+
+  assert.equal(
+    buildSessionEffortContextLabel({
+      signal: null,
+      effortValue: 6,
+    }),
+    "Effort 6/10",
+  );
+
+  assert.equal(
+    buildSessionEffortContextLabel({
+      signal: "completed_as_planned",
+      effortValue: null,
+    }),
+    "As Planned",
+  );
+});
+
+test("buildSessionEffortNotePlaceholder reflects the shared effort context contract", () => {
+  assert.equal(
+    buildSessionEffortNotePlaceholder({
+      signal: "too_easy",
+      effortValue: 4,
+    }),
+    "Optional context for too easy | effort 4/10",
+  );
+
+  assert.equal(
+    buildSessionEffortNotePlaceholder({
+      signal: null,
+      effortValue: null,
+    }),
+    "Optional context for this set or exercise",
   );
 });
 

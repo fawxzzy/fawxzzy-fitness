@@ -88,7 +88,7 @@ export const VISUAL_FITNESS_SUITES = {
   session: {
     name: "session",
     proofLane: "protected",
-    route: `/session/${QA_BASELINE.sessionIds.latest}`,
+    route: `/session/${QA_BASELINE.sessionIds.latest}?returnTo=%2Ftoday&exerciseId=${QA_BASELINE.sessionExerciseIds.latestLunge}`,
     viewport: DEFAULT_VISUAL_VIEWPORT,
     authRequired: true,
     setupRequirements: [
@@ -99,7 +99,7 @@ export const VISUAL_FITNESS_SUITES = {
     allowAuthGatedFallback: true,
     themePreset: "default",
     waitMs: 3000,
-    stateLabel: "protected-latest-session",
+    stateLabel: "protected-latest-session-logger",
   },
   routines: {
     name: "routines",

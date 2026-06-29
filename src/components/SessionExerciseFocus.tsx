@@ -243,6 +243,7 @@ export type SessionExerciseFocusItem = {
   copilotFeedbackSignal?: SessionCopilotFeedbackSignal | null;
   copilotFeedbackNote?: string | null;
   copilotFeedbackUpdatedAt?: string | null;
+  copilotFeedbackEffort?: number | null;
 };
 
 function resolveSessionExerciseTone(args: {
@@ -286,6 +287,7 @@ export function SessionExerciseFocus({
   deleteSetAction,
   updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
+  disableDraftPersistence = false,
   bottomDockCenter,
 }: {
   userId: string;
@@ -308,6 +310,7 @@ export function SessionExerciseFocus({
     note: string | null;
   }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>>;
   updateSessionExerciseProgressionAction: (formData: FormData) => Promise<ActionResult>;
+  disableDraftPersistence?: boolean;
   bottomDockCenter?: ReactNode;
 }) {
   const cachedSessionState = sessionExerciseLocalStateCache.get(sessionId);
@@ -911,6 +914,7 @@ export function SessionExerciseFocus({
                   copilotFeedbackSignal={exercise.copilotFeedbackSignal ?? null}
                   copilotFeedbackNote={exercise.copilotFeedbackNote ?? null}
                   copilotFeedbackUpdatedAt={exercise.copilotFeedbackUpdatedAt ?? null}
+                  initialEffortRating={exercise.copilotFeedbackEffort ?? null}
                   updateCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
@@ -942,6 +946,7 @@ export function SessionExerciseFocus({
                   fallbackGoalLabel={exercise.goalLabel}
                   reportDraftState={isExpanded}
                   draftFormState={draftState?.formState ?? null}
+                  disableDraftPersistence={disableDraftPersistence}
                   onDraftStateChange={(nextDraftState) => {
                     setDraftStateBySessionExerciseId((current) => {
                       const previous = current[exercise.id];

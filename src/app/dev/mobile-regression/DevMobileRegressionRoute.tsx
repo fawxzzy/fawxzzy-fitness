@@ -684,7 +684,7 @@ const mockSessionExercises = [
     id: "session-ex-3",
     exerciseId: MOCK_EXERCISE_IDS.walk,
     name: "Incline Walk",
-    isSkipped: true,
+    isSkipped: false,
     defaultUnit: "km" as const,
     isCardio: true,
     measurementType: "time_distance" as const,
@@ -2222,13 +2222,14 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
 
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
   const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt);
+  const regressionSessionId = `dev-session-${scenario.fixtureState}`;
 
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
         <RegressionMarker scenario={scenario} />
         <SessionPageClient
           userId="dev-user"
-          sessionId="dev-session"
+          sessionId={regressionSessionId}
         initialDurationSeconds={0}
           performedAt={capturePerformedAt}
           routineName={PREVIEW_ROUTINE_NAME}
@@ -2246,6 +2247,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         removeExerciseAction={noopActionResult}
         deleteSetAction={noopActionResult}
         updateSessionExerciseProgressionAction={noopActionResult}
+        disableDraftPersistence
       />
     </AppShell>
   );

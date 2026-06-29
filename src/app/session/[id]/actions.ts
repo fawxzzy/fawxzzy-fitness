@@ -505,7 +505,7 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
 
   const canonicalExerciseId = resolvedExercise.id;
   if (!canonicalExerciseId) {
-    throw new Error("Session exercise invariant failed: missing canonical exercise id.");
+    return { ok: false, error: "Could not prepare this exercise for the session." };
   }
 
   const measurementType = resolveSessionExerciseMeasurementType(resolvedExercise.measurementType);
@@ -533,7 +533,7 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
   }
 
   if (!insertedExercise?.exercise_id) {
-    throw new Error("Session exercise invariant failed: persisted row missing exercise_id.");
+    return { ok: false, error: "Could not add this exercise to the session." };
   }
 
   if (SHOULD_DEBUG_CANONICAL_LINKING) {
@@ -654,7 +654,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   }
 
   if (!canonicalExerciseId) {
-    throw new Error("Session exercise invariant failed: missing canonical exercise id.");
+    return { ok: false, error: "Could not prepare this exercise for the session." };
   }
 
   if (routineDayExerciseId) {
@@ -743,7 +743,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   }
 
   if (!insertedExercise?.exercise_id) {
-    throw new Error("Session exercise invariant failed: persisted row missing exercise_id.");
+    return { ok: false, error: "Could not add this exercise to the session." };
   }
 
   if (SHOULD_DEBUG_CANONICAL_LINKING) {

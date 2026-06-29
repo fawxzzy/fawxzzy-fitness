@@ -6,6 +6,7 @@ import {
   mobileRegressionSessionScenarioFixturesById,
   mobileRegressionSelectedSessionExerciseByScenarioId,
 } from "../../src/app/dev/mobile-regression/sessionScenarioFixtures.ts";
+import { SESSION_COPILOT_FEEDBACK_SIGNALS } from "../../src/lib/session-copilot-feedback.ts";
 import {
   mobileRegressionScenarios,
   resolveMobileRegressionScenario,
@@ -225,12 +226,14 @@ test("expanded session regression fixture seeds a deterministic copilot feedback
         copilotFeedbackSignal: "too_easy" as const,
         copilotFeedbackNote: "old note",
         copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+        copilotFeedbackEffort: 4,
       },
       {
         id: "session-ex-2",
         copilotFeedbackSignal: null,
         copilotFeedbackNote: null,
         copilotFeedbackUpdatedAt: null,
+        copilotFeedbackEffort: null,
       },
     ],
     capturePerformedAt,
@@ -243,23 +246,25 @@ test("expanded session regression fixture seeds a deterministic copilot feedback
   assert.equal(seededExercises[0]?.copilotFeedbackSignal ?? null, null);
   assert.equal(seededExercises[0]?.copilotFeedbackNote ?? null, null);
   assert.equal(seededExercises[0]?.copilotFeedbackUpdatedAt ?? null, null);
+  assert.equal(seededExercises[0]?.copilotFeedbackEffort ?? null, null);
   assert.equal(seededExercises[1]?.copilotFeedbackSignal ?? null, "too_hard");
   assert.equal(seededExercises[1]?.copilotFeedbackNote ?? null, null);
   assert.equal(seededExercises[1]?.copilotFeedbackUpdatedAt ?? null, capturePerformedAt);
+  assert.equal(seededExercises[1]?.copilotFeedbackEffort ?? null, 9);
 });
 
 test("session logger regression fixtures seed deterministic effort feedback across measurement families", () => {
   const capturePerformedAt = "2026-06-29T01:15:00.000Z";
   const seededScenarioChecks = [
-    ["session-logger-strength-weight", "session-ex-1", "completed_as_planned", null],
-    ["session-logger-bodyweight-reps", "session-ex-4", "too_easy", null],
-    ["session-logger-cardio-time", "session-ex-5", "bad_day", null],
-    ["session-logger-cardio-time-distance", "session-ex-3", "form_breakdown", "Stride felt sloppy."],
-    ["session-logger-cardio-distance", "session-ex-6", "pain_flag", null],
-    ["session-logger-calories", "session-ex-7", "override_used", null],
+    ["session-logger-strength-weight", "session-ex-1", "completed_as_planned", null, 5],
+    ["session-logger-bodyweight-reps", "session-ex-4", "too_easy", null, 3],
+    ["session-logger-cardio-time", "session-ex-5", "bad_day", null, 7],
+    ["session-logger-cardio-time-distance", "session-ex-3", "form_breakdown", "Stride felt sloppy.", 8],
+    ["session-logger-cardio-distance", "session-ex-6", "pain_flag", null, 10],
+    ["session-logger-calories", "session-ex-7", "override_used", null, 6],
   ] as const;
 
-  for (const [scenarioId, seededExerciseId, signal, note] of seededScenarioChecks) {
+  for (const [scenarioId, seededExerciseId, signal, note, effort] of seededScenarioChecks) {
     const seededExercises = applySessionRegressionScenarioState(
       scenarioId,
       [
@@ -268,12 +273,14 @@ test("session logger regression fixtures seed deterministic effort feedback acro
           copilotFeedbackSignal: null,
           copilotFeedbackNote: null,
           copilotFeedbackUpdatedAt: null,
+          copilotFeedbackEffort: null,
         },
         {
           id: "other-exercise",
           copilotFeedbackSignal: "too_hard" as const,
           copilotFeedbackNote: "remove me",
           copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+          copilotFeedbackEffort: 9,
         },
       ],
       capturePerformedAt,
@@ -284,9 +291,37 @@ test("session logger regression fixtures seed deterministic effort feedback acro
     assert.equal(seededExercises[0]?.copilotFeedbackSignal ?? null, signal);
     assert.equal(seededExercises[0]?.copilotFeedbackNote ?? null, note);
     assert.equal(seededExercises[0]?.copilotFeedbackUpdatedAt ?? null, capturePerformedAt);
+    assert.equal(seededExercises[0]?.copilotFeedbackEffort ?? null, effort);
     assert.equal(seededExercises[1]?.copilotFeedbackSignal ?? null, null);
     assert.equal(seededExercises[1]?.copilotFeedbackNote ?? null, null);
     assert.equal(seededExercises[1]?.copilotFeedbackUpdatedAt ?? null, null);
+    assert.equal(seededExercises[1]?.copilotFeedbackEffort ?? null, null);
+  }
+});
+
+test("session logger regression fixtures cover every effort feedback signal on a selected exercise", () => {
+  const seededSignals = Object.values(mobileRegressionSessionScenarioFixturesById)
+    .flatMap((fixture) => fixture.feedback ? [fixture.feedback.signal] : []);
+
+  assert.deepEqual(
+    [...new Set(seededSignals)].sort(),
+    [...SESSION_COPILOT_FEEDBACK_SIGNALS].sort(),
+  );
+
+  for (const [scenarioId, fixture] of Object.entries(mobileRegressionSessionScenarioFixturesById)) {
+    if (!fixture.feedback) {
+      continue;
+    }
+
+    assert.ok(
+      fixture.selectedExerciseId,
+      `Expected ${scenarioId} to keep a selected exercise for seeded effort feedback.`,
+    );
+    assert.equal(
+      fixture.feedback.exerciseId,
+      fixture.selectedExerciseId,
+      `Expected ${scenarioId} feedback seed to target the selected exercise.`,
+    );
   }
 });
 
@@ -319,6 +354,7 @@ test("session logger combo-board fixture keeps feedback unseeded until a specifi
         copilotFeedbackSignal: "too_easy" as const,
         copilotFeedbackNote: "keep",
         copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+        copilotFeedbackEffort: 4,
       },
     ],
     "2026-06-29T01:15:00.000Z",
@@ -327,11 +363,12 @@ test("session logger combo-board fixture keeps feedback unseeded until a specifi
   assert.equal(mobileRegressionSessionScenarioFixturesById["session-logger-combo-board"]?.selectedExerciseId ?? null, null);
   assert.equal(mobileRegressionSelectedSessionExerciseByScenarioId["session-logger-combo-board"] ?? null, null);
   assert.deepEqual(seededExercises, [
-    {
-      id: "session-ex-1",
-      copilotFeedbackSignal: "too_easy",
-      copilotFeedbackNote: "keep",
-      copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
-    },
+      {
+        id: "session-ex-1",
+        copilotFeedbackSignal: "too_easy",
+        copilotFeedbackNote: "keep",
+        copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+        copilotFeedbackEffort: 4,
+      },
   ]);
 });
