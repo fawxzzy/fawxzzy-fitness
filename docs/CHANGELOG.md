@@ -5,11 +5,15 @@ All notable changes to this project are documented in this file.
 ## 1.0.1 - 2026-06-24
 
 ### WHAT
+- Hardened Current Session effort feedback around one shared save contract, including normalized signal/note persistence, consistent update timestamps, and deterministic note-length handling for live session edits.
+- Expanded the mobile-regression session fixture suite so every major logger family now seeds a stable effort-feedback state, then added focused proof for closed-card progression/feedback summary wording and draft-state equality on Current Session cards.
 - Shipped the draft-first routine and workout-plan builder refresh: browse-first routine home, internal workout-plan editor flow, blank and duplicate add-day menus, and normalized duplicate pickers for routines and workout plans.
 - Unified workout card structure across routine editing, workout-plan editing, Today, Current Session, and History so target rows, progression markers, info actions, chevrons, and left accent rails render consistently.
 - Fixed state and navigation regressions around logging, draft return, card expansion, and summary persistence, and added `/account` as an alias route to the account/settings surface.
 
 ### WHY
+- Current Session effort feedback had become partially fixture-proven but not fully contract-driven, which left draft persistence and summary wording vulnerable to drift between seeded QA routes and the real live session flow.
+- Pulling the summary and draft-equality rules into shared helpers keeps the high-frequency session cards deterministic while making future regression work cheaper to verify.
 - The routines and templates feature needed the draft, duplicate, reorder, and shared card-language foundations stable before the saved-template layer could land cleanly.
 - Cross-screen drift and session-state resets were making the builder harder to trust on mobile and were hiding the real remaining scope behind UI inconsistency.
 
