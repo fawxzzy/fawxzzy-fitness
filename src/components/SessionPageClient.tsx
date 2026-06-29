@@ -63,6 +63,12 @@ type SyncQueuedSetLogsAction = (payload: {
 
 type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
 type ProgressionUpdateAction = (formData: FormData) => Promise<ActionResult>;
+type CopilotFeedbackUpdateAction = (payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  signal: string | null;
+  note: string | null;
+}) => Promise<ActionResult<{ signal: string | null; note: string | null; updatedAt: string | null }>>;
 
 function formatDurationClock(totalSeconds: number) {
   const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
@@ -112,6 +118,7 @@ export function SessionPageClient({
   toggleSkipAction,
   removeExerciseAction,
   deleteSetAction,
+  updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
 }: {
   userId: string;
@@ -143,6 +150,7 @@ export function SessionPageClient({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  updateSessionExerciseCopilotFeedbackAction: CopilotFeedbackUpdateAction;
   updateSessionExerciseProgressionAction: ProgressionUpdateAction;
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
@@ -338,6 +346,7 @@ export function SessionPageClient({
               toggleSkipAction={toggleSkipAction}
               removeExerciseAction={removeExerciseAction}
               deleteSetAction={deleteSetAction}
+              updateSessionExerciseCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
               updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
               bottomDockCenter={null}
             />
