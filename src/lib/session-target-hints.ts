@@ -389,7 +389,7 @@ export function deriveSessionTargetHint(args: {
     return {
       shortLabel: plannedSummary,
       reason: lastSummary
-        ? "Using the planned target and keeping your last logged performance visible inline."
+        ? "Last logged performance stays visible inline for comparison."
         : "",
       source: "manual_target",
       confidence: "high",

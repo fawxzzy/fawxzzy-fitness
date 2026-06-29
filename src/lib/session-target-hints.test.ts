@@ -37,7 +37,7 @@ test("manual target wins when no playbook exists", () => {
 
   assert.equal(hint.source, "manual_target");
   assert.equal(hint.shortLabel, "135 lbs x 8");
-  assert.match(hint.reason, /planned target/i);
+  assert.equal(hint.reason, "");
 });
 
 test("last completed performance is used when no plan exists", () => {
@@ -81,6 +81,7 @@ test("planned target remains primary when recent best exists", () => {
 
   assert.equal(hint.source, "manual_target");
   assert.equal(hint.shortLabel, "190 lbs x 6");
+  assert.equal(hint.reason, "Last logged performance stays visible inline for comparison.");
   assert.equal(hint.recentBestSummary, "195 lbs x 5");
   assert.equal(hint.recentBestSuggestedValues?.weight, 195);
   assert.equal(hint.recentBestSuggestedValues?.reps, 5);
