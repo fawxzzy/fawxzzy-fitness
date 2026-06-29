@@ -36,7 +36,8 @@ import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model"
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
-import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import { type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import { areSessionLoggerDraftStatesEqual, buildSessionProgressionFeedbackSummaryLabel } from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -267,22 +268,6 @@ function resolveSessionExerciseTone(args: {
   }
 
   return "neutral";
-}
-
-function buildSessionProgressionStateLabel(formState?: ProgressionPlaybookFormState | null) {
-  const hasAutoProgression = Boolean(formState?.progressionPlaybookId);
-  const labels = [hasAutoProgression ? "AUTO" : "MANUAL"];
-
-  if (hasAutoProgression) {
-    if (formState?.progressionSessionSettingsEnabled !== false) {
-      labels.push("SESSION");
-    }
-    if (formState?.progressionSetSettingsEnabled !== false) {
-      labels.push("SET");
-    }
-  }
-
-  return labels.join(" • ");
 }
 
 export function SessionExerciseFocus({
@@ -789,10 +774,10 @@ export function SessionExerciseFocus({
             equipment: exercise.equipment,
           }).slice(0, 2);
           const copilotFeedbackSignal = draftState?.copilotFeedbackSignal ?? exercise.copilotFeedbackSignal ?? null;
-          const progressionStateLabel = [
-            buildSessionProgressionStateLabel(exercise.progressionFormState ?? null),
-            copilotFeedbackSignal ? formatSessionCopilotFeedbackLabel(copilotFeedbackSignal) : null,
-          ].filter(Boolean).join(" • ");
+          const progressionStateLabel = buildSessionProgressionFeedbackSummaryLabel({
+            progressionFormState: exercise.progressionFormState ?? null,
+            copilotFeedbackSignal,
+          });
           const sessionTitle = (
             <ExerciseCardStandardTitle
               name={exercise.name}
@@ -960,34 +945,7 @@ export function SessionExerciseFocus({
                   onDraftStateChange={(nextDraftState) => {
                     setDraftStateBySessionExerciseId((current) => {
                       const previous = current[exercise.id];
-                      if (
-                        previous?.goalLabel === nextDraftState.goalLabel
-                        && previous?.quickLogLabel === nextDraftState.quickLogLabel
-                        && previous?.quickLogPayload?.weight === nextDraftState.quickLogPayload?.weight
-                        && previous?.quickLogPayload?.reps === nextDraftState.quickLogPayload?.reps
-                        && previous?.quickLogPayload?.durationSeconds === nextDraftState.quickLogPayload?.durationSeconds
-                        && previous?.quickLogPayload?.distance === nextDraftState.quickLogPayload?.distance
-                        && previous?.quickLogPayload?.distanceUnit === nextDraftState.quickLogPayload?.distanceUnit
-                        && previous?.quickLogPayload?.calories === nextDraftState.quickLogPayload?.calories
-                        && previous?.quickLogPayload?.isWarmup === nextDraftState.quickLogPayload?.isWarmup
-                        && previous?.quickLogPayload?.rpe === nextDraftState.quickLogPayload?.rpe
-                        && previous?.quickLogPayload?.notes === nextDraftState.quickLogPayload?.notes
-                        && previous?.quickLogPayload?.weightUnit === nextDraftState.quickLogPayload?.weightUnit
-                        && previous?.isEditedFromCurrentTarget === nextDraftState.isEditedFromCurrentTarget
-                        && previous?.didApplyLastTarget === nextDraftState.didApplyLastTarget
-                        && previous?.copilotFeedbackSignal === nextDraftState.copilotFeedbackSignal
-                        && previous?.copilotFeedbackNote === nextDraftState.copilotFeedbackNote
-                        && previous?.formState.weight === nextDraftState.formState.weight
-                        && previous?.formState.reps === nextDraftState.formState.reps
-                        && previous?.formState.durationInput === nextDraftState.formState.durationInput
-                        && previous?.formState.distance === nextDraftState.formState.distance
-                        && previous?.formState.calories === nextDraftState.formState.calories
-                        && previous?.formState.rpe === nextDraftState.formState.rpe
-                        && previous?.formState.weightUnit === nextDraftState.formState.weightUnit
-                        && previous?.formState.distanceUnit === nextDraftState.formState.distanceUnit
-                        && previous?.formState.isWarmup === nextDraftState.formState.isWarmup
-                        && previous?.formState.isFailure === nextDraftState.formState.isFailure
-                      ) {
+                      if (areSessionLoggerDraftStatesEqual(previous, nextDraftState)) {
                         return current;
                       }
 
