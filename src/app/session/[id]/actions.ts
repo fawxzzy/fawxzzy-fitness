@@ -13,8 +13,7 @@ import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omit
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import {
-  normalizeSessionCopilotFeedbackNote,
-  normalizeSessionCopilotFeedbackSignal,
+  buildSessionCopilotFeedbackUpdate,
   type SessionCopilotFeedbackSignal,
 } from "@/lib/session-copilot-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -424,8 +423,7 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
 
   const sessionId = String(payload.sessionId ?? "").trim();
   const sessionExerciseId = String(payload.sessionExerciseId ?? "").trim();
-  const signal = normalizeSessionCopilotFeedbackSignal(payload.signal);
-  const note = normalizeSessionCopilotFeedbackNote(payload.note);
+  const { signal, note, updatedAt } = buildSessionCopilotFeedbackUpdate(payload);
 
   if (!sessionId || !sessionExerciseId) {
     return { ok: false, error: "Missing copilot feedback info" };
@@ -440,8 +438,6 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
   if (!liveSession.ok) {
     return liveSession;
   }
-
-  const updatedAt = signal || note ? new Date().toISOString() : null;
 
   const { error } = await supabase
     .from("session_exercises")

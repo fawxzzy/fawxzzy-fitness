@@ -41,6 +41,27 @@ export function normalizeSessionCopilotFeedbackNote(value: unknown): string | nu
   return normalized.slice(0, SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH);
 }
 
+export function buildSessionCopilotFeedbackUpdate(
+  payload: {
+    signal: unknown;
+    note: unknown;
+  },
+  getTimestamp: () => string = () => new Date().toISOString(),
+): {
+  signal: SessionCopilotFeedbackSignal | null;
+  note: string | null;
+  updatedAt: string | null;
+} {
+  const signal = normalizeSessionCopilotFeedbackSignal(payload.signal);
+  const note = normalizeSessionCopilotFeedbackNote(payload.note);
+
+  return {
+    signal,
+    note,
+    updatedAt: signal || note ? getTimestamp() : null,
+  };
+}
+
 export function formatSessionCopilotFeedbackLabel(signal: SessionCopilotFeedbackSignal): string {
   return SESSION_COPILOT_FEEDBACK_LABELS[signal];
 }

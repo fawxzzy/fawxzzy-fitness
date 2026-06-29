@@ -2015,9 +2015,11 @@ export function SetLoggerCard({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--accent)/0.82)]">
                   Effort Feedback
                 </p>
-                <p className="text-[11px] leading-[1.35] text-[rgb(var(--text-muted)/0.92)]">
-                  {copilotWhyLabel}
-                </p>
+                {copilotWhyLabel ? (
+                  <p className="text-[11px] leading-[1.35] text-[rgb(var(--text-muted)/0.92)]">
+                    {copilotWhyLabel}
+                  </p>
+                ) : null}
               </div>
 
               <HorizontalScrollHint
@@ -2055,7 +2057,7 @@ export function SetLoggerCard({
                     htmlFor={`session-copilot-note-${sessionExerciseId}`}
                     className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.88)]"
                   >
-                    Copilot note
+                    note
                   </label>
                   <input
                     id={`session-copilot-note-${sessionExerciseId}`}
