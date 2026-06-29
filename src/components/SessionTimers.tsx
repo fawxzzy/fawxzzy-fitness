@@ -1778,12 +1778,16 @@ export function SetLoggerCard({
     nextNote: string,
     revertOnError = true,
   ) => {
-    if (!updateCopilotFeedbackAction) {
-      return true;
-    }
-
     const normalizedSignal = normalizeSessionCopilotFeedbackSignal(nextSignal);
     const normalizedNote = normalizeSessionCopilotFeedbackNote(nextNote);
+
+    if (!updateCopilotFeedbackAction) {
+      committedCopilotSignalRef.current = normalizedSignal;
+      committedCopilotNoteRef.current = normalizedNote;
+      setCopilotSignalState(normalizedSignal);
+      setCopilotNoteState(normalizedNote ?? "");
+      return true;
+    }
     setIsSavingCopilotFeedback(true);
 
     try {
