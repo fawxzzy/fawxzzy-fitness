@@ -12,6 +12,7 @@ type SessionExerciseSeed = {
   position: number;
   performed_index: number | null;
   notes: string | null;
+  copilot_feedback_note?: string | null;
   is_skipped: boolean;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;
@@ -362,6 +363,27 @@ test("suppresses routine-plan notes that were inherited into session exercise no
 
   assert.equal(result.orderedSessionExercises[0]?.notes, null);
   assert.equal(result.orderedSessionExercises[1]?.notes, "Felt strong after warm-up.");
+});
+
+test("preserves saved copilot feedback notes on session exercise rows", async () => {
+  const supabase = createSupabaseStub({
+    sessionExercises: [{
+      id: "se-feedback",
+      session_id: "session-feedback",
+      user_id: "user-1",
+      exercise_id: "exercise-a",
+      position: 1,
+      performed_index: 0,
+      notes: null,
+      copilot_feedback_note: "Too hard after the second interval.",
+      is_skipped: false,
+    }],
+    sets: [],
+  });
+
+  const result = await loadHistoryDetailRows({ supabase, sessionId: "session-feedback", userId: "user-1", sessionFound: true });
+
+  assert.equal(result.orderedSessionExercises[0]?.copilot_feedback_note, "Too hard after the second interval.");
 });
 
 test("does not zero out exercises when only some exercise metadata resolves", async () => {

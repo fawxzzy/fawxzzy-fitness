@@ -1758,9 +1758,9 @@ export function SetLoggerCard({
         <div className={cn(GLOW_SWITCH_MEASUREMENT_ROW_WRAPPER_CLASS_NAME, "top-[6px]")}>
           <GlowSwitch
             checked={resolvedIsWarmup}
-            ariaLabel={resolvedIsWarmup ? "Warm-up set enabled" : "Working set enabled"}
+            ariaLabel={resolvedIsWarmup ? "Warm-up set enabled" : "Active set enabled"}
             onLabel="Warm-Up"
-            offLabel="Working"
+            offLabel="Active Set"
             onClick={() => {
               const nextWarmup = !resolvedIsWarmup;
               setIsWarmup(nextWarmup);

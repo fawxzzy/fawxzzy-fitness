@@ -86,6 +86,7 @@ type AuditExercise = {
   exercise_image_icon_path?: string | null;
   exercise_image_howto_path?: string | null;
   notes: string | null;
+  copilot_feedback_note?: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   target_sets_min?: number | null;
@@ -145,6 +146,28 @@ function parseDurationInput(rawValue: string): number | null {
   const totalSeconds = Number(value);
   if (!Number.isInteger(totalSeconds) || totalSeconds < 0) return null;
   return totalSeconds;
+}
+
+function resolveExerciseDisplayNotesValue({
+  exercise,
+  draftNotesValue,
+}: {
+  exercise: AuditExercise;
+  draftNotesValue?: string | null;
+}) {
+  const draftedNote = typeof draftNotesValue === "string" ? draftNotesValue.trim() : "";
+  if (draftedNote) {
+    return draftedNote;
+  }
+
+  const exerciseNote = typeof exercise.notes === "string" ? exercise.notes.trim() : "";
+  if (exerciseNote) {
+    return exerciseNote;
+  }
+
+  return typeof exercise.copilot_feedback_note === "string"
+    ? exercise.copilot_feedback_note.trim()
+    : "";
 }
 
 const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg", measurementType: AuditExercise["measurement_type"]): EditableSet => ({
@@ -1024,6 +1047,12 @@ export function LogAuditClient({
   }, [expandedExercise, focusedRecapItemMeta, focusedSessionSummary]);
 
   const focusedExerciseNotes = expandedExercise ? (exerciseNotes[expandedExercise.id] ?? "") : "";
+  const focusedExerciseDisplayNotes = expandedExercise
+    ? resolveExerciseDisplayNotesValue({
+        exercise: expandedExercise,
+        draftNotesValue: exerciseNotes[expandedExercise.id] ?? expandedExercise.notes ?? "",
+      })
+    : "";
   const isFocusedSetExpanded = Boolean(expandedSetId);
   const focusedHasMeaningfulSetData = expandedExercise
     ? countMeaningfulSetData(editableSets[expandedExercise.id] ?? []) > 0
@@ -1465,7 +1494,11 @@ export function LogAuditClient({
                   {visibleExercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const setsForExercise = editableSets[exercise.id] ?? [];
-          const notesValue = exerciseNotes[exercise.id] ?? exercise.notes ?? "";
+          const editableNotesValue = exerciseNotes[exercise.id] ?? exercise.notes ?? "";
+          const displayNotesValue = resolveExerciseDisplayNotesValue({
+            exercise,
+            draftNotesValue: editableNotesValue,
+          });
           const isExpanded = expandedExerciseId === exercise.id;
           const bestSet = findBestEditableSet(setsForExercise);
           const isSessionBestExercise = focusedSessionSummary.bestLift?.exerciseName?.trim() === name;
@@ -1476,7 +1509,7 @@ export function LogAuditClient({
           const countBadgeLabel = buildLoggedSetCountBadge(setsForExercise.length, targetSetCount);
           const canExpandExercise = hasExpandableExerciseContent({
             sets: setsForExercise,
-            notesValue,
+            notesValue: displayNotesValue,
             progressionSummary: exercise.progressionSummary ?? null,
             isEditing,
           });
@@ -1595,7 +1628,7 @@ export function LogAuditClient({
                             overviewMetrics={focusedDetailedMetrics}
                             overviewSections={focusedDetailedSections}
                             progressionSummary={expandedExercise.progressionSummary ?? null}
-                            notesValue={focusedExerciseNotes}
+                            notesValue={focusedExerciseDisplayNotes}
                             isEditing={isEditing}
                             canEditNotes={!isFocusedSetExpanded}
                             canShowNotes={focusedHasMeaningfulSetData}
@@ -1729,7 +1762,7 @@ export function LogAuditClient({
                             overviewMetrics={focusedDetailedMetrics}
                             overviewSections={focusedDetailedSections}
                             progressionSummary={expandedExercise.progressionSummary ?? null}
-                            notesValue={focusedExerciseNotes}
+                            notesValue={focusedExerciseDisplayNotes}
                             isEditing={isEditing}
                             canEditNotes={!isFocusedSetExpanded}
                             canShowNotes={focusedHasMeaningfulSetData}

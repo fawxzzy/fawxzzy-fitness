@@ -453,6 +453,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         exercise_image_icon_path: metadata?.image_icon_path ?? null,
         exercise_image_howto_path: metadata?.image_howto_path ?? null,
         notes: exercise.notes,
+        copilot_feedback_note: exercise.copilot_feedback_note ?? null,
         measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
         default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
         target_sets_min: exercise.target_sets_min ?? null,
