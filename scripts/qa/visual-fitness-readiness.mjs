@@ -12,7 +12,7 @@ import { runVisualFitnessSuites } from "./visual-fitness-runner.mjs";
 const currentFilePath = fileURLToPath(import.meta.url);
 const repoPathFromAtlas = path.relative(atlasRoot, repoRoot).replace(/\\/g, "/");
 const readinessRoot = path.join(atlasRoot, "tmp", "captures", "fitness", "readiness");
-const verificationScripts = [
+export const verificationScripts = [
   "lint:ci",
   "typecheck",
   "build",
@@ -22,7 +22,7 @@ const verificationScripts = [
   "visual:fitness:theme",
   "visual:fitness:app-theme-contract",
 ];
-const protectedSuites = [
+export const protectedSuites = [
   "settings",
   "today",
   "session",
@@ -32,7 +32,7 @@ const protectedSuites = [
   "history-exercises",
   "history-detail",
 ];
-const seamSuites = [
+export const seamSuites = [
   "settings-seam",
   "today-seam",
   "session-seam",
