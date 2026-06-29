@@ -1040,7 +1040,7 @@ export function SetLoggerCard({
 
     engine.start();
     return () => engine.stop();
-  }, [sessionExerciseId, syncQueuedSetLogsAction, userId]);
+  }, [sessionExerciseId, syncQueuedSetLogsAction, toast, userId]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -1470,6 +1470,7 @@ export function SetLoggerCard({
     userId,
     weight,
     addSetAction,
+    onSetsChange,
     releaseLogRequest,
   ]);
 
