@@ -62,12 +62,14 @@ export function LoginScreen({
   requiresReauth = false,
   previewRememberedLogin = null,
   previewShowCredentialStep = false,
+  returnTo,
 }: {
   error?: string;
   info?: string;
   requiresReauth?: boolean;
   previewRememberedLogin?: RememberedLoginState | null;
   previewShowCredentialStep?: boolean;
+  returnTo?: string;
 }) {
   const loginPendingTimeoutRef = useRef<number | null>(null);
   const copy = AUTH_MODE_COPY["password-login"];
@@ -350,6 +352,7 @@ export function LoginScreen({
           {showRememberedAccountCard && effectiveRememberedEmail ? (
             <input type="hidden" name="email" value={effectiveRememberedEmail} />
           ) : null}
+          {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <AuthFormFields
             key={formSeed}
             aria-hidden={!showManualAuth}

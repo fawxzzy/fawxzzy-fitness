@@ -59,7 +59,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
       gate.redirect({
         blockingReason: "Recovered from an invalid or expired authenticated session by redirecting to /login.",
       });
-      redirect(buildSessionRecoveryPath(failure.loginErrorCode));
+      redirect(buildSessionRecoveryPath(failure.loginErrorCode, options.route));
     }
 
     user = result.data.user;
@@ -84,7 +84,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
     gate.redirect({
       blockingReason: "Recovered from an invalid or expired authenticated session by redirecting to /login.",
     });
-    redirect(buildSessionRecoveryPath(failure.loginErrorCode));
+    redirect(buildSessionRecoveryPath(failure.loginErrorCode, options.route));
   }
 
   if (!user) {
@@ -100,7 +100,7 @@ export async function requireUser(options: RequireUserOptions = {}) {
       gate.redirect({
         blockingReason: "Session cookies were present without an authenticated user. Redirecting to /login.",
       });
-      redirect(buildSessionRecoveryPath());
+      redirect(buildSessionRecoveryPath(undefined, options.route));
     }
 
     gate.redirect({

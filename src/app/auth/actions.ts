@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { setSessionCookies } from "@/lib/auth-session";
 import { optionalEnv } from "@/lib/env";
+import { isSafeAppPath } from "@/lib/navigation-return";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -107,27 +108,56 @@ function getResetPasswordErrorMessage(message: string | undefined) {
   return "Could not send reset email. Please try again in a few minutes.";
 }
 
+function buildLoginRedirectHref(args: {
+  error?: string | null;
+  info?: string | null;
+  returnTo?: string | null;
+}) {
+  const params = new URLSearchParams();
+  if (args.error) {
+    params.set("error", args.error);
+  }
+  if (args.info) {
+    params.set("info", args.info);
+  }
+  if (isSafeAppPath(args.returnTo)) {
+    params.set("returnTo", args.returnTo);
+  }
+
+  const query = params.toString();
+  return query ? `/login?${query}` : "/login";
+}
+
 export async function login(formData: FormData) {
   const identifier = normalizeLoginIdentifier(formData.get("email"));
   const password = String(formData.get("password") ?? "");
+  const returnTo = isSafeAppPath(String(formData.get("returnTo") ?? "").trim())
+    ? String(formData.get("returnTo") ?? "").trim()
+    : null;
   const email = await resolveEmailForLogin(identifier);
 
   if (!email) {
-    redirect(`/login?error=${encodeURIComponent("Invalid email, username, or password")}`);
+    redirect(buildLoginRedirectHref({
+      error: "Invalid email, username, or password",
+      returnTo,
+    }));
   }
 
   const supabase = supabaseServer();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.session) {
-    redirect(`/login?error=${encodeURIComponent(error?.message ?? "Invalid email or password")}`);
+    redirect(buildLoginRedirectHref({
+      error: error?.message ?? "Invalid email or password",
+      returnTo,
+    }));
   }
 
   setSessionCookies(cookies(), {
     accessToken: data.session.access_token,
     refreshToken: data.session.refresh_token,
   });
-  redirect("/entry");
+  redirect(returnTo ?? "/entry");
 }
 
 export async function signup(formData: FormData) {

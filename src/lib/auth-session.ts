@@ -4,6 +4,8 @@ export const SESSION_EXPIRED_LOGIN_ERROR = "session_expired";
 export const SESSION_RECOVERY_ROUTE = "/auth/session-recovery";
 export const PERSISTENT_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
 
+import { isSafeAppPath } from "@/lib/navigation-return";
+
 const PUBLIC_AUTHLESS_PATH_PREFIXES = [
   "/auth",
   "/dev",
@@ -186,8 +188,17 @@ export function hasSessionCookieValues(args: {
   return Boolean(normalizeCookieValue(args.accessToken) || normalizeCookieValue(args.refreshToken));
 }
 
-export function buildSessionRecoveryPath(loginErrorCode = SESSION_EXPIRED_LOGIN_ERROR) {
-  return `${SESSION_RECOVERY_ROUTE}?error=${encodeURIComponent(loginErrorCode)}`;
+export function buildSessionRecoveryPath(
+  loginErrorCode = SESSION_EXPIRED_LOGIN_ERROR,
+  returnTo?: string | null,
+) {
+  const params = new URLSearchParams();
+  params.set("error", loginErrorCode);
+  if (isSafeAppPath(returnTo)) {
+    params.set("returnTo", returnTo);
+  }
+
+  return `${SESSION_RECOVERY_ROUTE}?${params.toString()}`;
 }
 
 export function serializeRequestCookiesWithSession(

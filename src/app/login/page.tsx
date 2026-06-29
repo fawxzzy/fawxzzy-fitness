@@ -1,8 +1,9 @@
-import { redirect } from "next/navigation";
 import type { LocalDevAutoLoginAccount } from "@/lib/local-dev-auto-entry";
 import { getLocalDevAutoLoginCredentials } from "@/lib/local-dev-auto-entry";
+import { isSafeAppPath } from "@/lib/navigation-return";
 import { resolveLoginRouteMessages } from "@/app/login/loginScreenState";
 import { LoginScreen } from "@/app/login/LoginScreen";
+import { LocalDevAutoLoginRedirect } from "@/app/login/LocalDevAutoLoginRedirect";
 
 type LoginPageProps = {
   searchParams?: {
@@ -11,6 +12,7 @@ type LoginPageProps = {
     localAutoAuth?: string;
     localAccount?: string;
     manual?: string;
+    returnTo?: string;
     verified?: string;
   };
 };
@@ -26,16 +28,24 @@ function resolvePreferredLocalDevAccount(value: string | undefined): LocalDevAut
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const shouldAttemptLocalDevAutoLogin = searchParams?.manual !== "1" && searchParams?.localAutoAuth !== "failed";
+  const returnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams.returnTo : undefined;
 
   if (shouldAttemptLocalDevAutoLogin) {
     const preferredAccount = resolvePreferredLocalDevAccount(searchParams?.localAccount);
     const localDevCredentials = getLocalDevAutoLoginCredentials(preferredAccount);
 
     if (localDevCredentials) {
-      const authHref = preferredAccount
-        ? `/auth/local-dev-auto-login?account=${preferredAccount}`
+      const params = new URLSearchParams();
+      if (preferredAccount) {
+        params.set("account", preferredAccount);
+      }
+      if (returnTo) {
+        params.set("returnTo", returnTo);
+      }
+      const href = params.size > 0
+        ? `/auth/local-dev-auto-login?${params.toString()}`
         : "/auth/local-dev-auto-login";
-      redirect(authHref);
+      return <LocalDevAutoLoginRedirect href={href} />;
     }
   }
 
@@ -50,6 +60,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       error={routeState.error}
       info={routeState.info}
       requiresReauth={routeState.requiresReauth}
+      returnTo={returnTo}
     />
   );
 }

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EmailOtpType } from "@supabase/supabase-js";
 import { setSessionCookies } from "@/lib/auth-session";
+import { buildRequestScopedUrl } from "@/lib/request-origin";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 function renderRecoveryFragmentBridge(request: NextRequest) {
-  const recoveryRedirect = new URL("/reset-password?recovery=1", request.url).toString();
+  const recoveryRedirect = buildRequestScopedUrl(request, "/reset-password?recovery=1").toString();
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -47,11 +48,11 @@ export async function GET(request: NextRequest) {
   const isRecoveryFlow = type === "recovery" || next === "/reset-password" || next?.startsWith("/reset-password?");
 
   const supabase = supabaseServer();
-  const failureRedirect = new URL("/login", request.url);
+  const failureRedirect = buildRequestScopedUrl(request, "/login");
   failureRedirect.searchParams.set("error", "confirm_failed");
-  const recoverySessionMissingRedirect = new URL("/login", request.url);
+  const recoverySessionMissingRedirect = buildRequestScopedUrl(request, "/login");
   recoverySessionMissingRedirect.searchParams.set("error", "recovery_session_missing");
-  const confirmedRedirect = new URL("/login", request.url);
+  const confirmedRedirect = buildRequestScopedUrl(request, "/login");
   confirmedRedirect.searchParams.set("info", "confirmed");
 
   let session: { access_token: string; refresh_token: string } | null = null;
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
 
   const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/entry";
 
-  const response = NextResponse.redirect(new URL(redirectPath, request.url));
+  const response = NextResponse.redirect(buildRequestScopedUrl(request, redirectPath));
   setSessionCookies(response.cookies, {
     accessToken: session.access_token,
     refreshToken: session.refresh_token,

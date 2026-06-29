@@ -151,6 +151,13 @@ test("buildSessionRecoveryPath targets the cookie-clearing auth recovery route",
   );
 });
 
+test("buildSessionRecoveryPath preserves a safe returnTo path", () => {
+  assert.equal(
+    buildSessionRecoveryPath(SESSION_EXPIRED_LOGIN_ERROR, "/session/abc123"),
+    "/auth/session-recovery?error=session_expired&returnTo=%2Fsession%2Fabc123",
+  );
+});
+
 test("buildAccessTokenCookieLifetime aligns the access cookie to JWT expiry", () => {
   const exp = Math.floor(Date.now() / 1000) + 1_800;
   const lifetime = buildAccessTokenCookieLifetime(buildJwtWithExp(exp));
