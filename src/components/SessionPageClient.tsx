@@ -22,6 +22,7 @@ import { writeInstallEarnedMoment } from "@/lib/install/earned-install-prompt";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { buildCurrentSessionHeaderInfoRailItems } from "@/lib/header-info-rail";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -66,9 +67,9 @@ type ProgressionUpdateAction = (formData: FormData) => Promise<ActionResult>;
 type CopilotFeedbackUpdateAction = (payload: {
   sessionId: string;
   sessionExerciseId: string;
-  signal: string | null;
+  signal: SessionCopilotFeedbackSignal | null;
   note: string | null;
-}) => Promise<ActionResult<{ signal: string | null; note: string | null; updatedAt: string | null }>>;
+}) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>>;
 
 function formatDurationClock(totalSeconds: number) {
   const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;

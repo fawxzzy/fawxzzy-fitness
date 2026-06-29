@@ -36,6 +36,7 @@ import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model"
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -238,6 +239,9 @@ export type SessionExerciseFocusItem = {
   image_howto_path?: string | null;
   slug?: string | null;
   caloriesEstimationMethod?: string | null;
+  copilotFeedbackSignal?: SessionCopilotFeedbackSignal | null;
+  copilotFeedbackNote?: string | null;
+  copilotFeedbackUpdatedAt?: string | null;
 };
 
 function resolveSessionExerciseTone(args: {
@@ -295,6 +299,7 @@ export function SessionExerciseFocus({
   toggleSkipAction,
   removeExerciseAction,
   deleteSetAction,
+  updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
   bottomDockCenter,
 }: {
@@ -311,6 +316,12 @@ export function SessionExerciseFocus({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  updateSessionExerciseCopilotFeedbackAction: (payload: {
+    sessionId: string;
+    sessionExerciseId: string;
+    signal: SessionCopilotFeedbackSignal | null;
+    note: string | null;
+  }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>>;
   updateSessionExerciseProgressionAction: (formData: FormData) => Promise<ActionResult>;
   bottomDockCenter?: ReactNode;
 }) {
@@ -908,6 +919,10 @@ export function SessionExerciseFocus({
                   routineDayExerciseId={exercise.routineDayExerciseId}
                   planTargetsHash={exercise.planTargetsHash}
                   deleteSetAction={deleteSetAction}
+                  copilotFeedbackSignal={exercise.copilotFeedbackSignal ?? null}
+                  copilotFeedbackNote={exercise.copilotFeedbackNote ?? null}
+                  copilotFeedbackUpdatedAt={exercise.copilotFeedbackUpdatedAt ?? null}
+                  updateCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
                   visiblePromotionStepFields={exercise.visiblePromotionStepFields ?? null}
