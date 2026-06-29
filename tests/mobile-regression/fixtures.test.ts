@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  applySessionRegressionScenarioState,
+  mobileRegressionSelectedSessionExerciseByScenarioId,
+} from "../../src/app/dev/mobile-regression/sessionScenarioFixtures.ts";
+import {
   mobileRegressionScenarios,
   resolveMobileRegressionScenario,
 } from "../../src/features/mobile-regression/fixtures.ts";
@@ -208,4 +212,57 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "long-scroll" })?.id, "exercise-detail-long-scroll");
   assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");
   assert.equal(resolveMobileRegressionScenario({ screen: "settings", fixture: "data-export" })?.id, "settings-data-export");
+});
+
+test("expanded session regression fixture seeds a deterministic copilot feedback selection", () => {
+  const capturePerformedAt = "2026-06-29T01:15:00.000Z";
+  const seededExercises = applySessionRegressionScenarioState(
+    "active-workout-session-expanded",
+    [
+      {
+        id: "session-ex-1",
+        copilotFeedbackSignal: "too_easy" as const,
+        copilotFeedbackNote: "old note",
+        copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+      },
+      {
+        id: "session-ex-2",
+        copilotFeedbackSignal: null,
+        copilotFeedbackNote: null,
+        copilotFeedbackUpdatedAt: null,
+      },
+    ],
+    capturePerformedAt,
+  );
+
+  assert.equal(
+    mobileRegressionSelectedSessionExerciseByScenarioId["active-workout-session-expanded"],
+    "session-ex-2",
+  );
+  assert.equal(seededExercises[0]?.copilotFeedbackSignal ?? null, null);
+  assert.equal(seededExercises[0]?.copilotFeedbackNote ?? null, null);
+  assert.equal(seededExercises[0]?.copilotFeedbackUpdatedAt ?? null, null);
+  assert.equal(seededExercises[1]?.copilotFeedbackSignal ?? null, "too_hard");
+  assert.equal(seededExercises[1]?.copilotFeedbackNote ?? null, null);
+  assert.equal(seededExercises[1]?.copilotFeedbackUpdatedAt ?? null, capturePerformedAt);
+});
+
+test("non-expanded session regression fixtures do not inject copilot feedback state", () => {
+  const baseExercises = [
+    {
+      id: "session-ex-1",
+      copilotFeedbackSignal: "too_easy" as const,
+      copilotFeedbackNote: "keep",
+      copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+    },
+  ];
+
+  const seededExercises = applySessionRegressionScenarioState(
+    "active-workout-session",
+    baseExercises,
+    "2026-06-29T01:15:00.000Z",
+  );
+
+  assert.notEqual(seededExercises, baseExercises);
+  assert.deepEqual(seededExercises, baseExercises);
 });

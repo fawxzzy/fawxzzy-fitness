@@ -4,6 +4,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFlag";
 import { RegressionDayRestToggleDockControl } from "@/app/dev/mobile-regression/RegressionDayRestToggleDockControl";
+import {
+  applySessionRegressionScenarioState,
+  mobileRegressionSelectedSessionExerciseByScenarioId,
+} from "@/app/dev/mobile-regression/sessionScenarioFixtures";
 import { AppNav } from "@/components/AppNav";
 import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
 import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
@@ -2217,33 +2221,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
   }
 
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
-  const selectedExerciseByScenarioId: Record<string, string | null> = {
-    "active-workout-session-expanded": "session-ex-2",
-    "session-logger-combo-board": null,
-    "session-logger-strength-weight": "session-ex-1",
-    "session-logger-bodyweight-reps": "session-ex-4",
-    "session-logger-cardio-time": "session-ex-5",
-    "session-logger-cardio-time-distance": "session-ex-3",
-    "session-logger-cardio-distance": "session-ex-6",
-    "session-logger-calories": "session-ex-7",
-  };
-  const sessionScenarioExercises = scenario.id === "active-workout-session-expanded"
-    ? mockSessionExercises.map((exercise) => (
-      exercise.id === "session-ex-2"
-        ? {
-          ...exercise,
-          copilotFeedbackSignal: "too_hard" as const,
-          copilotFeedbackNote: null,
-          copilotFeedbackUpdatedAt: capturePerformedAt,
-        }
-        : {
-          ...exercise,
-          copilotFeedbackSignal: null,
-          copilotFeedbackNote: null,
-          copilotFeedbackUpdatedAt: null,
-        }
-    ))
-    : mockSessionExercises;
+  const sessionScenarioExercises = applySessionRegressionScenarioState(scenario.id, mockSessionExercises, capturePerformedAt);
 
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
@@ -2258,7 +2236,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           sessionSummaryCounts={{ strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }}
           unitLabel="lbs"
           exercises={sessionScenarioExercises}
-        initialSelectedExerciseId={selectedExerciseByScenarioId[scenario.id] ?? null}
+        initialSelectedExerciseId={mobileRegressionSelectedSessionExerciseByScenarioId[scenario.id] ?? null}
           saveSessionAction={noopActionResult}
           requestedReturnTo="/today"
               quickAddAction={<BottomDockButton type="button" intent="positive">Add</BottomDockButton>}

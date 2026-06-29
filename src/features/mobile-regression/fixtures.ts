@@ -462,7 +462,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     family: "Session / logging",
     name: "Active workout session: expanded",
     fixture: "expanded",
-    fixtureState: "workout-active-expanded-v1",
+    fixtureState: "workout-active-expanded-v2",
     lastInteractiveRowBottom: 696,
     activeSession: true,
     statusChips: ["in-progress"],
