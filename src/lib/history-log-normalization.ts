@@ -22,6 +22,7 @@ export type HistoryAuditExercise = {
   exercise_image_icon_path?: string | null;
   exercise_image_howto_path?: string | null;
   notes: string | null;
+  copilot_feedback_note?: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   target_sets_min?: number | null;
@@ -107,6 +108,7 @@ export function normalizeHistoryAuditExercise(exercise: IncomingHistoryAuditExer
     exercise_image_icon_path: exercise.exercise_image_icon_path ?? exercise.image_icon_path ?? exercise.media?.image_icon_path ?? null,
     exercise_image_howto_path: exercise.exercise_image_howto_path ?? exercise.image_howto_path ?? exercise.media?.image_howto_path ?? null,
     notes: exercise.notes ?? null,
+    copilot_feedback_note: typeof exercise.copilot_feedback_note === "string" ? exercise.copilot_feedback_note : null,
     measurement_type: exercise.measurement_type ?? "reps",
     default_unit: exercise.default_unit ?? null,
     target_sets_min: typeof exercise.target_sets_min === "number" ? exercise.target_sets_min : null,
