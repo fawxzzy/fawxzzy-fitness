@@ -7,6 +7,19 @@ import { stretchPreviewSessionExercise } from "@/app/dev/stretch-hub/previewData
 export function StretchSessionPreview() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(stretchPreviewSessionExercise.id);
   const exercises = useMemo(() => [stretchPreviewSessionExercise], []);
+  const noopCopilotFeedbackAction = async (payload: {
+    sessionId: string;
+    sessionExerciseId: string;
+    signal: typeof stretchPreviewSessionExercise.copilotFeedbackSignal;
+    note: string | null;
+  }) => ({
+    ok: true as const,
+    data: {
+      signal: payload.signal ?? null,
+      note: payload.note ?? null,
+      updatedAt: new Date().toISOString(),
+    },
+  });
 
   return (
     <SessionExerciseFocus
@@ -21,6 +34,7 @@ export function StretchSessionPreview() {
       toggleSkipAction={async () => ({ ok: true })}
       removeExerciseAction={async () => ({ ok: true })}
       deleteSetAction={async () => ({ ok: true })}
+      updateSessionExerciseCopilotFeedbackAction={noopCopilotFeedbackAction}
       updateSessionExerciseProgressionAction={async () => ({ ok: true })}
     />
   );

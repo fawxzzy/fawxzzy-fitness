@@ -122,6 +122,8 @@ export type SessionLoggerDraftState = {
   quickLogPayload: SessionLoggerDraftQuickLogPayload | null;
   isEditedFromCurrentTarget: boolean;
   didApplyLastTarget: boolean;
+  copilotFeedbackSignal: SessionCopilotFeedbackSignal | null;
+  copilotFeedbackNote: string | null;
   formState: SessionLoggerDraftFormState;
 };
 
@@ -340,6 +342,20 @@ function deriveDraftMetricPresence(draftValues: {
     distance: draftValues.distance.trim().length > 0,
     calories: draftValues.calories.trim().length > 0,
   };
+}
+
+function getCopilotFeedbackSelectedClassName(signal: SessionCopilotFeedbackSignal) {
+  switch (getSessionCopilotFeedbackTone(signal)) {
+    case "success":
+      return "border-[rgb(var(--success-rgb)/0.62)] bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.28),rgb(var(--success-rgb)/0.18))] text-[rgb(var(--text-primary)/0.99)] shadow-[0_0_0_1px_rgb(var(--success-rgb)/0.18),0_0_18px_rgb(var(--success-rgb)/0.14)]";
+    case "warning":
+      return "border-[rgb(var(--warning-rgb)/0.68)] bg-[linear-gradient(180deg,rgb(var(--warning-rgb)/0.26),rgb(var(--warning-rgb)/0.16))] text-[rgb(255_244_225)] shadow-[0_0_0_1px_rgb(var(--warning-rgb)/0.14),0_0_16px_rgb(var(--warning-rgb)/0.12)]";
+    case "destructive":
+      return "border-[rgb(var(--danger-rgb)/0.56)] bg-[linear-gradient(180deg,rgb(var(--danger-rgb)/0.24),rgb(var(--danger-rgb)/0.14))] text-[rgb(255_236_236)] shadow-[0_0_0_1px_rgb(var(--danger-rgb)/0.12),0_0_16px_rgb(var(--danger-rgb)/0.12)]";
+    case "default":
+    default:
+      return "border-[rgb(var(--accent)/0.52)] bg-[linear-gradient(180deg,rgb(var(--accent)/0.2),rgb(var(--accent)/0.12))] text-[rgb(var(--text-primary)/0.99)] shadow-[0_0_0_1px_rgb(var(--accent)/0.14),0_0_18px_rgb(var(--accent)/0.12)]";
+  }
 }
 
 export function SetLoggerCard({
@@ -1511,9 +1527,11 @@ export function SetLoggerCard({
       quickLogPayload: draftQuickLogPayload,
       isEditedFromCurrentTarget,
       didApplyLastTarget,
+      copilotFeedbackSignal: copilotSignalState,
+      copilotFeedbackNote: normalizeSessionCopilotFeedbackNote(copilotNoteState),
       formState: currentFormState,
     });
-  }, [currentFormState, didApplyLastTarget, draftQuickLogPayload, isEditedFromCurrentTarget, liveGoalLabel, liveLogButtonLabel, onDraftStateChange, reportDraftState]);
+  }, [copilotNoteState, copilotSignalState, currentFormState, didApplyLastTarget, draftQuickLogPayload, isEditedFromCurrentTarget, liveGoalLabel, liveLogButtonLabel, onDraftStateChange, reportDraftState]);
 
   const applyHintValues = useCallback((values: SessionTargetHint["suggestedValues"] | null | undefined) => {
     if (!values) return;
@@ -2016,7 +2034,9 @@ export function SetLoggerCard({
                       aria-pressed={isSelected}
                       disabled={isSavingCopilotFeedback}
                       className={cn(
-                        "whitespace-nowrap px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                        "whitespace-nowrap px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-[border-color,background-color,box-shadow,color,transform] duration-150",
+                        isSelected ? "translate-y-[-1px]" : undefined,
+                        isSelected ? getCopilotFeedbackSelectedClassName(signal) : undefined,
                         !isSelected ? "text-[rgb(var(--text-muted)/0.92)]" : undefined,
                       )}
                       onClick={() => {

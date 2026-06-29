@@ -36,7 +36,7 @@ import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model"
 import { deriveSessionTargetHint } from "@/lib/session-target-hints";
 import type { SessionTargetHint } from "@/lib/session-target-hints";
 import { deriveCompletedVisibilityOverride } from "@/lib/session-completed-visibility";
-import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -788,7 +788,11 @@ export function SessionExerciseFocus({
             movementPattern: exercise.movement_pattern,
             equipment: exercise.equipment,
           }).slice(0, 2);
-          const progressionStateLabel = buildSessionProgressionStateLabel(exercise.progressionFormState ?? null);
+          const copilotFeedbackSignal = draftState?.copilotFeedbackSignal ?? exercise.copilotFeedbackSignal ?? null;
+          const progressionStateLabel = [
+            buildSessionProgressionStateLabel(exercise.progressionFormState ?? null),
+            copilotFeedbackSignal ? formatSessionCopilotFeedbackLabel(copilotFeedbackSignal) : null,
+          ].filter(Boolean).join(" • ");
           const sessionTitle = (
             <ExerciseCardStandardTitle
               name={exercise.name}
@@ -971,6 +975,8 @@ export function SessionExerciseFocus({
                         && previous?.quickLogPayload?.weightUnit === nextDraftState.quickLogPayload?.weightUnit
                         && previous?.isEditedFromCurrentTarget === nextDraftState.isEditedFromCurrentTarget
                         && previous?.didApplyLastTarget === nextDraftState.didApplyLastTarget
+                        && previous?.copilotFeedbackSignal === nextDraftState.copilotFeedbackSignal
+                        && previous?.copilotFeedbackNote === nextDraftState.copilotFeedbackNote
                         && previous?.formState.weight === nextDraftState.formState.weight
                         && previous?.formState.reps === nextDraftState.formState.reps
                         && previous?.formState.durationInput === nextDraftState.formState.durationInput
