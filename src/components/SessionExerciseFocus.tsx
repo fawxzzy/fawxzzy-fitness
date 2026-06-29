@@ -316,7 +316,7 @@ export function SessionExerciseFocus({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
-  updateSessionExerciseCopilotFeedbackAction: (payload: {
+  updateSessionExerciseCopilotFeedbackAction?: (payload: {
     sessionId: string;
     sessionExerciseId: string;
     signal: SessionCopilotFeedbackSignal | null;

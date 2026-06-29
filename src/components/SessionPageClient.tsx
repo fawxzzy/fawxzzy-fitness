@@ -151,7 +151,7 @@ export function SessionPageClient({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
-  updateSessionExerciseCopilotFeedbackAction: CopilotFeedbackUpdateAction;
+  updateSessionExerciseCopilotFeedbackAction?: CopilotFeedbackUpdateAction;
   updateSessionExerciseProgressionAction: ProgressionUpdateAction;
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");

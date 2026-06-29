@@ -3,6 +3,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { SetRow } from "@/types/db";
+import { ChipButton } from "@/components/ui/Chip";
 import {
   enqueueSetLog,
   readQueuedSetLogsBySessionExerciseIdForUser,
@@ -33,6 +34,7 @@ import { MeasurementPanelV2, type MeasurementPanelAuxiliaryField } from "@/compo
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { VerticalScrollHint } from "@/components/ui/VerticalScrollHint";
+import { HorizontalScrollHint } from "@/components/ui/HorizontalScrollHint";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import {
@@ -58,6 +60,15 @@ import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
 import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import {
+  formatSessionCopilotFeedbackLabel,
+  getSessionCopilotFeedbackTone,
+  normalizeSessionCopilotFeedbackNote,
+  normalizeSessionCopilotFeedbackSignal,
+  SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH,
+  SESSION_COPILOT_FEEDBACK_SIGNALS,
+  type SessionCopilotFeedbackSignal,
+} from "@/lib/session-copilot-feedback";
 
 type AddSetPayload = {
   sessionId: string;
@@ -351,6 +362,10 @@ export function SetLoggerCard({
   routineDayExerciseId,
   planTargetsHash,
   deleteSetAction,
+  copilotFeedbackSignal,
+  copilotFeedbackNote,
+  copilotFeedbackUpdatedAt: _copilotFeedbackUpdatedAt,
+  updateCopilotFeedbackAction,
   secondaryActionLabel: _secondaryActionLabel,
   onSecondaryAction: _onSecondaryAction,
   progressionFormState,
@@ -409,6 +424,15 @@ export function SetLoggerCard({
   routineDayExerciseId?: string | null;
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  copilotFeedbackSignal?: SessionCopilotFeedbackSignal | null;
+  copilotFeedbackNote?: string | null;
+  copilotFeedbackUpdatedAt?: string | null;
+  updateCopilotFeedbackAction?: (payload: {
+    sessionId: string;
+    sessionExerciseId: string;
+    signal: SessionCopilotFeedbackSignal | null;
+    note: string | null;
+  }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>>;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => Promise<void> | void;
   progressionFormState?: ProgressionPlaybookFormState | null;
@@ -466,6 +490,11 @@ export function SetLoggerCard({
   const [deletingSetIds, setDeletingSetIds] = useState<string[]>([]);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
+  const [copilotSignalState, setCopilotSignalState] = useState<SessionCopilotFeedbackSignal | null>(
+    normalizeSessionCopilotFeedbackSignal(copilotFeedbackSignal),
+  );
+  const [copilotNoteState, setCopilotNoteState] = useState(() => normalizeSessionCopilotFeedbackNote(copilotFeedbackNote) ?? "");
+  const [isSavingCopilotFeedback, setIsSavingCopilotFeedback] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
   const latestSetsRef = useRef<DisplaySet[]>(initialSets.map(toDisplaySet));
   const draftStorageWriteTimeoutRef = useRef<number | null>(null);
@@ -474,12 +503,24 @@ export function SetLoggerCard({
   const lastQueueStatusByStableIdRef = useRef<Record<string, SetLogQueueItem["status"] | undefined>>({});
   const locallyDeletedSetIdentityKeysRef = useRef<Set<string>>(new Set());
   const logRequestInFlightRef = useRef(false);
+  const committedCopilotSignalRef = useRef<SessionCopilotFeedbackSignal | null>(
+    normalizeSessionCopilotFeedbackSignal(copilotFeedbackSignal),
+  );
+  const committedCopilotNoteRef = useRef(normalizeSessionCopilotFeedbackNote(copilotFeedbackNote));
   const prefillWeight = prefill?.weight;
   const prefillReps = prefill?.reps;
   const prefillDurationSeconds = prefill?.durationSeconds;
   const prefillWeightUnit = prefill?.weightUnit;
 
   const toast = useToast();
+  useEffect(() => {
+    const normalizedSignal = normalizeSessionCopilotFeedbackSignal(copilotFeedbackSignal);
+    const normalizedNote = normalizeSessionCopilotFeedbackNote(copilotFeedbackNote);
+    committedCopilotSignalRef.current = normalizedSignal;
+    committedCopilotNoteRef.current = normalizedNote;
+    setCopilotSignalState(normalizedSignal);
+    setCopilotNoteState(normalizedNote ?? "");
+  }, [copilotFeedbackNote, copilotFeedbackSignal]);
   const currentLiveQuickLogTarget = useMemo(
     () => setFlowQuickLogTargets?.[sets.length] ?? toQuickLogTargetFromSuggestedValues(targetHint.suggestedValues),
     [setFlowQuickLogTargets, sets.length, targetHint.suggestedValues],
@@ -1714,6 +1755,73 @@ export function SetLoggerCard({
 
     return fields;
   }, [resolvedIsFailure, resolvedIsWarmup, showFailureToggle, showWarmupToggle]);
+  const persistCopilotFeedback = useCallback(async (
+    nextSignal: SessionCopilotFeedbackSignal | null,
+    nextNote: string,
+    revertOnError = true,
+  ) => {
+    if (!updateCopilotFeedbackAction) {
+      return true;
+    }
+
+    const normalizedSignal = normalizeSessionCopilotFeedbackSignal(nextSignal);
+    const normalizedNote = normalizeSessionCopilotFeedbackNote(nextNote);
+    setIsSavingCopilotFeedback(true);
+
+    try {
+      const result = await updateCopilotFeedbackAction({
+        sessionId,
+        sessionExerciseId,
+        signal: normalizedSignal,
+        note: normalizedNote,
+      });
+
+      if (!result.ok) {
+        if (revertOnError) {
+          setCopilotSignalState(committedCopilotSignalRef.current);
+          setCopilotNoteState(committedCopilotNoteRef.current ?? "");
+        }
+        toast.error(result.error || "Could not save session feedback.");
+        return false;
+      }
+
+      const committedSignal = normalizeSessionCopilotFeedbackSignal(result.data?.signal ?? normalizedSignal);
+      const committedNote = normalizeSessionCopilotFeedbackNote(result.data?.note ?? normalizedNote);
+      committedCopilotSignalRef.current = committedSignal;
+      committedCopilotNoteRef.current = committedNote;
+      setCopilotSignalState(committedSignal);
+      setCopilotNoteState(committedNote ?? "");
+      return true;
+    } catch {
+      if (revertOnError) {
+        setCopilotSignalState(committedCopilotSignalRef.current);
+        setCopilotNoteState(committedCopilotNoteRef.current ?? "");
+      }
+      toast.error("Could not save session feedback.");
+      return false;
+    } finally {
+      setIsSavingCopilotFeedback(false);
+    }
+  }, [sessionExerciseId, sessionId, toast, updateCopilotFeedbackAction]);
+  const handleCopilotSignalPress = useCallback(async (signal: SessionCopilotFeedbackSignal) => {
+    const nextSignal = copilotSignalState === signal ? null : signal;
+    setCopilotSignalState(nextSignal);
+    await persistCopilotFeedback(nextSignal, copilotNoteState);
+  }, [copilotNoteState, copilotSignalState, persistCopilotFeedback]);
+  const handleCopilotNoteCommit = useCallback(async () => {
+    const normalizedNote = normalizeSessionCopilotFeedbackNote(copilotNoteState);
+    const committedSignal = committedCopilotSignalRef.current;
+    const committedNote = committedCopilotNoteRef.current;
+    if (copilotSignalState === committedSignal && normalizedNote === committedNote) {
+      return;
+    }
+    await persistCopilotFeedback(copilotSignalState, normalizedNote);
+  }, [copilotNoteState, copilotSignalState, persistCopilotFeedback]);
+  const hasCopilotNote = copilotNoteState.trim().length > 0;
+  const shouldShowCopilotNoteInput = Boolean(copilotSignalState) || hasCopilotNote;
+  const copilotWhyLabel = targetHint.reason.trim();
+  const isCopilotFeedbackDirty = copilotSignalState !== committedCopilotSignalRef.current
+    || normalizeSessionCopilotFeedbackNote(copilotNoteState) !== committedCopilotNoteRef.current;
 
   const loggedSetList = sets.length > 0 ? (
     <div
@@ -1883,6 +1991,82 @@ export function SetLoggerCard({
             footerContent={null}
             showInlineStepControls
           />
+          <div className="border-t border-[rgb(var(--accent-divider-rgb)/0.16)] px-3 pb-2 pt-2.5">
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--accent)/0.82)]">
+                  Session Copilot
+                </p>
+                <p className="text-[11px] leading-[1.35] text-[rgb(var(--text-muted)/0.92)]">
+                  {copilotWhyLabel}
+                </p>
+              </div>
+
+              <HorizontalScrollHint
+                scrollClassName="hide-scrollbar -mx-0.5 overflow-x-auto overflow-y-visible px-0.5 pb-1 [touch-action:pan-x] [-webkit-overflow-scrolling:touch]"
+                contentClassName="flex min-w-max items-center gap-2 pr-0.5"
+              >
+                {SESSION_COPILOT_FEEDBACK_SIGNALS.map((signal) => {
+                  const isSelected = copilotSignalState === signal;
+                  return (
+                    <ChipButton
+                      key={signal}
+                      type="button"
+                      tone={isSelected ? getSessionCopilotFeedbackTone(signal) : "default"}
+                      aria-pressed={isSelected}
+                      disabled={isSavingCopilotFeedback}
+                      className={cn(
+                        "whitespace-nowrap px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                        !isSelected ? "text-[rgb(var(--text-muted)/0.92)]" : undefined,
+                      )}
+                      onClick={() => {
+                        void handleCopilotSignalPress(signal);
+                      }}
+                    >
+                      {formatSessionCopilotFeedbackLabel(signal)}
+                    </ChipButton>
+                  );
+                })}
+              </HorizontalScrollHint>
+
+              {shouldShowCopilotNoteInput ? (
+                <div className="space-y-1">
+                  <label
+                    htmlFor={`session-copilot-note-${sessionExerciseId}`}
+                    className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text-muted)/0.88)]"
+                  >
+                    Copilot note
+                  </label>
+                  <input
+                    id={`session-copilot-note-${sessionExerciseId}`}
+                    type="text"
+                    value={copilotNoteState}
+                    maxLength={SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}
+                    disabled={isSavingCopilotFeedback}
+                    placeholder="Optional context for this set or exercise"
+                    className="w-full rounded-[0.85rem] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.52)] px-3 py-2 text-[12px] leading-[1.2] text-[rgb(var(--text)/0.97)] outline-none transition focus:border-[rgb(var(--accent)/0.34)] focus:bg-[rgb(var(--surface-1-rgb)/0.66)]"
+                    onChange={(event) => {
+                      setCopilotNoteState(event.currentTarget.value);
+                    }}
+                    onBlur={() => {
+                      void handleCopilotNoteCommit();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                      }
+                    }}
+                  />
+                </div>
+              ) : null}
+
+              <div className="flex min-h-[14px] items-center justify-between gap-2 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.72)]">
+                <span>{isSavingCopilotFeedback ? "Saving feedback..." : (isCopilotFeedbackDirty ? "Unsaved feedback" : "Feedback saved")}</span>
+                <span>{copilotNoteState.length}/{SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH}</span>
+              </div>
+            </div>
+          </div>
           {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
         </WorkoutEntrySection>
 
