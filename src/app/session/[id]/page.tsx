@@ -31,6 +31,7 @@ import {
   saveSessionAction,
   syncQueuedSetLogsAction,
   toggleSkipAction,
+  updateSessionExerciseCopilotFeedbackAction,
   updateSessionExerciseProgressionAction,
 } from "./actions";
 import { getSessionPageData } from "./queries";
@@ -514,6 +515,9 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                 plan: resolvedProgressionPlan,
                 historyRows: progressionRows,
               }),
+              copilotFeedbackSignal: exercise.copilot_feedback_signal ?? null,
+              copilotFeedbackNote: exercise.copilot_feedback_note ?? null,
+              copilotFeedbackUpdatedAt: exercise.copilot_feedback_updated_at ?? null,
               targetSetsMin: displayTarget?.setsMin ?? null,
               targetSetsMax: displayTarget?.setsMax ?? null,
               initialSets: setsByExercise.get(exercise.id) ?? [],
@@ -533,6 +537,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           toggleSkipAction={toggleSkipAction}
           removeExerciseAction={removeExerciseAction}
           deleteSetAction={deleteSetAction}
+          updateSessionExerciseCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
           updateSessionExerciseProgressionAction={updateSessionExerciseProgressionAction}
         />
     </AppShell>

@@ -1,4 +1,5 @@
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 
 export type SessionRow = {
   id: string;
@@ -40,6 +41,9 @@ export type SessionExerciseRow = {
   target_distance_unit?: FitnessDistanceUnit | null;
   target_calories_min?: number | null;
   target_calories_max?: number | null;
+  copilot_feedback_signal?: SessionCopilotFeedbackSignal | null;
+  copilot_feedback_note?: string | null;
+  copilot_feedback_updated_at?: string | null;
 };
 
 export type SetRow = {

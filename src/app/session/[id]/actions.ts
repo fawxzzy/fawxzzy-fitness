@@ -12,6 +12,11 @@ import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
 import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
+import {
+  normalizeSessionCopilotFeedbackNote,
+  normalizeSessionCopilotFeedbackSignal,
+  type SessionCopilotFeedbackSignal,
+} from "@/lib/session-copilot-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { SetRow } from "@/types/db";
@@ -406,6 +411,63 @@ export async function toggleSkipAction(formData: FormData): Promise<ActionResult
   }
 
   return { ok: true };
+}
+
+export async function updateSessionExerciseCopilotFeedbackAction(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  signal: SessionCopilotFeedbackSignal | null;
+  note: string | null;
+}): Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(payload.sessionId ?? "").trim();
+  const sessionExerciseId = String(payload.sessionExerciseId ?? "").trim();
+  const signal = normalizeSessionCopilotFeedbackSignal(payload.signal);
+  const note = normalizeSessionCopilotFeedbackNote(payload.note);
+
+  if (!sessionId || !sessionExerciseId) {
+    return { ok: false, error: "Missing copilot feedback info" };
+  }
+
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+    sessionExerciseId,
+  });
+
+  if (!liveSession.ok) {
+    return liveSession;
+  }
+
+  const updatedAt = signal || note ? new Date().toISOString() : null;
+
+  const { error } = await supabase
+    .from("session_exercises")
+    .update({
+      copilot_feedback_signal: signal,
+      copilot_feedback_note: note,
+      copilot_feedback_updated_at: updatedAt,
+    })
+    .eq("id", sessionExerciseId)
+    .eq("user_id", user.id)
+    .eq("session_id", sessionId);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidateSessionViews(sessionId);
+
+  return {
+    ok: true,
+    data: {
+      signal,
+      note,
+      updatedAt,
+    },
+  };
 }
 
 
