@@ -517,6 +517,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               }),
               copilotFeedbackSignal: exercise.copilot_feedback_signal ?? null,
               copilotFeedbackNote: exercise.copilot_feedback_note ?? null,
+              copilotFeedbackEffort: exercise.copilot_feedback_effort ?? null,
               copilotFeedbackUpdatedAt: exercise.copilot_feedback_updated_at ?? null,
               targetSetsMin: displayTarget?.setsMin ?? null,
               targetSetsMax: displayTarget?.setsMax ?? null,

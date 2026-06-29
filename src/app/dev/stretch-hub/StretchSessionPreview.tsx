@@ -12,11 +12,13 @@ export function StretchSessionPreview() {
     sessionExerciseId: string;
     signal: typeof stretchPreviewSessionExercise.copilotFeedbackSignal;
     note: string | null;
+    effort: number | null;
   }) => ({
     ok: true as const,
     data: {
       signal: payload.signal ?? null,
       note: payload.note ?? null,
+      effort: payload.effort ?? null,
       updatedAt: new Date().toISOString(),
     },
   });

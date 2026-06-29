@@ -417,13 +417,14 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
   sessionExerciseId: string;
   signal: SessionCopilotFeedbackSignal | null;
   note: string | null;
-}): Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>> {
+  effort: number | null;
+}): Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; effort: number | null; updatedAt: string | null }>> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
   const sessionId = String(payload.sessionId ?? "").trim();
   const sessionExerciseId = String(payload.sessionExerciseId ?? "").trim();
-  const { signal, note, updatedAt } = buildSessionCopilotFeedbackUpdate(payload);
+  const { signal, note, effort, updatedAt } = buildSessionCopilotFeedbackUpdate(payload);
 
   if (!sessionId || !sessionExerciseId) {
     return { ok: false, error: "Missing copilot feedback info" };
@@ -444,6 +445,7 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
     .update({
       copilot_feedback_signal: signal,
       copilot_feedback_note: note,
+      copilot_feedback_effort: effort,
       copilot_feedback_updated_at: updatedAt,
     })
     .eq("id", sessionExerciseId)
@@ -461,6 +463,7 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
     data: {
       signal,
       note,
+      effort,
       updatedAt,
     },
   };

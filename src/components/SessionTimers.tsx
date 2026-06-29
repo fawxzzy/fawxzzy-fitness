@@ -68,6 +68,7 @@ import {
 import {
   formatSessionCopilotFeedbackLabel,
   getSessionCopilotFeedbackTone,
+  normalizeSessionCopilotFeedbackEffort,
   normalizeSessionCopilotFeedbackNote,
   normalizeSessionCopilotFeedbackSignal,
   SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH,
@@ -472,7 +473,8 @@ export function SetLoggerCard({
     sessionExerciseId: string;
     signal: SessionCopilotFeedbackSignal | null;
     note: string | null;
-  }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>>;
+    effort: number | null;
+  }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; effort: number | null; updatedAt: string | null }>>;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => Promise<void> | void;
   progressionFormState?: ProgressionPlaybookFormState | null;
@@ -552,6 +554,7 @@ export function SetLoggerCard({
     normalizeSessionCopilotFeedbackSignal(copilotFeedbackSignal),
   );
   const committedCopilotNoteRef = useRef(normalizeSessionCopilotFeedbackNote(copilotFeedbackNote));
+  const committedCopilotEffortRef = useRef<number | null>(normalizeSessionCopilotFeedbackEffort(initialEffortRating));
   const prefillWeight = prefill?.weight;
   const prefillReps = prefill?.reps;
   const prefillDurationSeconds = prefill?.durationSeconds;
@@ -561,11 +564,14 @@ export function SetLoggerCard({
   useEffect(() => {
     const normalizedSignal = normalizeSessionCopilotFeedbackSignal(copilotFeedbackSignal);
     const normalizedNote = normalizeSessionCopilotFeedbackNote(copilotFeedbackNote);
+    const normalizedEffort = normalizeSessionCopilotFeedbackEffort(initialEffortRating);
     committedCopilotSignalRef.current = normalizedSignal;
     committedCopilotNoteRef.current = normalizedNote;
+    committedCopilotEffortRef.current = normalizedEffort;
     setCopilotSignalState(normalizedSignal);
     setCopilotNoteState(normalizedNote ?? "");
-  }, [copilotFeedbackNote, copilotFeedbackSignal]);
+    setRpe(normalizedEffort === null ? "" : String(normalizedEffort));
+  }, [copilotFeedbackNote, copilotFeedbackSignal, initialEffortRating]);
   const currentLiveQuickLogTarget = useMemo(
     () => setFlowQuickLogTargets?.[sets.length] ?? toQuickLogTargetFromSuggestedValues(targetHint.suggestedValues),
     [setFlowQuickLogTargets, sets.length, targetHint.suggestedValues],
@@ -1817,16 +1823,20 @@ export function SetLoggerCard({
   const persistCopilotFeedback = useCallback(async (
     nextSignal: SessionCopilotFeedbackSignal | null,
     nextNote: string,
+    nextEffort: number | null,
     revertOnError = true,
   ) => {
     const normalizedSignal = normalizeSessionCopilotFeedbackSignal(nextSignal);
     const normalizedNote = normalizeSessionCopilotFeedbackNote(nextNote);
+    const normalizedEffort = normalizeSessionCopilotFeedbackEffort(nextEffort);
 
     if (!updateCopilotFeedbackAction) {
       committedCopilotSignalRef.current = normalizedSignal;
       committedCopilotNoteRef.current = normalizedNote;
+      committedCopilotEffortRef.current = normalizedEffort;
       setCopilotSignalState(normalizedSignal);
       setCopilotNoteState(normalizedNote ?? "");
+      setRpe(normalizedEffort === null ? "" : String(normalizedEffort));
       return true;
     }
     setIsSavingCopilotFeedback(true);
@@ -1837,12 +1847,14 @@ export function SetLoggerCard({
         sessionExerciseId,
         signal: normalizedSignal,
         note: normalizedNote,
+        effort: normalizedEffort,
       });
 
       if (!result.ok) {
         if (revertOnError) {
           setCopilotSignalState(committedCopilotSignalRef.current);
           setCopilotNoteState(committedCopilotNoteRef.current ?? "");
+          setRpe(committedCopilotEffortRef.current === null ? "" : String(committedCopilotEffortRef.current));
         }
         toast.error(result.error || "Could not save session feedback.");
         return false;
@@ -1850,15 +1862,19 @@ export function SetLoggerCard({
 
       const committedSignal = normalizeSessionCopilotFeedbackSignal(result.data?.signal ?? normalizedSignal);
       const committedNote = normalizeSessionCopilotFeedbackNote(result.data?.note ?? normalizedNote);
+      const committedEffort = normalizeSessionCopilotFeedbackEffort(result.data?.effort ?? normalizedEffort);
       committedCopilotSignalRef.current = committedSignal;
       committedCopilotNoteRef.current = committedNote;
+      committedCopilotEffortRef.current = committedEffort;
       setCopilotSignalState(committedSignal);
       setCopilotNoteState(committedNote ?? "");
+      setRpe(committedEffort === null ? "" : String(committedEffort));
       return true;
     } catch {
       if (revertOnError) {
         setCopilotSignalState(committedCopilotSignalRef.current);
         setCopilotNoteState(committedCopilotNoteRef.current ?? "");
+        setRpe(committedCopilotEffortRef.current === null ? "" : String(committedCopilotEffortRef.current));
       }
       toast.error("Could not save session feedback.");
       return false;
@@ -1866,23 +1882,33 @@ export function SetLoggerCard({
       setIsSavingCopilotFeedback(false);
     }
   }, [sessionExerciseId, sessionId, toast, updateCopilotFeedbackAction]);
+  const selectedEffortValue = rpe.trim() ? Number(rpe.trim()) : null;
+  const hasSelectedEffortValue = selectedEffortValue !== null && Number.isFinite(selectedEffortValue);
   const handleCopilotSignalPress = useCallback(async (signal: SessionCopilotFeedbackSignal) => {
     const nextSignal = copilotSignalState === signal ? null : signal;
     setCopilotSignalState(nextSignal);
-    await persistCopilotFeedback(nextSignal, copilotNoteState);
-  }, [copilotNoteState, copilotSignalState, persistCopilotFeedback]);
+    await persistCopilotFeedback(nextSignal, copilotNoteState, selectedEffortValue);
+  }, [copilotNoteState, copilotSignalState, persistCopilotFeedback, selectedEffortValue]);
   const handleCopilotNoteCommit = useCallback(async () => {
     const normalizedNote = normalizeSessionCopilotFeedbackNote(copilotNoteState);
     const committedSignal = committedCopilotSignalRef.current;
     const committedNote = committedCopilotNoteRef.current;
-    if (copilotSignalState === committedSignal && normalizedNote === committedNote) {
+    const committedEffort = committedCopilotEffortRef.current;
+    if (
+      copilotSignalState === committedSignal
+      && normalizedNote === committedNote
+      && selectedEffortValue === committedEffort
+    ) {
       return;
     }
-    await persistCopilotFeedback(copilotSignalState, normalizedNote ?? "");
-  }, [copilotNoteState, copilotSignalState, persistCopilotFeedback]);
+    await persistCopilotFeedback(copilotSignalState, normalizedNote ?? "", selectedEffortValue);
+  }, [copilotNoteState, copilotSignalState, persistCopilotFeedback, selectedEffortValue]);
+  const handleCopilotEffortPress = useCallback(async (value: number) => {
+    const nextEffort = selectedEffortValue === value ? null : value;
+    setRpe(nextEffort === null ? "" : String(nextEffort));
+    await persistCopilotFeedback(copilotSignalState, copilotNoteState, nextEffort);
+  }, [copilotNoteState, copilotSignalState, persistCopilotFeedback, selectedEffortValue]);
   const hasCopilotNote = copilotNoteState.trim().length > 0;
-  const selectedEffortValue = rpe.trim() ? Number(rpe.trim()) : null;
-  const hasSelectedEffortValue = selectedEffortValue !== null && Number.isFinite(selectedEffortValue);
   const shouldShowCopilotNoteInput = Boolean(copilotSignalState) || hasCopilotNote || hasSelectedEffortValue;
   const copilotWhyLabel = targetHint.reason.trim();
   const copilotNoteContextLabel = buildSessionEffortContextLabel({
@@ -1894,7 +1920,8 @@ export function SetLoggerCard({
     effortValue: hasSelectedEffortValue ? selectedEffortValue : null,
   });
   const isCopilotFeedbackDirty = copilotSignalState !== committedCopilotSignalRef.current
-    || normalizeSessionCopilotFeedbackNote(copilotNoteState) !== committedCopilotNoteRef.current;
+    || normalizeSessionCopilotFeedbackNote(copilotNoteState) !== committedCopilotNoteRef.current
+    || selectedEffortValue !== committedCopilotEffortRef.current;
 
   const loggedSetList = sets.length > 0 ? (
     <div
@@ -2129,7 +2156,7 @@ export function SetLoggerCard({
                           isSelected ? getEffortScaleSelectedClassName(value) : "text-[rgb(var(--text-muted)/0.92)]",
                         )}
                         onClick={() => {
-                          setRpe(isSelected ? "" : String(value));
+                          void handleCopilotEffortPress(value);
                         }}
                       >
                         {value}

@@ -308,7 +308,8 @@ export function SessionExerciseFocus({
     sessionExerciseId: string;
     signal: SessionCopilotFeedbackSignal | null;
     note: string | null;
-  }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>>;
+    effort: number | null;
+  }) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; effort: number | null; updatedAt: string | null }>>;
   updateSessionExerciseProgressionAction: (formData: FormData) => Promise<ActionResult>;
   disableDraftPersistence?: boolean;
   bottomDockCenter?: ReactNode;

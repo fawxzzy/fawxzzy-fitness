@@ -69,7 +69,8 @@ type CopilotFeedbackUpdateAction = (payload: {
   sessionExerciseId: string;
   signal: SessionCopilotFeedbackSignal | null;
   note: string | null;
-}) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; updatedAt: string | null }>>;
+  effort: number | null;
+}) => Promise<ActionResult<{ signal: SessionCopilotFeedbackSignal | null; note: string | null; effort: number | null; updatedAt: string | null }>>;
 
 function formatDurationClock(totalSeconds: number) {
   const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;

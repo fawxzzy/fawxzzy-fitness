@@ -11,6 +11,8 @@ export const SESSION_COPILOT_FEEDBACK_SIGNALS = [
 export type SessionCopilotFeedbackSignal = (typeof SESSION_COPILOT_FEEDBACK_SIGNALS)[number];
 
 export const SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH = 240;
+export const SESSION_COPILOT_FEEDBACK_EFFORT_MIN = 1;
+export const SESSION_COPILOT_FEEDBACK_EFFORT_MAX = 10;
 
 const SESSION_COPILOT_FEEDBACK_LABELS: Record<SessionCopilotFeedbackSignal, string> = {
   completed_as_planned: "As Planned",
@@ -41,24 +43,44 @@ export function normalizeSessionCopilotFeedbackNote(value: unknown): string | nu
   return normalized.slice(0, SESSION_COPILOT_FEEDBACK_NOTE_MAX_LENGTH);
 }
 
+export function normalizeSessionCopilotFeedbackEffort(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+
+  const normalized = Math.round(value);
+  if (
+    normalized < SESSION_COPILOT_FEEDBACK_EFFORT_MIN
+    || normalized > SESSION_COPILOT_FEEDBACK_EFFORT_MAX
+  ) {
+    return null;
+  }
+
+  return normalized;
+}
+
 export function buildSessionCopilotFeedbackUpdate(
   payload: {
     signal: unknown;
     note: unknown;
+    effort?: unknown;
   },
   getTimestamp: () => string = () => new Date().toISOString(),
 ): {
   signal: SessionCopilotFeedbackSignal | null;
   note: string | null;
+  effort: number | null;
   updatedAt: string | null;
 } {
   const signal = normalizeSessionCopilotFeedbackSignal(payload.signal);
   const note = normalizeSessionCopilotFeedbackNote(payload.note);
+  const effort = normalizeSessionCopilotFeedbackEffort(payload.effort);
 
   return {
     signal,
     note,
-    updatedAt: signal || note ? getTimestamp() : null,
+    effort,
+    updatedAt: signal || note || effort !== null ? getTimestamp() : null,
   };
 }
 

@@ -43,6 +43,7 @@ export type SessionExerciseRow = {
   target_calories_max?: number | null;
   copilot_feedback_signal?: SessionCopilotFeedbackSignal | null;
   copilot_feedback_note?: string | null;
+  copilot_feedback_effort?: number | null;
   copilot_feedback_updated_at?: string | null;
 };
 
