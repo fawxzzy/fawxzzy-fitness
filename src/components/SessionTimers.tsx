@@ -1815,7 +1815,7 @@ export function SetLoggerCard({
     if (copilotSignalState === committedSignal && normalizedNote === committedNote) {
       return;
     }
-    await persistCopilotFeedback(copilotSignalState, normalizedNote);
+    await persistCopilotFeedback(copilotSignalState, normalizedNote ?? "");
   }, [copilotNoteState, copilotSignalState, persistCopilotFeedback]);
   const hasCopilotNote = copilotNoteState.trim().length > 0;
   const shouldShowCopilotNoteInput = Boolean(copilotSignalState) || hasCopilotNote;
