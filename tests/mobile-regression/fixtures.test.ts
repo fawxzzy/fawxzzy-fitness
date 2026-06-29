@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   applySessionRegressionScenarioState,
+  mobileRegressionSessionScenarioFixturesById,
   mobileRegressionSelectedSessionExerciseByScenarioId,
 } from "../../src/app/dev/mobile-regression/sessionScenarioFixtures.ts";
 import {
@@ -247,6 +248,48 @@ test("expanded session regression fixture seeds a deterministic copilot feedback
   assert.equal(seededExercises[1]?.copilotFeedbackUpdatedAt ?? null, capturePerformedAt);
 });
 
+test("session logger regression fixtures seed deterministic effort feedback across measurement families", () => {
+  const capturePerformedAt = "2026-06-29T01:15:00.000Z";
+  const seededScenarioChecks = [
+    ["session-logger-strength-weight", "session-ex-1", "completed_as_planned", null],
+    ["session-logger-bodyweight-reps", "session-ex-4", "too_easy", null],
+    ["session-logger-cardio-time", "session-ex-5", "bad_day", null],
+    ["session-logger-cardio-time-distance", "session-ex-3", "form_breakdown", "Stride felt sloppy."],
+    ["session-logger-cardio-distance", "session-ex-6", "pain_flag", null],
+    ["session-logger-calories", "session-ex-7", "override_used", null],
+  ] as const;
+
+  for (const [scenarioId, seededExerciseId, signal, note] of seededScenarioChecks) {
+    const seededExercises = applySessionRegressionScenarioState(
+      scenarioId,
+      [
+        {
+          id: seededExerciseId,
+          copilotFeedbackSignal: null,
+          copilotFeedbackNote: null,
+          copilotFeedbackUpdatedAt: null,
+        },
+        {
+          id: "other-exercise",
+          copilotFeedbackSignal: "too_hard" as const,
+          copilotFeedbackNote: "remove me",
+          copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+        },
+      ],
+      capturePerformedAt,
+    );
+
+    assert.equal(mobileRegressionSessionScenarioFixturesById[scenarioId]?.selectedExerciseId, seededExerciseId);
+    assert.equal(mobileRegressionSelectedSessionExerciseByScenarioId[scenarioId], seededExerciseId);
+    assert.equal(seededExercises[0]?.copilotFeedbackSignal ?? null, signal);
+    assert.equal(seededExercises[0]?.copilotFeedbackNote ?? null, note);
+    assert.equal(seededExercises[0]?.copilotFeedbackUpdatedAt ?? null, capturePerformedAt);
+    assert.equal(seededExercises[1]?.copilotFeedbackSignal ?? null, null);
+    assert.equal(seededExercises[1]?.copilotFeedbackNote ?? null, null);
+    assert.equal(seededExercises[1]?.copilotFeedbackUpdatedAt ?? null, null);
+  }
+});
+
 test("non-expanded session regression fixtures do not inject copilot feedback state", () => {
   const baseExercises = [
     {
@@ -265,4 +308,30 @@ test("non-expanded session regression fixtures do not inject copilot feedback st
 
   assert.notEqual(seededExercises, baseExercises);
   assert.deepEqual(seededExercises, baseExercises);
+});
+
+test("session logger combo-board fixture keeps feedback unseeded until a specific logger variant is selected", () => {
+  const seededExercises = applySessionRegressionScenarioState(
+    "session-logger-combo-board",
+    [
+      {
+        id: "session-ex-1",
+        copilotFeedbackSignal: "too_easy" as const,
+        copilotFeedbackNote: "keep",
+        copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+      },
+    ],
+    "2026-06-29T01:15:00.000Z",
+  );
+
+  assert.equal(mobileRegressionSessionScenarioFixturesById["session-logger-combo-board"]?.selectedExerciseId ?? null, null);
+  assert.equal(mobileRegressionSelectedSessionExerciseByScenarioId["session-logger-combo-board"] ?? null, null);
+  assert.deepEqual(seededExercises, [
+    {
+      id: "session-ex-1",
+      copilotFeedbackSignal: "too_easy",
+      copilotFeedbackNote: "keep",
+      copilotFeedbackUpdatedAt: "2026-06-28T23:00:00.000Z",
+    },
+  ]);
 });
