@@ -243,7 +243,7 @@ test("history sessions keep compact chips and detailed metrics on the shared car
 
   assert.match(source, /<HistorySessionCard/);
   assert.match(source, /viewMode=\{viewMode\}/);
-  assert.match(source, /href=\{`\/history\/\$\{session\.id\}\?returnTab=sessions`\}/);
+  assert.match(source, /href=\{sessionHrefOverrides\?\.\[session\.id\] \?\? `\/history\/\$\{session\.id\}\?returnTab=sessions`\}/);
   assert.doesNotMatch(source, /<SessionSummaryCard/);
 });
 

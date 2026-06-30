@@ -12,13 +12,25 @@ import { mobileRegressionBoardFamilies } from "../../src/features/mobile-regress
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const boardBuilderScript = path.join(repoRoot, "scripts", "build-mobile-regression-boards.py");
 
-const expectedBoardHashes = {
-  "exercise-cards-board.png": "ec65eb1551946c0d6b185b401b3526cf520b0c05503272f5cf65a0765edfa2b7",
-  "session-logging-board.png": "9d8e5e748393bcddef04e5b3c64b526245d72dd1b353bb051454960d131a3533",
-  "session-summaries-board.png": "08296cee80b03164d17b5c085c0212ba22ccd4190d71b57f50b79661f0c94aac",
-  "settings-detail-board.png": "ed890afac37eda4564e3cd845741a443d9e878965a34553902d851daf6af7c6b",
-  "mega-board.png": "a1de977b9976087b39271fa32d3ec72f6771530d163bda814a85182a00c3cc1a",
+const expectedBoardHashesByPlatform = {
+  win32: {
+    "exercise-cards-board.png": "ec65eb1551946c0d6b185b401b3526cf520b0c05503272f5cf65a0765edfa2b7",
+    "session-logging-board.png": "9d8e5e748393bcddef04e5b3c64b526245d72dd1b353bb051454960d131a3533",
+    "session-summaries-board.png": "08296cee80b03164d17b5c085c0212ba22ccd4190d71b57f50b79661f0c94aac",
+    "settings-detail-board.png": "ed890afac37eda4564e3cd845741a443d9e878965a34553902d851daf6af7c6b",
+    "mega-board.png": "a1de977b9976087b39271fa32d3ec72f6771530d163bda814a85182a00c3cc1a",
+  },
+  linux: {
+    "exercise-cards-board.png": "0f4703953524c322bd3feb2a6c2a3234a3729c2cb4ebd203acadb2aa1a82f669",
+    "session-logging-board.png": "0e895cbf3eb9d6fd2c379ed2d82d9283ff59b4014a50136cb8733f0e59e0fb4f",
+    "session-summaries-board.png": "adbff796ee59ec9fd37d46a9c8380a6b1ea4b6d6cf242850df37bc98600490cf",
+    "settings-detail-board.png": "789978ad924b00d0cd223904db64c5216a4c876ec41effe90d9478cc3f19acce",
+    "mega-board.png": "d623f283a814cc7a2337e545f3f7faa5261b87c7a2fdcdd7101d84593abed64e",
+  },
 } as const;
+
+const expectedBoardHashes = expectedBoardHashesByPlatform[process.platform as keyof typeof expectedBoardHashesByPlatform]
+  ?? expectedBoardHashesByPlatform.linux;
 
 const boardNames = [...mobileRegressionBoardFamilies.map((reviewFamily) => reviewFamily.boardFile), "mega-board.png"];
 
