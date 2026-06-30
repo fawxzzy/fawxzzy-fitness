@@ -639,6 +639,121 @@ async function runSuiteInteraction(page, suite, options = {}) {
     };
   }
 
+  if (interaction.type === "session-feedback-fixture-contract") {
+    const baseUrl = normalizeBaseUrl(options.baseUrl ?? resolveBaseUrl());
+    const routeUrl = `${baseUrl}${suite.route}`;
+    const routeExerciseId = new URL(routeUrl).searchParams.get("exerciseId");
+    const signalLabel = typeof interaction.signalLabel === "string" ? interaction.signalLabel.trim() : "";
+    const effortValue = Number.isFinite(interaction.effortValue)
+      ? Math.round(interaction.effortValue)
+      : null;
+    const expectedLogButtonText = typeof interaction.expectedLogButtonText === "string"
+      ? interaction.expectedLogButtonText.trim()
+      : "";
+    const expectedSummaryText = typeof interaction.expectedSummaryText === "string"
+      ? interaction.expectedSummaryText.trim()
+      : "";
+    const expectedPlaceholderText = typeof interaction.expectedPlaceholderText === "string"
+      ? interaction.expectedPlaceholderText.trim()
+      : "";
+    const expectedNoteValue = typeof interaction.noteValue === "string"
+      ? interaction.noteValue
+      : "";
+    const noteSelector = routeExerciseId
+      ? `#session-copilot-note-${routeExerciseId}`
+      : 'input[id^="session-copilot-note-"]';
+    const getPressedSignalButton = () => page.locator('button[aria-pressed="true"]').filter({ hasText: signalLabel, visible: true }).first();
+    const getPressedEffortButton = () => page.locator(`button[aria-label="Effort ${effortValue} out of 10"][aria-pressed="true"]`).filter({ visible: true }).first();
+    const getNoteInput = () => page.locator(noteSelector).filter({ visible: true }).first();
+    const getLogButton = () => page.getByRole("button", { name: expectedLogButtonText });
+
+    await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+
+    const signalButton = getPressedSignalButton();
+    const signalCount = await signalButton.count().catch(() => 0);
+    if (signalCount !== 1) {
+      return {
+        performed: false,
+        bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+        missingExpectedText: interaction.expectedText ?? [],
+        details: {
+          signalCount,
+        },
+        blockedReason: `Expected exactly one pressed "${signalLabel}" feedback chip on the session fixture.`,
+      };
+    }
+
+    const effortButton = getPressedEffortButton();
+    const effortCount = await effortButton.count().catch(() => 0);
+    if (effortCount !== 1) {
+      return {
+        performed: false,
+        bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+        missingExpectedText: interaction.expectedText ?? [],
+        details: {
+          effortCount,
+        },
+        blockedReason: `Expected exactly one pressed effort ${effortValue}/10 chip on the session fixture.`,
+      };
+    }
+
+    const noteInput = getNoteInput();
+    const noteVisible = await noteInput.isVisible().catch(() => false);
+    if (!noteVisible) {
+      return {
+        performed: false,
+        bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+        missingExpectedText: interaction.expectedText ?? [],
+        details: null,
+        blockedReason: "Expected the session feedback note field to be visible on the selected fixture exercise.",
+      };
+    }
+
+    const noteValue = await noteInput.inputValue().catch(() => "");
+    const notePlaceholder = await noteInput.getAttribute("placeholder", { timeoutMs: 5000 }).catch(() => null);
+    const logButton = getLogButton();
+    const logButtonCount = await logButton.count().catch(() => 0);
+    const logButtonText = logButtonCount > 0
+      ? await logButton.innerText({ timeoutMs: 5000 }).catch(() => null)
+      : null;
+    const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
+    const bodyTextLower = bodyText.toLowerCase();
+    const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !bodyTextLower.includes(text.toLowerCase()));
+
+    const blockedReasons = [];
+    if (logButtonCount !== 1) {
+      blockedReasons.push(`expected one visible log button with label "${expectedLogButtonText}"`);
+    }
+    if (expectedSummaryText && !bodyTextLower.includes(expectedSummaryText.toLowerCase())) {
+      blockedReasons.push(`missing summary "${expectedSummaryText}"`);
+    }
+    if (expectedPlaceholderText && notePlaceholder !== expectedPlaceholderText) {
+      blockedReasons.push(`expected placeholder "${expectedPlaceholderText}" but found "${notePlaceholder ?? ""}"`);
+    }
+    if ((noteValue ?? "").trim() !== expectedNoteValue.trim()) {
+      blockedReasons.push(`expected note value "${expectedNoteValue}" but found "${noteValue ?? ""}"`);
+    }
+    if (missingExpectedText.length > 0) {
+      blockedReasons.push(`missing expected fixture text: ${missingExpectedText.join(", ")}`);
+    }
+
+    return {
+      performed: true,
+      bodyText,
+      missingExpectedText,
+      details: {
+        logButtonText,
+        notePlaceholder,
+        noteValue,
+        signalLabel,
+        effortValue,
+      },
+      blockedReason: blockedReasons.length > 0
+        ? `Session feedback fixture contract failed: ${blockedReasons.join("; ")}.`
+        : null,
+    };
+  }
+
   return {
     performed: false,
     bodyText: null,

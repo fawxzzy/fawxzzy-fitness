@@ -36,3 +36,21 @@ test("session logger seam suites keep deterministic mobile-regression routes", (
     );
   }
 });
+
+test("session logger seam suites assert the session feedback fixture contract", () => {
+  for (const suiteName of expectedSessionLoggerSeamSuites) {
+    const suite = getVisualFitnessSuite(suiteName);
+    assert.ok(suite?.interaction, `Expected ${suiteName} to include a session feedback interaction contract.`);
+    assert.equal(suite?.interaction?.type, "session-feedback-fixture-contract");
+    assert.match(suite?.interaction?.expectedLogButtonText ?? "", /^Log:/);
+    assert.match(suite?.interaction?.expectedSummaryText ?? "", /\| Effort \d+\/10$/);
+    assert.ok(
+      (suite?.interaction?.expectedText ?? []).includes("Effort Feedback"),
+      `Expected ${suiteName} to assert the Effort Feedback heading.`,
+    );
+    assert.ok(
+      (suite?.interaction?.expectedText ?? []).includes("Effort Rating"),
+      `Expected ${suiteName} to assert the Effort Rating heading.`,
+    );
+  }
+});
