@@ -49,8 +49,8 @@ function renderRoutineSourceTags(routine: RoutineBrowseCardItem) {
   return (
     <HorizontalScrollHint
       className="-mx-0.5"
-      scrollClassName="px-0.5 pb-0.5"
-      contentClassName="flex w-max min-w-full flex-wrap items-center gap-1.5"
+      scrollClassName="px-0.5 pb-0.5 pr-[1.15rem]"
+      contentClassName="flex w-max min-w-full flex-nowrap items-center gap-1.5 pr-[0.95rem]"
       showEdgeFades={false}
     >
       {parts.map((part) => (
@@ -129,6 +129,7 @@ export function CreateRoutineClient({
     });
   });
   const [duplicateNameError, setDuplicateNameError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
   const titleId = useId();
   const modalRootRef = useRef<HTMLDivElement | null>(null);
@@ -204,6 +205,10 @@ export function CreateRoutineClient({
       return !current;
     });
   }
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isDuplicateExpanded) {
@@ -294,7 +299,7 @@ export function CreateRoutineClient({
     router.prefetch("/routines/new?mode=blank");
   }, [router]);
 
-  if (!portalTarget) {
+  if (!isMounted || !portalTarget) {
     return null;
   }
 
