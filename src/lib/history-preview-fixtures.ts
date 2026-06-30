@@ -25,7 +25,7 @@ const historyPreviewSessions: SessionSummary[] = [
     prExerciseNames: ["Back Squat", "Walking Lunge"],
     recapSignals: [
       { exerciseName: "Back Squat", signals: ["pr", "promotion"], tagLabels: ["BEST"] },
-      { exerciseName: "Walking Lunge", signals: ["pr", "watch"] },
+      { exerciseName: "Walking Lunge", signals: ["pr", "watch"], tagLabels: ["HARD"], meta: "Effort 8/10" },
       { exerciseName: "Incline Walk", signals: [] },
       { exerciseName: "Plank", signals: [] },
     ],

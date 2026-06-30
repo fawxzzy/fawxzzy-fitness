@@ -61,6 +61,7 @@ import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
 import { isFitnessDistanceUnit, normalizeFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import {
+  buildSessionCopilotActionLabel,
   buildSessionEffortContextLabel,
   buildSessionEffortNotePlaceholder,
   SESSION_FEEDBACK_SUMMARY_SEPARATOR,
@@ -1885,7 +1886,11 @@ export function SetLoggerCard({
   }, [copilotNoteState, copilotSignalState, persistCopilotFeedback, selectedEffortValue]);
   const hasCopilotNote = copilotNoteState.trim().length > 0;
   const shouldShowCopilotNoteInput = Boolean(copilotSignalState) || hasCopilotNote || hasSelectedEffortValue;
-  const copilotWhyLabel = targetHint.reason.trim();
+  const copilotWhyLabel = buildSessionCopilotActionLabel({
+    targetSource: targetHint.source,
+    isEditedFromCurrentTarget,
+    didApplyLastTarget,
+  });
   const copilotNoteContextLabel = buildSessionEffortContextLabel({
     signal: copilotSignalState,
     effortValue: hasSelectedEffortValue ? selectedEffortValue : null,

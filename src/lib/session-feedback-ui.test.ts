@@ -3,6 +3,9 @@ import test from "node:test";
 
 import {
   areSessionLoggerDraftStatesEqual,
+  buildSessionCopilotActionLabel,
+  buildSessionCopilotRecapTagLabel,
+  buildSessionCopilotReceiptLabel,
   buildSessionEffortContextLabel,
   buildSessionEffortNotePlaceholder,
   buildSessionProgressionFeedbackSummaryLabel,
@@ -86,6 +89,68 @@ test("buildSessionProgressionFeedbackSummaryLabel keeps manual summaries normali
       copilotFeedbackSignal: "completed_as_planned",
     }),
     "MANUAL | As Planned",
+  );
+});
+
+test("buildSessionCopilotActionLabel keeps the explicit target-action contract stable", () => {
+  assert.equal(
+    buildSessionCopilotActionLabel({
+      targetSource: "manual_target",
+      isEditedFromCurrentTarget: false,
+      didApplyLastTarget: false,
+    }),
+    "Planned Target",
+  );
+
+  assert.equal(
+    buildSessionCopilotActionLabel({
+      targetSource: "fallback_last_successful_set",
+      isEditedFromCurrentTarget: false,
+      didApplyLastTarget: false,
+    }),
+    "Repeat Last",
+  );
+
+  assert.equal(
+    buildSessionCopilotActionLabel({
+      targetSource: "manual_target",
+      isEditedFromCurrentTarget: true,
+      didApplyLastTarget: false,
+    }),
+    "Override",
+  );
+
+  assert.equal(
+    buildSessionCopilotActionLabel({
+      targetSource: "manual_target",
+      isEditedFromCurrentTarget: false,
+      didApplyLastTarget: true,
+    }),
+    "Last Setup",
+  );
+});
+
+test("buildSessionCopilotRecapTagLabel keeps recap chips short and deterministic", () => {
+  assert.equal(buildSessionCopilotRecapTagLabel("completed_as_planned"), "PLANNED");
+  assert.equal(buildSessionCopilotRecapTagLabel("too_hard"), "HARD");
+  assert.equal(buildSessionCopilotRecapTagLabel("form_breakdown"), "FORM");
+});
+
+test("buildSessionCopilotReceiptLabel keeps the recap receipt wording stable", () => {
+  assert.equal(
+    buildSessionCopilotReceiptLabel({
+      signal: "too_hard",
+      effortValue: 8,
+    }),
+    "Too Hard | Effort 8/10",
+  );
+
+  assert.equal(
+    buildSessionCopilotReceiptLabel({
+      signal: null,
+      effortValue: 6,
+    }),
+    "Effort 6/10",
   );
 });
 

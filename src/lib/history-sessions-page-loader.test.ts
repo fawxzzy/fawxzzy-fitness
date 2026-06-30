@@ -93,6 +93,9 @@ test("history sessions loader returns session content on the happy path", async 
         session_id: "session-1",
         exercise_id: "exercise-1",
         is_skipped: false,
+        copilot_feedback_signal: "too_hard",
+        copilot_feedback_note: "Felt heavy after the third set.",
+        copilot_feedback_effort: 8,
       }],
     }),
     progression_events: async () => ({
@@ -195,7 +198,8 @@ test("history sessions loader returns session content on the happy path", async 
   assert.equal(result.sessionItems[0]?.progressionSummary?.manualChangeCount, 1);
   assert.equal(result.sessionItems[0]?.progressionSummary?.deloadCount, 1);
   assert.deepEqual(result.sessionItems[0]?.recapSignals?.[0]?.signals, ["pr", "promotion", "watch", "regression"]);
-  assert.deepEqual(result.sessionItems[0]?.recapSignals?.[0]?.tagLabels, ["BEST", "MANUAL"]);
+  assert.deepEqual(result.sessionItems[0]?.recapSignals?.[0]?.tagLabels, ["BEST", "MANUAL", "HARD"]);
+  assert.equal(result.sessionItems[0]?.recapSignals?.[0]?.meta, "Effort 8/10");
   assert.equal(result.weeklyProgress.completedWorkoutCount, 1);
   assert.equal(result.weeklyProgressByWeek.length, 1);
 });

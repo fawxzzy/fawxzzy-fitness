@@ -24,6 +24,16 @@ import {
   type ExerciseInfoFilterState,
   type ExerciseInfoRoutineFilterOption,
 } from "@/lib/exercise-info-scope";
+import {
+  normalizeSessionCopilotFeedbackEffort,
+  normalizeSessionCopilotFeedbackNote,
+  normalizeSessionCopilotFeedbackSignal,
+  type SessionCopilotFeedbackSignal,
+} from "@/lib/session-copilot-feedback";
+import {
+  buildSessionCopilotRecapTagLabel,
+  buildSessionCopilotReceiptLabel,
+} from "@/lib/session-feedback-ui";
 import type { ProgressionEventRow, SessionExerciseRow, SessionRow } from "@/types/db";
 
 const SAFE_CURSOR_FRAGMENT = /^[A-Za-z0-9:._-]+$/;
@@ -78,7 +88,11 @@ export type HistorySessionsRouteState<TData, TFallback> =
 type ConsoleLike = Pick<Console, "warn">;
 type QueryResult<T> = { data: T[] | null; error?: { message?: string | null } | null };
 type SupabaseLike = { from: (table: string) => any };
-type SessionExerciseSummaryRow = Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id" | "is_skipped">;
+type SessionExerciseSummaryRow = Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id" | "is_skipped"> & {
+  copilot_feedback_signal?: SessionCopilotFeedbackSignal | null;
+  copilot_feedback_note?: string | null;
+  copilot_feedback_effort?: number | null;
+};
 type ProgressionEventSummaryRow = ProgressionEventRow;
 type SessionSetSummaryRow = {
   session_exercise_id: string;
@@ -214,6 +228,9 @@ function normalizeSessionExerciseRow(row: unknown): SessionExerciseSummaryRow | 
     session_id: sessionId,
     exercise_id: exerciseId,
     is_skipped: asBoolean(record.is_skipped),
+    copilot_feedback_signal: normalizeSessionCopilotFeedbackSignal(record.copilot_feedback_signal),
+    copilot_feedback_note: normalizeSessionCopilotFeedbackNote(record.copilot_feedback_note),
+    copilot_feedback_effort: normalizeSessionCopilotFeedbackEffort(record.copilot_feedback_effort),
   };
 }
 
@@ -582,6 +599,7 @@ function buildSessionRecapSignals(args: {
   exerciseNames: string[];
   bestExerciseName?: string | null;
   exerciseNameById: Map<string, string>;
+  sessionExercises: SessionExerciseSummaryRow[];
   setCountByExerciseName?: Map<string, number>;
   prExerciseIds: Set<string>;
   progressionEvents: ProgressionEventSummaryRow[];
@@ -610,7 +628,30 @@ function buildSessionRecapSignals(args: {
     progressionSignalsByExerciseName.set(exerciseName, current);
   }
 
+  const feedbackByExerciseName = new Map<string, {
+    signal: SessionCopilotFeedbackSignal | null;
+    effort: number | null;
+  }>();
+
+  for (const exercise of args.sessionExercises) {
+    const exerciseName = args.exerciseNameById.get(exercise.exercise_id)?.trim();
+    if (!exerciseName) {
+      continue;
+    }
+
+    const signal = exercise.copilot_feedback_signal ?? null;
+    const effort = exercise.copilot_feedback_effort ?? null;
+    if (!signal && effort === null) {
+      continue;
+    }
+
+    if (!feedbackByExerciseName.has(exerciseName)) {
+      feedbackByExerciseName.set(exerciseName, { signal, effort });
+    }
+  }
+
   return args.exerciseNames.map((exerciseName) => {
+    const feedback = feedbackByExerciseName.get(exerciseName) ?? null;
     const signals = [
       prExerciseNames.has(exerciseName) ? "pr" : null,
       ...(Array.from(progressionSignalsByExerciseName.get(exerciseName) ?? [])),
@@ -619,12 +660,19 @@ function buildSessionRecapSignals(args: {
     const tagLabels = [
       args.bestExerciseName?.trim() === exerciseName ? "BEST" : null,
       args.progressionEvents.some((event) => event.event_type === "manual_target_change" && args.exerciseNameById.get(event.exercise_id)?.trim() === exerciseName) ? "MANUAL" : null,
+      feedback?.signal ? buildSessionCopilotRecapTagLabel(feedback.signal) : null,
     ].filter((value): value is string => Boolean(value));
 
     return {
       exerciseName,
       value: typeof args.setCountByExerciseName?.get(exerciseName) === "number"
         ? `${args.setCountByExerciseName.get(exerciseName)} ${args.setCountByExerciseName.get(exerciseName) === 1 ? "set" : "sets"}`
+        : null,
+      meta: feedback && feedback.effort !== null
+        ? buildSessionCopilotReceiptLabel({
+            signal: null,
+            effortValue: feedback.effort,
+          })
         : null,
       signals,
       tagLabels,
@@ -919,7 +967,7 @@ async function loadHistorySessionsScopeContext({
       label: "session exercise rows",
       load: () => supabase
         .from("session_exercises")
-        .select("id, session_id, exercise_id, is_skipped, notes, copilot_feedback_note")
+        .select("id, session_id, exercise_id, is_skipped, notes, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_effort")
         .in("session_id", sessionIds)
         .eq("user_id", userId),
       logger,
@@ -1120,6 +1168,7 @@ async function loadHistorySessionsScopeContext({
       exerciseNames: baseSummary.exerciseNames ?? [],
       bestExerciseName: baseSummary.bestLift?.exerciseName,
       exerciseNameById,
+      sessionExercises: exercisesBySessionId.get(session.id) ?? [],
       setCountByExerciseName,
       prExerciseIds,
       progressionEvents: progressionEventsBySessionId.get(session.id) ?? [],

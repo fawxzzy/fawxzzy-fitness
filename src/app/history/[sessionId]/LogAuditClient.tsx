@@ -51,7 +51,7 @@ import { formatDateShort } from "@/lib/formatting";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryItems, formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
-import { buildSessionEffortContextLabel } from "@/lib/session-feedback-ui";
+import { buildSessionCopilotReceiptLabel } from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
 import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
@@ -198,7 +198,7 @@ function resolveExerciseDisplayNotesContextLabel({
     return null;
   }
 
-  return buildSessionEffortContextLabel({
+  return buildSessionCopilotReceiptLabel({
     signal: exercise.copilot_feedback_signal ?? null,
     effortValue: exercise.copilot_feedback_effort ?? null,
   });

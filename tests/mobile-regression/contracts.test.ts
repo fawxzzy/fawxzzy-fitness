@@ -289,6 +289,7 @@ test("history detail notes fall back to saved copilot feedback when exercise not
 
   assert.match(source, /resolveExerciseDisplayNotesValue/);
   assert.match(source, /exercise\.copilot_feedback_note/);
+  assert.match(source, /buildSessionCopilotReceiptLabel/);
 });
 
 test("real current-session feedback path persists effort through action, query, page, and logger wiring", () => {
@@ -304,4 +305,15 @@ test("real current-session feedback path persists effort through action, query, 
   assert.match(pageSource, /copilotFeedbackEffort:\s*exercise\.copilot_feedback_effort \?\? null/);
   assert.match(loggerSource, /handleCopilotEffortPress/);
   assert.match(loggerSource, /persistCopilotFeedback\(copilotSignalState, copilotNoteState, nextEffort\)/);
+  assert.match(loggerSource, /buildSessionCopilotActionLabel/);
+});
+
+test("today, resume, and routine detail stay on the shared TodayExerciseRows surface", () => {
+  const todayPageSource = readSource("../../src/app/today/page.tsx");
+  const todayShellSource = readSource("../../src/app/today/TodayClientShell.tsx");
+  const routineDaySource = readSource("../../src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx");
+
+  assert.match(todayPageSource, /<TodayExerciseRows/);
+  assert.match(todayShellSource, /<TodayExerciseRows/);
+  assert.match(routineDaySource, /<TodayExerciseRows/);
 });

@@ -1,5 +1,6 @@
 import type { FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import { formatSessionCopilotFeedbackLabel, type SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
+import type { SessionTargetHintSource } from "@/lib/session-target-hints";
 
 export const SESSION_FEEDBACK_SUMMARY_SEPARATOR = " | ";
 
@@ -73,7 +74,62 @@ export function buildSessionProgressionFeedbackSummaryLabel(args: {
   return labels.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR);
 }
 
-export function buildSessionEffortContextLabel(args: {
+export function buildSessionCopilotActionLabel(args: {
+  targetSource?: SessionTargetHintSource | null;
+  isEditedFromCurrentTarget?: boolean | null;
+  didApplyLastTarget?: boolean | null;
+}) {
+  if (args.isEditedFromCurrentTarget) {
+    return "Override";
+  }
+
+  if (args.didApplyLastTarget) {
+    return "Last Setup";
+  }
+
+  switch (args.targetSource ?? null) {
+    case "playbook_derived_target":
+      return "Auto Target";
+    case "playbook_seed_target":
+      return "Seed Target";
+    case "manual_target":
+      return "Planned Target";
+    case "fallback_last_successful_set":
+      return "Repeat Last";
+    case "recent_best":
+      return "Recent Best";
+    case "invalid_playbook_fallback":
+    case "unsupported_playbook_fallback":
+      return "Fallback Target";
+    case "no_history":
+      return "No Target Yet";
+    default:
+      return null;
+  }
+}
+
+export function buildSessionCopilotRecapTagLabel(signal: SessionCopilotFeedbackSignal) {
+  switch (signal) {
+    case "completed_as_planned":
+      return "PLANNED";
+    case "too_easy":
+      return "EASY";
+    case "too_hard":
+      return "HARD";
+    case "form_breakdown":
+      return "FORM";
+    case "pain_flag":
+      return "PAIN";
+    case "bad_day":
+      return "BAD DAY";
+    case "override_used":
+      return "OVERRIDE";
+    default:
+      return formatSessionCopilotFeedbackLabel(signal).toUpperCase();
+  }
+}
+
+export function buildSessionCopilotReceiptLabel(args: {
   signal: SessionCopilotFeedbackSignal | null;
   effortValue: number | null;
 }) {
@@ -88,6 +144,13 @@ export function buildSessionEffortContextLabel(args: {
   }
 
   return parts.length > 0 ? parts.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR) : null;
+}
+
+export function buildSessionEffortContextLabel(args: {
+  signal: SessionCopilotFeedbackSignal | null;
+  effortValue: number | null;
+}) {
+  return buildSessionCopilotReceiptLabel(args);
 }
 
 export function buildSessionEffortNotePlaceholder(args: {
