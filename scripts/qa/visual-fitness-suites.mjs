@@ -545,11 +545,11 @@ export const VISUAL_FITNESS_SUITES = {
         "No Set Data",
       ],
       expectedVisibleHrefSubstrings: [
-        "history-session-2?returnTab=sessions",
+        "/dev/mobile-regression?scenario=history-detail-feedback-note",
       ],
       expectedHiddenHrefSubstrings: [
-        "history-session-1?returnTab=sessions",
-        "history-session-3?returnTab=sessions",
+        "/dev/mobile-regression?scenario=history-detail-progression-expanded",
+        "/dev/mobile-regression?scenario=history-detail-broken-images",
       ],
     },
   },

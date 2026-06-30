@@ -84,11 +84,11 @@ test("history seam asserts the deterministic notes highlight contract", () => {
     "Expected the history seam to assert neighboring highlight options for the same filter lane.",
   );
   assert.ok(
-    (suite?.interaction?.expectedVisibleHrefSubstrings ?? []).includes("history-session-2?returnTab=sessions"),
+    (suite?.interaction?.expectedVisibleHrefSubstrings ?? []).includes("/dev/mobile-regression?scenario=history-detail-feedback-note"),
     "Expected the history seam to assert the note-bearing session card stays visible after filtering.",
   );
   assert.ok(
-    (suite?.interaction?.expectedHiddenHrefSubstrings ?? []).includes("history-session-1?returnTab=sessions"),
+    (suite?.interaction?.expectedHiddenHrefSubstrings ?? []).includes("/dev/mobile-regression?scenario=history-detail-progression-expanded"),
     "Expected the history seam to assert non-note session cards disappear after filtering.",
   );
 });
