@@ -68,6 +68,23 @@ test("history detail feedback-note seam stays on the deterministic note-proof fi
   );
 });
 
+test("history seam asserts the deterministic notes highlight contract", () => {
+  const suite = getVisualFitnessSuite("history-seam");
+  assert.ok(suite, "Expected history-seam to exist in visual fitness suites.");
+  assert.equal(suite?.proofLane, "seam");
+  assert.equal(suite?.authRequired, false);
+  assert.equal(suite?.route, "/dev/mobile-regression?scenario=history-sessions-detailed");
+  assert.equal(suite?.interaction?.type, "history-sessions-notes-contract");
+  assert.ok(
+    (suite?.interaction?.expectedText ?? []).includes("Notes"),
+    "Expected the history seam to assert the Notes highlight option.",
+  );
+  assert.ok(
+    (suite?.interaction?.expectedText ?? []).includes("No Set Data"),
+    "Expected the history seam to assert neighboring highlight options for the same filter lane.",
+  );
+});
+
 test("protected history detail asserts the QA copilot-note fallback", () => {
   const suite = getVisualFitnessSuite("history-detail");
   assert.ok(suite, "Expected history-detail to exist in visual fitness suites.");

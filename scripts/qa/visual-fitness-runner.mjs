@@ -818,6 +818,52 @@ async function runSuiteInteraction(page, suite, options = {}) {
     };
   }
 
+  if (interaction.type === "history-sessions-notes-contract") {
+    const filterToggle = page.getByRole("button", { name: "Toggle session filters" });
+    const filterToggleCount = await filterToggle.count().catch(() => 0);
+    if (filterToggleCount !== 1) {
+      return {
+        performed: false,
+        bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+        missingExpectedText: interaction.expectedText ?? [],
+        details: {
+          filterToggleCount,
+        },
+        blockedReason: `Expected exactly one history filter toggle but found ${filterToggleCount}.`,
+      };
+    }
+
+    await filterToggle.click();
+    await page.waitForTimeout(300);
+
+    const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
+    const bodyTextLower = bodyText.toLowerCase();
+    const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !bodyTextLower.includes(text.toLowerCase()));
+    const notesHighlightButton = page.getByRole("button", { name: "Notes" });
+    const notesHighlightCount = await notesHighlightButton.count().catch(() => 0);
+    const blockedReasons = [];
+
+    if (notesHighlightCount < 1) {
+      blockedReasons.push("expected the History highlight filter group to expose a Notes option");
+    }
+    if (missingExpectedText.length > 0) {
+      blockedReasons.push(`missing expected history overview text: ${missingExpectedText.join(", ")}`);
+    }
+
+    return {
+      performed: true,
+      bodyText,
+      missingExpectedText,
+      details: {
+        filterToggleCount,
+        notesHighlightCount,
+      },
+      blockedReason: blockedReasons.length > 0
+        ? `History sessions notes contract failed: ${blockedReasons.join("; ")}.`
+        : null,
+    };
+  }
+
   return {
     performed: false,
     bodyText: null,

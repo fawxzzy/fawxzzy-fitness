@@ -500,6 +500,14 @@ export const VISUAL_FITNESS_SUITES = {
     themePreset: "default",
     waitMs: 2400,
     stateLabel: "seam-history-overview",
+    interaction: {
+      type: "history-sessions-notes-contract",
+      expectedText: [
+        "Highlight",
+        "Notes",
+        "No Set Data",
+      ],
+    },
   },
   "history-exercises-seam": {
     name: "history-exercises-seam",
