@@ -60,10 +60,14 @@ export const QA_BASELINE = {
     pullup: "b4ad5c48-2ff2-45b3-b1df-65f8f17a47f8",
   },
   sessionIds: {
+    active: "5f3ba4cf-c88d-4c51-a5e4-79435d30cf5d",
     latest: "3a8fc306-9ad4-4c1d-bfad-55e66cb2ae1b",
     prior: "2d6e6ec7-8594-49d6-8b7e-e5750cb88df9",
   },
   sessionExerciseIds: {
+    activeSquat: "0b6d0de5-8f55-42de-8a2b-d2254eb0619c",
+    activeLunge: "85629ae2-6a27-4f2c-b3a7-12193e018ae7",
+    activePullup: "9ea9c78c-4efa-4bfa-b6de-c0cfb13cc1ea",
     latestSquat: "dece93d0-b3ac-4400-b205-df34f822f413",
     latestLunge: "fb0c9af0-78c1-4128-8f94-c55ddb9f1d83",
     latestPullup: "f8b88e70-21e1-4dc9-aa7e-51e7bff9f8d0",

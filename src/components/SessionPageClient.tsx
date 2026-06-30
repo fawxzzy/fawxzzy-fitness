@@ -35,7 +35,6 @@ type AddSetPayload = {
   distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
-  rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
   clientLogId: string;
@@ -55,7 +54,6 @@ type SyncQueuedSetLogsAction = (payload: {
       distanceUnit: FitnessDistanceUnit | null;
       calories: number | null;
       isWarmup: boolean;
-      rpe: number | null;
       notes: string | null;
       weightUnit: "lbs" | "kg";
     };

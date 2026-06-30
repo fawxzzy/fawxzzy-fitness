@@ -9,7 +9,12 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditPath, revalidateHistoryViews, revalidateRoutinesViews, revalidateSessionViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import { parseProgressionPlaybookPayload } from "@/lib/progression-playbooks";
-import { getSchemaMismatchMessage, isMissingProgressionPlaybookColumnError, omitProgressionPlaybookColumns } from "@/lib/progression-schema-compat";
+import {
+  getSchemaMismatchMessage,
+  isMissingProgressionPlaybookColumnError,
+  isMissingSessionCopilotFeedbackEffortColumnError,
+  omitProgressionPlaybookColumns,
+} from "@/lib/progression-schema-compat";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import {
@@ -138,7 +143,6 @@ export async function addSetAction(payload: {
   distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
-  rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
   clientLogId?: string;
@@ -146,7 +150,7 @@ export async function addSetAction(payload: {
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, distance, distanceUnit, calories, isWarmup, rpe, notes, weightUnit, clientLogId } = payload;
+  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, distance, distanceUnit, calories, isWarmup, notes, weightUnit, clientLogId } = payload;
 
   if (!sessionId || !sessionExerciseId) {
     return { ok: false, error: "Missing session info" };
@@ -239,7 +243,7 @@ export async function addSetAction(payload: {
       distance_unit: distanceUnit,
       calories,
       is_warmup: isWarmup,
-      rpe,
+      rpe: null,
       notes,
       weight_unit: weightUnit,
     } as Record<string, unknown>;
@@ -291,10 +295,9 @@ export async function syncQueuedSetLogsAction(payload: {
       reps: number;
       durationSeconds: number | null;
       distance: number | null;
-  distanceUnit: FitnessDistanceUnit | null;
+      distanceUnit: FitnessDistanceUnit | null;
       calories: number | null;
       isWarmup: boolean;
-      rpe: number | null;
       notes: string | null;
       weightUnit: "lbs" | "kg";
     };
@@ -312,7 +315,6 @@ export async function syncQueuedSetLogsAction(payload: {
         distanceUnit: item.payload.distanceUnit,
         calories: item.payload.calories,
         isWarmup: item.payload.isWarmup,
-        rpe: item.payload.rpe,
         notes: item.payload.notes,
         weightUnit: item.payload.weightUnit,
         clientLogId: item.clientLogId,
@@ -440,17 +442,34 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
     return liveSession;
   }
 
-  const { error } = await supabase
+  const payloadWithEffort = {
+    copilot_feedback_signal: signal,
+    copilot_feedback_note: note,
+    copilot_feedback_effort: effort,
+    copilot_feedback_updated_at: updatedAt,
+  };
+  const payloadLegacy = {
+    copilot_feedback_signal: signal,
+    copilot_feedback_note: note,
+    copilot_feedback_updated_at: updatedAt,
+  };
+
+  let { error } = await supabase
     .from("session_exercises")
-    .update({
-      copilot_feedback_signal: signal,
-      copilot_feedback_note: note,
-      copilot_feedback_effort: effort,
-      copilot_feedback_updated_at: updatedAt,
-    })
+    .update(payloadWithEffort)
     .eq("id", sessionExerciseId)
     .eq("user_id", user.id)
     .eq("session_id", sessionId);
+
+  const effortPersisted = !error;
+  if (error && isMissingSessionCopilotFeedbackEffortColumnError(error)) {
+    ({ error } = await supabase
+      .from("session_exercises")
+      .update(payloadLegacy)
+      .eq("id", sessionExerciseId)
+      .eq("user_id", user.id)
+      .eq("session_id", sessionId));
+  }
 
   if (error) {
     return { ok: false, error: error.message };
@@ -463,7 +482,7 @@ export async function updateSessionExerciseCopilotFeedbackAction(payload: {
     data: {
       signal,
       note,
-      effort,
+      effort: effortPersisted ? effort : null,
       updatedAt,
     },
   };

@@ -353,13 +353,45 @@ function normalizePlaywrightCookies(cookies, fallbackBaseUrl) {
     .filter(Boolean);
 }
 
-async function runSuiteInteraction(page, suite) {
+function normalizeInteractionBodyText(value) {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+async function waitForFeedbackSavedState(page, options = {}) {
+  const noteSelector = typeof options.noteSelector === "string" && options.noteSelector.trim().length > 0
+    ? options.noteSelector.trim()
+    : 'input[id^="session-copilot-note-"]';
+  await page.waitForFunction(({ resolvedNoteSelector }) => {
+    const controls = Array.from(document.querySelectorAll(
+      `button[aria-label^="Effort "], button[aria-pressed], ${resolvedNoteSelector}`,
+    )).filter((node) => {
+      if (!(node instanceof HTMLElement)) {
+        return false;
+      }
+      const style = window.getComputedStyle(node);
+      if (style.display === "none" || style.visibility === "hidden") {
+        return false;
+      }
+      return node.offsetWidth > 0 || node.offsetHeight > 0 || node.getClientRects().length > 0;
+    });
+    const allEnabled = controls.every((node) => (
+      !(node instanceof HTMLButtonElement || node instanceof HTMLInputElement)
+      || !node.disabled
+    ));
+    return allEnabled && !document.body.innerText.includes("Saving feedback...");
+  }, { resolvedNoteSelector: noteSelector }, {
+    timeout: 10000,
+  });
+}
+
+async function runSuiteInteraction(page, suite, options = {}) {
   const interaction = suite.interaction;
   if (!interaction) {
     return {
       performed: false,
       bodyText: null,
       missingExpectedText: [],
+      details: null,
     };
   }
 
@@ -371,6 +403,7 @@ async function runSuiteInteraction(page, suite) {
         performed: false,
         bodyText: null,
         missingExpectedText: interaction.expectedText ?? [],
+        details: null,
         blockedReason: `Unable to find the "${interaction.triggerLabel}" settings panel trigger.`,
       };
     }
@@ -383,8 +416,9 @@ async function runSuiteInteraction(page, suite) {
       if (!slotVisible) {
         return {
           performed: true,
-          bodyText: ((await page.textContent("body")) ?? "").replace(/\s+/g, " ").trim(),
+          bodyText: normalizeInteractionBodyText(await page.textContent("body")),
           missingExpectedText: interaction.expectedText ?? [],
+          details: null,
           blockedReason: `Unable to find the "${interaction.selectThemeSlotLabel}" theme slot trigger.`,
         };
       }
@@ -393,16 +427,215 @@ async function runSuiteInteraction(page, suite) {
       await page.waitForTimeout(750);
     }
 
-    const bodyText = ((await page.textContent("body")) ?? "").replace(/\s+/g, " ").trim();
+    const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
     const normalizedBodyText = bodyText.toLowerCase();
     const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !normalizedBodyText.includes(text.toLowerCase()));
     return {
       performed: true,
       bodyText,
       missingExpectedText,
+      details: null,
       blockedReason: missingExpectedText.length > 0
         ? `Missing expected App Theme text: ${missingExpectedText.join(", ")}.`
         : null,
+    };
+  }
+
+  if (interaction.type === "session-feedback-roundtrip") {
+    const baseUrl = normalizeBaseUrl(options.baseUrl ?? resolveBaseUrl());
+    const signalLabel = typeof interaction.signalLabel === "string" && interaction.signalLabel.trim().length > 0
+      ? interaction.signalLabel.trim()
+      : "Too Hard";
+    const effortValue = Number.isFinite(interaction.effortValue)
+      ? Math.round(interaction.effortValue)
+      : 8;
+    const noteValue = typeof interaction.noteValue === "string" ? interaction.noteValue : "";
+    const routeUrl = `${baseUrl}${suite.route}`;
+    const routeExerciseId = new URL(routeUrl).searchParams.get("exerciseId");
+    const noteSelector = routeExerciseId
+      ? `#session-copilot-note-${routeExerciseId}`
+      : 'input[id^="session-copilot-note-"]';
+    const getSignalButton = () => page.locator("button[aria-pressed]").filter({ hasText: signalLabel, visible: true }).first();
+    const getEffortButton = () => page.locator(`button[aria-label="Effort ${effortValue} out of 10"]`).filter({ visible: true }).first();
+    const getNoteInput = () => page.locator(noteSelector).filter({ visible: true }).first();
+
+    const ensureFeedbackControls = async () => {
+      await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+      await getSignalButton().waitFor({ state: "visible", timeout: 15000 });
+      await getEffortButton().waitFor({ state: "visible", timeout: 15000 });
+    };
+    const resetFeedbackBaseline = async () => {
+      const noteInput = getNoteInput();
+      if (await noteInput.isVisible().catch(() => false)) {
+        const existingValue = await noteInput.inputValue().catch(() => "");
+        if (existingValue.trim().length > 0) {
+          await noteInput.fill("");
+          await noteInput.evaluate((node) => node.blur());
+          await waitForFeedbackSavedState(page, { noteSelector });
+        }
+      }
+
+      const effortButton = getEffortButton();
+      if ((await effortButton.getAttribute("aria-pressed")) === "true") {
+        await effortButton.click();
+        await page.waitForTimeout(200);
+        await waitForFeedbackSavedState(page, { noteSelector });
+      }
+
+      const signalButton = getSignalButton();
+      if ((await signalButton.getAttribute("aria-pressed")) === "true") {
+        await signalButton.click();
+        await page.waitForTimeout(200);
+        await waitForFeedbackSavedState(page, { noteSelector });
+      }
+    };
+
+    await ensureFeedbackControls();
+    await resetFeedbackBaseline();
+    await ensureFeedbackControls();
+
+    const signalButton = getSignalButton();
+    const signalVisible = await signalButton.isVisible().catch(() => false);
+    if (!signalVisible) {
+      return {
+        performed: false,
+        bodyText: null,
+        missingExpectedText: interaction.expectedText ?? [],
+        details: null,
+        blockedReason: `Unable to find the "${signalLabel}" feedback chip on the session logger.`,
+      };
+    }
+
+    const effortButton = getEffortButton();
+    const effortVisible = await effortButton.isVisible().catch(() => false);
+    if (!effortVisible) {
+      return {
+        performed: false,
+        bodyText: null,
+        missingExpectedText: interaction.expectedText ?? [],
+        details: null,
+        blockedReason: `Unable to find the effort ${effortValue}/10 chip on the session logger.`,
+      };
+    }
+
+    await signalButton.click();
+    await waitForFeedbackSavedState(page, { noteSelector });
+    await effortButton.click();
+    await waitForFeedbackSavedState(page, { noteSelector });
+
+    const noteInput = getNoteInput();
+    const noteVisible = await noteInput.isVisible().catch(() => false);
+    if (!noteVisible) {
+      return {
+        performed: true,
+        bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+        missingExpectedText: interaction.expectedText ?? [],
+        details: null,
+        blockedReason: "Feedback note input did not appear after selecting a signal and effort rating.",
+      };
+    }
+
+    await page.waitForFunction(({ resolvedNoteSelector }) => {
+      const input = document.querySelector(resolvedNoteSelector);
+      return input instanceof HTMLInputElement && !input.disabled;
+    }, { resolvedNoteSelector: noteSelector }, {
+      timeout: 10000,
+    });
+
+    await noteInput.fill(noteValue);
+    await noteInput.evaluate((node) => node.blur());
+    await waitForFeedbackSavedState(page, { noteSelector });
+
+    await page.goto(routeUrl, {
+      waitUntil: suite.waitUntil ?? "domcontentloaded",
+      timeout: 30000,
+    });
+    await page.waitForTimeout(suite.waitMs ?? 1600);
+    await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    await ensureFeedbackControls();
+
+    const persistedSignalPressed = await getSignalButton().getAttribute("aria-pressed");
+    const persistedEffortPressed = await getEffortButton().getAttribute("aria-pressed");
+    const persistedNoteValue = await getNoteInput().inputValue().catch(() => "");
+    const persistedBodyText = normalizeInteractionBodyText(await page.textContent("body"));
+    const persistedBodyTextLower = persistedBodyText.toLowerCase();
+    const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !persistedBodyTextLower.includes(text.toLowerCase()));
+
+    const signalPersisted = persistedSignalPressed === "true";
+    const effortPersisted = persistedEffortPressed === "true";
+    const notePersisted = persistedNoteValue.trim() === noteValue.trim();
+
+    if (!signalPersisted || !notePersisted) {
+      return {
+        performed: true,
+        bodyText: persistedBodyText,
+        missingExpectedText,
+        details: {
+          persistedSignalPressed,
+          persistedEffortPressed,
+          persistedNoteValue,
+        },
+        blockedReason: "Session feedback signal or note did not persist across reload on the live route.",
+      };
+    }
+
+    const restoredNoteInput = getNoteInput();
+    await restoredNoteInput.fill("");
+    await restoredNoteInput.evaluate((node) => node.blur());
+    await waitForFeedbackSavedState(page, { noteSelector });
+
+    const restoredEffortButton = getEffortButton();
+    if ((await restoredEffortButton.getAttribute("aria-pressed")) === "true") {
+      await restoredEffortButton.click();
+      await page.waitForTimeout(200);
+      await waitForFeedbackSavedState(page, { noteSelector });
+    }
+
+    const restoredSignalButton = getSignalButton();
+    if ((await restoredSignalButton.getAttribute("aria-pressed")) === "true") {
+      await restoredSignalButton.click();
+      await page.waitForTimeout(200);
+      await waitForFeedbackSavedState(page, { noteSelector });
+    }
+
+    await page.goto(routeUrl, {
+      waitUntil: suite.waitUntil ?? "domcontentloaded",
+      timeout: 30000,
+    });
+    await page.waitForTimeout(suite.waitMs ?? 1600);
+    await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    await ensureFeedbackControls();
+
+    const clearedSignalPressed = await getSignalButton().getAttribute("aria-pressed");
+    const clearedEffortPressed = await getEffortButton().getAttribute("aria-pressed");
+    const clearedNoteValue = await getNoteInput().inputValue().catch(() => "");
+    const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
+
+    return {
+      performed: true,
+      bodyText,
+      missingExpectedText,
+      details: {
+        persistedSignalPressed,
+        persistedEffortPressed,
+        persistedNoteValue,
+        clearedSignalPressed,
+        clearedEffortPressed,
+        clearedNoteValue,
+      },
+      blockedReason: (
+        clearedSignalPressed === "false"
+        && clearedEffortPressed === "false"
+        && clearedNoteValue.trim() === ""
+      )
+        ? (
+          !effortPersisted
+            ? "Signal and note persisted, but effort did not survive reload. The QA environment is still missing persisted effort support for session feedback."
+            : (missingExpectedText.length > 0
+              ? `Missing expected session feedback text: ${missingExpectedText.join(", ")}.`
+              : null)
+        )
+        : "Session feedback cleanup did not restore the QA baseline after verification.",
     };
   }
 
@@ -410,6 +643,7 @@ async function runSuiteInteraction(page, suite) {
     performed: false,
     bodyText: null,
     missingExpectedText: [],
+    details: null,
   };
 }
 
@@ -529,12 +763,12 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     }
 
     const response = await page.goto(`${baseUrl}${suite.route}`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: suite.waitUntil ?? "domcontentloaded",
       timeout: 30000,
     });
     await page.waitForTimeout(suite.waitMs ?? 1600);
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
-    const interactionResult = await runSuiteInteraction(page, suite);
+    const interactionResult = await runSuiteInteraction(page, suite, { baseUrl });
     await page.screenshot({
       path: screenshotPath,
       fullPage: suite.fullPage ?? false,
@@ -616,6 +850,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       interaction: {
         performed: interactionResult.performed,
         missingExpectedText: interactionResult.missingExpectedText,
+        details: interactionResult.details ?? null,
       },
       loadingDiagnostics,
       consoleMessages,
@@ -686,6 +921,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       interaction: {
         performed: false,
         missingExpectedText: suite.interaction?.expectedText ?? [],
+        details: null,
       },
       loadingDiagnostics: [],
       consoleMessages,

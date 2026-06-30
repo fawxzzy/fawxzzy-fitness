@@ -3,7 +3,11 @@ import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import type { ProgressionHistorySetRow } from "@/lib/progression-playbooks";
 import { applyEffortScheduleToRoutineDayExercise } from "@/lib/progression-effective-target";
-import { isMissingProgressionPlaybookColumnError, isMissingRoutineDefaultProgressionColumnError } from "@/lib/progression-schema-compat";
+import {
+  isMissingProgressionPlaybookColumnError,
+  isMissingRoutineDefaultProgressionColumnError,
+  isMissingSessionCopilotFeedbackEffortColumnError,
+} from "@/lib/progression-schema-compat";
 import { buildSessionTargetsFromRows } from "@/lib/session-targets";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
@@ -41,6 +45,8 @@ const ROUTINE_DAY_EXERCISE_SELECT_LEGACY = "id, exercise_id, position, measureme
 const ROUTINE_DAY_EXERCISE_SELECT_WITH_PROGRESSION = "id, exercise_id, position, measurement_type, default_unit, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, progression_playbook_id, progression_playbook_config";
 const ROUTINE_SELECT_LEGACY = "name, weight_unit";
 const ROUTINE_SELECT_WITH_PROGRESSION = `${ROUTINE_SELECT_LEGACY}, default_progression_playbook_id, default_progression_playbook_config`;
+const SESSION_EXERCISE_SELECT_LEGACY = "id, session_id, user_id, exercise_id, routine_day_exercise_id, position, notes, is_skipped, measurement_type, default_unit, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_updated_at, exercise:exercises(name, measurement_type, default_unit), routine_day_exercise:routine_day_exercises(id, exercise_id, position, measurement_type, default_unit)";
+const SESSION_EXERCISE_SELECT_WITH_EFFORT = "id, session_id, user_id, exercise_id, routine_day_exercise_id, position, notes, is_skipped, measurement_type, default_unit, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_effort, copilot_feedback_updated_at, exercise:exercises(name, measurement_type, default_unit), routine_day_exercise:routine_day_exercises(id, exercise_id, position, measurement_type, default_unit)";
 
 function resolveMeasurementType(value: unknown): MeasurementType | null {
   return value === "reps" || value === "time" || value === "distance" || value === "time_distance" || value === "none" ? value : null;
@@ -109,12 +115,21 @@ export async function getSessionPageData(
     : { data: null };
   const routine = routineWithProgression ?? legacyRoutine ?? null;
 
-  const { data: sessionExercisesData } = await supabase
+  const { data: sessionExercisesWithEffort, error: sessionExercisesWithEffortError } = await supabase
     .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, routine_day_exercise_id, position, notes, is_skipped, measurement_type, default_unit, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, copilot_feedback_signal, copilot_feedback_note, copilot_feedback_effort, copilot_feedback_updated_at, exercise:exercises(name, measurement_type, default_unit), routine_day_exercise:routine_day_exercises(id, exercise_id, position, measurement_type, default_unit)")
+    .select(SESSION_EXERCISE_SELECT_WITH_EFFORT)
     .eq("session_id", sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
+  const { data: legacySessionExercisesData } = sessionExercisesWithEffortError && isMissingSessionCopilotFeedbackEffortColumnError(sessionExercisesWithEffortError)
+    ? await supabase
+        .from("session_exercises")
+        .select(SESSION_EXERCISE_SELECT_LEGACY)
+        .eq("session_id", sessionId)
+        .eq("user_id", user.id)
+        .order("position", { ascending: true })
+    : { data: null };
+  const sessionExercisesData = sessionExercisesWithEffort ?? legacySessionExercisesData ?? [];
 
   const { data: routineDaysData } = session.routine_id
     ? await supabase

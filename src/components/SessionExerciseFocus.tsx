@@ -60,7 +60,6 @@ type AddSetPayload = {
   distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
-  rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
   clientLogId: string;
@@ -97,7 +96,6 @@ type SyncQueuedSetLogsAction = (payload: {
       distanceUnit: FitnessDistanceUnit | null;
       calories: number | null;
       isWarmup: boolean;
-      rpe: number | null;
       notes: string | null;
       weightUnit: "lbs" | "kg";
     };
@@ -915,7 +913,7 @@ export function SessionExerciseFocus({
                   copilotFeedbackSignal={exercise.copilotFeedbackSignal ?? null}
                   copilotFeedbackNote={exercise.copilotFeedbackNote ?? null}
                   copilotFeedbackUpdatedAt={exercise.copilotFeedbackUpdatedAt ?? null}
-                  initialEffortRating={exercise.copilotFeedbackEffort ?? null}
+                  initialEffortRating={draftState?.copilotFeedbackEffort ?? exercise.copilotFeedbackEffort ?? null}
                   updateCopilotFeedbackAction={updateSessionExerciseCopilotFeedbackAction}
                   progressionFormState={exercise.progressionFormState ?? null}
                   progressionStepPolicy={exercise.progressionStepPolicy ?? null}
@@ -1025,7 +1023,6 @@ export function SessionExerciseFocus({
                     return {
                       ...quickLogResolution.payload,
                       isWarmup: false,
-                      rpe: null,
                       notes: null,
                     } satisfies SessionLoggerDraftQuickLogPayload;
                   })();
@@ -1051,7 +1048,7 @@ export function SessionExerciseFocus({
                       calories: quickLogPayload.calories,
                       is_warmup: quickLogPayload.isWarmup,
                       notes: quickLogPayload.notes,
-                      rpe: quickLogPayload.rpe,
+                      rpe: null,
                       weight_unit: quickLogPayload.weightUnit,
                       pending: true,
                     };
@@ -1075,7 +1072,6 @@ export function SessionExerciseFocus({
                     distanceUnit: quickLogPayload.distanceUnit,
                     calories: quickLogPayload.calories,
                     isWarmup: quickLogPayload.isWarmup,
-                    rpe: quickLogPayload.rpe,
                     notes: quickLogPayload.notes,
                     weightUnit: quickLogPayload.weightUnit,
                     clientLogId,

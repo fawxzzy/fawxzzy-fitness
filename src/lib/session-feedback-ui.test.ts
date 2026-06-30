@@ -22,7 +22,6 @@ function createDraftState(overrides?: Partial<ComparableSessionLoggerDraftState>
       distanceUnit: null,
       calories: null,
       isWarmup: false,
-      rpe: null,
       notes: null,
       weightUnit: "lbs",
     },
@@ -30,13 +29,13 @@ function createDraftState(overrides?: Partial<ComparableSessionLoggerDraftState>
     didApplyLastTarget: false,
     copilotFeedbackSignal: null,
     copilotFeedbackNote: null,
+    copilotFeedbackEffort: null,
     formState: {
       weight: "225",
       reps: "5",
       durationInput: "",
       distance: "",
       calories: "",
-      rpe: "",
       weightUnit: "lbs",
       distanceUnit: "mi",
       isWarmup: false,
@@ -130,7 +129,7 @@ test("buildSessionEffortNotePlaceholder reflects the shared effort context contr
       signal: null,
       effortValue: null,
     }),
-    "Optional context for this set or exercise",
+    "Optional context for this exercise",
   );
 });
 

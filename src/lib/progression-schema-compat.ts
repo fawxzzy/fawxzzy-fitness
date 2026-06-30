@@ -12,6 +12,9 @@ const ROUTINE_DEFAULT_PROGRESSION_COLUMNS = [
   "default_progression_playbook_id",
   "default_progression_playbook_config",
 ] as const;
+const SESSION_COPILOT_FEEDBACK_EFFORT_COLUMNS = [
+  "copilot_feedback_effort",
+] as const;
 
 const SCHEMA_CACHE_MISSING_COLUMN_PATTERN = /could not find the '([^']+)' column of '([^']+)' in the schema cache/i;
 const POSTGRES_MISSING_COLUMN_PATTERN = /column\s+(?:(?:public\.)?([a-z_][a-z0-9_]*)\.)?([a-z_][a-z0-9_]*)\s+does not exist/i;
@@ -87,6 +90,10 @@ export function isMissingProgressionPlaybookColumnError(error: SupabaseLikeError
 
 export function isMissingRoutineDefaultProgressionColumnError(error: SupabaseLikeError | null | undefined) {
   return isMissingColumnOnTable(error, "routines", ROUTINE_DEFAULT_PROGRESSION_COLUMNS);
+}
+
+export function isMissingSessionCopilotFeedbackEffortColumnError(error: SupabaseLikeError | null | undefined) {
+  return isMissingColumnOnTable(error, "session_exercises", SESSION_COPILOT_FEEDBACK_EFFORT_COLUMNS);
 }
 
 function formatMissingColumn(diagnostic: MissingSchemaColumnDiagnostic) {

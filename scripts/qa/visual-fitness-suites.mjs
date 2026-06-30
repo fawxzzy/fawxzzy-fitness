@@ -88,7 +88,7 @@ export const VISUAL_FITNESS_SUITES = {
   session: {
     name: "session",
     proofLane: "protected",
-    route: `/session/${QA_BASELINE.sessionIds.latest}?returnTo=%2Ftoday&exerciseId=${QA_BASELINE.sessionExerciseIds.latestLunge}`,
+    route: `/session/${QA_BASELINE.sessionIds.active}?returnTo=%2Ftoday&exerciseId=${QA_BASELINE.sessionExerciseIds.activeLunge}`,
     viewport: DEFAULT_VISUAL_VIEWPORT,
     authRequired: true,
     setupRequirements: [
@@ -98,8 +98,36 @@ export const VISUAL_FITNESS_SUITES = {
     expectedOutputFilename: "session.png",
     allowAuthGatedFallback: true,
     themePreset: "default",
+    waitUntil: "commit",
     waitMs: 3000,
     stateLabel: "protected-latest-session-logger",
+  },
+  "session-feedback": {
+    name: "session-feedback",
+    proofLane: "protected",
+    route: `/session/${QA_BASELINE.sessionIds.active}?returnTo=%2Ftoday&exerciseId=${QA_BASELINE.sessionExerciseIds.activeLunge}`,
+    viewport: DEFAULT_VISUAL_VIEWPORT,
+    authRequired: true,
+    setupRequirements: [
+      "fresh-dev-receipt",
+      "valid-qa-session-artifact-for-authenticated-state",
+    ],
+    expectedOutputFilename: "session-feedback.png",
+    allowAuthGatedFallback: true,
+    themePreset: "default",
+    waitUntil: "commit",
+    waitMs: 3000,
+    stateLabel: "protected-latest-session-feedback-roundtrip",
+    interaction: {
+      type: "session-feedback-roundtrip",
+      signalLabel: "Too Hard",
+      effortValue: 8,
+      noteValue: "QA live effort feedback note",
+      expectedText: [
+        "Effort Feedback",
+        "Effort Rating",
+      ],
+    },
   },
   routines: {
     name: "routines",

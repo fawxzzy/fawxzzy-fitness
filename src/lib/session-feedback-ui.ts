@@ -17,7 +17,6 @@ export type ComparableSessionLoggerDraftQuickLogPayload = {
   distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
-  rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
 } | null;
@@ -28,7 +27,6 @@ export type ComparableSessionLoggerDraftFormState = {
   durationInput: string;
   distance: string;
   calories: string;
-  rpe: string;
   weightUnit: "lbs" | "kg";
   distanceUnit: FitnessDistanceUnit;
   isWarmup: boolean;
@@ -43,6 +41,7 @@ export type ComparableSessionLoggerDraftState = {
   didApplyLastTarget: boolean;
   copilotFeedbackSignal: SessionCopilotFeedbackSignal | null;
   copilotFeedbackNote: string | null;
+  copilotFeedbackEffort: number | null;
   formState: ComparableSessionLoggerDraftFormState;
 };
 
@@ -98,7 +97,7 @@ export function buildSessionEffortNotePlaceholder(args: {
   const contextLabel = buildSessionEffortContextLabel(args);
   return contextLabel
     ? `Optional context for ${contextLabel.toLowerCase()}`
-    : "Optional context for this set or exercise";
+    : "Optional context for this exercise";
 }
 
 export function areSessionLoggerDraftStatesEqual(
@@ -118,19 +117,18 @@ export function areSessionLoggerDraftStatesEqual(
     && left.quickLogPayload?.distanceUnit === right.quickLogPayload?.distanceUnit
     && left.quickLogPayload?.calories === right.quickLogPayload?.calories
     && left.quickLogPayload?.isWarmup === right.quickLogPayload?.isWarmup
-    && left.quickLogPayload?.rpe === right.quickLogPayload?.rpe
     && left.quickLogPayload?.notes === right.quickLogPayload?.notes
     && left.quickLogPayload?.weightUnit === right.quickLogPayload?.weightUnit
     && left.isEditedFromCurrentTarget === right.isEditedFromCurrentTarget
     && left.didApplyLastTarget === right.didApplyLastTarget
     && left.copilotFeedbackSignal === right.copilotFeedbackSignal
     && left.copilotFeedbackNote === right.copilotFeedbackNote
+    && left.copilotFeedbackEffort === right.copilotFeedbackEffort
     && left.formState.weight === right.formState.weight
     && left.formState.reps === right.formState.reps
     && left.formState.durationInput === right.formState.durationInput
     && left.formState.distance === right.formState.distance
     && left.formState.calories === right.formState.calories
-    && left.formState.rpe === right.formState.rpe
     && left.formState.weightUnit === right.formState.weightUnit
     && left.formState.distanceUnit === right.formState.distanceUnit
     && left.formState.isWarmup === right.formState.isWarmup

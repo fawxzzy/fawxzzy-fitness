@@ -86,7 +86,6 @@ type AddSetPayload = {
   distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
-  rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
   clientLogId: string;
@@ -105,7 +104,6 @@ export type SessionLoggerDraftQuickLogPayload = {
   distanceUnit: FitnessDistanceUnit | null;
   calories: number | null;
   isWarmup: boolean;
-  rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
 };
@@ -116,7 +114,6 @@ export type SessionLoggerDraftFormState = {
   durationInput: string;
   distance: string;
   calories: string;
-  rpe: string;
   weightUnit: "lbs" | "kg";
   distanceUnit: FitnessDistanceUnit;
   isWarmup: boolean;
@@ -131,6 +128,7 @@ export type SessionLoggerDraftState = {
   didApplyLastTarget: boolean;
   copilotFeedbackSignal: SessionCopilotFeedbackSignal | null;
   copilotFeedbackNote: string | null;
+  copilotFeedbackEffort: number | null;
   formState: SessionLoggerDraftFormState;
 };
 
@@ -142,7 +140,6 @@ function areLoggerFormStatesEqual(left: SessionLoggerFormState, right: SessionLo
     && left.durationInput === right.durationInput
     && left.distance === right.distance
     && left.calories === right.calories
-    && left.rpe === right.rpe
     && left.weightUnit === right.weightUnit
     && left.distanceUnit === right.distanceUnit
     && left.isWarmup === right.isWarmup
@@ -263,7 +260,6 @@ function getSessionSummaryItems({
   distanceUnit,
   calories,
   failure,
-  rpe,
   isWarmup,
   queueStatus,
   pending,
@@ -278,7 +274,6 @@ function getSessionSummaryItems({
   distanceUnit: FitnessDistanceUnit | null | undefined;
   calories: number | null | undefined;
   failure?: boolean;
-  rpe?: number | null;
   isWarmup?: boolean;
   queueStatus?: string;
   pending?: boolean;
@@ -304,10 +299,6 @@ function getSessionSummaryItems({
       emptyLabel,
     }).map((item) => item.label),
   ];
-
-  if (rpe !== null && rpe !== undefined) {
-    parts.push(`Effort ${rpe}`);
-  }
 
   if (isWarmup && includeWarmupTag) {
     parts.push("Warm-Up");
@@ -593,7 +584,6 @@ export function SetLoggerCard({
         : (prefillDurationSeconds !== undefined ? formatDurationClock(prefillDurationSeconds) : ""),
       distance: currentLiveQuickLogTarget?.distance !== undefined ? String(currentLiveQuickLogTarget.distance) : "",
       calories: currentLiveQuickLogTarget?.calories !== undefined ? String(currentLiveQuickLogTarget.calories) : "",
-      rpe: seededInitialEffortRating === null ? "" : String(seededInitialEffortRating),
       weightUnit: currentLiveQuickLogTarget?.weightUnit === "kg" || currentLiveQuickLogTarget?.weightUnit === "lbs"
         ? currentLiveQuickLogTarget.weightUnit
         : (prefillWeightUnit ?? (unitLabel === "kg" ? "kg" : "lbs")),
@@ -699,7 +689,6 @@ export function SetLoggerCard({
     setDistance(nextFormState.distance);
     setDistanceUnit(nextFormState.distanceUnit);
     setCalories(nextFormState.calories);
-    setRpe(nextFormState.rpe);
     setIsWarmup(nextFormState.isWarmup);
     setIsFailure(nextFormState.isFailure);
   }, []);
@@ -808,7 +797,7 @@ export function SetLoggerCard({
     try {
       const parsed = JSON.parse(raw) as {
         sets?: DisplaySet[];
-      form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: FitnessDistanceUnit; calories?: string; rpe?: string; isWarmup?: boolean; isFailure?: boolean; selectedWeightUnit?: "lbs" | "kg"; didApplyLastTarget?: boolean };
+      form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: FitnessDistanceUnit; calories?: string; isWarmup?: boolean; isFailure?: boolean; selectedWeightUnit?: "lbs" | "kg"; didApplyLastTarget?: boolean };
       };
 
       if (isOfflineSnapshotStale((parsed as { updatedAt?: number | string }).updatedAt)) {
@@ -851,7 +840,6 @@ export function SetLoggerCard({
         if (typeof sanitizedForm.distance === "string") setDistance(sanitizedForm.distance);
         if (isFitnessDistanceUnit(parsed.form.distanceUnit)) setDistanceUnit(parsed.form.distanceUnit);
         if (typeof sanitizedForm.calories === "string") setCalories(sanitizedForm.calories);
-        if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
         if (typeof parsed.form.isWarmup === "boolean") setIsWarmup(parsed.form.isWarmup);
         if (typeof parsed.form.isFailure === "boolean") setIsFailure(parsed.form.isFailure);
         if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
@@ -894,7 +882,6 @@ export function SetLoggerCard({
         distance: sanitizedForm.distance,
         distanceUnit,
         calories: sanitizedForm.calories,
-        rpe,
         isWarmup: resolvedIsWarmup,
         isFailure,
         selectedWeightUnit,
@@ -945,7 +932,7 @@ export function SetLoggerCard({
         draftStorageIdleCallbackRef.current = null;
       }
     };
-  }, [calories, didApplyLastTarget, disableDraftPersistence, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
+  }, [calories, didApplyLastTarget, disableDraftPersistence, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
 
   useEffect(() => () => {
     if (disableDraftPersistence) {
@@ -1081,7 +1068,7 @@ export function SetLoggerCard({
               calories: item.payload.calories,
               is_warmup: item.payload.isWarmup,
               notes: item.payload.notes,
-              rpe: item.payload.rpe,
+              rpe: null,
               weight_unit: item.payload.weightUnit,
               pending: true,
               queueStatus: item.status,
@@ -1148,7 +1135,6 @@ export function SetLoggerCard({
     parsedWeight: number;
     parsedReps: number;
     resolvedIsFailure: boolean;
-    parsedRpe: number | null;
     resolvedIsWarmup: boolean;
   }) => {
     const appliedNextSetTarget = applyNextSetFlowTarget(args.nextSetIndex + 1);
@@ -1159,7 +1145,6 @@ export function SetLoggerCard({
       setWeight(args.presentMetrics.weight ? String(args.parsedWeight) : String(args.sanitizedValues.weight ?? ""));
       setReps(args.presentMetrics.reps ? (args.resolvedIsFailure ? "" : String(args.parsedReps)) : String(args.sanitizedValues.reps ?? ""));
     }
-    setRpe(args.parsedRpe === null ? "" : String(args.parsedRpe));
     setIsFailure(false);
     setIsWarmup(args.resolvedIsWarmup);
   }, [applyNextSetFlowTarget]);
@@ -1192,8 +1177,6 @@ export function SetLoggerCard({
     const parsedDuration = parseDurationInput(sanitizedValues.duration);
     const parsedDistance = sanitizedValues.distance.trim() ? Number(sanitizedValues.distance) : null;
     const parsedCalories = sanitizedValues.calories.trim() ? Number(sanitizedValues.calories) : null;
-    const parsedRpe = rpe.trim() ? Number(rpe) : null;
-
     if (presentMetrics.weight && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
       const message = "Weight must be 0 or greater.";
       setError(message);
@@ -1229,13 +1212,6 @@ export function SetLoggerCard({
       return;
     }
 
-    if (parsedRpe !== null && (!Number.isFinite(parsedRpe) || parsedRpe < 0)) {
-      const message = "RPE must be 0 or greater.";
-      setError(message);
-      toast.error(message);
-      return;
-    }
-
     setError(null);
 
     const clientLogId = createStableSetId();
@@ -1256,7 +1232,7 @@ export function SetLoggerCard({
       calories: parsedCalories,
       is_warmup: resolvedIsWarmup,
       notes: failureNote,
-      rpe: parsedRpe,
+      rpe: null,
       weight_unit: selectedWeightUnit,
       pending: true,
     };
@@ -1281,7 +1257,6 @@ export function SetLoggerCard({
       parsedWeight,
       parsedReps,
       resolvedIsFailure,
-      parsedRpe,
       resolvedIsWarmup,
     });
     setIsSubmitting(false);
@@ -1301,8 +1276,8 @@ export function SetLoggerCard({
           distance: parsedDistance,
           distanceUnit: parsedDistance !== null ? distanceUnit : null,
           calories: parsedCalories,
+          rpe: null,
           isWarmup: resolvedIsWarmup,
-          rpe: parsedRpe,
           notes: failureNote,
           weightUnit: selectedWeightUnit,
         },
@@ -1345,7 +1320,6 @@ export function SetLoggerCard({
         distanceUnit: parsedDistance !== null ? distanceUnit : null,
         calories: parsedCalories,
         isWarmup: resolvedIsWarmup,
-        rpe: parsedRpe,
         notes: failureNote,
         weightUnit: selectedWeightUnit,
         clientLogId,
@@ -1364,8 +1338,8 @@ export function SetLoggerCard({
             distance: parsedDistance,
             distanceUnit: parsedDistance !== null ? distanceUnit : null,
             calories: parsedCalories,
+            rpe: null,
             isWarmup: resolvedIsWarmup,
-            rpe: parsedRpe,
             notes: failureNote,
             weightUnit: selectedWeightUnit,
           },
@@ -1424,8 +1398,8 @@ export function SetLoggerCard({
           distance: parsedDistance,
           distanceUnit: parsedDistance !== null ? distanceUnit : null,
           calories: parsedCalories,
+          rpe: null,
           isWarmup: resolvedIsWarmup,
-          rpe: parsedRpe,
           notes: failureNote,
           weightUnit: selectedWeightUnit,
         },
@@ -1465,7 +1439,6 @@ export function SetLoggerCard({
     resolvedIsFailure,
     resolvedIsWarmup,
     reps,
-    rpe,
     selectedWeightUnit,
     sessionExerciseId,
     sessionId,
@@ -1491,12 +1464,11 @@ export function SetLoggerCard({
       distanceUnit,
       calories: calories.trim() ? Number(calories) : null,
       failure: resolvedIsFailure,
-      rpe: rpe.trim() ? Number(rpe.trim()) : null,
       isWarmup: resolvedIsWarmup,
       emptyLabel: hasVisibleMeasurements ? "Add measurements" : "",
       includeWarmupTag: false,
     }).filter((item) => item.trim().length > 0);
-  }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
+  }, [calories, distance, distanceUnit, durationInput, liveSetInputOrder.visibleMetrics.length, reps, resolvedIsFailure, resolvedIsWarmup, selectedWeightUnit, weight]);
   const liveLogButtonPrefix = resolvedIsWarmup ? "Log Warm-Up" : (resolvedIsFailure ? "Log Failure" : "Log");
   const liveLogButtonLabel = liveSummaryItems.length > 0
     ? `${liveLogButtonPrefix}: ${liveSummaryItems.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)}`
@@ -1507,12 +1479,11 @@ export function SetLoggerCard({
     durationInput,
     distance,
     calories,
-    rpe,
     weightUnit: selectedWeightUnit,
     distanceUnit,
     isWarmup: resolvedIsWarmup,
     isFailure,
-  }), [calories, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
+  }), [calories, distance, distanceUnit, durationInput, isFailure, reps, resolvedIsWarmup, selectedWeightUnit, weight]);
   const isEditedFromCurrentTarget = useMemo(
     () => !areLoggerFormStatesEqual(currentFormState, canonicalFormState),
     [canonicalFormState, currentFormState],
@@ -1537,14 +1508,12 @@ export function SetLoggerCard({
     const parsedDuration = parseDurationInput(sanitizedValues.duration);
     const parsedDistance = sanitizedValues.distance.trim() ? Number(sanitizedValues.distance) : null;
     const parsedCalories = sanitizedValues.calories.trim() ? Number(sanitizedValues.calories) : null;
-    const parsedRpe = rpe.trim() ? Number(rpe) : null;
 
     if (presentMetrics.weight && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) return null;
     if (presentMetrics.reps && (!Number.isFinite(parsedReps) || parsedReps < 0)) return null;
     if (sanitizedValues.duration.trim() && (parsedDuration === null || !Number.isInteger(parsedDuration) || parsedDuration < 0)) return null;
     if (parsedDistance !== null && (!Number.isFinite(parsedDistance) || parsedDistance < 0)) return null;
     if (parsedCalories !== null && (!Number.isFinite(parsedCalories) || parsedCalories < 0)) return null;
-    if (parsedRpe !== null && (!Number.isFinite(parsedRpe) || parsedRpe < 0)) return null;
 
     return {
       weight: parsedWeight,
@@ -1554,11 +1523,12 @@ export function SetLoggerCard({
       distanceUnit: parsedDistance !== null ? distanceUnit : null,
       calories: parsedCalories,
       isWarmup: resolvedIsWarmup,
-      rpe: parsedRpe,
       notes: resolvedIsFailure ? FAILURE_NOTE_SENTINEL : null,
       weightUnit: selectedWeightUnit,
     };
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsFailure, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsFailure, resolvedIsWarmup, selectedWeightUnit, weight]);
+  const selectedEffortValue = rpe.trim() ? Number(rpe.trim()) : null;
+  const hasSelectedEffortValue = selectedEffortValue !== null && Number.isFinite(selectedEffortValue);
   const liveGoalLabel = liveSummaryItems.length > 0
     ? liveSummaryItems.join(SESSION_FEEDBACK_SUMMARY_SEPARATOR)
     : (fallbackGoalLabel?.trim() || null);
@@ -1576,9 +1546,10 @@ export function SetLoggerCard({
       didApplyLastTarget,
       copilotFeedbackSignal: copilotSignalState,
       copilotFeedbackNote: normalizeSessionCopilotFeedbackNote(copilotNoteState),
+      copilotFeedbackEffort: selectedEffortValue,
       formState: currentFormState,
     });
-  }, [copilotNoteState, copilotSignalState, currentFormState, didApplyLastTarget, draftQuickLogPayload, isEditedFromCurrentTarget, liveGoalLabel, liveLogButtonLabel, onDraftStateChange, reportDraftState]);
+  }, [copilotNoteState, copilotSignalState, currentFormState, didApplyLastTarget, draftQuickLogPayload, isEditedFromCurrentTarget, liveGoalLabel, liveLogButtonLabel, onDraftStateChange, reportDraftState, selectedEffortValue]);
 
   const applyHintValues = useCallback((values: SessionTargetHint["suggestedValues"] | null | undefined) => {
     if (!values) return;
@@ -1860,9 +1831,15 @@ export function SetLoggerCard({
         return false;
       }
 
-      const committedSignal = normalizeSessionCopilotFeedbackSignal(result.data?.signal ?? normalizedSignal);
-      const committedNote = normalizeSessionCopilotFeedbackNote(result.data?.note ?? normalizedNote);
-      const committedEffort = normalizeSessionCopilotFeedbackEffort(result.data?.effort ?? normalizedEffort);
+      const committedSignal = result.data
+        ? normalizeSessionCopilotFeedbackSignal(result.data.signal)
+        : normalizedSignal;
+      const committedNote = result.data
+        ? normalizeSessionCopilotFeedbackNote(result.data.note)
+        : normalizedNote;
+      const committedEffort = result.data
+        ? normalizeSessionCopilotFeedbackEffort(result.data.effort)
+        : normalizedEffort;
       committedCopilotSignalRef.current = committedSignal;
       committedCopilotNoteRef.current = committedNote;
       committedCopilotEffortRef.current = committedEffort;
@@ -1882,8 +1859,6 @@ export function SetLoggerCard({
       setIsSavingCopilotFeedback(false);
     }
   }, [sessionExerciseId, sessionId, toast, updateCopilotFeedbackAction]);
-  const selectedEffortValue = rpe.trim() ? Number(rpe.trim()) : null;
-  const hasSelectedEffortValue = selectedEffortValue !== null && Number.isFinite(selectedEffortValue);
   const handleCopilotSignalPress = useCallback(async (signal: SessionCopilotFeedbackSignal) => {
     const nextSignal = copilotSignalState === signal ? null : signal;
     setCopilotSignalState(nextSignal);
@@ -1964,7 +1939,6 @@ export function SetLoggerCard({
                   distanceUnit: set.distance_unit,
                   calories: set.calories,
                   failure: !set.is_warmup && set.notes === FAILURE_NOTE_SENTINEL,
-                  rpe: set.rpe,
                   isWarmup: set.is_warmup,
                   queueStatus: set.queueStatus,
                   pending: set.pending,

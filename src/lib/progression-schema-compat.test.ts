@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   getMissingSchemaColumnDiagnostic,
+  isMissingSessionCopilotFeedbackEffortColumnError,
   getSchemaMismatchMessage,
   isMissingProgressionPlaybookColumnError,
   isMissingRoutineDefaultProgressionColumnError,
@@ -63,4 +64,14 @@ test("exercise metadata columns do not report progression migrations", () => {
     getSchemaMismatchMessage(error),
     "Database schema is out of sync. Missing exercises.image_icon_path. Apply pending migrations before editing progression.",
   );
+});
+
+test("session copilot feedback effort column mismatch is detected without reporting progression schema drift", () => {
+  const error = {
+    message: "column session_exercises.copilot_feedback_effort does not exist",
+  };
+
+  assert.equal(isMissingSessionCopilotFeedbackEffortColumnError(error), true);
+  assert.equal(isMissingProgressionPlaybookColumnError(error), false);
+  assert.equal(isMissingRoutineDefaultProgressionColumnError(error), false);
 });
