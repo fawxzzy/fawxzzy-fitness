@@ -900,6 +900,61 @@ async function runSuiteInteraction(page, suite, options = {}) {
     };
   }
 
+  if (interaction.type === "history-sessions-drill-in-contract") {
+    const targetHref = typeof interaction.targetHref === "string"
+      ? interaction.targetHref.trim()
+      : "";
+    const expectedUrl = typeof interaction.expectedUrl === "string"
+      ? interaction.expectedUrl.trim()
+      : "";
+    const targetCard = targetHref
+      ? page.locator(`a[href="${targetHref}"]`)
+      : null;
+    const targetCount = targetCard ? await targetCard.count().catch(() => 0) : 0;
+    if (!targetHref || targetCount !== 1) {
+      return {
+        performed: false,
+        bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+        missingExpectedText: interaction.expectedText ?? [],
+        details: {
+          targetHref,
+          targetCount,
+        },
+        blockedReason: `Expected exactly one history session drill-in target for "${targetHref}".`,
+      };
+    }
+
+    await targetCard.click();
+    await page.waitForLoadState("load", { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(300);
+
+    const landedUrl = page.url();
+    const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
+    const bodyTextLower = bodyText.toLowerCase();
+    const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !bodyTextLower.includes(text.toLowerCase()));
+    const blockedReasons = [];
+
+    if (expectedUrl && landedUrl !== expectedUrl) {
+      blockedReasons.push(`expected to land on ${expectedUrl} but found ${landedUrl}`);
+    }
+    if (missingExpectedText.length > 0) {
+      blockedReasons.push(`missing expected history drill-in text: ${missingExpectedText.join(", ")}`);
+    }
+
+    return {
+      performed: true,
+      bodyText,
+      missingExpectedText,
+      details: {
+        targetHref,
+        landedUrl,
+      },
+      blockedReason: blockedReasons.length > 0
+        ? `History sessions drill-in contract failed: ${blockedReasons.join("; ")}.`
+        : null,
+    };
+  }
+
   return {
     performed: false,
     bodyText: null,

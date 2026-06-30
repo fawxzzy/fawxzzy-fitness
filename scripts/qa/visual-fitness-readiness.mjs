@@ -43,6 +43,7 @@ export const seamSuites = [
   "session-seam-calories",
   "routines-seam",
   "history-seam",
+  "history-drill-in-seam",
   "history-exercises-seam",
   "history-detail-seam",
   "exercise-detail-seam",

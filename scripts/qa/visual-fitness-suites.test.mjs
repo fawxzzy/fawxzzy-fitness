@@ -93,6 +93,20 @@ test("history seam asserts the deterministic notes highlight contract", () => {
   );
 });
 
+test("history drill-in seam asserts the deterministic list-to-detail handoff", () => {
+  const suite = getVisualFitnessSuite("history-drill-in-seam");
+  assert.ok(suite, "Expected history-drill-in-seam to exist in visual fitness suites.");
+  assert.equal(suite?.proofLane, "seam");
+  assert.equal(suite?.authRequired, false);
+  assert.equal(suite?.route, "/dev/mobile-regression?scenario=history-sessions-detailed");
+  assert.equal(suite?.interaction?.type, "history-sessions-drill-in-contract");
+  assert.equal(suite?.interaction?.targetHref, "/dev/mobile-regression?scenario=history-detail-feedback-note");
+  assert.ok(
+    (suite?.interaction?.expectedText ?? []).includes("Stride felt sloppy once the incline ramped up."),
+    "Expected the drill-in seam to assert the saved feedback note text on the landing detail screen.",
+  );
+});
+
 test("protected history overview asserts the QA notes highlight contract", () => {
   const suite = getVisualFitnessSuite("history");
   assert.ok(suite, "Expected history to exist in visual fitness suites.");
