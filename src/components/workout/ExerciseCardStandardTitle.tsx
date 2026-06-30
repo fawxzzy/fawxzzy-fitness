@@ -34,10 +34,12 @@ export function ExerciseCardMetadataLine({
   items,
   className,
   highlightFirstItem = true,
+  allowWrap = true,
 }: {
   items: string[];
   className?: string;
   highlightFirstItem?: boolean;
+  allowWrap?: boolean;
 }) {
   if (items.length === 0) {
     return null;
@@ -47,15 +49,20 @@ export function ExerciseCardMetadataLine({
     <SignatureInlineList
       separator="pipe"
       className={cn(
-        "!flex-nowrap min-w-0 max-w-full gap-x-1.5 gap-y-0 whitespace-nowrap pb-px text-[9.75px] font-medium leading-[1.18] text-[rgb(var(--text-secondary)/0.9)]",
+        "min-w-0 max-w-full gap-x-1.5 pb-px text-[9.75px] font-medium leading-[1.18] text-[rgb(var(--text-secondary)/0.9)] [text-wrap:pretty]",
+        allowWrap ? "gap-y-0.5 whitespace-normal" : "!flex-nowrap gap-y-0 whitespace-nowrap",
         className,
       )}
-      itemClassName="inline-flex shrink-0 items-center whitespace-nowrap leading-[1.16]"
+      itemClassName={cn(
+        "inline-flex items-center leading-[1.16]",
+        allowWrap ? "min-w-0 whitespace-normal" : "shrink-0 whitespace-nowrap",
+      )}
       items={items.map((value, index) => (
         <span
           key={`${value}-${index}`}
           className={cn(
-            "inline-flex min-w-0 items-center whitespace-nowrap",
+            "inline-flex min-w-0 items-center",
+            allowWrap ? "whitespace-normal [text-wrap:pretty]" : "whitespace-nowrap",
             highlightFirstItem && index === 0 ? "text-[rgb(var(--accent-strong)/0.98)]" : undefined,
           )}
         >
@@ -118,8 +125,8 @@ function renderRightContent(content: ReactNode) {
   return (
     <AccentDotSeparatedText
       text={normalized}
-      className="min-w-0 max-w-full items-center gap-x-1.5 gap-y-0.5 text-[9.75px] tracking-[0.01em] leading-[1.16] text-[rgb(var(--text-secondary)/0.88)]"
-      itemClassName="shrink-0 whitespace-nowrap leading-[1.12]"
+      className="min-w-0 max-w-full items-center gap-x-1.5 gap-y-0.5 text-[9.75px] tracking-[0.01em] leading-[1.16] text-[rgb(var(--text-secondary)/0.88)] [text-wrap:pretty]"
+      itemClassName="min-w-0 leading-[1.12]"
     />
   );
 }
@@ -238,7 +245,7 @@ export function ExerciseCardStandardTitle({
             {rightSubcontent ? (
               <span
                 className={cn(
-                  "inline-flex w-fit min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap text-[9.25px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.88)]",
+                  "inline-flex w-fit min-w-0 max-w-full flex-wrap items-center gap-1.5 text-[9.25px] font-medium leading-[1.16] text-[rgb(var(--text-secondary)/0.88)] [text-wrap:pretty]",
                   hasPrimaryRightRow ? undefined : "pt-[4px]",
                 )}
               >

@@ -395,10 +395,10 @@ export function RoutineDayCardRecapPreview(
               metadata={exercise.signatureLabel ? (
                 <ExerciseCardMetadataLine
                   items={exercise.signatureLabel.split(/\s+\|\s+/).map((value) => value.trim()).filter(Boolean)}
-                  className="max-w-full overflow-hidden text-[8.7px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)] sm:text-[9.5px]"
+                  className="max-w-full text-[8.7px] leading-[1.06] text-[rgb(var(--text-secondary)/0.88)] sm:text-[9.5px]"
                 />
               ) : (
-                <span className="max-w-full overflow-hidden whitespace-nowrap text-[9px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)] sm:text-[9.5px]">
+                <span className="max-w-full whitespace-normal break-words text-[9px] font-medium leading-[1.06] text-[rgb(var(--text-secondary)/0.78)] [text-wrap:pretty] sm:text-[9.5px]">
                   Exercise configured
                 </span>
               )}
@@ -410,9 +410,9 @@ export function RoutineDayCardRecapPreview(
               columnLayout="compact"
               hideRightTitleOnMobile
               className="gap-x-[0.45rem] gap-y-0.5 sm:gap-x-[0.55rem]"
-              nameClassName="max-w-full whitespace-normal break-words [text-wrap:balance] text-[0.8rem] leading-[1.02] sm:whitespace-nowrap sm:text-[0.91rem] sm:leading-[1.14]"
+              nameClassName="max-w-full whitespace-normal break-words [text-wrap:balance] text-[0.8rem] leading-[1.02] sm:text-[0.91rem] sm:leading-[1.14]"
               rightColumnClassName="w-fit max-w-full"
-              rightContentClassName="gap-1 whitespace-nowrap text-[8.55px] leading-[1.03] sm:text-[8.95px]"
+              rightContentClassName="gap-1 text-[8.55px] leading-[1.03] sm:text-[8.95px]"
             />
             <MetricAccentBar variant="thin" className="mt-2 w-full opacity-75" />
           </div>

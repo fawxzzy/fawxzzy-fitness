@@ -114,7 +114,7 @@ export function RoutineChooserSourceCard({
       <span className="relative z-[1] flex min-w-0 flex-col gap-2 pl-1">
         <span className="flex items-start justify-between gap-3">
           <span className="inline-flex min-w-0 max-w-full flex-col items-start gap-[3px]">
-            <span className="block text-[0.92rem] font-semibold text-[rgb(var(--text-primary)/0.98)]">
+            <span className="block min-w-0 max-w-full whitespace-normal break-words text-[0.92rem] font-semibold leading-[1.12] text-[rgb(var(--text-primary)/0.98)] [text-wrap:balance]">
               {title}
             </span>
             <span className="h-px w-full bg-[rgb(var(--accent-divider-rgb)/0.58)] opacity-90" />

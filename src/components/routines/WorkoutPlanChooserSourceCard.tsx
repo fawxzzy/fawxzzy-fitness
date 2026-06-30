@@ -43,7 +43,7 @@ export function WorkoutPlanChooserSourceCard({
       title={(
         <span className="flex w-full justify-center text-center">
           <span className="inline-flex min-w-0 max-w-full flex-col items-center gap-1 text-center">
-            <span className={cn("min-w-0 max-w-full truncate text-center", titleToneClassName)}>
+            <span className={cn("min-w-0 max-w-full whitespace-normal break-words text-center leading-[1.1] [text-wrap:balance]", titleToneClassName)}>
               {resolvedTitle}
             </span>
             <MetricAccentBar variant="thin" className="w-full max-w-full self-stretch" />
