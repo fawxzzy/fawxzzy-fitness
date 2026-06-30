@@ -12,7 +12,9 @@ type SessionExerciseSeed = {
   position: number;
   performed_index: number | null;
   notes: string | null;
+  copilot_feedback_signal?: string | null;
   copilot_feedback_note?: string | null;
+  copilot_feedback_effort?: number | null;
   is_skipped: boolean;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;
@@ -375,7 +377,9 @@ test("preserves saved copilot feedback notes on session exercise rows", async ()
       position: 1,
       performed_index: 0,
       notes: null,
+      copilot_feedback_signal: "too_hard",
       copilot_feedback_note: "Too hard after the second interval.",
+      copilot_feedback_effort: 8,
       is_skipped: false,
     }],
     sets: [],
@@ -383,7 +387,9 @@ test("preserves saved copilot feedback notes on session exercise rows", async ()
 
   const result = await loadHistoryDetailRows({ supabase, sessionId: "session-feedback", userId: "user-1", sessionFound: true });
 
+  assert.equal(result.orderedSessionExercises[0]?.copilot_feedback_signal, "too_hard");
   assert.equal(result.orderedSessionExercises[0]?.copilot_feedback_note, "Too hard after the second interval.");
+  assert.equal(result.orderedSessionExercises[0]?.copilot_feedback_effort, 8);
 });
 
 test("does not zero out exercises when only some exercise metadata resolves", async () => {

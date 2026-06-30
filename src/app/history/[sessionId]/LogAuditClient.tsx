@@ -51,10 +51,12 @@ import { formatDateShort } from "@/lib/formatting";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryItems, formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+import { buildSessionEffortContextLabel } from "@/lib/session-feedback-ui";
 import { cn } from "@/lib/cn";
 import { isFitnessDistanceUnit, type FitnessDistanceUnit } from "@/lib/fitness-distance-units";
 import type { ExerciseProgressionLifelineSummary } from "@/lib/progression-lifeline-summary";
 import type { WorkoutRecapArtifact } from "@/lib/workout-recap";
+import type { SessionCopilotFeedbackSignal } from "@/lib/session-copilot-feedback";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -86,7 +88,9 @@ type AuditExercise = {
   exercise_image_icon_path?: string | null;
   exercise_image_howto_path?: string | null;
   notes: string | null;
+  copilot_feedback_signal?: SessionCopilotFeedbackSignal | null;
   copilot_feedback_note?: string | null;
+  copilot_feedback_effort?: number | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   target_sets_min?: number | null;
@@ -168,6 +172,36 @@ function resolveExerciseDisplayNotesValue({
   return typeof exercise.copilot_feedback_note === "string"
     ? exercise.copilot_feedback_note.trim()
     : "";
+}
+
+function resolveExerciseDisplayNotesContextLabel({
+  exercise,
+  draftNotesValue,
+}: {
+  exercise: AuditExercise;
+  draftNotesValue?: string | null;
+}) {
+  const draftedNote = typeof draftNotesValue === "string" ? draftNotesValue.trim() : "";
+  if (draftedNote) {
+    return null;
+  }
+
+  const exerciseNote = typeof exercise.notes === "string" ? exercise.notes.trim() : "";
+  if (exerciseNote) {
+    return null;
+  }
+
+  const feedbackNote = typeof exercise.copilot_feedback_note === "string"
+    ? exercise.copilot_feedback_note.trim()
+    : "";
+  if (!feedbackNote) {
+    return null;
+  }
+
+  return buildSessionEffortContextLabel({
+    signal: exercise.copilot_feedback_signal ?? null,
+    effortValue: exercise.copilot_feedback_effort ?? null,
+  });
 }
 
 const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg", measurementType: AuditExercise["measurement_type"]): EditableSet => ({
@@ -863,6 +897,7 @@ function FocusedExerciseContextPanels({
   overviewSections,
   progressionSummary,
   notesValue,
+  notesContextLabel,
   isEditing,
   canEditNotes,
   canShowNotes,
@@ -875,6 +910,7 @@ function FocusedExerciseContextPanels({
   overviewSections?: HistorySessionDetailSection[];
   progressionSummary?: ExerciseProgressionLifelineSummary | null;
   notesValue: string;
+  notesContextLabel?: string | null;
   isEditing: boolean;
   canEditNotes: boolean;
   canShowNotes: boolean;
@@ -914,6 +950,11 @@ function FocusedExerciseContextPanels({
         <AppPanel className={cn(appTokens.detailSection, "space-y-2 !border-0 !bg-transparent p-2 !shadow-none")}>
           <h3 className={cn(appTokens.detailSectionTitle, FOCUSED_PANEL_TITLE_CLASS_NAME)} style={FOCUSED_PANEL_TITLE_STYLE}>Notes</h3>
           <div className="px-2 py-1">
+            {notesContextLabel ? (
+              <p className="pb-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-divider-rgb)/0.96)]">
+                {notesContextLabel}
+              </p>
+            ) : null}
             {isEditing
               ? noteInput
               : (
@@ -1053,6 +1094,12 @@ export function LogAuditClient({
         draftNotesValue: exerciseNotes[expandedExercise.id] ?? expandedExercise.notes ?? "",
       })
     : "";
+  const focusedExerciseNotesContextLabel = expandedExercise
+    ? resolveExerciseDisplayNotesContextLabel({
+        exercise: expandedExercise,
+        draftNotesValue: exerciseNotes[expandedExercise.id] ?? expandedExercise.notes ?? "",
+      })
+    : null;
   const isFocusedSetExpanded = Boolean(expandedSetId);
   const focusedHasMeaningfulSetData = expandedExercise
     ? countMeaningfulSetData(editableSets[expandedExercise.id] ?? []) > 0
@@ -1629,6 +1676,7 @@ export function LogAuditClient({
                             overviewSections={focusedDetailedSections}
                             progressionSummary={expandedExercise.progressionSummary ?? null}
                             notesValue={focusedExerciseDisplayNotes}
+                            notesContextLabel={focusedExerciseNotesContextLabel}
                             isEditing={isEditing}
                             canEditNotes={!isFocusedSetExpanded}
                             canShowNotes={focusedHasMeaningfulSetData}
@@ -1763,6 +1811,7 @@ export function LogAuditClient({
                             overviewSections={focusedDetailedSections}
                             progressionSummary={expandedExercise.progressionSummary ?? null}
                             notesValue={focusedExerciseDisplayNotes}
+                            notesContextLabel={focusedExerciseNotesContextLabel}
                             isEditing={isEditing}
                             canEditNotes={!isFocusedSetExpanded}
                             canShowNotes={focusedHasMeaningfulSetData}

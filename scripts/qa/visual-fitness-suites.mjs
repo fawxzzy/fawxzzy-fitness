@@ -214,6 +214,7 @@ export const VISUAL_FITNESS_SUITES = {
       expectedNoteText: "Stride felt sloppy once the incline ramped up.",
       expectedText: [
         "Notes",
+        "Form | Effort 8/10",
         "Stride felt sloppy once the incline ramped up.",
       ],
     },
@@ -558,6 +559,7 @@ export const VISUAL_FITNESS_SUITES = {
       expectedNoteText: "Stride felt sloppy once the incline ramped up.",
       expectedText: [
         "Notes",
+        "Form | Effort 8/10",
         "Stride felt sloppy once the incline ramped up.",
       ],
     },

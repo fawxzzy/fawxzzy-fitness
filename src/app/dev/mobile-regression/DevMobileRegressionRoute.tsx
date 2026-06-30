@@ -1498,7 +1498,9 @@ const mockHistoryDetailExercises = [
     exercise_image_icon_path: "/missing/icon-walk.png",
     exercise_image_howto_path: "/missing/howto-walk.png",
     notes: null,
+    copilot_feedback_signal: "form_breakdown",
     copilot_feedback_note: "Stride felt sloppy once the incline ramped up.",
+    copilot_feedback_effort: 8,
     measurement_type: "time_distance" as const,
     default_unit: "mi",
     progressionSummary: {
@@ -2701,7 +2703,7 @@ function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
             <HistoryLogPageClient
               logId="history-session-2"
               initialDayName={PREVIEW_DAY_LABEL}
-              initialNotes="Broken media fixtures should preserve spacing and not collapse summary rows."
+              initialNotes={scenario.fixture === "feedback-note" ? null : "Broken media fixtures should preserve spacing and not collapse summary rows."}
               unitLabel="lbs"
               exerciseNameMap={exerciseNameMap}
               sessionSummary={mockHistorySessions[1]}

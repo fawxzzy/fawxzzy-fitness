@@ -25,7 +25,9 @@ test("normalizes standard exercise payload", () => {
     exercise_image_icon_path: null,
     exercise_image_howto_path: null,
     notes: null,
+    copilot_feedback_signal: null,
     copilot_feedback_note: null,
+    copilot_feedback_effort: null,
     measurement_type: "reps",
     default_unit: "lbs",
     target_sets_min: null,
@@ -71,7 +73,9 @@ test("normalizes alias-based payload drift and media aliases", () => {
   assert.equal(result[0].exercise_image_path, "/img/main.png");
   assert.equal(result[0].exercise_image_icon_path, "/img/icon.png");
   assert.equal(result[0].exercise_image_howto_path, "/img/howto.png");
+  assert.equal(result[0].copilot_feedback_signal, null);
   assert.equal(result[0].copilot_feedback_note, null);
+  assert.equal(result[0].copilot_feedback_effort, null);
   assert.deepEqual(result[0].sets[0], {
     id: "legacy-set",
     set_index: 3,
@@ -92,7 +96,9 @@ test("preserves saved copilot feedback notes on history detail exercises", () =>
       exercise_id: "ex-feedback",
       exercise_name: "Incline Walk",
       notes: null,
+      copilot_feedback_signal: "form_breakdown",
       copilot_feedback_note: "Stride felt sloppy once the incline ramped up.",
+      copilot_feedback_effort: 8,
       measurement_type: "time_distance",
       default_unit: "mi",
       sets: [{ id: "set-feedback", set_index: 0, duration_seconds: 1200, distance: 1.2, distance_unit: "mi" }],
@@ -100,7 +106,9 @@ test("preserves saved copilot feedback notes on history detail exercises", () =>
   });
 
   assert.equal(result.length, 1);
+  assert.equal(result[0].copilot_feedback_signal, "form_breakdown");
   assert.equal(result[0].copilot_feedback_note, "Stride felt sloppy once the incline ramped up.");
+  assert.equal(result[0].copilot_feedback_effort, 8);
 });
 
 test("normalizes step-based cardio sets without dropping the unit", () => {
