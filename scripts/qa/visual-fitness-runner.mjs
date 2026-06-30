@@ -928,6 +928,45 @@ async function runSuiteInteraction(page, suite, options = {}) {
     await page.waitForLoadState("load", { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(300);
 
+    const openExerciseName = typeof interaction.openExerciseName === "string"
+      ? interaction.openExerciseName.trim()
+      : "";
+    if (expectedUrl) {
+      await page.waitForURL(expectedUrl, { timeout: 15000, waitUntil: "load" }).catch(() => {});
+    }
+    if (openExerciseName) {
+      const exerciseCardTrigger = page
+        .getByRole("button")
+        .filter({ has: page.getByText(new RegExp(openExerciseName, "i")) })
+        .first();
+      await exerciseCardTrigger.waitFor({ state: "visible", timeoutMs: 15000 }).catch(() => {});
+      const exerciseTriggerVisible = await exerciseCardTrigger.isVisible().catch(() => false);
+      if (!exerciseTriggerVisible) {
+        return {
+          performed: true,
+          bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+          missingExpectedText: interaction.expectedText ?? [],
+          details: {
+            targetHref,
+            landedUrl: page.url(),
+            openExerciseName,
+          },
+          blockedReason: `History drill-in landed, but could not find the "${openExerciseName}" exercise card to expand.`,
+        };
+      }
+
+      await exerciseCardTrigger.click();
+      await page.waitForLoadState("load", { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(300);
+    } else if ((interaction.expectedText ?? []).length > 0) {
+      await page.waitForFunction((expectedText) => {
+        const bodyText = document.body?.innerText?.replace(/\s+/g, " ").trim().toLowerCase() ?? "";
+        return expectedText.every((text) => bodyText.includes(String(text).toLowerCase()));
+      }, interaction.expectedText, {
+        timeout: 15000,
+      }).catch(() => {});
+    }
+
     const landedUrl = page.url();
     const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
     const bodyTextLower = bodyText.toLowerCase();
@@ -993,7 +1032,12 @@ function resolveExpectedPathname(route, baseUrl) {
 
 function resolveUnexpectedFinalPathReason({ finalUrl, suite, baseUrl }) {
   try {
-    const expectedPathname = resolveExpectedPathname(suite.route, baseUrl);
+    const interactionExpectedUrl = typeof suite?.interaction?.expectedUrl === "string"
+      ? suite.interaction.expectedUrl.trim()
+      : "";
+    const expectedPathname = interactionExpectedUrl
+      ? resolveExpectedPathname(interactionExpectedUrl, baseUrl)
+      : resolveExpectedPathname(suite.route, baseUrl);
     const actualUrl = new URL(finalUrl);
     if (!expectedPathname || actualUrl.pathname === expectedPathname) {
       return null;

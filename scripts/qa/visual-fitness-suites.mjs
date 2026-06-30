@@ -187,6 +187,33 @@ export const VISUAL_FITNESS_SUITES = {
       ],
     },
   },
+  "history-drill-in": {
+    name: "history-drill-in",
+    proofLane: "protected",
+    route: "/history",
+    viewport: DEFAULT_VISUAL_VIEWPORT,
+    authRequired: true,
+    setupRequirements: [
+      "fresh-dev-receipt",
+      "valid-qa-session-artifact-for-authenticated-state",
+    ],
+    expectedOutputFilename: "history-drill-in.png",
+    allowAuthGatedFallback: true,
+    themePreset: "default",
+    waitMs: 3000,
+    stateLabel: "protected-history-drill-in",
+    interaction: {
+      type: "history-sessions-drill-in-contract",
+      targetHref: `/history/${QA_BASELINE.sessionIds.latest}?returnTab=sessions`,
+      expectedUrl: `http://127.0.0.1:3002/history/${QA_BASELINE.sessionIds.latest}?returnTab=sessions`,
+      openExerciseName: "Walking Lunge",
+      expectedText: [
+        "Notes",
+        "Form | Effort 8/10",
+        "Stride felt sloppy once the incline ramped up.",
+      ],
+    },
+  },
   "history-exercises": {
     name: "history-exercises",
     proofLane: "protected",

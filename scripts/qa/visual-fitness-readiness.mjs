@@ -29,6 +29,7 @@ export const protectedSuites = [
   "routines",
   "workout-plans",
   "history",
+  "history-drill-in",
   "history-exercises",
   "history-detail",
 ];

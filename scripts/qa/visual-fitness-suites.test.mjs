@@ -124,6 +124,24 @@ test("protected history overview asserts the QA notes highlight contract", () =>
   );
 });
 
+test("protected history drill-in asserts the QA list-to-detail note path", () => {
+  const suite = getVisualFitnessSuite("history-drill-in");
+  assert.ok(suite, "Expected history-drill-in to exist in visual fitness suites.");
+  assert.equal(suite?.proofLane, "protected");
+  assert.equal(suite?.authRequired, true);
+  assert.equal(suite?.route, "/history");
+  assert.equal(suite?.interaction?.type, "history-sessions-drill-in-contract");
+  assert.equal(suite?.interaction?.openExerciseName, "Walking Lunge");
+  assert.ok(
+    String(suite?.interaction?.targetHref ?? "").includes("?returnTab=sessions"),
+    "Expected protected history drill-in to target a real session detail route.",
+  );
+  assert.ok(
+    (suite?.interaction?.expectedText ?? []).includes("Stride felt sloppy once the incline ramped up."),
+    "Expected protected history drill-in to assert the QA fallback note text after landing.",
+  );
+});
+
 test("protected history detail asserts the QA copilot-note fallback", () => {
   const suite = getVisualFitnessSuite("history-detail");
   assert.ok(suite, "Expected history-detail to exist in visual fitness suites.");
