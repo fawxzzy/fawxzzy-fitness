@@ -59,6 +59,7 @@ import type { ProgressionReviewDisplayItem } from "@/lib/progression-review-disp
 import type { ProgressionStatusSurfaceItem } from "@/lib/progression-status-display";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { formatTodayHeaderTitle } from "@/lib/today-page-state";
+import type { IncomingHistoryAuditExercise } from "@/lib/history-log-normalization";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -1380,7 +1381,7 @@ const mockHistoryExerciseRows = [
   },
 ];
 
-const mockHistoryDetailExercises = [
+const mockHistoryDetailExercises: IncomingHistoryAuditExercise[] = [
   {
     id: "audit-1",
     exercise_id: MOCK_EXERCISE_IDS.squat,
@@ -1629,7 +1630,7 @@ const mockTodayProgressionReviewItems: ProgressionReviewDisplayItem[] = [
   },
 ];
 
-const mockHistoryDetailLongMetricExercises = [
+const mockHistoryDetailLongMetricExercises: IncomingHistoryAuditExercise[] = [
   {
     id: "audit-3",
     exercise_id: MOCK_EXERCISE_IDS.pullup,
