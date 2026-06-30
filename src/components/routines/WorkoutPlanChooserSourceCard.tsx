@@ -20,6 +20,9 @@ import { cn } from "@/lib/cn";
 const WORKOUT_PLAN_CHOOSER_SOURCE_LABEL_CLASS_NAME = "inline-flex shrink-0 items-center justify-center text-[10px] font-semibold uppercase tracking-[0.12em]";
 const WORKOUT_PLAN_CHOOSER_RIGHT_RAIL_CLASS_NAME = "!right-[0.42rem] !top-[0.48rem] !bottom-auto !min-w-0 !translate-y-0";
 const WORKOUT_PLAN_CHOOSER_CONTENT_CLASS_NAME = "!space-y-0 !py-0";
+const WORKOUT_PLAN_CHOOSER_RECAP_SCROLL_CLASS_NAME = "pl-0.5 pr-[1.15rem] pb-0.5";
+const WORKOUT_PLAN_CHOOSER_RECAP_CONTENT_CLASS_NAME = "flex w-max min-w-full items-stretch gap-2 pr-[1rem]";
+const WORKOUT_PLAN_CHOOSER_RECAP_ITEM_CLASS_NAME = "!w-[calc(100vw-8.9rem)] !min-w-[calc(100vw-8.9rem)] !max-w-[calc(100vw-8.9rem)] sm:!w-[13.7rem] sm:!min-w-[13.7rem] sm:!max-w-[13.7rem]";
 
 export function WorkoutPlanChooserSourceCard({
   source,
@@ -75,7 +78,11 @@ export function WorkoutPlanChooserSourceCard({
       trailingStackClassName="h-auto w-auto items-center justify-center bg-transparent shadow-none backdrop-blur-0"
       onPress={onPress}
     >
-      {RoutineDayCardRecapPreview(source)}
+      {RoutineDayCardRecapPreview(source, {
+        scrollClassName: WORKOUT_PLAN_CHOOSER_RECAP_SCROLL_CLASS_NAME,
+        contentClassName: WORKOUT_PLAN_CHOOSER_RECAP_CONTENT_CLASS_NAME,
+        itemClassName: WORKOUT_PLAN_CHOOSER_RECAP_ITEM_CLASS_NAME,
+      })}
     </RoutinesListItemCard>
   );
 }

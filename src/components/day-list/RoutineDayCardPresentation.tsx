@@ -33,6 +33,9 @@ export const ROUTINE_DAY_CARD_TRAILING_STACK_CLASS_NAME = "h-auto w-auto items-c
 export const ROUTINE_SURFACE_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-center gap-1.5";
 export const ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME = "px-[0.6875rem] py-[0.3125rem]";
 export const ROUTINE_SURFACE_TAG_CLASS_NAME = `shrink-0 border border-[rgb(var(--accent-divider-rgb)/0.26)] bg-[rgb(var(--accent-divider-rgb)/0.12)] text-[rgb(var(--accent-divider-rgb)/0.98)] ${ROUTINE_SURFACE_TAG_SPACING_CLASS_NAME}`;
+export const ROUTINE_DAY_RECAP_SCROLL_CLASS_NAME = "pl-0.5 pr-[1.95rem] pb-0.5 sm:pr-[2.25rem]";
+export const ROUTINE_DAY_RECAP_CONTENT_CLASS_NAME = "flex w-max min-w-full items-stretch gap-2 pr-[1.8rem] sm:gap-2.5 sm:pr-0";
+export const ROUTINE_DAY_RECAP_ITEM_CLASS_NAME = "flex min-h-[4.9rem] w-[calc(100vw-5.7rem)] min-w-[calc(100vw-5.7rem)] max-w-[calc(100vw-5.7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5";
 const ROUTINE_DAY_CARD_REORDER_SLOT_CLASS_NAME = "pointer-events-none absolute right-[0.22rem] top-[0.02rem] z-[7] flex items-center justify-center";
 
 export type RoutineDayCardSummary = {
@@ -345,7 +348,14 @@ export function renderRoutineDayRightRail(label: string | undefined) {
   );
 }
 
-export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
+export function RoutineDayCardRecapPreview(
+  day: RoutineOverviewDayCardItem,
+  options?: {
+    scrollClassName?: string;
+    contentClassName?: string;
+    itemClassName?: string;
+  },
+) {
   if (day.isRest) {
     return null;
   }
@@ -372,13 +382,13 @@ export function RoutineDayCardRecapPreview(day: RoutineOverviewDayCardItem) {
       )}
       <HorizontalScrollHint
         className="-mx-0.5"
-        scrollClassName="pl-0.5 pr-[1.95rem] pb-0.5 sm:pr-[2.25rem]"
-        contentClassName="flex w-max min-w-full items-stretch gap-2 pr-[1.8rem] sm:gap-2.5 sm:pr-0"
+        scrollClassName={cn(ROUTINE_DAY_RECAP_SCROLL_CLASS_NAME, options?.scrollClassName)}
+        contentClassName={cn(ROUTINE_DAY_RECAP_CONTENT_CLASS_NAME, options?.contentClassName)}
       >
         {day.recapExercises.map((exercise, index) => (
           <div
             key={`routine-day-recap-${exercise.id}-${index}`}
-            className="flex min-h-[4.9rem] w-[calc(100vw-5.7rem)] min-w-[calc(100vw-5.7rem)] max-w-[calc(100vw-5.7rem)] shrink-0 flex-col justify-between rounded-[16px] border border-[rgb(var(--accent-divider-rgb)/0.18)] bg-[rgb(var(--surface-elevated-rgb,16_24_39)/0.3)] px-2 py-2 sm:min-h-[4.65rem] sm:w-max sm:min-w-[13.7rem] sm:max-w-none sm:px-2.5"
+            className={cn(ROUTINE_DAY_RECAP_ITEM_CLASS_NAME, options?.itemClassName)}
           >
             <ExerciseCardStandardTitle
               name={exercise.name}
