@@ -857,7 +857,7 @@ export function TodayDayPicker({
                                             <AccentDotSeparatedText
                                               text={cardPromoteTargetPair.current}
                                               className="min-w-0 gap-x-1.5 gap-y-0"
-                                              itemClassName="truncate text-[rgb(var(--text-secondary)/0.96)]"
+                                              itemClassName="text-[rgb(var(--text-secondary)/0.96)]"
                                             />
                                             <span className={cn("inline-flex min-w-4 items-center justify-center text-[12px] font-bold", cardActionArrowClassName)}>
                                               {"\u2192"}
@@ -865,7 +865,7 @@ export function TodayDayPicker({
                                             <AccentDotSeparatedText
                                               text={cardPromoteTargetPair.proposed}
                                               className="min-w-0 gap-x-1.5 gap-y-0"
-                                              itemClassName="truncate text-[rgb(var(--text-secondary)/0.96)]"
+                                              itemClassName="text-[rgb(var(--text-secondary)/0.96)]"
                                             />
                                           </>
                                         ) : null}

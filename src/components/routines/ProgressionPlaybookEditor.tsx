@@ -3001,10 +3001,10 @@ function RoutineEditorFloatingDropdownChrome({
               <span className="min-w-0 w-full text-center">
                 {hasSelection && !isOpen && currentSectionTitle && currentSectionSummary ? (
                   <>
-                    <span className="mt-0.5 block truncate text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)]">
+                    <span className="mt-0.5 block whitespace-normal break-words text-[0.82rem] font-semibold leading-tight text-[rgb(var(--text-primary)/0.98)] [text-wrap:balance]">
                       {currentSectionTitle}
                     </span>
-                    <span className="mt-0.5 block truncate text-[0.68rem] font-medium normal-case tracking-[0.02em] text-[rgb(var(--text-secondary)/0.82)]">
+                    <span className="mt-0.5 block whitespace-normal break-words text-[0.68rem] font-medium normal-case tracking-[0.02em] text-[rgb(var(--text-secondary)/0.82)] [text-wrap:pretty]">
                       {currentSectionSummary}
                     </span>
                   </>

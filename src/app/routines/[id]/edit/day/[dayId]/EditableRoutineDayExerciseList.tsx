@@ -320,7 +320,7 @@ function EditDayAdjustedSummaryPreview({
       <AccentDotSeparatedText
         text={currentSummary}
         className="min-w-0 text-[rgb(var(--text-secondary)/0.84)]"
-        itemClassName="truncate"
+        itemClassName="min-w-0"
       />
       <span
         className="inline-flex min-w-4 items-center justify-center"
@@ -331,7 +331,7 @@ function EditDayAdjustedSummaryPreview({
       <AccentDotSeparatedText
         text={adjustedSummary}
         className="min-w-0 text-[rgb(var(--text-primary)/0.96)]"
-        itemClassName="truncate"
+        itemClassName="min-w-0"
       />
     </span>
   );
