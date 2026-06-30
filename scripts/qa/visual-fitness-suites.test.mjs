@@ -85,6 +85,19 @@ test("history seam asserts the deterministic notes highlight contract", () => {
   );
 });
 
+test("protected history overview asserts the QA notes highlight contract", () => {
+  const suite = getVisualFitnessSuite("history");
+  assert.ok(suite, "Expected history to exist in visual fitness suites.");
+  assert.equal(suite?.proofLane, "protected");
+  assert.equal(suite?.authRequired, true);
+  assert.equal(suite?.route, "/history");
+  assert.equal(suite?.interaction?.type, "history-sessions-notes-contract");
+  assert.ok(
+    (suite?.interaction?.expectedText ?? []).includes("Notes"),
+    "Expected protected history to assert the Notes highlight option.",
+  );
+});
+
 test("protected history detail asserts the QA copilot-note fallback", () => {
   const suite = getVisualFitnessSuite("history-detail");
   assert.ok(suite, "Expected history-detail to exist in visual fitness suites.");

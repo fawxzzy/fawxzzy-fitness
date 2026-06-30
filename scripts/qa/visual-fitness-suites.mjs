@@ -176,6 +176,13 @@ export const VISUAL_FITNESS_SUITES = {
     themePreset: "default",
     waitMs: 3000,
     stateLabel: "protected-history-overview",
+    interaction: {
+      type: "history-sessions-notes-contract",
+      expectedText: [
+        "Highlight",
+        "Notes",
+      ],
+    },
   },
   "history-exercises": {
     name: "history-exercises",
