@@ -28,9 +28,9 @@ export const PROGRESSION_RECEIPT_SCENARIOS = [
     actions: [
       {
         id: "today-shell-ready",
-        label: "Today floating header and bottom dock finish mounting before capture",
+        label: "Today regression route body flag mounts before capture",
         type: "waitForSelector",
-        selector: "body[data-mobile-regression-today-shell-ready='true']",
+        selector: "body[data-mobile-regression='true']",
         timeoutMs: 15000,
       },
       {

@@ -63,7 +63,11 @@ async function resolveBrowserPath(candidatePath) {
     }
   }
 
-  throw new Error("Unable to locate a Chromium browser. Set QA_EDGE_PATH to a valid executable path.");
+  if (candidatePath) {
+    throw new Error(`Configured browser path does not exist: ${candidatePath}`);
+  }
+
+  return null;
 }
 
 function isInterimNextErrorMarkup(markup) {
@@ -402,7 +406,7 @@ async function launchCaptureSession(config, browserPath, contextOptions, profile
   const persistentContext = await chromium.launchPersistentContext(profileDir, {
     ...contextOptions,
     headless: true,
-    executablePath: browserPath,
+    executablePath: browserPath ?? undefined,
     args,
   });
 
