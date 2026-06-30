@@ -34,7 +34,9 @@ const expectedScenarioIds = [
   "session-logger-cardio-distance",
   "session-logger-calories",
   "routines-current-view",
+  "routines-current-add-day-duplicate",
   "routines-list-view",
+  "routines-list-create-duplicate",
   "view-day",
   "view-day-rest",
   "view-day-empty",
@@ -92,7 +94,9 @@ const expectedScenarioFamilies = [
   ["session-logger-cardio-distance", "Session / logging"],
   ["session-logger-calories", "Session / logging"],
   ["routines-current-view", "Exercise cards"],
+  ["routines-current-add-day-duplicate", "Exercise cards"],
   ["routines-list-view", "Exercise cards"],
+  ["routines-list-create-duplicate", "Exercise cards"],
   ["view-day", "Exercise cards"],
   ["view-day-rest", "Exercise cards"],
   ["view-day-empty", "Exercise cards"],
@@ -196,6 +200,8 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "detailed" })?.id, "today-detailed");
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "rest" })?.id, "today-rest");
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "empty" })?.id, "today-empty");
+  assert.equal(resolveMobileRegressionScenario({ screen: "routines", fixture: "current-add-day-duplicate" })?.id, "routines-current-add-day-duplicate");
+  assert.equal(resolveMobileRegressionScenario({ screen: "routines", fixture: "list-create-duplicate" })?.id, "routines-list-create-duplicate");
   assert.equal(resolveMobileRegressionScenario({ screen: "view-day", fixture: "rest" })?.id, "view-day-rest");
   assert.equal(resolveMobileRegressionScenario({ screen: "view-day", fixture: "empty" })?.id, "view-day-empty");
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "reorder" })?.id, "edit-day-reorder");

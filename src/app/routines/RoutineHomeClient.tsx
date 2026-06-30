@@ -156,6 +156,8 @@ export function RoutineHomeClient({
   workoutPlanSources: _workoutPlanSources,
   loadWorkoutPlanSourcesAction,
   onDismissWorkoutPlanChooser: _onDismissWorkoutPlanChooser,
+  initialAddDayMenuOpen = false,
+  initialDuplicateSourceListOpen = false,
 }: {
   routineId: string;
   routineStartDate?: string | null;
@@ -177,6 +179,8 @@ export function RoutineHomeClient({
   workoutPlanSources?: WorkoutPlanSourceListItem[];
   loadWorkoutPlanSourcesAction?: (formData: FormData) => Promise<ActionResult & { sources?: WorkoutPlanSourceListItem[] }>;
   onDismissWorkoutPlanChooser?: () => void;
+  initialAddDayMenuOpen?: boolean;
+  initialDuplicateSourceListOpen?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -192,9 +196,14 @@ export function RoutineHomeClient({
   const [restOverrideByDayId, setRestOverrideByDayId] = useState<Record<string, boolean>>({});
   const [restTogglePendingDayId, setRestTogglePendingDayId] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [isAddDayMenuOpen, setIsAddDayMenuOpen] = useState(false);
-  const [isDuplicateSourceListOpen, setIsDuplicateSourceListOpen] = useState(false);
-  const [selectedSourceDayId, setSelectedSourceDayId] = useState<string>("");
+  const initialAvailableWorkoutPlanSources = (_workoutPlanSources ?? []).filter(
+    (source) => !source.isRest && routineDayHasWorkoutPlanContent(source),
+  );
+  const [isAddDayMenuOpen, setIsAddDayMenuOpen] = useState(initialAddDayMenuOpen);
+  const [isDuplicateSourceListOpen, setIsDuplicateSourceListOpen] = useState(initialDuplicateSourceListOpen);
+  const [selectedSourceDayId, setSelectedSourceDayId] = useState<string>(
+    initialDuplicateSourceListOpen ? (initialAvailableWorkoutPlanSources[0]?.id ?? "") : "",
+  );
   const [addDaySubmissionMode, setAddDaySubmissionMode] = useState<"blank" | "duplicate" | null>(null);
   const [cachedWorkoutPlanSources, setCachedWorkoutPlanSources] = useState<WorkoutPlanSourceListItem[] | null>(_workoutPlanSources ?? null);
   const [isWorkoutPlanSourcesPending, startWorkoutPlanSourcesTransition] = useTransition();

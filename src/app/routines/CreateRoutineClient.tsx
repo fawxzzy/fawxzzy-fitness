@@ -35,6 +35,7 @@ type Props = {
   draftRoutineName?: string | null;
   duplicateRoutineAction: (formData: FormData) => Promise<ActionResult & { routineId?: string }>;
   onRequestClose?: () => void;
+  initialDuplicateExpanded?: boolean;
 };
 
 function renderRoutineSourceTags(routine: RoutineBrowseCardItem) {
@@ -107,12 +108,26 @@ export function CreateRoutineClient({
   draftRoutineName,
   duplicateRoutineAction,
   onRequestClose,
+  initialDuplicateExpanded = false,
 }: Props) {
   const router = useRouter();
   const toast = useToast();
-  const [isDuplicateExpanded, setIsDuplicateExpanded] = useState(false);
-  const [selectedSourceRoutineId, setSelectedSourceRoutineId] = useState<string>("");
-  const [duplicateName, setDuplicateName] = useState("");
+  const preferredDuplicateSourceRoutineId = resolvePreferredDuplicateSourceRoutine(routines)?.id ?? "";
+  const [isDuplicateExpanded, setIsDuplicateExpanded] = useState(initialDuplicateExpanded);
+  const [selectedSourceRoutineId, setSelectedSourceRoutineId] = useState<string>(
+    initialDuplicateExpanded ? preferredDuplicateSourceRoutineId : "",
+  );
+  const [duplicateName, setDuplicateName] = useState(() => {
+    if (!initialDuplicateExpanded) {
+      return "";
+    }
+
+    const preferredRoutine = routines.find((routine) => routine.id === preferredDuplicateSourceRoutineId);
+    return resolveUniqueRoutineCopyName({
+      sourceName: preferredRoutine?.name,
+      existingNames: routines.map((routine) => routine.name),
+    });
+  });
   const [duplicateNameError, setDuplicateNameError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const titleId = useId();
@@ -120,7 +135,6 @@ export function CreateRoutineClient({
   const portalTarget = typeof document === "undefined"
     ? null
     : document.querySelector(".app-shell") ?? document.body;
-  const preferredDuplicateSourceRoutineId = resolvePreferredDuplicateSourceRoutine(routines)?.id ?? "";
   const duplicateSourceRoutines = useMemo(() => {
     const selectedOrPreferredId = selectedSourceRoutineId || preferredDuplicateSourceRoutineId;
 

@@ -52,6 +52,8 @@ export function RoutinesPageClient({
   duplicateRoutineAction,
   setActiveRoutineAction,
   deleteRoutineAction,
+  initialCreateRoutineOpen = false,
+  initialCreateRoutineDuplicateExpanded = false,
 }: {
   routines: RoutineBrowseCardItem[];
   newRoutineHref?: string;
@@ -60,10 +62,12 @@ export function RoutinesPageClient({
   duplicateRoutineAction?: Parameters<typeof CreateRoutineClient>[0]["duplicateRoutineAction"];
   setActiveRoutineAction?: (formData: FormData) => Promise<ActionResult>;
   deleteRoutineAction?: (payload: { routineId: string }) => Promise<ActionResult>;
+  initialCreateRoutineOpen?: boolean;
+  initialCreateRoutineDuplicateExpanded?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(false);
+  const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(initialCreateRoutineOpen);
   const [expandedInactiveRoutineId, setExpandedInactiveRoutineId] = useState<string | null>(null);
   const [routinePendingDelete, setRoutinePendingDelete] = useState<RoutineBrowseCardItem | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -298,6 +302,7 @@ export function RoutinesPageClient({
           draftRoutineName={draftRoutineName}
           duplicateRoutineAction={duplicateRoutineAction}
           onRequestClose={() => setIsCreateRoutineOpen(false)}
+          initialDuplicateExpanded={initialCreateRoutineDuplicateExpanded}
         />
       ) : null}
     </RoutinesPageScaffold>

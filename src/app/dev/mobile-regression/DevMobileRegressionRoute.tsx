@@ -170,6 +170,11 @@ async function noopAppendDayAction(_: unknown) {
   return { ok: true as const, routineDayId: "regression-day" };
 }
 
+async function noopDuplicateRoutineResult(_: unknown) {
+  "use server";
+  return { ok: true as const, routineId: "routine-duplicate" };
+}
+
 async function noopDeleteRoutineDayAction(_: unknown) {
   "use server";
   return { ok: true as const };
@@ -2263,11 +2268,70 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
     name: PREVIEW_ROUTINE_NAME,
     summary: PREVIEW_ROUTINE_SUMMARY,
   } as const;
-  const isListView = scenario.id === "routines-list-view";
+  const fixture = scenario.fixture as "current-view" | "current-add-day-duplicate" | "list-view" | "list-create-duplicate";
+  const isListView = fixture === "list-view" || fixture === "list-create-duplicate";
+  const isCreateRoutineDuplicateOpen = fixture === "list-create-duplicate";
+  const isAddDayDuplicateOpen = fixture === "current-add-day-duplicate";
   const previewDays = [
     { id: "preview-rd-1", dayIndex: 1, title: "Hunt", weekdayLabel: "Mon", isRest: false, exerciseCount: 8 },
     { id: "preview-rd-2", dayIndex: 2, title: "Forge", weekdayLabel: "Tue", isRest: false, exerciseCount: 8 },
     { id: "preview-rd-3", dayIndex: 3, title: "Rest", weekdayLabel: "Wed", isRest: true, exerciseCount: 0 },
+  ];
+  const routineBrowseCards = [
+    {
+      id: "routine-1",
+      name: PREVIEW_ROUTINE_NAME,
+      summaryParts: ["16 exercises", "4 train", "1 rest", "5 workout plans"],
+      href: `/routines/${activeRoutine.id}`,
+      isActive: true,
+      previewDays,
+    },
+    {
+      id: "routine-2",
+      name: PREVIEW_SECONDARY_ROUTINE_NAME,
+      summaryParts: ["14 exercises", "4 train", "0 rest", "4 workout plans"],
+      href: "/routines/routine-2",
+      isActive: false,
+      previewDays: previewDays.slice(0, 2),
+    },
+  ];
+  const workoutPlanSources = [
+    {
+      id: "source-hunt",
+      workoutPlanTemplateId: "template-hunt",
+      sourceRoutineDayId: "source-day-hunt",
+      sourceRoutineId: "routine-1",
+      sourceRoutineName: PREVIEW_ROUTINE_NAME,
+      isCurrentRoutine: true,
+      dayIndex: 1,
+      title: "Hunt",
+      weekdayLabel: "Mon",
+      isRest: false,
+      splitSummary: { total: 8, strength: 6, cardio: 1, bodyweight: 1, unknown: 0 },
+      recapExercises: [
+        { id: "hunt-1", name: "Treadmill Run", signatureLabel: "Cardio | Push", setLabel: "1 set", targetLabel: "3:00 s", progressionStateLabel: "AUTO • SESSION • SET" },
+        { id: "hunt-2", name: "Weighted Pull-Up", signatureLabel: "Lats, Upper Back | Pull", setLabel: "5 sets", targetLabel: "5 reps • 35 lbs", progressionStateLabel: "MANUAL" },
+      ],
+      remainingExerciseCount: 6,
+    },
+    {
+      id: "source-forge",
+      workoutPlanTemplateId: "template-forge",
+      sourceRoutineDayId: "source-day-forge",
+      sourceRoutineId: "routine-2",
+      sourceRoutineName: PREVIEW_SECONDARY_ROUTINE_NAME,
+      isCurrentRoutine: false,
+      dayIndex: 2,
+      title: "Forge",
+      weekdayLabel: "Tue",
+      isRest: false,
+      splitSummary: { total: 7, strength: 5, cardio: 1, bodyweight: 1, unknown: 0 },
+      recapExercises: [
+        { id: "forge-1", name: "Back Squat", signatureLabel: "Quads | Squat", setLabel: "4 sets", targetLabel: "5 reps • 225 lbs", progressionStateLabel: "AUTO • SESSION" },
+        { id: "forge-2", name: "Walking Lunge", signatureLabel: "Glutes | Lunge", setLabel: "4 sets", targetLabel: "8-10 reps", progressionStateLabel: "MANUAL" },
+      ],
+      remainingExerciseCount: 5,
+    },
   ];
 
   if (isListView) {
@@ -2288,24 +2352,10 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
           <ContentRail className="space-y-3">
             <RoutinesPageClient
               newRoutineHref="/routines/new"
-              routines={[
-                {
-                  id: "routine-1",
-                  name: PREVIEW_ROUTINE_NAME,
-                  summaryParts: ["16 exercises", "4 train", "1 rest", "5 workout plans"],
-                  href: `/routines/${activeRoutine.id}`,
-                  isActive: true,
-                  previewDays,
-                },
-                {
-                  id: "routine-2",
-                  name: PREVIEW_SECONDARY_ROUTINE_NAME,
-                  summaryParts: ["14 exercises", "4 train", "0 rest", "4 workout plans"],
-                  href: "/routines/routine-2",
-                  isActive: false,
-                  previewDays: previewDays.slice(0, 2),
-                },
-              ]}
+              routines={[...routineBrowseCards]}
+              duplicateRoutineAction={noopDuplicateRoutineResult}
+              initialCreateRoutineOpen={isCreateRoutineDuplicateOpen}
+              initialCreateRoutineDuplicateExpanded={isCreateRoutineDuplicateOpen}
             />
           </ContentRail>
         </ScrollScreenWithBottomActions>
@@ -2337,6 +2387,9 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
             createRoutineDayAction={noopAppendDayAction}
             deleteRoutineDayAction={noopDeleteRoutineDayAction}
             reorderRoutineDaysAction={noopActionResult}
+            workoutPlanSources={workoutPlanSources}
+            initialAddDayMenuOpen={isAddDayDuplicateOpen}
+            initialDuplicateSourceListOpen={isAddDayDuplicateOpen}
             days={[
               { id: "rd-1", dayIndex: 1, title: "Push", isRest: false, exerciseSummary: "3 strength • 1 cardio", notes: null, href: "#", isToday: false, isCompleted: true, isInSession: false, loggedSetCount: 0 },
               { id: "rd-2", dayIndex: 2, title: PREVIEW_DAY_LABEL, isRest: false, exerciseSummary: "2 strength • 1 cardio", notes: "Heavy compound focus with accessory finishers", href: "#", isToday: true, isCompleted: false, isInSession: false, loggedSetCount: 0 },

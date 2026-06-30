@@ -11,7 +11,7 @@ test("fixture inventory covers the current canonical mobile screen set", () => {
 
   assert.equal(byRoute.get("today"), 7);
   assert.equal(byRoute.get("session"), 12);
-  assert.equal(byRoute.get("routines"), 2);
+  assert.equal(byRoute.get("routines"), 4);
   assert.equal(byRoute.get("viewDay"), 3);
   assert.equal(byRoute.get("editDay"), 6);
   assert.equal(byRoute.get("createRoutine"), 1);
@@ -80,4 +80,14 @@ test("hardening fixtures keep long Exercise Info scroll and day-card parity cove
   assert.ok(weightedStrengthLongTarget);
   assert.equal(weightedStrengthLongTarget.route, "exerciseDetail");
   assert.equal(weightedStrengthLongTarget.fixture, "weighted-strength-long-target");
+
+  const routinesCreateDuplicate = mobileRegressionScenarios.find((scenario) => scenario.id === "routines-list-create-duplicate");
+  assert.ok(routinesCreateDuplicate);
+  assert.equal(routinesCreateDuplicate.route, "routines");
+  assert.equal(routinesCreateDuplicate.fixture, "list-create-duplicate");
+
+  const routinesAddDayDuplicate = mobileRegressionScenarios.find((scenario) => scenario.id === "routines-current-add-day-duplicate");
+  assert.ok(routinesAddDayDuplicate);
+  assert.equal(routinesAddDayDuplicate.route, "routines");
+  assert.equal(routinesAddDayDuplicate.fixture, "current-add-day-duplicate");
 });
