@@ -208,6 +208,15 @@ export const VISUAL_FITNESS_SUITES = {
     themePreset: "default",
     waitMs: 3000,
     stateLabel: "protected-history-detail",
+    interaction: {
+      type: "history-detail-note-contract",
+      openExerciseName: "Walking Lunge",
+      expectedNoteText: "Stride felt sloppy once the incline ramped up.",
+      expectedText: [
+        "Notes",
+        "Stride felt sloppy once the incline ramped up.",
+      ],
+    },
   },
   "settings-seam": {
     name: "settings-seam",
@@ -526,6 +535,32 @@ export const VISUAL_FITNESS_SUITES = {
     themePreset: "default",
     waitMs: 2400,
     stateLabel: "seam-history-detail-separator",
+  },
+  "history-detail-feedback-note-seam": {
+    name: "history-detail-feedback-note-seam",
+    proofLane: "seam",
+    seamKind: "component",
+    coversProtectedRoutes: [`/history/${QA_BASELINE.sessionIds.latest}`],
+    route: "/dev/mobile-regression?scenario=history-detail-feedback-note",
+    viewport: DEFAULT_VISUAL_VIEWPORT,
+    authRequired: false,
+    setupRequirements: [
+      "fresh-dev-receipt",
+      "deterministic-dev-mobile-regression-fixture",
+    ],
+    expectedOutputFilename: "history-detail-feedback-note-seam.png",
+    allowAuthGatedFallback: false,
+    themePreset: "default",
+    waitMs: 2400,
+    stateLabel: "seam-history-detail-feedback-note",
+    interaction: {
+      type: "history-detail-note-contract",
+      expectedNoteText: "Stride felt sloppy once the incline ramped up.",
+      expectedText: [
+        "Notes",
+        "Stride felt sloppy once the incline ramped up.",
+      ],
+    },
   },
   "exercise-detail-seam": {
     name: "exercise-detail-seam",

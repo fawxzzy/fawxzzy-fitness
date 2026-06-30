@@ -754,6 +754,70 @@ async function runSuiteInteraction(page, suite, options = {}) {
     };
   }
 
+  if (interaction.type === "history-detail-note-contract") {
+    const expectedNoteText = typeof interaction.expectedNoteText === "string"
+      ? interaction.expectedNoteText.trim()
+      : "";
+    const openExerciseName = typeof interaction.openExerciseName === "string"
+      ? interaction.openExerciseName.trim()
+      : "";
+
+    if (openExerciseName) {
+      const exerciseCardTrigger = page
+        .getByRole("button")
+        .filter({ has: page.getByText(new RegExp(openExerciseName, "i")) })
+        .first();
+      const triggerVisible = await exerciseCardTrigger.isVisible().catch(() => false);
+      if (!triggerVisible) {
+        return {
+          performed: false,
+          bodyText: normalizeInteractionBodyText(await page.textContent("body")),
+          missingExpectedText: interaction.expectedText ?? [],
+          details: {
+            expectedNoteText,
+            openExerciseName,
+          },
+          blockedReason: `Unable to find the "${openExerciseName}" exercise card on history detail.`,
+        };
+      }
+
+      await exerciseCardTrigger.click();
+      await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(500);
+    }
+
+    const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
+    const bodyTextLower = bodyText.toLowerCase();
+    const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !bodyTextLower.includes(text.toLowerCase()));
+    const notesHeading = page.getByRole("heading", { name: "Notes" });
+    const notesHeadingCount = await notesHeading.count().catch(() => 0);
+    const blockedReasons = [];
+
+    if (notesHeadingCount !== 1) {
+      blockedReasons.push(`expected exactly one Notes heading but found ${notesHeadingCount}`);
+    }
+    if (expectedNoteText && !bodyTextLower.includes(expectedNoteText.toLowerCase())) {
+      blockedReasons.push(`missing note text "${expectedNoteText}"`);
+    }
+    if (missingExpectedText.length > 0) {
+      blockedReasons.push(`missing expected history detail text: ${missingExpectedText.join(", ")}`);
+    }
+
+    return {
+      performed: true,
+      bodyText,
+      missingExpectedText,
+      details: {
+        expectedNoteText,
+        openExerciseName,
+        notesHeadingCount,
+      },
+      blockedReason: blockedReasons.length > 0
+        ? `History detail note contract failed: ${blockedReasons.join("; ")}.`
+        : null,
+    };
+  }
+
   return {
     performed: false,
     bodyText: null,

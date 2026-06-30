@@ -54,3 +54,29 @@ test("session logger seam suites assert the session feedback fixture contract", 
     );
   }
 });
+
+test("history detail feedback-note seam stays on the deterministic note-proof fixture", () => {
+  const suite = getVisualFitnessSuite("history-detail-feedback-note-seam");
+  assert.ok(suite, "Expected history-detail-feedback-note-seam to exist in visual fitness suites.");
+  assert.equal(suite?.proofLane, "seam");
+  assert.equal(suite?.authRequired, false);
+  assert.equal(suite?.route, "/dev/mobile-regression?scenario=history-detail-feedback-note");
+  assert.equal(suite?.interaction?.type, "history-detail-note-contract");
+  assert.ok(
+    (suite?.interaction?.expectedText ?? []).includes("Stride felt sloppy once the incline ramped up."),
+    "Expected the seam suite to assert the saved feedback note text.",
+  );
+});
+
+test("protected history detail asserts the QA copilot-note fallback", () => {
+  const suite = getVisualFitnessSuite("history-detail");
+  assert.ok(suite, "Expected history-detail to exist in visual fitness suites.");
+  assert.equal(suite?.proofLane, "protected");
+  assert.equal(suite?.authRequired, true);
+  assert.equal(suite?.interaction?.type, "history-detail-note-contract");
+  assert.equal(suite?.interaction?.openExerciseName, "Walking Lunge");
+  assert.ok(
+    (suite?.interaction?.expectedText ?? []).includes("Stride felt sloppy once the incline ramped up."),
+    "Expected protected history detail to assert the QA fallback note text.",
+  );
+});
