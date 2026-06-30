@@ -83,6 +83,14 @@ test("history seam asserts the deterministic notes highlight contract", () => {
     (suite?.interaction?.expectedText ?? []).includes("No Set Data"),
     "Expected the history seam to assert neighboring highlight options for the same filter lane.",
   );
+  assert.ok(
+    (suite?.interaction?.expectedVisibleHrefSubstrings ?? []).includes("history-session-2?returnTab=sessions"),
+    "Expected the history seam to assert the note-bearing session card stays visible after filtering.",
+  );
+  assert.ok(
+    (suite?.interaction?.expectedHiddenHrefSubstrings ?? []).includes("history-session-1?returnTab=sessions"),
+    "Expected the history seam to assert non-note session cards disappear after filtering.",
+  );
 });
 
 test("protected history overview asserts the QA notes highlight contract", () => {
@@ -95,6 +103,10 @@ test("protected history overview asserts the QA notes highlight contract", () =>
   assert.ok(
     (suite?.interaction?.expectedText ?? []).includes("Notes"),
     "Expected protected history to assert the Notes highlight option.",
+  );
+  assert.ok(
+    (suite?.interaction?.expectedVisibleHrefSubstrings ?? []).some((value) => value.includes("?returnTab=sessions")),
+    "Expected protected history to assert at least one visible note-bearing session card after filtering.",
   );
 });
 

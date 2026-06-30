@@ -182,6 +182,9 @@ export const VISUAL_FITNESS_SUITES = {
         "Highlight",
         "Notes",
       ],
+      expectedVisibleHrefSubstrings: [
+        `${QA_BASELINE.sessionIds.latest}?returnTab=sessions`,
+      ],
     },
   },
   "history-exercises": {
@@ -513,6 +516,13 @@ export const VISUAL_FITNESS_SUITES = {
         "Highlight",
         "Notes",
         "No Set Data",
+      ],
+      expectedVisibleHrefSubstrings: [
+        "history-session-2?returnTab=sessions",
+      ],
+      expectedHiddenHrefSubstrings: [
+        "history-session-1?returnTab=sessions",
+        "history-session-3?returnTab=sessions",
       ],
     },
   },

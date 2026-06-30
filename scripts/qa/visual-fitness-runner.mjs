@@ -839,24 +839,60 @@ async function runSuiteInteraction(page, suite, options = {}) {
     const bodyText = normalizeInteractionBodyText(await page.textContent("body"));
     const bodyTextLower = bodyText.toLowerCase();
     const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !bodyTextLower.includes(text.toLowerCase()));
+    const missingVisibleText = (interaction.expectedVisibleText ?? []).filter((text) => !bodyTextLower.includes(text.toLowerCase()));
+    const unexpectedHiddenText = (interaction.expectedHiddenText ?? []).filter((text) => bodyTextLower.includes(text.toLowerCase()));
     const notesHighlightButton = page.getByRole("button", { name: "Notes" });
     const notesHighlightCount = await notesHighlightButton.count().catch(() => 0);
     const blockedReasons = [];
 
     if (notesHighlightCount < 1) {
       blockedReasons.push("expected the History highlight filter group to expose a Notes option");
+    } else {
+      await notesHighlightButton.click();
+      await page.waitForTimeout(300);
     }
-    if (missingExpectedText.length > 0) {
-      blockedReasons.push(`missing expected history overview text: ${missingExpectedText.join(", ")}`);
+
+    const filteredBodyText = normalizeInteractionBodyText(await page.textContent("body"));
+    const filteredBodyTextLower = filteredBodyText.toLowerCase();
+    const filteredMissingExpectedText = (interaction.expectedText ?? []).filter((text) => !filteredBodyTextLower.includes(text.toLowerCase()));
+    const expectedVisibleHrefSubstrings = interaction.expectedVisibleHrefSubstrings ?? [];
+    const expectedHiddenHrefSubstrings = interaction.expectedHiddenHrefSubstrings ?? [];
+    const missingVisibleHrefSubstrings = [];
+    const unexpectedHiddenHrefSubstrings = [];
+
+    for (const hrefSubstring of expectedVisibleHrefSubstrings) {
+      const matchCount = await page.locator(`a[href*="${hrefSubstring}"]`).count().catch(() => 0);
+      if (matchCount < 1) {
+        missingVisibleHrefSubstrings.push(hrefSubstring);
+      }
+    }
+
+    for (const hrefSubstring of expectedHiddenHrefSubstrings) {
+      const matchCount = await page.locator(`a[href*="${hrefSubstring}"]`).count().catch(() => 0);
+      if (matchCount > 0) {
+        unexpectedHiddenHrefSubstrings.push(hrefSubstring);
+      }
+    }
+
+    if (filteredMissingExpectedText.length > 0) {
+      blockedReasons.push(`missing expected history overview text: ${filteredMissingExpectedText.join(", ")}`);
+    }
+    if (missingVisibleHrefSubstrings.length > 0) {
+      blockedReasons.push(`missing expected notes-filter session cards: ${missingVisibleHrefSubstrings.join(", ")}`);
+    }
+    if (unexpectedHiddenHrefSubstrings.length > 0) {
+      blockedReasons.push(`notes filter still exposed non-note session cards: ${unexpectedHiddenHrefSubstrings.join(", ")}`);
     }
 
     return {
       performed: true,
-      bodyText,
-      missingExpectedText,
+      bodyText: filteredBodyText,
+      missingExpectedText: filteredMissingExpectedText,
       details: {
         filterToggleCount,
         notesHighlightCount,
+        missingVisibleHrefSubstrings,
+        unexpectedHiddenHrefSubstrings,
       },
       blockedReason: blockedReasons.length > 0
         ? `History sessions notes contract failed: ${blockedReasons.join("; ")}.`
