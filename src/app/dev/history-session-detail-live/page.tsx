@@ -201,6 +201,8 @@ export default async function DevHistorySessionDetailLivePage({
       id: exercise.id,
       session_id: exercise.session_id,
       exercise_id: exercise.exercise_id,
+      notes: exercise.notes ?? null,
+      copilot_feedback_note: exercise.copilot_feedback_note ?? null,
     })),
     setsBySessionExerciseId: new Map(Array.from(setsByExercise.entries())),
     exerciseNameById: exerciseNameMap,

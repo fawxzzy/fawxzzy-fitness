@@ -919,7 +919,7 @@ async function loadHistorySessionsScopeContext({
       label: "session exercise rows",
       load: () => supabase
         .from("session_exercises")
-        .select("id, session_id, exercise_id, is_skipped")
+        .select("id, session_id, exercise_id, is_skipped, notes, copilot_feedback_note")
         .in("session_id", sessionIds)
         .eq("user_id", userId),
       logger,

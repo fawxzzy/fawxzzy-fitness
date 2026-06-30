@@ -48,6 +48,8 @@ type SessionExerciseSummaryRow = {
   session_id: string;
   exercise_id: string;
   is_skipped?: boolean | null;
+  notes?: string | null;
+  copilot_feedback_note?: string | null;
 };
 
 type SessionSetSummaryRow = {
@@ -78,6 +80,15 @@ export function buildSessionSummary({
   prCounts,
   prExerciseNames,
 }: BuildSummaryInput): SessionSummary {
+  const hasExerciseNote = sessionExercises.some((exercise) => {
+    const exerciseNote = typeof exercise.notes === "string" ? exercise.notes.trim() : "";
+    if (exerciseNote) {
+      return true;
+    }
+
+    const feedbackNote = typeof exercise.copilot_feedback_note === "string" ? exercise.copilot_feedback_note.trim() : "";
+    return feedbackNote.length > 0;
+  });
   const exerciseCount = sessionExercises.length;
   const analytics = deriveSessionAnalytics(
     sessionExercises.map((exercise) => ({
@@ -150,7 +161,7 @@ export function buildSessionSummary({
     totalVolume: analytics.totalVolume,
     volumeUnit,
     completionRate: analytics.completionRate,
-    hasNote: Boolean(sessionRow.notes?.trim()),
+    hasNote: Boolean(sessionRow.notes?.trim()) || hasExerciseNote,
     hasSetData: analytics.hasSetData,
   };
 }

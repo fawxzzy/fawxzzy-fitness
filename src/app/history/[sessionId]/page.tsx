@@ -415,11 +415,13 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       sessionRow,
       routineTitle,
       dayTitle: effectiveDayName,
-      sessionExercises: orderedSessionExercises.map((exercise) => ({
-        id: exercise.id,
-        session_id: exercise.session_id,
-        exercise_id: exercise.exercise_id,
-      })),
+    sessionExercises: orderedSessionExercises.map((exercise) => ({
+      id: exercise.id,
+      session_id: exercise.session_id,
+      exercise_id: exercise.exercise_id,
+      notes: exercise.notes ?? null,
+      copilot_feedback_note: exercise.copilot_feedback_note ?? null,
+    })),
       setsBySessionExerciseId: new Map(Array.from(setsByExercise.entries())),
       exerciseNameById: exerciseNameMap,
       prCounts: sessionCountsById.get(sessionRow.id) ?? { ...EMPTY_PR_COUNTS },
