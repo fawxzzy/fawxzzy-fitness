@@ -375,6 +375,7 @@ export function HistorySessionsClient({
   initialQuery = "",
   initialSelectedTags = [],
   showBottomActions = true,
+  sessionHrefOverrides,
 }: {
   sessions: SessionSummary[];
   filterOptions?: ExerciseInfoFilterOptions;
@@ -396,6 +397,7 @@ export function HistorySessionsClient({
   initialQuery?: string;
   initialSelectedTags?: string[];
   showBottomActions?: boolean;
+  sessionHrefOverrides?: Record<string, string>;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialSelectedTags);
@@ -716,7 +718,7 @@ export function HistorySessionsClient({
                   previousSession={index >= 0 ? (scopedSessions[index + 1] ?? null) : null}
                   selected={session.id === selectedSessionId}
                   viewMode={viewMode}
-                  href={`/history/${session.id}?returnTab=sessions`}
+                  href={sessionHrefOverrides?.[session.id] ?? `/history/${session.id}?returnTab=sessions`}
                 />
               </li>
             );

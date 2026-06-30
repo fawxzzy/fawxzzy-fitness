@@ -2590,6 +2590,11 @@ function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
 
 function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
   const initialViewMode = scenario.fixture === "detailed" ? "detailed" : "compact";
+  const sessionHrefOverrides = {
+    "history-session-1": "/dev/mobile-regression?scenario=history-detail-progression-expanded",
+    "history-session-2": "/dev/mobile-regression?scenario=history-detail-feedback-note",
+    "history-session-3": "/dev/mobile-regression?scenario=history-detail-broken-images",
+  } satisfies Record<string, string>;
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="history">
@@ -2623,6 +2628,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
             currentCycleWeeklyProgressByWeek={[mockHistoryWeeklyProgress]}
             selectedSessionId="history-session-2"
             initialViewMode={initialViewMode}
+            sessionHrefOverrides={sessionHrefOverrides}
           />
         </ContentRail>
       </ScrollScreenWithBottomActions>
