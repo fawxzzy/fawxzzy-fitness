@@ -5,10 +5,12 @@ import { AppThemeSettings } from "@/components/settings/AppThemeSettings";
 import { DataSettingsSection } from "@/components/settings/DataSettingsSection";
 import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettings";
 import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
+import { ProAccessSettings } from "@/components/settings/ProAccessSettings";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
 import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
+import type { ProAccessSnapshot } from "@/lib/billing/pro-access";
 
 type SettingsSectionMeta = {
   title: string;
@@ -21,6 +23,8 @@ export function getSettingsSectionMeta(section: Exclude<SettingsSectionKey, null
       return { title: "Account" };
     case "theme":
       return { title: "App Theme" };
+    case "pro":
+      return { title: "Pro Access" };
     case "data":
       return { title: "Data" };
     case "legacy":
@@ -77,6 +81,7 @@ export function SettingsAccordionClient({
   showQaLlelData,
   initialExportDateFrom,
   initialExportDateTo,
+  proAccess,
 }: {
   email: string;
   username: string;
@@ -87,10 +92,12 @@ export function SettingsAccordionClient({
   showQaLlelData?: boolean | null;
   initialExportDateFrom: string;
   initialExportDateTo: string;
+  proAccess: ProAccessSnapshot;
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
 
   const showAccount = expandedSection === null || expandedSection === "account";
+  const showPro = expandedSection === null || expandedSection === "pro";
   const showData = expandedSection === null || expandedSection === "data";
   const showLegacy = expandedSection === null || expandedSection === "legacy";
   const showDiscord = expandedSection === null || expandedSection === "discord";
@@ -108,6 +115,21 @@ export function SettingsAccordionClient({
             />
           ) : null}
           {expandedSection === "account" ? <AccountSettingsForm email={email} username={username} /> : null}
+        </div>
+      ) : null}
+
+      {showPro ? (
+        <div className="space-y-3">
+          {expandedSection !== "pro" ? (
+            <SettingsAccordionTrigger
+              title="Pro Access"
+              expanded={false}
+              onClick={() => setExpandedSection("pro")}
+            />
+          ) : null}
+          {expandedSection === "pro" ? (
+            <ProAccessSettings snapshot={proAccess} />
+          ) : null}
         </div>
       ) : null}
 

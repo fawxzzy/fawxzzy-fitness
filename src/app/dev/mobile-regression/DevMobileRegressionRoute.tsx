@@ -2809,6 +2809,17 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                   showQaLlelData={false}
                   initialExportDateFrom="2026-05-01"
                   initialExportDateTo="2026-05-09"
+                  proAccess={{
+                    schemaReady: true,
+                    accessState: "free",
+                    accessLabel: "Free",
+                    offerMode: "founding",
+                    offerLabel: "Founding offer",
+                    checkoutConfigured: false,
+                    grantedAt: null,
+                    lastPurchaseStatus: null,
+                    supportNote: "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
+                  }}
                 />
               </div>
             </SettingsScreenStateProvider>

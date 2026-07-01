@@ -14,6 +14,7 @@ import { requireUser } from "@/lib/auth";
 import { optionalEnv } from "@/lib/env";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
+import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
 import {
   QA_LLEL_VISIBILITY_COOKIE,
   resolveQaLlelVisibilityOverride,
@@ -70,6 +71,13 @@ export default async function SettingsPage() {
     },
     timeoutMs: 5000,
   });
+  const proAccess = await diagnostics.measure("settings.pro-access.snapshot", () => loadProAccessSnapshot(user.id), {
+    blockingReason: "Loading Pro access status.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 5000,
+  });
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
@@ -91,6 +99,7 @@ export default async function SettingsPage() {
                 showQaLlelData={showQaLlelData}
                 initialExportDateFrom={exportDateRange.dateFrom}
                 initialExportDateTo={exportDateRange.dateTo}
+                proAccess={proAccess}
               />
             </SurfaceCard>
           </ContentRail>

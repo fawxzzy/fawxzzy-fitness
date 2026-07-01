@@ -40,6 +40,12 @@ const SPOTIFY_TOKEN_ENCRYPTION_KEY_ENV = "SPOTIFY_TOKEN_ENCRYPTION_KEY";
 const SPOTIFY_OAUTH_STATE_SECRET_ENV = "SPOTIFY_OAUTH_STATE_SECRET";
 const LEGACY_SUPABASE_URL_ENV = "LEGACY_SUPABASE_URL";
 const LEGACY_SUPABASE_ANON_KEY_ENV = "LEGACY_SUPABASE_ANON_KEY";
+const STRIPE_SECRET_KEY_ENV = "STRIPE_SECRET_KEY";
+const NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_ENV = "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY";
+const STRIPE_WEBHOOK_SECRET_ENV = "STRIPE_WEBHOOK_SECRET";
+const STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_ENV = "STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID";
+const STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID_ENV = "STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID";
+const STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE_ENV = "STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE";
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{5,32}$/;
 const HEX_PATTERN = /^[0-9a-f]+$/i;
 
@@ -332,4 +338,39 @@ export function SPOTIFY_TOKEN_ENCRYPTION_KEY(): string {
 
 export function SPOTIFY_OAUTH_STATE_SECRET(): string {
   return mustGetEnv(SPOTIFY_OAUTH_STATE_SECRET_ENV);
+}
+
+export function STRIPE_SECRET_KEY_OPTIONAL(): string | null {
+  return optionalEnv(STRIPE_SECRET_KEY_ENV);
+}
+
+export function NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_OPTIONAL(): string | null {
+  return optionalEnv(NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_ENV);
+}
+
+export function STRIPE_WEBHOOK_SECRET_OPTIONAL(): string | null {
+  return optionalEnv(STRIPE_WEBHOOK_SECRET_ENV);
+}
+
+export function STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_OPTIONAL(): string | null {
+  return optionalEnv(STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_ENV);
+}
+
+export function STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID_OPTIONAL(): string | null {
+  return optionalEnv(STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID_ENV);
+}
+
+export function STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE_OPTIONAL(): "founding" | "standard" | null {
+  const value = optionalEnv(STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE_ENV);
+  if (!value) {
+    return null;
+  }
+
+  if (value === "founding" || value === "standard") {
+    return value;
+  }
+
+  throw new Error(
+    `Invalid environment variable: ${STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE_ENV}. Expected 'founding' or 'standard'.`,
+  );
 }

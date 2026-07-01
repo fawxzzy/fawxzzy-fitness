@@ -77,6 +77,43 @@ export type ProfileRow = {
   user_number_assigned_at?: string | null;
 };
 
+export type BillingCustomerRow = {
+  id: string;
+  user_id: string;
+  stripe_customer_id: string;
+  billing_email?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type BillingPurchaseRow = {
+  id: string;
+  user_id: string;
+  purchase_kind: "lifetime_pro";
+  status: "pending" | "completed" | "cancelled" | "failed";
+  stripe_checkout_session_id?: string | null;
+  stripe_payment_intent_id?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_price_id?: string | null;
+  amount_total?: number | null;
+  currency?: string | null;
+  completed_at?: string | null;
+  raw_event_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type UserEntitlementRow = {
+  id: string;
+  user_id: string;
+  entitlement_key: "pro_lifetime";
+  status: "active" | "revoked";
+  granted_at: string;
+  granted_via_purchase_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type RoutineRow = {
   id: string;
   user_id: string;
