@@ -52,6 +52,36 @@ Verified current user-facing state:
 - `/settings` has no payment or upgrade lane
 - no clear Upgrade CTA or Lifetime Pro presentation exists in the product UI yet
 
+## Shipped During This Pass
+
+The repo no longer matches the empty-state audit above. The following MVP pieces are now landed in code:
+
+- billing schema migration:
+  - `billing_customers`
+  - `billing_purchases`
+  - `user_entitlements`
+- Stripe env/config contract helpers in app code
+- `Pro Access` settings section with:
+  - current access state
+  - offer mode surfacing
+  - checkout readiness state
+  - safe success/cancel return notice support
+- guarded hosted checkout API contract:
+  - `POST /api/billing/checkout`
+- Stripe webhook entitlement contract:
+  - `POST /api/billing/webhook/stripe`
+
+Local proof already completed in this pass:
+
+- `npm run typecheck`
+- `npm run verify`
+
+This means the remaining blocker is no longer “missing product code.” It is now primarily:
+
+- Stripe env provisioning
+- live Stripe sandbox verification
+- final user-facing purchase success/cancel proof
+
 ## Current Overlap Versus Missing Work
 
 ### Already available and reusable
@@ -267,6 +297,38 @@ Minimum proof required before `FF-MON-002` can be considered resolved:
 - deterministic sandbox QA
 - card/forum update
 - release-gate dependency update for `FF-QA-001`
+
+## Remaining Enablement Checklist
+
+The next required operator steps are now concrete:
+
+1. Provision the real Stripe env surface
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID`
+- `STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID`
+- optional explicit mode selector:
+  - `STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE`
+
+2. Apply the billing migration to the active Supabase project
+- verify the three billing tables exist
+- verify RLS permits user-owned reads and service-role writes as intended
+
+3. Run Stripe sandbox proof
+- free user opens `Pro Access`
+- checkout session opens correctly
+- cancel returns to Settings safely
+- completed checkout triggers webhook
+- webhook grants `pro_lifetime`
+- relog and reopen still show `Lifetime Pro`
+
+4. Capture proof for `FF-QA-001`
+- settings screenshot
+- checkout start proof
+- cancel proof
+- webhook + entitlement proof
+- relog persistence proof
 
 ## Decision
 
