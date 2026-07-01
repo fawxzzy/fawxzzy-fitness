@@ -7,6 +7,8 @@ import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagn
 import { HeaderInfoRail } from "@/components/ui/HeaderInfoRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
+import { RoutinesOfflineBridge } from "@/app/routines/RoutinesOfflineBridge";
+import { RoutinesOfflineShell } from "@/app/routines/RoutinesOfflineShell";
 import { deleteRoutineAction, duplicateRoutineAction, setActiveRoutineAction } from "@/app/routines/actions";
 import { requireUser } from "@/lib/auth";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
@@ -33,8 +35,10 @@ import {
 import { supabaseServer } from "@/lib/supabase/server";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
 import { ROUTINE_DRAFT_COOKIE_NAME } from "@/lib/routine-draft-session";
+import { ROUTINES_CACHE_SCHEMA_VERSION, type RoutinesCacheSnapshot } from "@/lib/offline/routines-cache";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 import { formatCount, formatDateShort } from "@/lib/formatting";
+import type { RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 
 export const dynamic = "force-dynamic";
 
@@ -64,63 +68,54 @@ function buildRoutineBrowseSummaryParts(args: {
   ];
 }
 
-export default async function RoutinesPage() {
-  const diagnostics = new LoadingDiagnosticsCollector("/routines");
-  const user = await requireUser({
-    gate: "routines.auth.session",
-    route: "/routines",
-    blockingReason: "Waiting for authenticated session before loading routines.",
-    timeoutMs: 5000,
-    collector: diagnostics,
-  });
-  const profile = await diagnostics.measure("routines.profile.bootstrap", () => ensureProfile(user.id), {
-    blockingReason: "Waiting for routines profile bootstrap.",
-    metadata: {
-      userId: user.id,
-    },
-    timeoutMs: 5000,
-  });
-  const supabase = supabaseServer();
-  const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
-    profile,
-    resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
-  );
+type RoutinesBrowsePageModel = {
+  activeRoutineName: string | null;
+  draftRoutineName: string | null;
+  routineBrowseItems: RoutineBrowseCardItem[];
+};
 
-  const { data } = await diagnostics.measure("routines.list.fetch", async () => await supabase
+async function loadRoutinesBrowsePageModel(args: {
+  diagnostics: LoadingDiagnosticsCollector;
+  supabase: ReturnType<typeof supabaseServer>;
+  userId: string;
+  profile: Awaited<ReturnType<typeof ensureProfile>>;
+  showQaLlelData: boolean;
+  draftRoutineId: string | null;
+}): Promise<RoutinesBrowsePageModel> {
+  const { data } = await args.diagnostics.measure("routines.list.fetch", async () => await args.supabase
     .from("routines")
     .select("id, user_id, name, cycle_length_days, schedule_mode, start_date, timezone, created_at, updated_at")
-    .eq("user_id", user.id)
+    .eq("user_id", args.userId)
     .order("updated_at", { ascending: false }), {
     blockingReason: "Waiting for routines overview list.",
     metadata: {
-      userId: user.id,
+      userId: args.userId,
     },
     timeoutMs: 7000,
   });
 
   const routines = (data ?? []) as Array<Pick<RoutineRow, "id" | "user_id" | "name" | "cycle_length_days" | "schedule_mode" | "start_date" | "timezone" | "created_at" | "updated_at">>;
-  const visibleRoutines = showQaLlelData
+  const visibleRoutines = args.showQaLlelData
     ? routines
     : filterQaLlelRows(routines, (routine) => [routine.name]);
-  const draftRoutineId = cookies().get(ROUTINE_DRAFT_COOKIE_NAME)?.value?.trim() || null;
-  const draftRoutineName = draftRoutineId
-    ? visibleRoutines.find((routine) => routine.id === draftRoutineId)?.name ?? null
+  const draftRoutineName = args.draftRoutineId
+    ? visibleRoutines.find((routine) => routine.id === args.draftRoutineId)?.name ?? null
     : null;
-  const publishedVisibleRoutines = draftRoutineId
-    ? visibleRoutines.filter((routine) => routine.id !== draftRoutineId)
+  const publishedVisibleRoutines = args.draftRoutineId
+    ? visibleRoutines.filter((routine) => routine.id !== args.draftRoutineId)
     : visibleRoutines;
   const routineIds = publishedVisibleRoutines.map((routine) => routine.id);
 
   const { data: allRoutineDaysData } = routineIds.length
-    ? await diagnostics.measure("routines.days.fetch", async () => await supabase
+    ? await args.diagnostics.measure("routines.days.fetch", async () => await args.supabase
       .from("routine_days")
       .select("id, user_id, routine_id, day_index, name, is_rest, notes")
       .in("routine_id", routineIds)
-      .eq("user_id", user.id), {
+      .eq("user_id", args.userId), {
       blockingReason: "Waiting for routines day summaries.",
       metadata: {
         routineCount: routineIds.length,
-        userId: user.id,
+        userId: args.userId,
       },
       timeoutMs: 7000,
     })
@@ -129,23 +124,23 @@ export default async function RoutinesPage() {
 
   const allRoutineDayIds = allRoutineDays.map((day) => day.id);
   const { data: allRoutineDayExercisesData } = allRoutineDayIds.length
-    ? await supabase
+    ? await args.supabase
       .from("routine_day_exercises")
       .select(ROUTINE_BROWSE_EXERCISE_SELECT)
       .in("routine_day_id", allRoutineDayIds)
-      .eq("user_id", user.id)
+      .eq("user_id", args.userId)
     : { data: [] };
   const allRoutineDayExercises = (allRoutineDayExercisesData ?? []) as RoutineDayExerciseRow[];
   const canonicalDaySummariesPromise = allRoutineDays.length > 0
-    ? diagnostics.measure("routines.canonical-day-summaries.fetch", () => buildCanonicalDaySummaries({
-      supabase,
+    ? args.diagnostics.measure("routines.canonical-day-summaries.fetch", () => buildCanonicalDaySummaries({
+      supabase: args.supabase,
       routineDays: allRoutineDays,
       allDayExercises: allRoutineDayExercises,
       metadataMode: "preview",
     }), {
       blockingReason: "Waiting for normalized routine browse previews.",
       metadata: {
-        userId: user.id,
+        userId: args.userId,
         routineCount: routineIds.length,
         dayCount: allRoutineDays.length,
         exerciseCount: allRoutineDayExercises.length,
@@ -154,16 +149,16 @@ export default async function RoutinesPage() {
     })
     : Promise.resolve({ summaries: [] });
   const routineSessionsPromise = routineIds.length
-    ? diagnostics.measure("routines.sessions.fetch", async () => await supabase
+    ? args.diagnostics.measure("routines.sessions.fetch", async () => await args.supabase
       .from("sessions")
       .select("routine_id, routine_day_index, performed_at, status")
       .in("routine_id", routineIds)
-      .eq("user_id", user.id)
+      .eq("user_id", args.userId)
       .eq("status", "completed"), {
       blockingReason: "Waiting for routine session history summary.",
       metadata: {
         routineCount: routineIds.length,
-        userId: user.id,
+        userId: args.userId,
       },
       timeoutMs: 7000,
     })
@@ -218,7 +213,7 @@ export default async function RoutinesPage() {
     }
   }
 
-  const activeRoutineName = publishedVisibleRoutines.find((routine) => routine.id === profile.active_routine_id)?.name ?? null;
+  const activeRoutineName = publishedVisibleRoutines.find((routine) => routine.id === args.profile.active_routine_id)?.name ?? null;
   const completedSessionsByRoutineId = new Map<string, Array<{ routine_day_index: number | null; performed_at: string | null }>>();
   for (const session of routineSessionsData ?? []) {
     const routineId = typeof session.routine_id === "string" ? session.routine_id.trim() : "";
@@ -233,31 +228,20 @@ export default async function RoutinesPage() {
     });
     completedSessionsByRoutineId.set(routineId, current);
   }
-  const headerInfoItems = buildRoutineBrowseInfoRailItems({
-    activeRoutineName,
-    routineCount: publishedVisibleRoutines.length,
-  });
-  const headerSubtitle = (
-    <HeaderInfoRail
-      items={headerInfoItems}
-      ariaLabel="Routine browse summary"
-      behavior="rotate-single"
-      className="justify-center text-center"
-    />
-  );
+
   const routineBrowseItems = publishedVisibleRoutines.map((routine) => {
     const dayStats = routineDayStatsByRoutineId.get(routine.id);
     const totalDays = dayStats?.totalDays ?? routine.cycle_length_days;
     const restDays = dayStats?.restDays ?? 0;
     const exerciseCount = exerciseCountByRoutineId.get(routine.id) ?? 0;
-    const routineTimeZone = routine.timezone || profile.timezone;
+    const routineTimeZone = routine.timezone || args.profile.timezone;
     const sortedRoutineDays = allRoutineDays
       .filter((day) => day.routine_id === routine.id)
       .sort((left, right) => left.day_index - right.day_index);
     let completedPreviewDayIndexes = new Set<number>();
     let skippedPreviewDayIndexes = new Set<number>();
 
-    if (routine.id === profile.active_routine_id && sortedRoutineDays.length > 0) {
+    if (routine.id === args.profile.active_routine_id && sortedRoutineDays.length > 0) {
       const routineSessions = completedSessionsByRoutineId.get(routine.id) ?? [];
       const resolvedCycleLength = Number.isFinite(routine.cycle_length_days ?? null) && Number(routine.cycle_length_days) > 0
         ? Math.floor(Number(routine.cycle_length_days))
@@ -351,7 +335,7 @@ export default async function RoutinesPage() {
         startDate: routine.start_date,
         cycleLengthDays: routine.cycle_length_days,
         scheduleMode: routine.schedule_mode,
-        profileTimeZone: routine.timezone || profile.timezone,
+        profileTimeZone: routine.timezone || args.profile.timezone,
         weekday: "short",
       }),
       isRest: Boolean(day.is_rest),
@@ -373,10 +357,87 @@ export default async function RoutinesPage() {
       }),
       createdAt: routine.created_at ?? null,
       href: `/routines/${routine.id}`,
-      isActive: profile.active_routine_id === routine.id,
+      isActive: args.profile.active_routine_id === routine.id,
       previewDays,
     };
   });
+
+  return {
+    activeRoutineName,
+    draftRoutineName,
+    routineBrowseItems,
+  };
+}
+
+export default async function RoutinesPage() {
+  const diagnostics = new LoadingDiagnosticsCollector("/routines");
+  const user = await requireUser({
+    gate: "routines.auth.session",
+    route: "/routines",
+    blockingReason: "Waiting for authenticated session before loading routines.",
+    timeoutMs: 5000,
+    collector: diagnostics,
+  });
+  const profile = await diagnostics.measure("routines.profile.bootstrap", () => ensureProfile(user.id), {
+    blockingReason: "Waiting for routines profile bootstrap.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 5000,
+  });
+  const supabase = supabaseServer();
+  const showQaLlelData = resolveShowQaLlelDataPreferenceWithOverride(
+    profile,
+    resolveQaLlelVisibilityOverride(cookies().get(QA_LLEL_VISIBILITY_COOKIE)?.value),
+  );
+  const draftRoutineId = cookies().get(ROUTINE_DRAFT_COOKIE_NAME)?.value?.trim() || null;
+
+  let pageModel: RoutinesBrowsePageModel | null = null;
+  let fetchFailed = false;
+  try {
+    pageModel = await loadRoutinesBrowsePageModel({
+      diagnostics,
+      supabase,
+      userId: user.id,
+      profile,
+      showQaLlelData,
+      draftRoutineId,
+    });
+  } catch (error) {
+    fetchFailed = true;
+    console.error("[routines/offline] failed to load live routines browse state", {
+      userId: user.id,
+      activeRoutineId: profile.active_routine_id ?? null,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  const headerInfoItems = pageModel ? buildRoutineBrowseInfoRailItems({
+    activeRoutineName: pageModel.activeRoutineName,
+    routineCount: pageModel.routineBrowseItems.length,
+  }) : [];
+  const headerSubtitle = (
+    pageModel && headerInfoItems.length > 0
+      ? (
+        <HeaderInfoRail
+          items={headerInfoItems}
+          ariaLabel="Routine browse summary"
+          behavior="rotate-single"
+          className="justify-center text-center"
+        />
+      )
+      : fetchFailed
+        ? <span className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--warning-rgb)/0.9)]">Offline snapshot</span>
+        : undefined
+  );
+  const routinesSnapshot: RoutinesCacheSnapshot | null = pageModel
+    ? {
+        schemaVersion: ROUTINES_CACHE_SCHEMA_VERSION,
+        userId: user.id,
+        capturedAt: new Date().toISOString(),
+        routines: pageModel.routineBrowseItems,
+      }
+    : null;
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
@@ -393,15 +454,20 @@ export default async function RoutinesPage() {
         )}
       >
         <ContentRail className="space-y-3">
-          <RoutinesPageClient
-            routines={routineBrowseItems}
-            workoutPlansHref="/routines/workout-plans"
-            draftRoutineName={draftRoutineName}
-            duplicateRoutineAction={duplicateRoutineAction}
-            setActiveRoutineAction={setActiveRoutineAction}
-            deleteRoutineAction={deleteRoutineAction}
-          />
+          {fetchFailed || !pageModel ? (
+            <RoutinesOfflineShell userId={user.id} fetchFailed={fetchFailed} />
+          ) : (
+            <RoutinesPageClient
+              routines={pageModel.routineBrowseItems}
+              workoutPlansHref="/routines/workout-plans"
+              draftRoutineName={pageModel.draftRoutineName}
+              duplicateRoutineAction={duplicateRoutineAction}
+              setActiveRoutineAction={setActiveRoutineAction}
+              deleteRoutineAction={deleteRoutineAction}
+            />
+          )}
         </ContentRail>
+        <RoutinesOfflineBridge snapshot={routinesSnapshot} />
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );
