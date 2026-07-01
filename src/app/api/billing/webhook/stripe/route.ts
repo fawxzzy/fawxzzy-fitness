@@ -62,6 +62,80 @@ function getUserIdFromCheckoutSession(session: Stripe.Checkout.Session) {
   return clientReferenceId || null;
 }
 
+async function upsertCompletedLifetimePurchase(args: {
+  admin: any;
+  completedAt: string;
+  eventId: string;
+  paymentIntentId: string | null;
+  session: Stripe.Checkout.Session;
+  stripeCustomerId: string;
+  userId: string;
+}) {
+  const {
+    admin,
+    completedAt,
+    eventId,
+    paymentIntentId,
+    session,
+    stripeCustomerId,
+    userId,
+  } = args;
+
+  const basePayload = {
+    user_id: userId,
+    purchase_kind: "lifetime_pro",
+    status: "completed",
+    stripe_checkout_session_id: session.id,
+    stripe_payment_intent_id: paymentIntentId,
+    stripe_customer_id: stripeCustomerId,
+    stripe_price_id:
+      typeof session.metadata?.stripe_price_id === "string" && session.metadata.stripe_price_id.trim().length > 0
+        ? session.metadata.stripe_price_id.trim()
+        : null,
+    amount_total: session.amount_total ?? null,
+    currency: session.currency ?? null,
+    completed_at: completedAt,
+    raw_event_id: eventId,
+  };
+
+  const existingPurchaseResult = await admin
+    .from("billing_purchases")
+    .select("id")
+    .eq("stripe_checkout_session_id", session.id)
+    .maybeSingle();
+
+  if (existingPurchaseResult.error) {
+    throw new Error(`Could not load purchase receipt for checkout session: ${existingPurchaseResult.error.message}`);
+  }
+
+  if (existingPurchaseResult.data?.id) {
+    const { data, error } = await admin
+      .from("billing_purchases")
+      .update(basePayload)
+      .eq("id", existingPurchaseResult.data.id)
+      .select("id")
+      .single();
+
+    if (error) {
+      throw new Error(`Could not update completed purchase receipt: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  const { data, error } = await admin
+    .from("billing_purchases")
+    .insert(basePayload)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(`Could not insert completed purchase receipt: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   const webhookSecret = STRIPE_WEBHOOK_SECRET_OPTIONAL();
@@ -108,32 +182,15 @@ export async function POST(request: NextRequest) {
       const paymentIntentId = getPaymentIntentId(session.payment_intent);
       const completedAt = new Date(event.created * 1000).toISOString();
 
-      const { data: purchaseRow, error: purchaseError } = await admin
-        .from("billing_purchases")
-        .upsert({
-          user_id: userId,
-          purchase_kind: "lifetime_pro",
-          status: "completed",
-          stripe_checkout_session_id: session.id,
-          stripe_payment_intent_id: paymentIntentId,
-          stripe_customer_id: stripeCustomerId,
-          stripe_price_id:
-            typeof session.metadata?.stripe_price_id === "string" && session.metadata.stripe_price_id.trim().length > 0
-              ? session.metadata.stripe_price_id.trim()
-              : null,
-          amount_total: session.amount_total ?? null,
-          currency: session.currency ?? null,
-          completed_at: completedAt,
-          raw_event_id: event.id,
-        }, {
-          onConflict: "stripe_checkout_session_id",
-        })
-        .select("id")
-        .single();
-
-      if (purchaseError) {
-        throw new Error(`Could not upsert completed purchase receipt: ${purchaseError.message}`);
-      }
+      const purchaseRow = await upsertCompletedLifetimePurchase({
+        admin,
+        completedAt,
+        eventId: event.id,
+        paymentIntentId,
+        session,
+        stripeCustomerId,
+        userId,
+      });
 
       const { error: customerUpsertError } = await admin
         .from("billing_customers")

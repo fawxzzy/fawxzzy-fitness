@@ -52,7 +52,7 @@ export function buildFallbackProAccessSnapshot(
       reason === "schema"
         ? "Billing migrations have not been applied yet, so Pro access truth is still unavailable on this surface."
         : billingConfig.checkoutConfigured
-          ? "Checkout configuration is present. The hosted purchase flow is the next implementation slice."
+          ? "Stripe checkout configuration is present and the hosted purchase flow is ready."
           : "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
   };
 }
@@ -81,7 +81,7 @@ export function buildResolvedProAccessSnapshot({
       accessState === "lifetime_pro"
         ? "Your account already has active Lifetime Pro access."
         : billingConfig.checkoutConfigured
-          ? "The hosted checkout lane is the next implementation slice for this surface."
+          ? "Lifetime Pro checkout is ready on this surface."
           : "Upgrade checkout is not configured yet, so this section is currently read-only.",
   };
 }

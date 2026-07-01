@@ -64,6 +64,7 @@ test("shouldRefreshAuthSession skips public auth and install routes", () => {
   assert.equal(shouldRefreshAuthSession("/dev/stretch-card-pass"), false);
   assert.equal(shouldRefreshAuthSession("/install"), false);
   assert.equal(shouldRefreshAuthSession("/api/app-version"), false);
+  assert.equal(shouldRefreshAuthSession("/api/billing/webhook/stripe"), false);
   assert.equal(shouldRefreshAuthSession("/api/discord/interactions"), false);
   assert.equal(shouldRefreshAuthSession("/api/discord/message-commands/poll"), false);
 });

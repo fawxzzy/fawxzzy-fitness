@@ -115,7 +115,7 @@ export function ProAccessSettings({
               <MetricAccentBar variant="thin" className="w-full opacity-85" />
               {billingNotice === "success" ? (
                 <p className="text-xs leading-5 text-[rgb(var(--success-text-rgb)/0.92)]">
-                  Checkout returned successfully. Pro access will update after billing verification is completed.
+                  Checkout returned successfully. Pro access may take a moment to reflect after billing verification completes.
                 </p>
               ) : null}
               {billingNotice === "cancel" ? (
@@ -175,7 +175,7 @@ export function ProAccessSettings({
                 )}
               >
                 {snapshot.checkoutConfigured
-                  ? "Stripe configuration is present. Checkout session wiring is the next MVP slice."
+                  ? "Stripe configuration and hosted checkout wiring are active on this surface."
                   : "Add Stripe keys and Lifetime Pro price ids to unlock the hosted checkout slice."}
               </p>
             </div>

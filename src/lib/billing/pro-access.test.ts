@@ -90,7 +90,7 @@ test("buildResolvedProAccessSnapshot reports active Lifetime Pro access determin
   assert.match(snapshot.supportNote, /already has active Lifetime Pro access/i);
 });
 
-test("buildResolvedProAccessSnapshot keeps free users on the hosted-checkout readiness note until purchase is complete", () => {
+test("buildResolvedProAccessSnapshot keeps free users on the checkout-ready note until purchase is complete", () => {
   const snapshot = buildResolvedProAccessSnapshot({
     billingConfig: configuredBillingSnapshot,
     entitlement: null,
@@ -107,5 +107,5 @@ test("buildResolvedProAccessSnapshot keeps free users on the hosted-checkout rea
 
   assert.equal(snapshot.accessState, "free");
   assert.equal(snapshot.lastPurchaseStatus, "pending");
-  assert.match(snapshot.supportNote, /hosted checkout lane is the next implementation slice/i);
+  assert.match(snapshot.supportNote, /Lifetime Pro checkout is ready on this surface/i);
 });
