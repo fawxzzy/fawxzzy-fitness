@@ -137,4 +137,4 @@ comment on table public.billing_purchases is
   'Durable purchase receipts for one-time monetization events such as Lifetime Pro.';
 
 comment on table public.user_entitlements is
-  'Product-access truth derived from verified billing events.';
+  'Product-access truth derived from verified billing events.';;
