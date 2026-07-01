@@ -7,7 +7,7 @@ import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
-import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 
@@ -134,11 +134,6 @@ export function TodayClientShell({
       <TodayOverviewScaffold>
         <div className="flex flex-col gap-[0.625rem]">
           <OfflineSyncBadge userId={userId} />
-          {display.staleAt ? (
-            <AccentSubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--warning-rgb)/0.28)] bg-[rgb(var(--warning-rgb)/0.12)] px-3 py-2 text-xs text-[rgb(var(--warning-rgb))]">
-              Offline snapshot - stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-            </AccentSubtitleText>
-          ) : null}
 
           <TodayExerciseRows
             exercises={display.exercises.map((exercise) => ({
@@ -156,7 +151,7 @@ export function TodayClientShell({
               className="w-full"
               label="Resume Workout"
             />
-          ) : (
+          ) : display.staleAt ? null : (
             <SubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center">
               Start session requires a live connection.
             </SubtitleText>

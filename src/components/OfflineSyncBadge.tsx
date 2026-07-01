@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/cn";
 import { readPendingSetLogs } from "@/lib/offline/set-log-queue";
 
 type BadgeState = "offline" | "saved-local" | "syncing" | "synced" | "hidden";
@@ -8,7 +9,7 @@ type BadgeState = "offline" | "saved-local" | "syncing" | "synced" | "hidden";
 const POLL_MS = 1200;
 const SYNCED_VISIBLE_MS = 3000;
 
-export function OfflineSyncBadge({ userId }: { userId: string }) {
+export function OfflineSyncBadge({ userId, className }: { userId: string; className?: string }) {
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [badgeState, setBadgeState] = useState<BadgeState>("hidden");
   const prevHadPendingRef = useRef(false);
@@ -86,15 +87,20 @@ export function OfflineSyncBadge({ userId }: { userId: string }) {
     badgeState === "offline"
       ? "Offline"
       : badgeState === "syncing"
-        ? "Syncing…"
+        ? "Syncing..."
         : badgeState === "saved-local"
           ? "Saved locally"
           : "All changes synced";
 
   return (
-    <p className="inline-flex items-center rounded-full border border-border/70 bg-surface/85 px-2.5 py-1 text-[11px] font-medium text-muted shadow-sm">
+    <p
+      className={cn(
+        "inline-flex items-center rounded-full border border-border/70 bg-surface/85 px-2.5 py-1 text-[11px] font-medium text-muted shadow-sm",
+        className,
+      )}
+    >
       {text}
-      {!isOnline && badgeState !== "offline" ? " · offline" : ""}
+      {!isOnline && badgeState !== "offline" ? " | offline" : ""}
     </p>
   );
 }

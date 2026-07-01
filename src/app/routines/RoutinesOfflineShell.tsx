@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { RoutineBrowseCard, type RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
 import { RoutinesCardList, RoutinesListItem, SharedDayListSection } from "@/components/routines/RoutinesScreenFamily";
-import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { readRoutinesCache, type RoutinesCacheSnapshot } from "@/lib/offline/routines-cache";
 
 export function RoutinesOfflineShell({
@@ -35,12 +35,6 @@ export function RoutinesOfflineShell({
       <OfflineSyncBadge userId={userId} />
       {cachedSnapshot ? (
         <>
-          <AccentSubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--warning-rgb)/0.28)] bg-[rgb(var(--warning-rgb)/0.12)] px-3 py-2 text-xs text-[rgb(var(--warning-rgb))]">
-            Offline snapshot - stale data from {new Date(cachedSnapshot.capturedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-          </AccentSubtitleText>
-          <SubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center">
-            Editing routines requires a live connection. Cached browse state stays available here.
-          </SubtitleText>
           <RoutinesCardList>
             {routines.map((routine) => (
               <RoutinesListItem key={routine.id}>
@@ -56,7 +50,7 @@ export function RoutinesOfflineShell({
         </>
       ) : (
         <SubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center">
-          Offline snapshot unavailable. Reopen Routines while online once to cache this screen.
+          No cached routines available yet.
         </SubtitleText>
       )}
     </SharedDayListSection>

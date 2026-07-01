@@ -41,17 +41,11 @@ export function HistoryOfflineShell({
 
   return (
     <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <OfflineSyncBadge userId={userId} />
       </div>
       {cachedSnapshot ? (
         <>
-          <p className="rounded-[var(--radius-md)] border border-[rgb(var(--warning-rgb)/0.28)] bg-[rgb(var(--warning-rgb)/0.12)] px-3 py-2 text-xs text-[rgb(var(--warning-rgb))]">
-            Offline snapshot - stale data from {new Date(cachedSnapshot.capturedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-          </p>
-          <p className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center text-sm text-[rgb(var(--text-secondary)/0.94)]">
-            History stays browseable here, but loading fresh scope data still requires a live connection.
-          </p>
           <HistoryScopeSummarySurface
             summary={cachedSnapshot.scopeSummary}
             viewMode="compact"
@@ -125,7 +119,7 @@ export function HistoryOfflineShell({
           recipe="historyDetail"
           listState={(
             <p className={appTokens.historyBrowserEmptyState}>
-              Offline snapshot unavailable. Open History while online once to cache this screen.
+              No cached history available yet.
             </p>
           )}
         />

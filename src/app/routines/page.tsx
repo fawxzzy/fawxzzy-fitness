@@ -427,7 +427,7 @@ export default async function RoutinesPage() {
         />
       )
       : fetchFailed
-        ? <span className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--warning-rgb)/0.9)]">Offline snapshot</span>
+        ? <span className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--warning-rgb)/0.9)]">Offline</span>
         : undefined
   );
   const routinesSnapshot: RoutinesCacheSnapshot | null = pageModel
