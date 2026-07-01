@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
         fitness_user_id: user.id,
         purchase_kind: "lifetime_pro",
         price_mode: billingConfig.activePriceMode,
+        stripe_price_id: billingConfig.activePriceId,
       },
     });
 
