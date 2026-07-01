@@ -1,4 +1,5 @@
-export const FITNESS_SUPPORT_CONTACT_LABEL = "official Fawxzzy Fitness Discord community";
+export const FITNESS_SUPPORT_CONTACT_LABEL =
+  "For support, contact Fawxzzy Fitness through the official Fawxzzy Fitness Discord community.";
 
 export const PRIVACY_POLICY_LAST_UPDATED = "July 1, 2026";
 export const TERMS_OF_SERVICE_LAST_UPDATED = "July 1, 2026";
