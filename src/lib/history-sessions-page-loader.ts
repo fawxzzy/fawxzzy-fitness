@@ -51,6 +51,7 @@ export type HistorySearchParams = {
   q?: string | string[] | null;
   tags?: string | string[] | null;
   filters?: string | string[] | null;
+  offlineSnapshot?: string | string[] | null;
 };
 
 export type HistorySessionsPageData = {

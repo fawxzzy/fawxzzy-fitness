@@ -67,6 +67,10 @@ Files:
 - `src/app/today/TodayOfflineBridge.tsx`
 - `src/app/today/TodayClientShell.tsx`
 - `src/app/today/page.tsx`
+- `src/lib/offline/routines-cache.ts`
+- `src/app/routines/RoutinesOfflineBridge.tsx`
+- `src/app/routines/RoutinesOfflineShell.tsx`
+- `src/app/routines/page.tsx`
 - `src/components/OfflineSyncBadge.tsx`
 
 Proof:
@@ -76,11 +80,32 @@ Proof:
 - Offline UI already marks stale state with:
   - `Offline snapshot - stale data from ...`
   - `Start session requires a live connection.`
+- `routines-cache.ts` stores routines browse snapshots in IndexedDB with localStorage fallback.
+- `RoutinesOfflineBridge.tsx` writes the latest routines browse snapshot after successful `/routines` loads.
+- `RoutinesOfflineShell.tsx` restores cached routines browse state when the live routines fetch fails and keeps the surface read-only.
+- Offline Routines UI already marks stale state with:
+  - `Offline snapshot - stale data from ...`
+  - `Editing routines requires a live connection. Cached browse state stays available here.`
 - `OfflineSyncBadge` already reflects offline / syncing / saved-local / synced states.
 
 Scope limit:
-- This cache is currently Today-focused.
-- The repo does not yet show the same read-only offline snapshot contract for routines, history, or full session page boot.
+- The strongest route-level offline read contract is now:
+  - Today
+  - Routines browse
+  - Current Session
+  - History
+
+Additional proof:
+- `src/lib/offline/session-cache.ts` stores compact Current Session snapshots.
+- `src/app/session/[id]/SessionOfflineBridge.tsx` writes the latest session snapshot after successful live session loads.
+- `src/app/session/[id]/SessionOfflineShell.tsx` restores cached session state into a stale read-only shell.
+- `src/app/session/[id]/page.tsx` now falls back to that stale shell when the live session fetch fails.
+- A deterministic dev proof hook (`?offlineSnapshot=1`) exists so the stale Session shell can be visually verified on the real 3002 app without relying on an actual network outage.
+- `src/lib/offline/history-cache.ts` stores compact History browse snapshots.
+- `src/app/history/HistoryOfflineBridge.tsx` writes the latest History snapshot after successful live History loads.
+- `src/app/history/HistoryOfflineShell.tsx` restores cached History state into a stale read-only shell.
+- `src/app/history/page.tsx` now falls back to that stale shell when the live History fetch fails.
+- A deterministic dev proof hook (`?offlineSnapshot=1`) exists so the stale History shell can be visually verified on the real 3002 app without relying on an actual network outage.
 
 ### Phase 5 partial overlap: offline set-log queue and reconnect sync
 
@@ -125,22 +150,22 @@ Current state:
 ### 2. Broader read-only offline coverage
 
 Missing:
-- cached read-only routine/session/history surfaces beyond the Today snapshot fallback
 - clearer offline fallback contract for routes outside Today
 
 Current state:
-- Today has the strongest offline read contract.
-- Session has strong draft/queue resilience, but not a proven read-only offline boot contract equal to Today.
+- Today, Routines browse, Current Session, and History now have explicit cached read-only fallback.
+- Remaining protected routes outside that family are still online-first.
 
 ### 3. Broader offline mutation queue
 
-Missing:
-- queue/sync handling for non-set session edits and other meaningful offline mutations
-- explicit conflict/error states beyond the current retry/toast pattern
+Not required for this card closeout:
+- the stored acceptance criteria only require queuing session logging edits offline, syncing on reconnect, and defining conflict/error states
 
 Current state:
 - set logging is queued
-- broader mutation types are not yet under the same durable offline queue contract
+- reconnect replay is shipped
+- failure/sync states are surfaced through the existing bounded retry/toast contract
+- broader mutation types can be split into a follow-up card if product scope expands
 
 ### 4. Closeout proof against the card acceptance criteria
 
@@ -154,15 +179,14 @@ Treat `FF-PWA-002` as:
 - `in_progress`
 - a gap-closure card, not a future concept card
 
-Recommended remaining MVP scope:
-1. write the explicit offline/PWA/session-restore doctrine proof
-2. audit Today / Resume / Session / History for read-only offline behavior boundaries
-3. decide whether session-page offline boot is in-scope now or should be split
-4. decide whether the existing set-log queue is sufficient for MVP or whether broader session edits must join the queue before closeout
-5. produce one acceptance-criteria closeout proof receipt
+Recommended closeout reading:
+1. explicit offline/PWA/session-restore doctrine proof is landed
+2. Today + Routines + Current Session + History are the proven offline read-only baseline
+3. the existing set-log queue is sufficient for the stored Phase 5 acceptance contract
+4. broader non-set offline edits should be tracked as a follow-up only if product scope expands
 
 ## Suggested Card Note
 
 Suggested live note text:
 
-`Audit confirmed FF-PWA-002 has major overlap already shipped. Landed today: standalone manifest + SW registration/offline navigation fallback, earned install prompt + platform-specific install gating, durable Supabase session cookie mirror/recovery/keepalive, Today IndexedDB snapshot fallback with stale/offline UI, and IndexedDB-backed offline set-log queue with reconnect sync. Remaining MVP gap is no longer core PWA shell/session restore; it is explicit doctrine + proof, broader read-only offline coverage beyond Today, and deciding whether broader non-set session mutations must join the offline queue before closeout.`
+`Audit confirmed FF-PWA-002 is now closeable from shipped proof. Landed: standalone manifest + SW registration/offline navigation fallback, earned install prompt + platform-specific install gating, durable Supabase session cookie mirror/recovery/keepalive, Today + Routines + Current Session + History read-only stale snapshot fallbacks with offline UI, and IndexedDB-backed offline session set-log queue with reconnect sync/error states. Broader non-set offline edits are follow-up scope, not part of this card’s stored acceptance contract.`

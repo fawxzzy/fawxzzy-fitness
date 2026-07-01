@@ -70,6 +70,17 @@ export async function getSessionPageData(
     timeoutMs: 5000,
     collector: diagnostics ?? null,
   });
+  return getSessionPageDataForUser(sessionId, user.id, options);
+}
+
+export async function getSessionPageDataForUser(
+  sessionId: string,
+  userId: string,
+  options?: {
+    diagnostics?: LoadingDiagnosticsCollector;
+  },
+) {
+  const diagnostics = options?.diagnostics;
   const supabase = supabaseServer();
 
   const { data: session } = diagnostics
@@ -77,12 +88,12 @@ export async function getSessionPageData(
       .from("sessions")
       .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
       .eq("id", sessionId)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single(), {
       blockingReason: "Waiting for the requested session record.",
       metadata: {
         sessionId,
-        userId: user.id,
+        userId,
       },
       timeoutMs: 7000,
     })
@@ -90,7 +101,7 @@ export async function getSessionPageData(
       .from("sessions")
       .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
       .eq("id", sessionId)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
   if (!session) {
@@ -102,7 +113,7 @@ export async function getSessionPageData(
         .from("routines")
         .select(ROUTINE_SELECT_WITH_PROGRESSION)
         .eq("id", session.routine_id)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle()
     : { data: null, error: null };
   const { data: legacyRoutine } = session.routine_id && routineWithProgressionError && isMissingRoutineDefaultProgressionColumnError(routineWithProgressionError)
@@ -110,7 +121,7 @@ export async function getSessionPageData(
         .from("routines")
         .select(ROUTINE_SELECT_LEGACY)
         .eq("id", session.routine_id)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle()
     : { data: null };
   const routine = routineWithProgression ?? legacyRoutine ?? null;
@@ -119,14 +130,14 @@ export async function getSessionPageData(
     .from("session_exercises")
     .select(SESSION_EXERCISE_SELECT_WITH_EFFORT)
     .eq("session_id", sessionId)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("position", { ascending: true });
   const { data: legacySessionExercisesData } = sessionExercisesWithEffortError && isMissingSessionCopilotFeedbackEffortColumnError(sessionExercisesWithEffortError)
     ? await supabase
         .from("session_exercises")
         .select(SESSION_EXERCISE_SELECT_LEGACY)
         .eq("session_id", sessionId)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("position", { ascending: true })
     : { data: null };
   const sessionExercisesData = sessionExercisesWithEffort ?? legacySessionExercisesData ?? [];
@@ -136,7 +147,7 @@ export async function getSessionPageData(
         .from("routine_days")
         .select("id, day_index, is_rest")
         .eq("routine_id", session.routine_id)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("day_index", { ascending: true })
     : { data: [] };
   const routineDays = (routineDaysData ?? []) as Array<{ id: string; day_index: number | null; is_rest?: boolean | null }>;
@@ -149,14 +160,14 @@ export async function getSessionPageData(
         .from("routine_day_exercises")
         .select(ROUTINE_DAY_EXERCISE_SELECT_WITH_PROGRESSION)
         .eq("routine_day_id", routineDay.id)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
     : { data: [], error: null };
   const { data: legacyRoutineDayExercises } = routineDay?.id && routineDayExercisesWithProgressionError && isMissingProgressionPlaybookColumnError(routineDayExercisesWithProgressionError)
     ? await supabase
         .from("routine_day_exercises")
         .select(ROUTINE_DAY_EXERCISE_SELECT_LEGACY)
         .eq("routine_day_id", routineDay.id)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
     : { data: null };
 
   const routineRows = ((routineDayExercisesWithProgression ?? legacyRoutineDayExercises ?? []) as RoutineDayExerciseTargetRow[])
@@ -265,7 +276,7 @@ export async function getSessionPageData(
         .from("sets")
         .select("id, client_log_id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
         .in("session_exercise_id", exerciseIds)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("set_index", { ascending: true })
     : { data: [] };
 
@@ -287,7 +298,7 @@ export async function getSessionPageData(
       blockingReason: "Waiting for exercise catalog metadata for the session page.",
       metadata: {
         sessionId,
-        userId: user.id,
+        userId,
       },
       timeoutMs: 7000,
     })
@@ -296,16 +307,16 @@ export async function getSessionPageData(
   // exercise_stats is keyed by canonical exercises.id UUIDs (never session_exercises.id / routine_day_exercises.id / slug).
   const canonicalExerciseIds = Array.from(new Set(sessionExercises.map((exercise) => exercise.exercise_id).filter((exerciseId): exerciseId is string => Boolean(exerciseId))));
   const exerciseStatsByExerciseId = diagnostics
-    ? await diagnostics.measure("session.exercise-stats.fetch", () => getExerciseStatsForExercises(user.id, canonicalExerciseIds), {
+    ? await diagnostics.measure("session.exercise-stats.fetch", () => getExerciseStatsForExercises(userId, canonicalExerciseIds), {
       blockingReason: "Waiting for session exercise stats.",
       metadata: {
         canonicalExerciseCount: canonicalExerciseIds.length,
         sessionId,
-        userId: user.id,
+        userId,
       },
       timeoutMs: 7000,
     })
-    : await getExerciseStatsForExercises(user.id, canonicalExerciseIds);
+    : await getExerciseStatsForExercises(userId, canonicalExerciseIds);
 
   const progressionExerciseIds = Array.from(new Set(
     sessionExercises
@@ -318,7 +329,7 @@ export async function getSessionPageData(
     ? await supabase
         .from("session_exercises")
         .select("id, exercise_id, routine_day_exercise_id, session:sessions!inner(performed_at, status, routine_day_index)")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .in("exercise_id", progressionExerciseIds)
         .eq("session.status", "completed")
     : { data: [] };
@@ -349,7 +360,7 @@ export async function getSessionPageData(
         .from("sets")
         .select("session_exercise_id, set_index, weight, reps, weight_unit, duration_seconds, distance, distance_unit, calories, is_warmup")
         .in("session_exercise_id", progressionSessionExerciseIds)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("set_index", { ascending: true })
     : { data: [] };
 

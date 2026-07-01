@@ -99,25 +99,52 @@ Primary files:
 - `src/app/today/TodayClientShell.tsx`
 - `src/app/today/page.tsx`
 
-#### 2. Current Session
+#### 2. Routines browse
 
-- Current Session is not yet a full offline-boot route in the same way Today is.
-- However, it does preserve resilient local state for session logging:
-  - queued unsynced set logs
-  - local draft state for the current exercise logger
-- This means session continuity is stronger than generic SSR failure, but weaker than a full cached-page offline boot contract.
+- Routines browse is now the second explicit read-only offline route.
+- After a successful live render, `/routines` writes a compact routines snapshot to IndexedDB with localStorage fallback.
+- If a later live routines fetch fails, `/routines` may restore that cached browse snapshot.
+- The restored view must show stale/offline state clearly.
+- Editing remains intentionally blocked while offline.
 
 Primary files:
+- `src/lib/offline/routines-cache.ts`
+- `src/app/routines/RoutinesOfflineBridge.tsx`
+- `src/app/routines/RoutinesOfflineShell.tsx`
+- `src/app/routines/page.tsx`
+
+#### 3. Current Session
+
+- Current Session is now the third explicit read-only offline surface.
+- After a successful live render, the session route writes a compact stale-view snapshot for the current session.
+- If a later live session fetch fails, `/session/[id]` may restore that cached snapshot into a read-only stale shell.
+- The restored view must show stale/offline state clearly.
+- Session logging and other live mutations remain blocked while offline.
+- The set-log queue still provides a separate resilience layer for live sessions that were already opened before connectivity was lost.
+
+Primary files:
+- `src/lib/offline/session-cache.ts`
+- `src/app/session/[id]/SessionOfflineBridge.tsx`
+- `src/app/session/[id]/SessionOfflineShell.tsx`
+- `src/app/session/[id]/page.tsx`
 - `src/components/SessionTimers.tsx`
 - `src/lib/offline/set-log-queue.ts`
 - `src/lib/offline/sync-engine.ts`
 - `src/lib/offline/client-storage.ts`
 
-#### 3. Routines / History / Other protected app routes
+#### 4. History / other protected app routes
 
-- These routes are currently online-first.
-- They do benefit from durable session restore and app-shell install behavior.
-- They do not yet have the same explicit read-only offline snapshot contract as Today.
+- History is now the fourth explicit read-only offline surface.
+- After a successful live History render, the route writes a compact stale-view snapshot for the current member.
+- If a later live History fetch fails, `/history` may restore that cached snapshot into a read-only stale shell.
+- The restored view must show stale/offline state clearly and remain browse-only.
+- Other protected routes still benefit from durable session restore and app-shell install behavior, but remain online-first unless they adopt the same explicit stale-shell contract.
+
+Primary files:
+- `src/lib/offline/history-cache.ts`
+- `src/app/history/HistoryOfflineBridge.tsx`
+- `src/app/history/HistoryOfflineShell.tsx`
+- `src/app/history/page.tsx`
 
 ## Minimum Cached / Queued Data
 
@@ -228,12 +255,15 @@ Primary files:
 - middleware session refresh / login fallback
 - launch keepalive refresh
 - Today offline snapshot restore
+- Routines browse offline snapshot restore
+- Current Session offline snapshot restore
 - stale/offline Today UI
+- stale/offline Routines browse UI
+- stale/offline Current Session UI
 - offline queued set logging with reconnect replay
 
-### Still outside MVP closeout right now
+### Still outside this card closeout right now
 
-- read-only offline cache parity for routines/history/full session boot
 - generalized offline mutation queue beyond set logging
 - richer sync conflict review surface
 - full offline-first workout flow without a live session bootstrap boundary
@@ -241,9 +271,7 @@ Primary files:
 ## Recommended Remaining Slice Order
 
 1. Keep this doctrine file as the explicit phase-one contract.
-2. Audit whether the session route should gain a bounded read-only offline boot fallback or remain Today-only for MVP.
-3. Decide whether broader session mutations beyond set logs must join the queue before this card can close.
-4. Add one acceptance-criteria closeout proof receipt mapping:
+2. Add one acceptance-criteria closeout proof receipt mapping:
    - landed
    - partial
    - deferred
@@ -252,5 +280,6 @@ Primary files:
 
 If the card is kept as one umbrella card, it should now be interpreted as:
 - mostly shipped PWA shell + session restore
-- partially shipped offline cache + mutation queue
-- still open on doctrine-proof completeness and scope boundaries for broader offline behavior
+- landed offline read-only cache on Today + Routines + Current Session + History
+- landed bounded offline mutation queue for session set logging
+- with broader offline editing left as follow-up scope rather than a blocker for this card

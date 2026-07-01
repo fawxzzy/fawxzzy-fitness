@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { appTokens } from "@/components/ui/app/tokens";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
+import { HistoryOfflineBridge } from "./HistoryOfflineBridge";
+import { HistoryOfflineShell } from "./HistoryOfflineShell";
 import { requireUser } from "@/lib/auth";
 import {
   getHistoryPreviewSessionsPageData,
@@ -16,6 +18,7 @@ import {
   type HistorySearchParams,
 } from "@/lib/history-sessions-page-loader";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
+import { HISTORY_CACHE_SCHEMA_VERSION, type HistoryCacheSnapshot } from "@/lib/offline/history-cache";
 import { QA_LLEL_VISIBILITY_COOKIE, resolveQaLlelVisibilityOverride } from "@/lib/qa-data-visibility";
 import { supabaseServer } from "@/lib/supabase/server";
 import { HistorySessionsClient } from "./HistorySessionsClient";
@@ -59,8 +62,16 @@ export default async function HistoryPage({
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+  const forceOfflineSnapshot = process.env.NODE_ENV !== "production" && getSingleSearchParam(searchParams?.offlineSnapshot) === "1";
 
   try {
+    const user = await requireUser({
+      gate: "history.auth.session",
+      route: "/history",
+      blockingReason: "Waiting for authenticated session before loading history.",
+      timeoutMs: 5000,
+      collector: diagnostics,
+    });
     const state = await resolveHistorySessionsRouteState({
       fallback: {
         subtitle: "Session history unavailable",
@@ -74,13 +85,6 @@ export default async function HistoryPage({
           });
         }
 
-        const user = await requireUser({
-          gate: "history.auth.session",
-          route: "/history",
-          blockingReason: "Waiting for authenticated session before loading history.",
-          timeoutMs: 5000,
-          collector: diagnostics,
-        });
         return diagnostics.measure<HistorySessionsPageData>("history.sessions.fetch", () => loadHistorySessionsPageData({
           supabase: supabaseServer(),
           userId: user.id,
@@ -111,10 +115,32 @@ export default async function HistoryPage({
           headerChrome="controlsOnly"
         >
           <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-          <HistoryRouteMessage
-            title={state.fallback.errorTitle}
-            caption={state.fallback.errorCaption}
-          />
+          <HistoryOfflineShell userId={user.id} />
+        </HistoryRouteScaffold>
+      );
+    }
+
+    const historySnapshot: HistoryCacheSnapshot = {
+      schemaVersion: HISTORY_CACHE_SCHEMA_VERSION,
+      userId: user.id,
+      capturedAt: new Date().toISOString(),
+      sessionItems: state.data.sessionItems,
+      activeRoutineTitle: state.data.activeRoutineTitle,
+      scopeSummary: state.data.scopeSummary,
+      weeklyProgress: state.data.weeklyProgress,
+      weeklyProgressByWeek: state.data.weeklyProgressByWeek,
+    };
+
+    if (forceOfflineSnapshot) {
+      return (
+        <HistoryRouteScaffold
+          mode="overview"
+          title=""
+          activeTab="sessions"
+          headerChrome="controlsOnly"
+        >
+          <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
+          <HistoryOfflineShell userId={user.id} initialSnapshot={historySnapshot} />
         </HistoryRouteScaffold>
       );
     }
@@ -148,6 +174,7 @@ export default async function HistoryPage({
           initialQuery={initialQuery}
           initialSelectedTags={initialSelectedTags}
         />
+        <HistoryOfflineBridge snapshot={historySnapshot} />
       </HistoryRouteScaffold>
     );
   } catch (error) {
