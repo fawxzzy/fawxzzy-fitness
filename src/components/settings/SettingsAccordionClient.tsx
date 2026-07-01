@@ -10,7 +10,7 @@ import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
 import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
-import type { ProAccessSnapshot } from "@/lib/billing/pro-access";
+import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 
 type SettingsSectionMeta = {
   title: string;

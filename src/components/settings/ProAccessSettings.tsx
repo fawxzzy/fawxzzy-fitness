@@ -5,7 +5,7 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import type { ProAccessSnapshot } from "@/lib/billing/pro-access";
+import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/components/ui/ToastProvider";
 
