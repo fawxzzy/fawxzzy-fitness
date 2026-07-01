@@ -24,7 +24,23 @@ import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+function resolveSettingsSection(value: string | string[] | undefined) {
+  const section = Array.isArray(value) ? value[0] : value;
+  return section === "account" || section === "pro" || section === "data" || section === "legacy" || section === "discord" || section === "theme"
+    ? section
+    : null;
+}
+
+function resolveBillingNotice(value: string | string[] | undefined): "success" | "cancel" | null {
+  const notice = Array.isArray(value) ? value[0] : value;
+  return notice === "success" || notice === "cancel" ? notice : null;
+}
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const diagnostics = new LoadingDiagnosticsCollector("/settings");
   const user = await requireUser({
     gate: "settings.auth.session",
@@ -71,6 +87,8 @@ export default async function SettingsPage() {
     },
     timeoutMs: 5000,
   });
+  const initialExpandedSection = resolveSettingsSection(searchParams?.section);
+  const billingNotice = resolveBillingNotice(searchParams?.billing);
   const proAccess = await diagnostics.measure("settings.pro-access.snapshot", () => loadProAccessSnapshot(user.id), {
     blockingReason: "Loading Pro access status.",
     metadata: {
@@ -82,7 +100,7 @@ export default async function SettingsPage() {
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
-      <SettingsScreenStateProvider>
+      <SettingsScreenStateProvider initialExpandedSection={initialExpandedSection}>
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
           floatingHeader={<SettingsFloatingHeader email={user.email ?? ""} username={username} />}
@@ -100,6 +118,7 @@ export default async function SettingsPage() {
                 initialExportDateFrom={exportDateRange.dateFrom}
                 initialExportDateTo={exportDateRange.dateTo}
                 proAccess={proAccess}
+                billingNotice={billingNotice}
               />
             </SurfaceCard>
           </ContentRail>

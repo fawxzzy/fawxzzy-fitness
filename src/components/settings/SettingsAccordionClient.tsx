@@ -82,6 +82,7 @@ export function SettingsAccordionClient({
   initialExportDateFrom,
   initialExportDateTo,
   proAccess,
+  billingNotice,
 }: {
   email: string;
   username: string;
@@ -93,6 +94,7 @@ export function SettingsAccordionClient({
   initialExportDateFrom: string;
   initialExportDateTo: string;
   proAccess: ProAccessSnapshot;
+  billingNotice?: "success" | "cancel" | null;
 }) {
   const { expandedSection, setExpandedSection } = useSettingsScreenState();
 
@@ -128,7 +130,7 @@ export function SettingsAccordionClient({
             />
           ) : null}
           {expandedSection === "pro" ? (
-            <ProAccessSettings snapshot={proAccess} />
+            <ProAccessSettings snapshot={proAccess} billingNotice={billingNotice} />
           ) : null}
         </div>
       ) : null}

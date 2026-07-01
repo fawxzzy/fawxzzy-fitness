@@ -2820,6 +2820,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                     lastPurchaseStatus: null,
                     supportNote: "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
                   }}
+                  billingNotice={null}
                 />
               </div>
             </SettingsScreenStateProvider>

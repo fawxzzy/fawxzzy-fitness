@@ -1,11 +1,13 @@
 "use client";
 
+import { useTransition } from "react";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access";
 import { cn } from "@/lib/cn";
+import { useToast } from "@/components/ui/ToastProvider";
 
 function formatGrantedAt(value: string | null) {
   if (!value) {
@@ -38,18 +40,62 @@ function getPurchaseStatusLabel(status: ProAccessSnapshot["lastPurchaseStatus"])
   }
 }
 
-export function ProAccessSettings({ snapshot }: { snapshot: ProAccessSnapshot }) {
+export function ProAccessSettings({
+  snapshot,
+  billingNotice = null,
+}: {
+  snapshot: ProAccessSnapshot;
+  billingNotice?: "success" | "cancel" | null;
+}) {
+  const [isStartingCheckout, startCheckoutTransition] = useTransition();
+  const toast = useToast();
   const grantedAtLabel = formatGrantedAt(snapshot.grantedAt);
   const badgeTone = snapshot.accessState === "lifetime_pro" ? "success" : "default";
   const setupTone = snapshot.checkoutConfigured ? "success" : "warning";
+  const canStartCheckout = snapshot.schemaReady && snapshot.checkoutConfigured && snapshot.accessState !== "lifetime_pro";
+
+  const startCheckout = () => {
+    if (!canStartCheckout) {
+      return;
+    }
+
+    startCheckoutTransition(async () => {
+      try {
+        const response = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const result = await response.json().catch(() => ({ ok: false, error: "Unable to start the Lifetime Pro checkout." })) as {
+          ok?: boolean;
+          url?: string;
+          error?: string;
+        };
+
+        if (!response.ok || !result.ok || typeof result.url !== "string" || result.url.length === 0) {
+          throw new Error(typeof result.error === "string" ? result.error : "Unable to start the Lifetime Pro checkout.");
+        }
+
+        window.location.assign(result.url);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to start the Lifetime Pro checkout.", {
+          id: "billing-checkout-start-error",
+        });
+      }
+    });
+  };
 
   return (
     <>
       <PublishBottomActions>
         <BottomDockButton
           type="button"
-          intent={snapshot.checkoutConfigured ? "positive" : "info"}
-          disabled
+          intent={canStartCheckout ? "positive" : "info"}
+          onClick={startCheckout}
+          disabled={!canStartCheckout}
+          loading={isStartingCheckout}
         >
           Upgrade to Pro
         </BottomDockButton>
@@ -67,6 +113,16 @@ export function ProAccessSettings({ snapshot }: { snapshot: ProAccessSnapshot })
                 <AppBadge tone={setupTone}>{snapshot.offerLabel}</AppBadge>
               </div>
               <MetricAccentBar variant="thin" className="w-full opacity-85" />
+              {billingNotice === "success" ? (
+                <p className="text-xs leading-5 text-[rgb(var(--success-text-rgb)/0.92)]">
+                  Checkout returned successfully. Pro access will update after billing verification is completed.
+                </p>
+              ) : null}
+              {billingNotice === "cancel" ? (
+                <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.88)]">
+                  Checkout was cancelled. Your account remains on the current access tier.
+                </p>
+              ) : null}
               <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.9)]">
                 {snapshot.supportNote}
               </p>
