@@ -49,52 +49,61 @@ function createMockClient(rows) {
         area: null,
       };
 
-      return {
-        select() {
-          return {
-            eq(column, value) {
-              if (column === "status") {
-                filters.statuses = [value];
-              }
-              if (column === "report_type") {
-                filters.types = [value];
-              }
-              if (column === "area") {
-                filters.area = value;
-              }
-              return this;
-            },
-            in(column, values) {
-              if (column === "status") {
-                filters.statuses = values;
-              }
-              if (column === "report_type") {
-                filters.types = values;
-              }
-              return this;
-            },
-            order() {
-              return {
-                async limit(limit) {
-                  let filtered = [...rows];
-                  if (filters.statuses) {
-                    filtered = filtered.filter((row) => filters.statuses.includes(row.status));
-                  }
-                  if (filters.types) {
-                    filtered = filtered.filter((row) => filters.types.includes(row.report_type));
-                  }
-                  if (filters.area) {
-                    filtered = filtered.filter((row) => row.area === filters.area);
-                  }
+      function runQuery(limit = null) {
+        let filtered = [...rows];
+        if (filters.statuses) {
+          filtered = filtered.filter((row) => filters.statuses.includes(row.status));
+        }
+        if (filters.types) {
+          filtered = filtered.filter((row) => filters.types.includes(row.report_type));
+        }
+        if (filters.area) {
+          filtered = filtered.filter((row) => row.area === filters.area);
+        }
 
-                  return {
-                    data: filtered.slice(0, limit),
-                    error: null,
-                  };
-                },
-              };
+        return {
+          data: typeof limit === "number" ? filtered.slice(0, limit) : filtered,
+          error: null,
+        };
+      }
+
+      const queryBuilder = {
+        eq(column, value) {
+          if (column === "status") {
+            filters.statuses = [value];
+          }
+          if (column === "report_type") {
+            filters.types = [value];
+          }
+          if (column === "area") {
+            filters.area = value;
+          }
+          return queryBuilder;
+        },
+        in(column, values) {
+          if (column === "status") {
+            filters.statuses = values;
+          }
+          if (column === "report_type") {
+            filters.types = values;
+          }
+          return queryBuilder;
+        },
+        order() {
+          return {
+            async limit(limit) {
+              return runQuery(limit);
             },
           };
+        },
+        then(resolve, reject) {
+          return Promise.resolve(runQuery()).then(resolve, reject);
+        },
+      };
+
+      return {
+        select() {
+          return queryBuilder;
         },
       };
     },
@@ -202,6 +211,38 @@ test("board export resolves dependency metadata and derives blocked cards", asyn
   assert.equal(result.records[1].card_priority, "P1");
   assert.deepEqual(result.records[1].depends_on, ["FF-MON-001"]);
   assert.equal(result.records[1].dependency_notes, "Keep this blocked until the foundation contract lands.");
+});
+
+test("board export resolves dependencies from the global lookup even when the dependency card is outside the filtered slice", async () => {
+  const result = await exportFeedbackBoard({
+    client: createMockClient([
+      buildRow({
+        id: "core-card",
+        report_type: "feature",
+        status: "fixed",
+        summary: "Build monetization foundation",
+        card_id: "FF-MON-001",
+      }),
+      buildRow({
+        id: "followup-card",
+        report_type: "feature",
+        status: "confirmed",
+        summary: "Ship monetization offer wall",
+        card_id: "FF-MON-002",
+        depends_on: ["FF-MON-001"],
+      }),
+    ]),
+    args: {
+      ...parseArgs(["--type", "feature", "--status", "confirmed"]),
+      writeMarkdown: false,
+      writeJson: false,
+    },
+  });
+
+  assert.equal(result.records.length, 1);
+  assert.equal(result.records[0].card_id, "FF-MON-002");
+  assert.deepEqual(result.records[0].depends_on, ["FF-MON-001"]);
+  assert.deepEqual(result.records[0].blocks, []);
 });
 
 test("board export rejects unresolved dependency references", async () => {

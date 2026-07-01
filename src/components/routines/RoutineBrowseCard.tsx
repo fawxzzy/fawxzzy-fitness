@@ -52,15 +52,61 @@ const ROUTINES_BROWSE_CARD_PREVIEW_TITLE_CLASS_NAME = "block max-w-full text-cen
 const ROUTINES_BROWSE_CARD_PREVIEW_META_LINE_CLASS_NAME = "inline-flex min-w-0 max-w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center";
 const ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_WRAPPER_CLASS_NAME = "-mx-0.5";
 const ROUTINES_BROWSE_CARD_PREVIEW_TAG_SCROLL_CLASS_NAME = "pl-0.5 pr-[1rem] pb-0.5 sm:px-0.5";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1.5 sm:justify-center";
-const ROUTINES_BROWSE_CARD_PREVIEW_TAG_CLASS_NAME = `${ROUTINE_SURFACE_TAG_CLASS_NAME} max-w-full whitespace-normal px-2 py-[0.24rem] text-center text-[10px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`;
+const ROUTINES_BROWSE_CARD_PREVIEW_TAG_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1 sm:justify-center sm:gap-1.5";
+const ROUTINES_BROWSE_CARD_PREVIEW_TAG_CLASS_NAME = `${ROUTINE_SURFACE_TAG_CLASS_NAME} max-w-full whitespace-normal px-[0.48rem] py-[0.22rem] text-center text-[9.5px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`;
 const ROUTINES_BROWSE_CARD_META_CLASS_NAME = "flex justify-end pt-1";
 const ROUTINES_BROWSE_CARD_CREATED_TAG_CLASS_NAME = "inline-flex items-center rounded-full bg-[rgb(var(--surface-2-rgb)/0.7)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent-divider-rgb)/0.94)]";
 const ROUTINES_BROWSE_CARD_SUMMARY_SCROLL_WRAPPER_CLASS_NAME = "-mx-1";
 const ROUTINES_BROWSE_CARD_SUMMARY_SCROLL_CLASS_NAME = "pl-1 pr-[1.55rem] pb-0.5 sm:px-1";
-const ROUTINES_BROWSE_CARD_SUMMARY_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1.5 pr-[1.35rem] sm:justify-center sm:pr-0";
+const ROUTINES_BROWSE_CARD_SUMMARY_ROW_CLASS_NAME = "flex w-max min-w-full items-center justify-start gap-1 pr-[1.35rem] sm:justify-center sm:gap-1.5 sm:pr-0";
 const ROUTINES_BROWSE_CARD_CHEVRON_OVERLAY_CLASS_NAME = "!right-0 !top-0 !bottom-0 !translate-y-0";
-const ROUTINES_BROWSE_CARD_CHEVRON_STACK_CLASS_NAME = "h-full w-[1.1rem] items-center justify-center rounded-r-[inherit] bg-[linear-gradient(270deg,rgba(var(--surface-rgb),0.34)_0%,rgba(var(--surface-rgb),0.16)_56%,rgba(var(--surface-rgb),0.02)_100%)] shadow-[-8px_0_18px_rgb(0_0_0/0.08)] backdrop-blur-[14px] sm:w-[1.35rem]";
+const ROUTINES_BROWSE_CARD_CHEVRON_STACK_CLASS_NAME = "h-full w-[0.95rem] items-center justify-center rounded-r-[inherit] bg-[linear-gradient(270deg,rgba(var(--surface-rgb),0.34)_0%,rgba(var(--surface-rgb),0.16)_56%,rgba(var(--surface-rgb),0.02)_100%)] shadow-[-8px_0_18px_rgb(0_0_0/0.08)] backdrop-blur-[14px] sm:w-[1.35rem]";
+
+function renderRoutineBrowseSummaryTagLabel(value: string) {
+  const normalizedValue = value.trim();
+  const normalizedLowerValue = normalizedValue.toLowerCase();
+  if (!normalizedValue.match(/^\d/)) {
+    const mobileLabel = normalizedLowerValue === "no sessions logged"
+      ? "No logs"
+      : normalizedLowerValue === "not started"
+        ? "New"
+        : normalizedLowerValue.startsWith("last ")
+          ? normalizedValue.slice(5).trim()
+          : normalizedValue;
+
+    return (
+      <>
+        <span className="sm:hidden">{mobileLabel}</span>
+        <span className="hidden sm:inline">{normalizedValue}</span>
+      </>
+    );
+  }
+
+  const match = normalizedValue.match(/^(\d+(?:[.,]\d+)?)(\s+.*)?$/);
+  if (!match) {
+    return normalizedValue;
+  }
+
+  const [, count, suffix = ""] = match;
+  const trimmedSuffix = suffix.trim().toLowerCase();
+  const mobileSuffix = trimmedSuffix === "workout plans"
+    ? "plans"
+    : trimmedSuffix === "sessions logged"
+      ? "logs"
+      : suffix.trim();
+
+  return (
+    <>
+      <span className="text-[rgb(var(--text-primary))]">{count}</span>
+      {trimmedSuffix ? (
+        <>
+          <span className="ml-1 sm:hidden">{mobileSuffix}</span>
+          <span className="ml-1 hidden sm:inline">{suffix.trim()}</span>
+        </>
+      ) : null}
+    </>
+  );
+}
 
 function renderRoutineBrowseRightRail() {
   return (
@@ -174,9 +220,9 @@ function renderRoutineSummaryTags(routine: RoutineBrowseCardItem) {
         <AppBadge
           key={part}
           tone="default"
-          className={`${ROUTINE_SURFACE_TAG_CLASS_NAME} px-2.5 py-[0.26rem] text-[10px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`}
+          className={`${ROUTINE_SURFACE_TAG_CLASS_NAME} px-[0.58rem] py-[0.24rem] text-[9.5px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`}
         >
-          {renderRoutineMetricTagLabel(part)}
+          {renderRoutineBrowseSummaryTagLabel(part)}
         </AppBadge>
       ))}
     </HorizontalScrollHint>

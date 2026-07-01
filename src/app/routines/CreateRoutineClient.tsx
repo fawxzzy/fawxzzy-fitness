@@ -6,7 +6,6 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from "reac
 import {
   ROUTINE_SURFACE_TAG_CLASS_NAME,
   splitRoutineSummaryParts,
-  renderRoutineMetricTagLabel,
 } from "@/components/day-list/RoutineDayCardPresentation";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import type { RoutineBrowseCardItem } from "@/components/routines/RoutineBrowseCard";
@@ -46,16 +45,50 @@ function renderRoutineSourceTags(routine: RoutineBrowseCardItem) {
     return null;
   }
 
+  function renderCompactRoutineSourceTagLabel(value: string) {
+    const normalizedValue = value.trim();
+    const match = normalizedValue.match(/^(\d+(?:[.,]\d+)?)(\s+.*)?$/);
+    if (!match) {
+      return normalizedValue;
+    }
+
+    const [, count, suffix = ""] = match;
+    const trimmedSuffix = suffix.trim().toLowerCase();
+    const mobileSuffix = trimmedSuffix === "workout plans"
+      ? "plans"
+      : trimmedSuffix === "sessions logged"
+        ? "sessions"
+        : trimmedSuffix === "training"
+          ? "train"
+          : suffix.trim();
+
+    return (
+      <>
+        <span className="text-[rgb(var(--text-primary))]">{count}</span>
+        {trimmedSuffix ? (
+          <>
+            <span className="ml-1 sm:hidden">{mobileSuffix}</span>
+            <span className="ml-1 hidden sm:inline">{suffix.trim()}</span>
+          </>
+        ) : null}
+      </>
+    );
+  }
+
   return (
     <HorizontalScrollHint
       className="-mx-0.5"
-      scrollClassName="px-0.5 pb-0.5 pr-[1.15rem]"
-      contentClassName="flex w-max min-w-full flex-nowrap items-center gap-1.5 pr-[0.95rem]"
+      scrollClassName="px-0.5 pb-0.5 pr-[0.85rem]"
+      contentClassName="flex w-max min-w-full flex-nowrap items-center gap-1 pr-[0.65rem]"
       showEdgeFades={false}
     >
       {parts.map((part) => (
-        <AppBadge key={`${routine.id}-${part}`} tone="default" className={ROUTINE_SURFACE_TAG_CLASS_NAME}>
-          {renderRoutineMetricTagLabel(part)}
+        <AppBadge
+          key={`${routine.id}-${part}`}
+          tone="default"
+          className={`${ROUTINE_SURFACE_TAG_CLASS_NAME} px-[0.54rem] py-[0.2rem] text-[9px] sm:px-[0.6875rem] sm:py-[0.3125rem] sm:text-[11px]`}
+        >
+          {renderCompactRoutineSourceTagLabel(part)}
         </AppBadge>
       ))}
     </HorizontalScrollHint>

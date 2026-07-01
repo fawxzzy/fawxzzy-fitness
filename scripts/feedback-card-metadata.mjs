@@ -117,13 +117,16 @@ export function applyResolvedFeedbackCardDependencies(records, options = {}) {
     depends_on: resolved.dependsOn,
     blocks: resolved.blocks,
   }));
+  const lookupRecords = Array.isArray(options.lookupRecords) && options.lookupRecords.length > 0
+    ? options.lookupRecords
+    : records;
 
   const byRecordId = new Map();
   const byCardId = new Map();
   const byTitle = new Map();
   const ambiguousTitles = new Set();
 
-  for (const record of records) {
+  for (const record of lookupRecords) {
     const recordId = getRecordId(record);
     byRecordId.set(recordId, record);
 
@@ -157,7 +160,7 @@ export function applyResolvedFeedbackCardDependencies(records, options = {}) {
   const edges = new Map();
   const resolvedTargets = new Map();
 
-  for (const record of records) {
+  for (const record of lookupRecords) {
     const recordId = getRecordId(record);
     const dependencies = getDependsOn(record) ?? [];
     const targets = [];
@@ -249,12 +252,12 @@ export function applyResolvedFeedbackCardDependencies(records, options = {}) {
     visited.add(recordId);
   }
 
-  for (const record of records) {
+  for (const record of lookupRecords) {
     visit(getRecordId(record));
   }
 
   const reverseEdges = new Map();
-  for (const record of records) {
+  for (const record of lookupRecords) {
     reverseEdges.set(getRecordId(record), []);
   }
   for (const [recordId, targetIds] of edges.entries()) {

@@ -801,15 +801,42 @@ async function loadRows(client, args) {
   return Array.isArray(data) ? data : [];
 }
 
+async function loadDependencyLookupRows(client) {
+  const { data, error } = await client
+    .from("discord_feedback_reports")
+    .select([
+      "id",
+      "card_id",
+      "summary",
+      "depends_on",
+    ].join(", "))
+    .in("status", Array.from(VALID_STATUSES));
+
+  if (error) {
+    throw new Error(`Unable to load discord_feedback_reports dependency lookup: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 export async function exportFeedbackBoard({
   client = createServiceClient(),
   args = parseArgs(),
 } = {}) {
   const rows = await loadRows(client, args);
   const filteredRows = filterBoardRows(rows, args);
+  const dependencyLookupRows = await loadDependencyLookupRows(client);
+  const dependencyLookupRecords = dependencyLookupRows.map((row) => ({
+    id: row.id,
+    short_id: formatShortId(row.id),
+    card_id: normalizeFeedbackCardId(row.card_id),
+    title: typeof row.summary === "string" ? row.summary.trim() : null,
+    depends_on: normalizeFeedbackDependencyReferences(row.depends_on),
+  }));
   const records = applyResolvedFeedbackCardDependencies(
     filteredRows.map((row) => toBoardRecord(row, args.debug)),
     {
+      lookupRecords: dependencyLookupRecords,
       getShortId: (record) => record.short_id,
       getCardId: (record) => record.card_id,
       getTitle: (record) => record.title,

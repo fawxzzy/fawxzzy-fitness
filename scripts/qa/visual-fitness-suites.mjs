@@ -9,19 +9,20 @@ export const DEFAULT_VISUAL_VIEWPORT = {
 export const VISUAL_FITNESS_SUITES = {
   theme: {
     name: "theme",
-    proofLane: "public",
-    route: "/entry",
+    proofLane: "protected",
+    route: "/today",
     viewport: DEFAULT_VISUAL_VIEWPORT,
-    authRequired: false,
+    authRequired: true,
     setupRequirements: [
       "fresh-dev-receipt",
+      "valid-qa-session-artifact-for-authenticated-state",
       "test-theme-preset",
     ],
     expectedOutputFilename: "theme.png",
-    allowAuthGatedFallback: false,
+    allowAuthGatedFallback: true,
     themePreset: "test",
     waitMs: 1600,
-    stateLabel: "public-theme-login",
+    stateLabel: "protected-theme-today",
   },
   "app-theme-contract": {
     name: "app-theme-contract",
