@@ -32,7 +32,7 @@ export function RoutinesOfflineShell({
 
   return (
     <SharedDayListSection>
-      <OfflineSyncBadge userId={userId} />
+      <OfflineSyncBadge userId={userId} label="Offline" />
       {cachedSnapshot ? (
         <>
           <RoutinesCardList>

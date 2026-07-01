@@ -133,7 +133,7 @@ export function TodayClientShell({
     <TodayOverviewContent>
       <TodayOverviewScaffold>
         <div className="flex flex-col gap-[0.625rem]">
-          <OfflineSyncBadge userId={userId} />
+          <OfflineSyncBadge userId={userId} label={display.staleAt ? "Offline" : null} />
 
           <TodayExerciseRows
             exercises={display.exercises.map((exercise) => ({

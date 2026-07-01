@@ -41,6 +41,7 @@ export function SessionOfflineShell({
           sessionDayName={cachedSnapshot.sessionDayName}
           infoItems={cachedSnapshot.headerInfoItems}
           backHref={backHref}
+          statusBadge={<OfflineSyncBadge userId={userId} label="Offline" />}
         />
       </ScreenScaffold>
     </ContentRail>
@@ -49,10 +50,6 @@ export function SessionOfflineShell({
   return (
     <ScrollScreenWithBottomActions floatingHeader={floatingHeader}>
       <ContentRail className="space-y-3">
-        <div className="flex justify-start">
-          <OfflineSyncBadge userId={userId} />
-        </div>
-
         {cachedSnapshot ? (
           <>
             <ul className="flex flex-col gap-[0.375rem]">

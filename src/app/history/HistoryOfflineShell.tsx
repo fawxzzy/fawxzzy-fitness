@@ -42,7 +42,7 @@ export function HistoryOfflineShell({
   return (
     <div className={cn(appTokens.historyBrowserStack, "gap-4 pt-2")}>
       <div className="flex justify-start">
-        <OfflineSyncBadge userId={userId} />
+        <OfflineSyncBadge userId={userId} label="Offline" />
       </div>
       {cachedSnapshot ? (
         <>
