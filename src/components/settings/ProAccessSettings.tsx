@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
@@ -178,6 +179,16 @@ export function ProAccessSettings({
                   ? "Stripe configuration and hosted checkout wiring are active on this surface."
                   : "Add Stripe keys and Lifetime Pro price ids to unlock the hosted checkout slice."}
               </p>
+              <div className="pt-1">
+                <p className="text-[11px] leading-5 text-[rgb(var(--text-secondary)/0.82)]">
+                  By continuing to checkout, review the legal terms for accounts, workout data, and payment handling.
+                </p>
+                <LegalInlineLinks
+                  className="mt-1"
+                  linkClassName="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.96)]"
+                  separatorClassName="text-[rgb(var(--text-muted)/0.58)]"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ import {
   AuthForm,
   AuthFormFields,
 } from "@/components/auth/AuthShell";
+import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -89,6 +90,8 @@ export function ResetPasswordForm({ error }: { error?: string }) {
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
             </Link>
+            <AuthFooterSeparator />
+            <LegalInlineLinks linkClassName={appTokens.authInlineLink} />
           </AuthFooterText>
         </AuthFooter>
       </AuthCard>

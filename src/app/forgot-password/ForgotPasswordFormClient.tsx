@@ -18,6 +18,7 @@ import {
   AuthIntro,
   AuthShell,
 } from "@/components/auth/AuthShell";
+import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { appTokens } from "@/components/ui/app/tokens";
 import { FitContentInput } from "@/components/ui/FitContentInput";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
@@ -128,6 +129,8 @@ export default function ForgotPasswordFormClient({
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
             </Link>
+            <AuthFooterSeparator />
+            <LegalInlineLinks linkClassName={appTokens.authInlineLink} />
           </AuthFooterText>
         </AuthFooter>
       </AuthCard>

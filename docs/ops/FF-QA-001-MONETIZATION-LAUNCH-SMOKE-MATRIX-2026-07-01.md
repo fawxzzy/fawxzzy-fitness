@@ -19,7 +19,7 @@ Reason:
 
 - the launch-smoke doctrine can be made deterministic now
 - several upstream launch blockers are still not fully closed
-- payment / entitlement implementation is not yet surfaced strongly enough in current app-code inspection to claim the paid lane is executable end-to-end
+- the executable launch pass still depends on live beta evidence and one final full smoke execution packet
 
 This matrix is therefore the canonical contract for the future launch pass, not evidence that launch has already cleared.
 
@@ -47,9 +47,9 @@ This launch matrix is only executable when the blocker lane below is materially 
 
 Additional operator note:
 
-- Current repo search shows strong PWA/install coverage and doctrine.
-- Current repo search does not yet surface a strong, obvious Stripe / entitlement execution lane in app code.
-- Therefore `Payments / Pro Access` must remain a hard blocker-class prerequisite before the full gate can be run.
+- As of `2026-07-01`, `FF-CORE-001`, `FF-CORE-002`, `FF-PWA-001`, `FF-LEGAL-001`, and `FF-MON-002` are already proof-closed.
+- `FF-BETA-001` is now defined as a live execution packet and still requires real tester evidence.
+- `FF-MON-001` remains the truthful umbrella gate that cannot close until beta and final smoke proof are both complete.
 
 ## Severity Contract
 
@@ -400,4 +400,4 @@ Current card recommendation on `2026-07-01`:
 - move `FF-QA-001` to `in_progress`
 - point the card to this matrix as the canonical launch-gate contract
 - do not mark the card `resolved`
-- do not run the full gate until upstream monetization blockers are closed with proof
+- do not run the full gate until the remaining upstream blockers, especially `FF-BETA-001` and `FF-MON-001`, are closed with proof

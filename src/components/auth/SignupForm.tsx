@@ -7,6 +7,7 @@ import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { AUTH_PLAIN_CARD_CHROME_CLASS_NAME, AuthCard, AuthDock, AuthFooter, AuthFooterText, AuthForm, AuthFormFields } from "@/components/auth/AuthShell";
+import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { FitContentInput } from "@/components/ui/FitContentInput";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -116,6 +117,8 @@ export function SignupForm({
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
             </Link>
+            <span aria-hidden="true" className="text-[rgb(var(--text-muted)/0.72)]">|</span>
+            <LegalInlineLinks linkClassName={appTokens.authInlineLink} />
           </AuthFooterText>
         </AuthFooter>
       </AuthCard>
