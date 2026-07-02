@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { getStripeBillingConfigSnapshot } from "@/lib/billing/stripe-config";
 import { getStripeServerClient } from "@/lib/billing/stripe-server";
+import { getRequestOrigin } from "@/lib/request-origin";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { BillingCustomerRow, UserEntitlementRow } from "@/types/db";
 
@@ -31,12 +32,43 @@ function isMissingBillingSchemaError(error: { message?: string } | null | undefi
   );
 }
 
+function isEntitlementActive(entitlement: UserEntitlementRow | null, referenceNow = new Date()) {
+  if (!entitlement || entitlement.status !== "active") {
+    return false;
+  }
+
+  if (!entitlement.expires_at) {
+    return true;
+  }
+
+  const expiresAt = new Date(entitlement.expires_at);
+  if (Number.isNaN(expiresAt.valueOf())) {
+    return false;
+  }
+
+  return expiresAt.valueOf() > referenceNow.valueOf();
+}
+
+function resolveBestEntitlement(entitlements: UserEntitlementRow[]) {
+  const activeSubscription = entitlements.find((entry) => entry.entitlement_key === "pro" && isEntitlementActive(entry));
+  if (activeSubscription) {
+    return activeSubscription;
+  }
+
+  const activeLifetime = entitlements.find((entry) => entry.entitlement_key === "pro_lifetime" && isEntitlementActive(entry));
+  if (activeLifetime) {
+    return activeLifetime;
+  }
+
+  return entitlements[0] ?? null;
+}
+
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   const user = await requireUser({
     route: "/api/billing/checkout",
     gate: "billing.checkout.start",
-    blockingReason: "Waiting for an authenticated user before opening the Lifetime Pro checkout flow.",
+    blockingReason: "Waiting for an authenticated user before opening the Pro subscription checkout flow.",
   });
 
   const billingConfig = getStripeBillingConfigSnapshot();
@@ -44,7 +76,7 @@ export async function POST(request: NextRequest) {
     return buildJsonResponse({
       ok: false,
       code: "BILLING_CHECKOUT_NOT_CONFIGURED",
-      error: "Lifetime Pro checkout is not configured yet.",
+      error: "Monthly Pro checkout is not configured yet.",
       requestId,
     }, { status: 503 });
   }
@@ -56,10 +88,10 @@ export async function POST(request: NextRequest) {
     const billingPurchasesTable = admin.from("billing_purchases") as any;
 
     const entitlementResult = await entitlementsTable
-      .select("id, user_id, entitlement_key, status, granted_at, granted_via_purchase_id, created_at, updated_at")
+      .select("id, user_id, entitlement_key, status, granted_at, expires_at, granted_via_purchase_id, source_subscription_id, created_at, updated_at")
       .eq("user_id", user.id)
-      .eq("entitlement_key", "pro_lifetime")
-      .maybeSingle();
+      .in("entitlement_key", ["pro", "pro_lifetime"])
+      .order("granted_at", { ascending: false });
 
     if (entitlementResult.error) {
       if (isMissingBillingSchemaError(entitlementResult.error)) {
@@ -74,19 +106,19 @@ export async function POST(request: NextRequest) {
       throw new Error(`Could not load entitlement state: ${entitlementResult.error.message}`);
     }
 
-    const entitlement = entitlementResult.data as UserEntitlementRow | null;
+    const entitlement = resolveBestEntitlement((entitlementResult.data ?? []) as UserEntitlementRow[]);
 
-    if (entitlement?.status === "active") {
+    if (isEntitlementActive(entitlement)) {
       return buildJsonResponse({
         ok: false,
         code: "BILLING_ALREADY_PRO",
-        error: "This account already has Lifetime Pro access.",
+        error: "This account already has active Pro access.",
         requestId,
       }, { status: 409 });
     }
 
     const customerResult = await billingCustomersTable
-      .select("id, user_id, stripe_customer_id, billing_email, created_at, updated_at")
+      .select("id, user_id, stripe_customer_id, billing_email, latest_stripe_subscription_id, created_at, updated_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -131,12 +163,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const origin = request.headers.get("origin")?.trim() || new URL(request.url).origin;
+    const origin = getRequestOrigin(request);
     const successUrl = `${origin}/settings?section=pro&billing=success`;
     const cancelUrl = `${origin}/settings?section=pro&billing=cancel`;
 
     const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "payment",
+      mode: "subscription",
       customer: stripeCustomerId,
       client_reference_id: user.id,
       success_url: successUrl,
@@ -145,9 +177,17 @@ export async function POST(request: NextRequest) {
         price: billingConfig.activePriceId,
         quantity: 1,
       }],
+      subscription_data: {
+        metadata: {
+          fitness_user_id: user.id,
+          purchase_kind: "pro_subscription",
+          price_mode: billingConfig.activePriceMode,
+          stripe_price_id: billingConfig.activePriceId,
+        },
+      },
       metadata: {
         fitness_user_id: user.id,
-        purchase_kind: "lifetime_pro",
+        purchase_kind: "pro_subscription",
         price_mode: billingConfig.activePriceMode,
         stripe_price_id: billingConfig.activePriceId,
       },
@@ -160,13 +200,16 @@ export async function POST(request: NextRequest) {
     const { error: insertPurchaseError } = await billingPurchasesTable
       .insert({
         user_id: user.id,
-        purchase_kind: "lifetime_pro",
+        purchase_kind: "pro_subscription",
         status: "pending",
         stripe_checkout_session_id: checkoutSession.id,
         stripe_customer_id: stripeCustomerId,
         stripe_price_id: billingConfig.activePriceId,
+        stripe_subscription_id: typeof checkoutSession.subscription === "string" ? checkoutSession.subscription : null,
         amount_total: checkoutSession.amount_total ?? null,
         currency: checkoutSession.currency ?? null,
+        billing_interval: billingConfig.recurringInterval,
+        billing_interval_count: 1,
       });
 
     if (insertPurchaseError) {
@@ -197,7 +240,7 @@ export async function POST(request: NextRequest) {
     return buildJsonResponse({
       ok: false,
       code: "BILLING_CHECKOUT_CREATE_FAILED",
-      error: "Unable to start the Lifetime Pro checkout right now.",
+      error: "Unable to start the Monthly Pro checkout right now.",
       requestId,
     }, { status: 500 });
   }

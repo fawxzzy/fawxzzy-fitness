@@ -54,8 +54,9 @@ export default function TermsOfServicePage() {
 
       <Section title="Pro Purchases">
         <p>
-          Lifetime Pro purchases are processed through Stripe-hosted checkout. Purchase state, entitlement state, and
-          related billing identifiers may be stored so the app can grant or restore access accurately.
+          Pro purchases and subscriptions are processed through Stripe-hosted checkout. Purchase state, entitlement
+          state, subscription state, and related billing identifiers may be stored so the app can grant or restore
+          access accurately.
         </p>
         <p>
           If a payment fails, is cancelled, or cannot be verified, Fitness may withhold or delay Pro access until the

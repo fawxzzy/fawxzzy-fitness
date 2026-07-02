@@ -82,6 +82,7 @@ export type BillingCustomerRow = {
   user_id: string;
   stripe_customer_id: string;
   billing_email?: string | null;
+  latest_stripe_subscription_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -89,14 +90,20 @@ export type BillingCustomerRow = {
 export type BillingPurchaseRow = {
   id: string;
   user_id: string;
-  purchase_kind: "lifetime_pro";
+  purchase_kind: "lifetime_pro" | "pro_subscription";
   status: "pending" | "completed" | "cancelled" | "failed";
   stripe_checkout_session_id?: string | null;
   stripe_payment_intent_id?: string | null;
   stripe_customer_id?: string | null;
   stripe_price_id?: string | null;
+  stripe_subscription_id?: string | null;
+  stripe_invoice_id?: string | null;
   amount_total?: number | null;
   currency?: string | null;
+  billing_interval?: "month" | "year" | null;
+  billing_interval_count?: number | null;
+  period_start?: string | null;
+  period_end?: string | null;
   completed_at?: string | null;
   raw_event_id?: string | null;
   created_at?: string | null;
@@ -106,10 +113,12 @@ export type BillingPurchaseRow = {
 export type UserEntitlementRow = {
   id: string;
   user_id: string;
-  entitlement_key: "pro_lifetime";
+  entitlement_key: "pro_lifetime" | "pro";
   status: "active" | "revoked";
   granted_at: string;
+  expires_at?: string | null;
   granted_via_purchase_id?: string | null;
+  source_subscription_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };

@@ -1,14 +1,19 @@
-import { getStripeBillingConfigSnapshot, type LifetimeProPriceMode } from "@/lib/billing/stripe-config";
+import { getStripeBillingConfigSnapshot, type ProPriceMode } from "@/lib/billing/stripe-config";
 import type { BillingPurchaseRow, UserEntitlementRow } from "@/types/db";
+
+export type ProAccessSource = "subscription" | "lifetime" | null;
 
 export type ProAccessSnapshot = {
   schemaReady: boolean;
-  accessState: "free" | "lifetime_pro";
+  accessState: "free" | "pro";
   accessLabel: string;
-  offerMode: LifetimeProPriceMode | null;
+  accessSource: ProAccessSource;
+  offerMode: ProPriceMode | null;
   offerLabel: string;
   checkoutConfigured: boolean;
+  customerPortalAvailable: boolean;
   grantedAt: string | null;
+  renewsAt: string | null;
   lastPurchaseStatus: BillingPurchaseRow["status"] | null;
   supportNote: string;
 };
@@ -25,12 +30,37 @@ export function isMissingBillingSchemaError(error: { message?: string } | null |
   );
 }
 
-export function getProAccessOfferLabel(offerMode: LifetimeProPriceMode | null) {
+export function getProAccessOfferLabel(offerMode: ProPriceMode | null) {
   return offerMode === "founding"
-    ? "Founding offer"
+    ? "Founding Monthly Pro"
     : offerMode === "standard"
-      ? "Standard offer"
-      : "Offer not configured";
+      ? "Monthly Pro"
+      : "Plan not configured";
+}
+
+function isEntitlementActive(entitlement: UserEntitlementRow | null, referenceNow = new Date()) {
+  if (!entitlement || entitlement.status !== "active") {
+    return false;
+  }
+
+  if (!entitlement.expires_at) {
+    return true;
+  }
+
+  const expiresAt = new Date(entitlement.expires_at);
+  if (Number.isNaN(expiresAt.valueOf())) {
+    return false;
+  }
+
+  return expiresAt.valueOf() > referenceNow.valueOf();
+}
+
+function resolveAccessSource(entitlement: UserEntitlementRow | null): ProAccessSource {
+  if (!entitlement) {
+    return null;
+  }
+
+  return entitlement.entitlement_key === "pro_lifetime" ? "lifetime" : "subscription";
 }
 
 export function buildFallbackProAccessSnapshot(
@@ -43,17 +73,20 @@ export function buildFallbackProAccessSnapshot(
     schemaReady: reason !== "schema",
     accessState: "free",
     accessLabel: "Free",
+    accessSource: null,
     offerMode: billingConfig.activePriceMode,
     offerLabel,
     checkoutConfigured: billingConfig.checkoutConfigured,
+    customerPortalAvailable: false,
     grantedAt: null,
+    renewsAt: null,
     lastPurchaseStatus: null,
     supportNote:
       reason === "schema"
         ? "Billing migrations have not been applied yet, so Pro access truth is still unavailable on this surface."
         : billingConfig.checkoutConfigured
-          ? "Stripe checkout configuration is present and the hosted purchase flow is ready."
-          : "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
+          ? "Stripe monthly Pro checkout configuration is present and the hosted subscription flow is ready."
+          : "Stripe configuration has not been added yet, so Pro checkout is not ready on this surface.",
   };
 }
 
@@ -61,27 +94,36 @@ export function buildResolvedProAccessSnapshot({
   billingConfig,
   entitlement,
   purchase,
+  customerPortalAvailable,
 }: {
   billingConfig: ReturnType<typeof getStripeBillingConfigSnapshot>;
   entitlement: UserEntitlementRow | null;
   purchase: BillingPurchaseRow | null;
+  customerPortalAvailable: boolean;
 }): ProAccessSnapshot {
-  const accessState = entitlement?.status === "active" ? "lifetime_pro" : "free";
+  const accessIsActive = isEntitlementActive(entitlement);
+  const accessState = accessIsActive ? "pro" : "free";
+  const accessSource = accessIsActive ? resolveAccessSource(entitlement) : null;
 
   return {
     schemaReady: true,
     accessState,
-    accessLabel: accessState === "lifetime_pro" ? "Lifetime Pro" : "Free",
+    accessLabel: accessState === "pro" ? "Pro" : "Free",
+    accessSource,
     offerMode: billingConfig.activePriceMode,
     offerLabel: getProAccessOfferLabel(billingConfig.activePriceMode),
     checkoutConfigured: billingConfig.checkoutConfigured,
+    customerPortalAvailable,
     grantedAt: entitlement?.granted_at ?? null,
+    renewsAt: accessSource === "subscription" ? (entitlement?.expires_at ?? null) : null,
     lastPurchaseStatus: purchase?.status ?? null,
     supportNote:
-      accessState === "lifetime_pro"
-        ? "Your account already has active Lifetime Pro access."
+      accessState === "pro"
+        ? accessSource === "subscription"
+          ? "Your account has active Pro subscription access."
+          : "Your account already has active Pro access."
         : billingConfig.checkoutConfigured
-          ? "Lifetime Pro checkout is ready on this surface."
+          ? "Monthly Pro checkout is ready on this surface."
           : "Upgrade checkout is not configured yet, so this section is currently read-only.",
   };
 }

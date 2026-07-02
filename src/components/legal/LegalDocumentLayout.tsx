@@ -59,7 +59,7 @@ export function LegalDocumentLayout({
 
           <footer className="mx-auto mt-8 max-w-3xl rounded-[1.25rem] border border-[rgb(var(--border-rgb)/0.36)] bg-[rgb(var(--surface-3-rgb)/0.16)] px-4 py-4 text-sm leading-6 text-[rgb(var(--text-secondary)/0.88)]">
             <p>
-              Support contact: the <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{FITNESS_SUPPORT_CONTACT_LABEL}</span>.
+              <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{FITNESS_SUPPORT_CONTACT_LABEL}</span>
             </p>
             <p className="mt-2">
               {LEGAL_NOT_ADVICE_NOTICE}

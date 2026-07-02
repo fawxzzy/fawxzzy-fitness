@@ -18,6 +18,7 @@ const configuredBillingSnapshot = {
   activePriceMode: "founding" as const,
   activePriceId: "price_founding",
   checkoutConfigured: true,
+  recurringInterval: "month" as const,
 };
 
 test("isMissingBillingSchemaError detects missing billing-table failures only", () => {
@@ -36,9 +37,9 @@ test("isMissingBillingSchemaError detects missing billing-table failures only", 
 });
 
 test("getProAccessOfferLabel keeps offer copy stable", () => {
-  assert.equal(getProAccessOfferLabel("founding"), "Founding offer");
-  assert.equal(getProAccessOfferLabel("standard"), "Standard offer");
-  assert.equal(getProAccessOfferLabel(null), "Offer not configured");
+  assert.equal(getProAccessOfferLabel("founding"), "Founding Monthly Pro");
+  assert.equal(getProAccessOfferLabel("standard"), "Monthly Pro");
+  assert.equal(getProAccessOfferLabel(null), "Plan not configured");
 });
 
 test("buildFallbackProAccessSnapshot exposes schema fallback truth without implying access", () => {
@@ -82,12 +83,14 @@ test("buildResolvedProAccessSnapshot reports active Lifetime Pro access determin
     billingConfig: configuredBillingSnapshot,
     entitlement,
     purchase,
+    customerPortalAvailable: false,
   });
 
-  assert.equal(snapshot.accessState, "lifetime_pro");
-  assert.equal(snapshot.accessLabel, "Lifetime Pro");
+  assert.equal(snapshot.accessState, "pro");
+  assert.equal(snapshot.accessLabel, "Pro");
+  assert.equal(snapshot.accessSource, "lifetime");
   assert.equal(snapshot.lastPurchaseStatus, "completed");
-  assert.match(snapshot.supportNote, /already has active Lifetime Pro access/i);
+  assert.match(snapshot.supportNote, /already has active Pro access/i);
 });
 
 test("buildResolvedProAccessSnapshot keeps free users on the checkout-ready note until purchase is complete", () => {
@@ -103,9 +106,10 @@ test("buildResolvedProAccessSnapshot keeps free users on the checkout-ready note
       created_at: "2026-07-01T01:00:00.000Z",
       updated_at: "2026-07-01T01:00:00.000Z",
     } as BillingPurchaseRow,
+    customerPortalAvailable: false,
   });
 
   assert.equal(snapshot.accessState, "free");
   assert.equal(snapshot.lastPurchaseStatus, "pending");
-  assert.match(snapshot.supportNote, /Lifetime Pro checkout is ready on this surface/i);
+  assert.match(snapshot.supportNote, /Monthly Pro checkout is ready on this surface/i);
 });

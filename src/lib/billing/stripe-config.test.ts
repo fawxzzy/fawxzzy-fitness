@@ -50,6 +50,7 @@ test("getStripeBillingConfigSnapshot defaults to an unconfigured state when Stri
     activePriceMode: null,
     activePriceId: null,
     checkoutConfigured: false,
+    recurringInterval: "month",
   });
 });
 

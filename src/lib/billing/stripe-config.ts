@@ -2,14 +2,14 @@ import "server-only";
 
 import {
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_OPTIONAL,
-  STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE_OPTIONAL,
-  STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_OPTIONAL,
-  STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID_OPTIONAL,
+  STRIPE_PRO_ACTIVE_PRICE_MODE_OPTIONAL,
+  STRIPE_PRO_FOUNDING_PRICE_ID_OPTIONAL,
+  STRIPE_PRO_STANDARD_PRICE_ID_OPTIONAL,
   STRIPE_SECRET_KEY_OPTIONAL,
   STRIPE_WEBHOOK_SECRET_OPTIONAL,
 } from "@/lib/env";
 
-export type LifetimeProPriceMode = "founding" | "standard";
+export type ProPriceMode = "founding" | "standard";
 
 export type StripeBillingConfigSnapshot = {
   secretKeyConfigured: boolean;
@@ -17,8 +17,9 @@ export type StripeBillingConfigSnapshot = {
   webhookSecretConfigured: boolean;
   foundingPriceConfigured: boolean;
   standardPriceConfigured: boolean;
-  activePriceMode: LifetimeProPriceMode | null;
+  activePriceMode: ProPriceMode | null;
   activePriceId: string | null;
+  recurringInterval: "month";
   checkoutConfigured: boolean;
 };
 
@@ -26,11 +27,11 @@ export function getStripeBillingConfigSnapshot(): StripeBillingConfigSnapshot {
   const secretKey = STRIPE_SECRET_KEY_OPTIONAL();
   const publishableKey = NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_OPTIONAL();
   const webhookSecret = STRIPE_WEBHOOK_SECRET_OPTIONAL();
-  const foundingPriceId = STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID_OPTIONAL();
-  const standardPriceId = STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID_OPTIONAL();
-  const requestedMode = STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE_OPTIONAL();
+  const foundingPriceId = STRIPE_PRO_FOUNDING_PRICE_ID_OPTIONAL();
+  const standardPriceId = STRIPE_PRO_STANDARD_PRICE_ID_OPTIONAL();
+  const requestedMode = STRIPE_PRO_ACTIVE_PRICE_MODE_OPTIONAL();
 
-  const activePriceMode: LifetimeProPriceMode | null =
+  const activePriceMode: ProPriceMode | null =
     requestedMode
     ?? (foundingPriceId ? "founding" : standardPriceId ? "standard" : null);
 
@@ -49,6 +50,7 @@ export function getStripeBillingConfigSnapshot(): StripeBillingConfigSnapshot {
     standardPriceConfigured: Boolean(standardPriceId),
     activePriceMode,
     activePriceId: activePriceId ?? null,
+    recurringInterval: "month",
     checkoutConfigured: Boolean(secretKey && publishableKey && activePriceId),
   };
 }

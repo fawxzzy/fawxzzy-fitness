@@ -26,6 +26,14 @@ function formatGrantedAt(value: string | null) {
   }).format(parsed);
 }
 
+function getAccessSourceLabel(snapshot: ProAccessSnapshot) {
+  if (snapshot.accessState !== "pro") {
+    return "Free";
+  }
+
+  return snapshot.accessSource === "subscription" ? "Subscription" : "Lifetime";
+}
+
 function getPurchaseStatusLabel(status: ProAccessSnapshot["lastPurchaseStatus"]) {
   switch (status) {
     case "completed":
@@ -48,57 +56,90 @@ export function ProAccessSettings({
   snapshot: ProAccessSnapshot;
   billingNotice?: "success" | "cancel" | null;
 }) {
-  const [isStartingCheckout, startCheckoutTransition] = useTransition();
+  const [isSubmitting, startActionTransition] = useTransition();
   const toast = useToast();
   const grantedAtLabel = formatGrantedAt(snapshot.grantedAt);
-  const badgeTone = snapshot.accessState === "lifetime_pro" ? "success" : "default";
+  const renewsAtLabel = formatGrantedAt(snapshot.renewsAt);
+  const badgeTone = snapshot.accessState === "pro" ? "success" : "default";
   const setupTone = snapshot.checkoutConfigured ? "success" : "warning";
-  const canStartCheckout = snapshot.schemaReady && snapshot.checkoutConfigured && snapshot.accessState !== "lifetime_pro";
+  const canStartCheckout = snapshot.schemaReady && snapshot.checkoutConfigured && snapshot.accessState === "free";
+  const canManageBilling =
+    snapshot.accessState === "pro"
+    && snapshot.accessSource === "subscription"
+    && snapshot.customerPortalAvailable;
+  const buttonLabel = canManageBilling
+    ? "Manage Billing"
+    : snapshot.accessState === "pro"
+      ? snapshot.accessSource === "subscription"
+        ? "Pro Active"
+        : "Legacy Pro Active"
+      : "Start Monthly Pro";
+  const buttonIntent = canManageBilling || canStartCheckout ? "positive" : "info";
 
-  const startCheckout = () => {
-    if (!canStartCheckout) {
+  const startAction = () => {
+    if (!canStartCheckout && !canManageBilling) {
       return;
     }
 
-    startCheckoutTransition(async () => {
+    startActionTransition(async () => {
       try {
-        const response = await fetch("/api/billing/checkout", {
+        const response = await fetch(canManageBilling ? "/api/billing/portal" : "/api/billing/checkout", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
         });
 
-        const result = await response.json().catch(() => ({ ok: false, error: "Unable to start the Lifetime Pro checkout." })) as {
+        const result = await response.json().catch(() => ({
+          ok: false,
+          error: canManageBilling
+            ? "Unable to open the billing portal."
+            : "Unable to start the Monthly Pro checkout.",
+        })) as {
           ok?: boolean;
           url?: string;
           error?: string;
         };
 
         if (!response.ok || !result.ok || typeof result.url !== "string" || result.url.length === 0) {
-          throw new Error(typeof result.error === "string" ? result.error : "Unable to start the Lifetime Pro checkout.");
+          throw new Error(
+            typeof result.error === "string"
+              ? result.error
+              : canManageBilling
+                ? "Unable to open the billing portal."
+                : "Unable to start the Monthly Pro checkout.",
+          );
         }
 
         window.location.assign(result.url);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Unable to start the Lifetime Pro checkout.", {
-          id: "billing-checkout-start-error",
-        });
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : canManageBilling
+              ? "Unable to open the billing portal."
+              : "Unable to start the Monthly Pro checkout.",
+          {
+            id: canManageBilling ? "billing-portal-open-error" : "billing-checkout-start-error",
+          },
+        );
       }
     });
   };
+
+  const sourceLabel = getAccessSourceLabel(snapshot);
 
   return (
     <>
       <PublishBottomActions>
         <BottomDockButton
           type="button"
-          intent={canStartCheckout ? "positive" : "info"}
-          onClick={startCheckout}
-          disabled={!canStartCheckout}
-          loading={isStartingCheckout}
+          intent={buttonIntent}
+          onClick={startAction}
+          disabled={!canStartCheckout && !canManageBilling}
+          loading={isSubmitting}
         >
-          Upgrade to Pro
+          {buttonLabel}
         </BottomDockButton>
       </PublishBottomActions>
 
@@ -112,11 +153,16 @@ export function ProAccessSettings({
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <AppBadge tone={badgeTone}>{snapshot.accessLabel}</AppBadge>
                 <AppBadge tone={setupTone}>{snapshot.offerLabel}</AppBadge>
+                {snapshot.accessState === "pro" ? (
+                  <AppBadge tone="success">{sourceLabel}</AppBadge>
+                ) : null}
               </div>
               <MetricAccentBar variant="thin" className="w-full opacity-85" />
               {billingNotice === "success" ? (
                 <p className="text-xs leading-5 text-[rgb(var(--success-text-rgb)/0.92)]">
-                  Checkout returned successfully. Pro access may take a moment to reflect after billing verification completes.
+                  {snapshot.accessState === "pro"
+                    ? "Checkout returned successfully and Pro is now active on this account."
+                    : "Checkout returned successfully. Pro access may take a moment to reflect after billing verification completes."}
                 </p>
               ) : null}
               {billingNotice === "cancel" ? (
@@ -159,7 +205,13 @@ export function ProAccessSettings({
             <div className="space-y-2 text-center">
               {grantedAtLabel ? (
                 <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.88)]">
-                  Lifetime Pro granted on <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{grantedAtLabel}</span>.
+                  {snapshot.accessSource === "subscription" ? "Pro activated on " : "Legacy Pro granted on "}
+                  <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{grantedAtLabel}</span>.
+                </p>
+              ) : null}
+              {renewsAtLabel ? (
+                <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.88)]">
+                  Next renewal window is anchored to <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{renewsAtLabel}</span>.
                 </p>
               ) : null}
               {!snapshot.schemaReady ? (
@@ -176,8 +228,8 @@ export function ProAccessSettings({
                 )}
               >
                 {snapshot.checkoutConfigured
-                  ? "Stripe configuration and hosted checkout wiring are active on this surface."
-                  : "Add Stripe keys and Lifetime Pro price ids to unlock the hosted checkout slice."}
+                  ? "Stripe configuration and hosted recurring checkout wiring are active on this surface."
+                  : "Add Stripe keys and Pro price ids to unlock the hosted checkout slice."}
               </p>
               <div className="pt-1">
                 <p className="text-[11px] leading-5 text-[rgb(var(--text-secondary)/0.82)]">
