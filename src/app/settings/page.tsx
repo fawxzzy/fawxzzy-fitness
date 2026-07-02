@@ -15,6 +15,7 @@ import { optionalEnv } from "@/lib/env";
 import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { loadProAccessSnapshot } from "@/lib/billing/pro-access";
+import { reconcileCancelledProCheckout } from "@/lib/billing/reconcile-cancelled-checkout";
 import {
   QA_LLEL_VISIBILITY_COOKIE,
   resolveQaLlelVisibilityOverride,
@@ -89,6 +90,26 @@ export default async function SettingsPage({
   });
   const initialExpandedSection = resolveSettingsSection(searchParams?.section);
   const billingNotice = resolveBillingNotice(searchParams?.billing);
+  if (billingNotice === "cancel") {
+    const cancellationResult = await diagnostics.measure(
+      "settings.pro-access.cancel-reconcile",
+      () => reconcileCancelledProCheckout(user.id),
+      {
+        blockingReason: "Reconciling the cancelled Pro checkout return.",
+        metadata: {
+          userId: user.id,
+        },
+        timeoutMs: 5000,
+      },
+    );
+
+    if (!cancellationResult.ok) {
+      console.error("[settings.billing.cancel] failed to reconcile cancelled checkout", {
+        userId: user.id,
+        message: cancellationResult.message,
+      });
+    }
+  }
   const proAccess = await diagnostics.measure("settings.pro-access.snapshot", () => loadProAccessSnapshot(user.id), {
     blockingReason: "Loading Pro access status.",
     metadata: {
