@@ -2820,6 +2820,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
                     customerPortalAvailable: false,
                     grantedAt: null,
                     renewsAt: null,
+                    cancellationScheduledFor: null,
                     lastPurchaseStatus: null,
                     supportNote: "Stripe configuration has not been added yet, so upgrade checkout is not ready on this surface.",
                   }}

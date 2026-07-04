@@ -48,6 +48,7 @@ test("buildFallbackProAccessSnapshot exposes schema fallback truth without imply
   assert.equal(snapshot.schemaReady, false);
   assert.equal(snapshot.accessState, "free");
   assert.equal(snapshot.checkoutConfigured, true);
+  assert.equal(snapshot.cancellationScheduledFor, null);
   assert.match(snapshot.supportNote, /Billing migrations have not been applied yet/i);
 });
 
@@ -89,6 +90,7 @@ test("buildResolvedProAccessSnapshot reports active Lifetime Pro access determin
   assert.equal(snapshot.accessState, "pro");
   assert.equal(snapshot.accessLabel, "Pro");
   assert.equal(snapshot.accessSource, "lifetime");
+  assert.equal(snapshot.cancellationScheduledFor, null);
   assert.equal(snapshot.lastPurchaseStatus, "completed");
   assert.match(snapshot.supportNote, /already has active Pro access/i);
 });
@@ -112,4 +114,43 @@ test("buildResolvedProAccessSnapshot keeps free users on the checkout-ready note
   assert.equal(snapshot.accessState, "free");
   assert.equal(snapshot.lastPurchaseStatus, "pending");
   assert.match(snapshot.supportNote, /Monthly Pro checkout is ready on this surface/i);
+});
+
+test("buildResolvedProAccessSnapshot reflects scheduled subscription cancellation while access remains active", () => {
+  const entitlement: UserEntitlementRow = {
+    id: "entitlement-sub-1",
+    user_id: "user-1",
+    entitlement_key: "pro",
+    status: "active",
+    granted_at: "2026-07-01T01:00:00.000Z",
+    expires_at: "2026-08-01T01:00:00.000Z",
+    source_subscription_id: "sub_123",
+    granted_via_purchase_id: "purchase-sub-1",
+    created_at: "2026-07-01T01:00:00.000Z",
+    updated_at: "2026-07-01T01:00:00.000Z",
+  };
+
+  const snapshot = buildResolvedProAccessSnapshot({
+    billingConfig: configuredBillingSnapshot,
+    entitlement,
+    purchase: {
+      id: "purchase-sub-1",
+      user_id: "user-1",
+      purchase_kind: "pro_subscription",
+      status: "completed",
+      stripe_subscription_id: "sub_123",
+      stripe_price_id: "price_standard",
+      billing_interval: "month",
+      billing_interval_count: 1,
+      created_at: "2026-07-01T01:00:00.000Z",
+      updated_at: "2026-07-01T01:00:00.000Z",
+    } as BillingPurchaseRow,
+    customerPortalAvailable: true,
+    cancellationScheduledFor: "2026-08-01T01:00:00.000Z",
+  });
+
+  assert.equal(snapshot.accessState, "pro");
+  assert.equal(snapshot.accessSource, "subscription");
+  assert.equal(snapshot.cancellationScheduledFor, "2026-08-01T01:00:00.000Z");
+  assert.match(snapshot.supportNote, /keeps Pro access until the scheduled subscription end date/i);
 });

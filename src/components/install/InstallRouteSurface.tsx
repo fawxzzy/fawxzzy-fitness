@@ -6,6 +6,8 @@ import { IOSAddToHomeScreenGate } from "@/components/install/IOSAddToHomeScreenG
 import { IOSOpenInSafariGate } from "@/components/install/IOSOpenInSafariGate";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { MetricAccentBar } from "@/components/ui/MetricItem";
 import { getCanonicalInstallUrl } from "@/lib/install/config";
 import { copyInstallUrl, getInstallContext } from "@/lib/install/getInstallContext";
 import { useInstallContextOverride } from "@/lib/install/useInstallContextOverride";
@@ -59,11 +61,23 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
     <AuthShell>
       <AuthCard className="mx-auto w-full max-w-md">
         <AuthIntro
-          eyebrow="Install Flow"
+          eyebrow="Install"
           subtitle={context.isStandalone ? "Fitness is already running in installed mode on this device." : "Use the browser install prompt here, or open Fitness directly."}
           title={context.isStandalone ? "Fitness is already installed" : "Install Fitness"}
         />
         <AuthStack className="pt-6" size="compact">
+          <div className="space-y-3 text-center">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <AppBadge tone={context.isStandalone ? "success" : "default"}>
+                {context.isStandalone ? "Installed" : "Browser Install"}
+              </AppBadge>
+              <AppBadge tone={context.canUseNativeInstallPrompt ? "success" : "warning"}>
+                {context.canUseNativeInstallPrompt ? "Prompt Ready" : "Menu Install"}
+              </AppBadge>
+            </div>
+            <MetricAccentBar variant="thin" className="mx-auto w-full max-w-[18rem] opacity-85" />
+          </div>
+
           <div className="rounded-[1.25rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-2)/0.84)] px-4 py-4 text-sm leading-6 text-[rgb(var(--text-secondary)/0.96)]">
             <p>
               {context.isStandalone

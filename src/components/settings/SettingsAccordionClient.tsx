@@ -7,7 +7,11 @@ import { DiscordAccessSettings } from "@/components/settings/DiscordAccessSettin
 import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
 import { ProAccessSettings } from "@/components/settings/ProAccessSettings";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
-import { useSettingsScreenState, type SettingsSectionKey } from "@/components/settings/SettingsScreenState";
+import {
+  SETTINGS_LEGACY_MIGRATION_ENABLED,
+  useSettingsScreenState,
+  type SettingsSectionKey,
+} from "@/components/settings/SettingsScreenState";
 import { StateChevron } from "@/components/ui/StateChevron";
 import { canAccessQaLlelVisibilitySetting } from "@/lib/qa-data-visibility";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
@@ -28,7 +32,7 @@ export function getSettingsSectionMeta(section: Exclude<SettingsSectionKey, null
     case "data":
       return { title: "Data" };
     case "legacy":
-      return { title: "Legacy & Migration" };
+      return SETTINGS_LEGACY_MIGRATION_ENABLED ? { title: "Legacy & Migration" } : null;
     case "discord":
       return { title: "Discord Connector" };
     default:
@@ -101,7 +105,7 @@ export function SettingsAccordionClient({
   const showAccount = expandedSection === null || expandedSection === "account";
   const showPro = expandedSection === null || expandedSection === "pro";
   const showData = expandedSection === null || expandedSection === "data";
-  const showLegacy = expandedSection === null || expandedSection === "legacy";
+  const showLegacy = SETTINGS_LEGACY_MIGRATION_ENABLED && (expandedSection === null || expandedSection === "legacy");
   const showDiscord = expandedSection === null || expandedSection === "discord";
   const showTheme = expandedSection === null || expandedSection === "theme";
 

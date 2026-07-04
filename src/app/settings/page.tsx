@@ -4,7 +4,10 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { SettingsAccordionClient } from "@/components/settings/SettingsAccordionClient";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
-import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
+import {
+  SETTINGS_LEGACY_MIGRATION_ENABLED,
+  SettingsScreenStateProvider,
+} from "@/components/settings/SettingsScreenState";
 import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -27,7 +30,12 @@ export const dynamic = "force-dynamic";
 
 function resolveSettingsSection(value: string | string[] | undefined) {
   const section = Array.isArray(value) ? value[0] : value;
-  return section === "account" || section === "pro" || section === "data" || section === "legacy" || section === "discord" || section === "theme"
+  return section === "account"
+    || section === "pro"
+    || section === "data"
+    || (SETTINGS_LEGACY_MIGRATION_ENABLED && section === "legacy")
+    || section === "discord"
+    || section === "theme"
     ? section
     : null;
 }

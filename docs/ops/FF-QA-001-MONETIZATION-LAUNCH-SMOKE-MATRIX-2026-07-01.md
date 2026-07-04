@@ -41,7 +41,7 @@ This launch matrix is only executable when the blocker lane below is materially 
 - `FF-CORE-002` routine builder paid-user polish
 - `FF-PWA-001` install experience and onboarding
 - `FF-LEGAL-001` privacy policy and terms of service
-- `FF-MON-002` Stripe lifetime Pro purchase flow
+- `FF-MON-002` Stripe Pro subscription checkout flow
 - `FF-BETA-001` real-user beta
 - `FF-MON-001` monetization readiness gate
 
@@ -128,6 +128,16 @@ Checks:
 - first launch lands on a valid surface
 - session restore after relaunch works
 - offline fallback messaging does not mislead users
+
+Primary launch routes to prove:
+
+- `/install?installContext=android-chrome`
+- `/install?installContext=ios-safari`
+- `/install?installContext=desktop-windows-edge`
+- `/install?installContext=desktop-windows-chrome`
+- `/install?installContext=desktop-macos-safari`
+- `/install?installContext=desktop-macos-chrome`
+- `/install?installContext=desktop` as generic fallback only
 
 Default failure severity:
 

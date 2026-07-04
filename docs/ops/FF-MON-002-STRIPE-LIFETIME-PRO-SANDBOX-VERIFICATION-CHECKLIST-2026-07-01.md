@@ -1,9 +1,17 @@
-# FF-MON-002 - Stripe Lifetime Pro Sandbox Verification Checklist
+# FF-MON-002 - Stripe Pro Subscription Sandbox Verification Checklist
+
+> SUPERSEDED CONTEXT NOTE: Lifetime Pro was abandoned. Current production direction is `$5/month` recurring Pro. Historical lifetime references below are checklist context only.
 
 Date: 2026-07-01
-Card Title: `FF-MON-002 - Implement Stripe Lifetime Pro Purchase Flow`
+Card Title at checklist start: `FF-MON-002 - Implement Stripe Lifetime Pro Purchase Flow`
 Source row id: `16afd8c6-aab9-447d-ac9c-29126cc11843`
-Forum thread title: `Feature: Payments - Implement Stripe Lifetime Pro Purchase Flow`
+Forum thread title at checklist start: `Feature: Payments - Implement Stripe Lifetime Pro Purchase Flow`
+
+Current implementation note:
+
+- the original card/forum wording was `Lifetime Pro`
+- the shipped app implementation now targets a recurring monthly Pro subscription flow
+- treat lifetime-specific references below as historical checklist wording unless a section explicitly says otherwise
 
 ## Purpose
 

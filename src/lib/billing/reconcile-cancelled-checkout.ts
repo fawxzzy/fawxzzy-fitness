@@ -14,7 +14,7 @@ type ReconcileCancelledCheckoutDeps = {
 };
 
 export type ReconcileCancelledCheckoutResult =
-  | { ok: true; status: "noop" | "cancelled" | "completed"; purchaseId: string | null }
+  | { ok: true; status: "noop" | "cancelled" | "completed"; purchaseId: string | null; purchaseIds?: string[] }
   | { ok: false; status: "error"; purchaseId: string | null; message: string };
 
 async function markPurchaseCancelled(admin: BillingAdminClient, purchaseId: string) {
@@ -31,22 +31,20 @@ async function markPurchaseCancelled(admin: BillingAdminClient, purchaseId: stri
   }
 }
 
-async function loadLatestPendingSubscriptionPurchase(admin: BillingAdminClient, userId: string) {
+async function loadPendingSubscriptionPurchases(admin: BillingAdminClient, userId: string) {
   const billingPurchasesTable = admin.from("billing_purchases") as any;
   const { data, error } = await billingPurchasesTable
     .select("id, user_id, purchase_kind, status, stripe_checkout_session_id, created_at, updated_at")
     .eq("user_id", userId)
     .eq("purchase_kind", "pro_subscription")
     .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(`Could not load pending checkout receipt: ${error.message}`);
+    throw new Error(`Could not load pending checkout receipts: ${error.message}`);
   }
 
-  return (data ?? null) as BillingPurchaseRow | null;
+  return ((data ?? []) as BillingPurchaseRow[]).filter(Boolean);
 }
 
 function getCheckoutSessionStatus(checkoutSession: Stripe.Checkout.Session) {
@@ -58,46 +56,51 @@ export async function reconcileCancelledProCheckoutWithDeps(
   deps: ReconcileCancelledCheckoutDeps,
 ): Promise<ReconcileCancelledCheckoutResult> {
   try {
-    const pendingPurchase = await loadLatestPendingSubscriptionPurchase(deps.admin, userId);
+    const pendingPurchases = await loadPendingSubscriptionPurchases(deps.admin, userId);
 
-    if (!pendingPurchase) {
+    if (pendingPurchases.length === 0) {
       return {
         ok: true,
         status: "noop",
         purchaseId: null,
+        purchaseIds: [],
       };
     }
 
-    const checkoutSessionId = pendingPurchase.stripe_checkout_session_id?.trim() ?? "";
-    if (!checkoutSessionId) {
+    const cancelledPurchaseIds: string[] = [];
+    for (const pendingPurchase of pendingPurchases) {
+      const checkoutSessionId = pendingPurchase.stripe_checkout_session_id?.trim() ?? "";
+      if (!checkoutSessionId) {
+        await markPurchaseCancelled(deps.admin, pendingPurchase.id);
+        cancelledPurchaseIds.push(pendingPurchase.id);
+        continue;
+      }
+
+      const checkoutSession = await deps.stripe.checkout.sessions.retrieve(checkoutSessionId);
+      const checkoutStatus = getCheckoutSessionStatus(checkoutSession);
+
+      if (checkoutStatus === "complete" || checkoutSession.payment_status === "paid") {
+        return {
+          ok: true,
+          status: "completed",
+          purchaseId: pendingPurchase.id,
+          purchaseIds: pendingPurchases.map((purchase) => purchase.id),
+        };
+      }
+
+      if (checkoutStatus === "open") {
+        await deps.stripe.checkout.sessions.expire(checkoutSessionId);
+      }
+
       await markPurchaseCancelled(deps.admin, pendingPurchase.id);
-      return {
-        ok: true,
-        status: "cancelled",
-        purchaseId: pendingPurchase.id,
-      };
+      cancelledPurchaseIds.push(pendingPurchase.id);
     }
 
-    const checkoutSession = await deps.stripe.checkout.sessions.retrieve(checkoutSessionId);
-    const checkoutStatus = getCheckoutSessionStatus(checkoutSession);
-
-    if (checkoutStatus === "complete" || checkoutSession.payment_status === "paid") {
-      return {
-        ok: true,
-        status: "completed",
-        purchaseId: pendingPurchase.id,
-      };
-    }
-
-    if (checkoutStatus === "open") {
-      await deps.stripe.checkout.sessions.expire(checkoutSessionId);
-    }
-
-    await markPurchaseCancelled(deps.admin, pendingPurchase.id);
     return {
       ok: true,
       status: "cancelled",
-      purchaseId: pendingPurchase.id,
+      purchaseId: cancelledPurchaseIds[0] ?? null,
+      purchaseIds: cancelledPurchaseIds,
     };
   } catch (error) {
     return {

@@ -9,6 +9,8 @@ import { labeledEditorFieldControlClassName } from "@/components/ui/LabeledEdito
 import { useToast } from "@/components/ui/ToastProvider";
 import { cn } from "@/lib/cn";
 
+const FITNESS_DISCORD_INVITE_URL = "https://discord.gg/tnnV7BNJ7h";
+
 type DiscordTokenResponse =
   | {
     ok: true;
@@ -138,6 +140,23 @@ export function DiscordAccessSettings() {
       </PublishBottomActions>
 
       <div className="space-y-4 pt-2">
+        <div className="mx-auto flex max-w-[22rem] flex-col items-center gap-2 text-center">
+          <a
+            href={FITNESS_DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="group inline-flex w-full flex-col items-center rounded-[calc(var(--radius-lg)-0.18rem)] bg-[rgb(var(--surface-2-rgb)/0.12)] px-4 py-3 transition hover:bg-[rgb(var(--surface-2-rgb)/0.18)]"
+          >
+            <span className="text-sm font-semibold text-[rgb(var(--accent)/0.96)] transition group-hover:text-[rgb(var(--text-primary)/0.98)]">
+              Join Fawxzzy Fitness Discord
+            </span>
+            <MetricAccentBar variant="thin" className="mt-1 w-full max-w-[12rem] opacity-85" />
+            <span className="mt-1 text-[11px] leading-4 text-[rgb(var(--text-secondary)/0.78)]">
+              Community, support, beta notes, and launch updates.
+            </span>
+          </a>
+        </div>
+
         <div className="mx-auto max-w-[22rem]">
           <input
             type="text"
@@ -153,7 +172,7 @@ export function DiscordAccessSettings() {
 
         <div className="mx-auto flex max-w-[22rem] flex-col items-center gap-1.5 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
-            {expiryLabel ? `One-Time Key | ${expiryLabel}` : "One-Time Key"}
+            {expiryLabel ? `Generate One-Time Key | ${expiryLabel}` : "Generate One-Time Key"}
           </p>
           <MetricAccentBar variant="thin" className="w-full opacity-85" />
           {errorMessage ? (

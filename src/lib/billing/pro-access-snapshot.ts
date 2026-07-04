@@ -14,6 +14,7 @@ export type ProAccessSnapshot = {
   customerPortalAvailable: boolean;
   grantedAt: string | null;
   renewsAt: string | null;
+  cancellationScheduledFor: string | null;
   lastPurchaseStatus: BillingPurchaseRow["status"] | null;
   supportNote: string;
 };
@@ -80,6 +81,7 @@ export function buildFallbackProAccessSnapshot(
     customerPortalAvailable: false,
     grantedAt: null,
     renewsAt: null,
+    cancellationScheduledFor: null,
     lastPurchaseStatus: null,
     supportNote:
       reason === "schema"
@@ -95,11 +97,13 @@ export function buildResolvedProAccessSnapshot({
   entitlement,
   purchase,
   customerPortalAvailable,
+  cancellationScheduledFor,
 }: {
   billingConfig: ReturnType<typeof getStripeBillingConfigSnapshot>;
   entitlement: UserEntitlementRow | null;
   purchase: BillingPurchaseRow | null;
   customerPortalAvailable: boolean;
+  cancellationScheduledFor?: string | null;
 }): ProAccessSnapshot {
   const accessIsActive = isEntitlementActive(entitlement);
   const accessState = accessIsActive ? "pro" : "free";
@@ -116,11 +120,14 @@ export function buildResolvedProAccessSnapshot({
     customerPortalAvailable,
     grantedAt: entitlement?.granted_at ?? null,
     renewsAt: accessSource === "subscription" ? (entitlement?.expires_at ?? null) : null,
+    cancellationScheduledFor: accessSource === "subscription" ? (cancellationScheduledFor ?? null) : null,
     lastPurchaseStatus: purchase?.status ?? null,
     supportNote:
       accessState === "pro"
         ? accessSource === "subscription"
-          ? "Your account has active Pro subscription access."
+          ? cancellationScheduledFor
+            ? "Your account keeps Pro access until the scheduled subscription end date."
+            : "Your account has active Pro subscription access."
           : "Your account already has active Pro access."
         : billingConfig.checkoutConfigured
           ? "Monthly Pro checkout is ready on this surface."

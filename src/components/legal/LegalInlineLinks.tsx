@@ -1,24 +1,39 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
+function buildLegalHref(pathname: "/privacy" | "/terms", returnTo?: string) {
+  if (!returnTo) {
+    return pathname;
+  }
+
+  return {
+    pathname,
+    query: {
+      returnTo,
+    },
+  };
+}
+
 export function LegalInlineLinks({
   className,
   linkClassName,
   separatorClassName,
+  returnTo,
 }: {
   className?: string;
   linkClassName?: string;
   separatorClassName?: string;
+  returnTo?: string;
 }) {
   return (
     <span className={cn("inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1", className)}>
-      <Link href="/privacy" className={cn("underline-offset-4 hover:underline", linkClassName)}>
+      <Link href={buildLegalHref("/privacy", returnTo)} className={cn("underline-offset-4 hover:underline", linkClassName)}>
         Privacy Policy
       </Link>
       <span aria-hidden="true" className={cn("text-[rgb(var(--text-muted)/0.72)]", separatorClassName)}>
         |
       </span>
-      <Link href="/terms" className={cn("underline-offset-4 hover:underline", linkClassName)}>
+      <Link href={buildLegalHref("/terms", returnTo)} className={cn("underline-offset-4 hover:underline", linkClassName)}>
         Terms of Service
       </Link>
     </span>

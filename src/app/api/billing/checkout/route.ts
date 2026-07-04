@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { getStripeBillingConfigSnapshot } from "@/lib/billing/stripe-config";
+import { reconcileCancelledProCheckout } from "@/lib/billing/reconcile-cancelled-checkout";
 import { getStripeServerClient } from "@/lib/billing/stripe-server";
 import { getRequestOrigin } from "@/lib/request-origin";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -113,6 +114,20 @@ export async function POST(request: NextRequest) {
         ok: false,
         code: "BILLING_ALREADY_PRO",
         error: "This account already has active Pro access.",
+        requestId,
+      }, { status: 409 });
+    }
+
+    const pendingCheckoutReconciliation = await reconcileCancelledProCheckout(user.id);
+    if (!pendingCheckoutReconciliation.ok) {
+      throw new Error(`Could not reconcile prior pending checkout: ${pendingCheckoutReconciliation.message}`);
+    }
+
+    if (pendingCheckoutReconciliation.status === "completed") {
+      return buildJsonResponse({
+        ok: false,
+        code: "BILLING_CHECKOUT_ALREADY_COMPLETED",
+        error: "A recent Monthly Pro checkout already completed. Refresh Pro access and try again in a moment.",
         requestId,
       }, { status: 409 });
     }

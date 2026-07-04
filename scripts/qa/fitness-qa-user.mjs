@@ -393,6 +393,30 @@ async function deleteUserOwnedRows(serviceRoleClient, userId) {
   if (deleteCustomExercisesError && !isRelationMissing(deleteCustomExercisesError)) {
     throw new Error(`Unable to reset custom exercises for QA user ${userId}: ${deleteCustomExercisesError.message ?? "Unknown Supabase error"}`);
   }
+
+  // The reusable QA baseline uses fixed ids across runs. If the QA email/user changes,
+  // older rows can survive under a different user_id and collide on reseed.
+  const baselineSessionExerciseIds = Object.values(QA_BASELINE.sessionExerciseIds);
+  const baselineSessionIds = Object.values(QA_BASELINE.sessionIds);
+  const baselineRoutineDayExerciseIds = Object.values(QA_BASELINE.routineDayExerciseIds);
+
+  const fixedIdCleanup = [
+    { table: "sets", column: "session_exercise_id", values: baselineSessionExerciseIds },
+    { table: "session_exercises", column: "id", values: baselineSessionExerciseIds },
+    { table: "sessions", column: "id", values: baselineSessionIds },
+    { table: "routine_day_exercises", column: "id", values: baselineRoutineDayExerciseIds },
+    { table: "routine_days", column: "id", values: [QA_BASELINE.routineDayId] },
+    { table: "routines", column: "id", values: [QA_BASELINE.routineId] },
+  ];
+
+  for (const cleanup of fixedIdCleanup) {
+    const { error } = await serviceRoleClient.from(cleanup.table).delete().in(cleanup.column, cleanup.values);
+    if (error && !isRelationMissing(error)) {
+      throw new Error(
+        `Unable to clear fixed QA baseline rows from ${cleanup.table}: ${error.message ?? "Unknown Supabase error"}`,
+      );
+    }
+  }
 }
 
 function buildBaselineDataset(userId, exerciseCatalog) {

@@ -31,7 +31,7 @@ Paid launch blockers:
 - `FF-CORE-002` Polish Routine Builder for Paid-User Readiness
 - `FF-PWA-001` Complete Install Experience and Onboarding
 - `FF-LEGAL-001` Add Privacy Policy and Terms of Service
-- `FF-MON-002` Implement Stripe Lifetime Pro Purchase Flow
+- `FF-MON-002` Implement Stripe Pro Subscription Checkout Flow
 - `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
 - `FF-MON-001` Monetization Readiness Gate
 - `FF-QA-001` Monetization Launch Smoke Test Checklist
@@ -47,7 +47,7 @@ Recommended order:
 2. `FF-CORE-002` Polish Routine Builder for Paid-User Readiness
 3. `FF-PWA-001` Complete Install Experience and Onboarding
 4. `FF-LEGAL-001` Add Privacy Policy and Terms of Service
-5. `FF-MON-002` Implement Stripe Lifetime Pro Purchase Flow
+5. `FF-MON-002` Implement Stripe Pro Subscription Checkout Flow
 6. `FF-BETA-001` Run 10-20 Real User Beta Before Paid Push
 7. `FF-MON-001` Monetization Readiness Gate
 8. `FF-QA-001` Monetization Launch Smoke Test Checklist

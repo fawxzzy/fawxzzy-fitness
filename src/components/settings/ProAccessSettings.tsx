@@ -5,10 +5,15 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { LegalInlineLinks } from "@/components/legal/LegalInlineLinks";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { appTokens } from "@/components/ui/app/tokens";
 import { MetricAccentBar } from "@/components/ui/MetricItem";
 import type { ProAccessSnapshot } from "@/lib/billing/pro-access-snapshot";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/components/ui/ToastProvider";
+
+const proFooterBodyTextClassName = "text-[11px] leading-4 text-[rgb(var(--text-secondary)/0.9)]";
+const proFooterBodyStrongClassName = "font-semibold text-[rgb(var(--text-primary)/0.96)]";
+const proFooterMiniLabelClassName = "text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.78)]";
 
 function formatGrantedAt(value: string | null) {
   if (!value) {
@@ -26,27 +31,110 @@ function formatGrantedAt(value: string | null) {
   }).format(parsed);
 }
 
-function getAccessSourceLabel(snapshot: ProAccessSnapshot) {
+function formatBillingBadgeDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(parsed);
+}
+
+function getProHeroSummary(snapshot: ProAccessSnapshot) {
+  if (snapshot.accessState === "pro") {
+    return snapshot.accessSource === "subscription"
+      ? snapshot.cancellationScheduledFor
+        ? `Subscription ends ${formatBillingBadgeDate(snapshot.cancellationScheduledFor) ?? "soon"}`
+        : "Monthly subscription active"
+      : "Pro access active";
+  }
+
+  return snapshot.checkoutConfigured ? "Monthly Pro available" : "Checkout not ready";
+}
+
+function ProStatusTile({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-1 px-1 py-0.5 text-center">
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[rgb(var(--text-secondary)/0.8)]">
+          {label}
+        </p>
+        <MetricAccentBar variant="thin" className="w-full min-w-[2.2rem] opacity-80" />
+      </div>
+      <p className="text-[12px] font-semibold leading-4 text-[rgb(var(--text-primary)/0.98)]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function getCurrentPlanLabel(snapshot: ProAccessSnapshot) {
   if (snapshot.accessState !== "pro") {
     return "Free";
   }
 
-  return snapshot.accessSource === "subscription" ? "Subscription" : "Lifetime";
+  return snapshot.accessSource === "subscription" ? "Pro active" : "Legacy Pro";
 }
 
-function getPurchaseStatusLabel(status: ProAccessSnapshot["lastPurchaseStatus"]) {
-  switch (status) {
-    case "completed":
-      return "Completed";
-    case "pending":
-      return "Pending";
-    case "cancelled":
-      return "Cancelled";
-    case "failed":
-      return "Failed";
-    default:
-      return "No purchase yet";
+function getBillingStateLabel(snapshot: ProAccessSnapshot) {
+  if (snapshot.accessSource === "subscription") {
+    return "$5/month";
   }
+
+  return snapshot.accessState === "pro" ? "Included" : "$5/month";
+}
+
+function getAccessStateLabel(snapshot: ProAccessSnapshot) {
+  if (snapshot.accessState !== "pro") {
+    return snapshot.checkoutConfigured ? "Ready to subscribe" : "Checkout unavailable";
+  }
+
+  if (snapshot.accessSource === "subscription") {
+    return snapshot.cancellationScheduledFor ? "Cancels at period end" : "Renews monthly";
+  }
+
+  return "Access active";
+}
+
+function SettingsFooterNote({
+  children,
+  bodyClassName,
+}: {
+  children: React.ReactNode;
+  bodyClassName?: string;
+}) {
+  return (
+    <div className="rounded-[calc(var(--radius-lg)-0.18rem)] bg-[rgb(var(--surface-2-rgb)/0.12)] px-4 py-3">
+      <div className={cn("space-y-1.5", bodyClassName)}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function getProHeroDescription(snapshot: ProAccessSnapshot) {
+  if (snapshot.accessState === "free") {
+    return "Subscribe for $5/month. Renews monthly until cancelled, and payments are processed by Stripe.";
+  }
+
+  if (snapshot.accessSource === "subscription") {
+    return snapshot.cancellationScheduledFor ? "" : "Your monthly subscription is active. It renews monthly until cancelled.";
+  }
+
+  return "This account already has active Pro access.";
 }
 
 export function ProAccessSettings({
@@ -60,8 +148,7 @@ export function ProAccessSettings({
   const toast = useToast();
   const grantedAtLabel = formatGrantedAt(snapshot.grantedAt);
   const renewsAtLabel = formatGrantedAt(snapshot.renewsAt);
-  const badgeTone = snapshot.accessState === "pro" ? "success" : "default";
-  const setupTone = snapshot.checkoutConfigured ? "success" : "warning";
+  const cancellationScheduledForLabel = formatGrantedAt(snapshot.cancellationScheduledFor);
   const canStartCheckout = snapshot.schemaReady && snapshot.checkoutConfigured && snapshot.accessState === "free";
   const canManageBilling =
     snapshot.accessState === "pro"
@@ -73,8 +160,9 @@ export function ProAccessSettings({
       ? snapshot.accessSource === "subscription"
         ? "Pro Active"
         : "Legacy Pro Active"
-      : "Start Monthly Pro";
+      : "Upgrade to Pro";
   const buttonIntent = canManageBilling || canStartCheckout ? "positive" : "info";
+  const heroSummary = getProHeroSummary(snapshot);
 
   const startAction = () => {
     if (!canStartCheckout && !canManageBilling) {
@@ -127,8 +215,6 @@ export function ProAccessSettings({
     });
   };
 
-  const sourceLabel = getAccessSourceLabel(snapshot);
-
   return (
     <>
       <PublishBottomActions>
@@ -143,21 +229,23 @@ export function ProAccessSettings({
         </BottomDockButton>
       </PublishBottomActions>
 
-      <div className="space-y-4 pt-2">
+      <div className="space-y-2 pt-0">
         <div className="relative -mx-5 overflow-hidden rounded-[var(--radius-lg)] border border-transparent bg-transparent shadow-none">
-          <div className="relative space-y-4 p-4 sm:p-5">
-            <div className="mx-auto flex max-w-[24rem] flex-col items-center gap-1.5 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.88)]">
-                Pro Access
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <AppBadge tone={badgeTone}>{snapshot.accessLabel}</AppBadge>
-                <AppBadge tone={setupTone}>{snapshot.offerLabel}</AppBadge>
-                {snapshot.accessState === "pro" ? (
-                  <AppBadge tone="success">{sourceLabel}</AppBadge>
-                ) : null}
-              </div>
-              <MetricAccentBar variant="thin" className="w-full opacity-85" />
+          <div className="relative space-y-3 px-4 pb-4 pt-2 sm:px-5 sm:pb-5 sm:pt-2">
+            <div className={cn(appTokens.settingsCardHeader, "gap-2 text-center")}>
+              <AppBadge
+                tone={snapshot.accessState === "pro" ? "success" : snapshot.checkoutConfigured ? "warning" : "default"}
+                className="px-4 py-1.5"
+              >
+                {heroSummary}
+              </AppBadge>
+              {getProHeroDescription(snapshot) ? (
+                <div className="mx-auto max-w-[28rem] space-y-1">
+                  <p className="text-[11px] leading-4.5 text-[rgb(var(--text-secondary)/0.84)]">
+                    {getProHeroDescription(snapshot)}
+                  </p>
+                </div>
+              ) : null}
               {billingNotice === "success" ? (
                 <p className="text-xs leading-5 text-[rgb(var(--success-text-rgb)/0.92)]">
                   {snapshot.accessState === "pro"
@@ -170,77 +258,60 @@ export function ProAccessSettings({
                   Checkout was cancelled. Your account remains on the current access tier.
                 </p>
               ) : null}
-              <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.9)]">
-                {snapshot.supportNote}
-              </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[calc(var(--radius-lg)-0.2rem)] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-4 py-3 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.82)]">
-                  Status
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[rgb(var(--text-primary)/0.98)]">
-                  {snapshot.accessLabel}
-                </p>
-              </div>
-              <div className="rounded-[calc(var(--radius-lg)-0.2rem)] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-4 py-3 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.82)]">
-                  Checkout
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[rgb(var(--text-primary)/0.98)]">
-                  {snapshot.checkoutConfigured ? "Configured" : "Not ready"}
-                </p>
-              </div>
-              <div className="rounded-[calc(var(--radius-lg)-0.2rem)] border border-[rgb(var(--border-rgb)/0.42)] bg-[rgb(var(--surface-2-rgb)/0.14)] px-4 py-3 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text-secondary)/0.82)]">
-                  Last Purchase
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[rgb(var(--text-primary)/0.98)]">
-                  {getPurchaseStatusLabel(snapshot.lastPurchaseStatus)}
-                </p>
-              </div>
+            <div className="mx-auto grid w-full max-w-[23rem] grid-cols-3 items-start gap-2 rounded-[calc(var(--radius-lg)-0.28rem)] bg-[rgb(var(--surface-2-rgb)/0.1)] px-2 py-2">
+              <ProStatusTile label="Plan" value={getCurrentPlanLabel(snapshot)} />
+              <ProStatusTile label="Billing" value={getBillingStateLabel(snapshot)} />
+              <ProStatusTile label="Status" value={getAccessStateLabel(snapshot)} />
             </div>
 
-            <div className="space-y-2 text-center">
-              {grantedAtLabel ? (
-                <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.88)]">
-                  {snapshot.accessSource === "subscription" ? "Pro activated on " : "Legacy Pro granted on "}
-                  <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{grantedAtLabel}</span>.
-                </p>
-              ) : null}
-              {renewsAtLabel ? (
-                <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.88)]">
-                  Next renewal window is anchored to <span className="font-semibold text-[rgb(var(--text-primary)/0.96)]">{renewsAtLabel}</span>.
-                </p>
-              ) : null}
-              {!snapshot.schemaReady ? (
-                <p className="text-xs leading-5 text-[rgb(var(--text-secondary)/0.82)]">
-                  Billing schema is still missing on this runtime, so this surface is currently operating in fallback mode.
-                </p>
-              ) : null}
-              <p
-                className={cn(
-                  "text-xs leading-5",
-                  snapshot.checkoutConfigured
-                    ? "text-[rgb(var(--success-text-rgb)/0.9)]"
-                    : "text-[rgb(var(--text-secondary)/0.82)]",
-                )}
-              >
-                {snapshot.checkoutConfigured
-                  ? "Stripe configuration and hosted recurring checkout wiring are active on this surface."
-                  : "Add Stripe keys and Pro price ids to unlock the hosted checkout slice."}
+            <div className={cn(appTokens.settingsBlockStack, "gap-3 pb-24")}>
+              <SettingsFooterNote bodyClassName="text-[10.5px] leading-4.5">
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  {grantedAtLabel ? (
+                    <div className="space-y-0.5">
+                      <p className={proFooterMiniLabelClassName}>Purchase date</p>
+                      <p className={proFooterBodyTextClassName}>
+                        <span className={proFooterBodyStrongClassName}>{grantedAtLabel}</span>
+                      </p>
+                    </div>
+                  ) : null}
+                  {renewsAtLabel ? (
+                    <div className="space-y-0.5">
+                      <p className={proFooterMiniLabelClassName}>
+                        {snapshot.cancellationScheduledFor ? "Current access ends" : "Renewal date"}
+                      </p>
+                      <p className={proFooterBodyTextClassName}>
+                        <span className={proFooterBodyStrongClassName}>{renewsAtLabel}</span>
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+                {cancellationScheduledForLabel && cancellationScheduledForLabel !== renewsAtLabel ? (
+                  <p className={cn(proFooterBodyTextClassName, "text-center")}>
+                    Stripe cancellation date:{" "}
+                    <span className={proFooterBodyStrongClassName}>{cancellationScheduledForLabel}</span>.
+                  </p>
+                ) : null}
+                {!snapshot.schemaReady ? (
+                  <p className={cn(appTokens.settingsStatusMuted, "text-center")}>
+                    Billing schema is still missing on this runtime, so this surface is currently operating in fallback mode.
+                  </p>
+                ) : null}
+              </SettingsFooterNote>
+
+              <p className="text-center text-[11px] leading-4.5 text-[rgb(var(--text-secondary)/0.82)]">
+                By subscribing, you agree to the Terms of Service and acknowledge the Privacy Policy.
               </p>
-              <div className="pt-1">
-                <p className="text-[11px] leading-5 text-[rgb(var(--text-secondary)/0.82)]">
-                  By continuing to checkout, review the legal terms for accounts, workout data, and payment handling.
-                </p>
-                <LegalInlineLinks
-                  className="mt-1"
-                  linkClassName="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.96)]"
-                  separatorClassName="text-[rgb(var(--text-muted)/0.58)]"
-                />
-              </div>
+
+              <LegalInlineLinks
+                className="sticky bottom-[calc(env(safe-area-inset-bottom)+5.35rem)] z-30 mx-auto flex w-full max-w-[26rem] flex-nowrap justify-center rounded-full bg-[rgb(var(--app-bg)/0.78)] px-3 py-2 text-center shadow-[0_0_22px_rgb(var(--accent)/0.12)] backdrop-blur-md"
+                returnTo="/settings?section=pro"
+                linkClassName="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--accent)/0.96)] sm:text-[11px] sm:tracking-[0.12em]"
+                separatorClassName="text-[rgb(var(--text-muted)/0.58)]"
+              />
+
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import {
   isMissingBillingSchemaError,
   type ProAccessSnapshot,
 } from "@/lib/billing/pro-access-snapshot";
+import { getStripeServerClient } from "@/lib/billing/stripe-server";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { BillingCustomerRow, BillingPurchaseRow, UserEntitlementRow } from "@/types/db";
 
@@ -39,6 +40,35 @@ function resolveBestEntitlement(entitlements: UserEntitlementRow[]) {
   }
 
   return entitlements[0] ?? null;
+}
+
+function toIsoFromUnixSeconds(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+
+  return new Date(value * 1000).toISOString();
+}
+
+async function loadSubscriptionCancellationScheduledFor(subscriptionId: string | null) {
+  if (!subscriptionId) {
+    return null;
+  }
+
+  try {
+    const stripe = getStripeServerClient();
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const periodEnd = toIsoFromUnixSeconds(subscription.items.data[0]?.current_period_end);
+    const cancelAt = toIsoFromUnixSeconds(subscription.cancel_at);
+
+    if (subscription.cancel_at_period_end) {
+      return periodEnd ?? cancelAt;
+    }
+
+    return cancelAt;
+  } catch {
+    return null;
+  }
 }
 
 export async function loadProAccessSnapshot(userId: string): Promise<ProAccessSnapshot> {
@@ -101,10 +131,21 @@ export async function loadProAccessSnapshot(userId: string): Promise<ProAccessSn
     };
   }
 
+  const entitlement = resolveBestEntitlement((entitlementResponse.data ?? []) as UserEntitlementRow[]);
+  const subscriptionId =
+    entitlement?.source_subscription_id
+    ?? purchaseResponse.data?.stripe_subscription_id
+    ?? customerResponse.data?.latest_stripe_subscription_id
+    ?? null;
+  const cancellationScheduledFor = entitlement?.entitlement_key === "pro"
+    ? await loadSubscriptionCancellationScheduledFor(subscriptionId)
+    : null;
+
   return buildResolvedProAccessSnapshot({
     billingConfig,
-    entitlement: resolveBestEntitlement((entitlementResponse.data ?? []) as UserEntitlementRow[]),
+    entitlement,
     purchase: purchaseResponse.data,
     customerPortalAvailable: Boolean(customerResponse.data?.stripe_customer_id),
+    cancellationScheduledFor,
   });
 }
