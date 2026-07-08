@@ -181,6 +181,26 @@ Blocked:
 - Live webhook signing secret could be revealed in Stripe Dashboard, but the available browser bridge redacted the secret before it could be copied into Vercel.
 - Live `pk_live...` and `sk_live...` values were not installed. Vercel still needs live key installation and a production redeploy before any live checkout.
 
+## Read-Only Vercel Recheck
+
+Date: `2026-07-08`
+
+Scope: read-only Vercel CLI metadata check. No env values were pulled or printed. No deploy was triggered.
+
+Findings:
+
+- Stable production alias `fawxzzy-fitness-local.vercel.app` points at deployment `dpl_2rrQPh4hjDsG1eat8vvtQdvQxnhD`.
+- That deployment was created at `2026-07-07T21:23:46.046Z`.
+- Vercel production env metadata shows `STRIPE_PRO_STANDARD_PRICE_ID` updated at `2026-07-08T02:32:28.575Z`.
+- Vercel production env metadata shows `STRIPE_PRO_ACTIVE_PRICE_MODE` updated at `2026-07-08T02:32:32.263Z`.
+- Therefore the current aliased production deployment predates the latest recurring Pro production env updates.
+
+Result:
+
+- Redeploy-after-env remains open.
+- Do not run live readiness smoke yet.
+- Next operator action is still production redeploy after final live env setup, then bounded live smoke.
+
 ## Dirty Worktree Classification
 
 The Fitness repo had a broad pre-existing dirty worktree before this receipt was added:
