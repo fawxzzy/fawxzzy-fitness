@@ -231,6 +231,50 @@ Result:
 - Do not run final paid live smoke yet.
 - Next operator action is Customer Portal live return proof after a bounded paid customer exists, plus the remaining business/legal/support decisions.
 
+## 2026-07-08 Follow-Up Readiness Recheck
+
+Scope: read-only Vercel metadata check plus safe local owner-lane verification. No env values were pulled or printed. No live charge was created. No Stripe, Vercel, ATLAS root, Mazer, Supabase, or secret state was mutated by this recheck.
+
+Operator decision:
+
+- The operator explicitly chose to leave the currently installed live server key in place.
+- This receipt treats key rotation as intentionally deferred by operator risk acceptance, not as a security best-practice closure.
+- If the operator later changes that decision, the correct action is still to rotate the exposed live key, reinstall the replacement in Vercel production, redeploy, and revoke or expire the old key.
+
+Current Vercel findings:
+
+- Stable production alias `fawxzzy-fitness-local.vercel.app` points at deployment `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`.
+- Deployment `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R` was created at `2026-07-08T03:39:57.773Z`.
+- Vercel production env metadata shows `STRIPE_SECRET_KEY` updated at `2026-07-08T03:39:00.353Z`.
+- Vercel production env metadata shows `STRIPE_PRO_STANDARD_PRICE_ID` updated at `2026-07-08T03:36:27.051Z`.
+- Vercel production env metadata shows `STRIPE_PRO_ACTIVE_PRICE_MODE` updated at `2026-07-08T03:36:30.293Z`.
+- Therefore the stable production alias is on a post-live-env-update deployment for the currently observed Stripe production env metadata.
+
+Safe verification run:
+
+```text
+npm run test:billing
+npm run typecheck
+npm run qa:pro-tier-gating
+```
+
+Results:
+
+- `npm run test:billing`: pass, `23/23`.
+- `npm run typecheck`: pass.
+- `npm run qa:pro-tier-gating`: pass.
+- QA gating account: `atlas-fitness-tier-qa@fawxzzy.test`.
+- QA base URL: `http://127.0.0.1:3002`.
+- Free gate verified: `3` visible routines and `14` visible saved workout plans.
+- Pro gate verified: `5` routines and `16` saved workout plans visible after Pro entitlement fixture.
+
+Result:
+
+- Redeploy-after-env remains closed for the currently observed production env metadata.
+- Server-key rotation is intentionally deferred by operator risk acceptance.
+- Final paid live smoke remains blocked until explicit operator approval for a bounded real-money test.
+- Business/legal/support/refund/geography/deletion decisions remain launch blockers.
+
 ## Dirty Worktree Classification
 
 The Fitness repo had a broad pre-existing dirty worktree before this receipt was added:
