@@ -21,8 +21,9 @@ This pass classifies the current live paid launch blockers after sandbox proof c
 - Pro capacity gate proof: closed for the local QA proof lane on `2026-07-08`.
 - Live product naming: closed.
 - Live webhook destination creation: closed.
-- Live production Stripe env installation: closed for the current live values, but the live secret key must be rotated because it was exposed during setup.
-- Live paid launch proof: not closed.
+- Live production Stripe env installation: closed for the current live values.
+- Live no-charge webhook readiness smoke: closed.
+- Live paid transaction proof: not closed.
 
 The app-side recurring Pro implementation is materially ready for live configuration review, but live mode is not launch-ready.
 
@@ -58,14 +59,14 @@ The live paid launch remains blocked until all items below are closed with opera
 | Blocker | Current state | Required closure |
 | --- | --- | --- |
 | Live Stripe product name | Closed. Product is now `Fawxzzy Fitness Pro Monthly`. | Re-verify on final live checkout/portal smoke. |
-| Live webhook endpoint | Closed. Live destination `we_1Tqldd1n5lBbRYoVkvltrp1J` points at `/api/billing/webhook/stripe`. | Re-verify delivery after production is redeployed. |
-| Live webhook events | Closed. Destination is listening to the six required events. | Re-verify on final live delivery smoke. |
+| Live webhook endpoint | Closed. Live destination `we_1Tqldd1n5lBbRYoVkvltrp1J` points at `/api/billing/webhook/stripe`. | Re-verify on final paid smoke only if webhook config changes. |
+| Live webhook events | Closed. Destination is listening to the six required events. | Re-verify on final paid smoke only if webhook config changes. |
 | Vercel production publishable key mode | Closed by env metadata refresh. Live publishable keys were installed without printing values. | Re-verify checkout uses live mode after redeploy. |
-| Vercel production server key mode | Installed, but the provided live key was exposed in chat and once in terminal output during setup. | Rotate to a new live secret or restricted live key, reinstall it in Vercel production, then revoke the exposed key. |
-| Vercel production webhook secret | Closed by env metadata refresh for live endpoint `we_1Tqldd1n5lBbRYoVkvltrp1J`. | Re-verify live event delivery after redeploy. |
-| Production redeploy after env change | Not yet performed for final live env. | Redeploy after Vercel production env changes; previous deployments do not receive changed env values. |
-| Stripe public legal links | Prior audit says live Terms and Privacy links are not set. | Set Stripe public business Terms and Privacy URLs to the production legal routes. |
-| Customer Portal return behavior | Not final-proofed for live. | Confirm live portal return/default redirect path lands back on the production account/settings Pro surface. |
+| Vercel production server key mode | Closed by redacted env readback and no-charge live Checkout Session creation. Operator accepted the installed live server key state. | Re-verify on final paid smoke only if env changes. |
+| Vercel production webhook secret | Closed by signed live event delivery for endpoint `we_1Tqldd1n5lBbRYoVkvltrp1J`. | Re-verify on final paid smoke only if env changes. |
+| Production redeploy after env change | Closed. Stable alias points at post-env deployment `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`. | Redeploy again only if env/code changes before launch. |
+| Stripe public legal links | Closed. Live Stripe public business details persist production Terms and Privacy URLs. | Re-verify links on final live Checkout/Portal smoke. |
+| Customer Portal return behavior | Not final-proofed for live because the no-charge smoke did not create a live paid customer. | Confirm app-started live portal return/default redirect path lands back on the production account/settings Pro surface once a bounded live paid customer exists. |
 | Support path | Operator decision still open. | Choose monitored Discord-private, mailbox, or ticket path and record accepted risk. |
 | Refund posture | Operator/legal decision still open. | Record refund window, partial-month posture, duplicate payment handling, disputes/chargebacks, and Stripe refund handling. |
 | Launch geography | Operator/legal decision still open. | Record launch geography and any consumer health-data review obligations. |
@@ -82,25 +83,21 @@ Live paid launch must remain blocked if any of these are true:
 - Live product can surface as `test`.
 - Production public key shape is still `pk_test_...`.
 - Live webhook endpoint is missing or unverified.
-- The exposed live secret key has not been rotated and reinstalled.
-- Production has not been redeployed after live env changes.
+- Production is not on a post-env-change deployment.
 - Portal cancellation or return behavior is not verified for live.
 - Terms or Privacy links are missing from Stripe public business information.
 - Support, refund, geography, legal entity, or active-subscription deletion decisions remain open.
 - A live test could charge a real user without explicit operator approval.
 
-### `READY-FOR-OPERATOR-LIVE-CONFIG`
+### `READY-FOR-BOUNDED-PAID-SMOKE`
 
-The lane can move from `NO-GO` to `READY-FOR-OPERATOR-LIVE-CONFIG` only after the operator accepts the legal/business decisions and prepares to manually configure live Stripe and Vercel settings.
-
-### `READY-FOR-BOUNDED-LIVE-SMOKE`
-
-The lane can move to `READY-FOR-BOUNDED-LIVE-SMOKE` only after:
+The lane can move to `READY-FOR-BOUNDED-PAID-SMOKE` only after:
 
 - live Stripe product, price, webhook, portal, and public legal links are configured;
-- Vercel production env uses live key shapes, a rotated live server key, and live webhook signing secret;
+- Vercel production env uses live key shapes and live webhook signing secret;
 - production is redeployed after env changes;
-- the operator explicitly approves the exact bounded live smoke and any real-money handling.
+- no-charge live webhook delivery has passed;
+- the operator explicitly approves the exact bounded paid live smoke and any real-money handling.
 
 ## Human Operator Actions Required
 
@@ -108,13 +105,13 @@ The lane can move to `READY-FOR-BOUNDED-LIVE-SMOKE` only after:
 2. Confirm the final live `$5/month` recurring price.
 3. Re-verify the live webhook destination at the production HTTPS endpoint.
 4. Re-verify required live webhook events.
-5. Rotate the exposed live Stripe secret key, reinstall the rotated value in Vercel production, and revoke the exposed key.
+5. Confirm production Stripe server key env metadata remains present.
 6. Confirm production public key shape is `pk_live_...`.
-7. Confirm production server key is the rotated live server key or a live restricted key.
+7. Confirm production server key is accepted for live checkout by final smoke.
 8. Re-verify production `STRIPE_PRO_STANDARD_PRICE_ID` is the final live recurring price id.
 9. Re-verify `STRIPE_PRO_ACTIVE_PRICE_MODE` is `standard` unless the operator intentionally launches a different live offer.
-10. Redeploy production after Vercel env changes.
-11. Set Stripe public business Terms and Privacy links.
+10. ~~Redeploy production after Vercel env changes.~~ Closed on `2026-07-07` with `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`.
+11. Re-verify Stripe public business Terms and Privacy links on final live Checkout/Portal smoke.
 12. Confirm Customer Portal cancellation behavior and return URL.
 13. Choose support path and record the accepted support SLA/risk.
 14. Finalize refund posture.
@@ -176,14 +173,38 @@ Completed:
 - Vercel production `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and `STRIPE_PUBLISHABLE_KEY` refreshed with live publishable key values.
 - Vercel production `STRIPE_SECRET_KEY` refreshed with the operator-provided live secret key.
 - Vercel production `STRIPE_WEBHOOK_SECRET` refreshed with the signing secret for `we_1Tqldd1n5lBbRYoVkvltrp1J`.
-- No production deploy was performed after the env refresh.
+- Production deploy was later performed after env repair and app-side env normalization.
 
 Blocked:
 
-- Stripe public business Terms/Privacy URL save failed because Stripe Dashboard showed an internal page issue after the fields were filled. A reload showed the links were not persisted.
+- Initial Stripe public business Terms/Privacy URL save failed because Stripe Dashboard showed an internal page issue after the fields were filled. A reload showed the links were not persisted.
 - Stripe API account update also could not persist public legal URLs because Stripe rejects using that account-update method on the platform account itself.
-- The operator-provided live secret key was exposed in chat and accidentally printed once during the Vercel env write attempt. Treat it as compromised and rotate before launch.
-- Vercel still needs production redeploy after rotated-key installation before any live checkout.
+- Follow-up Dashboard pass from the signed-in in-app browser saved both legal URLs and reopened the editor to verify persisted values:
+  - `https://fawxzzy-fitness-local.vercel.app/privacy`
+  - `https://fawxzzy-fitness-local.vercel.app/terms`
+- Operator reviewed the live server key exposure concern and did not classify it as a launch blocker.
+- Vercel production redeploy is now closed for the repaired live env setup.
+
+## 2026-07-07 Production Redeploy And No-Charge Live Smoke
+
+Completed:
+
+- Added app-side env normalization for literal `\r\n` suffixes from Vercel CLI stdin writes.
+- `npm run test:billing`: passed, `23/23`.
+- `npm run verify`: passed.
+- Deployed production deployment `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`.
+- Stable alias `https://fawxzzy-fitness-local.vercel.app` points at `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`.
+- Redacted production env readback showed cleaned live billing values with expected live prefixes and lengths.
+- Created live Checkout Session `cs_live_a1EQzcOj0aivMIdcA3kF04VXa2WB9AgxFRqFtgqCCsUVrOLTxSsAxPLHIZ` in subscription mode and immediately expired it unpaid.
+- Stripe event `evt_1TqmOH1n5lBbRYoVW3er3wW4` reached `pending_webhooks=0`.
+- Vercel logs showed signed live webhook delivery: `POST /api/billing/webhook/stripe` returned `200` on `fawxzzy-fitness-local.vercel.app` at `2026-07-07 23:43:18 EDT`.
+- No live payment was completed and no real customer was charged.
+
+Remaining:
+
+- App-started live Customer Portal return behavior still needs proof from a bounded live paid customer.
+- Final real-money smoke still requires explicit operator approval.
+- Business/legal/support/deletion/geography decisions remain launch blockers.
 
 ## Read-Only Vercel Recheck
 
@@ -205,10 +226,10 @@ Findings:
 
 Result:
 
-- Redeploy-after-env remains open.
-- Live server key rotation remains open because the installed live server key was exposed during setup.
-- Do not run live readiness smoke yet.
-- Next operator action is rotate/reinstall the live server key, then production redeploy after final live env setup, then bounded live smoke.
+- Redeploy-after-env is now closed by `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R`.
+- No-charge live webhook smoke is now closed.
+- Do not run final paid live smoke yet.
+- Next operator action is Customer Portal live return proof after a bounded paid customer exists, plus the remaining business/legal/support decisions.
 
 ## Dirty Worktree Classification
 

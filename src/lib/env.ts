@@ -59,7 +59,7 @@ export function mustGetEnv(name: string): string {
       : name === SUPABASE_ANON_KEY_ENV
         ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
         : process.env[name];
-  const value = rawValue?.trim();
+  const value = normalizeEnvValue(rawValue);
 
   if (!value) {
     throw new Error(
@@ -87,8 +87,12 @@ export function LEGACY_SUPABASE_ANON_KEY(): string {
 }
 
 export function optionalEnv(name: string): string | null {
-  const value = process.env[name]?.trim();
+  const value = normalizeEnvValue(process.env[name]);
   return value && value.length > 0 ? value : null;
+}
+
+function normalizeEnvValue(value: string | undefined): string | undefined {
+  return value?.replace(/(?:\\r|\\n)+$/g, "").trim();
 }
 
 function optionalBooleanEnv(name: string, fallback = false): boolean {

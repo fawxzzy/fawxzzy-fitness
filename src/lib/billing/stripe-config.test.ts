@@ -34,6 +34,9 @@ test("getStripeBillingConfigSnapshot defaults to an unconfigured state when Stri
       STRIPE_SECRET_KEY: undefined,
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: undefined,
       STRIPE_WEBHOOK_SECRET: undefined,
+      STRIPE_PRO_FOUNDING_PRICE_ID: undefined,
+      STRIPE_PRO_STANDARD_PRICE_ID: undefined,
+      STRIPE_PRO_ACTIVE_PRICE_MODE: undefined,
       STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID: undefined,
       STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID: undefined,
       STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE: undefined,
@@ -52,6 +55,27 @@ test("getStripeBillingConfigSnapshot defaults to an unconfigured state when Stri
     checkoutConfigured: false,
     recurringInterval: "month",
   });
+});
+
+test("getStripeBillingConfigSnapshot normalizes literal escaped newline suffixes from Vercel env input", () => {
+  const snapshot = withEnv(
+    {
+      STRIPE_SECRET_KEY: "sk_live_normalized\\r\\n",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_normalized\\r\\n",
+      STRIPE_WEBHOOK_SECRET: "whsec_normalized\\r\\n",
+      STRIPE_PRO_FOUNDING_PRICE_ID: undefined,
+      STRIPE_PRO_STANDARD_PRICE_ID: "price_live_monthly\\r\\n",
+      STRIPE_PRO_ACTIVE_PRICE_MODE: "standard\\r\\n",
+      STRIPE_LIFETIME_PRO_FOUNDING_PRICE_ID: undefined,
+      STRIPE_LIFETIME_PRO_STANDARD_PRICE_ID: undefined,
+      STRIPE_LIFETIME_PRO_ACTIVE_PRICE_MODE: undefined,
+    },
+    () => getStripeBillingConfigSnapshot(),
+  );
+
+  assert.equal(snapshot.activePriceMode, "standard");
+  assert.equal(snapshot.activePriceId, "price_live_monthly");
+  assert.equal(snapshot.checkoutConfigured, true);
 });
 
 test("getStripeBillingConfigSnapshot prefers the founding offer when only the founding price is configured", () => {

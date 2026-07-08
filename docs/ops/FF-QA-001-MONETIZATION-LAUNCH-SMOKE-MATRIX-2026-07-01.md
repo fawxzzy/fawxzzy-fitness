@@ -1,5 +1,19 @@
 # FF-QA-001 Monetization Launch Smoke Matrix - 2026-07-01
 
+## Current Launch Status
+
+Live paid production is NO-GO.
+
+Reason:
+
+- Legal copy is improved but counsel-open.
+- Pro offer is aligned to capacity-only gates.
+- Stripe sandbox checkout, Customer Portal proof, sandbox signed current-deploy webhook freshness, live env installation, production redeploy, and no-charge live webhook delivery are complete.
+- Interim private billing/privacy/deletion support copy is present, but the final monitored intake mechanism is not business/legal closed.
+- Live Stripe/Vercel/domain/webhook configuration is mostly verified; final live readiness still requires live Customer Portal return proof, business/legal/support closure, and an explicitly approved bounded paid smoke.
+
+No production paid launch may proceed until the billing proof packet, support path, counsel review, and final smoke matrix are complete.
+
 ## Purpose
 
 `FF-QA-001` is the final paid-launch release gate for Fitness.
@@ -50,6 +64,14 @@ Additional operator note:
 - As of `2026-07-01`, `FF-CORE-001`, `FF-CORE-002`, `FF-PWA-001`, `FF-LEGAL-001`, and `FF-MON-002` are already proof-closed.
 - `FF-BETA-001` is now defined as a live execution packet and still requires real tester evidence.
 - `FF-MON-001` remains the truthful umbrella gate that cannot close until beta and final smoke proof are both complete.
+- As of `2026-07-06`, `FF-MON-001` has additional proof for recurring Pro app UI, production env-name alignment, corrected Stripe sandbox webhook destination, and signed webhook delivery with `pending_webhooks=0`; the remaining proof gap is human-operated hosted checkout completion because Stripe hCaptcha blocks truthful autonomous payment entry.
+- As of `2026-07-07`, live paid launch is still `no-go` until the business/legal/support blockers are closed: final business entity, launch geography, final monitored private paid-support path, refund posture, account deletion versus active subscription procedure, health-data exposure review, signed live Stripe/Customer Portal/webhook verification, and keep/main Vercel project/domain verification.
+- As of `2026-07-07`, the stable Vercel alias is verified on fresh deployment `dpl_2rrQPh4hjDsG1eat8vvtQdvQxnhD`, and the webhook route fail-closes without a Stripe signature. The remaining webhook freshness proof is a signed Stripe Dashboard resend or new sandbox checkout event hitting that fresh deployment.
+- As of `2026-07-07`, `/privacy` and `/terms` return `200` without auth cookies on the stable production alias and include the interim private-support/legal-warning copy required for checkout review.
+- As of `2026-07-07`, Stripe Dashboard resend of `evt_1Tqeg71z3plnI3SEbX5Ax7uv` proof-closed sandbox current-deploy signed webhook freshness: Dashboard showed a fresh `200 OK` manual retry, Vercel production logs showed `POST /api/billing/webhook/stripe` returning `200` on deployment `dpl_2rrQPh4hjDsG1eat8vvtQdvQxnhD`, and Supabase stored `raw_event_id = evt_1Tqeg71z3plnI3SEbX5Ax7uv` with `purchase_kind = pro_subscription`.
+- As of `2026-07-07`, the remaining legal support blocker has a decision packet at `docs/ops/FF-LEGAL-001-PRIVATE-SUPPORT-DECISION-PACKET-2026-07-07.md`; the operator still needs to pick and accept the final monitored support path before live paid launch.
+- As of `2026-07-07`, live Stripe config audit is captured at `docs/ops/FF-MON-001-LIVE-STRIPE-CONFIG-AUDIT-2026-07-07.md`; the live product was renamed to `Fawxzzy Fitness Pro Monthly`, live webhook destination `we_1Tqldd1n5lBbRYoVkvltrp1J` is the single enabled live endpoint for the stable production alias, Vercel production live publishable keys, live server key, live webhook secret, recurring price id, and price mode were refreshed, and Stripe public business Terms/Privacy URLs were persisted.
+- As of `2026-07-07`, production redeploy and no-charge live webhook smoke are proof-closed: deployment `dpl_HZKzo5XwakgyBj1KGBdpNS1HbK1R` is aliased at `https://fawxzzy-fitness-local.vercel.app`; live Checkout Session `cs_live_a1EQzcOj0aivMIdcA3kF04VXa2WB9AgxFRqFtgqCCsUVrOLTxSsAxPLHIZ` was created and immediately expired unpaid; Stripe event `evt_1TqmOH1n5lBbRYoVW3er3wW4` reached `pending_webhooks=0`; Vercel logs showed `POST /api/billing/webhook/stripe` returned `200`.
 
 ## Severity Contract
 
@@ -237,12 +259,18 @@ Goal:
 
 Checks:
 
+- Pro copy presents the current offer as capacity-only: unlimited routines and unlimited saved workout plans
+- Free copy presents the current limits: 3 routines and 14 saved workout plans
+- Pro copy does not claim advanced progression, progression receipts, review tools, coaching, AI coaching, or medical-grade guidance
 - Stripe checkout success grants Pro
 - checkout cancel returns safely without false entitlement
 - checkout failure is handled clearly
 - entitlement reflects in UI immediately or with a bounded refresh
 - returning Pro user keeps entitlement after relog and reopen
 - free users do not get accidental Pro access
+- Manage Billing opens Stripe Customer Portal from the app
+- cancel-at-period-end preserves Pro through the paid period
+- expired/canceled access downgrades after the entitlement window ends
 
 Default failure severity:
 
