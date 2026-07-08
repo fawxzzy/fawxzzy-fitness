@@ -4,7 +4,9 @@
 
 Live paid production is `NO-GO`.
 
-This is a Fitness owner-lane readiness receipt. It does not mutate Stripe live mode, Vercel environment variables, deployments, ATLAS root state, Mazer, Supabase data, or secrets.
+This is a Fitness owner-lane readiness receipt. The original receipt did not mutate Stripe live mode, Vercel environment variables, deployments, ATLAS root state, Mazer, Supabase data, or secrets.
+
+Update on `2026-07-07`: a bounded live-configuration pass did mutate live Stripe and Vercel production env state as explicitly approved by the operator. See "Live Configuration Update" below.
 
 ## Scope
 
@@ -17,6 +19,9 @@ This pass classifies the current live paid launch blockers after sandbox proof c
 - Sandbox cancel-at-period-end proof: closed.
 - Current-deploy sandbox webhook freshness proof: closed.
 - Pro capacity gate proof: closed for the local QA proof lane on `2026-07-08`.
+- Live product naming: closed.
+- Live webhook destination creation: closed.
+- Live production recurring price id/mode env: partially closed.
 - Live paid launch proof: not closed.
 
 The app-side recurring Pro implementation is materially ready for live configuration review, but live mode is not launch-ready.
@@ -52,9 +57,9 @@ The live paid launch remains blocked until all items below are closed with opera
 
 | Blocker | Current state | Required closure |
 | --- | --- | --- |
-| Live Stripe product name | Live product was audited as `test`. | Rename or replace with the final customer-facing product name before users can see receipts, invoices, checkout, or portal surfaces. |
-| Live webhook endpoint | No live webhook destination was configured in the live account audit. | Create the live HTTPS webhook destination for `/api/billing/webhook/stripe`. |
-| Live webhook events | Not configured in live mode. | Include at minimum `checkout.session.completed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.paid`. |
+| Live Stripe product name | Closed. Product is now `Fawxzzy Fitness Pro Monthly`. | Re-verify on final live checkout/portal smoke. |
+| Live webhook endpoint | Closed. Live destination `we_1TqlES1n5lBbRYoVNF2MxcIq` points at `/api/billing/webhook/stripe`. | Re-verify delivery after live signing secret is installed and production is redeployed. |
+| Live webhook events | Closed. Destination is listening to the six required events. | Re-verify on final live delivery smoke. |
 | Vercel production publishable key mode | Prior audit observed test-mode public key shape in production env pull. | Production browser key must use live publishable key shape, recorded only as `pk_live_...`. |
 | Vercel production server key mode | Not proven live-mode ready. | Production server key must be a live secret or restricted live key. Do not commit or print the value. |
 | Vercel production webhook secret | Not proven for a live webhook endpoint. | Install the signing secret from the live webhook endpoint into Vercel production. Do not commit or print the value. |
@@ -99,15 +104,15 @@ The lane can move to `READY-FOR-BOUNDED-LIVE-SMOKE` only after:
 
 ## Human Operator Actions Required
 
-1. Rename or replace the live Stripe product currently named `test`.
+1. Re-verify live product name on final Checkout/Portal smoke.
 2. Confirm the final live `$5/month` recurring price.
-3. Configure the live webhook destination at the production HTTPS endpoint.
-4. Select required live webhook events.
-5. Copy the live webhook signing secret into Vercel production manually.
+3. Re-verify the live webhook destination at the production HTTPS endpoint.
+4. Re-verify required live webhook events.
+5. Copy the live webhook signing secret from `we_1TqlES1n5lBbRYoVNF2MxcIq` into Vercel production manually.
 6. Confirm production public key shape is `pk_live_...`.
 7. Confirm production server key is a live server key or live restricted key.
-8. Set production `STRIPE_PRO_STANDARD_PRICE_ID` to the final live recurring price id.
-9. Keep `STRIPE_PRO_ACTIVE_PRICE_MODE` set to `standard` unless the operator intentionally launches a different live offer.
+8. Re-verify production `STRIPE_PRO_STANDARD_PRICE_ID` is the final live recurring price id.
+9. Re-verify `STRIPE_PRO_ACTIVE_PRICE_MODE` is `standard` unless the operator intentionally launches a different live offer.
 10. Redeploy production after Vercel env changes.
 11. Set Stripe public business Terms and Privacy links.
 12. Confirm Customer Portal cancellation behavior and return URL.
@@ -146,6 +151,35 @@ Results:
 - QA base URL: `http://127.0.0.1:3002`.
 - Free gate verified: `3` visible routines and `14` visible saved workout plans.
 - Pro gate verified: `5` routines and `16` saved workout plans visible after Pro entitlement fixture.
+
+## Live Configuration Update
+
+Date: `2026-07-07`
+
+Approved operator action: mutate live Stripe/Vercel configuration short of live charge or production deploy.
+
+Completed:
+
+- Live Stripe product `prod_Uo67WohHiQI1qE` renamed to `Fawxzzy Fitness Pro Monthly`.
+- Live Stripe webhook destination `we_1TqlES1n5lBbRYoVNF2MxcIq` created.
+- Live destination endpoint set to `https://fawxzzy-fitness-local.vercel.app/api/billing/webhook/stripe`.
+- Live destination status shown as active.
+- Live destination selected six required events:
+  - `checkout.session.completed`
+  - `checkout.session.expired`
+  - `customer.subscription.created`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+  - `invoice.paid`
+- Vercel production `STRIPE_PRO_STANDARD_PRICE_ID` refreshed to the live monthly price id.
+- Vercel production `STRIPE_PRO_ACTIVE_PRICE_MODE` refreshed to `standard`.
+- No production deploy was performed after the partial env refresh.
+
+Blocked:
+
+- Stripe public business Terms/Privacy URL save failed because Stripe Dashboard showed an internal page issue after the fields were filled. A reload showed the links were not persisted.
+- Live webhook signing secret could be revealed in Stripe Dashboard, but the available browser bridge redacted the secret before it could be copied into Vercel.
+- Live `pk_live...` and `sk_live...` values were not installed. Vercel still needs live key installation and a production redeploy before any live checkout.
 
 ## Dirty Worktree Classification
 
